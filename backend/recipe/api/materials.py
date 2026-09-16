@@ -100,9 +100,13 @@ def reorder_recipe_materials(request, recipe_id: int, payload: RecipeMaterialReo
         recipe = _get_visible_recipe_or_404(request, recipe_id)
         _require_edit_permission(request, recipe)
 
-        items = list(_materials_for_recipe(recipe))
+        items = list(_materials_for_recipe(recipe).select_for_update())
         existing_ids = {item.id for item in items}
-        if set(payload.item_ids) != existing_ids:
+        if (
+            len(payload.item_ids) != len(existing_ids)
+            or len(set(payload.item_ids)) != len(payload.item_ids)
+            or set(payload.item_ids) != existing_ids
+        ):
             raise HttpError(400, "Die übermittelte Materialliste stimmt nicht mit dem Rezept überein.")
 
         item_by_id = {item.id: item for item in items}
@@ -164,28 +168,35 @@ def ai_apply_materials(request, recipe_id: int, payload: list[AiMaterialApplyIn]
 @router.patch("/{recipe_id}/materials/{item_id}/", response=RecipeMaterialOut)
 def update_recipe_material(request, recipe_id: int, item_id: int, payload: RecipeMaterialUpdateIn):
     """Update quantity or sort order of a recipe material link."""
-    recipe = _get_visible_recipe_or_404(request, recipe_id)
-    _require_edit_permission(request, recipe)
+    with transaction.atomic():
+        recipe = _get_visible_recipe_or_404(request, recipe_id)
+        recipe = Recipe.objects.select_for_update().get(pk=recipe.pk)
+        _require_edit_permission(request, recipe)
 
-    ct = _recipe_content_type()
-    item = get_object_or_404(ContentMaterialItem, id=item_id, content_type=ct, object_id=recipe.pk)
+        ct = _recipe_content_type()
+        item = get_object_or_404(
+            ContentMaterialItem.objects.select_for_update(), id=item_id, content_type=ct, object_id=recipe.pk
+        )
+        data = payload.dict(exclude_unset=True)
+        for field, value in data.items():
+            setattr(item, field, value)
+        if data:
+            item.save(update_fields=list(data.keys()))
 
-    data = payload.dict(exclude_unset=True)
-    for field, value in data.items():
-        setattr(item, field, value)
-    if data:
-        item.save(update_fields=list(data.keys()))
-
-    return ContentMaterialItem.objects.select_related("material").get(id=item.id)
+        return ContentMaterialItem.objects.select_related("material").get(id=item.id)
 
 
 @router.delete("/{recipe_id}/materials/{item_id}/", response={204: None})
 def delete_recipe_material(request, recipe_id: int, item_id: int):
     """Remove a material link from a recipe."""
-    recipe = _get_visible_recipe_or_404(request, recipe_id)
-    _require_edit_permission(request, recipe)
+    with transaction.atomic():
+        recipe = _get_visible_recipe_or_404(request, recipe_id)
+        recipe = Recipe.objects.select_for_update().get(pk=recipe.pk)
+        _require_edit_permission(request, recipe)
 
-    ct = _recipe_content_type()
-    item = get_object_or_404(ContentMaterialItem, id=item_id, content_type=ct, object_id=recipe.pk)
-    item.delete()
+        ct = _recipe_content_type()
+        item = get_object_or_404(
+            ContentMaterialItem.objects.select_for_update(), id=item_id, content_type=ct, object_id=recipe.pk
+        )
+        item.delete()
     return Status(204, None)

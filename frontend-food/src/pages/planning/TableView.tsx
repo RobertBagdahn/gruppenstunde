@@ -494,7 +494,7 @@ export default function TableView({
                                                   <span
                                                     className={cn(
                                                       "text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground shrink-0 max-w-[130px] truncate",
-                                                      item.has_missing_weight && "text-orange-500"
+                                                       item.has_missing_weight && "text-destructive"
                                                     )}
                                                     title={portionLabel}
                                                   >

@@ -242,14 +242,15 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
 
                 recipe = item.recipe
                 item_portions = meal.effective_portions
-                recipe_cost = (recipe.cached_price_total or 0) * item_portions / max(recipe.portions or 1, 1)
+                recipe_scale = item_portions * meal_plan.reserve_factor / max(recipe.portions or 1, 1)
+                recipe_cost = (recipe.cached_price_total or 0) * recipe_scale
                 day_cost += recipe_cost
-                recipe_energy = (recipe.cached_energy_total_kcal or 0) * item_portions / max(recipe.portions or 1, 1)
+                recipe_energy = (recipe.cached_energy_total_kcal or 0) * recipe_scale
 
                 ingredients = []
                 for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").all():
                     if ri.portion and ri.portion.ingredient:
-                        scale = item_portions * meal_plan.reserve_factor / max(recipe.portions or 1, 1)
+                        scale = recipe_scale
                         qty = float(ri.quantity) * scale
                         unit = ri.portion.measuring_unit.name if ri.portion.measuring_unit else ""
                         ingredients.append(
@@ -262,7 +263,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
 
                 steps = _resolve_recipe_steps_for_pdf(
                     recipe,
-                    scale=item_portions * meal_plan.reserve_factor / max(recipe.portions or 1, 1),
+                    scale=recipe_scale,
                 )
                 allergens = _get_recipe_allergens(recipe)
                 recipe_name = item.display_name or recipe.title
@@ -282,7 +283,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                     }
                 )
 
-        day_cost_total = day_cost * meal_plan.reserve_factor
+        day_cost_total = day_cost
         total_cost += day_cost_total
         total_energy += recipe_energy
 

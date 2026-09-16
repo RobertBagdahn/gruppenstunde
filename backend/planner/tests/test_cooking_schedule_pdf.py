@@ -158,7 +158,7 @@ class TestCookingSchedulePdfAPI:
         user = auth_client._user
         plan = make_meal_plan(created_by=user)
         resp = auth_client.get(f"/api/meal-plans/{plan.id}/cooking-schedule/export/pdf/")
-        assert resp.status_code == 200
+        assert resp.status_code == 404
 
     @pytest.mark.django_db
     def test_export_cooking_schedule_invalid_page_format(self, auth_client):

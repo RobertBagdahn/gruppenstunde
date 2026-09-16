@@ -8,6 +8,7 @@ from ninja.errors import HttpError
 
 from core.services.gemini import (
     CACHE_KEY,
+    DEFAULT_TEXT_MODEL,
     GLOBAL_LIMIT,
     WINDOW_SECONDS,
     gemini_call,
@@ -121,6 +122,33 @@ class TestErrorHandling:
             gemini_call(user=user, model="test", contents="hello")
         assert exc_info.value.status_code == 503
 
+    @patch("core.services.gemini._get_client")
+    @pytest.mark.django_db
+    def test_text_calls_use_global_flash_lite_with_flex(self, mock_get_client, user):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        response = MagicMock(text='{"ok": true}')
+        response.usage_metadata = None
+        mock_client.models.generate_content.return_value = response
+
+        gemini_call(user=user, model="gemini-3.1-flash-lite", contents="hello")
+
+        kwargs = mock_client.models.generate_content.call_args.kwargs
+        assert kwargs["model"] == DEFAULT_TEXT_MODEL
+        assert kwargs["config"].http_options.headers == {"X-Vertex-AI-LLM-Request-Type": "flex"}
+
+    @patch("core.services.gemini._get_client")
+    @pytest.mark.django_db
+    def test_unexpected_provider_error_raises_503(self, mock_get_client, user):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.models.generate_content.side_effect = RuntimeError("invalid provider configuration")
+
+        with pytest.raises(HttpError) as exc_info:
+            gemini_call(user=user, model="test", contents="hello")
+        assert exc_info.value.status_code == 503
+        assert "invalid provider configuration" in str(exc_info.value)
+
 
 class TestImageCall:
     def test_image_call_uses_image_client(self, user):
@@ -158,7 +186,7 @@ class TestCostCalculation:
         um = SimpleNamespace(
             prompt_token_count=1_000_000, candidates_token_count=1_000_000, thoughts_token_count=1_000_000
         )
-        result = _calculate_cost_eur("gemini-3.1-flash-lite", um)
+        result = _calculate_cost_eur(DEFAULT_TEXT_MODEL, um)
         # input 1M -> 0.25 USD, output 1M -> 1.50 USD, total 1.75 USD * 0.92 = 1.61 EUR.
         # Double-counting thoughts would yield 3.25 USD * 0.92 = 2.99 EUR.
         assert result == "1.610000"
@@ -166,4 +194,4 @@ class TestCostCalculation:
     def test_missing_usage_metadata_returns_none(self):
         from core.services.gemini import _calculate_cost_eur
 
-        assert _calculate_cost_eur("gemini-3.1-flash-lite", None) is None
+        assert _calculate_cost_eur(DEFAULT_TEXT_MODEL, None) is None

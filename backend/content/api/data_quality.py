@@ -53,6 +53,7 @@ from content.schemas.data_quality import (
 )
 from content.services.audit_service import get_audit_log_queryset
 from supply.models import Ingredient, IngredientPriceProposal
+from supply.services.price_service import is_missing_price
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +152,7 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
                     "retail_section": ing.retail_section.name if ing.retail_section else None,
                     "z_score": None,
                     "anomaly_type": anomaly,
-                    "price_source": "ai_accepted" if ing.id in ai_accepted_ids else None,
+                    "price_source": "ai_accepted" if ing.id in ai_accepted_ids else "missing",
                 }
             )
             continue
@@ -193,6 +194,8 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
 @admin_router.post("/ingredients/price-analysis/evaluate/", response=PriceEvaluateResponseOut)
 def price_evaluate(request, body: PriceEvaluateRequestIn):
     _require_staff(request)
+    from supply.services.price_service import is_missing_price
+
     if not body.ingredient_ids:
         raise HttpError(400, "Keine Zutaten ausgewählt")
 
@@ -204,7 +207,7 @@ def price_evaluate(request, body: PriceEvaluateRequestIn):
     for ing in ingredients[:50]:
         entry = PriceSuggestionOut(
             ingredient_id=ing.id,
-            current_price=str(ing.price_per_kg) if ing.price_per_kg else None,
+            current_price=str(ing.price_per_kg) if not is_missing_price(ing.price_per_kg) else None,
             suggested_price=None,
             reasoning="",
         )
@@ -805,7 +808,7 @@ def ingredient_completeness(request, page: int = 1, page_size: int = 20):
         if is_missing_price(ing.price_per_kg):
             price_status = "pending" if ing.id in pending_ids else "missing"
             price_score = 0.0
-            price_source = "ai_accepted" if ing.id in ai_accepted_ids else None
+            price_source = "ai_accepted" if ing.id in ai_accepted_ids else "missing"
         else:
             price_status = "priced"
             price_score = 100.0
@@ -1127,7 +1130,7 @@ def ingredient_cost_distribution(
         tag_ids = [int(t) for t in tags.split(",") if t.strip()]
         qs = qs.filter(nutritional_tags__id__in=tag_ids).distinct()
 
-    prices = [float(ing.price_per_kg or 0) for ing in qs]
+    prices = [float(ing.price_per_kg) for ing in qs if not is_missing_price(ing.price_per_kg)]
     if not prices:
         return CostDistributionOut(
             buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0)

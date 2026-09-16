@@ -24,7 +24,12 @@ def _item_total_for_field(ri: RecipeItem, field: str, quantity_override: float |
         return 0.0
     ing = ri.portion.ingredient
     effective_quantity = quantity_override if quantity_override is not None else float(ri.quantity)
-    weight_g = effective_quantity * (ri.portion.weight_g or 0)
+    from supply.services.portion_resolution import resolve_trusted_weight
+
+    trusted_weight = resolve_trusted_weight(ri.portion)
+    if trusted_weight is None:
+        return 0.0
+    weight_g = effective_quantity * trusted_weight
     if field == "price":
         from supply.services.price_service import price_or_none
 

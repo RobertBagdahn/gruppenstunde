@@ -59,7 +59,7 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None,
             return match.group(0)
         # Find matching recipe item by name
         for item in recipe_items_map.values():
-            if item.portion.ingredient.name.lower() == name.lower():
+            if item.portion and item.portion.ingredient and item.portion.ingredient.name.lower() == name.lower():
                 return _format_quantity(item, scale)
         return match.group(0)  # Leave unresolved if not found
 
@@ -75,7 +75,9 @@ def _format_quantity(recipe_item: RecipeItem, scale: float = 1.0) -> str:
     """
     portion = recipe_item.portion
     if portion is None:
-        return ""
+        quantity = recipe_item.quantity * scale
+        qty_str = str(int(quantity)) if quantity == int(quantity) else f"{quantity:.1f}".rstrip("0").rstrip(".")
+        return f"{qty_str}g"
     quantity = recipe_item.quantity * scale
     unit = portion.measuring_unit
     ingredient = portion.ingredient

@@ -309,7 +309,11 @@ class RecipeAiIngredientsService:
                     )
 
             # Calculate quantity
-            weight_g = portion.weight_g if portion.weight_g and portion.weight_g > 0 else 1.0
+            from supply.services.portion_resolution import resolve_trusted_weight
+
+            weight_g = resolve_trusted_weight(portion)
+            if weight_g is None:
+                continue
             result.portion_id = portion.id
             result.portion_name = str(portion)
             result.quantity = round(result.quantity / weight_g, 2)

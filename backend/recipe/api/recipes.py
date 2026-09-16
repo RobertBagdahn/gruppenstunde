@@ -864,6 +864,17 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         missing_portion_ids = portion_ids - valid_portion_ids
         if missing_portion_ids:
             raise HttpError(400, f"Portionen nicht gefunden: {missing_portion_ids}")
+        from supply.services.portion_resolution import resolve_trusted_weight
+
+        unweighted_portion_ids = {
+            portion.id
+            for portion in Portion.objects.filter(id__in=portion_ids, deleted_at__isnull=True).select_related(
+                "measuring_unit"
+            )
+            if resolve_trusted_weight(portion) is None
+        }
+        if unweighted_portion_ids:
+            raise HttpError(422, f"Portionen ohne bestätigtes Gewicht: {sorted(unweighted_portion_ids)}")
 
         recipe.recipe_items.all().delete()
         for item_data in recipe_items_data:

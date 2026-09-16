@@ -46,6 +46,17 @@ Zutaten auf der Rezept-Detailseite SHALL die fachliche Portion beziehungsweise d
 - **WHEN** ein RecipeItem eine Stückportion ohne bestätigtes Gewicht verwendet
 - **THEN** wird die Stückmenge mit einer sichtbaren Warnung angezeigt
 - **THEN** darf kein scheinpräziser Grammbetrag erscheinen
+- **THEN** dürfen neue oder aktualisierte RecipeItems keine aktive Portion ohne positives Gewicht referenzieren
+
+#### Scenario: Historische Referenz bleibt lesbar
+- **WHEN** ein bestehendes Rezept eine historische ungewichtete Stückportion referenziert
+- **THEN** zeigt die Rezeptansicht die fachliche Stückmenge mit einer sichtbaren Reparaturwarnung
+- **THEN** zeigt sie keinen berechneten Grammbetrag an
+
+#### Scenario: Neue RecipeItem-Zeile mit ungewichteter Portion
+- **WHEN** ein User eine ungewichtete aktive Portion zu einem Rezept hinzufügen oder dafür speichern will
+- **THEN** MUSS das Backend die Operation ablehnen
+- **THEN** MUSS das Frontend eine gewichtete Portion oder den Portions-Reparaturfluss verlangen
 
 #### Scenario: Zutat ohne Einheit und Menge 0
 - **WHEN** ein RecipeItem eine Portion ohne `measuring_unit` hat und `quantity` = 0

@@ -23,9 +23,11 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
-GLOBAL_LIMIT = 100
+GLOBAL_LIMIT = 500
 WINDOW_SECONDS = 900  # 15 minutes
 CACHE_KEY = "gemini_global_calls"
+DEFAULT_TEXT_MODEL = "gemini-3.5-flash-lite"
+FLEX_SERVICE_TIER = "flex"
 
 EMBEDDING_LIMIT = 1000
 EMBEDDING_WINDOW_SECONDS = 300  # 5 minutes
@@ -180,6 +182,14 @@ def _check_embedding_limit(*, bypass_limits: bool) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _provider_error_detail(exc: Exception, fallback: str) -> str:
+    """Return a useful provider error without exposing a traceback."""
+    message = str(exc).strip()
+    if not message:
+        return fallback
+    return f"{fallback} Details: {message[:500]}"
+
+
 def _handle_gemini_exception(exc: Exception, context: str = "") -> NoReturn:
     """Map Gemini SDK exceptions to HTTP errors. Always raises."""
     from google.api_core.exceptions import DeadlineExceeded, GoogleAPIError, ServiceUnavailable
@@ -191,23 +201,26 @@ def _handle_gemini_exception(exc: Exception, context: str = "") -> NoReturn:
     if isinstance(exc, ServerError):
         if exc.code in (504, 408):
             logger.warning("Gemini %s timeout (code %d): %s", context, exc.code, exc)
-            raise GeminiUnavailableError("KI-Verarbeitung hat zu lange gedauert.") from exc
+            raise GeminiUnavailableError(_provider_error_detail(exc, "KI-Verarbeitung hat zu lange gedauert.")) from exc
         logger.warning("Gemini %s server error (code %d): %s", context, exc.code, exc)
-        raise GeminiUnavailableError() from exc
+        raise GeminiUnavailableError(_provider_error_detail(exc, "KI nicht erreichbar.")) from exc
     if isinstance(exc, APIError):
         logger.warning("Gemini %s API error (code %d): %s", context, getattr(exc, "code", 0), exc)
-        raise GeminiUnavailableError() from exc
+        raise GeminiUnavailableError(_provider_error_detail(exc, "KI nicht erreichbar.")) from exc
     if isinstance(exc, DeadlineExceeded):
         logger.warning("Gemini %s timeout: %s", context, exc)
-        raise GeminiUnavailableError("KI-Verarbeitung hat zu lange gedauert.") from exc
+        raise GeminiUnavailableError(_provider_error_detail(exc, "KI-Verarbeitung hat zu lange gedauert.")) from exc
     if isinstance(exc, ServiceUnavailable):
         logger.warning("Gemini %s unavailable: %s", context, exc)
-        raise GeminiUnavailableError() from exc
+        raise GeminiUnavailableError(_provider_error_detail(exc, "KI nicht erreichbar.")) from exc
     if isinstance(exc, GoogleAPIError):
         logger.warning("Gemini %s Google API error: %s", context, exc)
-        raise GeminiUnavailableError() from exc
+        raise GeminiUnavailableError(_provider_error_detail(exc, "KI nicht erreichbar.")) from exc
+    # Provider SDKs can also raise plain ValueError/RuntimeError instances
+    # (for example when a model or response schema is rejected locally). Do
+    # not expose those as Django 500 responses to callers of an AI feature.
     logger.exception("Gemini %s unexpected error", context)
-    raise
+    raise GeminiUnavailableError(_provider_error_detail(exc, "KI nicht erreichbar.")) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +422,7 @@ def gemini_call(
 
     Args:
         user: The authenticated user. Required unless bypass_limits=True.
-        model: Gemini model name (e.g. "gemini-3.1-flash-lite").
+        model: Gemini model name. Text calls use the global Flash-Lite model.
         contents: Prompt string or list of content parts.
         config: Optional GenerateContentConfig.
         bypass_limits: Skip auth and rate limit checks (for management commands).
@@ -426,6 +439,9 @@ def gemini_call(
         GeminiUpstreamRateLimitError: If Google returns 429.
         GeminiUnavailableError: If Gemini is unreachable.
     """
+    # Keep callers backwards-compatible while routing every text request to
+    # the single globally deployed Flash-Lite model.
+    model = DEFAULT_TEXT_MODEL
     _check_auth(user, bypass_limits=bypass_limits)
     _check_global_limit(bypass_limits=bypass_limits)
 
@@ -437,6 +453,18 @@ def gemini_call(
     if not client:
         _update_interaction(interaction, success=False, error_code="client_unavailable")
         return None, interaction_id
+
+    from google.genai import types
+
+    # Flex PayGo is selected through the Vertex request header, not through a
+    # service_tier field in the GenerateContent request body.
+    http_options = types.HttpOptions(
+        headers={"X-Vertex-AI-LLM-Request-Type": FLEX_SERVICE_TIER},
+    )
+    if config is not None:
+        config = config.model_copy(update={"http_options": http_options})
+    else:
+        config = types.GenerateContentConfig(http_options=http_options)
 
     return _execute_gemini_call(
         client=client,

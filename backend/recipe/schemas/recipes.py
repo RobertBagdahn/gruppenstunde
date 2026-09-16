@@ -48,9 +48,11 @@ class PriceCoverageOut(Schema):
     priced_ingredients: int
     missing_ingredients: int
     coverage: float | None = None  # 0..1, None when no ingredients
+    status: str = "missing"  # "complete" | "partial" | "missing"
+    affected_items: list[dict] = []
 
 
-def build_price_coverage(total: int, priced: int, missing: int) -> dict:
+def build_price_coverage(total: int, priced: int, missing: int, affected_items: list[dict] | None = None) -> dict:
     """Build a coverage payload from count fields."""
     coverage = round(priced / total, 4) if total else None
     return {
@@ -58,7 +60,31 @@ def build_price_coverage(total: int, priced: int, missing: int) -> dict:
         "priced_ingredients": priced,
         "missing_ingredients": missing,
         "coverage": coverage,
+        "status": "missing" if total == 0 or priced == 0 else ("complete" if missing == 0 else "partial"),
+        "affected_items": affected_items or [],
     }
+
+
+def build_recipe_price_coverage(recipe) -> dict:
+    """Build price coverage and identify recipe items without usable prices."""
+    from supply.services.price_service import is_missing_price
+
+    items = list(recipe.recipe_items.select_related("portion__ingredient").all())
+    affected_items = []
+    priced = 0
+    for item in items:
+        ingredient = item.portion.ingredient if item.portion else None
+        if ingredient is None or is_missing_price(ingredient.price_per_kg):
+            affected_items.append(
+                {
+                    "recipe_item_id": item.id,
+                    "ingredient_name": ingredient.name if ingredient else (item.note or "Zutat"),
+                    "reason": "missing_price",
+                }
+            )
+        else:
+            priced += 1
+    return build_price_coverage(len(items), priced, len(affected_items), affected_items)
 
 
 # --- Recipe List Schema (extends ContentListOut) ---
@@ -115,12 +141,7 @@ class RecipeListOut(ContentListOut):
 
     @staticmethod
     def resolve_price_coverage(obj) -> dict | None:
-        total = getattr(obj, "cached_price_ingredient_count", None)
-        if total is None:
-            return None
-        priced = getattr(obj, "cached_price_priced_count", 0) or 0
-        missing = getattr(obj, "cached_price_missing_count", 0) or 0
-        return build_price_coverage(total, priced, missing)
+        return build_recipe_price_coverage(obj)
 
     @staticmethod
     def resolve_shared_group_ids(obj) -> list:
@@ -229,12 +250,7 @@ class RecipeDetailOut(ContentDetailOut):
 
     @staticmethod
     def resolve_price_coverage(obj) -> dict | None:
-        total = getattr(obj, "cached_price_ingredient_count", None)
-        if total is None:
-            return None
-        priced = getattr(obj, "cached_price_priced_count", 0) or 0
-        missing = getattr(obj, "cached_price_missing_count", 0) or 0
-        return build_price_coverage(total, priced, missing)
+        return build_recipe_price_coverage(obj)
 
     @staticmethod
     def resolve_shared_groups(obj) -> list:

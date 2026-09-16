@@ -401,7 +401,10 @@ def calculate_breakfast_leftovers(request, data: BreakfastLeftoversIn) -> dict[s
 
         pkg = package_portions.get(t.ingredient_id)
         pkg_size = float(pkg.weight_g) if pkg and pkg.weight_g else None
-        price_per_kg = float(ing.price_per_kg) if ing.price_per_kg else None
+        from supply.services.price_service import price_or_none
+
+        price_value = price_or_none(ing.price_per_kg)
+        price_per_kg = float(price_value) if price_value is not None else None
 
         packages_needed: int | None = None
         leftover_g: float | None = None

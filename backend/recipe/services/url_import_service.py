@@ -424,7 +424,7 @@ def import_recipe_from_url(
                 unit = resolve_canonical_unit(nutrition.portion_name)
                 if unit is None:
                     unit = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
-                if unit is not None:
+                if unit is not None and nutrition.portion_weight_g is not None and nutrition.portion_weight_g > 0:
                     Portion.objects.get_or_create(
                         ingredient=new_ing,
                         name=nutrition.portion_name or unit.name,
@@ -1221,15 +1221,14 @@ def _create_new_ingredients(
 
         weight = data.portion_weight_g if data.portion_weight_g and data.portion_weight_g > 0 else None
 
-        Portion.objects.get_or_create(
-            ingredient=ingredient,
-            name=portion_name,
-            measuring_unit=unit,
-            quantity=1.0,
-            defaults={
-                "weight_g": weight,
-            },
-        )
+        if weight is not None:
+            Portion.objects.get_or_create(
+                ingredient=ingredient,
+                name=portion_name,
+                measuring_unit=unit,
+                quantity=1.0,
+                defaults={"weight_g": weight},
+            )
 
         # Store the ID on the match object for later reference
         ing.matched_ingredient_id = ingredient.id
@@ -1673,6 +1672,9 @@ def _resolve_portion(
             weight: float | None = portion_quantity * METRIC_CANONICAL_WEIGHTS.get(unit_name_lower, 1.0)
         else:
             weight = estimated_weight_g if estimated_weight_g > 0 else None
+
+        if weight is None:
+            return None
 
         if (
             not is_metric_base

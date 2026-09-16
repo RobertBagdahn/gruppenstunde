@@ -119,7 +119,14 @@ class TestRecipeItemPlausibilityGuard:
         recipe = make_recipe(portions=1, created_by=auth_client._user)
         ingredient = make_ingredient(name="Karotte")
         unit = make_measuring_unit(name="Stück", quantity=1.0, unit="stk")
-        portion = make_portion(ingredient=ingredient, measuring_unit=unit, name="1 Stück Karotte", weight_g=24.0, rank=1)
+        portion = make_portion(
+            ingredient=ingredient,
+            measuring_unit=unit,
+            name="1 Stück Karotte",
+            weight_g=24.0,
+            rank=1,
+            weight_status="confirmed",
+        )
         item = make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)
 
         resp = auth_client.patch(

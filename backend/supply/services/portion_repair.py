@@ -99,6 +99,23 @@ def _detect_reason(portion: Portion) -> str | None:
     return None
 
 
+def classify_repair_path(portion: Portion) -> tuple[str, float | None]:
+    """Classify a finding for the repair UI without mutating its portion."""
+    if portion.weight_g is not None and portion.weight_g > 0:
+        return "review", None
+    computed = portion.compute_weight_g(None)
+    if (
+        computed is not None
+        and computed > 0
+        and not _is_piece_like(portion.name)
+        and not _is_package_like(portion.name)
+    ):
+        return "automatic", float(computed)
+    if _is_piece_like(portion.name) or _is_package_like(portion.name):
+        return "review", None
+    return "delete", None
+
+
 def _build_before_snapshot(portion: Portion) -> dict:
     """Capture the portion values that a repair may change."""
     measuring_unit = portion.measuring_unit
@@ -180,6 +197,7 @@ def scan_suspicious_portions(*, dry_run: bool = False, limit: int | None = None)
             "finding_id": None,
             "created": False,
         }
+        report["repair_path"], report["suggested_weight_g"] = classify_repair_path(portion)
 
         if not dry_run:
             if latest is not None and latest.status in OPEN_STATUSES:
@@ -265,9 +283,12 @@ def _move_items_to_replacement(portion: Portion, replacement: Portion, intended_
     original portion. Returns the list of moved RecipeItem ids.
     """
     from recipe.models import RecipeItem
+    from supply.services.portion_resolution import resolve_trusted_weight
 
-    old_weight_g = portion.weight_g or 1.0
-    new_weight_g = replacement.weight_g or 1.0
+    old_weight_g = resolve_trusted_weight(portion)
+    new_weight_g = resolve_trusted_weight(replacement)
+    if old_weight_g is None or new_weight_g is None:
+        raise ValueError("Portion-Reparatur benötigt vertrauenswürdige Gewichte für Quelle und Ziel.")
 
     moved_ids: list[int] = []
     items = RecipeItem.objects.filter(portion=portion, id__in=intended_item_ids)
@@ -361,6 +382,18 @@ def apply_finding(
     proposal = finding.ai_proposal or {}
     if not proposal:
         raise ValueError(f"Finding {finding.id} has no AI proposal — cannot apply.")
+
+    proposed_weight = proposal.get("proposed_weight_g")
+    if finding.portion.weight_status == "ai_proposed" or proposed_weight is None or proposed_weight <= 0:
+        finding.status = PortionRepairStatus.PENDING_REVIEW
+        finding.save(update_fields=["status", "updated_at"])
+        return {
+            "applied": False,
+            "finding_id": finding.id,
+            "applied_portion_id": finding.applied_portion_id,
+            "moved_recipe_item_ids": finding.moved_recipe_item_ids or [],
+            "affected_recipe_ids": finding.affected_recipe_ids or [],
+        }
 
     with transaction.atomic():
         applied_portion, moved_ids, affected_recipe_ids = _apply_to_portion(

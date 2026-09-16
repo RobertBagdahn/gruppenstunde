@@ -20,7 +20,7 @@ Das food-frontend SHALL einen Menüpunkt "Datenqualität" in der Navigation anze
 - **THEN** SHALL der User auf `/recipes` weitergeleitet werden
 
 ### Requirement: Datenqualität Dashboard mit Kategorie-Auswahl
-Das Datenqualität-Dashboard SHALL zwei Hauptbereiche bieten: "Zutaten" und "Rezepte". Jeder Bereich SHALL Unterkategorien als Tabs oder Accordions anzeigen. Die Kategorie „Preisanalyse" SHALL fehlende, auf `0` gesetzte, vorgeschlagene und ausstehende KI-Preise unterscheiden und einen Bestätigungsworkflow anbieten.
+Das Datenqualität-Dashboard SHALL zwei Hauptbereiche bieten: "Zutaten" und "Rezepte". Jeder Bereich SHALL Unterkategorien als Tabs oder Accordions anzeigen. Die Kategorie „Preisanalyse" SHALL fehlende, auf `0` gesetzte, vorgeschlagene und ausstehende KI-Preise unterscheiden und einen Bestätigungsworkflow anbieten. Preisaktionen SHALL den zentralen Proposal-Approval-Workflow verwenden und keine direkten unbestätigten globalen Preisupdates ausführen.
 
 #### Scenario: Zutaten-Kategorien
 - **WHEN** Staff-User den Bereich "Zutaten" auswählt
@@ -30,6 +30,7 @@ Das Datenqualität-Dashboard SHALL zwei Hauptbereiche bieten: "Zutaten" und "Rez
 #### Scenario: Preisvorschläge in Preisanalyse
 - **WHEN** ein Staff-User die Preisanalyse öffnet
 - **THEN** SHALL Zutaten mit fehlendem Preis, pending Vorschlag und akzeptiertem KI-Preis getrennt sichtbar sein
+- **THEN** SHALL ein Batch-Vorschlag in einen pending Proposal oder ein explizites Approval-Ergebnis überführt werden
 
 #### Scenario: Rezepte-Kategorien
 - **WHEN** Staff-User den Bereich "Rezepte" auswählt
@@ -37,7 +38,7 @@ Das Datenqualität-Dashboard SHALL zwei Hauptbereiche bieten: "Zutaten" und "Rez
 - **THEN** SHALL die Duplikaterkennung als erstes Tab ausgewählt sein
 
 #### Scenario: Navigation zwischen Zutaten und Rezepten
-- **WHEN** Staff-User zwischen "Zutaten" und "Rezepte" wechselt
+- **WHEN** Staff-User zwischen "Zutaten" und "Rezepten" wechselt
 - **THEN** SHALL die URL sich zu `/admin/data-quality/ingredients` bzw. `/admin/data-quality/recipes` ändern
 - **THEN** SHALL der jeweils aktive Kategorie-Tab erhalten bleiben
 

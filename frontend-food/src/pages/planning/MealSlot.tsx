@@ -321,7 +321,7 @@ export function MealSlot({
               {meal.price_coverage != null && meal.price_coverage.missing_ingredients > 0 && (
                 <span
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[hsl(var(--chart-4))]/30 bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] text-[11px] font-bold"
-                  title={`${meal.price_coverage.priced_ingredients} von ${meal.price_coverage.total_ingredients} Zutaten haben einen bestätigten Preis`}
+                  title={`${meal.price_coverage.priced_ingredients} von ${meal.price_coverage.total_ingredients} Zutaten haben einen bestätigten Preis${meal.price_coverage.affected_items.length ? `; betroffen: ${meal.price_coverage.affected_items.map((item) => String(item.ingredient_name ?? '')).filter(Boolean).join(', ')}` : ''}`}
                 >
                   <AlertTriangle className="w-3 h-3" />
                   {meal.price_coverage.missing_ingredients} {meal.price_coverage.missing_ingredients === 1 ? 'Zutat' : 'Zutaten'} ohne Preis
@@ -467,12 +467,12 @@ export function MealSlot({
                               <span className="text-xs text-muted-foreground">{it.measuring_unit_name}{it.quantity_g != null ? <span className="text-muted-foreground/60 ml-0.5">({Math.round(it.quantity_g)}g)</span> : ''}</span>
                             </>
                           ) : isIng && !meal.is_synced ? (
-                            <span className={`text-xs ${it.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                            <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
                               {formatPortion(it)}
                             </span>
                           ) : isIng && it.portion_display ? (
                              // portion_display from backend (read-only)
-                             <span className={`text-xs ${it.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                              <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
                                 {formatPortion(it)}
                              </span>
                            ) : isIng && isPortionUnit(it.measuring_unit_name) ? (

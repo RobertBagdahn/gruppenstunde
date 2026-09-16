@@ -72,7 +72,7 @@ def test_create_portion_auth_and_validation(api_client, auth_client, ingredient,
         f"/api/ingredients/{ingredient.slug}/portions/",
         data=json.dumps(
             {
-                "name": "Prise",
+                "name": "Stück",
                 "measuring_unit_id": measuring_unit.id,
                 "quantity": 1.0,
             }
@@ -81,20 +81,19 @@ def test_create_portion_auth_and_validation(api_client, auth_client, ingredient,
     )
     assert resp_unauth.status_code == 403
 
-    # Authenticated, Happy Path -> 200
+    # Authenticated, missing weight -> 422
     resp_happy = auth_client.post(
         f"/api/ingredients/{ingredient.slug}/portions/",
         data=json.dumps(
             {
-                "name": "Prise",
+                "name": "Stück",
                 "measuring_unit_id": measuring_unit.id,
                 "quantity": 1.0,
             }
         ),
         content_type="application/json",
     )
-    assert resp_happy.status_code == 200
-    assert resp_happy.json()["name"] == "Prise"
+    assert resp_happy.status_code == 422
 
     # Authenticated, Empty Name -> 422
     resp_empty = auth_client.post(

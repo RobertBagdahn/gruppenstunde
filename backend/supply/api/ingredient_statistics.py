@@ -25,6 +25,7 @@ from supply.schemas.ingredient_statistics import (
     TagListItem,
     TagListOut,
 )
+from supply.services.price_service import price_or_none
 
 ingredient_statistics_router = Router(tags=["ingredient-statistics"])
 
@@ -415,7 +416,9 @@ def ingredient_tag_lists(
                 sugar_g=ing.sugar_g,
                 fibre_g=ing.fibre_g,
                 salt_g=ing.salt_g,
-                price_per_kg=str(ing.price_per_kg) if ing.price_per_kg else None,
+                price_per_kg=(
+                    str(price_or_none(ing.price_per_kg)) if price_or_none(ing.price_per_kg) is not None else None
+                ),
                 nutri_class=ing.nutri_class,
                 retail_section_name=_get_retail_section_name(ing),
                 lactose_g=ing.lactose_g,

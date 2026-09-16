@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { ChefHat, Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2, Wand2 } from 'lucide-react';
 import { useAiFillMissingIngredient } from '@/api/dataQuality';
 import {
   DndContext,
@@ -39,8 +39,10 @@ import {
   useApplyAiSuggestions,
   useMeasuringUnits,
   useRecipesByIngredient,
+  usePreviewPortionMagicWand,
+  useApplyPortionMagicWand,
 } from '@/api/supplies';
-import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
+import { NUTRI_SCORE_COLORS, type PortionMagicOperation } from '@/schemas/supply';
 import type { Package, Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
 import { formatMeasuringUnitLabel } from '@/lib/units';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
@@ -719,6 +721,8 @@ interface PortionsSectionProps {
   measuringUnits: MeasuringUnit[];
   onAddPortion: (values: PortionFormSubmission) => void;
   isAddingPortion: boolean;
+  onOpenMagicWand: () => void;
+  isOpeningMagicWand: boolean;
 }
 
 function PortionsSection({
@@ -729,6 +733,8 @@ function PortionsSection({
   measuringUnits,
   onAddPortion,
   isAddingPortion,
+  onOpenMagicWand,
+  isOpeningMagicWand,
 }: PortionsSectionProps) {
   const reorderPortions = useReorderPortions(ingredient.slug);
   const [portions, setPortions] = useState(ingredient.portions);
@@ -830,13 +836,24 @@ function PortionsSection({
           </p>
         </div>
         {canEdit && (
-          <button
-            onClick={() => setShowAddPortion(!showAddPortion)}
-            className="flex items-center gap-1 text-sm text-primary hover:underline"
-          >
-            <Plus className="h-4 w-4" />
-            Portion hinzufügen
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onOpenMagicWand}
+              disabled={isOpeningMagicWand}
+              className="flex items-center gap-1 text-sm text-primary hover:underline disabled:opacity-50"
+              title="Typische Portionen mit KI vorschlagen"
+            >
+              {isOpeningMagicWand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              Zauberstab
+            </button>
+            <button
+              onClick={() => setShowAddPortion(!showAddPortion)}
+              className="flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              <Plus className="h-4 w-4" />
+              Portion hinzufügen
+            </button>
+          </div>
         )}
       </div>
 
@@ -919,6 +936,11 @@ export default function IngredientDetailPage() {
   // Portion add
   const [showAddPortion, setShowAddPortion] = useState(false);
   const { data: measuringUnits } = useMeasuringUnits();
+  const [showPortionMagicWand, setShowPortionMagicWand] = useState(false);
+  const [magicOperations, setMagicOperations] = useState<PortionMagicOperation[]>([]);
+  const [magicPreviewToken, setMagicPreviewToken] = useState('');
+  const previewMagicWand = usePreviewPortionMagicWand(slug || '');
+  const applyMagicWand = useApplyPortionMagicWand(slug || '');
 
   // Alias add
   const [showAddAlias, setShowAddAlias] = useState(false);
@@ -950,6 +972,46 @@ export default function IngredientDetailPage() {
 
   const canEdit = ingredient?.can_edit ?? false;
   const canAiSuggest = !!user && user.is_staff;
+
+  const openPortionMagicWand = () => {
+    previewMagicWand.mutate(undefined, {
+      onSuccess: (preview) => {
+        setMagicPreviewToken(preview.preview_token);
+        setMagicOperations(preview.operations);
+        setShowPortionMagicWand(true);
+      },
+      onError: (err: Error) => toast.error('Portionen konnten nicht vorgeschlagen werden', { description: err.message }),
+    });
+  };
+
+  const updateMagicOperation = (operationId: string, update: Partial<PortionMagicOperation>) => {
+    setMagicOperations((current) => current.map((operation) => (
+      operation.operation_id === operationId ? { ...operation, ...update } : operation
+    )));
+  };
+
+  const hasInvalidMagicOperation = magicOperations.some(
+    (operation) => operation.operation === 'replace' && !operation.selected && !operation.delete_without_replacement && (!operation.proposed_weight_g || operation.proposed_weight_g <= 0),
+  ) || magicOperations.some(
+    (operation) => operation.selected && (!operation.proposed_weight_g || operation.proposed_weight_g <= 0),
+  );
+
+  const applyMagicPreview = () => {
+    if (hasInvalidMagicOperation) {
+      toast.error('Für jede ausgewählte Portion muss ein positives Gewicht eingetragen sein.');
+      return;
+    }
+    applyMagicWand.mutate(
+      { previewToken: magicPreviewToken, operations: magicOperations },
+      {
+        onSuccess: () => {
+          setShowPortionMagicWand(false);
+          toast.success('Portionen wurden aktualisiert');
+        },
+        onError: (err: Error) => toast.error('Portionen konnten nicht aktualisiert werden', { description: err.message }),
+      },
+    );
+  };
 
   // --- Loading / error states ---
   if (isLoading) {
@@ -1555,7 +1617,93 @@ export default function IngredientDetailPage() {
         measuringUnits={measuringUnits || []}
         onAddPortion={handleAddPortion}
         isAddingPortion={createPortion.isPending}
+        onOpenMagicWand={openPortionMagicWand}
+        isOpeningMagicWand={previewMagicWand.isPending}
       />
+
+      <Dialog open={showPortionMagicWand} onOpenChange={setShowPortionMagicWand}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Typische Portionen vorschlagen</DialogTitle>
+            <DialogDescription>
+              Gewichtete Portionen bleiben unverändert. Ungewichtete Portionen werden standardmäßig ersetzt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {magicOperations.length === 0 && (
+              <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+                Die KI hat keine neuen Portionen vorgeschlagen.
+              </p>
+            )}
+            {magicOperations.map((operation) => (
+              <div key={operation.operation_id} className="rounded-lg border border-border p-3 space-y-2">
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={operation.selected}
+                    onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })}
+                    className="mt-1"
+                  />
+                  <span className="flex-1 text-sm">
+                    <span className="font-medium">{operation.name}</span>
+                    <span className="block text-muted-foreground">
+                      {operation.operation === 'replace' ? 'Ersetzt eine ungewichtete Portion' : operation.operation === 'unchanged' ? 'Bleibt unverändert' : 'Neue typische Portion'} · {operation.measuring_unit_name}
+                    </span>
+                  </span>
+                </label>
+                {operation.selected && (
+                  <div className="ml-7 space-y-1">
+                    <Label htmlFor={`magic-weight-${operation.operation_id}`}>Gewicht (g)</Label>
+                    <Input
+                      id={`magic-weight-${operation.operation_id}`}
+                      value={operation.proposed_weight_g ?? ''}
+                      onChange={(event) => updateMagicOperation(operation.operation_id, {
+                        proposed_weight_g: event.target.value ? Number(event.target.value.replace(',', '.')) : null,
+                      })}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Gewicht eintragen"
+                    />
+                  </div>
+                )}
+                {operation.operation === 'replace' && !operation.selected && (
+                  <div className="ml-7 space-y-2">
+                    <div className="space-y-1">
+                      <Label htmlFor={`magic-keep-weight-${operation.operation_id}`}>Oder bestehende Portion behalten mit Gewicht (g)</Label>
+                      <Input
+                        id={`magic-keep-weight-${operation.operation_id}`}
+                        value={operation.proposed_weight_g ?? ''}
+                        onChange={(event) => updateMagicOperation(operation.operation_id, {
+                          proposed_weight_g: event.target.value ? Number(event.target.value.replace(',', '.')) : null,
+                        })}
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Gewicht eintragen"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={operation.delete_without_replacement}
+                        onChange={(event) => updateMagicOperation(operation.operation_id, { delete_without_replacement: event.target.checked })}
+                      />
+                      Ohne Ersatz löschen
+                    </label>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPortionMagicWand(false)} disabled={applyMagicWand.isPending}>
+              Abbrechen
+            </Button>
+            <Button onClick={applyMagicPreview} disabled={applyMagicWand.isPending || hasInvalidMagicOperation}>
+              {applyMagicWand.isPending ? 'Speichern ...' : 'Auswahl übernehmen'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Packages Section */}
       <div className="mb-8">

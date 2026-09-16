@@ -1,0 +1,23 @@
+{
+  "cookies": [
+    {
+      "name": "sessionid",
+      "value": "playwright-test-session",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "csrftoken",
+      "value": "playwright-test-csrf",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

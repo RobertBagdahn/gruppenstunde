@@ -393,25 +393,27 @@ def ai_create_ingredient(
     if portions_data.rezeptportionen:
         primary = portions_data.rezeptportionen[0]
         mu = _get_mu(primary.measuring_unit_name)
-        Portion.objects.create(
-            ingredient=ingredient,
-            name=primary.name,
-            measuring_unit=mu,
-            quantity=primary.quantity,
-            weight_g=primary.weight_g,
-            rank=1,
-        )
+        if primary.weight_g > 0:
+            Portion.objects.create(
+                ingredient=ingredient,
+                name=primary.name,
+                measuring_unit=mu,
+                quantity=primary.quantity,
+                weight_g=primary.weight_g,
+                rank=1,
+            )
 
     for i, portion in enumerate(non_primary):
         mu = _get_mu(portion.measuring_unit_name)
-        Portion.objects.create(
-            ingredient=ingredient,
-            name=portion.name,
-            measuring_unit=mu,
-            quantity=portion.quantity,
-            weight_g=portion.weight_g,
-            rank=4 + i,
-        )
+        if portion.weight_g > 0:
+            Portion.objects.create(
+                ingredient=ingredient,
+                name=portion.name,
+                measuring_unit=mu,
+                quantity=portion.quantity,
+                weight_g=portion.weight_g,
+                rank=4 + i,
+            )
 
     # Create packages from AI suggestions
     for i, pkg in enumerate(portions_data.packungen):

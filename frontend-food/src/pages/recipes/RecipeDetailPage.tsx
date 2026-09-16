@@ -1184,6 +1184,11 @@ export default function RecipeDetailPage() {
             {recipe.price_coverage.priced_ingredients === 0
               ? 'Keine Preise für dieses Rezept hinterlegt.'
               : `Nur ${recipe.price_coverage.priced_ingredients} von ${recipe.price_coverage.total_ingredients} Zutaten haben einen Preis – der angezeigte Preis ist unvollständig.`}
+            {recipe.price_coverage.affected_items.length > 0 && (
+              <span className="block mt-1 text-xs">
+                Betroffen: {recipe.price_coverage.affected_items.map((item) => String(item.ingredient_name ?? '')).filter(Boolean).join(', ')}
+              </span>
+            )}
           </span>
         </div>
       )}

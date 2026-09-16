@@ -178,6 +178,38 @@ export const PortionSchema = z.object({
 });
 export type Portion = z.infer<typeof PortionSchema>;
 
+export const PortionMagicOperationSchema = z.object({
+  operation_id: z.string(),
+  operation: z.enum(['replace', 'create', 'unchanged']),
+  source_portion_id: z.number().nullable().optional(),
+  name: z.string(),
+  quantity: z.number().positive(),
+  measuring_unit_name: z.string(),
+  rank: z.number().int().positive(),
+  proposed_weight_g: z.number().positive().nullable(),
+  confidence: z.number().min(0).max(1).nullable().optional(),
+  rationale: z.string(),
+  selected: z.boolean(),
+  requires_manual_weight: z.boolean(),
+  delete_without_replacement: z.boolean(),
+});
+export type PortionMagicOperation = z.infer<typeof PortionMagicOperationSchema>;
+
+export const PortionMagicPreviewSchema = z.object({
+  preview_token: z.string(),
+  ai_interaction_id: z.string().nullable().optional(),
+  operations: z.array(PortionMagicOperationSchema),
+});
+export type PortionMagicPreview = z.infer<typeof PortionMagicPreviewSchema>;
+
+export const PortionMagicApplySchema = z.object({
+  portions: z.array(PortionSchema),
+  replaced_portion_ids: z.array(z.number()),
+  created_portion_ids: z.array(z.number()),
+  deleted_portion_ids: z.array(z.number()),
+});
+export type PortionMagicApply = z.infer<typeof PortionMagicApplySchema>;
+
 export const PackageSchema = z.object({
   id: z.number(),
   name: z.string().min(1, 'Name ist erforderlich'),

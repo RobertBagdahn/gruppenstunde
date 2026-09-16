@@ -55,6 +55,8 @@ export const PriceCoverageSchema = z.object({
   priced_ingredients: z.number(),
   missing_ingredients: z.number(),
   coverage: z.number().nullable(),
+  status: z.enum(['complete', 'partial', 'missing']).default('missing'),
+  affected_items: z.array(z.record(z.unknown())).default([]),
 });
 export type PriceCoverage = z.infer<typeof PriceCoverageSchema>;
 

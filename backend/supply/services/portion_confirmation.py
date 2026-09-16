@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from django.utils import timezone
 
 from supply.choices import PortionWeightSource, PortionWeightStatus
+from supply.services.portion_integrity import validate_active_portion_weight
 from supply.services.portion_resolution import normalize_portion_name
 
 if TYPE_CHECKING:
@@ -86,6 +87,7 @@ def confirm_portion(
         )
         if portion is None:
             raise ValueError("Gewählte Portion existiert nicht oder ist gelöscht")
+        validate_active_portion_weight(portion)
         return portion
 
     normalized = normalize_portion_name(name)
@@ -96,6 +98,7 @@ def confirm_portion(
         if candidate.weight_g is not None and weight_g is not None:
             same_weight = abs(candidate.weight_g - weight_g) <= WEIGHT_TOLERANCE
         if same_weight:
+            validate_active_portion_weight(candidate)
             return candidate
 
     portion = Portion(
@@ -111,6 +114,10 @@ def confirm_portion(
         created_by=user if user is not None and user.is_authenticated else None,
         updated_by=user if user is not None and user.is_authenticated else None,
     )
+    try:
+        validate_active_portion_weight(portion)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
     portion.save()
     logger.info(
         "Confirmed piece portion %s (%s) for ingredient %s (%s)",

@@ -29,6 +29,8 @@ class PortionRepairFindingOut(Schema):
     applied_at: str | None
     rejected_at: str | None
     created_at: str
+    repair_path: str = "review"
+    suggested_weight_g: float | None = None
 
 
 class PaginatedPortionRepairFindingOut(Schema):

@@ -98,13 +98,18 @@ Das System SHALL dem User ermöglichen, die Reihenfolge der Portionen per Drag &
 
 ### Requirement: Warnung wenn Packung kein weight_g hat
 
-Das System SHALL im UI eine deutliche Warnung anzeigen wenn die System-Portion „Packung" kein `weight_g` hat. Das Speichern ist trotzdem möglich.
+Das System SHALL historische oder noch nicht reparierte Packungsportionen ohne `weight_g` im UI deutlich als Reparaturfall anzeigen. Neue aktive Packungsportionen ohne positives `weight_g` dürfen nicht gespeichert werden. Der Portions-Zauberstab SHALL eine Vorschau und einen Reparaturweg anbieten.
 
 #### Scenario: Packung ohne weight_g
 
 - **WHEN** die Zutat-Detailseite angezeigt wird und die „Packung"-Portion kein `weight_g` hat
 - **THEN** SHALL ein gelbes Warn-Banner oder Badge „Packungsgewicht fehlt" sichtbar sein
-- **THEN** SHALL der User trotzdem speichern können ohne Blocker
+- **THEN** SHALL ein berechtigter User den Portions-Zauberstab zur Reparatur öffnen können
+
+#### Scenario: Neue Packung ohne weight_g
+- **WHEN** ein User eine neue Packungsportion ohne positives `weight_g` speichern will
+- **THEN** SHALL das Backend HTTP 422 zurückgeben
+- **THEN** SHALL keine aktive Packungsportion angelegt werden
 
 #### Scenario: Packung mit weight_g
 
@@ -115,19 +120,20 @@ Das System SHALL im UI eine deutliche Warnung anzeigen wenn die System-Portion �
 
 ### Requirement: KI schätzt weight_g für Stück und Packung
 
-Das System SHALL beim KI-gestützten Anlegen einer Zutat (`ai-create`) immer eine Schätzung für `stueck_weight_g` und `packung_weight_g` vom Gemini-Modell anfordern. Die KI darf `null` zurückgeben wenn das Konzept für diese Zutat nicht sinnvoll ist.
+Das System SHALL beim Portions-Zauberstab zutatenspezifische Gewichtsvorschläge für passende Stück- und Packungsportionen anfordern. Die KI darf keinen Wert liefern, wenn eine Portion fachlich nicht sinnvoll ist; in diesem Fall muss die Vorschau eine manuelle positive Eingabe oder eine ausdrückliche Löschung ohne Ersatz verlangen.
 
 #### Scenario: KI schätzt Stück-Gewicht für stückbare Zutat
 
-- **WHEN** `ai-create` für „Apfel" aufgerufen wird
+- **WHEN** der Portions-Zauberstab für eine stückbare Zutat wie „Apfel" aufgerufen wird
 - **THEN** SHALL `stueck_weight_g` ≈ 180 (g) im KI-Response vorhanden sein
-- **THEN** SHALL die System-Portion „Stück" mit diesem `weight_g` befüllt werden
+- **THEN** SHALL die Vorschau einen positiven Gewichtsvorschlag für „Stück" oder eine passende Größenvariante enthalten
+- **THEN** SHALL der Vorschlag vor dem Speichern bestätigt werden müssen
 
 #### Scenario: KI gibt null für Stück bei nicht-stückbarer Zutat
 
-- **WHEN** `ai-create` für „Nudeln" aufgerufen wird
-- **THEN** DARF `stueck_weight_g` null sein
-- **THEN** SHALL die System-Portion „Stück" ohne `weight_g` angelegt werden (leere Hülle)
+- **WHEN** die KI für eine vorgeschlagene Portion keinen sinnvollen Wert liefern kann
+- **THEN** SHALL die Vorschau ein positives manuelles Gewichtsfeld oder die Option „ohne Ersatz löschen" anbieten
+- **THEN** SHALL keine gewichtlose aktive Portion gespeichert werden
 
 #### Scenario: KI legt Normalportion als rank=1 an
 
@@ -175,4 +181,3 @@ Ingredients without curated portions SHALL receive type-based default portions d
 - **THEN** rank-1 is created as "1 Stück (150g)" with weight_g=150
 - **AND** rank-2 is created as "100g" with weight_g=100
 - **AND** rank-9999 is "g" (1g) for free-form entry
-

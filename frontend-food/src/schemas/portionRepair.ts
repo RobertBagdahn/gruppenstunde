@@ -46,6 +46,8 @@ export const PortionRepairFindingSchema = z.object({
   applied_at: z.string().nullable(),
   rejected_at: z.string().nullable(),
   created_at: z.string(),
+  repair_path: z.enum(['automatic', 'review', 'delete']).default('review'),
+  suggested_weight_g: z.number().nullable().default(null),
 });
 export type PortionRepairFinding = z.infer<typeof PortionRepairFindingSchema>;
 

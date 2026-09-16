@@ -445,7 +445,7 @@ function IngredientRow({
       )}
       <span className="text-xs text-muted-foreground min-w-[4rem] text-right tabular-nums">
         {item.ingredient_portions.find((portion) => portion.id === item.portion_id)?.is_weight_trusted === false ? (
-          <span className="text-amber-700" title="Das Portionsgewicht muss bestätigt werden.">
+          <span className="text-destructive" title="Das Portionsgewicht muss bestätigt werden.">
             Gewicht bestätigen
           </span>
         ) : (

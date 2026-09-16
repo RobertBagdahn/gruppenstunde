@@ -16,6 +16,7 @@ Rules (see openspec change `fix-food-piece-portion-mapping`):
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -29,6 +30,16 @@ CANONICAL_UNIT_NAMES = frozenset(
 )
 
 TRUSTED_WEIGHT_STATUSES = frozenset({"confirmed", "imported"})
+
+
+@dataclass(frozen=True)
+class TrustedWeightResult:
+    """Explain whether a portion can safely participate in gram calculations."""
+
+    weight_g: float | None
+    is_trusted: bool
+    reason: str
+
 
 PIECE_DESCRIPTORS = frozenset(
     {
@@ -314,6 +325,32 @@ def resolve_trusted_weight(portion) -> float | None:
     # provenance remain trusted to avoid regressions; the backfill and the
     # `repair-food-portion-data` change refine ambiguous rows.
     return float(weight)
+
+
+def resolve_trusted_weight_result(portion) -> TrustedWeightResult:
+    """Return the trusted weight together with an actionable resolution reason."""
+    weight = getattr(portion, "weight_g", None)
+    if weight is None or weight <= 0:
+        return TrustedWeightResult(None, False, "missing_weight")
+
+    status = getattr(portion, "weight_status", None)
+    if status in TRUSTED_WEIGHT_STATUSES:
+        return TrustedWeightResult(float(weight), True, "trusted_status")
+
+    if is_piece_like_name(getattr(portion, "name", None)):
+        return TrustedWeightResult(None, False, "unconfirmed_piece_weight")
+
+    if _unit_name_lower(portion) in METRIC_BASE_UNIT_NAMES:
+        return TrustedWeightResult(float(weight), True, "metric_base_unit")
+
+    try:
+        computed = portion.compute_weight_g(None)
+    except Exception:
+        computed = None
+    if computed is not None and abs(float(computed) - float(weight)) <= 1e-6:
+        return TrustedWeightResult(float(weight), True, "canonical_unit")
+
+    return TrustedWeightResult(float(weight), True, "legacy_named_portion")
 
 
 def find_matching_piece_portion(ingredient, name: str):

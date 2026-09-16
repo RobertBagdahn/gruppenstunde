@@ -4,7 +4,7 @@
 TBD - created by archiving change add-ai-price-approval. Update Purpose after archive.
 ## Requirements
 ### Requirement: AI proposes missing ingredient prices
-The system SHALL generate a structured price proposal in EUR per kilogram for ingredients with missing prices.
+The system SHALL generate a structured price proposal in EUR per kilogram for ingredients with missing prices. Data-quality batch evaluation SHALL reuse or create the same pending `IngredientPriceProposal` records as the ingredient detail workflow.
 
 #### Scenario: Missing price proposal
 - **WHEN** an authorized user requests an AI price for an ingredient with `price_per_kg=NULL` or `0`
@@ -15,7 +15,7 @@ The system SHALL generate a structured price proposal in EUR per kilogram for in
 - **THEN** the default proposal endpoint SHALL not overwrite it or create an automatic replacement
 
 ### Requirement: User approves global price
-The system SHALL require explicit confirmation before applying a proposed price to the global Ingredient record.
+The system SHALL require explicit confirmation before applying a proposed price to the global Ingredient record. Legacy Data-Quality batch actions SHALL NOT bypass this requirement.
 
 #### Scenario: Accept proposal
 - **WHEN** an authorized user accepts a pending proposal
@@ -27,6 +27,11 @@ The system SHALL require explicit confirmation before applying a proposed price 
 - **WHEN** an authorized user rejects a pending proposal
 - **THEN** the ingredient price SHALL remain unchanged
 - **THEN** the proposal SHALL become rejected
+
+#### Scenario: Data-quality batch apply
+- **WHEN** a Staff-User einen aus der Preisanalyse erzeugten Batch verarbeitet
+- **THEN** SHALL jeder Eintrag einzeln als Proposal-Ergebnis (`pending`, `accepted`, `rejected` oder `conflict`) ausgewiesen werden
+- **THEN** DARF ein positiver bestehender Preis nur mit expliziter Ersetzungsentscheidung überschrieben werden
 
 ### Requirement: Proposal authorization
 Only users with permission to edit the ingredient or staff users SHALL create or approve proposals.

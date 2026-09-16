@@ -63,6 +63,8 @@ def make_portion(ingredient, measuring_unit, **kwargs):
         rank=kwargs.pop("rank", 1),
     )
     portion.weight_g = kwargs.pop("weight_g", 1.0)
+    portion.weight_status = kwargs.pop("weight_status", "imported")
+    portion.weight_source = kwargs.pop("weight_source", "import")
     portion.save()
     return portion
 
@@ -507,6 +509,25 @@ def test_apply_without_proposal_raises(ingredient, gram_unit):
     )
     with pytest.raises(ValueError):
         apply_finding(finding)
+
+
+@pytest.mark.django_db
+def test_apply_untrusted_piece_weight_stays_pending_review(ingredient, gram_unit):
+    portion = make_portion(
+        ingredient,
+        gram_unit,
+        name="Stück",
+        weight_g=1.0,
+        weight_status="ai_proposed",
+        weight_source="ai",
+    )
+    finding = _ready_finding(portion, recipe_item_ids=[])
+
+    result = apply_finding(finding)
+
+    finding.refresh_from_db()
+    assert result["applied"] is False
+    assert finding.status == PortionRepairStatus.PENDING_REVIEW
 
 
 @pytest.mark.django_db

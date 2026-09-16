@@ -29,8 +29,8 @@
 
 ## 5. Verification And Release Gate
 
-- [ ] 5.1 Run `uv run python manage.py makemigrations --check` and create a migration only if the final contract requires new persisted fields.
-- [ ] 5.2 Run targeted backend tests for recipe, supply, content, planner, shopping, and cross-consumer consistency.
-- [ ] 5.3 Run `uv run pytest` for the complete backend suite and record any unrelated baseline failures separately.
-- [ ] 5.4 Run Food frontend typecheck, lint, targeted Vitest tests, and the complete Food frontend test suite.
-- [ ] 5.5 Validate this change with `openspec validate --change "fix-food-release-blockers"` and perform a release diff review that excludes the unfinished Piece-Portion change from the deployment scope.
+- [x] 5.1 Run `uv run python manage.py makemigrations --check` and create a migration only if the final contract requires new persisted fields.
+- [x] 5.2 Run targeted backend tests for recipe, supply, content, planner, shopping, and cross-consumer consistency.
+- [x] 5.3 Run `uv run pytest` for the complete backend suite and record any unrelated baseline failures separately.
+- [x] 5.4 Run Food frontend typecheck, lint, targeted Vitest tests, and the complete Food frontend test suite.
+- [x] 5.5 Validate this change with `openspec validate --change "fix-food-release-blockers"` and perform a release diff review that excludes the unfinished Piece-Portion change from the deployment scope.

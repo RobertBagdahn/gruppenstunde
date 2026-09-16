@@ -12,7 +12,7 @@ export const PriceAnomalySchema = z.object({
   retail_section: z.string().nullable().optional(),
   z_score: z.number().nullable().optional(),
   anomaly_type: z.enum(['high', 'low', 'missing', 'pending']),
-  price_source: z.enum(['manual', 'ai_accepted']).nullable().optional(),
+  price_source: z.enum(['manual', 'ai_accepted', 'missing']),
 });
 export type PriceAnomaly = z.infer<typeof PriceAnomalySchema>;
 
@@ -151,7 +151,7 @@ export const CompletenessItemSchema = z.object({
   scout_score: z.number(),
   portion_score: z.number(),
   price_status: z.enum(['priced', 'pending', 'missing']).default('missing'),
-  price_source: z.enum(['manual', 'ai_accepted']).nullable().optional(),
+  price_source: z.enum(['manual', 'ai_accepted', 'missing']),
 });
 export type CompletenessItem = z.infer<typeof CompletenessItemSchema>;
 

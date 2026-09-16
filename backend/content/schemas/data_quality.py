@@ -18,7 +18,7 @@ class PriceAnomalyOut(Schema):
     retail_section: str | None = None
     z_score: float | None = None
     anomaly_type: str  # "high", "low", "missing", "pending"
-    price_source: str | None = None  # "manual" | "ai_accepted" | None
+    price_source: str = "missing"  # "manual" | "ai_accepted" | "missing"
 
 
 class PaginatedPriceAnomalyOut(Schema):
@@ -140,7 +140,7 @@ class CompletenessItemOut(Schema):
     scout_score: float
     portion_score: float
     price_status: str = "missing"  # "priced" | "pending" | "missing"
-    price_source: str | None = None  # "manual" | "ai_accepted" | None
+    price_source: str = "missing"  # "manual" | "ai_accepted" | "missing"
 
 
 class PaginatedCompletenessOut(Schema):

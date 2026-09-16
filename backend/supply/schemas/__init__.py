@@ -55,6 +55,12 @@ from .norm_person import (
     NormPersonReferenceOut,
     NormPersonResultOut,
 )
+from .portion_magic_wand import (
+    PortionMagicApplyIn,
+    PortionMagicApplyOut,
+    PortionMagicOperationOut,
+    PortionMagicPreviewOut,
+)
 from .portion_repair import (
     PaginatedPortionRepairFindingOut,
     PortionRepairApplyOut,
@@ -126,6 +132,10 @@ __all__ = [
     "PortionApplySuggestionIn",
     "PortionConfirmIn",
     "PortionCreateIn",
+    "PortionMagicApplyIn",
+    "PortionMagicApplyOut",
+    "PortionMagicOperationOut",
+    "PortionMagicPreviewOut",
     "PortionOut",
     "PortionReorderIn",
     "PortionRepairApplyOut",

@@ -176,13 +176,18 @@ class Command(BaseCommand):
 
                     mu_name = suggestion.get("measuring_unit_name", "Gramm")
                     mu = mu_cache.get(mu_name, gramm)
+                    weight_g = suggestion.get("weight_g")
+                    if not isinstance(weight_g, int | float) or weight_g <= 0:
+                        self.stdout.write(f" ÜBERSPRUNGEN: kein positives Gewicht für {ing.name}")
+                        failed += 1
+                        continue
 
                     Portion.objects.create(
                         ingredient=ing,
                         name=suggestion.get("name", "Portion"),
                         measuring_unit=mu,
                         quantity=suggestion.get("quantity", 1.0),
-                        weight_g=suggestion.get("weight_g", 100.0),
+                        weight_g=weight_g,
                         rank=1,
                     )
                     created += 1

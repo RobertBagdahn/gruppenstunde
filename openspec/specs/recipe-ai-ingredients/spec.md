@@ -1,9 +1,7 @@
 ## Purpose
 
 KI-gestützte Zutatenvorschläge und Auswahl aktiver Normalportionen.
-
 ## Requirements
-
 ### Requirement: AI suggests ingredients for a recipe
 The system SHALL provide an API endpoint that uses Gemini Flash to suggest a complete ingredient list with quantities for a recipe based on its title, description, and recipe type.
 
@@ -20,7 +18,7 @@ The system SHALL provide an API endpoint that uses Gemini Flash to suggest a com
 - **THEN** the system returns HTTP 403
 
 ### Requirement: System matches suggested ingredients against existing database
-The system SHALL attempt to match AI-suggested ingredient names against existing `Ingredient` records using name, slug, aliases and explicit generic-to-concrete replacement mappings. A matched replacement for an ingredient already in the recipe SHALL be returned as a replacement candidate rather than an additional ingredient.
+The system SHALL attempt to match AI-suggested ingredient names against existing `Ingredient` records using name, slug, aliases and explicit generic-to-concrete replacement mappings. A matched replacement for an ingredient already in the recipe SHALL be returned as a replacement candidate rather than an additional ingredient. Replacement candidates SHALL NOT be removed by the later normal duplicate filter.
 
 #### Scenario: Exact match found
 - **WHEN** AI suggests "Joghurt" and an Ingredient with name "Joghurt" exists
@@ -34,6 +32,7 @@ The system SHALL attempt to match AI-suggested ingredient names against existing
 - **WHEN** AI suggests "Jodsalz" and the recipe already contains mapped generic ingredient "Salz"
 - **THEN** the suggestion includes the target ingredient and the existing RecipeItem ID to replace
 - **THEN** no additional RecipeItem suggestion is returned
+- **THEN** the replacement candidate remains in the API response despite the source ingredient already being present
 
 #### Scenario: No match found
 - **WHEN** AI suggests "Spezialgewürz" and no matching Ingredient or Alias exists

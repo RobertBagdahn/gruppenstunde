@@ -171,9 +171,9 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Inspi <inspirator.testma
 GOOGLE_CLOUD_PROJECT = env("GOOGLE_CLOUD_PROJECT", default="")
 VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="global")
 
-# Gemini Pricing (Vertex AI Global, USD per 1M tokens, July 2026)
+# Gemini Pricing (Vertex AI Global / Flex, USD per 1M tokens, July 2026)
 GEMINI_PRICING = {
-    "gemini-3.1-flash-lite": {
+    "gemini-3.5-flash-lite": {
         "type": "text",
         "input_per_1m_usd": 0.25,
         "output_per_1m_usd": 1.50,

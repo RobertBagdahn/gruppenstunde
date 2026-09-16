@@ -2595,6 +2595,9 @@ def export_cooking_schedule_pdf(request, meal_plan_id: int, page_format: str = "
     if page_format not in ("A4", "letter"):
         raise HttpError(422, "Ungültiges Seitenformat. Erlaubt: A4, letter")
 
+    if not Meal.objects.filter(meal_plan=meal_plan, is_reference=False).exists():
+        raise HttpError(404, "Keine Mahlzeiten für Kochplan gefunden")
+
     from django.http import HttpResponse
 
     from planner.services.cooking_schedule_pdf import generate_cooking_schedule_pdf

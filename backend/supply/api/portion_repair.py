@@ -27,6 +27,9 @@ def _require_staff(request):
 
 
 def _to_out(finding: PortionRepairFinding) -> PortionRepairFindingOut:
+    from supply.services.portion_repair import classify_repair_path
+
+    repair_path, suggested_weight_g = classify_repair_path(finding.portion)
     return PortionRepairFindingOut(
         id=finding.id,
         portion_id=finding.portion_id,
@@ -47,6 +50,8 @@ def _to_out(finding: PortionRepairFinding) -> PortionRepairFindingOut:
         applied_at=finding.applied_at.isoformat() if finding.applied_at else None,
         rejected_at=finding.rejected_at.isoformat() if finding.rejected_at else None,
         created_at=finding.created_at.isoformat(),
+        repair_path=repair_path,
+        suggested_weight_g=suggested_weight_g,
     )
 
 

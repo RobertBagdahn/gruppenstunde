@@ -31,6 +31,9 @@ import {
   TagListOutSchema,
   ScoresOutSchema,
   ComparisonOutSchema,
+  PortionMagicPreviewSchema,
+  PortionMagicApplySchema,
+  type PortionMagicOperation,
 } from '@/schemas/supply';
 import { PaginatedRecipesSchema } from '@/schemas/recipe';
 
@@ -392,6 +395,29 @@ export function useApplyAiSuggestions(slug: string) {
         portions: z.array(PortionSchema),
         packages: z.array(PackageSchema),
       })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function usePreviewPortionMagicWand(slug: string) {
+  return useMutation({
+    mutationFn: () =>
+      postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/magic-wand/preview/`, {}, PortionMagicPreviewSchema),
+  });
+}
+
+export function useApplyPortionMagicWand(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ previewToken, operations }: { previewToken: string; operations: PortionMagicOperation[] }) =>
+      postJsonRaw(
+        `${INGREDIENT_BASE}/${slug}/portions/magic-wand/apply/`,
+        { preview_token: previewToken, operations },
+        PortionMagicApplySchema,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });

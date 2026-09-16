@@ -15,11 +15,25 @@ from typing import TYPE_CHECKING
 from django.utils import timezone
 
 from supply.choices import PortionWeightSource, PortionWeightStatus
+from supply.services.portion_resolution import resolve_trusted_weight
 
 if TYPE_CHECKING:
     from supply.models import Portion
 
 logger = logging.getLogger(__name__)
+
+
+def validate_active_portion_weight(portion, *, allow_unresolved: bool = False) -> float:
+    """Return a positive active portion weight or raise a validation error."""
+    if portion.deleted_at is not None and allow_unresolved:
+        return float(portion.weight_g or 0)
+
+    weight = portion.compute_weight_g(portion.weight_g)
+    if weight is None or weight <= 0:
+        if allow_unresolved:
+            return 0.0
+        raise ValueError(f"Portion '{portion.name}' benötigt ein positives Gewicht in Gramm.")
+    return float(weight)
 
 
 def is_referenced_by_recipe_items(portion) -> bool:
@@ -45,8 +59,10 @@ def rebind_recipe_items_to_portion(source_portion, target_portion, *, updated_by
     """
     from recipe.models import RecipeItem
 
-    old_weight_g = source_portion.weight_g or 1.0
-    new_weight_g = target_portion.weight_g or 1.0
+    old_weight_g = resolve_trusted_weight(source_portion)
+    new_weight_g = resolve_trusted_weight(target_portion)
+    if old_weight_g is None or new_weight_g is None:
+        raise ValueError("Portion-Rebind benötigt vertrauenswürdige Gewichte für Quelle und Ziel.")
 
     updated_ids: list[int] = []
     items = list(RecipeItem.objects.filter(portion=source_portion))
@@ -143,6 +159,7 @@ def create_replacement_portion(old_portion, **new_attrs):
         portion.weight_status = PortionWeightStatus.CONFIRMED
         portion.weight_source = PortionWeightSource.MANUAL
         portion.weight_confirmed_at = timezone.now()
+    validate_active_portion_weight(portion)
     portion.save()
     logger.info(
         "Created replacement portion %s (%s) for referenced portion %s (%s) instead of updating weight_g in place",
@@ -274,8 +291,14 @@ def rebind_dead_portion_references(*, dry_run: bool = False, recipe_id: int | No
             )
             continue
 
-        old_weight_g = portion.weight_g or 1.0
-        new_weight_g = target.weight_g or 1.0
+        old_weight_g = resolve_trusted_weight(portion)
+        new_weight_g = resolve_trusted_weight(target)
+        if old_weight_g is None or new_weight_g is None:
+            logger.warning(
+                "Skipping deleted portion rebind %s because source or target weight is unresolved",
+                portion.id,
+            )
+            continue
         grams = item.quantity * old_weight_g
         # Clamp away from exactly 0 — RecipeItem.quantity has a DB check
         # constraint (> 0); rounding a tiny gram amount against a large

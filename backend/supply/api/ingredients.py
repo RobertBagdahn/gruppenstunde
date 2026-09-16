@@ -42,6 +42,9 @@ from supply.schemas import (
     PaginatedIngredientOut,
     PortionConfirmIn,
     PortionCreateIn,
+    PortionMagicApplyIn,
+    PortionMagicApplyOut,
+    PortionMagicPreviewOut,
     PortionOut,
     PortionReorderIn,
     PortionUpdateIn,
@@ -50,14 +53,47 @@ from supply.services.portion_integrity import (
     create_replacement_portion,
     is_referenced_by_recipe_items,
     rebind_recipe_items_to_rank1,
+    validate_active_portion_weight,
     would_change_weight_g,
 )
+from supply.services.portion_resolution import is_piece_like_name
 
 from .helpers import require_auth
 
 logger = logging.getLogger(__name__)
 
 ingredient_router = Router(tags=["ingredients"])
+
+
+@ingredient_router.post("/{slug}/portions/magic-wand/preview/", response=PortionMagicPreviewOut)
+def preview_portion_magic_wand(request, slug: str):
+    """Create a fresh AI preview without mutating portions."""
+    require_auth(request)
+    from content.services.food_access import get_ingredient_detail_or_404
+    from supply.services.portion_magic_wand import preview_portions
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
+    return preview_portions(ingredient, user=request.user)
+
+
+@ingredient_router.post("/{slug}/portions/magic-wand/apply/", response=PortionMagicApplyOut)
+def apply_portion_magic_wand(request, slug: str, payload: PortionMagicApplyIn):
+    """Apply a confirmed magic-wand preview atomically."""
+    require_auth(request)
+    from content.services.food_access import get_ingredient_detail_or_404
+    from supply.services.portion_magic_wand import apply_portions
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
+    try:
+        return apply_portions(ingredient, payload=payload.dict(), user=request.user)
+    except ValueError as exc:
+        detail = str(exc)
+        status = 409 if "veraltet" in detail or "gewichtete Portion" in detail else 422
+        raise HttpError(status, detail) from exc
 
 
 def _is_staff_or_admin_user(user) -> bool:
@@ -635,8 +671,14 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
         raise HttpError(422, "Bitte wähle eine Maßeinheit aus.")
 
     portion.weight_g = payload.weight_g
-    portion.weight_status = PortionWeightStatus.CONFIRMED if payload.weight_g else None
-    portion.weight_source = PortionWeightSource.MANUAL if payload.weight_g else None
+    if is_piece_like_name(name) and (payload.weight_g is None or payload.weight_g <= 0):
+        raise HttpError(422, "Stückportionen benötigen ein bestätigtes positives Gewicht.")
+    try:
+        validate_active_portion_weight(portion)
+    except ValueError as exc:
+        raise HttpError(422, str(exc)) from exc
+    portion.weight_status = PortionWeightStatus.CONFIRMED
+    portion.weight_source = PortionWeightSource.MANUAL
     try:
         portion.save()
     except IntegrityError as e:
@@ -808,7 +850,7 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
                 elif rank == 1:
                     has_active_rank1 = True
 
-                Portion.objects.create(
+                created_portion = Portion(
                     ingredient=ingredient,
                     name=name,
                     measuring_unit=_get_mu(suggestion.measuring_unit_name),
@@ -817,6 +859,13 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
                     rank=rank,
                     created_by=request.user,
                 )
+                try:
+                    validate_active_portion_weight(created_portion)
+                except ValueError as exc:
+                    raise HttpError(422, str(exc)) from exc
+                created_portion.weight_status = PortionWeightStatus.CONFIRMED
+                created_portion.weight_source = PortionWeightSource.AI
+                created_portion.save()
                 existing_portion_names_lower.add(name.lower())
 
             # Create packages
@@ -943,6 +992,14 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
         ),
     )
     prospective_weight_g = scratch.compute_weight_g(scratch.weight_g)
+
+    if is_piece_like_name(new_name) and (prospective_weight_g is None or prospective_weight_g <= 0):
+        raise HttpError(422, "Stückportionen benötigen ein bestätigtes positives Gewicht.")
+
+    try:
+        validate_active_portion_weight(scratch)
+    except ValueError as exc:
+        raise HttpError(422, str(exc)) from exc
 
     if would_change_weight_g(portion, prospective_weight_g) and is_referenced_by_recipe_items(portion):
         try:

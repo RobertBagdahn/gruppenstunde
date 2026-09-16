@@ -14,6 +14,8 @@ import {
   PriceEvaluateResponseSchema,
 } from './dataQuality';
 import { RecipeImportUrlResponseSchema } from '../api/recipeImport';
+import { PortionMagicApplySchema, PortionMagicPreviewSchema } from './supply';
+import { PortionRepairFindingSchema } from './portionRepair';
 
 describe('food API contracts', () => {
   it('maps legacy execution-time values to the current German label', () => {
@@ -138,6 +140,82 @@ describe('food API contracts', () => {
 
     expect(parsed.recipe_items[0].needs_unit_clarification).toBe(true);
     expect(parsed.recipe_items[0].suggested_portion_weight_g).toBe(80);
+  });
+
+  it('parses portion magic-wand preview and apply contracts', () => {
+    const operation = {
+      operation_id: 'operation-0',
+      operation: 'replace',
+      source_portion_id: 4,
+      name: 'Stück',
+      quantity: 1,
+      measuring_unit_name: 'Gramm',
+      rank: 1,
+      proposed_weight_g: 150,
+      confidence: 0.9,
+      rationale: 'Typisches Gewicht',
+      selected: true,
+      requires_manual_weight: false,
+      delete_without_replacement: false,
+    } as const;
+    expect(PortionMagicPreviewSchema.parse({ preview_token: 'token', operations: [operation] }).operations).toHaveLength(1);
+    expect(PortionMagicApplySchema.parse({
+      portions: [],
+      replaced_portion_ids: [4],
+      created_portion_ids: [5],
+      deleted_portion_ids: [4],
+    }).created_portion_ids).toEqual([5]);
+  });
+
+  it('parses repair classification fields', () => {
+    const finding = PortionRepairFindingSchema.parse({
+      id: 1,
+      portion_id: 2,
+      ingredient_id: 3,
+      ingredient_name: 'Apfel',
+      portion_name: 'Stück',
+      detection_reason: 'missing_weight',
+      status: 'candidate',
+      before_snapshot: {
+        name: 'Stück',
+        weight_g: null,
+        quantity: 1,
+        rank: 1,
+        measuring_unit_id: 1,
+        measuring_unit_name: 'Gramm',
+        measuring_unit_unit: 'g',
+      },
+      recipe_item_ids: [],
+      ai_proposal: {},
+      confidence: null,
+      prompt_version: '1',
+      threshold: null,
+      applied_portion_id: null,
+      moved_recipe_item_ids: [],
+      affected_recipe_ids: [],
+      applied_at: null,
+      rejected_at: null,
+      created_at: '2026-01-01T00:00:00Z',
+      repair_path: 'review',
+      suggested_weight_g: null,
+    });
+    expect(finding.repair_path).toBe('review');
+  });
+
+  it('parses partial price coverage with affected items', () => {
+    const recipe = RecipeDetailSchema.parse({
+      ...RECIPE_DETAIL_BASE,
+      price_coverage: {
+        total_ingredients: 2,
+        priced_ingredients: 1,
+        missing_ingredients: 1,
+        coverage: 0.5,
+        status: 'partial',
+        affected_items: [{ recipe_item_id: 9, ingredient_name: 'Zwiebel', reason: 'missing_price' }],
+      },
+    });
+    expect(recipe.price_coverage?.status).toBe('partial');
+    expect(recipe.price_coverage?.affected_items[0]?.ingredient_name).toBe('Zwiebel');
   });
 });
 

@@ -5,7 +5,7 @@ Diese Spec definiert die Integritätsregeln für Portionsdaten und ihre Erzeugun
 
 ### Requirement: Zentrale weight_g-Berechnung
 
-Das System MUST `Portion.weight_g` über eine zentrale Berechnung oder eine explizit bestätigte Gewichtsangabe bestimmen. Alle Erzeugungspfade (API, URL-Import, Legacy-Import, Admin) MÜSSEN diese Regel verwenden; für stückartige Portionsnamen ohne explizit bestätigtes Gewicht DARF die Model-Berechnung keinen impliziten `1 g`-Wert erzeugen.
+Das System MUST `Portion.weight_g` über eine zentrale Berechnung oder eine explizit bestätigte Gewichtsangabe bestimmen. Alle Erzeugungspfade (API, URL-Import, Legacy-Import, Admin, KI-Apply und Portions-Zauberstab) MÜSSEN diese Regel verwenden. Für jede aktive, nicht gelöschte Portion MUSS der aufgelöste Wert positiv sein; stückartige Portionsnamen ohne bestätigtes Gewicht dürfen keinen impliziten `1 g`-Wert erzeugen.
 
 #### Scenario: Automatische Berechnung ohne expliziten Wert
 - **WHEN** eine Portion mit `quantity` und `measuring_unit` aber ohne expliziten `weight_g` erstellt wird
@@ -24,6 +24,8 @@ Das System MUST `Portion.weight_g` über eine zentrale Berechnung oder eine expl
 - **THEN** MUSS `weight_g = None` gesetzt werden
 
 ### Requirement: Ungewichtete Stückportionen bleiben ungeklärt
+
+Das System MUST ungewichtete stückartige Portionen als ungeklärt behandeln und darf sie nicht mit einem impliziten Gewicht speichern.
 
 #### Scenario: Ungewichtete Stückportion
 - **WHEN** eine Portion `1 Lauch` ohne bestätigtes Gewicht gespeichert wird
@@ -94,12 +96,18 @@ Eine Daten-Migration MUST bestehende kaputte Portionen reparieren: `weight_g = N
 
 ### Requirement: Frontend kennzeichnet unvollständige Portionen
 
-Die Portions- und Rezeptansichten im Food-Frontend MUST Portionen mit unbekanntem oder unbestätigtem Stückgewicht sichtbar kennzeichnen und dürfen sie nicht wie verlässliche Grammwerte darstellen.
+Die Portions- und Rezeptansichten MUST unvollständige historische Portionen sichtbar kennzeichnen. Neue aktive Portionen ohne positives Gewicht dürfen jedoch nicht mehr über die normale Erstellungs- oder Bearbeitungsoberfläche gespeichert werden.
 
 #### Scenario: Unvollständige Portion wird markiert
 - **WHEN** eine Portion ohne `weight_g` oder mit leerem Namen in `IngredientDetailPage` gerendert wird
 - **THEN** MUSS eine sichtbare Warnung (z. B. „⚠ Unvollständig") angezeigt werden statt einer leeren Zeile
+- **THEN** MUSS ein Reparatur- oder Portions-Zauberstab-Fluss angeboten werden, sofern der User bearbeiten darf
 
 #### Scenario: Unbestätigte Stückportion
 - **WHEN** eine Portion einen KI-Vorschlag ohne Nutzerbestätigung besitzt
 - **THEN** zeigt die Food-UI eine Warnung und den Bestätigungsstatus an
+
+#### Scenario: Manuelles Speichern ohne Gewicht
+- **WHEN** ein User eine neue oder bearbeitete Portion ohne positives Gewicht absendet
+- **THEN** MUSS das Frontend die Eingabe ablehnen oder eine positive Eingabe verlangen
+- **THEN** MUSS das Backend die Regel unabhängig davon ebenfalls erzwingen

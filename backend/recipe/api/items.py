@@ -23,6 +23,7 @@ from recipe.schemas import (
     RecipeItemUpdateIn,
 )
 from supply.models import Portion
+from supply.services.portion_resolution import resolve_trusted_weight
 
 
 def _recipe_item_has_active_variants(item: RecipeItem) -> bool:
@@ -64,6 +65,11 @@ def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = Tru
     from content.services.food_access import get_visible_recipe_or_404
 
     return cast(Recipe, get_visible_recipe_or_404(request.user, recipe_id))
+
+
+def _require_weighted_portion(portion: Portion) -> None:
+    if resolve_trusted_weight(portion) is None:
+        raise HttpError(422, "Diese Portion hat kein bestätigtes Gewicht und kann nicht im Rezept verwendet werden.")
 
 
 @router.get("/{recipe_id}/recipe-items/", response=list[RecipeItemOut])
@@ -136,8 +142,10 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
 
         if item is None:
             if payload.portion_id is not None:
-                if not Portion.objects.filter(id=payload.portion_id, deleted_at__isnull=True).exists():
+                portion = Portion.objects.filter(id=payload.portion_id, deleted_at__isnull=True).first()
+                if portion is None:
                     raise HttpError(400, "Portion existiert nicht")
+                _require_weighted_portion(portion)
             if payload.quantity <= 0:
                 raise HttpError(400, "Menge muss größer als 0 sein")
 
@@ -231,7 +239,10 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
         )
         if portion is None:
             raise HttpError(400, "Zutat hat keine Portion")
-        resulting_weight_g = portion.weight_g if (portion.weight_g and portion.weight_g > 0) else 1.0
+        _require_weighted_portion(portion)
+        resulting_weight_g = resolve_trusted_weight(portion)
+        if resulting_weight_g is None:
+            raise HttpError(422, "Die Portion hat kein bestätigtes Gewicht.")
         resulting_grams = result_quantity * resulting_weight_g
         tolerance = max(abs(expected_grams_total) * 0.15, 2.0)
         if abs(resulting_grams - expected_grams_total) > tolerance:
@@ -336,6 +347,9 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
             if target_portion is None:
                 raise HttpError(404, "Portion existiert nicht")
 
+            if target_portion.id == item.portion_id and payload.quantity is None:
+                return _reload_item_with_relations(item.id)
+
             if payload.ingredient_id is not None and target_portion.ingredient_id != payload.ingredient_id:
                 raise HttpError(422, "Die Portion gehört nicht zur angeforderten Zutat.")
 
@@ -347,6 +361,7 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
                 source_weight = resolve_trusted_weight(item.portion)
             target_weight = resolve_trusted_weight(target_portion)
 
+            used_automatic_conversion = payload.quantity is None
             if payload.quantity is not None:
                 if payload.quantity <= 0:
                     raise HttpError(400, "Menge muss größer als 0 sein")
@@ -360,8 +375,18 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
                     "Die Zielmenge kann nicht automatisch umgerechnet werden. Bitte Zielmenge auswählen.",
                 )
 
-            # DB check constraint requires quantity > 0 — clamp tiny values.
-            new_quantity = max(round(new_quantity, 2), 0.01)
+            rounded_quantity = max(round(new_quantity, 4), 0.0001)
+            if used_automatic_conversion and source_weight is not None and target_weight is not None:
+                expected_grams = item.quantity * source_weight
+                actual_grams = rounded_quantity * target_weight
+                tolerance = max(abs(expected_grams) * 0.001, 0.01)
+                if abs(actual_grams - expected_grams) > tolerance:
+                    raise HttpError(
+                        422,
+                        "Die automatische Umrechnung weicht zu stark von der technischen Grammmenge ab. "
+                        "Bitte eine Zielmenge auswählen.",
+                    )
+            new_quantity = rounded_quantity
 
             item.portion = target_portion
             item.quantity = new_quantity

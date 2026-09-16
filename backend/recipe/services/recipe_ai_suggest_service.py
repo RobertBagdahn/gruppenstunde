@@ -256,6 +256,12 @@ def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
         ingredient = _resolve_ingredient_from_match(match_result, item.ingredient_name, user)
         measuring_unit = _match_measuring_unit(item.unit)
         portion = _resolve_or_create_portion(ingredient, measuring_unit, item.unit)
+        from supply.services.portion_resolution import resolve_trusted_weight
+
+        if resolve_trusted_weight(portion) is None:
+            raise ValueError(
+                f"Für '{ingredient.name}' konnte kein bestätigtes Gewicht für '{portion.name}' ermittelt werden."
+            )
 
         RecipeItem.objects.create(
             recipe=recipe,
@@ -501,23 +507,7 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         if portion:
             return portion
 
-        return Portion.objects.create(
-            ingredient=ingredient,
-            measuring_unit=measuring_unit,
-            name=name,
-            quantity=1.0,
-            weight_g=None,
-            weight_status=PortionWeightStatus.UNKNOWN,
-            weight_source=PortionWeightSource.AI,
-            rank=(
-                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-                .order_by("-rank")
-                .values_list("rank", flat=True)
-                .first()
-                or 0
-            )
-            + 1,
-        )
+        raise ValueError(f"Für '{ingredient.name}' konnte keine gewichtete Portion für '{name}' ermittelt werden.")
 
     # No measuring_unit matched → reuse any existing portion for this ingredient
     portion = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank", "id").first()
