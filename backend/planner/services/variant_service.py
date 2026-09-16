@@ -26,9 +26,12 @@ def _item_total_for_field(ri: RecipeItem, field: str, quantity_override: float |
     effective_quantity = quantity_override if quantity_override is not None else float(ri.quantity)
     weight_g = effective_quantity * (ri.portion.weight_g or 0)
     if field == "price":
-        if ing.price_per_kg is None:
+        from supply.services.price_service import price_or_none
+
+        price_per_kg = price_or_none(ing.price_per_kg)
+        if price_per_kg is None:
             return 0.0
-        return float(ing.price_per_kg) * weight_g / 1000.0
+        return float(price_per_kg) * weight_g / 1000.0
     value_per_100g = getattr(ing, field, None)
     if value_per_100g is None:
         return 0.0

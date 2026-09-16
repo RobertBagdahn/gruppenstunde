@@ -90,7 +90,14 @@ class TestCrossConsumerConsistency:
         mu = make_measuring_unit(name="Scheibe", unit="stk", quantity=1.0)
         deleted = make_portion(ingredient=ing, measuring_unit=mu, weight_g=50.0, name="Scheibe alt")
         deleted.soft_delete()
-        make_portion(ingredient=ing, measuring_unit=mu, weight_g=35.0, name="Scheibe", rank=2)
+        make_portion(
+            ingredient=ing,
+            measuring_unit=mu,
+            weight_g=35.0,
+            name="Scheibe",
+            rank=2,
+            weight_status="confirmed",
+        )
 
         from planner.models import MealItem
 
@@ -114,7 +121,7 @@ class TestCrossConsumerConsistency:
         ing = make_ingredient(name="Brot")
         deleted = make_portion(ingredient=ing, weight_g=50.0, name="Scheibe alt")
         deleted.soft_delete()
-        make_portion(ingredient=ing, weight_g=35.0, name="Scheibe aktiv", rank=2)
+        make_portion(ingredient=ing, weight_g=35.0, name="Scheibe aktiv", rank=2, weight_status="confirmed")
 
         from supply.services.shopping_service import ShoppingListItem, _enrich_display_fields
 

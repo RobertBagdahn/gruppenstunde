@@ -12,6 +12,7 @@ const ANOMALY_TYPE_OPTIONS = [
   { value: 'high', label: 'Zu hoch' },
   { value: 'low', label: 'Zu niedrig' },
   { value: 'missing', label: 'Fehlender Preis' },
+  { value: 'pending', label: 'Vorschlag ausstehend' },
 ] as const;
 
 function anomalyBadge(type: PriceAnomaly['anomaly_type']) {
@@ -32,6 +33,12 @@ function anomalyBadge(type: PriceAnomaly['anomaly_type']) {
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
           <HelpCircle className="h-3 w-3" />Fehlt
+        </span>
+      );
+    case 'pending':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+          <Sparkles className="h-3 w-3" />Vorschlag ausstehend
         </span>
       );
   }
@@ -59,7 +66,6 @@ export default function PriceAnalysisTable() {
     const price = item.price_per_kg == null ? null : Number(item.price_per_kg);
     return item.anomaly_type === 'missing' || price == null || price <= 0;
   }) ?? [];
-
   const toggleSelect = useCallback((id: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -93,11 +99,20 @@ export default function PriceAnalysisTable() {
     }
   };
 
-  const handleApplyOne = async (ingredientId: number, pricePerKg: string) => {
+  const handleApplyOne = async (ingredientId: number) => {
     try {
-      await applyMutation.mutateAsync({ items: [{ ingredient_id: ingredientId, price_per_kg: pricePerKg }] });
-      setAppliedIds((prev) => new Set(prev).add(ingredientId));
-      toast.success('Preis übernommen');
+      const res = await applyMutation.mutateAsync({
+        items: [{ ingredient_id: ingredientId, action: 'accept', replace: false }],
+      });
+      const result = res.results[0];
+      if (result?.status === 'accepted') {
+        setAppliedIds((prev) => new Set(prev).add(ingredientId));
+        toast.success('Preis übernommen');
+      } else if (result?.status === 'conflict') {
+        toast.error('Preis konnte nicht übernommen werden', { description: result.message });
+      } else {
+        toast.error('Preis konnte nicht übernommen werden', { description: result?.message });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Fehler beim Übernehmen');
     }
@@ -105,13 +120,23 @@ export default function PriceAnalysisTable() {
 
   const handleApplyAll = async () => {
     try {
-      await applyMutation.mutateAsync({
-        items: suggestions
-          .filter((s) => s.suggested_price != null && !appliedIds.has(s.ingredient_id))
-          .map((s) => ({ ingredient_id: s.ingredient_id, price_per_kg: s.suggested_price! })),
-      });
-      setAppliedIds(new Set(suggestions.map((s) => s.ingredient_id)));
-      toast.success('Alle Preise übernommen');
+      const items = suggestions
+        .filter((s) => s.suggested_price != null && !appliedIds.has(s.ingredient_id))
+        .map((s) => ({ ingredient_id: s.ingredient_id, action: 'accept' as const, replace: false }));
+      if (items.length === 0) {
+        toast.error('Keine übernehmbaren Vorschläge vorhanden');
+        return;
+      }
+      const res = await applyMutation.mutateAsync({ items });
+      const accepted = res.results.filter((r) => r.status === 'accepted');
+      const conflicts = res.results.filter((r) => r.status !== 'accepted');
+      if (accepted.length > 0) {
+        setAppliedIds(new Set(suggestions.map((s) => s.ingredient_id)));
+        toast.success(`${accepted.length} Preis(e) übernommen`);
+      }
+      if (conflicts.length > 0) {
+        toast.error(`${conflicts.length} Preis(e) konnten nicht übernommen werden`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Fehler beim Übernehmen');
     }
@@ -230,7 +255,7 @@ export default function PriceAnalysisTable() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleApplyOne(s.ingredient_id, s.suggested_price!)}
+                            onClick={() => handleApplyOne(s.ingredient_id)}
                           >
                             Übernehmen
                           </Button>
@@ -299,23 +324,34 @@ export default function PriceAnalysisTable() {
                       </td>
                       <td className="px-4 py-2.5">{anomalyBadge(item.anomaly_type)}</td>
                       <td className="px-4 py-2.5 text-right">
-                        {isMissingPrice && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEvaluate([item.id])}
-                            disabled={evaluateMutation.isPending}
-                            className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
-                            title="Fehlenden oder 0er-Preis mit KI schätzen"
+                        {item.anomaly_type === 'pending' ? (
+                          <a
+                            href={`/ingredients/${item.slug}`}
+                            className="inline-flex h-7 items-center rounded-md px-2 text-xs font-medium text-primary hover:bg-primary/10"
+                            title="Vorschlag auf der Zutatenseite prüfen"
                           >
-                            {evaluateMutation.isPending ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Sparkles className="h-3.5 w-3.5" />
-                            )}
-                            <span className="hidden sm:inline">KI-Zauberstab</span>
-                          </Button>
+                            <Sparkles className="h-3.5 w-3.5 mr-1" />
+                            <span className="hidden sm:inline">Zur Prüfung</span>
+                          </a>
+                        ) : (
+                          isMissingPrice && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEvaluate([item.id])}
+                              disabled={evaluateMutation.isPending}
+                              className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              title="Fehlenden oder 0er-Preis mit KI schätzen"
+                            >
+                              {evaluateMutation.isPending ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5" />
+                              )}
+                              <span className="hidden sm:inline">KI-Zauberstab</span>
+                            </Button>
+                          )
                         )}
                       </td>
                     </tr>

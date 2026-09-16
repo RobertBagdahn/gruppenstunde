@@ -49,9 +49,15 @@ SYNONYMS = {
 
 
 def resolve_canonical_unit(name: str) -> MeasuringUnit | None:
-    """Resolve a measuring unit name to a canonical MeasuringUnit instance."""
+    """Resolve a measuring unit name to a canonical MeasuringUnit instance.
+
+    Returns None for empty, unknown or piece-like names (e.g. "Stück",
+    "Zehen", "Packung" — units that were deliberately removed from the
+    MeasuringUnit catalog). Callers MUST treat None as a clarification state
+    instead of silently falling back to Gramm.
+    """
     if not name:
-        return MeasuringUnit.objects.filter(name__iexact="Gramm").first()
+        return None
 
     cleaned_name = name.strip().lower()
     canonical_name = SYNONYMS.get(cleaned_name)
@@ -60,12 +66,17 @@ def resolve_canonical_unit(name: str) -> MeasuringUnit | None:
         unit = MeasuringUnit.objects.filter(name__iexact=canonical_name).first()
         if unit:
             return unit
+        # Piece-like synonyms resolve to catalog entries that no longer exist
+        # (e.g. "Stück") — clarification required, no Gramm fallback.
+        logger.warning("Einheit '%s' verweist auf '%s', aber die Maßeinheit existiert nicht", name, canonical_name)
+        return None
 
     # Try exact match (case insensitive)
     unit = MeasuringUnit.objects.filter(name__iexact=name.strip()).first()
     if unit:
         return unit
 
-    # Log warning and return Gramm as fallback
-    logger.warning("Unbekannte Einheit '%s', fallback auf 'Gramm'", name)
-    return MeasuringUnit.objects.filter(name__iexact="Gramm").first()
+    # Log warning — unknown units stay unresolved instead of silently
+    # becoming Gramm.
+    logger.warning("Unbekannte Einheit '%s' – Klärung erforderlich", name)
+    return None

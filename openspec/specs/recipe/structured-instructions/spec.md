@@ -304,31 +304,31 @@ class AiStepService:
     @staticmethod
     def generate_steps_from_items(recipe_items: list[RecipeItem]) -> list[RecipeStepInput]:
         """KI: Aus Zutatenliste komplette Steps generieren"""
-    
+
     @staticmethod
     def rewrite_step(step: RecipeStep, tone: str, preserve_ingredients: bool) -> RecipeStepInput:
         """KI: Einzelnen Step umschreiben"""
-    
+
     @staticmethod
     def suggest_ingredient_assignment(step: RecipeStep, available_items: list[RecipeItem]) -> list[SuggestedAssignment]:
         """KI: Zutaten-Zuordnung für einen Step vorschlagen"""
-    
+
     @staticmethod
     def split_step(step: RecipeStep, split_point: str) -> list[RecipeStepInput]:
         """KI: Step an einer Stelle teilen, Zutaten verteilen"""
-    
+
     @staticmethod
     def merge_steps(steps: list[RecipeStep]) -> RecipeStepInput:
         """KI: Mehrere Steps zusammenführen"""
-    
+
     @staticmethod
     def optimize_order(steps: list[RecipeStep]) -> list[RecipeStepInput]:
         """KI: Step-Reihenfolge optimieren"""
-    
+
     @staticmethod
     def convert_markdown_to_steps(markdown: str, recipe_items: list[RecipeItem]) -> list[RecipeStepInput]:
         """KI: Bestehendes Markdown in strukturierte Steps parsen"""
-    
+
     @staticmethod
     def convert_freetext_to_steps(text: str) -> tuple[list[RecipeStepInput], list[RecipeItemInput]]:
         """KI: Freitext-Beschreibung in Steps + Zutaten parsen"""
@@ -405,7 +405,7 @@ Output-Format strikt als JSON-Array.
 **CookLang-Kompatibilität als optionales Eingabeformat, nicht als internes Speicherformat.**
 
 - **Internes Speicherformat**: Eigenes `RecipeStep` + `RecipeStepIngredient`-Modell (normalisiert, keine Flat-Text-Parsing-Abhängigkeit)
-- **Eingabeformate**: 
+- **Eingabeformate**:
   1. Strukturiertes JSON (API/Editor) — primär
   2. CookLang — per Parser in Steps konvertieren (one-way)
   3. Freier Markdown — per KI in Steps konvertieren (one-way, einmalig)
@@ -848,3 +848,21 @@ def generate_description_from_steps(recipe):
 - [ ] i18n für Zutatennamen in Platzhaltern
 - [ ] KI-Erkennung von Zutaten-Referenzen im Fließtext („Mehl" → „{Mehl} einfügen?")
 - [ ] Dauer-Erkennung: „10 Minuten" → Timer-Markierung vorschlagen
+
+## Purpose
+Structured recipe steps are the canonical instruction content for read-only views and exports; the generated Markdown description remains a compatibility/SEO artifact.
+
+## Requirements
+
+### Requirement: description wird zum generierten Feld
+Sobald ein Rezept strukturierte Steps hat, SHALL `Content.description` weiterhin als Kompatibilitäts-/SEO-Text aus den Steps generiert werden können. Die Konsumenten MUST jedoch strukturierte Steps als separate Zubereitungsschritte darstellen und dürfen den generierten Text nicht als einzige Schrittquelle behandeln.
+
+#### Scenario: Rezept hat strukturierte Schritte und Beschreibung
+- **WHEN** ein Rezept beide Datenquellen besitzt
+- **THEN** die API SHALL beide Felder liefern
+- **THEN** Detailseite und PDF SHALL Beschreibung und Schritte getrennt darstellen
+
+#### Scenario: Rezept wird per API mit Steps erstellt
+- **WHEN** ein Rezept mit Steps gespeichert wird
+- **THEN** die Steps SHALL gespeichert werden
+- **THEN** ein kompatibler Description-Text DARF generiert werden

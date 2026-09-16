@@ -13,6 +13,7 @@ from ninja.errors import HttpError
 
 from content.services.search_service import log_search, log_search_structured
 from recipe.schemas import PaginatedRecipeOut
+from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.models import (
     Ingredient,
     IngredientAlias,
@@ -39,6 +40,7 @@ from supply.schemas import (
     PackageReorderIn,
     PackageUpdateIn,
     PaginatedIngredientOut,
+    PortionConfirmIn,
     PortionCreateIn,
     PortionOut,
     PortionReorderIn,
@@ -633,6 +635,8 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
         raise HttpError(422, "Bitte wähle eine Maßeinheit aus.")
 
     portion.weight_g = payload.weight_g
+    portion.weight_status = PortionWeightStatus.CONFIRMED if payload.weight_g else None
+    portion.weight_source = PortionWeightSource.MANUAL if payload.weight_g else None
     try:
         portion.save()
     except IntegrityError as e:
@@ -649,6 +653,46 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
             )
         raise
     return portion
+
+
+@ingredient_router.post("/{slug}/portions/confirm/", response=PortionOut)
+def confirm_portion(request, slug: str, payload: PortionConfirmIn):
+    """Confirm a piece portion weight (create new confirmed portion or select existing).
+
+    Safeguards: authenticated users only, ingredient-level edit permission,
+    duplicate names are reused or renamed, referenced portions are never
+    mutated in place.
+    """
+    require_auth(request)
+
+    from supply.services.portion_confirmation import confirm_portion as _confirm
+
+    ingredient = Ingredient.objects.filter(slug=slug).first()
+    if ingredient is None:
+        raise HttpError(404, "Zutat nicht gefunden")
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bestätigen")
+
+    if payload.weight_g is not None and payload.weight_g <= 0:
+        raise HttpError(422, "Gewicht muss größer als 0 sein.")
+
+    measuring_unit = None
+    if payload.measuring_unit_id is not None:
+        measuring_unit = get_object_or_404(MeasuringUnit, id=payload.measuring_unit_id)
+
+    try:
+        return _confirm(
+            ingredient,
+            name=payload.name,
+            weight_g=payload.weight_g,
+            quantity=payload.quantity,
+            measuring_unit=measuring_unit,
+            rank=payload.rank,
+            existing_portion_id=payload.existing_portion_id,
+            user=request.user,
+        )
+    except ValueError as exc:
+        raise HttpError(422, str(exc)) from exc
 
 
 @ingredient_router.post("/{slug}/portions/reorder/", response=list[PortionOut])
@@ -935,8 +979,19 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
     if weight_g_was_set:
         portion.weight_g = explicit_weight_g
+        if explicit_weight_g is not None and explicit_weight_g > 0:
+            portion.weight_status = PortionWeightStatus.CONFIRMED
+            portion.weight_source = PortionWeightSource.MANUAL
+            portion.weight_confirmed_at = timezone.now()
+        else:
+            portion.weight_status = None
+            portion.weight_source = None
+            portion.weight_confirmed_at = None
     elif "quantity" in data or unit_id is not None:
         portion.weight_g = None
+        portion.weight_status = None
+        portion.weight_source = None
+        portion.weight_confirmed_at = None
 
     portion.updated_by = request.user
     try:

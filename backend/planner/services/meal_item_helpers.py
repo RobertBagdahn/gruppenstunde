@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from supply.services.portion_resolution import resolve_trusted_weight
+
 if TYPE_CHECKING:
     from planner.models import MealItem
     from supply.models import Portion
@@ -32,12 +34,17 @@ def resolve_ingredient_cost_eur(item: MealItem, effective_portions: float = 1.0)
 
     Consistent with energy: multiplies by effective_portions for total cost.
     """
-    if not item.ingredient or item.ingredient.price_per_kg is None:
+    if not item.ingredient:
+        return None
+    from supply.services.price_service import price_or_none
+
+    price_per_kg = price_or_none(item.ingredient.price_per_kg)
+    if price_per_kg is None:
         return None
     weight_g = _resolve_ingredient_weight_g(item)
     if weight_g <= 0:
         return None
-    return (float(item.ingredient.price_per_kg) / 1000.0) * weight_g * item.factor * effective_portions
+    return (float(price_per_kg) / 1000.0) * weight_g * item.factor * effective_portions
 
 
 def _resolve_ingredient_weight_g(
@@ -74,8 +81,9 @@ def _resolve_ingredient_weight_g(
     else:
         portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit, deleted_at__isnull=True).first()
 
-    if portion and portion.weight_g:
-        return portion.weight_g * float(item.quantity)
+    trusted_weight = resolve_trusted_weight(portion) if portion else None
+    if trusted_weight is not None:
+        return trusted_weight * float(item.quantity)
 
     # Fallback: use default portion weight_g if available
     if portion_cache is not None:
@@ -84,16 +92,20 @@ def _resolve_ingredient_weight_g(
             (
                 p
                 for (ing_id, _), p in portion_cache.items()
-                if ing_id == item.ingredient_id and p.rank == 1 and p.weight_g
+                if ing_id == item.ingredient_id and p.rank == 1 and resolve_trusted_weight(p)
             ),
             None,
         )
         if default_portion:
-            return float(default_portion.weight_g or 0.0) * float(item.quantity)
+            return float(resolve_trusted_weight(default_portion) or 0.0) * float(item.quantity)
     else:
-        default_portions = item.ingredient.portions.filter(rank=1, weight_g__isnull=False, deleted_at__isnull=True)
-        if default_portions.exists():
-            return float(default_portions.first().weight_g) * float(item.quantity)
+        default_portions = list(
+            item.ingredient.portions.filter(rank=1, weight_g__isnull=False, deleted_at__isnull=True)
+        )
+        for default_portion in default_portions:
+            trusted_weight = resolve_trusted_weight(default_portion)
+            if trusted_weight is not None:
+                return trusted_weight * float(item.quantity)
 
     # Fallback: use standard_recipe_weight_g as per-portion estimate
     if item.ingredient.standard_recipe_weight_g:

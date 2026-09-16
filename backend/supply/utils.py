@@ -62,8 +62,11 @@ def build_portion_display(
 
     Format: "{quantity} {unit_name} {ingredient_name} ({weight})"
     Special cases:
+        - piece-like portion names (e.g. "Stück", "kleines Brötchen") omit the
+          measuring-unit name — the portion name carries the semantics
         - measuring_unit.name == "Stück" → unit_name omitted
-        - weight_g is None → no weight clause, has_missing_weight=True
+        - weight_g is None or not trusted → no weight clause,
+          has_missing_weight=True
         - ingredient.name missing → fall back to slug or portion.name
         - portion.quantity != 1 (composite/pre-scaled portion, e.g. "1 Portion
           Nudeln" = 125g): the portion's own name is used as the entire label
@@ -72,24 +75,30 @@ def build_portion_display(
           `quantity` is a count of that portion, not a gram amount — same bug
           class as recipe #434.
     """
-    is_composite = bool(portion and portion.quantity and portion.quantity != 1)
+    from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
 
-    # Compute total weight
+    is_composite = bool(portion and portion.quantity and portion.quantity != 1)
+    is_piece = bool(portion and is_piece_like_name(portion.name))
+
+    # Compute total weight (trusted weights only — unconfirmed piece weights
+    # must never be shown as a precise gram amount)
     weight_g: float | None = None
     has_missing_weight = False
-    if portion and portion.weight_g is not None:
-        weight_g = quantity * portion.weight_g
-    else:
-        has_missing_weight = True
+    if portion:
+        trusted = resolve_trusted_weight(portion)
+        if trusted is not None:
+            weight_g = quantity * trusted
+        else:
+            has_missing_weight = True
 
     # Build quantity string
     qty_str = _format_quantity(quantity)
 
-    if is_composite:
+    if is_composite or is_piece:
         parts = [qty_str]
-        composite_name = getattr(portion, "name", "") or ""
-        if composite_name:
-            parts.append(composite_name)
+        portion_name = getattr(portion, "name", "") or ""
+        if portion_name:
+            parts.append(portion_name)
     else:
         # Resolve ingredient name (with slug fallback)
         ingredient_name = ""

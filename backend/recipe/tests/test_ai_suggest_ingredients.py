@@ -106,9 +106,9 @@ class TestAiIngredientsServiceDeduplication:
         ]
         results = service.match_ingredients(suggestions)
         assert len(results) == 1
-        _, ingredient_id, is_new, _ = results[0]
-        assert ingredient_id == ingredient_nudeln.id
-        assert is_new is False
+        result = results[0]
+        assert result.ingredient_id == ingredient_nudeln.id
+        assert result.is_new_ingredient is False
 
     def test_match_ingredients_creates_unique_slug_when_collision(self, ingredient_nudeln):
         """When a new ingredient collides on slug, unique slug with counter is generated."""
@@ -128,7 +128,29 @@ class TestAiIngredientsServiceDeduplication:
             ]
             results = service.match_ingredients(suggestions)
             assert len(results) == 1
-            _, new_id, is_new, _ = results[0]
-            assert is_new is True
-            new_ing = Ingredient.objects.get(id=new_id)
+            result = results[0]
+            assert result.is_new_ingredient is True
+            new_ing = Ingredient.objects.get(id=result.ingredient_id)
             assert new_ing.slug.startswith("fusilli-trocken-anders")
+
+    def test_match_ingredients_preview_does_not_create_draft(self, db):
+        """Preview mode must not persist an Ingredient for unresolved names."""
+        service = RecipeAiIngredientsService()
+        match_mock = MagicMock(
+            ingredient_id=None,
+            name="Spezialgewürz",
+            is_new=False,
+            note="",
+            needs_review=True,
+            candidates=[],
+        )
+        with patch("recipe.services.ingredient_matcher.IngredientMatcher.match", return_value=match_mock):
+            suggestions = [
+                AiIngredientSuggestion(name="Spezialgewürz", estimated_grams=10.0),
+            ]
+            results = service.match_ingredients(suggestions, create_missing=False)
+            assert len(results) == 1
+            result = results[0]
+            assert result.ingredient_id is None
+            assert result.is_new_ingredient is True
+            assert not Ingredient.objects.filter(name="Spezialgewürz").exists()

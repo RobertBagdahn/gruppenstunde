@@ -36,15 +36,16 @@ Das System SHALL niemals "0 g" oder "0 ml" anzeigen, wenn der tatsächliche Wert
 
 ### Requirement: Originaleinheit anzeigen
 
-Zutaten auf der Rezept-Detailseite SHALL die Menge in der Einheit anzeigen, die im Editor gewählt wurde. Die Einheit wird über den Pfad `RecipeItem.portion.measuring_unit` aufgelöst (RecipeItem hat kein direktes `measuring_unit`-Feld).
+Zutaten auf der Rezept-Detailseite SHALL die fachliche Portion beziehungsweise den Portionsnamen anzeigen. Der technische Grammbetrag SHALL zusätzlich angezeigt werden, wenn er vorhanden ist.
 
-#### Scenario: Zutat mit nicht-Gewichtseinheit (Pr, TL, EL, Stück)
-- **WHEN** ein RecipeItem eine Portion hat deren `measuring_unit.name` nicht in [g, gramm, kg, kilogramm, ml, milliliter, l, liter] ist
-- **THEN** wird `"{quantity} {portion.measuring_unit.name}"` angezeigt (z.B. "15 Pr", "2 TL")
+#### Scenario: Stückportion mit bestätigtem Gewicht
+- **WHEN** ein RecipeItem `2 kleine Zwiebeln` mit `weight_g=80` pro Portion verwendet
+- **THEN** wird `2 kleine Zwiebeln (160 g)` angezeigt
 
-#### Scenario: Zutat mit Gewichtseinheit
-- **WHEN** ein RecipeItem eine Portion hat deren `measuring_unit.name` in [g, gramm, kg, kilogramm, ml, milliliter, l, liter] ist
-- **THEN** wird die Menge durch `formatQuantity` umgerechnet und smart angezeigt (z.B. "1,5 kg", "300 ml")
+#### Scenario: Unbekanntes Gewicht
+- **WHEN** ein RecipeItem eine Stückportion ohne bestätigtes Gewicht verwendet
+- **THEN** wird die Stückmenge mit einer sichtbaren Warnung angezeigt
+- **THEN** darf kein scheinpräziser Grammbetrag erscheinen
 
 #### Scenario: Zutat ohne Einheit und Menge 0
 - **WHEN** ein RecipeItem eine Portion ohne `measuring_unit` hat und `quantity` = 0
@@ -56,6 +57,10 @@ Die Rezeptansicht (Detail- und Bearbeitungsansicht) MUST das neue `portion_displ
 #### Scenario: Anzeige mit portion_display
 - **WHEN** die API `portion_display = "3,4 Äpfel (969g)"` liefert
 - **THEN** MUST die Rezeptansicht diesen String unverändert anzeigen
+
+#### Scenario: Größenvarianten
+- **WHEN** ein Rezept `30 kleine Brötchen` und `20 große Brötchen` enthält
+- **THEN** bleiben beide Portionsnamen in der Anzeige unterscheidbar
 
 #### Scenario: Fallback wenn portion_display fehlt
 - **WHEN** `portion_display` nicht im API-Response enthalten ist (ältere API-Version)

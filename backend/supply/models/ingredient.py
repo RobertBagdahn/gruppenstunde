@@ -11,7 +11,13 @@ from pgvector.django import VectorField
 
 from content.models import SoftDeleteModel, Tag
 
-from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, StorageTypeChoices
+from ..choices import (
+    IngredientStatusChoices,
+    PhysicalViscosityChoices,
+    PortionWeightSource,
+    PortionWeightStatus,
+    StorageTypeChoices,
+)
 from .reference import NutritionalTag, RetailSection
 
 
@@ -415,6 +421,34 @@ class Portion(models.Model):
         validators=[MinValueValidator(0.01)],
         help_text=_("Gewicht einer Portion in Gramm. NULL = unbekannt."),
     )
+    # Weight provenance: whether `weight_g` is a physical, user-confirmed value
+    # or an unreviewed estimate. NULL status = unknown (legacy data).
+    weight_status = models.CharField(
+        max_length=20,
+        choices=PortionWeightStatus.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Gewichtsstatus"),
+        help_text=_("confirmed/imported gelten als vertrauenswürdige Berechnungsbasis."),
+    )
+    weight_source = models.CharField(
+        max_length=20,
+        choices=PortionWeightSource.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Gewichtsquelle"),
+    )
+    weight_confirmed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Gewicht bestätigt am"),
+    )
+    weight_confidence = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        verbose_name=_("Gewichts-Konfidenz (0-1)"),
+    )
     rank = models.IntegerField(default=1, verbose_name=_("Rang (1 = Normalportion)"))
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -454,9 +488,19 @@ class Portion(models.Model):
         ]
 
     def compute_weight_g(self, explicit: float | None = None) -> float | None:
-        """Compute the weight of this portion in grams."""
+        """Compute the weight of this portion in grams.
+
+        Piece-like named portions (e.g. "1 Zwiebel", "Stück", "kleines
+        Brötchen") MUST NOT receive an implicit weight derived from a fallback
+        measuring unit (usually 1 g) — they stay weight-less until explicitly
+        given or confirmed.
+        """
         if explicit is not None:
             return explicit if explicit > 0 else None
+        from supply.services.portion_resolution import is_piece_like_name
+
+        if is_piece_like_name(self.name):
+            return None
         if self.measuring_unit:
             mu_qty = self.measuring_unit.quantity or 0
             factor = 1.0
@@ -488,6 +532,13 @@ class Portion(models.Model):
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
+
+    @property
+    def is_weight_trusted(self) -> bool:
+        """Whether `weight_g` may be used as a gram-based calculation basis."""
+        from supply.services.portion_resolution import resolve_trusted_weight
+
+        return resolve_trusted_weight(self) is not None
 
     def is_referenced_by_recipe_items(self) -> bool:
         """Whether at least one RecipeItem currently points to this portion.

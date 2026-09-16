@@ -1,5 +1,9 @@
 # Ingredient Matching
 
+## Purpose
+
+Parsing, matching and AI enrichment of ingredient names against the ingredient database, with replacement-aware match results.
+
 ## Requirements
 
 ### Requirement: Name/Note Parser
@@ -140,7 +144,7 @@ The system SHALL track how often each ingredient is used across all recipes. The
 
 ### Requirement: MatchResult API Exposure
 
-The system SHALL expose all MatchResult fields in API responses: ingredient_id, name, confidence, matched_via (one of: jaccard, fuzzy, embed, gemini, new), note, is_new, needs_review.
+The system SHALL expose all MatchResult fields in API responses: ingredient_id, name, confidence, matched_via (one of: jaccard, fuzzy, embed, gemini, new), note, is_new, needs_review. In addition, when a generic-to-concrete replacement mapping applies, the system SHALL expose replacement context fields: `replacement_for_item_id`, `replacement_reason`, and `replacement_confidence`.
 
 #### Scenario: Successful match exposed
 - **WHEN** Stage 2 finds a match with confidence 0.85 via fuzzy matching
@@ -149,3 +153,11 @@ The system SHALL expose all MatchResult fields in API responses: ingredient_id, 
 #### Scenario: Needs review exposed
 - **WHEN** the system triggers Human-in-the-Loop
 - **THEN** the API response SHALL include needs_review=true with the top candidates and their scores
+
+#### Scenario: Replacement result exposed
+- **WHEN** matching `Jodsalz` against a recipe containing mapped `Salz`
+- **THEN** the API SHALL expose the candidate ingredient, replacement metadata and confidence
+
+#### Scenario: Normal result unchanged
+- **WHEN** no replacement mapping applies
+- **THEN** the existing match fields SHALL remain available and replacement fields SHALL be null

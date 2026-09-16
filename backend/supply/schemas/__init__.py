@@ -1,5 +1,10 @@
 """Supply schemas package — re-exports all schemas for backward compatibility."""
 
+from .ingredient_price_proposals import (
+    IngredientPriceProposalAcceptIn,
+    IngredientPriceProposalListOut,
+    IngredientPriceProposalOut,
+)
 from .ingredients import (
     AiApplyIn,
     AiApplyOut,
@@ -26,6 +31,7 @@ from .ingredients import (
     PackageUpdateIn,
     PaginatedIngredientOut,
     PortionApplySuggestionIn,
+    PortionConfirmIn,
     PortionCreateIn,
     PortionOut,
     PortionReorderIn,
@@ -48,6 +54,12 @@ from .norm_person import (
     NormPersonCurvesOut,
     NormPersonReferenceOut,
     NormPersonResultOut,
+)
+from .portion_repair import (
+    PaginatedPortionRepairFindingOut,
+    PortionRepairApplyOut,
+    PortionRepairFindingOut,
+    PortionRepairRejectOut,
 )
 from .reference import (
     EquipmentIn,
@@ -83,6 +95,9 @@ __all__ = [
     "IngredientImportUrlOut",
     "IngredientListOut",
     "IngredientNutritionDraftOut",
+    "IngredientPriceProposalAcceptIn",
+    "IngredientPriceProposalListOut",
+    "IngredientPriceProposalOut",
     "IngredientSimilarOut",
     "IngredientSuggestAllOut",
     "IngredientSuggestionOut",
@@ -107,10 +122,15 @@ __all__ = [
     "PackageUpdateIn",
     "PaginatedIngredientOut",
     "PaginatedMaterialOut",
+    "PaginatedPortionRepairFindingOut",
     "PortionApplySuggestionIn",
+    "PortionConfirmIn",
     "PortionCreateIn",
     "PortionOut",
     "PortionReorderIn",
+    "PortionRepairApplyOut",
+    "PortionRepairFindingOut",
+    "PortionRepairRejectOut",
     "PortionSuggestionOut",
     "PortionUpdateIn",
     "RetailSectionIn",

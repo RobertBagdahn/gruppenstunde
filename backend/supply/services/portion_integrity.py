@@ -12,6 +12,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from django.utils import timezone
+
+from supply.choices import PortionWeightSource, PortionWeightStatus
+
 if TYPE_CHECKING:
     from supply.models import Portion
 
@@ -133,6 +137,12 @@ def create_replacement_portion(old_portion, **new_attrs):
         created_by=new_attrs.get("created_by"),
     )
     portion.weight_g = new_attrs.get("weight_g")
+    # A replacement requested through the editor carries an explicitly chosen
+    # weight — record it as confirmed so it stays a trusted calculation base.
+    if portion.weight_g is not None and portion.weight_g > 0:
+        portion.weight_status = PortionWeightStatus.CONFIRMED
+        portion.weight_source = PortionWeightSource.MANUAL
+        portion.weight_confirmed_at = timezone.now()
     portion.save()
     logger.info(
         "Created replacement portion %s (%s) for referenced portion %s (%s) instead of updating weight_g in place",

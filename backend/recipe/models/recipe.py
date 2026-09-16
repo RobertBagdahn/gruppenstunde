@@ -149,6 +149,21 @@ class Recipe(Content):
         blank=True,
         verbose_name=_("Gesamtpreis (cached)"),
     )
+    cached_price_ingredient_count = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Anzahl Zutaten (Preisabdeckung, cached)"),
+    )
+    cached_price_priced_count = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Anzahl bepreiste Zutaten (cached)"),
+    )
+    cached_price_missing_count = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Anzahl Zutaten ohne Preis (cached)"),
+    )
     # --- Cached micronutrient values (denormalized, per serving) ---
     cached_vitamin_c_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin C (mg, cached)"))
     cached_at = models.DateTimeField(

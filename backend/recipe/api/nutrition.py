@@ -17,6 +17,7 @@ from recipe.schemas import (
 )
 from recipe.services.recipe_checks import _calculate_item_weight_g
 from supply.models import Ingredient
+from supply.services.price_service import price_or_none
 
 router = Router()
 
@@ -148,9 +149,10 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
 
         # Price
         item_price = None
-        if ingredient.price_per_kg:
+        price_per_kg = price_or_none(ingredient.price_per_kg)
+        if price_per_kg is not None:
             has_prices = True
-            item_price = float(ingredient.price_per_kg) * weight_g / 1000.0
+            item_price = float(price_per_kg) * weight_g / 1000.0
             total_price += item_price
 
         total_weight_g += weight_g

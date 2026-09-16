@@ -131,8 +131,9 @@ def test_resolve_canonical_unit_mapping(db):
     # Test case insensitivity and spaces
     assert resolve_canonical_unit("   g   ") == gramm
 
-    # Test unknown fallback
-    assert resolve_canonical_unit("unknown_unit") == gramm
+    # Unknown units produce a clarification state (None) — never a silent
+    # Gramm fallback (see `fix-food-piece-portion-mapping`).
+    assert resolve_canonical_unit("unknown_unit") is None
 
 
 # ---------------------------------------------------------------------------

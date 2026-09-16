@@ -10,6 +10,7 @@ import WizardStepMethod, { type WizardStepMethodHandle, type WizardState } from 
 import WizardStepIngredients from './WizardStepIngredients';
 import type { WizardStepIngredientsHandle } from './WizardStepIngredients';
 import WizardStepBasis, { type WizardStepBasisHandle } from './WizardStepBasis';
+import WizardStepMaterials from './WizardStepMaterials';
 import WizardStepMetadata from './WizardStepMetadata';
 import WizardStepSteps from './WizardStepSteps';
 import type { WizardStepStepsHandle } from './WizardStepSteps';
@@ -20,7 +21,7 @@ interface RecipeWizardState extends WizardState {
   inputItemsAreContextual: boolean;
 }
 
-const STEP_LABELS = ['KI-Eingabe', 'Basis & Portionen', 'Zutaten', 'Zubereitung', 'Vorschau'];
+const STEP_LABELS = ['KI-Eingabe', 'Basis & Portionen', 'Zutaten', 'Materialien', 'Zubereitung', 'Vorschau'];
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
   return (
@@ -221,6 +222,10 @@ export default function RecipeWizard() {
       }
 
       if (state.currentStep === 3) {
+        // Materials persist immediately through their own endpoints.
+      }
+
+      if (state.currentStep === 4) {
         if (state.recipeId) {
           const body = buildMetadataPatch(metadataRef.current);
           if (body) await saveRecipe(state.recipeId, body);
@@ -254,7 +259,7 @@ export default function RecipeWizard() {
         if (!saved) return;
         await saveRecipe(state.recipeId, { title: stepTitle, recipe_type: stepRecipeType });
       }
-      if (state.currentStep === 3) {
+      if (state.currentStep === 4) {
         if (state.recipeId) {
           const body = buildMetadataPatch(metadataRef.current);
           if (body) await saveRecipe(state.recipeId, body);
@@ -349,6 +354,9 @@ export default function RecipeWizard() {
       />
     ),
     3: activeRecipeSlug ? (
+      <WizardStepMaterials recipeId={activeRecipeId ?? 0} />
+    ) : null,
+    4: activeRecipeSlug ? (
       <div className="space-y-6">
         <WizardStepMetadata
           recipeId={activeRecipeId ?? 0}
@@ -359,7 +367,7 @@ export default function RecipeWizard() {
         <WizardStepSteps ref={stepsStepRef} recipeSlug={activeRecipeSlug} />
       </div>
     ) : null,
-    4: activeRecipeSlug ? (
+    5: activeRecipeSlug ? (
       <WizardStepPreview
         ref={previewStepRef}
         recipeSlug={activeRecipeSlug}
@@ -371,7 +379,7 @@ export default function RecipeWizard() {
   };
 
   const isFirst = state.currentStep === 0;
-  const isLast = state.currentStep === 4;
+  const isLast = state.currentStep === 5;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">

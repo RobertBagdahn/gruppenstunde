@@ -25,6 +25,7 @@ import {
   VerifyStatusSchema,
   type RecipeFilter,
   type RecipeAiCreateIn,
+  type RecipeItemReplaceIn,
   type VerifyRequest,
 } from '@/schemas/recipe';
 import type { RecipeStepInput } from '@/schemas/recipeStep';
@@ -418,6 +419,17 @@ export function useDeleteRecipeItem(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (itemId: number) => deleteJson(`${API_BASE}/${recipeId}/recipe-items/${itemId}/`),
+    onSuccess: () => {
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+export function useReplaceRecipeItem(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, data }: { itemId: number; data: RecipeItemReplaceIn }) =>
+      postJson(`${API_BASE}/${recipeId}/items/${itemId}/replace/`, data, RecipeItemSchema),
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);
     },

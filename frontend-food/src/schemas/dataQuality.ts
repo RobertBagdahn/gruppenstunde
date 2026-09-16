@@ -11,7 +11,8 @@ export const PriceAnomalySchema = z.object({
   price_per_kg: z.string().nullable().optional(),
   retail_section: z.string().nullable().optional(),
   z_score: z.number().nullable().optional(),
-  anomaly_type: z.enum(['high', 'low', 'missing']),
+  anomaly_type: z.enum(['high', 'low', 'missing', 'pending']),
+  price_source: z.enum(['manual', 'ai_accepted']).nullable().optional(),
 });
 export type PriceAnomaly = z.infer<typeof PriceAnomalySchema>;
 
@@ -33,6 +34,9 @@ export const PriceSuggestionSchema = z.object({
   current_price: z.string().nullable().optional(),
   suggested_price: z.string().nullable().optional(),
   reasoning: z.string(),
+  proposal_id: z.number().nullable().optional(),
+  status: z.string().nullable().optional(),
+  confidence: z.number().nullable().optional(),
 });
 export type PriceSuggestion = z.infer<typeof PriceSuggestionSchema>;
 
@@ -41,10 +45,30 @@ export const PriceEvaluateResponseSchema = z.object({
   batch_token: z.string(),
 });
 
+export const PriceApplyItemSchema = z.object({
+  ingredient_id: z.number(),
+  action: z.enum(['accept', 'reject']).default('accept'),
+  replace: z.boolean().default(false),
+});
+export type PriceApplyItem = z.infer<typeof PriceApplyItemSchema>;
+
 export const PriceApplyRequestSchema = z.object({
-  items: z.array(z.object({ ingredient_id: z.number(), price_per_kg: z.string() })),
+  items: z.array(PriceApplyItemSchema).min(1, 'Mindestens eine Zutat auswählen'),
 });
 export type PriceApplyRequest = z.infer<typeof PriceApplyRequestSchema>;
+
+export const PriceApplyResultSchema = z.object({
+  ingredient_id: z.number(),
+  proposal_id: z.number().nullable().optional(),
+  status: z.enum(['accepted', 'rejected', 'conflict', 'missing_proposal', 'not_found', 'failed']),
+  message: z.string().default(''),
+});
+export type PriceApplyResult = z.infer<typeof PriceApplyResultSchema>;
+
+export const PriceApplyResponseSchema = z.object({
+  results: z.array(PriceApplyResultSchema),
+});
+export type PriceApplyResponse = z.infer<typeof PriceApplyResponseSchema>;
 
 // --- Duplicates ---
 
@@ -126,6 +150,8 @@ export const CompletenessItemSchema = z.object({
   classification_score: z.number(),
   scout_score: z.number(),
   portion_score: z.number(),
+  price_status: z.enum(['priced', 'pending', 'missing']).default('missing'),
+  price_source: z.enum(['manual', 'ai_accepted']).nullable().optional(),
 });
 export type CompletenessItem = z.infer<typeof CompletenessItemSchema>;
 

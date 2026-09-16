@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2 } from 'lucide-react';
+import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { EntityLink } from '@/components/shared/EntityLink';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
@@ -57,6 +57,7 @@ import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
 import RecipeUsageInMealPlans from '@/components/recipe/RecipeUsageInMealPlans';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
 import StepEditor from '@/components/recipe/StepEditor';
+import RecipeStepsReadOnly from '@/components/recipe/RecipeStepsReadOnly';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
 import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
@@ -809,6 +810,55 @@ export default function RecipeDetailPage() {
         )}
       </section>
 
+      {/* Recipe Materials (read-only) */}
+      {recipe.materials && recipe.materials.length > 0 && (
+        <section className="mt-6 bg-card rounded-xl border p-6">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+                <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+              </span>
+              <div className="min-w-0">
+                <h2 className="flex items-center gap-2 text-xl font-semibold leading-tight">
+                  Materialien
+                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium leading-none text-muted-foreground">
+                    {recipe.materials.length} {recipe.materials.length === 1 ? 'Material' : 'Materialien'}
+                  </span>
+                </h2>
+              </div>
+            </div>
+            {recipe.can_edit && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/recipes/${recipe.slug}/edit`)}
+                title="Materialien bearbeiten"
+                data-testid="materials-edit-trigger"
+              >
+                <Pencil className="w-4 h-4 mr-1.5" />
+                Bearbeiten
+              </Button>
+            )}
+          </div>
+          <ul className="divide-y divide-border">
+            {recipe.materials.map((material) => (
+              <li
+                key={material.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-3"
+              >
+                <span className="text-sm font-medium">{material.material_name}</span>
+                {material.quantity ? (
+                  <span className="text-sm text-muted-foreground">{material.quantity}</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Menge nicht angegeben</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Nutritional Tags */}
       {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
         <section className="mt-6 bg-card rounded-xl border p-6">
@@ -1026,11 +1076,11 @@ export default function RecipeDetailPage() {
         loading={updateVisibility.isPending}
       />
 
-      {/* Description (Zubereitung) — also shown when empty so editors can add it */}
+      {/* Description — also shown when empty so editors can add it */}
       {(recipe.description || recipe.can_edit) && (
         <InlineEditor
           mode="markdown"
-          label="Zubereitung"
+          label="Beschreibung"
           value={recipe.description}
           canEdit={recipe.can_edit ?? false}
           aiField="description"
@@ -1040,7 +1090,7 @@ export default function RecipeDetailPage() {
         >
           <AnalysisSection
             icon="description"
-            title="Zubereitung"
+            title="Beschreibung"
             defaultOpen={!recipe.description}
             accentColor="text-primary"
             preview={
@@ -1050,7 +1100,7 @@ export default function RecipeDetailPage() {
                   <>
                     <span className="hidden sm:inline">·</span>
                     <span className="hidden sm:inline">
-                      {recipe.description.split(/\n+/).filter(line => line.trim().length > 0).length} {recipe.description.split(/\n+/).filter(line => line.trim().length > 0).length === 1 ? 'Schritt' : 'Schritte'}
+                      {recipe.description.split(/\n+/).filter(line => line.trim().length > 0).length} {recipe.description.split(/\n+/).filter(line => line.trim().length > 0).length === 1 ? 'Absatz' : 'Absätze'}
                     </span>
                   </>
                 )}
@@ -1061,18 +1111,18 @@ export default function RecipeDetailPage() {
               <MarkdownRenderer content={recipe.description} />
             ) : (
               <p className="text-sm text-muted-foreground">
-                Noch keine Zubereitung hinterlegt. Ergänze sie über das Stift-Symbol.
+                Noch keine Beschreibung hinterlegt. Ergänze sie über das Stift-Symbol.
               </p>
             )}
           </AnalysisSection>
         </InlineEditor>
       )}
 
-      {/* Recipe Steps Editor — after Zubereitung */}
-      {recipe.can_edit && (
+      {/* Recipe Steps — read-only structured steps for viewers, editor for owners */}
+      {recipe.can_edit ? (
         <AnalysisSection
           icon="format_list_numbered"
-          title="Strukturierte Schritte"
+          title="Zubereitungsschritte"
           defaultOpen={mode === 'steps'}
           accentColor="text-blue-600"
           preview={
@@ -1099,9 +1149,44 @@ export default function RecipeDetailPage() {
             }}
           />
         </AnalysisSection>
+      ) : (
+        (recipe.steps.length > 0 || recipe.has_structured_steps) && (
+          <AnalysisSection
+            icon="format_list_numbered"
+            title="Zubereitungsschritte"
+            defaultOpen={mode === 'steps'}
+            accentColor="text-blue-600"
+            preview={
+              <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full flex items-center gap-1">
+                {recipe.steps_count !== undefined ? (
+                  <>
+                    <span>{recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}</span>
+                  </>
+                ) : (
+                  <span>Keine strukturierten Schritte</span>
+                )}
+              </div>
+            }
+          >
+            <RecipeStepsReadOnly
+              steps={recipe.steps}
+              scale={(recipe.portions ?? 1) > 0 ? portionsMultiplier / (recipe.portions ?? 1) : 1}
+            />
+          </AnalysisSection>
+        )
       )}
 
       {/* Analyse-Tabs + Rezeptregeln */}
+      {recipe.price_coverage != null && recipe.price_coverage.missing_ingredients > 0 && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-[hsl(var(--chart-4))]/30 bg-[hsl(var(--chart-4))]/10 px-3 py-2 text-sm text-[hsl(var(--chart-4))]">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>
+            {recipe.price_coverage.priced_ingredients === 0
+              ? 'Keine Preise für dieses Rezept hinterlegt.'
+              : `Nur ${recipe.price_coverage.priced_ingredients} von ${recipe.price_coverage.total_ingredients} Zutaten haben einen Preis – der angezeigte Preis ist unvollständig.`}
+          </span>
+        </div>
+      )}
       {nb && nb.total_weight_g > 0 && (
         <RecipeAnalysisTabs
           tabs={[

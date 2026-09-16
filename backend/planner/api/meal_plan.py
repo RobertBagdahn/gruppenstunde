@@ -1687,6 +1687,7 @@ def cost_summary(request, meal_plan_id: int):
     norm_portions = meal_plan.norm_portions or 1
     total_ingredients = 0
     priced_ingredients = 0
+    missing_ingredients = 0
 
     # Aggregate costs per day and meal. ``per_person`` sums the per-meal
     # cost_per_person values so meals with differing effective_portions
@@ -1765,6 +1766,8 @@ def cost_summary(request, meal_plan_id: int):
                         recipe_costs[rid]["priced_ingredients"] += 1
                         meal_cost += price
                         recipe_item_cost += price
+                    else:
+                        missing_ingredients += 1
 
                 recipe_costs[rid]["total_cost"] += recipe_item_cost
                 # Accumulate weighted data for cost_per_person calculation
@@ -1783,6 +1786,8 @@ def cost_summary(request, meal_plan_id: int):
                 if price is not None:
                     priced_ingredients += 1
                     meal_cost += price
+                else:
+                    missing_ingredients += 1
 
         cost_per_person = meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
 
@@ -1827,6 +1832,8 @@ def cost_summary(request, meal_plan_id: int):
         norm_portions=norm_portions,
         total_ingredients=total_ingredients,
         priced_ingredients=priced_ingredients,
+        missing_ingredients=missing_ingredients,
+        coverage=round(priced_ingredients / total_ingredients, 4) if total_ingredients else None,
         days=days,
         recipes=[
             RecipeCostOut(

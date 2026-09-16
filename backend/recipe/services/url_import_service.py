@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 
 from core.services.gemini import GeminiUnavailableError, gemini_call
 from recipe.services.exceptions import NoRecipeFoundError
+from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT
 
 logger = logging.getLogger(__name__)
@@ -157,14 +158,20 @@ class RecipeItemDraftResult:
         measuring_unit_name: str,
         note: str,
         is_new_ingredient: bool,
+        ingredient_slug: str = "",
         portion_id: int | None = None,
         needs_unit_clarification: bool = False,
         suggested_unit_name: str = "",
         suggested_portion_weight_g: float | None = None,
         available_portions: list[dict[str, Any]] | None = None,
+        weight_status: str | None = None,
+        weight_proposal_g: float | None = None,
+        suggested_portion_name: str = "",
+        confirmation_required: bool = False,
     ):
         self.ingredient_id = ingredient_id
         self.ingredient_name = ingredient_name
+        self.ingredient_slug = ingredient_slug
         self.quantity = quantity
         self.measuring_unit_id = measuring_unit_id
         self.measuring_unit_name = measuring_unit_name
@@ -178,6 +185,11 @@ class RecipeItemDraftResult:
         self.suggested_unit_name = suggested_unit_name
         self.suggested_portion_weight_g = suggested_portion_weight_g
         self.available_portions = available_portions or []
+        # Piece-portion proposal metadata
+        self.weight_status = weight_status
+        self.weight_proposal_g = weight_proposal_g
+        self.suggested_portion_name = suggested_portion_name
+        self.confirmation_required = confirmation_required
 
 
 class CreatedIngredientResult:
@@ -1308,6 +1320,7 @@ def _build_recipe_items(
             RecipeItemDraftResult(
                 ingredient_id=ingredient_id,
                 ingredient_name=ingredient_name,
+                ingredient_slug=ingredient.slug,
                 quantity=ing.quantity,
                 measuring_unit_id=measuring_unit_id,
                 measuring_unit_name=measuring_unit_name,
@@ -1325,7 +1338,12 @@ def _build_recipe_items_v2(
     created_ingredients: list[dict[str, Any]],
 ) -> list[RecipeItemDraftResult]:
     """Build recipe items from IngredientMatcher results (v2 — no Gemini note)."""
-    from supply.models import Ingredient
+    from supply.models import Ingredient, Portion
+    from supply.services.portion_resolution import (
+        build_suggested_portion_name,
+        find_matching_piece_portion,
+        is_piece_like_unit_name,
+    )
 
     results: list[RecipeItemDraftResult] = []
     created_ids = {ci["id"] for ci in created_ingredients}
@@ -1342,6 +1360,8 @@ def _build_recipe_items_v2(
             continue
 
         unit_str = item.get("unit", "")
+        note = item.get("note", "") or ""
+        estimated_weight = item.get("estimated_portion_weight_g") or 0
         measuring_unit_id = None
         measuring_unit_name = unit_str
         if unit_str:
@@ -1352,20 +1372,19 @@ def _build_recipe_items_v2(
                 measuring_unit_id = mu.id
                 measuring_unit_name = mu.name
 
-        portion_id = _resolve_portion(
-            ingredient_id=ingredient_id,
-            measuring_unit_id=measuring_unit_id,
-            estimated_weight_g=item.get("estimated_portion_weight_g", 100),
-            unit_name=unit_str,
-            portion_quantity=1.0,
-        )
+        piece_like = is_piece_like_unit_name(unit_str)
 
-        # Without a portion the quantity would be interpreted as grams. Flag
-        # the item so the wizard can ask the user for the missing unit.
-        needs_clarification = portion_id is None
-        suggested_weight = item.get("estimated_portion_weight_g") or None
-        available_portions = (
-            [
+        portion_id = None
+        weight_status: str | None = None
+        weight_proposal_g: float | None = None
+        suggested_portion_name = ""
+        confirmation_required = False
+        needs_clarification = False
+        suggested_weight: float | None = None
+        available_portions: list[dict[str, Any]] = []
+
+        def _serialize_portions(portions) -> list[dict[str, Any]]:
+            return [
                 {
                     "id": portion.id,
                     "name": portion.name,
@@ -1373,14 +1392,63 @@ def _build_recipe_items_v2(
                     "weight_g": portion.weight_g,
                     "measuring_unit_id": portion.measuring_unit_id,
                     "measuring_unit_name": portion.measuring_unit.name if portion.measuring_unit else None,
+                    "weight_status": portion.weight_status,
+                    "weight_source": portion.weight_source,
+                    "is_weight_trusted": portion.is_weight_trusted,
                 }
-                for portion in ingredient.portions.filter(deleted_at__isnull=True)
+                for portion in portions
+            ]
+
+        if piece_like:
+            # Piece-like inputs must never silently become grams. Either an
+            # existing trusted portion matches, or the user must confirm an
+            # AI weight proposal (possibly against an existing portion).
+            suggested_name = build_suggested_portion_name(unit_str, note, ingredient_name)
+            existing = find_matching_piece_portion(ingredient, suggested_name)
+            active_portions = list(
+                ingredient.portions.filter(deleted_at__isnull=True)
                 .select_related("measuring_unit")
                 .order_by("rank", "id")
-            ]
-            if needs_clarification
-            else []
-        )
+            )
+            available_portions = _serialize_portions(active_portions)
+            suggested_portion_name = suggested_name
+            if existing is not None and existing.is_weight_trusted:
+                portion_id = existing.id
+                weight_status = "confirmed"
+            else:
+                needs_clarification = True
+                confirmation_required = True
+                if estimated_weight and estimated_weight > 0:
+                    weight_proposal_g = estimated_weight
+                    suggested_weight = estimated_weight
+                    weight_status = "ai_proposed"
+                else:
+                    weight_status = "unknown"
+        else:
+            portion_id = _resolve_portion(
+                ingredient_id=ingredient_id,
+                measuring_unit_id=measuring_unit_id,
+                estimated_weight_g=item.get("estimated_portion_weight_g", 100),
+                unit_name=unit_str,
+                portion_quantity=1.0,
+            )
+
+            # Without a portion the quantity would be interpreted as grams. Flag
+            # the item so the wizard can ask the user for the missing unit.
+            needs_clarification = portion_id is None
+            suggested_weight = item.get("estimated_portion_weight_g") or None
+            if portion_id:
+                portion = Portion.objects.filter(id=portion_id).first()
+                weight_status = portion.weight_status if portion else None
+            available_portions = (
+                _serialize_portions(
+                    ingredient.portions.filter(deleted_at__isnull=True)
+                    .select_related("measuring_unit")
+                    .order_by("rank", "id")
+                )
+                if needs_clarification
+                else []
+            )
 
         results.append(
             RecipeItemDraftResult(
@@ -1396,6 +1464,10 @@ def _build_recipe_items_v2(
                 suggested_unit_name=unit_str if needs_clarification else "",
                 suggested_portion_weight_g=suggested_weight if needs_clarification else None,
                 available_portions=available_portions,
+                weight_status=weight_status,
+                weight_proposal_g=weight_proposal_g,
+                suggested_portion_name=suggested_portion_name,
+                confirmation_required=confirmation_required,
             )
         )
 
@@ -1483,7 +1555,9 @@ def _resolve_portion(
         if metric_portion:
             if metric_portion.weight_g != metric_base_weight and not metric_portion.recipe_items.exists():
                 metric_portion.weight_g = metric_base_weight
-                metric_portion.save(update_fields=["weight_g"])
+                metric_portion.weight_status = PortionWeightStatus.CONFIRMED
+                metric_portion.weight_source = PortionWeightSource.SYSTEM
+                metric_portion.save(update_fields=["weight_g", "weight_status", "weight_source"])
             return metric_portion.id
 
     # Match the complete portion identity, not an arbitrary portion for a unit.
@@ -1517,12 +1591,16 @@ def _resolve_portion(
                     and not existing_unit_portion.recipe_items.exists()
                 ):
                     existing_unit_portion.weight_g = metric_base_weight
-                    existing_unit_portion.save(update_fields=["weight_g"])
+                    existing_unit_portion.weight_status = PortionWeightStatus.CONFIRMED
+                    existing_unit_portion.weight_source = PortionWeightSource.SYSTEM
+                    existing_unit_portion.save(update_fields=["weight_g", "weight_status", "weight_source"])
                 return existing_unit_portion.id
             if not existing_unit_portion.recipe_items.exists():
                 if _should_update_weight(existing_unit_portion, estimated_weight_g):
-                    update_fields = ["weight_g"]
+                    update_fields = ["weight_g", "weight_status", "weight_source"]
                     existing_unit_portion.weight_g = estimated_weight_g
+                    existing_unit_portion.weight_status = PortionWeightStatus.IMPORTED
+                    existing_unit_portion.weight_source = PortionWeightSource.IMPORT
                     if p_name and p_name.lower() != existing_unit_portion.name.lower():
                         if (
                             not Portion.objects.filter(
@@ -1552,7 +1630,9 @@ def _resolve_portion(
         if portion:
             if _should_update_weight(portion, estimated_weight_g) and not portion.recipe_items.exists():
                 portion.weight_g = estimated_weight_g
-                portion.save(update_fields=["weight_g"])
+                portion.weight_status = PortionWeightStatus.IMPORTED
+                portion.weight_source = PortionWeightSource.IMPORT
+                portion.save(update_fields=["weight_g", "weight_status", "weight_source"])
             elif (
                 not is_metric_base
                 and estimated_weight_g > 0
@@ -1576,7 +1656,9 @@ def _resolve_portion(
         if portion:
             if _should_update_weight(portion, estimated_weight_g) and not portion.recipe_items.exists():
                 portion.weight_g = estimated_weight_g
-                portion.save(update_fields=["weight_g"])
+                portion.weight_status = PortionWeightStatus.IMPORTED
+                portion.weight_source = PortionWeightSource.IMPORT
+                portion.save(update_fields=["weight_g", "weight_status", "weight_source"])
             return portion.id
 
     # Create a new active portion. The legacy schema makes names unique per
@@ -1636,6 +1718,8 @@ def _resolve_portion(
                     quantity=portion_quantity,
                     weight_g=weight,
                     rank=next_rank,
+                    weight_status=(PortionWeightStatus.CONFIRMED if is_metric_base else PortionWeightStatus.IMPORTED),
+                    weight_source=(PortionWeightSource.SYSTEM if is_metric_base else PortionWeightSource.IMPORT),
                 )
         except IntegrityError:
             # Lost a race against a concurrent insert of the same (case-insensitive) name.

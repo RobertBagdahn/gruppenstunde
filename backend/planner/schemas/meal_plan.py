@@ -11,6 +11,7 @@ from planner.services.meal_item_helpers import (
     resolve_ingredient_cost_eur,
     resolve_ingredient_energy_kcal,
 )
+from recipe.schemas.recipes import PriceCoverageOut
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.schemas.reference import NutritionalTagOut
 
@@ -321,6 +322,7 @@ class MealOut(Schema):
     external_cost_per_person: float | None = None
     total_energy_kcal: float = 0.0
     total_cost_eur: float = 0.0
+    price_coverage: PriceCoverageOut | None = None
     items: list[MealItemOut] = []
 
     @staticmethod
@@ -368,6 +370,33 @@ class MealOut(Schema):
                 if cost is not None:
                     total += cost
         return total
+
+    @staticmethod
+    def resolve_price_coverage(obj) -> dict | None:
+        from supply.services.price_service import is_missing_price
+
+        total = 0
+        priced = 0
+        missing = 0
+        for item in obj.items.all():
+            if item.recipe and item.recipe.cached_price_ingredient_count:
+                total += item.recipe.cached_price_ingredient_count
+                priced += item.recipe.cached_price_priced_count or 0
+                missing += item.recipe.cached_price_missing_count or 0
+            elif item.ingredient:
+                total += 1
+                if is_missing_price(item.ingredient.price_per_kg):
+                    missing += 1
+                else:
+                    priced += 1
+        if not total:
+            return None
+        return {
+            "total_ingredients": total,
+            "priced_ingredients": priced,
+            "missing_ingredients": missing,
+            "coverage": round(priced / total, 4),
+        }
 
 
 class MealCreateIn(Schema):
@@ -824,6 +853,8 @@ class MealPlanCostSummaryOut(Schema):
     norm_portions: float
     total_ingredients: int
     priced_ingredients: int
+    missing_ingredients: int = 0
+    coverage: float | None = None
     days: list[DayCostOut] = []
     recipes: list[RecipeCostOut] = []
 

@@ -16,6 +16,7 @@ from planner.services.cooking_schedule_service import (
     build_cooking_schedule,
     compute_recipe_lead_minutes,
     parse_recipe_steps,
+    resolve_schedule_steps,
 )
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe
@@ -368,6 +369,60 @@ class TestCookingScheduleAPI:
 # ---------------------------------------------------------------------------
 # Tests: Schritt-Parsing
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestStructuredSteps:
+    def test_prefers_structured_steps_over_description(self):
+        """Structured RecipeSteps win over the markdown description."""
+        recipe = make_recipe(portions=1, description="1. Alte Anleitung")
+        from recipe.models import RecipeStep
+
+        RecipeStep.objects.create(
+            recipe=recipe,
+            sort_order=0,
+            instruction="Teig kneten",
+            duration_minutes=10,
+        )
+        steps = resolve_schedule_steps(recipe, scale=1.0)
+        assert len(steps) == 1
+        assert steps[0].text == "Teig kneten"
+        assert steps[0].timer == 10
+
+    def test_scales_placeholders_to_plan_scale(self):
+        """Placeholder quantities are scaled to the plan portion scale."""
+        from recipe.models import RecipeStep
+        from recipe.tests import make_recipe_item
+
+        recipe = make_recipe(portions=1)
+        make_recipe_item(recipe=recipe, quantity=100)
+        RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Nimm {Testzutat}")
+        steps = resolve_schedule_steps(recipe, scale=4.0)
+        assert steps[0].text == "Nimm 400g Testzutat"
+
+    def test_falls_back_to_markdown_without_structured_steps(self):
+        """Legacy recipes keep the markdown description fallback."""
+        recipe = make_recipe(portions=1, description="1. Mehl sieben\n2. Backen")
+        steps = resolve_schedule_steps(recipe, scale=1.0)
+        assert len(steps) == 2
+        assert "Mehl sieben" in steps[0].text
+        assert "Backen" in steps[1].text
+
+    def test_schedule_uses_structured_steps(self):
+        """build_cooking_schedule exposes structured steps in steps_parsed."""
+        from recipe.models import RecipeStep
+        from recipe.tests import make_recipe_item
+
+        plan = make_meal_plan(norm_portions=4)
+        recipe = make_recipe(portions=1, description="1. Alt")
+        make_recipe_item(recipe=recipe, quantity=100)
+        RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Nimm {Testzutat}")
+        meal = make_meal(meal_plan=plan)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+        variant = result.days[0].meals[0].recipe_blocks[0].variants[0]
+        assert variant.steps_parsed[0].text == "Nimm 400g Testzutat"
 
 
 @pytest.mark.django_db

@@ -54,7 +54,7 @@ class MatchedIngredientResult:
 
     def __init__(
         self,
-        ingredient_id: int,
+        ingredient_id: int | None,
         ingredient_name: str,
         portion_id: int | None,
         portion_name: str | None,
@@ -63,6 +63,9 @@ class MatchedIngredientResult:
         measuring_unit_name: str | None,
         is_new_ingredient: bool = False,
         note: str = "",
+        replacement_for_item_id: int | None = None,
+        replacement_reason: str | None = None,
+        replacement_confidence: float | None = None,
     ):
         self.ingredient_id = ingredient_id
         self.ingredient_name = ingredient_name
@@ -73,6 +76,9 @@ class MatchedIngredientResult:
         self.measuring_unit_name = measuring_unit_name
         self.is_new_ingredient = is_new_ingredient
         self.note = note
+        self.replacement_for_item_id = replacement_for_item_id
+        self.replacement_reason = replacement_reason
+        self.replacement_confidence = replacement_confidence
 
 
 # ---------------------------------------------------------------------------
@@ -126,98 +132,146 @@ class RecipeAiIngredientsService:
             return None, None
 
     def match_ingredients(
-        self, suggestions: list[AiIngredientSuggestion]
-    ) -> list[tuple[AiIngredientSuggestion, int, bool, str]]:
+        self,
+        suggestions: list[AiIngredientSuggestion],
+        *,
+        recipe: Recipe | None = None,
+        create_missing: bool = True,
+    ) -> list[MatchedIngredientResult]:
         """Match suggested ingredient names via IngredientMatcher.
 
-        Returns list of (suggestion, ingredient_id, is_new, note) tuples.
-        Uses the central IngredientMatcher with cascading stages.
+        Returns a MatchedIngredientResult per suggestion. When `recipe` is
+        given, replacement context (generic-to-concrete mappings) is resolved
+        via the matcher.
+
+        With `create_missing=False` (preview mode) unmatched names are NOT
+        persisted — unresolved candidates keep `ingredient_id=None` and
+        `is_new_ingredient=True` so the caller can surface them without
+        leaving draft Ingredient rows behind.
         """
         from recipe.services.ingredient_matcher import IngredientMatcher
 
-        results: list[tuple[AiIngredientSuggestion, int, bool, str]] = []
+        results: list[MatchedIngredientResult] = []
 
         for suggestion in suggestions:
             raw_name = suggestion.name.strip()
-            match_result = IngredientMatcher.match(raw_name)
+            match_result = IngredientMatcher.match(raw_name, recipe=recipe)
 
             ingredient_id = match_result.ingredient_id
+            ingredient_name = match_result.name if match_result.name else raw_name
             is_new = match_result.is_new
             note = match_result.note
 
             if not ingredient_id:
-                from supply.choices import IngredientStatusChoices
-                from supply.models import Ingredient, IngredientAlias
-
-                clean_name = match_result.name.strip() if match_result.name else raw_name
-                existing = (
-                    Ingredient.objects.filter(name__iexact=raw_name, deleted_at__isnull=True)
-                    .order_by("-usage_count", "id")
-                    .first()
-                    or Ingredient.objects.filter(name__iexact=clean_name, deleted_at__isnull=True)
-                    .order_by("-usage_count", "id")
-                    .first()
-                )
-                if not existing:
-                    alias = (
-                        IngredientAlias.objects.filter(name__iexact=clean_name)
-                        .select_related("ingredient")
-                        .filter(ingredient__deleted_at__isnull=True)
-                        .first()
-                        or IngredientAlias.objects.filter(name__iexact=raw_name)
-                        .select_related("ingredient")
-                        .filter(ingredient__deleted_at__isnull=True)
-                        .first()
-                    )
-                    if alias:
-                        existing = alias.ingredient
-
-                base_slug = slugify(raw_name) or slugify(clean_name) or "zutat"
-                if not existing and base_slug:
-                    existing = Ingredient.objects.filter(slug=base_slug, deleted_at__isnull=True).first()
-
+                existing = self._resolve_existing_ingredient(raw_name, match_result)
                 if existing:
                     ingredient_id = existing.id
+                    ingredient_name = existing.name
                     is_new = False
+                elif create_missing:
+                    ingredient_id, ingredient_name, is_new = self._create_draft_ingredient(raw_name)
                 else:
-                    slug = base_slug
-                    counter = 1
-                    while Ingredient.objects.filter(slug=slug).exists():
-                        slug = f"{base_slug}-{counter}"
-                        counter += 1
-
-                    new_ingredient = Ingredient.objects.create(
-                        name=raw_name,
-                        slug=slug,
-                        status=IngredientStatusChoices.DRAFT,
-                    )
-                    ingredient_id = new_ingredient.id
                     is_new = True
 
-            results.append((suggestion, ingredient_id, is_new, note))
+            results.append(
+                MatchedIngredientResult(
+                    ingredient_id=ingredient_id,
+                    ingredient_name=ingredient_name if ingredient_id else raw_name,
+                    portion_id=None,
+                    portion_name=None,
+                    quantity=suggestion.estimated_grams,
+                    measuring_unit_id=None,
+                    measuring_unit_name=None,
+                    is_new_ingredient=is_new,
+                    note=note,
+                    replacement_for_item_id=match_result.replacement_for_item_id,
+                    replacement_reason=match_result.replacement_reason,
+                    replacement_confidence=match_result.replacement_confidence,
+                )
+            )
 
         return results
 
+    @staticmethod
+    def _resolve_existing_ingredient(raw_name: str, match_result) -> Any:
+        """Resolve an existing Ingredient by exact name, alias or slug."""
+        from supply.models import Ingredient, IngredientAlias
+
+        clean_name = match_result.name.strip() if match_result.name else raw_name
+        existing = (
+            Ingredient.objects.filter(name__iexact=raw_name, deleted_at__isnull=True)
+            .order_by("-usage_count", "id")
+            .first()
+            or Ingredient.objects.filter(name__iexact=clean_name, deleted_at__isnull=True)
+            .order_by("-usage_count", "id")
+            .first()
+        )
+        if not existing:
+            alias = (
+                IngredientAlias.objects.filter(name__iexact=clean_name)
+                .select_related("ingredient")
+                .filter(ingredient__deleted_at__isnull=True)
+                .first()
+                or IngredientAlias.objects.filter(name__iexact=raw_name)
+                .select_related("ingredient")
+                .filter(ingredient__deleted_at__isnull=True)
+                .first()
+            )
+            if alias:
+                existing = alias.ingredient
+
+        base_slug = slugify(raw_name) or slugify(clean_name) or "zutat"
+        if not existing and base_slug:
+            existing = Ingredient.objects.filter(slug=base_slug, deleted_at__isnull=True).first()
+
+        return existing
+
+    @staticmethod
+    def _create_draft_ingredient(raw_name: str) -> tuple[int, str, bool]:
+        """Create a draft Ingredient for an unresolved name. Returns (id, name, True)."""
+        from supply.choices import IngredientStatusChoices
+        from supply.models import Ingredient
+
+        base_slug = slugify(raw_name) or "zutat"
+        slug = base_slug
+        counter = 1
+        while Ingredient.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        new_ingredient = Ingredient.objects.create(
+            name=raw_name,
+            slug=slug,
+            status=IngredientStatusChoices.DRAFT,
+        )
+        return new_ingredient.id, new_ingredient.name, True
+
     def assign_portions(
-        self, matched: list[tuple[AiIngredientSuggestion, int, bool, str]]
+        self,
+        matched: list[MatchedIngredientResult],
+        *,
+        create_missing: bool = True,
     ) -> list[MatchedIngredientResult]:
         """Assign best portion for each matched ingredient and calculate quantity.
 
         Logic:
         1. Use rank=1 portion (Normalportion/default) if available
         2. Otherwise use first portion by rank
-        3. If no portions exist, create a "g" (Gramm) fallback portion
+        3. If no portions exist: create a "g" (Gramm) fallback portion when
+           `create_missing` is True; otherwise leave portion_id=None so the
+           caller can surface an unresolved candidate without persisting data.
         """
         from supply.models import Ingredient, MeasuringUnit, Portion
 
-        results: list[MatchedIngredientResult] = []
+        for result in matched:
+            if result.ingredient_id is None:
+                continue
 
-        for suggestion, ingredient_id, is_new, note in matched:
-            ingredient = Ingredient.objects.get(id=ingredient_id)
+            ingredient = Ingredient.objects.get(id=result.ingredient_id)
 
             # Find best portion: rank=1 is the Normalportion
             portion = (
-                Portion.objects.filter(ingredient_id=ingredient_id, rank=1, deleted_at__isnull=True)
+                Portion.objects.filter(ingredient_id=result.ingredient_id, rank=1, deleted_at__isnull=True)
                 .select_related("measuring_unit")
                 .first()
             )
@@ -225,13 +279,15 @@ class RecipeAiIngredientsService:
             if not portion:
                 # Fallback: get any portion ordered by rank
                 portion = (
-                    Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True)
+                    Portion.objects.filter(ingredient_id=result.ingredient_id, deleted_at__isnull=True)
                     .select_related("measuring_unit")
                     .order_by("rank")
                     .first()
                 )
 
             if not portion:
+                if not create_missing:
+                    continue
                 # Create "g" fallback portion
                 gramm_unit, _ = MeasuringUnit.objects.get_or_create(
                     name="g",
@@ -254,28 +310,24 @@ class RecipeAiIngredientsService:
 
             # Calculate quantity
             weight_g = portion.weight_g if portion.weight_g and portion.weight_g > 0 else 1.0
-            quantity = round(suggestion.estimated_grams / weight_g, 2)
+            result.portion_id = portion.id
+            result.portion_name = str(portion)
+            result.quantity = round(result.quantity / weight_g, 2)
+            result.measuring_unit_id = portion.measuring_unit_id
+            result.measuring_unit_name = portion.measuring_unit.name if portion.measuring_unit else None
 
-            results.append(
-                MatchedIngredientResult(
-                    ingredient_id=ingredient_id,
-                    ingredient_name=ingredient.name,
-                    portion_id=portion.id,
-                    portion_name=str(portion),
-                    quantity=quantity,
-                    measuring_unit_id=portion.measuring_unit_id,
-                    measuring_unit_name=portion.measuring_unit.name if portion.measuring_unit else None,
-                    is_new_ingredient=is_new,
-                    note=note,
-                )
-            )
-
-        return results
+        return matched
 
     def get_full_suggestions(
         self, recipe: Recipe, user: AbstractBaseUser | None = None
     ) -> tuple[list[MatchedIngredientResult] | None, str | None]:
         """Full pipeline: suggest → match → assign portions → filter existing.
+
+        Runs in preview mode: unresolved candidates are returned without
+        persisting draft Ingredient or Portion rows. Replacement candidates
+        (generic-to-concrete mappings against existing RecipeItems) are
+        annotated via the matcher and kept so the caller can offer a direct
+        `Ersetzen` action instead of adding a duplicate.
 
         Returns (results, ai_interaction_id).
         """
@@ -283,8 +335,8 @@ class RecipeAiIngredientsService:
         if not ai_output or not ai_output.items:
             return None, interaction_id
 
-        matched = self.match_ingredients(ai_output.items)
-        results = self.assign_portions(matched)
+        matched = self.match_ingredients(ai_output.items, recipe=recipe, create_missing=False)
+        results = self.assign_portions(matched, create_missing=False)
 
         # Filter out ingredients already present in the recipe
         from recipe.models import RecipeItem
@@ -456,6 +508,7 @@ class RecipeQuantityEstimationService:
         corruption bug (see design.md for the recipe #59 "Linsensuppe" case).
         """
         from supply.services.portion_integrity import get_active_rank1_portion
+        from supply.services.portion_resolution import resolve_trusted_weight
 
         estimates_by_id = {e.item_id: e for e in ai_output.items}
         results = []
@@ -483,6 +536,18 @@ class RecipeQuantityEstimationService:
                 )
                 continue
 
+            # Unresolved piece weights (unknown/AI-proposed) cannot serve as a
+            # conversion base — the portion must be confirmed first.
+            trusted_weight = resolve_trusted_weight(target_portion)
+            if trusted_weight is None:
+                logger.warning(
+                    "AI quantity estimation: portion %s (%s) has no trusted weight — skipping item %s",
+                    target_portion.id,
+                    target_portion.name,
+                    item.id,
+                )
+                continue
+
             # Composite-portion labeling rule (same as frontend normalizeItems(),
             # fixed for recipe #434): portions with quantity != 1 are pre-scaled
             # conversion factors (e.g. "1 Portion Nudeln" = 125g). Their own name
@@ -496,10 +561,8 @@ class RecipeQuantityEstimationService:
             else:
                 unit = "g"
 
-            # Convert AI grams into the editable unit. Use consistent logic with
-            # assign_portions (line 238): check weight_g > 0, not just falsy.
-            # This prevents items with weight_g=0 from incorrectly falling back to 1.0.
-            weight_g = target_portion.weight_g if (target_portion.weight_g and target_portion.weight_g > 0) else 1.0
+            # Use the trusted weight as the conversion base.
+            weight_g = trusted_weight
 
             # Use the AI estimate directly without clamping to 1.0.
             # Small amounts (0.1-0.5g) for spices should pass through unchanged.
@@ -533,6 +596,8 @@ class RecipeQuantityEstimationService:
                     "portion_id": target_portion.id,
                     "unit": unit,
                     "grams_total": grams_total,
+                    "weight_status": target_portion.weight_status,
+                    "is_weight_trusted": True,
                 }
             )
 
@@ -582,14 +647,19 @@ class RecipeQuantityEstimationService:
     def compute_weight_per_portion_g(self, recipe: Recipe) -> float:
         """Total recipe weight in grams divided by the number of portions,
         computed fresh from RecipeItems (does NOT rely on `cached_weight_g`,
-        which may itself be stale/derived from the same bad data)."""
+        which may itself be stale/derived from the same bad data). Only
+        trusted portion weights are summed; unresolved piece weights do not
+        contribute fabricated gram values."""
         from recipe.models import RecipeItem
+        from supply.services.portion_resolution import resolve_trusted_weight
 
         items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
         total_g = 0.0
         for item in items:
-            if item.portion and item.portion.weight_g:
-                total_g += item.quantity * item.portion.weight_g
+            if item.portion:
+                trusted = resolve_trusted_weight(item.portion)
+                if trusted is not None:
+                    total_g += item.quantity * trusted
         servings = recipe.portions or 1
         return total_g / servings if servings else total_g
 

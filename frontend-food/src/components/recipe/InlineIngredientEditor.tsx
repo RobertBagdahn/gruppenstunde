@@ -15,6 +15,7 @@ import {
   useEstimateQuantities,
   usePatchRecipeItem,
   useCreateExchangeGroup,
+  useReplaceRecipeItem,
 } from '@/api/recipes';
 import { useUpdateIngredient } from '@/api/supplies';
 import { useCurrentUser } from '@/api/auth';
@@ -26,6 +27,7 @@ import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { Button } from '@/components/ui/button';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
+import { AiIngredientSuggestionSchema, type AiIngredientSuggestion } from '@/schemas/recipe';
 
 // --- Types ---
 
@@ -43,7 +45,7 @@ export interface EditableItem {
   is_optional: boolean;
   exchange_group_id: number | null;
   exchange_position: number | null;
-  ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number }[];
+  ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number; is_weight_trusted?: boolean; weight_status?: string | null }[];
   /** Backend-computed weight (grams) for `baseQuantity` — authoritative, unlike
    *  the client-side `ingredient_portions[].weight_g` lookup (which can be
    *  wrong/missing if `portion_id` doesn't match any listed portion). Used to
@@ -61,16 +63,6 @@ export interface EditableItem {
    *  see fix-portion-integrity-and-ai-estimate). Cleared on any further
    *  manual edit of quantity or portion. */
   aiExpectedGramsTotal?: number;
-}
-
-interface AiIngredientSuggestion {
-  ingredient_id: number;
-  ingredient_name: string;
-  portion_id: number;
-  portion_name: string;
-  quantity: number;
-  is_new_ingredient: boolean;
-  note: string;
 }
 
 interface InlineIngredientEditorProps {
@@ -311,6 +303,50 @@ export function normalizeItems(
   });
 }
 
+/** Partitions AI suggestions into add candidates (new RecipeItems) and
+ *  replacement candidates (tied to an existing RecipeItem via
+ *  `replacement_for_item_id`). Replacement candidates must never be sent to
+ *  the add endpoint — they are applied through the dedicated replace
+ *  endpoint so no duplicate RecipeItem is created. */
+export function splitAiSuggestions(suggestions: AiIngredientSuggestion[]): {
+  addCandidates: AiIngredientSuggestion[];
+  replacementCandidates: AiIngredientSuggestion[];
+} {
+  return {
+    addCandidates: suggestions.filter((s) => s.replacement_for_item_id == null),
+    replacementCandidates: suggestions.filter((s) => s.replacement_for_item_id != null),
+  };
+}
+
+/** Build the payload for POST ai-apply-ingredients from selected suggestions.
+ *  Unresolved candidates (no portion) carry their name so the backend can
+ *  materialize the draft ingredient at apply time. */
+export function buildAiApplyPayload(selected: AiIngredientSuggestion[]): Record<string, unknown>[] {
+  return selected.map((s) => ({
+    portion_id: s.portion_id,
+    ingredient_id: s.ingredient_id,
+    name: s.portion_id == null ? s.ingredient_name : undefined,
+    quantity: s.quantity,
+    note: s.note || '',
+  }));
+}
+
+/** Build the payload for POST items/{item_id}/replace/ from a replacement
+ *  candidate. The quantity is intentionally omitted so the backend derives it
+ *  from the current gram amount (gram preservation). */
+export function buildReplacePayload(suggestion: AiIngredientSuggestion): {
+  portion_id: number;
+  ingredient_id?: number;
+  client_request_id: string;
+} | null {
+  if (suggestion.replacement_for_item_id == null || suggestion.portion_id == null) return null;
+  return {
+    portion_id: suggestion.portion_id,
+    ingredient_id: suggestion.ingredient_id ?? undefined,
+    client_request_id: crypto.randomUUID(),
+  };
+}
+
 // --- Ingredient Row (own component so the per-row `useUpdateIngredient` hook
 //     has a stable Fiber/hook-list regardless of how many rows are rendered) ---
 
@@ -408,7 +444,13 @@ function IngredientRow({
         </span>
       )}
       <span className="text-xs text-muted-foreground min-w-[4rem] text-right tabular-nums">
-        = {Math.round(getItemWeightG(item) * 10) / 10} g
+        {item.ingredient_portions.find((portion) => portion.id === item.portion_id)?.is_weight_trusted === false ? (
+          <span className="text-amber-700" title="Das Portionsgewicht muss bestätigt werden.">
+            Gewicht bestätigen
+          </span>
+        ) : (
+          `= ${Math.round(getItemWeightG(item) * 10) / 10} g`
+        )}
       </span>
       <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
       {expandedNotes.has(item.id) || item.note ? (
@@ -574,6 +616,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
   const estimateQuantities = useEstimateQuantities(persistedRecipeId);
   const patchItem = usePatchRecipeItem(persistedRecipeId);
   const createExchangeGroup = useCreateExchangeGroup(persistedRecipeId);
+  const replaceItem = useReplaceRecipeItem(persistedRecipeId);
 
   // --- Handlers ---
 
@@ -906,9 +949,13 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       const data = await suggestRes.json();
 
       // Support both list response (legacy) and object response with interaction_id
-      const suggestions: AiIngredientSuggestion[] = Array.isArray(data)
+      const rawItems: unknown[] = Array.isArray(data)
         ? data
         : (data.items ?? data.suggestions ?? []);
+      const suggestions = rawItems
+        .map((raw) => AiIngredientSuggestionSchema.safeParse(raw))
+        .filter((parsed) => parsed.success)
+        .map((parsed) => (parsed as { data: AiIngredientSuggestion }).data);
       const interactionId: string | null = !Array.isArray(data) ? (data.ai_interaction_id ?? null) : null;
 
       if (!suggestions || suggestions.length === 0) {
@@ -929,19 +976,14 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
   const handleApplyAiSuggestions = useCallback(async () => {
     if (!aiSuggestions || selectedAiSuggestions.size === 0) return;
 
-    const selected = aiSuggestions.filter((_, i) => selectedAiSuggestions.has(i));
+    const addCandidates = splitAiSuggestions(aiSuggestions).addCandidates;
+    const selected = addCandidates.filter((_, i) => selectedAiSuggestions.has(i));
     try {
       const applyRes = await fetch(`${API_BASE_URL}/api/recipes/${recipeId}/ai-apply-ingredients/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          selected.map((s) => ({
-            portion_id: s.portion_id,
-            quantity: s.quantity,
-            note: s.note || '',
-          })),
-        ),
+        body: JSON.stringify(buildAiApplyPayload(selected)),
       });
       if (!applyRes.ok) throw new Error('Anwenden fehlgeschlagen');
 
@@ -954,6 +996,30 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       toast.error('Fehler beim Hinzufügen der Zutaten');
     }
   }, [aiSuggestions, selectedAiSuggestions, recipeId, queryClient, onSaved]);
+
+  const handleApplyReplacement = useCallback(
+    async (suggestion: AiIngredientSuggestion) => {
+      const targetItemId = suggestion.replacement_for_item_id;
+      const payload = buildReplacePayload(suggestion);
+      if (targetItemId == null || payload == null) return;
+      try {
+        await replaceItem.mutateAsync({
+          itemId: targetItemId,
+          data: payload,
+        });
+        toast.success(`${suggestion.ingredient_name} ersetzt`);
+        setAiSuggestions(null);
+        setSelectedAiSuggestions(new Set());
+        setAiSuggestInteractionId(null);
+        onSaved();
+      } catch (err) {
+        toast.error('Ersetzen fehlgeschlagen', {
+          description: err instanceof Error ? err.message : undefined,
+        });
+      }
+    },
+    [replaceItem, onSaved],
+  );
 
   // --- Alternative Ingredient Selection ---
 
@@ -1571,57 +1637,119 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             <p className="text-sm text-muted-foreground mb-4">
               Folgende Zutaten wurden vorgeschlagen:
             </p>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted-foreground border-b">
-                  <th className="pb-2 w-8">
-                    <input
-                      type="checkbox"
-                      checked={selectedAiSuggestions.size === aiSuggestions.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedAiSuggestions(new Set(aiSuggestions.map((_, i) => i)));
-                        } else {
-                          setSelectedAiSuggestions(new Set());
-                        }
-                      }}
-                      className="rounded border-input"
-                      title="Alle auswählen"
-                    />
-                  </th>
-                  <th className="pb-2">Zutat</th>
-                  <th className="pb-2 text-right">Menge</th>
-                </tr>
-              </thead>
-              <tbody>
-                {aiSuggestions.map((s, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="py-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedAiSuggestions.has(i)}
-                        onChange={(e) => {
-                          setSelectedAiSuggestions((prev) => {
-                            const next = new Set(prev);
-                            if (e.target.checked) {
-                              next.add(i);
-                            } else {
-                              next.delete(i);
-                            }
-                            return next;
-                          });
-                        }}
-                        className="rounded border-input"
-                      />
-                    </td>
-                    <td className="py-2 font-medium">{s.ingredient_name}</td>
-                    <td className="py-2 text-right text-muted-foreground">
-                      {s.quantity} {s.portion_name}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+            {(() => {
+              const { addCandidates, replacementCandidates } = splitAiSuggestions(aiSuggestions);
+
+              return (
+                <>
+                  {replacementCandidates.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                        Ersetzungen
+                      </p>
+                      <div className="space-y-2">
+                        {replacementCandidates.map((s, i) => {
+                          const sourceItem = editItems.find((item) => item.id === s.replacement_for_item_id);
+                          const sourceName = sourceItem?.ingredient_name ?? 'bestehende Zutat';
+                          return (
+                            <div
+                              key={`replacement-${i}`}
+                              data-testid={`ai-replacement-${s.replacement_for_item_id}`}
+                              className="flex items-center gap-3 p-3 border border-primary/30 bg-primary/5 rounded-lg"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-foreground text-sm">
+                                  {s.ingredient_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {s.replacement_reason ?? `Ersetzt ${sourceName}`}: {sourceName} →{' '}
+                                  {s.ingredient_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Zielportion: {s.quantity} {s.portion_name ?? ''}
+                                </p>
+                                {s.replacement_confidence != null && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Sicherheit: {Math.round(s.replacement_confidence * 100)}%
+                                  </p>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                disabled={replaceItem.isPending || s.portion_id == null}
+                                title={s.portion_id == null ? 'Keine Portion verfügbar' : `${sourceName} ersetzen`}
+                                onClick={() => handleApplyReplacement(s)}
+                                className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                              >
+                                Ersetzen
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {addCandidates.length > 0 && (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-muted-foreground border-b">
+                          <th className="pb-2 w-8">
+                            <input
+                              type="checkbox"
+                              checked={selectedAiSuggestions.size === addCandidates.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedAiSuggestions(
+                                    new Set(addCandidates.map((_, i) => i)),
+                                  );
+                                } else {
+                                  setSelectedAiSuggestions(new Set());
+                                }
+                              }}
+                              className="rounded border-input"
+                              title="Alle auswählen"
+                            />
+                          </th>
+                          <th className="pb-2">Zutat</th>
+                          <th className="pb-2 text-right">Menge</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {addCandidates.map((s, i) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="py-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedAiSuggestions.has(i)}
+                                onChange={(e) => {
+                                  setSelectedAiSuggestions((prev) => {
+                                    const next = new Set(prev);
+                                    if (e.target.checked) {
+                                      next.add(i);
+                                    } else {
+                                      next.delete(i);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="rounded border-input"
+                              />
+                            </td>
+                            <td className="py-2 font-medium">{s.ingredient_name}</td>
+                            <td className="py-2 text-right text-muted-foreground">
+                              {s.quantity} {s.portion_name ?? ''}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </>
+              );
+            })()}
+
             <div className="flex items-center justify-between mt-6">
               {aiSuggestInteractionId && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">

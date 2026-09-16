@@ -4,7 +4,7 @@ Diese Spezifikation definiert die konsistente Variantenberechnung und die Integr
 ## Requirements
 
 ### Requirement: Variantenauswahl ist in allen Food-Berechnungen konsistent
-Das System MUST normale Zutaten, optionale Zutaten, Default-Austauschpositionen, aktive Alternativen und Overrides nach derselben Auswahlsemantik in Nährwertaggregation, Preisen, Einkaufslisten und Kochplan verwenden.
+Nach einer Portionsdaten-Reparatur MUST das System dieselbe aktive RecipeItem-Auswahl und die korrigierten Portionen in Nährwertaggregation, Preisen, Einkaufslisten und Kochplan verwenden.
 
 #### Scenario: Default ohne aktive Auswahl
 - **WHEN** ein MealItem keine aktiven RecipeItem-IDs übermittelt
@@ -18,8 +18,13 @@ Das System MUST normale Zutaten, optionale Zutaten, Default-Austauschpositionen,
 - **WHEN** ein MealItem einen Mengen-Override oder Ausschluss enthält
 - **THEN** alle betroffenen Berechnungspfade verwenden denselben Override bzw. lassen die Zutat vollständig weg
 
+#### Scenario: Repaired portion across consumers
+- **WHEN** ein RecipeItem auf eine korrigierte Replacement-Portion umgestellt wurde
+- **THEN** müssen Nährwerte, Kosten, Einkaufsliste und Kochplan dieselbe neue Portion verwenden
+- **THEN** darf die alte Portion nicht zusätzlich aggregiert werden
+
 ### Requirement: Rezept-Forking und Variantenschutz sind atomar
-Das System MUST Rezept-Forks vollständig oder gar nicht anlegen und darf Rezept- oder Variantendaten nicht löschen, solange eine aktive Planung sie referenziert.
+Repair-Rebinds dürfen keine aktiven MealPlan-Variantendaten beschädigen und MUST innerhalb einer atomaren Transaktion erfolgen.
 
 #### Scenario: Fork mit Austauschgruppen
 - **WHEN** ein sichtbares Rezept mit Austauschgruppen geforkt wird
@@ -32,3 +37,8 @@ Das System MUST Rezept-Forks vollständig oder gar nicht anlegen und darf Rezept
 #### Scenario: Aktive Variante löschen
 - **WHEN** eine Variante von einem aktiven MealItem referenziert wird
 - **THEN** verweigert die API die Löschung mit einem dokumentierten Konfliktstatus
+
+#### Scenario: Repair with active meal plan
+- **WHEN** ein zu reparierendes RecipeItem von einem aktiven MealPlan referenziert wird
+- **THEN** darf die Reparatur nur vollständig oder gar nicht angewendet werden
+- **THEN** bleiben aktive Varianten und ihre Auswahlsemantik gültig

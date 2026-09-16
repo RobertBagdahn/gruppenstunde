@@ -2,6 +2,8 @@
 
 import logging
 
+from supply.services.price_service import is_missing_price
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +40,7 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     scores.append(("nutrition", 0.42, nutrition_score))
 
     # Price (15%)
-    price_score = 100.0 if ingredient.price_per_kg is not None else 0.0
+    price_score = 100.0 if not is_missing_price(ingredient.price_per_kg) else 0.0
     scores.append(("price", 0.15, price_score))
 
     # Physical data (15%)

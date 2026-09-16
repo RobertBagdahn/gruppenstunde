@@ -1,5 +1,6 @@
 """RecipeItem schemas."""
 
+from datetime import datetime
 from typing import cast
 
 from ninja import Schema
@@ -34,10 +35,39 @@ class RecipeItemOut(Schema):
     exchange_position: int | None = None
     portion_display: str = ""
     has_missing_weight: bool = False
+    weight_status: str | None = None
+    weight_source: str | None = None
+    weight_confirmed_at: datetime | None = None
+    is_weight_trusted: bool = False
 
     @staticmethod
     def resolve_idempotency_key(obj) -> str | None:
         return getattr(obj, "client_request_id", None)
+
+    @staticmethod
+    def resolve_weight_status(obj) -> str | None:
+        if obj.portion:
+            return cast(str | None, obj.portion.weight_status)
+        return None
+
+    @staticmethod
+    def resolve_weight_source(obj) -> str | None:
+        if obj.portion:
+            return cast(str | None, obj.portion.weight_source)
+        return None
+
+    @staticmethod
+    def resolve_weight_confirmed_at(obj) -> datetime | None:
+        if obj.portion:
+            return cast(datetime | None, obj.portion.weight_confirmed_at)
+        return None
+
+    @staticmethod
+    def resolve_is_weight_trusted(obj) -> bool:
+        if obj.portion:
+            trusted = getattr(obj.portion, "is_weight_trusted", None)
+            return bool(trusted) if trusted is not None else False
+        return False
 
     @staticmethod
     def resolve_portion_name(obj) -> str | None:
@@ -97,6 +127,11 @@ class RecipeItemOut(Schema):
                 "rank": p.rank,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
+                "weight_status": p.weight_status,
+                "weight_source": p.weight_source,
+                "weight_confirmed_at": p.weight_confirmed_at,
+                "weight_confidence": p.weight_confidence,
+                "is_weight_trusted": p.is_weight_trusted,
             }
             for p in ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit").all()
         ]
@@ -139,10 +174,16 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_weight_g(obj) -> float:
-        if obj.portion and obj.portion.weight_g:
-            return cast(float, obj.quantity * obj.portion.weight_g)
-        elif obj.portion and obj.portion.measuring_unit:
-            return cast(float, obj.quantity * obj.portion.quantity * obj.portion.measuring_unit.quantity)
+        from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
+
+        if obj.portion:
+            trusted = resolve_trusted_weight(obj.portion)
+            if trusted is not None:
+                return cast(float, obj.quantity * trusted)
+            if obj.portion.measuring_unit and not is_piece_like_name(obj.portion.name):
+                return cast(float, obj.quantity * obj.portion.quantity * obj.portion.measuring_unit.quantity)
+            # Unresolved piece weight — no fabricated gram value.
+            return 0.0
         return cast(float, obj.quantity)
 
     @staticmethod
@@ -228,15 +269,23 @@ class RecipeItemExchangeGroupOut(Schema):
 
 
 class AiIngredientSuggestionOut(Schema):
-    """Single AI-suggested ingredient with portion and quantity."""
+    """Single AI-suggested ingredient with portion and quantity.
 
-    ingredient_id: int
+    Unresolved candidates (no matching ingredient) keep `ingredient_id` and
+    `portion_id` as None and `is_new_ingredient=True`. Replacement candidates
+    carry `replacement_for_item_id`/`replacement_reason`/`replacement_confidence`.
+    """
+
+    ingredient_id: int | None = None
     ingredient_name: str
-    portion_id: int
+    portion_id: int | None = None
     portion_name: str | None = None
     quantity: float
     is_new_ingredient: bool = False
     note: str = ""
+    replacement_for_item_id: int | None = None
+    replacement_reason: str | None = None
+    replacement_confidence: float | None = None
 
 
 class AiIngredientSuggestionsOut(Schema):
@@ -247,12 +296,28 @@ class AiIngredientSuggestionsOut(Schema):
 
 
 class AiIngredientApplyIn(Schema):
-    """Input for applying a single AI suggestion."""
+    """Input for applying a single AI suggestion.
 
-    portion_id: int
+    Resolved candidates provide `portion_id`. Unresolved candidates provide
+    `name` (and optionally a known `ingredient_id`); the ingredient and a
+    gram fallback portion are then created at apply time.
+    """
+
+    portion_id: int | None = None
+    ingredient_id: int | None = None
+    name: str | None = None
     quantity: float = 1.0
     note: str = ""
     is_optional: bool = False
+
+
+class RecipeItemReplaceIn(Schema):
+    """Input for replacing a RecipeItem's portion with a target portion."""
+
+    portion_id: int
+    ingredient_id: int | None = None
+    quantity: float | None = None
+    client_request_id: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -269,6 +334,8 @@ class EstimateQuantityItemOut(Schema):
     portion_id: int
     unit: str
     grams_total: float
+    weight_status: str | None = None
+    is_weight_trusted: bool = False
 
 
 class EstimateQuantitiesOut(Schema):

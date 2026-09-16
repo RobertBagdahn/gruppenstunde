@@ -39,6 +39,7 @@ class RecipeImportPreviewOut(BaseModel):
 class RecipeItemDraftOut(BaseModel):
     ingredient_id: int
     ingredient_name: str
+    ingredient_slug: str = ""
     quantity: float
     measuring_unit_id: int | None = None
     measuring_unit_name: str = ""
@@ -51,6 +52,15 @@ class RecipeItemDraftOut(BaseModel):
     suggested_unit_name: str = ""
     suggested_portion_weight_g: float | None = None
     available_portions: list[dict] = Field(default_factory=list)
+    # Piece-portion proposal metadata (see `fix-food-piece-portion-mapping`):
+    # - weight_status of the resolved portion or the proposal ("ai_proposed")
+    # - weight_proposal_g: the AI's suggested weight for a new piece portion
+    # - suggested_portion_name: e.g. "kleines brötchen"
+    # - confirmation_required: user must confirm before the item is saved
+    weight_status: str | None = None
+    weight_proposal_g: float | None = None
+    suggested_portion_name: str = ""
+    confirmation_required: bool = False
 
 
 class CreatedIngredientInfoOut(BaseModel):

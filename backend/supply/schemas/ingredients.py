@@ -7,6 +7,7 @@ from ninja import Schema
 
 from content.schemas.base import TagOut
 
+from .ingredient_price_proposals import IngredientPriceProposalOut
 from .reference import IngredientGroupOut, NutritionalTagOut
 
 
@@ -45,6 +46,11 @@ class PortionOut(Schema):
     is_default: bool
     measuring_unit_id: int | None
     measuring_unit_name: str | None = None
+    weight_status: str | None = None
+    weight_source: str | None = None
+    weight_confirmed_at: datetime | None = None
+    weight_confidence: float | None = None
+    is_weight_trusted: bool = False
 
     @staticmethod
     def resolve_is_default(obj) -> bool:
@@ -59,6 +65,13 @@ class PortionOut(Schema):
         if hasattr(obj, "measuring_unit") and obj.measuring_unit:
             return cast(str, obj.measuring_unit.name)
         return None
+
+    @staticmethod
+    def resolve_is_weight_trusted(obj) -> bool:
+        if isinstance(obj, dict):
+            return cast(bool, obj.get("is_weight_trusted", False))
+        trusted = getattr(obj, "is_weight_trusted", None)
+        return bool(trusted) if trusted is not None else False
 
 
 class PortionCreateIn(Schema):
@@ -79,6 +92,22 @@ class PortionUpdateIn(Schema):
     measuring_unit_id: int | None = None
     weight_g: float | None = None
     rank: int | None = None
+
+
+class PortionConfirmIn(Schema):
+    """Input for confirming a piece portion weight.
+
+    `existing_portion_id` selects an already known portion (e.g. keeping
+    "Brötchen 62,5 g" instead of a new "kleines Brötchen 45 g"). Without it,
+    a new confirmed portion is created or an existing identical one reused.
+    """
+
+    name: str
+    weight_g: float | None = None
+    quantity: float = 1.0
+    measuring_unit_id: int | None = None
+    rank: int = 1
+    existing_portion_id: int | None = None
 
 
 class PortionReorderItem(Schema):
@@ -266,6 +295,8 @@ class IngredientDetailOut(Schema):
     nutri_score: int | None
     nutri_class: int | None
     price_per_kg: float | None
+    price_source: str | None = None  # "manual" | "ai_accepted" | "missing"
+    pending_price_proposal: IngredientPriceProposalOut | None = None
 
     # References
     fdc_id: int | None
@@ -304,6 +335,21 @@ class IngredientDetailOut(Schema):
         return None
 
     @staticmethod
+    def resolve_price_source(obj) -> str | None:
+        from supply.services.ingredient_price_proposal_service import price_source_for
+
+        return price_source_for(obj)
+
+    @staticmethod
+    def resolve_pending_price_proposal(obj) -> dict | None:
+        from supply.services.ingredient_price_proposal_service import pending_proposal_for
+
+        proposal = pending_proposal_for(obj)
+        if proposal is None:
+            return None
+        return IngredientPriceProposalOut.from_orm(proposal).dict()
+
+    @staticmethod
     def resolve_nutritional_tags(obj) -> list:
         return [
             {
@@ -328,6 +374,11 @@ class IngredientDetailOut(Schema):
                 "rank": p.rank,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
+                "weight_status": p.weight_status,
+                "weight_source": p.weight_source,
+                "weight_confirmed_at": p.weight_confirmed_at,
+                "weight_confidence": p.weight_confidence,
+                "is_weight_trusted": p.is_weight_trusted,
             }
             for p in obj.portions.select_related("measuring_unit").filter(deleted_at__isnull=True)
         ]

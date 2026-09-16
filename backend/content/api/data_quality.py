@@ -41,6 +41,7 @@ from content.schemas.data_quality import (
     PortionPlausibilityOut,
     PriceApplyRequestIn,
     PriceApplyResponseOut,
+    PriceApplyResultOut,
     PriceEvaluateRequestIn,
     PriceEvaluateResponseOut,
     PriceSuggestionOut,
@@ -51,7 +52,7 @@ from content.schemas.data_quality import (
     RecipeMetadataCheckOut,
 )
 from content.services.audit_service import get_audit_log_queryset
-from supply.models import Ingredient
+from supply.models import Ingredient, IngredientPriceProposal
 
 logger = logging.getLogger(__name__)
 
@@ -100,13 +101,15 @@ def ai_fill_missing_batch(request, payload: AiFillMissingBatchIn):
 def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: str | None = None):
     _require_staff(request)
 
+    from supply.services.price_service import is_missing_price
+
     # Get all ingredients with prices, grouped by retail_section
-    ingredients = Ingredient.objects.select_related("retail_section").all()
+    ingredients = Ingredient.objects.select_related("retail_section").prefetch_related("price_proposals").all()
 
     # Compute stats per retail section
     section_stats: dict[int, dict[str, Any]] = {}
     for ing in ingredients:
-        if ing.price_per_kg is None or ing.price_per_kg == 0:
+        if is_missing_price(ing.price_per_kg):
             continue
         section_id = ing.retail_section_id or 0
         if section_id not in section_stats:
@@ -114,9 +117,7 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
         section_stats[section_id]["prices"].append(float(ing.price_per_kg))
 
     # Compute global stats for sections with too few items
-    all_prices = [
-        float(ing.price_per_kg) for ing in ingredients if ing.price_per_kg is not None and ing.price_per_kg != 0
-    ]
+    all_prices = [float(ing.price_per_kg) for ing in ingredients if not is_missing_price(ing.price_per_kg)]
     global_mean = sum(all_prices) / len(all_prices) if all_prices else 0
     global_std = math.sqrt(sum((p - global_mean) ** 2 for p in all_prices) / len(all_prices)) if all_prices else 1
 
@@ -129,9 +130,18 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
         else:
             section_stats[sid]["std"] = global_std
 
+    # Distinguish missing, pending-proposal and accepted-AI prices
+    pending_proposal_ids = set(
+        IngredientPriceProposal.objects.filter(status="pending").values_list("ingredient_id", flat=True)
+    )
+    ai_accepted_ids = set(
+        IngredientPriceProposal.objects.filter(status="accepted").values_list("ingredient_id", flat=True)
+    )
+
     items: list[dict[str, Any]] = []
     for ing in ingredients:
-        if ing.price_per_kg is None or ing.price_per_kg == 0:
+        if is_missing_price(ing.price_per_kg):
+            anomaly = "pending" if ing.id in pending_proposal_ids else "missing"
             items.append(
                 {
                     "id": ing.id,
@@ -140,7 +150,8 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
                     "price_per_kg": str(ing.price_per_kg) if ing.price_per_kg is not None else None,
                     "retail_section": ing.retail_section.name if ing.retail_section else None,
                     "z_score": None,
-                    "anomaly_type": "missing",
+                    "anomaly_type": anomaly,
+                    "price_source": "ai_accepted" if ing.id in ai_accepted_ids else None,
                 }
             )
             continue
@@ -166,8 +177,10 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
     if anomaly_type:
         items = [i for i in items if i["anomaly_type"] == anomaly_type]
 
-    # Sort: missing first, then by |z_score|
-    items.sort(key=lambda x: (0 if x["anomaly_type"] == "missing" else 1, -(abs(float(x["z_score"] or 0)))))
+    # Sort: missing/pending first, then by |z_score|
+    items.sort(
+        key=lambda x: (0 if x["anomaly_type"] in ("missing", "pending") else 1, -(abs(float(x["z_score"] or 0))))
+    )
 
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
@@ -183,77 +196,115 @@ def price_evaluate(request, body: PriceEvaluateRequestIn):
     if not body.ingredient_ids:
         raise HttpError(400, "Keine Zutaten ausgewählt")
 
+    from supply.services.ingredient_price_proposal_service import create_price_proposal, pending_proposal_for
+
     ingredients = Ingredient.objects.filter(id__in=body.ingredient_ids).select_related("retail_section")
 
     suggestions = []
     for ing in ingredients[:50]:
-        # Use Gemini to suggest a price
-        suggested = _ai_suggest_price(ing)
-        suggestions.append(
-            PriceSuggestionOut(
-                ingredient_id=ing.id,
-                current_price=str(ing.price_per_kg) if ing.price_per_kg else None,
-                suggested_price=suggested.get("price"),
-                reasoning=suggested.get("reasoning", "Keine KI-Empfehlung verfügbar"),
-            )
+        entry = PriceSuggestionOut(
+            ingredient_id=ing.id,
+            current_price=str(ing.price_per_kg) if ing.price_per_kg else None,
+            suggested_price=None,
+            reasoning="",
         )
+        try:
+            proposal = create_price_proposal(ing, request.user)
+            entry.proposal_id = proposal.id
+            entry.status = proposal.status
+            entry.confidence = proposal.confidence
+            entry.suggested_price = str(proposal.proposed_price_per_kg)
+            entry.reasoning = proposal.rationale
+        except HttpError as exc:
+            entry.status = "conflict"
+            entry.reasoning = exc.args[1] if len(exc.args) > 1 else str(exc)
+        except Exception:
+            logger.exception("AI price proposal failed for %s", ing.name)
+            existing = pending_proposal_for(ing)
+            if existing is not None:
+                entry.proposal_id = existing.id
+                entry.status = existing.status
+                entry.confidence = existing.confidence
+                entry.suggested_price = str(existing.proposed_price_per_kg)
+                entry.reasoning = existing.rationale
+            else:
+                entry.status = "failed"
+                entry.reasoning = "KI-Bewertung nicht verfügbar (API-Fehler)"
+        suggestions.append(entry)
 
     return PriceEvaluateResponseOut(suggestions=suggestions, batch_token=str(uuid.uuid4()))
-
-
-def _ai_suggest_price(ingredient) -> dict:
-    """Use Gemini to suggest a realistic price_per_kg for an ingredient."""
-    try:
-        from core.services.gemini import gemini_call
-
-        prompt = (
-            f"Schätze einen realistischen Supermarkt-Preis in Euro pro Kilogramm "
-            f"für folgende Zutat: {ingredient.name}.\n"
-        )
-        if ingredient.retail_section:
-            prompt += f"Supermarkt-Abteilung: {ingredient.retail_section.name}\n"
-        if ingredient.energy_kcal:
-            prompt += f"Energie: {ingredient.energy_kcal} kcal/100g\n"
-        prompt += "Antworte NUR mit dem Preis als Zahl in Euro pro kg (z.B. 3.49), sonst nichts."
-
-        result, _interaction_id = gemini_call(
-            user=None,
-            model="gemini-3.1-flash-lite",
-            contents=prompt,
-            bypass_limits=True,
-            is_background=True,
-        )
-        price_str = result.text.strip().replace(",", ".").replace("€", "").strip() if result and result.text else None
-        if price_str:
-            try:
-                float(price_str)
-                return {"price": price_str, "reasoning": "KI-Schätzung basierend auf Produktname und Kategorie."}
-            except ValueError:
-                pass
-    except HttpError:
-        raise
-    except Exception as e:
-        logger.warning("AI price suggestion failed for %s: %s", ingredient.name, e)
-
-    return {"price": None, "reasoning": "KI-Bewertung nicht verfügbar (API-Fehler)"}
 
 
 @admin_router.patch("/ingredients/price-analysis/apply/", response=PriceApplyResponseOut)
 def price_apply(request, body: PriceApplyRequestIn):
     _require_staff(request)
-    updated = []
+
+    from supply.services.ingredient_price_proposal_service import accept_proposal, pending_proposal_for, reject_proposal
+
+    results = []
     for item in body.items:
+        ingredient = Ingredient.objects.filter(id=item.ingredient_id).first()
+        if ingredient is None:
+            results.append(
+                PriceApplyResultOut(
+                    ingredient_id=item.ingredient_id, status="not_found", message="Zutat nicht gefunden"
+                )
+            )
+            continue
+
+        proposal = pending_proposal_for(ingredient)
+        if proposal is None:
+            results.append(
+                PriceApplyResultOut(
+                    ingredient_id=item.ingredient_id,
+                    status="missing_proposal",
+                    message="Kein ausstehender Preisvorschlag für diese Zutat vorhanden",
+                )
+            )
+            continue
+
         try:
-            ing = Ingredient.objects.get(id=item.ingredient_id)
-            price = float(item.price_per_kg)
-            if price <= 0 or price > 1000:
-                raise HttpError(422, f"Ungültiger Preis für {ing.name}: {price}")
-            ing.price_per_kg = price
-            ing.save(update_fields=["price_per_kg", "updated_at"])
-            updated.append(ing.id)
-        except Ingredient.DoesNotExist:
-            pass
-    return PriceApplyResponseOut(updated_ids=updated)
+            if item.action == "reject":
+                rejected = reject_proposal(proposal, request.user)
+                results.append(
+                    PriceApplyResultOut(
+                        ingredient_id=item.ingredient_id,
+                        proposal_id=rejected.id,
+                        status="rejected",
+                        message="Preisvorschlag abgelehnt",
+                    )
+                )
+            else:
+                accepted = accept_proposal(proposal, request.user, replace=item.replace)
+                results.append(
+                    PriceApplyResultOut(
+                        ingredient_id=item.ingredient_id,
+                        proposal_id=accepted.id,
+                        status="accepted",
+                        message="Preis übernommen",
+                    )
+                )
+        except HttpError as exc:
+            results.append(
+                PriceApplyResultOut(
+                    ingredient_id=item.ingredient_id,
+                    proposal_id=proposal.id,
+                    status="conflict",
+                    message=exc.args[1] if len(exc.args) > 1 else str(exc),
+                )
+            )
+        except Exception:
+            logger.exception("Price proposal apply failed for ingredient %s", item.ingredient_id)
+            results.append(
+                PriceApplyResultOut(
+                    ingredient_id=item.ingredient_id,
+                    proposal_id=proposal.id,
+                    status="failed",
+                    message="Preis konnte nicht übernommen werden",
+                )
+            )
+
+    return PriceApplyResponseOut(results=results)
 
 
 # ============================================================================
@@ -735,6 +786,8 @@ def merge_ingredients(request, body: MergeRequestIn):
 @admin_router.get("/ingredients/completeness/", response=PaginatedCompletenessOut)
 def ingredient_completeness(request, page: int = 1, page_size: int = 20):
     _require_staff(request)
+    from supply.services.price_service import is_missing_price
+
     ingredients = Ingredient.objects.all().order_by(db_models.F("quality_score").asc(nulls_first=True))
 
     total = ingredients.count()
@@ -742,8 +795,21 @@ def ingredient_completeness(request, page: int = 1, page_size: int = 20):
     start = (page - 1) * page_size
     qs = ingredients[start : start + page_size]
 
+    pending_ids = set(IngredientPriceProposal.objects.filter(status="pending").values_list("ingredient_id", flat=True))
+    ai_accepted_ids = set(
+        IngredientPriceProposal.objects.filter(status="accepted").values_list("ingredient_id", flat=True)
+    )
+
     items = []
     for ing in qs:
+        if is_missing_price(ing.price_per_kg):
+            price_status = "pending" if ing.id in pending_ids else "missing"
+            price_score = 0.0
+            price_source = "ai_accepted" if ing.id in ai_accepted_ids else None
+        else:
+            price_status = "priced"
+            price_score = 100.0
+            price_source = "ai_accepted" if ing.id in ai_accepted_ids else "manual"
         items.append(
             CompletenessItemOut(
                 id=ing.id,
@@ -752,11 +818,13 @@ def ingredient_completeness(request, page: int = 1, page_size: int = 20):
                 quality_score=ing.quality_score,
                 status=ing.status,
                 nutrition_score=0,
-                price_score=0,
+                price_score=price_score,
                 physical_score=0,
                 classification_score=0,
                 scout_score=0,
                 portion_score=0,
+                price_status=price_status,
+                price_source=price_source,
             )
         )
 
@@ -1050,7 +1118,7 @@ def ingredient_impact(request, slug: str):
 def ingredient_cost_distribution(
     request, tags: str | None = None, retail_section: int | None = None, status: str | None = None
 ):
-    qs = Ingredient.objects.filter(price_per_kg__isnull=False)
+    qs = Ingredient.objects.filter(price_per_kg__gt=0)
     if retail_section:
         qs = qs.filter(retail_section_id=retail_section)
     if status:

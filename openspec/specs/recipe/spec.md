@@ -1,8 +1,8 @@
-Portion storage and normalization are canonically defined in
-`recipe-portion-normalization`; this spec only contains recipe-specific requirements.
+## Purpose
 
-## MODIFIED Requirements
-
+Recipe-specific requirements. Portion storage and normalization are canonically
+defined in `recipe-portion-normalization`.
+## Requirements
 ### Requirement: Cached nutrition fields on Recipe
 The Recipe model SHALL cache only `cached_vitamin_c_mg` as micronutrient cache field. The fields `cached_vitamin_a_mg`, `cached_vitamin_d_ug`, `cached_vitamin_b12_ug`, `cached_calcium_mg`, `cached_iron_mg` SHALL be removed.
 
@@ -154,6 +154,10 @@ Recipe SHALL have an optional folder FK for organization of personal recipes.
 ### Requirement: Recipe Type Choices
 Recipe recipe_type choices SHALL include: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack, ingredient.
 
+#### Scenario: Recipe type assignment
+- **WHEN** a recipe is created or updated with one of the defined recipe types
+- **THEN** the value SHALL be stored and returned unchanged by the API
+
 ### Requirement: URL Import
 Recipe SHALL support creation from external URLs.
 
@@ -278,3 +282,27 @@ Das Recipe-Modell SHALL eine M2M-Relation `equipment` zum `supply.Equipment`-Mod
 #### Scenario: Equipment filter
 - **WHEN** `GET /api/recipes/?equipment_slug=ofen` aufgerufen wird
 - **THEN** werden nur Rezepte mit Equipment "ofen" zurückgegeben
+
+### Requirement: Recipe-specific relations
+Recipes SHALL expose ingredients, materials and equipment as separate relations in detail and edit contracts.
+
+#### Scenario: Detail response
+- **WHEN** a recipe contains a food ingredient, a material and equipment
+- **THEN** the recipe detail response SHALL return each in its respective field
+
+#### Scenario: Edit payload
+- **WHEN** an authorized user updates recipe materials
+- **THEN** only material links SHALL change
+- **THEN** RecipeItems and Equipment SHALL remain unchanged unless explicitly edited through their own operations
+
+### Requirement: Rezeptpreis-Abdeckung
+Rezeptkosten SHALL bekannte Preise als Teilbetrag berechnen und zusätzlich Gesamtanzahl, bepreiste Anzahl, fehlende Anzahl und Preisabdeckung ausgeben.
+
+#### Scenario: Teilweise bepreistes Rezept
+- **WHEN** 7 von 9 aktiven Rezeptzutaten einen bestätigten positiven Preis besitzen
+- **THEN** SHALL die API den bekannten Teilbetrag und `7/9` Preisabdeckung liefern
+- **THEN** SHALL der Food-Client einen Hinweis auf die fehlenden Preise anzeigen
+
+#### Scenario: Kein Preis
+- **WHEN** keine aktive Rezeptzutat einen positiven Preis besitzt
+- **THEN** SHALL der Preisbetrag null/unknown bleiben und der Client `Keine Preise` anzeigen

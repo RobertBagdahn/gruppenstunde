@@ -22,6 +22,8 @@ from recipe.services.ingredient_parser import IngredientNameParser
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
 
+    from recipe.models import Recipe
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,6 +62,13 @@ class MatchResult(BaseModel):
     needs_review: bool = False
     candidates: list[MatchCandidate] = []
 
+    # Replacement context — set when the matched ingredient is the concrete
+    # target of an active generic-to-concrete mapping whose source ingredient
+    # is already present in the given recipe.
+    replacement_for_item_id: int | None = None
+    replacement_reason: str | None = None
+    replacement_confidence: float | None = None
+
 
 # ---------------------------------------------------------------------------
 # Matcher
@@ -74,12 +83,31 @@ class IngredientMatcher:
     # -------------------------------------------------------------------
 
     @classmethod
-    def match(cls, raw_name: str, user: AbstractBaseUser | None = None) -> MatchResult:
+    def match(
+        cls,
+        raw_name: str,
+        user: AbstractBaseUser | None = None,
+        recipe: Recipe | None = None,
+    ) -> MatchResult:
         """Full pipeline: parse → match → enrich if needed.
 
         Returns MatchResult with ingredient_id, confidence, matched_via,
         note, is_new, needs_review, and candidates for HITL.
+
+        When `recipe` is given and the matched ingredient is the concrete
+        target of an active generic-to-concrete replacement mapping whose
+        source ingredient is already in the recipe, the result is annotated
+        with replacement context (`replacement_for_item_id`,
+        `replacement_reason`, `replacement_confidence`).
         """
+        result = cls._match_core(raw_name)
+        if recipe is not None and result.ingredient_id is not None:
+            return cls._apply_replacement_context(result, recipe)
+        return result
+
+    @classmethod
+    def _match_core(cls, raw_name: str) -> MatchResult:
+        """Core matching pipeline without recipe-specific replacement context."""
         parsed = IngredientNameParser.parse(raw_name)
         # Low-confidence parser matches are suggestions only. Keep the raw
         # spelling so typoed input can reach the fuzzy stage.
@@ -102,6 +130,53 @@ class IngredientMatcher:
 
         # Stage 4: No algorithmic match → HITL
         return cls._stage_human_dialog(clean_name, parsed.note)
+
+    # -------------------------------------------------------------------
+    # Replacement context (generic-to-concrete mappings)
+    # -------------------------------------------------------------------
+
+    @classmethod
+    def _apply_replacement_context(cls, result: MatchResult, recipe: Recipe) -> MatchResult:
+        """Annotate `result` with replacement metadata when an active mapping applies.
+
+        A mapping applies when the matched ingredient equals the mapping's
+        replacement (concrete) ingredient AND the recipe already contains the
+        mapping's source (generic) ingredient. The source is detected by
+        ingredient id or case-insensitive name so recipes referencing one of
+        several duplicate generic ingredient rows are still recognized.
+        """
+        from supply.models import IngredientReplacementMapping
+
+        items = list(recipe.recipe_items.select_related("portion__ingredient").order_by("sort_order", "id"))
+        if not items:
+            return result
+
+        by_ingredient_id = {
+            item.portion.ingredient_id: item
+            for item in items
+            if item.portion_id is not None and item.portion.ingredient_id is not None
+        }
+        by_ingredient_name = {
+            item.portion.ingredient.name.strip().lower(): item
+            for item in items
+            if item.portion_id is not None and item.portion.ingredient_id is not None
+        }
+
+        mappings = IngredientReplacementMapping.objects.filter(
+            replacement_ingredient_id=result.ingredient_id,
+            is_active=True,
+        ).select_related("source_ingredient")
+
+        for mapping in mappings:
+            source = mapping.source_ingredient
+            existing_item = by_ingredient_id.get(source.id) or by_ingredient_name.get(source.name.strip().lower())
+            if existing_item is not None:
+                result.replacement_for_item_id = existing_item.id
+                result.replacement_reason = f"Ersatz für {source.name}"
+                result.replacement_confidence = result.confidence
+                return result
+
+        return result
 
     # -------------------------------------------------------------------
     # Stage 1: Wort-Jaccard

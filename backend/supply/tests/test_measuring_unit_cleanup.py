@@ -226,14 +226,19 @@ class TestUnitResolution(TestCase):
         assert unit is not None
         assert unit.name == "Schuss"
 
-    def test_deleted_unit_falls_back_to_gramm(self):
+    def test_deleted_unit_returns_clarification_not_gramm(self):
         from supply.services.unit_resolution import resolve_canonical_unit
 
         deleted_names = ["stück", "packung", "dose", "scheibe", "glas", "becher", "bund", "portion"]
         for name in deleted_names:
             unit = resolve_canonical_unit(name)
-            assert unit is not None, f"'{name}' returned None"
-            assert unit.name == "Gramm", f"'{name}' should fall back to Gramm, got {unit.name}"
+            assert unit is None, f"'{name}' should return a clarification state (None), not a Gramm fallback"
+
+    def test_unknown_unit_returns_clarification_not_gramm(self):
+        from supply.services.unit_resolution import resolve_canonical_unit
+
+        assert resolve_canonical_unit("unknown_unit") is None
+        assert resolve_canonical_unit("") is None
 
 
 @pytest.mark.django_db

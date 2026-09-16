@@ -2,8 +2,9 @@
 
 import pytest
 
-from planner.services.cooking_schedule_pdf import generate_cooking_schedule_pdf
+from planner.services.cooking_schedule_pdf import _resolve_recipe_steps_for_pdf, generate_cooking_schedule_pdf
 from planner.tests import make_meal, make_meal_item, make_meal_plan
+from recipe.models import RecipeStep
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import NutritionalTag
 
@@ -93,6 +94,37 @@ class TestCookingSchedulePdfService:
             measuring_unit=unit,
             factor=1.0,
         )
+        pdf = generate_cooking_schedule_pdf(plan)
+        assert isinstance(pdf, bytes)
+        assert len(pdf) > 0
+
+
+class TestCookingScheduleRecipeSteps:
+    @pytest.mark.django_db
+    def test_prefers_structured_steps_scaled(self):
+        recipe = make_recipe(portions=1, description="1. Alte Anleitung")
+        make_recipe_item(recipe=recipe, quantity=100)
+        RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Nimm {Testzutat}", duration_minutes=5)
+        steps = _resolve_recipe_steps_for_pdf(recipe, scale=4.0)
+        assert len(steps) == 1
+        assert steps[0]["instruction"] == "Nimm 400g Testzutat"
+        assert steps[0]["duration_minutes"] == 5
+
+    @pytest.mark.django_db
+    def test_falls_back_to_markdown(self):
+        recipe = make_recipe(portions=1, description="1. Mehl sieben\n2. Backen")
+        make_recipe_item(recipe=recipe, quantity=100)
+        steps = _resolve_recipe_steps_for_pdf(recipe, scale=1.0)
+        assert [s["instruction"] for s in steps] == ["Mehl sieben", "Backen"]
+
+    @pytest.mark.django_db
+    def test_cooking_schedule_pdf_with_structured_steps(self):
+        plan = make_meal_plan()
+        recipe = make_recipe(title="Testessen")
+        make_recipe_item(recipe=recipe, quantity=300)
+        RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Nimm {Testzutat}")
+        meal = make_meal(meal_plan=plan)
+        make_meal_item(meal=meal, recipe=recipe)
         pdf = generate_cooking_schedule_pdf(plan)
         assert isinstance(pdf, bytes)
         assert len(pdf) > 0

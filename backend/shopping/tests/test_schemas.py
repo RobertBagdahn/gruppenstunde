@@ -69,6 +69,7 @@ class TestResolveDisplayQuantity:
             name="Scheibe",
             quantity=1,
             weight_g=50,
+            weight_status="confirmed",
             rank=1,  # Primary portion
         )
         item = ShoppingListItem.objects.create(
@@ -98,6 +99,7 @@ class TestResolveDisplayQuantity:
             name="Scheibe",
             quantity=1,
             weight_g=50,
+            weight_status="confirmed",
             rank=1,
         )
 
@@ -206,6 +208,7 @@ class TestResolveDisplayQuantity:
             name="Scheibe",
             quantity=1,
             weight_g=50,
+            weight_status="confirmed",
             rank=1,
         )
 
@@ -220,7 +223,7 @@ class TestResolveDisplayQuantity:
         # Should contain "1.7" or "1,7" (German locale comma)
         assert "85g" in result
         # The exact format depends on compute_portion_options implementation
-        assert ("1.7" in result or "1,7" in result)
+        assert "1.7" in result or "1,7" in result
 
     def test_portion_priority_ranking_respected(self, shopping_list):
         """Portions should be sorted by rank; lowest rank is primary."""

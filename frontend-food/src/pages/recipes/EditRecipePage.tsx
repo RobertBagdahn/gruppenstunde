@@ -5,6 +5,8 @@ import { useAdminEquipment } from '@/api/admin';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { useCurrentUser } from '@/api/auth';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import RecipeMaterialsEditor from '@/components/recipe/RecipeMaterialsEditor';
+import RecipeMaterialSuggestionsDialog from '@/components/recipe/RecipeMaterialSuggestionsDialog';
 import { ArrowLeft, Save } from 'lucide-react';
 import {
   RECIPE_TYPE_OPTIONS,
@@ -33,6 +35,7 @@ export default function EditRecipePage() {
   const [selectedScoutIds, setSelectedScoutIds] = useState<number[]>([]);
   const [preparationMethod, setPreparationMethod] = useState('');
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<number[]>([]);
+  const [materialsDialogOpen, setMaterialsDialogOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
   // Staff-only fields
   const [status, setStatus] = useState('');
@@ -266,6 +269,23 @@ export default function EditRecipePage() {
           </div>
         )}
 
+        {/* Materials */}
+        <div className="bg-card rounded-xl border p-5">
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
+            <span className="material-symbols-outlined text-primary text-[18px]">inventory_2</span>
+            Materialien
+          </label>
+          <RecipeMaterialsEditor
+            recipeId={recipe.id}
+            onSuggestClick={() => setMaterialsDialogOpen(true)}
+          />
+        </div>
+        <RecipeMaterialSuggestionsDialog
+          open={materialsDialogOpen}
+          onOpenChange={setMaterialsDialogOpen}
+          recipeId={recipe.id}
+        />
+
         {/* Title */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
@@ -301,12 +321,12 @@ export default function EditRecipePage() {
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
             <span className="material-symbols-outlined text-primary text-[18px]">description</span>
-            Zubereitung
+            Beschreibung
           </label>
           <MarkdownEditor
             value={description}
             onChange={setDescription}
-            placeholder="Beschreibe die Zubereitung Schritt für Schritt..."
+            placeholder="Ausführliche Beschreibung des Rezepts in Markdown..."
           />
         </div>
 

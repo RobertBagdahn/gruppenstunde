@@ -93,6 +93,7 @@ class AiContextChoices(models.TextChoices):
     RECIPE_SUGGEST_ALL = "recipe_suggest_all", _("Rezeptmetadaten vorschlagen")
     RECIPE_SUGGESTIONS = "recipe_suggestions", _("Rezeptvorschläge")
     AI_INGREDIENTS = "ai_ingredients", _("Rezeptzutaten vorschlagen")
+    RECIPE_MATERIALS = "recipe_materials", _("Rezeptmaterialien vorschlagen")
     AI_QUANTITY_ESTIMATION = "ai_quantity_estimation", _("Mengen schätzen")
     RECIPE_STEP_GENERATION = "recipe_step_generation", _("Schritte generieren")
     RECIPE_STEP_IMPROVE = "recipe_step_improve", _("Schritt verbessern")

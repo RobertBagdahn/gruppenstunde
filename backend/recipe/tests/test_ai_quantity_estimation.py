@@ -53,6 +53,8 @@ class TestRecipeQuantityEstimationService:
                 "portion_id": default_portion.id,
                 "unit": "Gramm",
                 "grams_total": 400.0,
+                "weight_status": None,
+                "is_weight_trusted": True,
             }
         ]
         assert default_portion.weight_g == 1.0
@@ -74,6 +76,7 @@ class TestRecipeQuantityEstimationService:
             name="1 Portion Nudeln",
             quantity=125.0,
             weight_g=125.0,
+            weight_status="confirmed",
             rank=1,
         )
         item = make_recipe_item(recipe=recipe, portion=composite_portion, quantity=1.0)
@@ -96,6 +99,8 @@ class TestRecipeQuantityEstimationService:
                 "portion_id": composite_portion.id,
                 "unit": "1 Portion Nudeln",
                 "grams_total": 125.0,
+                "weight_status": "confirmed",
+                "is_weight_trusted": True,
             }
         ]
         # Explicitly guard against the recipe #434 regression: label must never

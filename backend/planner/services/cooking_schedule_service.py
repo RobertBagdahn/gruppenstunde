@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from content.choices import ExecutionTimeChoices, PreparationTimeChoices
+from supply.services.price_service import is_missing_price, price_or_none
 
 if TYPE_CHECKING:
     from planner.models import MealItem
@@ -189,6 +190,20 @@ def _step_from_text(text: str) -> CookingScheduleStep:
     if timer_match:
         timer = int(timer_match.group(1))
     return CookingScheduleStep(text=text.strip(), timer=timer)
+
+
+def resolve_schedule_steps(recipe, scale: float) -> list[CookingScheduleStep]:
+    """Resolve steps for a cooking schedule variant.
+
+    Prefers structured RecipeSteps with placeholders scaled to the plan
+    portion scale; falls back to parsing the Markdown description.
+    """
+    from recipe.services.step_helpers import resolve_recipe_steps
+
+    resolved = resolve_recipe_steps(recipe, scale=scale)
+    if resolved is not None:
+        return [CookingScheduleStep(text=s["instruction"], timer=s["duration_minutes"]) for s in resolved]
+    return parse_recipe_steps(recipe.description or "")
 
 
 def compute_recipe_lead_minutes(recipe) -> int:
@@ -390,7 +405,10 @@ def _compute_item_cost(meal_item: MealItem, effective_portions: int) -> float:
         portion = entry.recipe_item.portion
         if portion is None or portion.ingredient is None:
             continue
-        total += float(portion.ingredient.price_per_kg or 0) * float(entry.weight_g or 0) / 1000.0 * scale
+        price_per_kg = price_or_none(portion.ingredient.price_per_kg)
+        if price_per_kg is None:
+            continue
+        total += float(price_per_kg) * float(entry.weight_g or 0) / 1000.0 * scale
     return total
 
 
@@ -414,7 +432,7 @@ def _compute_direct_item_nutrition(meal_item, portions: int) -> dict[str, float]
 def _compute_direct_item_cost(meal_item: MealItem, portions: int) -> float:
     """Cost total for a direct ingredient MealItem scaled by factor * portions."""
     ing = meal_item.ingredient
-    if not ing or ing.price_per_kg is None or ing.deleted_at is not None:
+    if not ing or is_missing_price(ing.price_per_kg) or ing.deleted_at is not None:
         return 0.0
 
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
@@ -611,7 +629,10 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                         meal_item=meal_item,
                     )
 
-                    steps_parsed = parse_recipe_steps(recipe.description)
+                    steps_parsed = resolve_schedule_steps(
+                        recipe,
+                        scale=meal_item.factor * (portions / (recipe.portions or 1)),
+                    )
                     nutrition = _compute_item_nutrition(meal_item, meal_item, portions)
                     cost = _compute_item_cost(meal_item, portions)
 

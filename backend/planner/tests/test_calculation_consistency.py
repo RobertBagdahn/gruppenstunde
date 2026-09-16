@@ -217,6 +217,7 @@ class TestDirectIngredientNutritionConsistency:
             quantity=1,
             weight_g=50.0,
             rank=1,
+            weight_status="confirmed",
         )
 
         self.plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.0)

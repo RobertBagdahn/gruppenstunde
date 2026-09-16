@@ -6,6 +6,8 @@ from .models import (
     ContentMaterialItem,
     Ingredient,
     IngredientAlias,
+    IngredientPriceProposal,
+    IngredientReplacementMapping,
     Material,
     MeasuringUnit,
     NutritionalTag,
@@ -187,3 +189,26 @@ class PackageAdmin(admin.ModelAdmin):
     list_per_page = 25
 
 
+@admin.register(IngredientPriceProposal)
+class IngredientPriceProposalAdmin(admin.ModelAdmin):
+    list_display = ["ingredient", "proposed_price_per_kg", "confidence", "status", "requested_by", "created_at"]
+    list_filter = ["status", "source"]
+    search_fields = ["ingredient__name", "rationale"]
+    readonly_fields = ["created_at", "updated_at"]
+    list_per_page = 25
+
+
+@admin.register(IngredientReplacementMapping)
+class IngredientReplacementMappingAdmin(admin.ModelAdmin):
+    list_display = [
+        "source_ingredient",
+        "replacement_ingredient",
+        "relation_kind",
+        "is_active",
+        "provenance",
+        "updated_at",
+    ]
+    list_filter = ["is_active", "relation_kind"]
+    search_fields = ["source_ingredient__name", "replacement_ingredient__name", "provenance"]
+    readonly_fields = ["created_at", "updated_at"]
+    list_per_page = 25

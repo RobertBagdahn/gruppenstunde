@@ -209,3 +209,8 @@ INGREDIENT_MATCHER_FUZZY_THRESHOLD = env.float("INGREDIENT_MATCHER_FUZZY_THRESHO
 INGREDIENT_MATCHER_EMBEDDING_THRESHOLD = env.float("INGREDIENT_MATCHER_EMBEDDING_THRESHOLD", default=0.50)
 INGREDIENT_MATCHER_GREY_ZONE_MIN = env.float("INGREDIENT_MATCHER_GREY_ZONE_MIN", default=0.30)
 INGREDIENT_MATCHER_MULTI_MATCH_DIFF = env.float("INGREDIENT_MATCHER_MULTI_MATCH_DIFF", default=0.05)
+
+# ---------------------------------------------------------------------------
+# Portion repair (AI-assisted data quality)
+# ---------------------------------------------------------------------------
+PORTION_REPAIR_MIN_CONFIDENCE = env.float("PORTION_REPAIR_MIN_CONFIDENCE", default=0.90)

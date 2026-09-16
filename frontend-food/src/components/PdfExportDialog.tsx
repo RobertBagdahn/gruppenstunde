@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 interface PdfOption {
@@ -73,6 +74,9 @@ const MEAL_PLAN_OPTIONS: PdfOption[] = [
 
 export type PdfExportOption = "meal_plan" | "recipe" | "cooking_schedule"
 
+const SERVINGS_MIN = 1
+const SERVINGS_MAX = 100
+
 interface PdfExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -87,6 +91,7 @@ export function PdfExportDialog({
   optionType,
 }: PdfExportDialogProps) {
   const options = optionType === "meal_plan" ? MEAL_PLAN_OPTIONS : []
+  const isRecipeExport = optionType === "recipe"
 
   const initialChecked: Record<string, boolean> = {}
   for (const opt of options) {
@@ -95,6 +100,12 @@ export function PdfExportDialog({
 
   const [checked, setChecked] = useState<Record<string, boolean>>(initialChecked)
   const [pageFormat, setPageFormat] = useState("A4")
+  const [servingsInput, setServingsInput] = useState("1")
+
+  const servings = Number(servingsInput)
+  const servingsValid =
+    !isRecipeExport ||
+    (Number.isInteger(servings) && servings >= SERVINGS_MIN && servings <= SERVINGS_MAX)
 
   const buildUrl = (): string => {
     const params = new URLSearchParams()
@@ -105,11 +116,18 @@ export function PdfExportDialog({
       params.set(opt.queryParam, isChecked ? opt.checkedValue : opt.uncheckedValue)
     }
 
+    if (isRecipeExport) {
+      params.set("servings", String(servings))
+    }
+
     const queryString = params.toString()
     return `${baseUrl}?${queryString}`
   }
 
   const handleOpen = () => {
+    if (!servingsValid) {
+      return
+    }
     const url = buildUrl()
     window.open(url, "_blank")
     onOpenChange(false)
@@ -149,6 +167,36 @@ export function PdfExportDialog({
           </div>
         )}
 
+        {isRecipeExport && (
+          <div className="space-y-2 py-2">
+            <div className="flex items-center gap-3">
+              <Label htmlFor="pdf-servings" className="text-sm">
+                Personenzahl:
+              </Label>
+              <Input
+                id="pdf-servings"
+                data-testid="pdf-servings-input"
+                type="number"
+                min={SERVINGS_MIN}
+                max={SERVINGS_MAX}
+                step={1}
+                value={servingsInput}
+                onChange={(event) => setServingsInput(event.target.value)}
+                className="w-24"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mengen und Nährwerte werden auf die gewählte Personenzahl skaliert.
+              Die gespeicherten Rezeptdaten bleiben unverändert.
+            </p>
+            {!servingsValid && (
+              <p className="text-xs text-destructive" data-testid="pdf-servings-error">
+                Bitte eine Zahl zwischen {SERVINGS_MIN} und {SERVINGS_MAX} eingeben.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center gap-3 py-2">
           <Label htmlFor="pdf-page-format" className="text-sm">
             Seitenformat:
@@ -168,7 +216,7 @@ export function PdfExportDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Abbrechen
           </Button>
-          <Button onClick={handleOpen}>
+          <Button onClick={handleOpen} disabled={!servingsValid}>
             <Printer className="mr-2 h-4 w-4" />
             PDF öffnen
           </Button>

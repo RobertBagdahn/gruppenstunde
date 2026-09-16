@@ -17,7 +17,8 @@ class PriceAnomalyOut(Schema):
     price_per_kg: str | None = None
     retail_section: str | None = None
     z_score: float | None = None
-    anomaly_type: str  # "high", "low", "missing"
+    anomaly_type: str  # "high", "low", "missing", "pending"
+    price_source: str | None = None  # "manual" | "ai_accepted" | None
 
 
 class PaginatedPriceAnomalyOut(Schema):
@@ -37,6 +38,9 @@ class PriceSuggestionOut(Schema):
     current_price: str | None = None
     suggested_price: str | None = None
     reasoning: str
+    proposal_id: int | None = None
+    status: str | None = None
+    confidence: float | None = None
 
 
 class PriceEvaluateResponseOut(Schema):
@@ -46,15 +50,23 @@ class PriceEvaluateResponseOut(Schema):
 
 class PriceApplyItemIn(Schema):
     ingredient_id: int
-    price_per_kg: str
+    action: str = "accept"  # "accept" | "reject"
+    replace: bool = False
 
 
 class PriceApplyRequestIn(Schema):
     items: list[PriceApplyItemIn]
 
 
+class PriceApplyResultOut(Schema):
+    ingredient_id: int
+    proposal_id: int | None = None
+    status: str  # "accepted" | "rejected" | "conflict" | "missing_proposal" | "not_found" | "failed"
+    message: str = ""
+
+
 class PriceApplyResponseOut(Schema):
-    updated_ids: list[int]
+    results: list[PriceApplyResultOut]
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +139,8 @@ class CompletenessItemOut(Schema):
     classification_score: float
     scout_score: float
     portion_score: float
+    price_status: str = "missing"  # "priced" | "pending" | "missing"
+    price_source: str | None = None  # "manual" | "ai_accepted" | None
 
 
 class PaginatedCompletenessOut(Schema):

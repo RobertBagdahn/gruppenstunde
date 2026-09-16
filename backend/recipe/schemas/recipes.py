@@ -13,6 +13,7 @@ from content.base_schemas import (
 )
 
 from .items import RecipeItemCreateIn, RecipeItemOut
+from .materials import RecipeMaterialOut
 from .steps import RecipeStepIn, RecipeStepOut
 
 # --- Reuse NutritionalTag schema ---
@@ -40,6 +41,26 @@ class SharedGroupOut(Schema):
     name: str
 
 
+class PriceCoverageOut(Schema):
+    """Price coverage of a recipe or meal plan (only confirmed positive prices count)."""
+
+    total_ingredients: int
+    priced_ingredients: int
+    missing_ingredients: int
+    coverage: float | None = None  # 0..1, None when no ingredients
+
+
+def build_price_coverage(total: int, priced: int, missing: int) -> dict:
+    """Build a coverage payload from count fields."""
+    coverage = round(priced / total, 4) if total else None
+    return {
+        "total_ingredients": total,
+        "priced_ingredients": priced,
+        "missing_ingredients": missing,
+        "coverage": coverage,
+    }
+
+
 # --- Recipe List Schema (extends ContentListOut) ---
 
 
@@ -57,6 +78,7 @@ class RecipeListOut(ContentListOut):
     cached_salt_g: float | None = None
     cached_nutri_class: int | None = None
     cached_price_total: float | None = None
+    price_coverage: PriceCoverageOut | None = None
     cached_at: dt.datetime | None = None
     # Cached micronutrients
     cached_vitamin_c_mg: float | None = None
@@ -92,6 +114,15 @@ class RecipeListOut(ContentListOut):
         return "personal"
 
     @staticmethod
+    def resolve_price_coverage(obj) -> dict | None:
+        total = getattr(obj, "cached_price_ingredient_count", None)
+        if total is None:
+            return None
+        priced = getattr(obj, "cached_price_priced_count", 0) or 0
+        missing = getattr(obj, "cached_price_missing_count", 0) or 0
+        return build_price_coverage(total, priced, missing)
+
+    @staticmethod
     def resolve_shared_group_ids(obj) -> list:
         """Return list of shared group IDs."""
         return list(obj.shared_groups.values_list("id", flat=True))
@@ -121,6 +152,7 @@ class RecipeDetailOut(ContentDetailOut):
     input_servings: int | None = None
     preparation_method: str = ""
     equipment: list[EquipmentOut] = []
+    materials: list[RecipeMaterialOut] = []
     cached_energy_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
@@ -130,6 +162,7 @@ class RecipeDetailOut(ContentDetailOut):
     cached_salt_g: float | None = None
     cached_nutri_class: int | None = None
     cached_price_total: float | None = None
+    price_coverage: PriceCoverageOut | None = None
     cached_at: dt.datetime | None = None
     # Cached micronutrients
     cached_vitamin_c_mg: float | None = None
@@ -193,6 +226,15 @@ class RecipeDetailOut(ContentDetailOut):
         if obj.visibility == "public" and obj.status == "approved":
             return "community"
         return "personal"
+
+    @staticmethod
+    def resolve_price_coverage(obj) -> dict | None:
+        total = getattr(obj, "cached_price_ingredient_count", None)
+        if total is None:
+            return None
+        priced = getattr(obj, "cached_price_priced_count", 0) or 0
+        missing = getattr(obj, "cached_price_missing_count", 0) or 0
+        return build_price_coverage(total, priced, missing)
 
     @staticmethod
     def resolve_shared_groups(obj) -> list:
@@ -283,6 +325,16 @@ class RecipeDetailOut(ContentDetailOut):
     @staticmethod
     def resolve_equipment(obj) -> list:
         return [{"id": e.id, "name": e.name, "slug": e.slug} for e in obj.equipment.all()]
+
+    @staticmethod
+    def resolve_materials(obj) -> list:
+        """Get recipe material links ordered by sort order."""
+        from django.contrib.contenttypes.models import ContentType
+
+        from supply.models import ContentMaterialItem
+
+        ct = ContentType.objects.get_for_model(obj.__class__, for_concrete_model=False)
+        return ContentMaterialItem.objects.filter(content_type=ct, object_id=obj.pk).select_related("material")
 
     @staticmethod
     def resolve_has_structured_steps(obj) -> bool:

@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from core.services.gemini import gemini_call
 from core.services.prompt_context import build_prompt_context
+from supply.choices import PortionWeightSource, PortionWeightStatus
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
@@ -372,7 +373,7 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: User 
 
             unit = resolve_canonical_unit(nutrition.portion_name)
             if not unit:
-                unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm")
+                unit = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
             portion_name = nutrition.portion_name or unit.name or "Stück"
             portion = Portion.objects.filter(
                 ingredient=ingredient,
@@ -381,12 +382,23 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: User 
                 deleted_at__isnull=True,
             ).first()
             if not portion:
+                from supply.choices import PortionWeightSource, PortionWeightStatus
+                from supply.services.portion_resolution import is_piece_like_name
+
+                weight = nutrition.portion_weight_g if nutrition.portion_weight_g > 0 else None
+                piece_like = is_piece_like_name(portion_name)
                 Portion.objects.create(
                     ingredient=ingredient,
                     name=portion_name,
                     measuring_unit=unit,
                     quantity=1.0,
-                    weight_g=nutrition.portion_weight_g if nutrition.portion_weight_g > 0 else None,
+                    weight_g=weight,
+                    # AI-enriched piece weights are proposals, never silently
+                    # trusted gram bases.
+                    weight_status=(
+                        PortionWeightStatus.AI_PROPOSED if piece_like and weight else PortionWeightStatus.IMPORTED
+                    ),
+                    weight_source=PortionWeightSource.AI if piece_like and weight else PortionWeightSource.IMPORT,
                 )
 
         return ingredient
@@ -494,6 +506,9 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
             measuring_unit=measuring_unit,
             name=name,
             quantity=1.0,
+            weight_g=None,
+            weight_status=PortionWeightStatus.UNKNOWN,
+            weight_source=PortionWeightSource.AI,
             rank=(
                 Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
                 .order_by("-rank")
@@ -511,11 +526,11 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
 
     from supply.models import MeasuringUnit
 
-    fallback_unit = MeasuringUnit.objects.filter(name__iexact="Stück").first()
+    fallback_unit = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
     if not fallback_unit:
-        fallback_unit = MeasuringUnit.objects.create(name="Stück")
+        fallback_unit = MeasuringUnit.objects.create(name="Gramm")
 
-    name = "Stück"
+    name = unit_str or "Stück"
     existing_by_name = Portion.objects.filter(
         ingredient=ingredient,
         name__iexact=name,
@@ -529,6 +544,11 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         measuring_unit=fallback_unit,
         name=name,
         quantity=1.0,
+        weight_g=None,
+        # A piece-like name without a resolvable measuring unit has no trusted
+        # weight — it must stay unresolved instead of silently becoming 1 g.
+        weight_status=PortionWeightStatus.UNKNOWN,
+        weight_source=PortionWeightSource.AI,
         rank=(
             Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
             .order_by("-rank")

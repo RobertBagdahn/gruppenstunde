@@ -12,12 +12,15 @@ import { z } from 'zod';
 import {
   IngredientDetailSchema,
   IngredientGroupSchema,
+  IngredientPriceProposalListSchema,
+  IngredientPriceProposalSchema,
   IngredientSimilarSchema,
   NutritionalTagSchema,
   RetailSectionSchema,
   PaginatedIngredientSchema,
   PortionSchema,
   PackageSchema,
+  MaterialListItemSchema,
   type PortionSuggestion,
   type PackageSuggestion,
   IngredientAliasSchema,
@@ -34,6 +37,7 @@ import { PaginatedRecipesSchema } from '@/schemas/recipe';
 const INGREDIENT_BASE = `${API_BASE_URL}/api/ingredients`;
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
 const INGREDIENT_GROUP_BASE = `${API_BASE_URL}/api/ingredient-groups`;
+const MATERIALS_BASE = `${API_BASE_URL}/api/supplies/materials`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -181,6 +185,63 @@ export function useIngredient(slug: string) {
   });
 }
 
+// ==========================================================================
+// Price Proposal Hooks (/api/ingredients/{slug}/price-proposals/)
+// ==========================================================================
+
+export function usePriceProposals(slug: string) {
+  return useQuery({
+    queryKey: ['ingredient-price-proposals', slug] as const,
+    queryFn: () =>
+      fetchJson(`${INGREDIENT_BASE}/${slug}/price-proposals/`, IngredientPriceProposalListSchema),
+    enabled: !!slug,
+  });
+}
+
+export function useCreatePriceProposal(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      postJsonRaw(`${INGREDIENT_BASE}/${slug}/price-proposals/`, {}, IngredientPriceProposalSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-price-proposals', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function useAcceptPriceProposal(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ proposalId, replace }: { proposalId: number; replace: boolean }) =>
+      postJsonRaw(
+        `${INGREDIENT_BASE}/${slug}/price-proposals/${proposalId}/accept/`,
+        { replace },
+        IngredientPriceProposalSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-price-proposals', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function useRejectPriceProposal(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (proposalId: number) =>
+      postJsonRaw(
+        `${INGREDIENT_BASE}/${slug}/price-proposals/${proposalId}/reject/`,
+        {},
+        IngredientPriceProposalSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-price-proposals', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
 export function useCreateIngredient() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -243,6 +304,24 @@ export function useCreatePortion(slug: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function useConfirmPortion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: {
+      name: string;
+      weight_g?: number | null;
+      quantity?: number;
+      measuring_unit_id?: number | null;
+      rank?: number;
+      existing_portion_id?: number | null;
+    } }) => postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/confirm/`, data, PortionSchema),
+    onSuccess: (_portion, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-portions', variables.slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', variables.slug] });
     },
   });
 }
@@ -673,5 +752,20 @@ export function useIngredientComparison(
     queryFn: () => fetchJson(`${INGREDIENT_STATISTICS_BASE}/comparison/?${params}`, ComparisonOutSchema),
     enabled: options?.enabled !== false && !!groupBy && !!metric,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ==========================================================================
+// Material catalog (used by recipe material editor)
+// ==========================================================================
+
+export function useMaterialSearch(query: string, enabled = true) {
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  return useQuery({
+    queryKey: ['material-search', query] as const,
+    queryFn: () => fetchJson(`${MATERIALS_BASE}/search/?${params}`, z.array(MaterialListItemSchema)),
+    staleTime: 30_000,
+    enabled,
   });
 }

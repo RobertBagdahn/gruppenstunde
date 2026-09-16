@@ -5,6 +5,7 @@
 <title>{{ meal_plan.name }} — Kochplan</title>
 <style>
   {% include "planner/cooking_schedule_pdf.css" %}
+  @page { size: {{ page_format|lower }}; }
 </style>
 </head>
 <body>
@@ -75,7 +76,9 @@
         <h4>Zubereitung</h4>
         <ol class="steps-list">
         {% for step in recipe.steps %}
-          <li>{{ step }}</li>
+          <li>
+            {{ step.instruction }}{% if step.duration_minutes %}<span class="step-duration"> ({{ step.duration_minutes }} Min.)</span>{% endif %}
+          </li>
         {% endfor %}
         </ol>
       </div>

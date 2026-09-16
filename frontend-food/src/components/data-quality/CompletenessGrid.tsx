@@ -129,7 +129,26 @@ export default function CompletenessGrid() {
                   {item.nutrition_score}
                 </td>
                 <td className={cn('px-3 py-2.5 text-right', scoreColor(item.price_score))}>
-                  {item.price_score}
+                  {item.price_status === 'pending' ? (
+                    <a
+                      href={`/ingredients/${item.slug}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20"
+                      title="Preisvorschlag prüfen und bestätigen"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Vorschlag ausstehend
+                    </a>
+                  ) : item.price_source === 'ai_accepted' ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                      title="Preis aus KI-Vorschlag bestätigt"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      KI-bestätigt
+                    </span>
+                  ) : (
+                    item.price_score
+                  )}
                 </td>
                 <td className={cn('px-3 py-2.5 text-right', scoreColor(item.physical_score))}>
                   {item.physical_score}

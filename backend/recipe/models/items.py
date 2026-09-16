@@ -120,8 +120,10 @@ class RecipeItemIdempotencyRecord(models.Model):
     """Tracks idempotency keys for recipe-item mutations."""
 
     OPERATION_CREATE = "create"
+    OPERATION_REPLACE = "replace"
     OPERATION_CHOICES = [
         (OPERATION_CREATE, "Create"),
+        (OPERATION_REPLACE, "Replace"),
     ]
 
     recipe = models.ForeignKey(

@@ -59,10 +59,12 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
 
   if (!data) return null;
 
-  const coverage = data.total_ingredients > 0
-    ? Math.round((data.priced_ingredients / data.total_ingredients) * 100)
-    : 0;
-  const isIncomplete = data.priced_ingredients < data.total_ingredients;
+  const coverage = data.coverage != null
+    ? Math.round(data.coverage * 100)
+    : data.total_ingredients > 0
+      ? Math.round((data.priced_ingredients / data.total_ingredients) * 100)
+      : 0;
+  const isIncomplete = data.missing_ingredients > 0 || data.priced_ingredients < data.total_ingredients;
   const numDays = data.days.length || 1;
   const costPerPersonPerDay = data.cost_per_person / numDays;
 
@@ -178,7 +180,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
             <Info className="w-4.5 h-4.5 text-accent shrink-0 mt-0.5" />
           )}
           <span className="font-medium">
-            Geschätzte Kosten — {data.priced_ingredients} von {data.total_ingredients} Zutaten haben einen Preis ({coverage}% Abdeckung).
+            Geschätzte Kosten — {data.priced_ingredients} von {data.total_ingredients} Zutaten haben einen Preis ({coverage}% Abdeckung). {data.missing_ingredients > 0 && `${data.missing_ingredients} ${data.missing_ingredients === 1 ? 'Zutat hat' : 'Zutaten haben'} noch keinen bestätigten Preis.`}
           </span>
         </div>
       )}

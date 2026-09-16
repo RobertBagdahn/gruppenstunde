@@ -18,6 +18,46 @@ export const SharedGroupSchema = z.object({
 });
 export type SharedGroup = z.infer<typeof SharedGroupSchema>;
 
+// --- Recipe material (ContentMaterialItem link) ---
+
+export const RecipeMaterialSchema = z.object({
+  id: z.number(),
+  material_id: z.number(),
+  material_name: z.string(),
+  material_slug: z.string(),
+  material_category: z.string(),
+  quantity: z.string().default(''),
+  sort_order: z.number(),
+});
+export type RecipeMaterial = z.output<typeof RecipeMaterialSchema>;
+
+// --- AI material suggestion ---
+
+export const AiMaterialSuggestionSchema = z.object({
+  material_id: z.number().nullable(),
+  suggested_name: z.string(),
+  quantity: z.string().default(''),
+  matched_name: z.string().nullable(),
+  is_new: z.boolean().default(false),
+});
+export type AiMaterialSuggestion = z.output<typeof AiMaterialSuggestionSchema>;
+
+export const AiMaterialSuggestionsSchema = z.object({
+  items: z.array(AiMaterialSuggestionSchema),
+  ai_interaction_id: z.string().nullable(),
+});
+export type AiMaterialSuggestions = z.output<typeof AiMaterialSuggestionsSchema>;
+
+// --- Price Coverage (confirmed positive prices only) ---
+
+export const PriceCoverageSchema = z.object({
+  total_ingredients: z.number(),
+  priced_ingredients: z.number(),
+  missing_ingredients: z.number(),
+  coverage: z.number().nullable(),
+});
+export type PriceCoverage = z.infer<typeof PriceCoverageSchema>;
+
 // --- RecipeItem ---
 
 export const RecipeItemSchema = z.object({
@@ -47,8 +87,44 @@ export const RecipeItemSchema = z.object({
   exchange_position: z.number().nullable().optional(),
   portion_display: z.string().default(''),
   has_missing_weight: z.boolean().default(false),
+  weight_status: z.string().nullable().optional(),
+  weight_source: z.string().nullable().optional(),
+  weight_confirmed_at: z.string().nullable().optional(),
+  is_weight_trusted: z.boolean().optional(),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;
+
+// --- AI ingredient suggestion (MUST stay in sync with backend AiIngredientSuggestionOut) ---
+
+export const AiIngredientSuggestionSchema = z.object({
+  ingredient_id: z.number().nullable(),
+  ingredient_name: z.string(),
+  portion_id: z.number().nullable(),
+  portion_name: z.string().nullable().optional(),
+  quantity: z.number(),
+  is_new_ingredient: z.boolean().default(false),
+  note: z.string().default(''),
+  replacement_for_item_id: z.number().nullable().optional(),
+  replacement_reason: z.string().nullable().optional(),
+  replacement_confidence: z.number().nullable().optional(),
+});
+export type AiIngredientSuggestion = z.output<typeof AiIngredientSuggestionSchema>;
+
+export const AiIngredientSuggestionsSchema = z.object({
+  items: z.array(AiIngredientSuggestionSchema),
+  ai_interaction_id: z.string().nullable(),
+});
+export type AiIngredientSuggestions = z.output<typeof AiIngredientSuggestionsSchema>;
+
+// --- Recipe item replacement (POST /{recipe_id}/items/{item_id}/replace/) ---
+
+export const RecipeItemReplaceInSchema = z.object({
+  portion_id: z.number(),
+  ingredient_id: z.number().nullable().optional(),
+  quantity: z.number().nullable().optional(),
+  client_request_id: z.string().nullable().optional(),
+});
+export type RecipeItemReplaceIn = z.output<typeof RecipeItemReplaceInSchema>;
 
 // --- RecipeItemExchangeGroup ---
 
@@ -85,6 +161,7 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   cached_salt_g: z.number().nullable().optional(),
   cached_nutri_class: z.number().nullable().optional(),
   cached_price_total: z.number().nullable().optional(),
+  price_coverage: PriceCoverageSchema.nullable().optional(),
   cached_at: z.string().nullable().optional(),
   // Cached micronutrient values
   cached_vitamin_c_mg: z.number().nullable().optional(),
@@ -120,6 +197,7 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
     name: z.string(),
     slug: z.string(),
   })).default([]),
+  materials: z.array(RecipeMaterialSchema).default([]),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
@@ -130,6 +208,7 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   cached_salt_g: z.number().nullable().optional(),
   cached_nutri_class: z.number().nullable().optional(),
   cached_price_total: z.number().nullable().optional(),
+  price_coverage: PriceCoverageSchema.nullable().optional(),
   cached_at: z.string().nullable().optional(),
   // Cached micronutrient values
   cached_vitamin_c_mg: z.number().nullable().optional(),
@@ -431,6 +510,8 @@ export const EstimateQuantityItemSchema = z.object({
   portion_id: z.number(),
   unit: z.string(),
   grams_total: z.number(),
+  weight_status: z.string().nullable().optional(),
+  is_weight_trusted: z.boolean().optional(),
 });
 export type EstimateQuantityItem = z.infer<typeof EstimateQuantityItemSchema>;
 

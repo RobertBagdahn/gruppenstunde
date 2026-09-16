@@ -2,43 +2,44 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>{{ recipe.title }} — Rezept</title>
+<title>{{ title }} — Rezept</title>
 <style>
   {% include "recipe/recipe_pdf.css" %}
+  @page { size: {{ page_format|lower }}; margin: 2cm; }
 </style>
 </head>
 <body>
 
 <div class="recipe-header">
-  <h1>{{ recipe.title }}</h1>
+  <h1>{{ title }}</h1>
   <div class="meta">
-    <span>{{ portions }} Portionen</span>
-    {% if recipe.preparation_time_min %}
-    <span> · {{ recipe.preparation_time_min }} Min. Zubereitung</span>
+    <span>{{ servings }} Portionen</span>
+    {% if preparation_time_min %}
+    <span> · {{ preparation_time_min }} Min. Vorbereitung</span>
     {% endif %}
-    {% if recipe.recipe_type_label %}
-    <span> · {{ recipe.recipe_type_label }}</span>
+    {% if recipe_type_label %}
+    <span> · {{ recipe_type_label }}</span>
     {% endif %}
-    {% if recipe.difficulty_label %}
-    <span> · {{ recipe.difficulty_label }}</span>
+    {% if difficulty_label %}
+    <span> · {{ difficulty_label }}</span>
     {% endif %}
   </div>
 </div>
 
 {% if image_path %}
-<img src="file://{{ image_path }}" class="recipe-image" alt="{{ recipe.title }}" />
+<img src="file://{{ image_path }}" class="recipe-image" alt="{{ title }}" />
 {% endif %}
 
-{% if recipe.description_plain %}
-<div class="description">{{ recipe.description_plain }}</div>
+{% if description %}
+<h2>Beschreibung</h2>
+<div class="description">{{ description }}</div>
 {% endif %}
 
 <h2>Zutaten</h2>
 <ul class="ingredient-list">
 {% for item in ingredients %}
   <li>
-    <span class="ingredient-name">{{ item.name }}</span>
-    <span class="ingredient-amount"> — {{ item.amount }}</span>
+    <span class="ingredient-amount">{{ item.display }}</span>
     {% if item.note %}
     <span class="ingredient-note"> ({{ item.note }})</span>
     {% endif %}
@@ -46,11 +47,38 @@
 {% endfor %}
 </ul>
 
-<h2>Zubereitung</h2>
+{% if materials %}
+<h2>Materialien</h2>
+<ul class="ingredient-list">
+{% for material in materials %}
+  <li>
+    <span class="ingredient-name">{{ material.name }}</span>
+    {% if material.quantity %}
+    <span class="ingredient-amount"> — {{ material.quantity }}</span>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<h2>Zubereitungsschritte</h2>
 {% if steps %}
 <ol class="steps">
 {% for step in steps %}
-  <li>{{ step }}</li>
+  {% ifchanged step.section %}
+    {% if step.section %}
+    <li class="step-section"><span>{{ step.section }}</span></li>
+    {% endif %}
+  {% endifchanged %}
+  <li>
+    <span class="step-instruction">{{ step.instruction }}</span>
+    {% if step.duration_minutes %}
+    <span class="step-duration"> ({{ step.duration_minutes }} Minuten)</span>
+    {% endif %}
+    {% if step.ingredient_labels %}
+    <span class="step-ingredients">Zutaten: {{ step.ingredient_labels|join:", " }}</span>
+    {% endif %}
+  </li>
 {% endfor %}
 </ol>
 {% else %}
@@ -120,7 +148,7 @@
 </div>
 
 <div class="footer">
-  {{ recipe.title }} · gruppenstunde.de/recipes/{{ recipe.slug }}
+  {{ title }} · gruppenstunde.de/recipes/{{ slug }}
 </div>
 
 </body>

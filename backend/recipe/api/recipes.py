@@ -372,6 +372,7 @@ def _recipe_import_response(result) -> RecipeImportUrlResponseOut:
             RecipeItemDraftOut(
                 ingredient_id=item.ingredient_id,
                 ingredient_name=item.ingredient_name,
+                ingredient_slug=getattr(item, "ingredient_slug", ""),
                 quantity=item.quantity,
                 measuring_unit_id=item.measuring_unit_id,
                 measuring_unit_name=item.measuring_unit_name,
@@ -382,6 +383,10 @@ def _recipe_import_response(result) -> RecipeImportUrlResponseOut:
                 suggested_unit_name=getattr(item, "suggested_unit_name", ""),
                 suggested_portion_weight_g=getattr(item, "suggested_portion_weight_g", None),
                 available_portions=getattr(item, "available_portions", []),
+                weight_status=getattr(item, "weight_status", None),
+                weight_proposal_g=getattr(item, "weight_proposal_g", None),
+                suggested_portion_name=getattr(item, "suggested_portion_name", ""),
+                confirmation_required=getattr(item, "confirmation_required", False),
             )
             for item in result.recipe_items
         ],
@@ -582,12 +587,14 @@ def get_recipe_by_slug(request, slug: str):
 
 
 @router.get("/by-slug/{slug}/export/pdf/")
-def export_recipe_pdf(request, slug: str, page_format: str = "A4"):
-    """Export recipe as PDF."""
+def export_recipe_pdf(request, slug: str, page_format: str = "A4", servings: int = 1):
+    """Export recipe as PDF, scaled to a temporary target serving count."""
     _require_auth(request)
 
     if page_format not in ("A4", "letter"):
         raise HttpError(422, "Ungültiges Seitenformat. Erlaubt: A4, letter")
+    if not 1 <= servings <= 100:
+        raise HttpError(422, "Ungültige Personenzahl. Erlaubt: 1–100")
 
     from django.http import HttpResponse
 
@@ -601,7 +608,7 @@ def export_recipe_pdf(request, slug: str, page_format: str = "A4"):
 
     log_private_staff_food_access(request.user, recipe, request.path)
 
-    pdf_bytes = generate_recipe_pdf(recipe, page_format=page_format)
+    pdf_bytes = generate_recipe_pdf(recipe, page_format=page_format, servings=servings)
 
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{recipe.slug}-rezept.pdf"'

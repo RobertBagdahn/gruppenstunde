@@ -318,6 +318,15 @@ export function MealSlot({
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
                 {mealActualCost.toFixed(2)} €/P. ({meal.total_cost_eur.toFixed(2)} €)
               </span>
+              {meal.price_coverage != null && meal.price_coverage.missing_ingredients > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[hsl(var(--chart-4))]/30 bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] text-[11px] font-bold"
+                  title={`${meal.price_coverage.priced_ingredients} von ${meal.price_coverage.total_ingredients} Zutaten haben einen bestätigten Preis`}
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  {meal.price_coverage.missing_ingredients} {meal.price_coverage.missing_ingredients === 1 ? 'Zutat' : 'Zutaten'} ohne Preis
+                </span>
+              )}
               {mealIsTooLittle && (
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold ${

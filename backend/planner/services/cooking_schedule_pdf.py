@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 from weasyprint import HTML
 
 from planner.models import Meal, MealPlan
+from supply.services.price_service import price_or_none
 
 MEAL_TYPE_LABELS = {
     "breakfast": "Frühstück",
@@ -89,6 +90,29 @@ def _extract_recipe_steps(recipe) -> list[str]:
         else:
             steps.append(line)
     return steps
+
+
+def _resolve_recipe_steps_for_pdf(recipe, scale: float) -> list[dict]:
+    """Resolve recipe steps for the PDF card.
+
+    Prefers structured RecipeSteps with scaled placeholders; falls back to
+    parsing the Markdown description for legacy recipes.
+    """
+    from recipe.services.step_helpers import resolve_recipe_steps
+
+    resolved = resolve_recipe_steps(recipe, scale=scale)
+    if resolved is not None:
+        return resolved
+    return [
+        {
+            "number": idx,
+            "instruction": text,
+            "duration_minutes": None,
+            "section": "",
+            "step_ingredients": [],
+        }
+        for idx, text in enumerate(_extract_recipe_steps(recipe), 1)
+    ]
 
 
 def _get_recipe_allergens(recipe) -> list[dict]:
@@ -177,7 +201,8 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                     weight_g = _resolve_ingredient_weight_g(item) * scale
                     qty = float(item.quantity or 0) * scale
                     unit = item.measuring_unit.name if item.measuring_unit else ""
-                    recipe_cost = (float(ing.price_per_kg or 0)) * weight_g / 1000.0
+                    price_per_kg = price_or_none(ing.price_per_kg)
+                    recipe_cost = (float(price_per_kg)) * weight_g / 1000.0 if price_per_kg is not None else 0.0
                     day_cost += recipe_cost
                     recipe_energy = (float(ing.energy_kcal or 0)) * weight_g / 100.0
 
@@ -235,7 +260,10 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                             }
                         )
 
-                steps = _extract_recipe_steps(recipe)
+                steps = _resolve_recipe_steps_for_pdf(
+                    recipe,
+                    scale=item_portions * meal_plan.reserve_factor / max(recipe.portions or 1, 1),
+                )
                 allergens = _get_recipe_allergens(recipe)
                 recipe_name = item.display_name or recipe.title
 
@@ -289,6 +317,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
         "day_count": len(days),
         "day_labels": day_labels,
         "days": days,
+        "page_format": page_format,
     }
 
     html = render_to_string("planner/cooking_schedule_pdf.html", context)

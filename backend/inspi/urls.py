@@ -42,6 +42,8 @@ from supply.api import (
     ingredient_statistics_router,
     norm_person_router,
     nutritional_tag_router,
+    portion_repair_router,
+    price_proposal_router,
     retail_section_router,
     unit_conversion_router,
 )
@@ -59,6 +61,8 @@ api.add_router("/auth/", auth_router)
 api.add_router("/users/", users_router)
 api.add_router("/admin/", admin_router)
 api.add_router("/admin/tags/", admin_tags_router)
+# Specific staff-only routes must precede the catch-all data-quality router.
+api.add_router("/admin/data-quality/portion-repair/", portion_repair_router)
 api.add_router("/admin/data-quality/", dq_admin_router)
 api.add_router("/data-quality/", dq_public_router)
 api.add_router("/planner/", planner_router)
@@ -78,6 +82,8 @@ api.add_router("/packing-lists/", packing_list_router)
 api.add_router("/shopping-lists/", shopping_router)
 api.add_router("/kitchen-reminders/", kitchen_reminder_router)
 api.add_router("/ingredients/", ingredient_router)
+# Price proposal routes live under the same prefix as ingredient routes.
+api.add_router("/ingredients/", price_proposal_router)
 # Keep the supply-prefixed ingredient URL used by the breakfast wizard client.
 api.add_router("/supplies/ingredients/", ingredient_router, url_name_prefix="supply_ingredients_")
 api.add_router("/retail-sections/", retail_section_router)

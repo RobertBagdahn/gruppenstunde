@@ -89,7 +89,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-display font-bold">Zubereitung</h2>
+        <h2 className="text-xl font-display font-bold">Beschreibung &amp; Details</h2>
         <p className="text-sm text-muted-foreground mt-2">
           Prüfe Beschreibung, Zeiten, Schwierigkeit und ergänze anschließend die Zubereitungsschritte.
         </p>

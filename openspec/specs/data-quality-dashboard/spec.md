@@ -2,9 +2,7 @@
 
 ## Purpose
 Defines the staff-only data quality dashboard with ingredient and recipe quality categories, trend charts, and audit log access.
-
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Staff-only Datenqualität Menüpunkt
 Das food-frontend SHALL einen Menüpunkt "Datenqualität" in der Navigation anzeigen, der nur für authentifizierte Staff-User (`is_staff=true`) sichtbar und zugänglich ist.
 
@@ -22,12 +20,16 @@ Das food-frontend SHALL einen Menüpunkt "Datenqualität" in der Navigation anze
 - **THEN** SHALL der User auf `/recipes` weitergeleitet werden
 
 ### Requirement: Datenqualität Dashboard mit Kategorie-Auswahl
-Das Datenqualität-Dashboard SHALL zwei Hauptbereiche bieten: "Zutaten" und "Rezepte". Jeder Bereich SHALL Unterkategorien als Tabs oder Accordions anzeigen.
+Das Datenqualität-Dashboard SHALL zwei Hauptbereiche bieten: "Zutaten" und "Rezepte". Jeder Bereich SHALL Unterkategorien als Tabs oder Accordions anzeigen. Die Kategorie „Preisanalyse" SHALL fehlende, auf `0` gesetzte, vorgeschlagene und ausstehende KI-Preise unterscheiden und einen Bestätigungsworkflow anbieten.
 
 #### Scenario: Zutaten-Kategorien
 - **WHEN** Staff-User den Bereich "Zutaten" auswählt
 - **THEN** SHALL folgende Kategorien verfügbar sein: Preisanalyse, Duplikaterkennung, Datenvollständigkeit, Nährwert-Plausibilität, Fehlende Klassifikation
 - **THEN** SHALL die Preisanalyse als erstes Tab ausgewählt sein
+
+#### Scenario: Preisvorschläge in Preisanalyse
+- **WHEN** ein Staff-User die Preisanalyse öffnet
+- **THEN** SHALL Zutaten mit fehlendem Preis, pending Vorschlag und akzeptiertem KI-Preis getrennt sichtbar sein
 
 #### Scenario: Rezepte-Kategorien
 - **WHEN** Staff-User den Bereich "Rezepte" auswählt
@@ -56,13 +58,17 @@ Das Dashboard SHALL einen Qualitätstrend-Chart anzeigen, der die Entwicklung de
 - **THEN** SHALL der Chart einen leeren Zustand mit Hinweis "Noch keine Daten" anzeigen
 
 ### Requirement: Datenvollständigkeit-Übersicht
-Das Dashboard SHALL eine tabellarische Übersicht der Datenvollständigkeit aller Zutaten bzw. Rezepte bieten, sortierbar nach Score.
+Das Dashboard SHALL eine tabellarische Übersicht der Datenvollständigkeit aller Zutaten bzw. Rezepte bieten, sortierbar nach Score. Die Tabelle SHALL Preisstatus und Preisprovenienz neben den bestehenden Score-Komponenten anzeigen.
 
 #### Scenario: Zutaten-Vollständigkeitstabelle
 - **WHEN** Staff-User die Kategorie "Datenvollständigkeit" für Zutaten auswählt
 - **THEN** SHALL eine paginierte Tabelle alle Zutaten mit `quality_score`, Namen, Status und den einzelnen Score-Komponenten (Nährwerte, Preis, Physische Daten, Klassifikation, Pfadfinder, Portionen) anzeigen
 - **THEN** SHALL die Tabelle nach `quality_score` aufsteigend sortiert sein (schlechteste zuerst)
 - **THEN** SHALL jede Zeile auf die Zutat-Detailseite verlinken
+
+#### Scenario: Preisstatus
+- **WHEN** eine Zutat einen KI-Preisvorschlag besitzt
+- **THEN** SHALL die Tabelle den Status `Vorschlag ausstehend` und den Bestätigungslink anzeigen
 
 #### Scenario: Sortierung ändern
 - **WHEN** Staff-User auf einen Spaltenkopf klickt

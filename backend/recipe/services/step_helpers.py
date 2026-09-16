@@ -8,7 +8,7 @@ from recipe.models import Recipe, RecipeItem, RecipeStep
 logger = logging.getLogger(__name__)
 
 
-def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None) -> str:
+def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None, scale: float = 1.0) -> str:
     """Resolve placeholders in a step's instruction text.
 
     Supports two placeholder syntaxes:
@@ -18,6 +18,7 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None)
     Args:
         step: The RecipeStep to resolve
         recipe_items_map: Optional dict of {id: RecipeItem} for caching
+        scale: Optional quantity scale factor (e.g. target servings)
 
     Returns:
         Step instruction with all placeholders resolved to quantities + names
@@ -42,7 +43,7 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None)
         item_id = int(match.group(1))
         if item_id in recipe_items_map:
             item = recipe_items_map[item_id]
-            return _format_quantity(item)
+            return _format_quantity(item, scale)
         return match.group(0)  # Leave unresolved if not found
 
     instruction = re.sub(numeric_pattern, replace_numeric, instruction)
@@ -59,7 +60,7 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None)
         # Find matching recipe item by name
         for item in recipe_items_map.values():
             if item.portion.ingredient.name.lower() == name.lower():
-                return _format_quantity(item)
+                return _format_quantity(item, scale)
         return match.group(0)  # Leave unresolved if not found
 
     instruction = re.sub(name_pattern, replace_name, instruction)
@@ -67,7 +68,7 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None)
     return instruction
 
 
-def _format_quantity(recipe_item: RecipeItem) -> str:
+def _format_quantity(recipe_item: RecipeItem, scale: float = 1.0) -> str:
     """Format a RecipeItem as 'quantity unit ingredient_name'.
 
     Example: "500g Mehl" or "2 Tassen Zucker"
@@ -75,7 +76,7 @@ def _format_quantity(recipe_item: RecipeItem) -> str:
     portion = recipe_item.portion
     if portion is None:
         return ""
-    quantity = recipe_item.quantity
+    quantity = recipe_item.quantity * scale
     unit = portion.measuring_unit
     ingredient = portion.ingredient
     note = recipe_item.note
@@ -96,6 +97,62 @@ def _format_quantity(recipe_item: RecipeItem) -> str:
     if note:
         result += f", {note}"
 
+    return result
+
+
+def resolve_recipe_steps(recipe: Recipe, scale: float = 1.0) -> list[dict] | None:
+    """Resolve structured recipe steps at a given quantity scale.
+
+    Returns:
+        A list of resolved step dicts with keys ``number``, ``instruction``,
+        ``duration_minutes``, ``section`` and ``step_ingredients`` (each a dict
+        with ``name``, ``quantity``, ``unit`` and ``note``), or ``None`` when
+        the recipe has no structured steps so the caller can fall back to
+        parsing the Markdown description.
+    """
+    steps_qs = list(
+        recipe.steps.prefetch_related(
+            "step_ingredients__recipe_item__portion__ingredient",
+            "step_ingredients__recipe_item__portion__measuring_unit",
+        ).order_by("sort_order")
+    )
+    if not steps_qs:
+        return None
+
+    recipe_items_map = {
+        ri.id: ri for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit")
+    }
+
+    result: list[dict] = []
+    for idx, step in enumerate(steps_qs, 1):
+        try:
+            instruction = resolve_placeholders(step, recipe_items_map, scale)
+        except Exception:
+            instruction = step.instruction
+
+        step_ingredients = []
+        for si in step.step_ingredients.all():
+            ri = si.recipe_item
+            if ri is None or ri.portion is None or ri.portion.ingredient is None:
+                continue
+            step_ingredients.append(
+                {
+                    "name": ri.portion.ingredient.name,
+                    "quantity": float(ri.quantity * si.quantity_modifier * scale),
+                    "unit": ri.portion.measuring_unit.unit if ri.portion.measuring_unit else "",
+                    "note": ri.note or "",
+                }
+            )
+
+        result.append(
+            {
+                "number": idx,
+                "instruction": instruction,
+                "duration_minutes": step.duration_minutes,
+                "section": step.section or "",
+                "step_ingredients": step_ingredients,
+            }
+        )
     return result
 
 

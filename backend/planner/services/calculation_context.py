@@ -6,6 +6,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from supply.services.portion_resolution import resolve_trusted_weight
+
 if TYPE_CHECKING:
     from planner.models import MealItem, MealItemOverride
     from recipe.models import Recipe, RecipeItem
@@ -51,7 +53,10 @@ def resolve_active_recipe_items(
         quantity = float(
             override.quantity_override if override and override.quantity_override is not None else recipe_item.quantity
         )
-        weight_g = float(portion.weight_g) * quantity if portion.weight_g is not None else None
+        # Only trusted weights may drive gram-based calculations; unresolved
+        # piece weights (unknown/AI-proposed) contribute nothing.
+        trusted_weight = resolve_trusted_weight(portion)
+        weight_g = float(trusted_weight) * quantity if trusted_weight is not None else None
         result.append(ActiveRecipeItem(recipe_item=recipe_item, quantity=quantity, weight_g=weight_g))
 
     return result

@@ -170,6 +170,11 @@ export const PortionSchema = z.object({
   is_default: z.boolean(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string().nullable(),
+  weight_status: z.string().nullable().optional(),
+  weight_source: z.string().nullable().optional(),
+  weight_confirmed_at: z.string().nullable().optional(),
+  weight_confidence: z.number().nullable().optional(),
+  is_weight_trusted: z.boolean().optional(),
 });
 export type Portion = z.infer<typeof PortionSchema>;
 
@@ -180,6 +185,36 @@ export const PackageSchema = z.object({
   rank: z.number(),
 });
 export type Package = z.infer<typeof PackageSchema>;
+
+// ---------------------------------------------------------------------------
+// Ingredient Price Proposal
+// ---------------------------------------------------------------------------
+
+export const IngredientPriceProposalSchema = z.object({
+  id: z.number(),
+  ingredient_id: z.number(),
+  proposed_price_per_kg: z.number(),
+  confidence: z.number(),
+  rationale: z.string(),
+  source: z.string(),
+  status: z.enum(['pending', 'accepted', 'rejected']),
+  requested_by_name: z.string().nullable(),
+  reviewed_by_name: z.string().nullable(),
+  reviewed_at: z.string().nullable(),
+  ai_interaction_id: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type IngredientPriceProposal = z.infer<typeof IngredientPriceProposalSchema>;
+
+export const IngredientPriceProposalListSchema = z.object({
+  items: z.array(IngredientPriceProposalSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type IngredientPriceProposalList = z.infer<typeof IngredientPriceProposalListSchema>;
 
 // ---------------------------------------------------------------------------
 // Ingredient (List / Detail)
@@ -264,6 +299,8 @@ export const IngredientDetailSchema = z.object({
   nutri_score: z.number().nullable(),
   nutri_class: z.number().nullable(),
   price_per_kg: z.number().nullable(),
+  price_source: z.enum(['manual', 'ai_accepted', 'missing']).nullable(),
+  pending_price_proposal: IngredientPriceProposalSchema.nullable(),
 
   // References
   fdc_id: z.number().nullable(),

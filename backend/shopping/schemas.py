@@ -102,7 +102,7 @@ class ShoppingListItemOut(Schema):
 
     @staticmethod
     def resolve_estimated_price_eur(obj) -> float | None:
-        if not obj.ingredient or not obj.ingredient.price_per_kg or not obj.quantity_g:
+        if not obj.ingredient or not obj.quantity_g:
             return None
         from supply.services.price_service import get_portion_price
 

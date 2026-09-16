@@ -34,6 +34,7 @@ describe('MealActionsMenu', () => {
     note_is_published: false,
     total_energy_kcal: 500,
     total_cost_eur: 15,
+    price_coverage: null,
     items: [],
   };
 

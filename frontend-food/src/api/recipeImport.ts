@@ -12,6 +12,7 @@ import { z } from 'zod';
 export const RecipeItemDraftSchema = z.object({
   ingredient_id: z.number(),
   ingredient_name: z.string(),
+  ingredient_slug: z.string().optional().default(''),
   quantity: z.number(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string(),
@@ -30,7 +31,14 @@ export const RecipeItemDraftSchema = z.object({
     weight_g: z.number().nullable(),
     measuring_unit_id: z.number().nullable(),
     measuring_unit_name: z.string().nullable(),
+    weight_status: z.string().nullable().default(null),
+    weight_source: z.string().nullable().default(null),
+    is_weight_trusted: z.boolean().default(false),
   })).optional().default([]),
+  weight_status: z.string().nullable().default(null),
+  weight_proposal_g: z.number().nullable().default(null),
+  suggested_portion_name: z.string().default(''),
+  confirmation_required: z.boolean().default(false),
 });
 
 export const CreatedIngredientInfoSchema = z.object({

@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { UtensilsCrossed, Moon, Cookie, GlassWater } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
+import { PriceCoverageSchema } from './recipe';
 
 // Lightweight nutritional tag schema for search results (backend only returns id+name)
 export const NutritionalTagPreviewSchema = z.object({
@@ -97,6 +98,7 @@ export const MealSchema = z.object({
   external_cost_per_person: z.number().nullable(),
   total_energy_kcal: z.number(),
   total_cost_eur: z.number(),
+  price_coverage: PriceCoverageSchema.nullable(),
   items: z.array(MealItemSchema),
 });
 export type Meal = z.infer<typeof MealSchema>;
@@ -808,6 +810,8 @@ export const MealPlanCostSummarySchema = z.object({
   norm_portions: z.number(),
   total_ingredients: z.number(),
   priced_ingredients: z.number(),
+  missing_ingredients: z.number().default(0),
+  coverage: z.number().nullable().optional().default(null),
   days: z.array(DayCostSchema),
   recipes: z.array(RecipeCostSchema),
 });

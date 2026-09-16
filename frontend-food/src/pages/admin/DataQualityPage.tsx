@@ -2,10 +2,12 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import DataQualityIngredientsPage from './DataQualityIngredientsPage';
 import DataQualityRecipesPage from './DataQualityRecipesPage';
+import PortionRepairList from '@/components/data-quality/PortionRepairList';
 
 const TABS = [
   { key: 'ingredients', label: 'Zutaten' },
   { key: 'recipes', label: 'Rezepte' },
+  { key: 'portion-repair', label: 'Portions-Reparatur' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -45,6 +47,7 @@ export default function DataQualityPage() {
 
       {activeTab === 'ingredients' && <DataQualityIngredientsPage />}
       {activeTab === 'recipes' && <DataQualityRecipesPage />}
+      {activeTab === 'portion-repair' && <PortionRepairList />}
     </div>
   );
 }

@@ -50,6 +50,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
 import { IngredientBenchmarkSection } from '@/components/ingredient/IngredientBenchmarkSection';
+import PriceProposalCard from '@/components/ingredient/PriceProposalCard';
 import {
   Dialog,
   DialogContent,
@@ -555,9 +556,14 @@ function PortionCard({
                 Standard
               </span>
             )}
-            {portion.weight_g ? (
+            {portion.weight_g && portion.is_weight_trusted ? (
               <span className="text-xs text-muted-foreground">
                 ≈ {portion.weight_g}g
+              </span>
+            ) : portion.weight_status === 'ai_proposed' ? (
+              <span className="inline-flex items-center gap-1 text-[11px] bg-amber-50 text-amber-800 font-medium px-1.5 py-0.5 rounded border border-amber-200">
+                <Sparkles className="h-3 w-3" />
+                Vorschlag: {portion.weight_g ?? 'unbekannt'}g bestätigen
               </span>
             ) : (
               <span
@@ -1369,6 +1375,11 @@ export default function IngredientDetailPage() {
             ))
           )}
         </div>
+      </div>
+
+      {/* Preis & KI-Preisvorschläge */}
+      <div className="mb-6">
+        <PriceProposalCard ingredient={ingredient} />
       </div>
 
       {/* Content Grid */}

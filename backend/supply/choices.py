@@ -44,6 +44,37 @@ class StorageTypeChoices(models.TextChoices):
     AMBIENT = "ambient", _("Raumtemperatur")
 
 
+class PortionWeightStatus(models.TextChoices):
+    UNKNOWN = "unknown", _("Unbekannt")
+    AI_PROPOSED = "ai_proposed", _("KI-Vorschlag")
+    CONFIRMED = "confirmed", _("Bestätigt")
+    IMPORTED = "imported", _("Importiert")
+
+
+class PortionWeightSource(models.TextChoices):
+    SYSTEM = "system", _("System")
+    MANUAL = "manual", _("Manuell")
+    AI = "ai", _("KI")
+    IMPORT = "import", _("Import")
+
+
+class PortionRepairStatus(models.TextChoices):
+    CANDIDATE = "candidate", _("Kandidat")
+    PENDING_REVIEW = "pending_review", _("Prüffall")
+    READY = "ready", _("Bereit")
+    APPLIED = "applied", _("Angewendet")
+    REJECTED = "rejected", _("Abgelehnt")
+    SKIPPED = "skipped", _("Übersprungen")
+
+
+class PortionRepairDetectionReason(models.TextChoices):
+    PIECE_NAME_ONE_GRAM = "piece_name_one_gram", _("Stück-Name mit 1 g")
+    PIECE_NAME_GRAM_UNIT = "piece_name_gram_unit", _("Stück-Name mit Gramm-Einheit")
+    ONE_GRAM_PLACEHOLDER = "one_gram_placeholder", _("1-g-Platzhalter")
+    MISSING_WEIGHT = "missing_weight", _("Fehlendes Gewicht")
+    IMPLAUSIBLE_RANK1 = "implausible_rank1", _("Unplausibles rank-1-Gewicht")
+
+
 # ---------------------------------------------------------------------------
 # Recipe hint choices (migrated from idea/choices.py)
 # ---------------------------------------------------------------------------

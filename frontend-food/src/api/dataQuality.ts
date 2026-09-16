@@ -7,8 +7,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PaginatedPriceAnomalySchema,
   PriceEvaluateResponseSchema,
+  PriceApplyResponseSchema,
   type PriceEvaluateRequest,
   type PriceApplyRequest,
+  type PriceApplyResponse,
   PaginatedDuplicatePairSchema,
   MergePreviewSchema,
   MergeResponseSchema,
@@ -123,10 +125,14 @@ export function usePriceEvaluate() {
 export function usePriceApply() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: PriceApplyRequest) =>
-      patchJson(`${ADMIN_DQ}/ingredients/price-analysis/apply/`, data),
+    mutationFn: (data: PriceApplyRequest): Promise<PriceApplyResponse> =>
+      patchJson(`${ADMIN_DQ}/ingredients/price-analysis/apply/`, data).then((d) =>
+        PriceApplyResponseSchema.parse(d)
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['price-analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient'] });
     },
   });
 }

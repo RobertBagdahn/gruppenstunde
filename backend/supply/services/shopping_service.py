@@ -15,6 +15,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from supply.services.portion_resolution import resolve_trusted_weight
 from supply.utils import format_weight
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,7 @@ def generate_shopping_list(
     from planner.models import MealItem
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
     from supply.models import Portion
+    from supply.services.portion_resolution import resolve_trusted_weight
     from supply.services.price_service import get_portion_price
 
     # A reserve factor <= 0 is invalid; fall back to no reserve (1.0) so that
@@ -171,7 +173,7 @@ def generate_shopping_list(
                 recipe_servings = recipe.portions or 1
                 weight_g = (active_item.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
 
-                if not portion.weight_g:
+                if resolve_trusted_weight(portion) is None:
                     raw_qty = active_item.quantity * mi.factor * meal_scaling / recipe_servings
                     portion_name = portion.name or ""
                     if ing.id in raw_quantities:
@@ -408,7 +410,7 @@ def compute_portion_options(
     best_diff = float("inf")
 
     for p in portions:
-        if not p.weight_g or p.weight_g <= 0:
+        if resolve_trusted_weight(p) is None:
             continue
         count = quantity_g / p.weight_g
         if count < 0.5:

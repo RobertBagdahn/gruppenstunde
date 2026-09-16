@@ -8,6 +8,8 @@ from .ingredients import ingredient_router
 from .materials import router
 from .norm_person import norm_person_router
 from .nutritional_tags import nutritional_tag_router
+from .portion_repair import portion_repair_router
+from .price_proposals import price_proposal_router
 from .retail_sections import retail_section_router
 from .unit_conversions import unit_conversion_router
 
@@ -19,6 +21,8 @@ __all__ = [
     "ingredient_statistics_router",
     "norm_person_router",
     "nutritional_tag_router",
+    "portion_repair_router",
+    "price_proposal_router",
     "retail_section_router",
     "router",
     "unit_conversion_router",

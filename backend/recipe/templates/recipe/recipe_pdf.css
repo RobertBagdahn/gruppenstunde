@@ -113,6 +113,38 @@ h2 {
   color: hsl(142, 76%, 36%);
 }
 
+.steps li.step-section {
+  counter-increment: none;
+  font-size: 12pt;
+  font-weight: 700;
+  color: #333;
+  padding-left: 0;
+  margin: 12pt 0 6pt 0;
+}
+
+.steps li.step-section::before {
+  content: none;
+}
+
+.steps .step-duration {
+  font-size: 9pt;
+  color: #666;
+}
+
+.steps .step-ingredients {
+  display: block;
+  margin-top: 2pt;
+  font-size: 9pt;
+  color: #555;
+  font-style: italic;
+}
+
+.empty-state {
+  font-size: 10pt;
+  color: #999;
+  font-style: italic;
+}
+
 .nutrition-table {
   width: 100%;
   border-collapse: collapse;

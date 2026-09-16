@@ -21,20 +21,32 @@ if TYPE_CHECKING:
 
 from recipe.models import RecipeItem, Rule
 from supply.choices import MeasuringUnitType, RecipeTypeChoices
+from supply.services.price_service import price_or_none
 
 
 def _calculate_item_weight_g(item: RecipeItem) -> float:
     """Calculate the weight in grams for a RecipeItem.
 
-    Uses portion.weight_g if available, otherwise falls back to
-    measuring_unit conversion with density adjustment for VOLUME units.
+    Uses the portion's trusted weight when available; the measuring-unit
+    conversion fallback only applies to definitionally derived weights
+    (metric base units and canonical kitchen units). Unresolved piece
+    weights (unknown/AI-proposed) contribute 0 instead of a fabricated
+    gram amount.
     """
+    from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
+
     portion = item.portion
     if not portion:
         return 0.0
 
-    if portion.weight_g:
-        return item.quantity * float(portion.weight_g)
+    trusted_weight = resolve_trusted_weight(portion)
+    if trusted_weight is not None:
+        return item.quantity * trusted_weight
+
+    # Piece-like named portions without a trusted weight must never receive an
+    # implicit gram value from their (usually fallback) measuring unit.
+    if is_piece_like_name(portion.name):
+        return 0.0
 
     if portion.measuring_unit:
         raw = item.quantity * float(portion.quantity) * float(portion.measuring_unit.quantity)
@@ -429,6 +441,9 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
     total_price = Decimal("0.00")
     total_weight_g = 0.0
     has_prices = False
+    ingredient_count = 0
+    priced_count = 0
+    missing_count = 0
     for item in items:
         if not (item.portion and item.portion.ingredient):
             continue
@@ -436,10 +451,17 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
         weight_g = _calculate_item_weight_g(item)
         total_weight_g += float(weight_g)
 
-        if ingredient.price_per_kg and weight_g:
+        if not weight_g:
+            continue
+
+        ingredient_count += 1
+        price = price_or_none(ingredient.price_per_kg)
+        if price is None:
+            missing_count += 1
+        else:
             has_prices = True
-            price = ingredient.price_per_kg * Decimal(str(weight_g)) / Decimal("1000")
-            total_price += price
+            priced_count += 1
+            total_price += price * Decimal(str(weight_g)) / Decimal("1000")
 
     energy_per_100g = values.get("energy_kcal")
     recipe.cached_energy_total_kcal = (
@@ -447,6 +469,9 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
     )
     recipe.cached_weight_g = total_weight_g
     recipe.cached_price_total = total_price if has_prices else None
+    recipe.cached_price_ingredient_count = ingredient_count
+    recipe.cached_price_priced_count = priced_count
+    recipe.cached_price_missing_count = missing_count
     recipe.cached_at = timezone.now()
 
     update_fields = [
@@ -461,6 +486,9 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
         "cached_salt_g",
         "cached_nutri_class",
         "cached_price_total",
+        "cached_price_ingredient_count",
+        "cached_price_priced_count",
+        "cached_price_missing_count",
         "cached_at",
     ]
     # Add micronutrient cache fields

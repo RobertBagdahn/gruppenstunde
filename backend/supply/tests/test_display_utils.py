@@ -160,6 +160,7 @@ class TestBuildPortionDisplay:
             name="1 Portion Nudeln",
             quantity=125.0,
             weight_g=125.0,
+            weight_status="confirmed",
         )
         display, missing = build_portion_display(2.24, portion, ingredient)
         assert "1 Portion Nudeln" in display
