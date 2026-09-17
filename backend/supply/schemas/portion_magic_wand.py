@@ -16,6 +16,7 @@ class PortionMagicOperationOut(Schema):
     proposed_weight_g: float | None = None
     confidence: float | None = None
     rationale: str = ""
+    suggestion_provenance: str = "ai_estimate"
     selected: bool = False
     requires_manual_weight: bool = False
     delete_without_replacement: bool = False

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChefHat, Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2, Wand2 } from 'lucide-react';
@@ -13,6 +13,8 @@ import {
   useSensors,
   DragEndEvent,
 } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   arrayMove,
   SortableContext,
@@ -47,7 +49,53 @@ import type { Package, Portion, MeasuringUnit, PortionSuggestion as PortionSugge
 import { formatMeasuringUnitLabel } from '@/lib/units';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
 type IngredientDetail = NonNullable<ReturnType<typeof useIngredient>['data']>;
+
+export function reorderMagicOperations(
+  operations: PortionMagicOperation[],
+  activeId: string,
+  overId: string,
+): PortionMagicOperation[] {
+  const oldIndex = operations.findIndex((item) => item.operation_id === activeId);
+  const newIndex = operations.findIndex((item) => item.operation_id === overId);
+  if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex || operations[oldIndex].operation === 'unchanged') return operations;
+  const next = arrayMove(operations, oldIndex, newIndex);
+  let rank = 1;
+  return next.map((operation) => {
+    if (operation.operation === 'unchanged') return operation;
+    return { ...operation, rank: rank++ };
+  });
+}
+
+export function mergeMagicOperations(
+  current: PortionMagicOperation[],
+  additions: PortionMagicOperation[],
+): PortionMagicOperation[] {
+  const known = new Set(current.map((item) => `${item.operation}:${item.name.toLowerCase()}`));
+  const merged = [...current, ...additions.filter((item) => {
+    const key = `${item.operation}:${item.name.toLowerCase()}`;
+    return item.operation !== 'unchanged' && !known.has(key);
+  })];
+  return merged.map((operation, index) => (
+    operation.operation === 'unchanged' ? operation : { ...operation, rank: index + 1 }
+  ));
+}
 import { ApiDeleteError } from '@/api/supplies';
+
+function SortableMagicOperation({
+  operation,
+  children,
+}: {
+  operation: PortionMagicOperation;
+  children: (props: { setNodeRef: (node: HTMLElement | null) => void; style: CSSProperties; attributes: object; listeners: object | undefined }) => ReactNode;
+}) {
+  const sortable = useSortable({ id: operation.operation_id, disabled: operation.operation === 'unchanged' });
+  return <>{children({
+    setNodeRef: sortable.setNodeRef,
+    style: { transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition },
+    attributes: sortable.attributes,
+    listeners: sortable.listeners,
+  })}</>;
+}
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
@@ -941,6 +989,11 @@ export default function IngredientDetailPage() {
   const [magicPreviewToken, setMagicPreviewToken] = useState('');
   const previewMagicWand = usePreviewPortionMagicWand(slug || '');
   const applyMagicWand = useApplyPortionMagicWand(slug || '');
+  const magicSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   // Alias add
   const [showAddAlias, setShowAddAlias] = useState(false);
@@ -990,6 +1043,21 @@ export default function IngredientDetailPage() {
     )));
   };
 
+  const handleMagicDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    setMagicOperations((current) => reorderMagicOperations(current, String(active.id), String(over.id)));
+  };
+
+  const requestMoreMagicSuggestions = () => {
+    previewMagicWand.mutate(undefined, {
+      onSuccess: (preview) => {
+        setMagicPreviewToken(preview.preview_token);
+        setMagicOperations((current) => mergeMagicOperations(current, preview.operations));
+      },
+      onError: (err: Error) => toast.error('Weitere Portionen konnten nicht geladen werden', { description: err.message }),
+    });
+  };
+
   const hasInvalidMagicOperation = magicOperations.some(
     (operation) => operation.operation === 'replace' && !operation.selected && !operation.delete_without_replacement && (!operation.proposed_weight_g || operation.proposed_weight_g <= 0),
   ) || magicOperations.some(
@@ -1002,7 +1070,7 @@ export default function IngredientDetailPage() {
       return;
     }
     applyMagicWand.mutate(
-      { previewToken: magicPreviewToken, operations: magicOperations },
+       { previewToken: magicPreviewToken, operations: magicOperations },
       {
         onSuccess: () => {
           setShowPortionMagicWand(false);
@@ -1625,23 +1693,29 @@ export default function IngredientDetailPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="font-display">Typische Portionen vorschlagen</DialogTitle>
-            <DialogDescription>
+           <DialogDescription>
               Gewichtete Portionen bleiben unverändert. Ungewichtete Portionen werden standardmäßig ersetzt.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            {magicOperations.length === 0 && (
+          <DndContext sensors={magicSensors} collisionDetection={closestCenter} onDragEnd={handleMagicDragEnd}>
+            <SortableContext items={magicOperations.map((operation) => operation.operation_id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {magicOperations.length === 0 && (
               <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
                 Die KI hat keine neuen Portionen vorgeschlagen.
               </p>
             )}
             {magicOperations.map((operation) => (
-              <div key={operation.operation_id} className="rounded-lg border border-border p-3 space-y-2">
+              <SortableMagicOperation key={operation.operation_id} operation={operation}>
+                {({ setNodeRef, style, attributes, listeners }) => (
+                <div ref={setNodeRef} style={style} className="rounded-lg border border-border p-3 space-y-2">
                 <label className="flex items-start gap-3">
+                  <button type="button" className="cursor-grab touch-none text-muted-foreground" aria-label="Portion verschieben" {...attributes} {...listeners}>⠿</button>
                   <input
-                    type="checkbox"
-                    checked={operation.selected}
-                    onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })}
+                     type="checkbox"
+                     checked={operation.selected}
+                     disabled={operation.operation === 'unchanged'}
+                     onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })}
                     className="mt-1"
                   />
                   <span className="flex-1 text-sm">
@@ -1653,6 +1727,17 @@ export default function IngredientDetailPage() {
                 </label>
                 {operation.selected && (
                   <div className="ml-7 space-y-1">
+                    <div className="text-sm font-medium text-primary">
+                      {operation.proposed_weight_g != null ? `Geschätzt: ca. ${operation.proposed_weight_g} g` : 'Gewicht noch offen'}
+                    </div>
+                    {operation.rationale && (
+                      <p className="text-xs text-muted-foreground">{operation.rationale}</p>
+                    )}
+                    {operation.confidence != null && (
+                      <p className="text-xs text-muted-foreground">
+                        Sicherheit: {Math.round(operation.confidence * 100)} %
+                      </p>
+                    )}
                     <Label htmlFor={`magic-weight-${operation.operation_id}`}>Gewicht (g)</Label>
                     <Input
                       id={`magic-weight-${operation.operation_id}`}
@@ -1668,6 +1753,7 @@ export default function IngredientDetailPage() {
                 )}
                 {operation.operation === 'replace' && !operation.selected && (
                   <div className="ml-7 space-y-2">
+                    {operation.rationale && <p className="text-xs text-muted-foreground">{operation.rationale}</p>}
                     <div className="space-y-1">
                       <Label htmlFor={`magic-keep-weight-${operation.operation_id}`}>Oder bestehende Portion behalten mit Gewicht (g)</Label>
                       <Input
@@ -1691,10 +1777,17 @@ export default function IngredientDetailPage() {
                     </label>
                   </div>
                 )}
-              </div>
+                </div>
+                )}
+              </SortableMagicOperation>
             ))}
-          </div>
+              </div>
+            </SortableContext>
+          </DndContext>
           <DialogFooter>
+            <Button type="button" variant="outline" onClick={requestMoreMagicSuggestions} disabled={previewMagicWand.isPending || applyMagicWand.isPending}>
+              {previewMagicWand.isPending ? 'Lädt ...' : 'Weitere Portionen mit KI erzeugen'}
+            </Button>
             <Button variant="outline" onClick={() => setShowPortionMagicWand(false)} disabled={applyMagicWand.isPending}>
               Abbrechen
             </Button>

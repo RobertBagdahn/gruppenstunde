@@ -135,3 +135,123 @@ def test_apply_replaces_unweighted_portion_atomically(client, ingredient, gram_u
     assert source.deleted_at is not None
     replacement = Portion.objects.get(ingredient=ingredient, name="Stück neu")
     assert replacement.weight_g == 150
+
+
+@pytest.mark.django_db
+def test_hotdog_preview_returns_positive_piece_estimate_without_mutation(client, gram_unit):
+    ingredient = make_ingredient(name="Hotdog-Brötchen", slug="hotdog-broetchen")
+    with patch("supply.services.portion_magic_wand.gemini_call") as gemini:
+        gemini.return_value = (
+            _response(
+                {
+                    "suggestions": [
+                        {
+                            "operation": "create",
+                            "name": "Stück",
+                            "quantity": 1,
+                            "measuring_unit_name": "Gramm",
+                            "rank": 1,
+                            "proposed_weight_g": 55,
+                            "confidence": 0.86,
+                            "rationale": "Typisches Gewicht eines normalen Hotdog-Brötchens.",
+                        }
+                    ]
+                }
+            ),
+            "interaction",
+        )
+        response = client.post(
+            f"{BASE}/{ingredient.slug}/portions/magic-wand/preview/", content_type="application/json"
+        )
+    assert response.status_code == 200
+    operation = next(item for item in response.json()["operations"] if item["name"] == "Stück")
+    assert operation["proposed_weight_g"] == 55
+    assert operation["suggestion_provenance"] == "ai_estimate"
+    assert not Portion.objects.filter(ingredient=ingredient).exclude(name="g").exists()
+
+
+@pytest.mark.django_db
+def test_preview_repairs_missing_weight_once(client, ingredient, gram_unit):
+    with patch("supply.services.portion_magic_wand.gemini_call") as gemini:
+        gemini.side_effect = [
+            (
+                _response(
+                    {
+                        "suggestions": [
+                            {
+                                "operation": "create",
+                                "name": "Stück",
+                                "quantity": 1,
+                                "measuring_unit_name": "Gramm",
+                                "rank": 1,
+                                "proposed_weight_g": None,
+                            }
+                        ]
+                    }
+                ),
+                "first",
+            ),
+            (
+                _response(
+                    {
+                        "suggestions": [
+                            {
+                                "operation": "create",
+                                "name": "Stück",
+                                "quantity": 1,
+                                "measuring_unit_name": "Gramm",
+                                "rank": 1,
+                                "proposed_weight_g": 55,
+                                "rationale": "Nachgebesserte Gewichtsschätzung",
+                            }
+                        ]
+                    }
+                ),
+                "repair",
+            ),
+        ]
+        response = client.post(
+            f"{BASE}/{ingredient.slug}/portions/magic-wand/preview/", content_type="application/json"
+        )
+    assert response.status_code == 200
+    operation = next(item for item in response.json()["operations"] if item["name"] == "Stück")
+    assert operation["proposed_weight_g"] == 55
+    assert operation["suggestion_provenance"] == "ai_repaired"
+    assert gemini.call_count == 2
+
+
+@pytest.mark.django_db
+def test_preview_marks_unresolved_weight_after_repair(client, ingredient, gram_unit):
+    unresolved = {
+        "suggestions": [
+            {
+                "operation": "create",
+                "name": "Sonderportion",
+                "quantity": 1,
+                "measuring_unit_name": "Gramm",
+                "rank": 1,
+                "proposed_weight_g": None,
+            }
+        ]
+    }
+    with patch("supply.services.portion_magic_wand.gemini_call") as gemini:
+        gemini.side_effect = [(_response(unresolved), "first"), (_response(unresolved), "repair")]
+        response = client.post(
+            f"{BASE}/{ingredient.slug}/portions/magic-wand/preview/", content_type="application/json"
+        )
+    assert response.status_code == 200
+    operation = next(item for item in response.json()["operations"] if item["name"] == "Sonderportion")
+    assert operation["requires_manual_weight"] is True
+    assert operation["selected"] is True
+    assert gemini.call_count == 2
+
+
+@pytest.mark.django_db
+def test_magic_wand_requires_authentication(ingredient, client):
+    client.logout()
+    with patch("supply.services.portion_magic_wand.gemini_call") as gemini:
+        response = client.post(
+            f"{BASE}/{ingredient.slug}/portions/magic-wand/preview/", content_type="application/json"
+        )
+    assert response.status_code == 403
+    gemini.assert_not_called()

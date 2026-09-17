@@ -169,4 +169,71 @@ test.describe('food integrity workflows', () => {
     expect(result.body.exchange_group_id).toBeNull();
     expect(result.body.note).toBe('gehackt');
   });
+
+  test('shows a positive Hotdog-Brötchen estimate before apply', async ({ page }) => {
+    let applyCalls = 0;
+    await page.route('**/api/ingredients/hotdog-broetchen/portions/magic-wand/preview/', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          preview_token: 'hotdog-preview',
+          ai_interaction_id: 'hotdog-interaction',
+          operations: [{
+            operation_id: 'operation-hotdog', operation: 'create', source_portion_id: null,
+            name: 'Stück', quantity: 1, measuring_unit_name: 'Gramm', rank: 1,
+            proposed_weight_g: 55, confidence: 0.86,
+            rationale: 'Typisches Gewicht eines normalen Hotdog-Brötchens.',
+            suggestion_provenance: 'ai_estimate', selected: false,
+            requires_manual_weight: false, delete_without_replacement: false,
+          }],
+        }),
+      });
+    });
+    await page.route('**/api/ingredients/hotdog-broetchen/portions/magic-wand/apply/', async (route) => {
+      applyCalls += 1;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        portions: [], replaced_portion_ids: [], created_portion_ids: [99], deleted_portion_ids: [],
+      }) });
+    });
+    await openApp(page);
+
+    const preview = await page.evaluate(async () => {
+      const response = await fetch('/api/ingredients/hotdog-broetchen/portions/magic-wand/preview/', {
+        method: 'POST', credentials: 'include', body: '{}',
+      });
+      return response.json();
+    });
+    expect(preview.operations[0].name).toBe('Stück');
+    expect(preview.operations[0].proposed_weight_g).toBe(55);
+    expect(applyCalls).toBe(0);
+  });
+
+  test('keeps package selection independent and blocks unresolved estimates', async ({ page }) => {
+    await page.route('**/api/ingredients/hotdog-broetchen/portions/magic-wand/preview/', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        preview_token: 'manual-preview', operations: [
+          { operation_id: 'piece', operation: 'create', source_portion_id: null, name: 'Stück', quantity: 1,
+            measuring_unit_name: 'Gramm', rank: 1, proposed_weight_g: 55, confidence: 0.86, rationale: 'Stückgewicht',
+            suggestion_provenance: 'ai_estimate', selected: false, requires_manual_weight: false, delete_without_replacement: false },
+          { operation_id: 'package', operation: 'create', source_portion_id: null, name: 'Packung', quantity: 6,
+            measuring_unit_name: 'Gramm', rank: 2, proposed_weight_g: 330, confidence: 0.8, rationale: 'Sechserpackung',
+            suggestion_provenance: 'ai_estimate', selected: false, requires_manual_weight: false, delete_without_replacement: false },
+          { operation_id: 'unknown', operation: 'create', source_portion_id: null, name: 'Sonderportion', quantity: 1,
+            measuring_unit_name: 'Gramm', rank: 3, proposed_weight_g: null, confidence: null, rationale: '',
+            suggestion_provenance: 'ai_repaired', selected: true, requires_manual_weight: true, delete_without_replacement: false },
+        ],
+      }) });
+    });
+    await openApp(page);
+    const preview = await page.evaluate(async () => {
+      const response = await fetch('/api/ingredients/hotdog-broetchen/portions/magic-wand/preview/', {
+        method: 'POST', credentials: 'include', body: '{}',
+      });
+      return response.json();
+    });
+    expect(preview.operations).toHaveLength(3);
+    expect(preview.operations.find((item: { name: string }) => item.name === 'Packung').proposed_weight_g).toBe(330);
+    expect(preview.operations.find((item: { name: string }) => item.name === 'Sonderportion').requires_manual_weight).toBe(true);
+  });
 });

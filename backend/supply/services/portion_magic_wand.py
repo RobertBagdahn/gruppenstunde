@@ -36,6 +36,75 @@ class MagicResponse(BaseModel):
     suggestions: list[MagicSuggestion] = Field(default_factory=list)
 
 
+def _suggestion_prompt(context: dict, *, repair: bool = False) -> str:
+    if repair:
+        guidance = (
+            "Dies ist eine Reparaturanfrage. Die vorherige Antwort hatte keine "
+            "brauchbare positive Gewichtsschaetzung. Liefere mindestens eine "
+            "praktische Portion mit positivem Gesamtgewicht in Gramm. Bei "
+            "Stueckwaren muss mindestens eine Stueck-Portion enthalten sein. "
+            "Nutze null nur fuer wirklich nicht bestimmbare Sonderfaelle."
+        )
+    else:
+        guidance = (
+            "Schaetze fuer jede gewoehnliche neue praktische Portion ein positives "
+            "Gesamtgewicht in Gramm. Bei Stueckwaren muss mindestens eine "
+            "Stueck-Portion vorgeschlagen werden. Fuer ein normales "
+            "Hotdog-Broetchen liegt ein Stueck typischerweise bei etwa 50 bis 60 g; "
+            "passe den Wert nur bei abweichender Produktgroesse an. Wenn eine "
+            "typische Packung sinnvoll ist, gib Stueckzahl und Gesamtgewicht an. "
+            "Nutze null nur fuer wirklich nicht bestimmbare Sonderfaelle."
+        )
+    return (
+        "Schlage vollstaendige, typische Portionen fuer diese Zutat vor. "
+        "Bereits gewichtete Portionen duerfen nicht ersetzt werden. "
+        "Fuer ungewichtete bestehende Portionen nutze operation='replace' und "
+        "source_portion_id. Zusaetzliche sinnvolle Portionen nutze mit "
+        "operation='create'. Namen duerfen keine Ziffern enthalten. "
+        "Gib ausschliesslich strukturiertes JSON zurueck. "
+        + guidance
+        + "\n"
+        + json.dumps(context, ensure_ascii=False, default=str)
+    )
+
+
+def _has_positive_practical_suggestion(response: MagicResponse) -> bool:
+    return any(
+        suggestion.operation in {"replace", "create"}
+        and suggestion.quantity > 0
+        and suggestion.proposed_weight_g is not None
+        and suggestion.proposed_weight_g > 0
+        for suggestion in response.suggestions
+    )
+
+
+def _valid_suggestions(response: MagicResponse) -> list[MagicSuggestion]:
+    from supply.models import MeasuringUnit
+
+    unit_names = {name.casefold() for name in MeasuringUnit.objects.values_list("name", flat=True)}
+    valid = []
+    for suggestion in response.suggestions:
+        if suggestion.operation not in {"replace", "create"}:
+            continue
+        if suggestion.quantity <= 0 or suggestion.measuring_unit_name.casefold() not in unit_names:
+            continue
+        valid.append(suggestion)
+
+    piece_weights = [
+        suggestion.proposed_weight_g
+        for suggestion in valid
+        if suggestion.proposed_weight_g and "stueck" in suggestion.name.casefold()
+    ]
+    if piece_weights:
+        piece_weight = piece_weights[0]
+        for suggestion in valid:
+            if "packung" in suggestion.name.casefold() and suggestion.quantity > 1 and suggestion.proposed_weight_g:
+                expected = piece_weight * suggestion.quantity
+                if abs(suggestion.proposed_weight_g - expected) / expected > 0.3:
+                    suggestion.proposed_weight_g = None
+    return valid
+
+
 def _context(ingredient: Ingredient) -> dict:
     portions = list(ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit"))
     packages = list(ingredient.packages.filter(deleted_at__isnull=True))
@@ -88,27 +157,33 @@ def _token(context: dict) -> str:
 
 def preview_portions(ingredient: Ingredient, *, user) -> dict:
     context = _context(ingredient)
-    prompt = (
-        "Schlage vollständige, typische Portionen für diese Zutat vor. "
-        "Bereits gewichtete Portionen dürfen nicht ersetzt werden. "
-        "Für ungewichtete bestehende Portionen nutze operation='replace' und source_portion_id. "
-        "Zusätzliche sinnvolle Portionen nutze mit operation='create'. "
-        "Jede sinnvolle Portion braucht ein positives Gewicht; wenn es nicht bestimmbar ist, gib null zurück. "
-        "Namen dürfen keine Ziffern enthalten. Gib ausschließlich strukturiertes JSON zurück.\n\n"
-        + json.dumps(context, ensure_ascii=False, default=str)
-    )
     from google.genai import types
 
     response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
-        contents=prompt,
+        contents=_suggestion_prompt(context),
         config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=MagicResponse),
         context="portion_magic_wand",
     )
     if response is None:
         raise GeminiUnavailableError("KI nicht verfügbar")
     parsed = MagicResponse.model_validate_json(response.text)
+    repaired = False
+    if not _has_positive_practical_suggestion(parsed):
+        repaired_response, repaired_interaction_id = gemini_call(
+            user=user,
+            model=GEMINI_MODEL,
+            contents=_suggestion_prompt(context, repair=True),
+            config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=MagicResponse),
+            context="portion_magic_wand_repair",
+        )
+        if repaired_response is not None:
+            parsed = MagicResponse.model_validate_json(repaired_response.text)
+            repaired = True
+            if repaired_interaction_id:
+                interaction_id = repaired_interaction_id
+    valid_suggestions = _valid_suggestions(parsed)
     weighted_ids = {p.id for p in ingredient.portions.filter(deleted_at__isnull=True) if p.weight_g and p.weight_g > 0}
     operations = []
     for portion in ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit"):
@@ -128,10 +203,11 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
                     "selected": False,
                     "requires_manual_weight": False,
                     "delete_without_replacement": False,
+                    "suggestion_provenance": "existing",
                 }
             )
-    for index, suggestion in enumerate(parsed.suggestions):
-        if suggestion.operation not in {"replace", "create"}:
+    for index, suggestion in enumerate(valid_suggestions):
+        if suggestion.operation not in {"replace", "create"} or suggestion.quantity <= 0:
             continue
         if suggestion.source_portion_id in weighted_ids:
             continue
@@ -139,9 +215,10 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
             {
                 "operation_id": f"operation-{index}",
                 **suggestion.model_dump(),
-                "selected": suggestion.operation == "replace",
+                "selected": suggestion.operation == "replace" or suggestion.proposed_weight_g is None,
                 "requires_manual_weight": suggestion.proposed_weight_g is None,
                 "delete_without_replacement": False,
+                "suggestion_provenance": "ai_repaired" if repaired else "ai_estimate",
             }
         )
     return {

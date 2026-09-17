@@ -56,7 +56,7 @@ async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   return schema.parse(data);
 }
 
-async function postJsonRaw<T>(url: string, body: unknown, schema: z.ZodSchema<T>): Promise<T> {
+async function postJsonRaw<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',

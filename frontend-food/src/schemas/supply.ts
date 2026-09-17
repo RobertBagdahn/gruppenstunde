@@ -189,11 +189,12 @@ export const PortionMagicOperationSchema = z.object({
   proposed_weight_g: z.number().positive().nullable(),
   confidence: z.number().min(0).max(1).nullable().optional(),
   rationale: z.string(),
+  suggestion_provenance: z.enum(['ai_estimate', 'ai_repaired', 'existing']).default('ai_estimate'),
   selected: z.boolean(),
   requires_manual_weight: z.boolean(),
   delete_without_replacement: z.boolean(),
 });
-export type PortionMagicOperation = z.infer<typeof PortionMagicOperationSchema>;
+export type PortionMagicOperation = z.output<typeof PortionMagicOperationSchema>;
 
 export const PortionMagicPreviewSchema = z.object({
   preview_token: z.string(),
