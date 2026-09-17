@@ -89,7 +89,7 @@ def test_preview_returns_weighted_rows_unchanged_and_unweighted_replacement(clie
     assert any(item["source_portion_id"] == weighted.id and item["operation"] == "unchanged" for item in operations)
     replacement = next(item for item in operations if item["source_portion_id"] == unweighted.id)
     assert replacement["selected"] is True
-    assert gemini.call_count == 1
+    assert gemini.call_count == 2
 
 
 @pytest.mark.django_db
@@ -166,7 +166,7 @@ def test_hotdog_preview_returns_positive_piece_estimate_without_mutation(client,
     assert response.status_code == 200
     operation = next(item for item in response.json()["operations"] if item["name"] == "Stück")
     assert operation["proposed_weight_g"] == 55
-    assert operation["suggestion_provenance"] == "ai_estimate"
+    assert operation["suggestion_provenance"] == "ai_repaired"
     assert not Portion.objects.filter(ingredient=ingredient).exclude(name="g").exists()
 
 
@@ -255,3 +255,41 @@ def test_magic_wand_requires_authentication(ingredient, client):
         )
     assert response.status_code == 403
     gemini.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_preview_marks_unweighted_portion_for_deletion_when_no_replacement(client, ingredient, gram_unit):
+    source = Portion.objects.create(
+        ingredient=ingredient,
+        name="Stück alt",
+        measuring_unit=gram_unit,
+        quantity=1,
+        weight_g=None,
+        rank=2,
+    )
+    with patch("supply.services.portion_magic_wand.gemini_call") as gemini:
+        gemini.return_value = (
+            _response(
+                {
+                    "suggestions": [
+                        {
+                            "operation": "create",
+                            "name": "Stück",
+                            "quantity": 1,
+                            "measuring_unit_name": "Gramm",
+                            "rank": 1,
+                            "proposed_weight_g": 55,
+                        }
+                    ]
+                }
+            ),
+            "interaction",
+        )
+        response = client.post(
+            f"{BASE}/{ingredient.slug}/portions/magic-wand/preview/", content_type="application/json"
+        )
+    operation = next(
+        item for item in response.json()["operations"] if item["operation_id"] == f"delete-unweighted-{source.id}"
+    )
+    assert operation["delete_without_replacement"] is True
+    assert operation["selected"] is False

@@ -13,11 +13,13 @@ from pydantic import BaseModel, Field
 from core.services.gemini import GeminiUnavailableError, gemini_call
 from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.services.portion_integrity import validate_active_portion_weight
+from supply.services.portion_resolution import resolve_trusted_weight
 
 if TYPE_CHECKING:
     from supply.models import Ingredient
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
+MIN_NEW_SUGGESTIONS = 4
 
 
 class MagicSuggestion(BaseModel):
@@ -40,16 +42,21 @@ def _suggestion_prompt(context: dict, *, repair: bool = False) -> str:
     if repair:
         guidance = (
             "Dies ist eine Reparaturanfrage. Die vorherige Antwort hatte keine "
-            "brauchbare positive Gewichtsschaetzung. Liefere mindestens eine "
-            "praktische Portion mit positivem Gesamtgewicht in Gramm. Bei "
+            "brauchbare positive Gewichtsschaetzung oder zu wenige neue Vorschlaege. "
+            f"Liefere mindestens {MIN_NEW_SUGGESTIONS} neue, unterschiedliche "
+            "praktische Portionen mit positivem Gesamtgewicht in Gramm. Bei "
             "Stueckwaren muss mindestens eine Stueck-Portion enthalten sein. "
+            "Verwende fuer neue Vorschlaege operation='create' und source_portion_id=null; "
+            "verwende operation='replace' nur fuer eine explizit ungewichtete bestehende Portion. "
             "Nutze null nur fuer wirklich nicht bestimmbare Sonderfaelle."
         )
     else:
         guidance = (
-            "Schaetze fuer jede gewoehnliche neue praktische Portion ein positives "
-            "Gesamtgewicht in Gramm. Bei Stueckwaren muss mindestens eine "
-            "Stueck-Portion vorgeschlagen werden. Fuer ein normales "
+            "Liefere 5 bis 7 neue, unterschiedliche praktische Portionsvorschlaege "
+            "und schaetze fuer jeden ein positives Gesamtgewicht in Gramm. "
+            "Bei Stueckwaren muss mindestens eine Stueck-Portion vorgeschlagen werden. Fuer ein normales "
+            "Neue Vorschlaege muessen operation='create' und source_portion_id=null haben; "
+            "bereits gewichtete Portionen duerfen nicht als neue Vorschlaege wiederholt werden. "
             "Hotdog-Broetchen liegt ein Stueck typischerweise bei etwa 50 bis 60 g; "
             "passe den Wert nur bei abweichender Produktgroesse an. Wenn eine "
             "typische Packung sinnvoll ist, gib Stueckzahl und Gesamtgewicht an. "
@@ -103,6 +110,23 @@ def _valid_suggestions(response: MagicResponse) -> list[MagicSuggestion]:
                 if abs(suggestion.proposed_weight_g - expected) / expected > 0.3:
                     suggestion.proposed_weight_g = None
     return valid
+
+
+def _actionable_suggestions(
+    suggestions: list[MagicSuggestion],
+    weighted_ids: set[int],
+) -> list[MagicSuggestion]:
+    return [suggestion for suggestion in suggestions if suggestion.source_portion_id not in weighted_ids]
+
+
+def _has_enough_actionable_suggestions(
+    suggestions: list[MagicSuggestion],
+    weighted_ids: set[int],
+) -> bool:
+    actionable = _actionable_suggestions(suggestions, weighted_ids)
+    return len(actionable) >= MIN_NEW_SUGGESTIONS and all(
+        suggestion.proposed_weight_g is not None and suggestion.proposed_weight_g > 0 for suggestion in actionable
+    )
 
 
 def _context(ingredient: Ingredient) -> dict:
@@ -169,8 +193,12 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
     if response is None:
         raise GeminiUnavailableError("KI nicht verfügbar")
     parsed = MagicResponse.model_validate_json(response.text)
+    weighted_ids = {
+        p.id for p in ingredient.portions.filter(deleted_at__isnull=True) if resolve_trusted_weight(p) is not None
+    }
+    valid_suggestions = _valid_suggestions(parsed)
     repaired = False
-    if not _has_positive_practical_suggestion(parsed):
+    if not _has_enough_actionable_suggestions(valid_suggestions, weighted_ids):
         repaired_response, repaired_interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
@@ -183,11 +211,15 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
             repaired = True
             if repaired_interaction_id:
                 interaction_id = repaired_interaction_id
-    valid_suggestions = _valid_suggestions(parsed)
-    weighted_ids = {p.id for p in ingredient.portions.filter(deleted_at__isnull=True) if p.weight_g and p.weight_g > 0}
+            valid_suggestions = _valid_suggestions(parsed)
     operations = []
+    replacement_source_ids = {
+        suggestion.source_portion_id
+        for suggestion in valid_suggestions
+        if suggestion.operation == "replace" and suggestion.source_portion_id is not None
+    }
     for portion in ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit"):
-        if portion.weight_g and portion.weight_g > 0:
+        if resolve_trusted_weight(portion) is not None:
             operations.append(
                 {
                     "operation_id": f"existing-{portion.id}",
@@ -203,6 +235,25 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
                     "selected": False,
                     "requires_manual_weight": False,
                     "delete_without_replacement": False,
+                    "suggestion_provenance": "existing",
+                }
+            )
+        elif portion.id not in replacement_source_ids:
+            operations.append(
+                {
+                    "operation_id": f"delete-unweighted-{portion.id}",
+                    "operation": "replace",
+                    "source_portion_id": portion.id,
+                    "name": portion.name,
+                    "quantity": portion.quantity,
+                    "measuring_unit_name": portion.measuring_unit.name if portion.measuring_unit else "Gramm",
+                    "rank": portion.rank,
+                    "proposed_weight_g": None,
+                    "confidence": None,
+                    "rationale": "Aktive Portion ohne positives Grammgewicht wird entfernt.",
+                    "selected": False,
+                    "requires_manual_weight": False,
+                    "delete_without_replacement": True,
                     "suggestion_provenance": "existing",
                 }
             )
@@ -248,27 +299,30 @@ def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
         if operation.get("operation") == "unchanged":
             continue
         source = active.get(operation.get("source_portion_id"))
-        if not operation.get("selected") and source is None:
+        if source is None and not operation.get("selected"):
             continue
         weight = operation.get("proposed_weight_g")
         if operation.get("delete_without_replacement"):
-            weight = None
-        elif weight is None or weight <= 0:
+            if resolve_trusted_weight(source) is not None:
+                raise ValueError("Eine gewichtete Portion darf nicht ohne Ersatz gelöscht werden.")
+            source.deleted_at = timezone.now()
+            source.save(update_fields=["deleted_at"])
+            deleted.append(source.id)
+            names.discard(source.name.casefold())
+            continue
+        if source is not None and not operation.get("selected") and (weight is None or weight <= 0):
             raise ValueError(f"Portion '{operation.get('name', '')}' benötigt ein positives Gewicht.")
         if not operation.get("selected") and source is not None:
-            if operation.get("delete_without_replacement"):
-                source.deleted_at = timezone.now()
-                source.save(update_fields=["deleted_at"])
-                deleted.append(source.id)
-                continue
             source.weight_g = weight
             source.weight_status = PortionWeightStatus.CONFIRMED
             source.weight_source = PortionWeightSource.MANUAL
             validate_active_portion_weight(source)
             source.save(update_fields=["weight_g", "weight_status", "weight_source", "updated_at"])
             continue
+        if weight is None or weight <= 0:
+            raise ValueError(f"Portion '{operation.get('name', '')}' benötigt ein positives Gewicht.")
         if source is not None:
-            if source.weight_g and source.weight_g > 0:
+            if resolve_trusted_weight(source) is not None:
                 raise ValueError("Eine bereits gewichtete Portion darf nicht ersetzt werden.")
             source.deleted_at = timezone.now()
             source.save(update_fields=["deleted_at"])
