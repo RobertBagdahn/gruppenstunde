@@ -20,6 +20,7 @@ class PortionMagicOperationOut(Schema):
     selected: bool = False
     requires_manual_weight: bool = False
     delete_without_replacement: bool = False
+    validation_message: str | None = None
 
 
 class PortionMagicPreviewOut(Schema):

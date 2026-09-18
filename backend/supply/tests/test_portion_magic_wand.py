@@ -89,7 +89,7 @@ def test_preview_returns_weighted_rows_unchanged_and_unweighted_replacement(clie
     assert any(item["source_portion_id"] == weighted.id and item["operation"] == "unchanged" for item in operations)
     replacement = next(item for item in operations if item["source_portion_id"] == unweighted.id)
     assert replacement["selected"] is True
-    assert gemini.call_count == 2
+    assert gemini.call_count == 1
 
 
 @pytest.mark.django_db
@@ -166,7 +166,7 @@ def test_hotdog_preview_returns_positive_piece_estimate_without_mutation(client,
     assert response.status_code == 200
     operation = next(item for item in response.json()["operations"] if item["name"] == "Stück")
     assert operation["proposed_weight_g"] == 55
-    assert operation["suggestion_provenance"] == "ai_repaired"
+    assert operation["suggestion_provenance"] == "ai_estimate"
     assert not Portion.objects.filter(ingredient=ingredient).exclude(name="g").exists()
 
 
@@ -244,6 +244,84 @@ def test_preview_marks_unresolved_weight_after_repair(client, ingredient, gram_u
     assert operation["requires_manual_weight"] is True
     assert operation["selected"] is True
     assert gemini.call_count == 2
+
+
+@pytest.mark.django_db
+def test_preview_normalizes_piece_alias_to_gram_basis_without_retry(client, ingredient, gram_unit):
+    with patch("supply.services.portion_magic_wand.gemini_call") as gemini:
+        gemini.return_value = (
+            _response(
+                {
+                    "suggestions": [
+                        {
+                            "operation": "create",
+                            "name": "Stück",
+                            "quantity": 1,
+                            "measuring_unit_name": "Stk.",
+                            "rank": 1,
+                            "proposed_weight_g": 150,
+                        },
+                        {
+                            "operation": "create",
+                            "name": "Stück",
+                            "quantity": 1,
+                            "measuring_unit_name": "Gramm",
+                            "rank": 1,
+                            "proposed_weight_g": 150,
+                        },
+                        {
+                            "operation": "create",
+                            "name": "Unbekannt",
+                            "quantity": 1,
+                            "measuring_unit_name": "Messbecher",
+                            "rank": 2,
+                            "proposed_weight_g": 200,
+                        },
+                    ]
+                }
+            ),
+            "interaction",
+        )
+        response = client.post(
+            f"{BASE}/{ingredient.slug}/portions/magic-wand/preview/", content_type="application/json"
+        )
+
+    assert response.status_code == 200
+    operations = response.json()["operations"]
+    suggestions = [item for item in operations if item["operation"] == "create"]
+    assert len(suggestions) == 1
+    assert suggestions[0]["measuring_unit_name"] == "Gramm"
+    assert gemini.call_count == 1
+
+
+@pytest.mark.django_db
+def test_piece_unit_migration_preserves_weight_and_portion_reference(ingredient, gram_unit):
+    import importlib
+
+    normalize_piece_units = importlib.import_module(
+        "supply.migrations.0013_normalize_piece_portion_units"
+    ).normalize_piece_units
+
+    legacy = MeasuringUnit.objects.create(name="Packung", unit="g", quantity=1000)
+    portion = Portion.objects.create(
+        ingredient=ingredient,
+        name="Packung",
+        measuring_unit=legacy,
+        quantity=1,
+        weight_g=1000,
+        rank=1,
+    )
+
+    class HistoricalApps:
+        @staticmethod
+        def get_model(app_label, model_name):
+            return {"MeasuringUnit": MeasuringUnit, "Portion": Portion}[model_name]
+
+    normalize_piece_units(HistoricalApps(), None)
+    portion.refresh_from_db()
+    assert portion.measuring_unit.name == "Gramm"
+    assert portion.weight_g == 1000
+    assert not MeasuringUnit.objects.filter(pk=legacy.id).exists()
 
 
 @pytest.mark.django_db

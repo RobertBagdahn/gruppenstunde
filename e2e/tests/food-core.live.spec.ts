@@ -76,6 +76,57 @@ test.describe('Food core CRUD', () => {
     await expect(foodPage.getByText('E2E Packung', { exact: true })).toBeVisible();
   });
 
+  test('previews and applies a useful AI portion suggestion', async ({ foodPage, resources, api, uniqueName }) => {
+    const name = uniqueName('E2E KI-Portion');
+    const csrf = await api.get('/api/auth/csrf/').then((response) => response.json()).then((body) => body.csrfToken as string);
+    const createdResponse = await api.post('/api/ingredients/', {
+      headers: { 'X-CSRFToken': csrf },
+      data: { name, description: 'KI-Portionsfixture' },
+    });
+    expect(createdResponse.ok()).toBeTruthy();
+    const created = await createdResponse.json() as { slug: string };
+    resources.track({ kind: 'ingredient', slug: created.slug });
+
+    const previewOperation = {
+      operation_id: 'operation-e2e-piece',
+      operation: 'create',
+      source_portion_id: null,
+      name: 'Stück',
+      quantity: 1,
+      measuring_unit_name: 'Gramm',
+      rank: 1,
+      proposed_weight_g: 150,
+      confidence: 0.9,
+      rationale: 'Typisches Stückgewicht',
+      suggestion_provenance: 'ai_estimate',
+      selected: false,
+      requires_manual_weight: false,
+      delete_without_replacement: false,
+      validation_message: null,
+    };
+    await foodPage.route(`**/api/ingredients/${created.slug}/portions/magic-wand/preview/`, (route) => route.fulfill({
+      json: { preview_token: 'e2e-preview-token', ai_interaction_id: null, operations: [previewOperation] },
+    }));
+    await foodPage.route(`**/api/ingredients/${created.slug}/portions/magic-wand/apply/`, async (route) => {
+      expect(route.request().postDataJSON()).toMatchObject({
+        preview_token: 'e2e-preview-token',
+        operations: [expect.objectContaining({ name: 'Stück', proposed_weight_g: 150 })],
+      });
+      await route.fulfill({ json: { portions: [], replaced_portion_ids: [], created_portion_ids: [999], deleted_portion_ids: [] } });
+    });
+
+    await foodPage.goto(`/ingredients/${created.slug}`);
+    await foodPage.getByRole('button', { name: 'Zauberstab' }).click();
+    await expect(foodPage.getByRole('dialog')).toBeVisible();
+    await expect(foodPage.getByText('Stück', { exact: true })).toBeVisible();
+    await expect(foodPage.getByText('Neue Grammzahl: 150 g', { exact: true })).toBeVisible();
+    const suggestionCheckbox = foodPage.getByRole('checkbox', { name: 'Stück übernehmen' });
+    await suggestionCheckbox.check();
+    await expect(suggestionCheckbox).toBeChecked();
+    await foodPage.getByRole('button', { name: 'Auswahl übernehmen' }).click();
+    await expect(foodPage.getByText('Portionen wurden aktualisiert')).toBeVisible();
+  });
+
   test('creates, updates, reloads, and deletes a shopping list', async ({ foodPage, resources, uniqueName }) => {
     const name = uniqueName('E2E Einkauf');
 

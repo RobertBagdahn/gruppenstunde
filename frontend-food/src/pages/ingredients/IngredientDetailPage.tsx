@@ -79,6 +79,18 @@ export function mergeMagicOperations(
     operation.operation === 'unchanged' ? operation : { ...operation, rank: index + 1 }
   ));
 }
+
+export function isMagicOperationInvalid(operation: PortionMagicOperation): boolean {
+  if (operation.operation === 'unchanged') return false;
+  if (operation.delete_without_replacement) return false;
+  if (!operation.selected && operation.operation === 'create') return false;
+  return !operation.proposed_weight_g || operation.proposed_weight_g <= 0;
+}
+
+export function formatMagicWeight(weight: number | null): string {
+  if (weight == null) return 'Gewicht noch offen';
+  return `Neue Grammzahl: ${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(weight)} g`;
+}
 import { ApiDeleteError } from '@/api/supplies';
 
 function SortableMagicOperation({
@@ -1058,11 +1070,13 @@ export default function IngredientDetailPage() {
     });
   };
 
-  const hasInvalidMagicOperation = magicOperations.some(
-    (operation) => operation.operation === 'replace' && !operation.selected && !operation.delete_without_replacement && (!operation.proposed_weight_g || operation.proposed_weight_g <= 0),
-  ) || magicOperations.some(
-    (operation) => operation.selected && (!operation.proposed_weight_g || operation.proposed_weight_g <= 0),
-  );
+  const hasInvalidMagicOperation = magicOperations.some(isMagicOperationInvalid);
+
+  const hasPartialMagicResult = magicOperations.filter(
+    (operation) => operation.operation === 'create' || operation.operation === 'replace',
+  ).length > 0 && magicOperations.filter(
+    (operation) => operation.operation === 'create',
+  ).length < 4;
 
   const applyMagicPreview = () => {
     if (hasInvalidMagicOperation) {
@@ -1693,9 +1707,14 @@ export default function IngredientDetailPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="font-display">Typische Portionen vorschlagen</DialogTitle>
-           <DialogDescription>
+            <DialogDescription>
               Gewichtete Portionen bleiben unverändert. Ungewichtete Portionen werden standardmäßig ersetzt.
             </DialogDescription>
+            {hasPartialMagicResult && (
+              <p className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                Es wurden passende Vorschläge gefunden. Die KI kann je nach Zutat unterschiedlich viele sinnvolle Portionen liefern.
+              </p>
+            )}
           </DialogHeader>
           <DndContext sensors={magicSensors} collisionDetection={closestCenter} onDragEnd={handleMagicDragEnd}>
             <SortableContext items={magicOperations.map((operation) => operation.operation_id)} strategy={verticalListSortingStrategy}>
@@ -1709,27 +1728,34 @@ export default function IngredientDetailPage() {
               <SortableMagicOperation key={operation.operation_id} operation={operation}>
                 {({ setNodeRef, style, attributes, listeners }) => (
                 <div ref={setNodeRef} style={style} className="rounded-lg border border-border p-3 space-y-2">
-                <label className="flex items-start gap-3">
+                <div className="flex items-start gap-3">
                   <button type="button" className="cursor-grab touch-none text-muted-foreground" aria-label="Portion verschieben" {...attributes} {...listeners}>⠿</button>
                   <input
-                     type="checkbox"
-                     checked={operation.selected}
-                     disabled={operation.operation === 'unchanged'}
-                     onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })}
-                    className="mt-1"
-                  />
-                  <span className="flex-1 text-sm">
-                    <span className="font-medium">{operation.name}</span>
-                    <span className="block text-muted-foreground">
-                      {operation.operation === 'replace' ? 'Ersetzt eine ungewichtete Portion' : operation.operation === 'unchanged' ? 'Bleibt unverändert' : 'Neue typische Portion'} · {operation.measuring_unit_name}
-                    </span>
-                  </span>
-                </label>
+                      id={`magic-select-${operation.operation_id}`}
+                      type="checkbox"
+                      checked={operation.selected}
+                      disabled={operation.operation === 'unchanged'}
+                      aria-label={`${operation.name} übernehmen`}
+                      onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })}
+                     className="mt-1"
+                   />
+                   <label htmlFor={`magic-select-${operation.operation_id}`} className="flex-1 cursor-pointer text-sm">
+                     <span className="font-medium">{operation.name}</span>
+                     <span className="block text-muted-foreground">
+                       {operation.operation === 'replace' ? 'Ersetzt eine ungewichtete Portion' : operation.operation === 'unchanged' ? 'Bleibt unverändert' : 'Neue typische Portion'} · {operation.measuring_unit_name}
+                     </span>
+                    {operation.validation_message && (
+                      <span className="block text-destructive">{operation.validation_message}</span>
+                    )}
+                   </label>
+                </div>
+                {operation.operation !== 'unchanged' && (
+                  <div className="ml-7 text-sm font-medium text-primary">
+                    {formatMagicWeight(operation.proposed_weight_g)}
+                  </div>
+                )}
                 {operation.selected && (
                   <div className="ml-7 space-y-1">
-                    <div className="text-sm font-medium text-primary">
-                      {operation.proposed_weight_g != null ? `Geschätzt: ca. ${operation.proposed_weight_g} g` : 'Gewicht noch offen'}
-                    </div>
                     {operation.rationale && (
                       <p className="text-xs text-muted-foreground">{operation.rationale}</p>
                     )}

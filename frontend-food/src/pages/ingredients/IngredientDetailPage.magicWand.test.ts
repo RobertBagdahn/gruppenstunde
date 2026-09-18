@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeMagicOperations, reorderMagicOperations } from './IngredientDetailPage';
+import { formatMagicWeight, isMagicOperationInvalid, mergeMagicOperations, reorderMagicOperations } from './IngredientDetailPage';
 import type { PortionMagicOperation } from '@/schemas/supply';
 
 function operation(id: string, name: string, operationType: PortionMagicOperation['operation'], rank: number): PortionMagicOperation {
@@ -43,5 +43,33 @@ describe('portion magic-wand ordering', () => {
 
     expect(result.map((item) => item.name)).toEqual(['Stück', 'Packung']);
     expect(result[1].rank).toBe(2);
+  });
+
+  it('keeps incomplete suggestions available for manual weight entry', () => {
+    const incomplete = {
+      ...operation('manual', 'Große Portion', 'create', 1),
+      proposed_weight_g: null,
+      requires_manual_weight: true,
+      selected: true,
+      validation_message: 'Bitte ein positives Gewicht eintragen.',
+    };
+
+    expect(incomplete.requires_manual_weight).toBe(true);
+    expect(incomplete.proposed_weight_g).toBeNull();
+    expect(incomplete.validation_message).toContain('positives Gewicht');
+  });
+
+  it('formats the newly proposed gram value for the dialog', () => {
+    expect(formatMagicWeight(150)).toBe('Neue Grammzahl: 150 g');
+    expect(formatMagicWeight(62.5)).toBe('Neue Grammzahl: 62,5 g');
+    expect(formatMagicWeight(null)).toBe('Gewicht noch offen');
+  });
+
+  it('only blocks operations that would actually be applied without a weight', () => {
+    expect(isMagicOperationInvalid({ ...operation('create', 'Stück', 'create', 1), selected: false })).toBe(false);
+    expect(isMagicOperationInvalid({ ...operation('create', 'Stück', 'create', 1), selected: true, proposed_weight_g: null })).toBe(true);
+    expect(isMagicOperationInvalid({ ...operation('replace', 'Stück', 'replace', 1), selected: false, proposed_weight_g: null })).toBe(true);
+    expect(isMagicOperationInvalid({ ...operation('replace', 'Stück', 'replace', 1), selected: false, proposed_weight_g: null, delete_without_replacement: true })).toBe(false);
+    expect(isMagicOperationInvalid(operation('existing', '100 g', 'unchanged', 1))).toBe(false);
   });
 });

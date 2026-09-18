@@ -1559,17 +1559,10 @@ class Command(BaseCommand):
             ("Kilogramm", "1000 Gramm", 1000.0, "g"),
             ("Milliliter", "Volumeneinheit", 1.0, "ml"),
             ("Liter", "1000 Milliliter", 1000.0, "ml"),
-            ("Stück", "Einzelnes Stück", 1.0, "g"),
             ("Teelöffel", "ca. 5ml / 5g", 5.0, "g"),
             ("Esslöffel", "ca. 15ml / 10-15g", 10.0, "g"),
             ("Tasse", "ca. 250ml / 125-200g", 150.0, "g"),
             ("Prise", "Kleine Menge", 0.3, "g"),
-            ("Dose", "Standarddose 400g", 400.0, "g"),
-            ("Becher", "Standardbecher 150-200g", 150.0, "g"),
-            ("Scheibe", "Eine Scheibe", 25.0, "g"),
-            ("Portion", "Eine Portion", 100.0, "g"),
-            ("Glas", "Ein Glas ca. 200ml", 200.0, "ml"),
-            ("Bund", "Ein Bund Kräuter", 30.0, "g"),
         ]
 
         unit_map = {}

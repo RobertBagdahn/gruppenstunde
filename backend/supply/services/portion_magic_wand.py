@@ -14,9 +14,10 @@ from core.services.gemini import GeminiUnavailableError, gemini_call
 from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.services.portion_integrity import validate_active_portion_weight
 from supply.services.portion_resolution import resolve_trusted_weight
+from supply.services.unit_resolution import resolve_canonical_unit
 
 if TYPE_CHECKING:
-    from supply.models import Ingredient
+    from supply.models import Ingredient, MeasuringUnit
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 MIN_NEW_SUGGESTIONS = 4
@@ -36,6 +37,22 @@ class MagicSuggestion(BaseModel):
 
 class MagicResponse(BaseModel):
     suggestions: list[MagicSuggestion] = Field(default_factory=list)
+
+
+PIECE_UNIT_ALIASES = {"stk", "stk.", "stück", "stueck", "zehe", "zehen"}
+PACKAGE_UNIT_ALIASES = {"pck", "pck.", "pkg", "pkg.", "packung", "packungen"}
+
+
+def _resolve_suggestion_unit(name: str) -> MeasuringUnit | None:
+    """Resolve AI units while preserving named-piece calculation semantics."""
+    unit = resolve_canonical_unit(name)
+    if unit is not None:
+        return unit
+    if name.strip().casefold() in PIECE_UNIT_ALIASES | PACKAGE_UNIT_ALIASES:
+        from supply.models import MeasuringUnit
+
+        return MeasuringUnit.objects.filter(name__iexact="Gramm").first()
+    return None
 
 
 def _suggestion_prompt(context: dict, *, repair: bool = False) -> str:
@@ -86,15 +103,19 @@ def _has_positive_practical_suggestion(response: MagicResponse) -> bool:
 
 
 def _valid_suggestions(response: MagicResponse) -> list[MagicSuggestion]:
-    from supply.models import MeasuringUnit
-
-    unit_names = {name.casefold() for name in MeasuringUnit.objects.values_list("name", flat=True)}
     valid = []
+    seen: set[tuple[str, str, int | None]] = set()
     for suggestion in response.suggestions:
         if suggestion.operation not in {"replace", "create"}:
             continue
-        if suggestion.quantity <= 0 or suggestion.measuring_unit_name.casefold() not in unit_names:
+        unit = _resolve_suggestion_unit(suggestion.measuring_unit_name)
+        if suggestion.quantity <= 0 or unit is None:
             continue
+        suggestion.measuring_unit_name = unit.name
+        key = (suggestion.operation, suggestion.name.strip().casefold(), suggestion.source_portion_id)
+        if key in seen:
+            continue
+        seen.add(key)
         valid.append(suggestion)
 
     piece_weights = [
@@ -124,7 +145,7 @@ def _has_enough_actionable_suggestions(
     weighted_ids: set[int],
 ) -> bool:
     actionable = _actionable_suggestions(suggestions, weighted_ids)
-    return len(actionable) >= MIN_NEW_SUGGESTIONS and all(
+    return bool(actionable) and all(
         suggestion.proposed_weight_g is not None and suggestion.proposed_weight_g > 0 for suggestion in actionable
     )
 
@@ -270,6 +291,9 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
                 "requires_manual_weight": suggestion.proposed_weight_g is None,
                 "delete_without_replacement": False,
                 "suggestion_provenance": "ai_repaired" if repaired else "ai_estimate",
+                "validation_message": (
+                    "Bitte ein positives Gewicht eintragen." if suggestion.proposed_weight_g is None else None
+                ),
             }
         )
     return {
@@ -289,7 +313,7 @@ def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
         .filter(deleted_at__isnull=True)
         .select_related("measuring_unit")
     }
-    from supply.models import MeasuringUnit, Portion
+    from supply.models import Portion
 
     replaced: list[int] = []
     created: list[int] = []
@@ -334,7 +358,7 @@ def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
         name = operation["name"].strip()
         if not name or name.casefold() in names:
             raise ValueError(f"Portionsname '{name}' existiert bereits.")
-        unit = MeasuringUnit.objects.filter(name__iexact=operation["measuring_unit_name"].strip()).first()
+        unit = _resolve_suggestion_unit(operation["measuring_unit_name"])
         if unit is None:
             raise ValueError(f"Maßeinheit '{operation['measuring_unit_name']}' ist unbekannt.")
         portion = Portion(

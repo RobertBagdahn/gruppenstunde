@@ -193,6 +193,7 @@ export const PortionMagicOperationSchema = z.object({
   selected: z.boolean(),
   requires_manual_weight: z.boolean(),
   delete_without_replacement: z.boolean(),
+  validation_message: z.string().nullable().optional(),
 });
 export type PortionMagicOperation = z.output<typeof PortionMagicOperationSchema>;
 

@@ -42,6 +42,22 @@ describe('portion magic-wand contracts', () => {
     expect(parsed.operations[0].proposed_weight_g).toBeNull();
   });
 
+  it('preserves validation metadata for incomplete suggestions', () => {
+    const parsed = PortionMagicPreviewSchema.parse({
+      preview_token: 'preview-token',
+      operations: [{
+        ...replacement,
+        proposed_weight_g: null,
+        selected: true,
+        requires_manual_weight: true,
+        validation_message: 'Bitte ein positives Gewicht eintragen.',
+      }],
+    });
+
+    expect(parsed.operations[0].validation_message).toBe('Bitte ein positives Gewicht eintragen.');
+    expect(parsed.operations[0].requires_manual_weight).toBe(true);
+  });
+
   it('parses an apply result with created and deleted portion ids', () => {
     const parsed = PortionMagicApplySchema.parse({
       portions: [],
