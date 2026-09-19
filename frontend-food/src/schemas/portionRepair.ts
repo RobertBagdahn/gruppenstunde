@@ -45,6 +45,7 @@ export const PortionRepairFindingSchema = z.object({
   affected_recipe_ids: z.array(z.number()),
   applied_at: z.string().nullable(),
   rejected_at: z.string().nullable(),
+  approved_at: z.string().nullable(),
   created_at: z.string(),
   repair_path: z.enum(['automatic', 'review', 'delete']).default('review'),
   suggested_weight_g: z.number().nullable().default(null),
@@ -74,3 +75,28 @@ export const PortionRepairRejectResponseSchema = z.object({
   status: z.string(),
 });
 export type PortionRepairRejectResponse = z.infer<typeof PortionRepairRejectResponseSchema>;
+
+export const PortionRepairProcessResponseSchema = z.object({
+  processed: z.number(),
+  ready: z.number(),
+  pending_review: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
+});
+export type PortionRepairProcessResponse = z.infer<typeof PortionRepairProcessResponseSchema>;
+
+export const PortionRepairApproveResponseSchema = z.object({
+  finding_id: z.number(),
+  status: z.string(),
+});
+
+export const PortionRepairBulkApplyResponseSchema = z.object({
+  applied: z.array(z.number()),
+  blocked: z.array(z.number()),
+  failed: z.array(z.number()),
+});
+
+export const PortionRepairBulkApproveResponseSchema = z.object({
+  approved: z.array(z.number()),
+  blocked: z.array(z.number()),
+});

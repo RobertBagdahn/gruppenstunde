@@ -10,6 +10,7 @@ become READY for automatic application; everything below stays PENDING_REVIEW.
 from __future__ import annotations
 
 import logging
+import re
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -25,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 PROMPT_VERSION = "1"
+_DIGIT_PATTERN = re.compile(r"\d")
+_GRAM_UNITS = {"g", "gram", "gramm"}
+_PIECE_UNITS = {"stk", "stk.", "stück", "stueck"}
+_AMBIGUOUS_PIECE_NAMES = {"bund", "bünde", "handvoll", "packung", "dose", "glas", "becher", "beutel"}
 
 
 class GeminiRepairClassification(StrEnum):
@@ -64,6 +69,35 @@ class GeminiPortionRepairProposal(BaseModel):
         default="",
         description="Kurze Begründung auf Deutsch, warum die Portion verdächtig ist und was korrigiert wird.",
     )
+
+
+def _is_safe_for_automatic_application(finding: PortionRepairFinding, proposal: GeminiPortionRepairProposal) -> bool:
+    """Reject plausible-but-ambiguous AI repairs before marking them READY."""
+    if proposal.classification == GeminiRepairClassification.NO_ACTION:
+        return True
+    if not proposal.proposed_name.strip() or _DIGIT_PATTERN.search(proposal.proposed_name):
+        return False
+    if proposal.proposed_quantity <= 0 or proposal.proposed_weight_g is None or proposal.proposed_weight_g <= 0:
+        return False
+
+    unit = proposal.proposed_unit_name.strip().casefold()
+    if proposal.classification == GeminiRepairClassification.GRAM:
+        if unit not in _GRAM_UNITS or proposal.proposed_name.strip().casefold() not in _GRAM_UNITS:
+            return False
+        return abs(proposal.proposed_weight_g - 1.0) <= 1e-6
+
+    if proposal.classification != GeminiRepairClassification.PIECE or unit not in _PIECE_UNITS:
+        return False
+    if proposal.proposed_name.strip().casefold() in _AMBIGUOUS_PIECE_NAMES:
+        return False
+
+    # Existing positive weights are not changed automatically merely because
+    # the model prefers another average. Missing/placeholder weights are the
+    # cases where an automatic estimate is justified.
+    current_weight = (finding.before_snapshot or {}).get("weight_g")
+    if current_weight is not None and current_weight > 1:
+        return abs(float(current_weight) - proposal.proposed_weight_g) <= 1e-6
+    return True
 
 
 def build_repair_prompt(finding: PortionRepairFinding) -> str:
@@ -128,7 +162,7 @@ def evaluate_finding(finding: PortionRepairFinding, *, min_confidence: float | N
 
     if proposal.classification == GeminiRepairClassification.NO_ACTION:
         status = PortionRepairStatus.SKIPPED
-    elif proposal.confidence >= threshold:
+    elif proposal.confidence >= threshold and _is_safe_for_automatic_application(finding, proposal):
         status = PortionRepairStatus.READY
     else:
         status = PortionRepairStatus.PENDING_REVIEW

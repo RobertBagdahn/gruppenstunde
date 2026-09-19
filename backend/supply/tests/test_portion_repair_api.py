@@ -137,12 +137,26 @@ class TestList:
 
 
 class TestApply:
-    def test_apply_pending_review_finding(self, admin_client, finding, portion):
+    def test_pending_review_requires_explicit_approval(self, admin_client, finding):
+        resp = admin_client.post(f"{BASE}/{finding.id}/apply/")
+        assert resp.status_code == 409
+
+    def test_ready_finding_requires_approval(self, admin_client, finding):
+        finding.status = PortionRepairStatus.READY
+        finding.save(update_fields=["status"])
+        resp = admin_client.post(f"{BASE}/{finding.id}/apply/")
+        assert resp.status_code == 409
+
+    def test_ready_finding_can_be_approved_and_applied(self, admin_client, finding, portion):
+        finding.status = PortionRepairStatus.READY
+        finding.save(update_fields=["status"])
+
+        approve = admin_client.post(f"{BASE}/{finding.id}/approve/")
+        assert approve.status_code == 200
+
         resp = admin_client.post(f"{BASE}/{finding.id}/apply/")
         assert resp.status_code == 200
-        data = resp.json()
-        assert data["applied"] is True
-        assert data["applied_portion_id"] == portion.id
+        assert resp.json()["applied"] is True
 
         finding.refresh_from_db()
         portion.refresh_from_db()
@@ -154,6 +168,87 @@ class TestApply:
         finding.save(update_fields=["status"])
         resp = admin_client.post(f"{BASE}/{finding.id}/apply/")
         assert resp.status_code == 409
+
+    def test_bulk_apply_only_applies_approved_findings(self, admin_client, finding, portion):
+        finding.status = PortionRepairStatus.READY
+        finding.save(update_fields=["status"])
+        admin_client.post(f"{BASE}/{finding.id}/approve/")
+
+        response = admin_client.post(
+            f"{BASE}/apply-approved/",
+            data={"finding_ids": [finding.id, 99999]},
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        assert response.json()["applied"] == [finding.id]
+        assert response.json()["blocked"] == []
+        assert response.json()["failed"] == []
+        portion.refresh_from_db()
+        assert portion.weight_g == 60.0
+
+    def test_bulk_approve_only_approves_ready_findings(self, admin_client, finding):
+        finding.status = PortionRepairStatus.READY
+        finding.save(update_fields=["status"])
+        response = admin_client.post(
+            f"{BASE}/approve-selected/",
+            data={"finding_ids": [finding.id, 99999]},
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        assert response.json()["approved"] == [finding.id]
+        assert response.json()["blocked"] == []
+        finding.refresh_from_db()
+        assert finding.approved_by_id is not None
+
+
+class TestProcess:
+    def test_scan_requires_staff(self, user_client):
+        response = user_client.post(
+            f"{BASE}/scan/",
+            data={"limit": 10},
+            content_type="application/json",
+        )
+        assert response.status_code == 403
+
+    def test_scan_returns_bounded_summary(self, admin_client, portion):
+        response = admin_client.post(
+            f"{BASE}/scan/",
+            data={"limit": 10},
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        assert response.json()["processed"] == 1
+        assert response.json()["ready"] == 0
+
+    def test_evaluate_persists_result(self, admin_client, finding, monkeypatch):
+        finding.status = PortionRepairStatus.CANDIDATE
+        finding.save(update_fields=["status"])
+
+        def fake_evaluate(candidate, *, min_confidence=None):
+            candidate.status = PortionRepairStatus.READY
+            candidate.confidence = 0.95
+            candidate.ai_proposal = {"classification": "piece"}
+            candidate.save(update_fields=["status", "confidence", "ai_proposal"])
+            return candidate
+
+        monkeypatch.setattr("supply.services.portion_repair_ai.evaluate_finding", fake_evaluate)
+        response = admin_client.post(
+            f"{BASE}/evaluate/",
+            data={"limit": 10},
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        assert response.json()["processed"] == 1
+        assert response.json()["ready"] == 1
+        finding.refresh_from_db()
+        assert finding.status == PortionRepairStatus.READY
+
+    def test_approve_requires_ready_status(self, admin_client, finding):
+        response = admin_client.post(f"{BASE}/{finding.id}/approve/")
+        assert response.status_code == 409
 
 
 class TestReject:

@@ -4,12 +4,12 @@ Workflow:
   1. Deterministic scan for suspicious portions (piece names, 1-g
      placeholders, missing weights, unit mismatches, implausible rank-1).
   2. Gemini evaluation with structured proposals and confidence.
-  3. Optional application of high-confidence (READY) findings.
+  3. Optional application of explicitly approved findings.
 
 Flags:
   --dry-run        Report only; write nothing to the database.
-  --apply          Apply READY findings (replacement portions, RecipeItem
-                   rebinds, cache recalculation).
+   --apply          Apply explicitly approved findings only. Findings must
+                    have been approved in the admin workflow first.
   --min-confidence Override the high-confidence threshold (default 0.90).
   --limit          Only scan/evaluate the first N candidates.
 """
@@ -33,7 +33,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--apply",
             action="store_true",
-            help="Apply READY (high-confidence) findings after evaluation.",
+            help="Apply explicitly approved findings after evaluation.",
         )
         parser.add_argument(
             "--min-confidence",
@@ -106,9 +106,14 @@ class Command(BaseCommand):
         if apply_flag:
             from supply.services.portion_repair import apply_finding
 
-            self.stdout.write("Step 3/3: Applying READY findings...")
+            self.stdout.write("Step 3/3: Applying explicitly approved findings...")
             applied = 0
-            for finding in PortionRepairFinding.objects.filter(status=PortionRepairStatus.READY):
+            approved = PortionRepairFinding.objects.filter(
+                status=PortionRepairStatus.READY,
+                approved_by__isnull=False,
+                approved_at__isnull=False,
+            )
+            for finding in approved:
                 result = apply_finding(finding)
                 if result["applied"]:
                     applied += 1
@@ -116,7 +121,7 @@ class Command(BaseCommand):
                         f"    Applied finding {finding.id}: portion {finding.portion_id} "
                         f"→ {result['applied_portion_id']}, moved {len(result['moved_recipe_item_ids'])} item(s)"
                     )
-            self.stdout.write(self.style.SUCCESS(f"  {applied} finding(s) applied"))
+            self.stdout.write(self.style.SUCCESS(f"  {applied} approved finding(s) applied"))
         else:
             self.stdout.write("Step 3/3: skipped (use --apply to apply READY findings)")
 

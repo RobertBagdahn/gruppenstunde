@@ -55,6 +55,7 @@ _PACKAGE_PATTERN = re.compile(
 )
 
 _GRAM_PATTERN = re.compile(r"\b(gramm|gram|g)\b", re.IGNORECASE)
+_EXPLICIT_WEIGHT_PATTERN = re.compile(r"(?:\(|\s|^)\d+(?:[.,]\d+)?\s*(?:g|gramm|gram)\b", re.IGNORECASE)
 
 
 def _is_piece_like(name: str) -> bool:
@@ -71,6 +72,11 @@ def _is_gram_like(name: str, unit: str) -> bool:
     return bool(_GRAM_PATTERN.search(name or ""))
 
 
+def _has_explicit_weight(name: str) -> bool:
+    """Return whether a legacy portion name states its own gram weight."""
+    return bool(_EXPLICIT_WEIGHT_PATTERN.search(name or ""))
+
+
 def _detect_reason(portion: Portion) -> str | None:
     """Return the detection reason for a suspicious portion, or None."""
     name = portion.name or ""
@@ -82,9 +88,11 @@ def _detect_reason(portion: Portion) -> str | None:
     if (_is_piece_like(name) or _is_package_like(name)) and (weight is None or weight == 1):
         return PortionRepairDetectionReason.PIECE_NAME_ONE_GRAM
 
-    # A piece-like name carried on a gram unit is contradictory. Package names
-    # with gram units are legitimate ("Packung" of 200 g) and stay unflagged.
-    if _is_piece_like(name) and unit == "g":
+    # A bare piece-like name carried on a gram unit is contradictory. Legacy
+    # names such as "1 Stück (150g)" already state the intended weight and
+    # should not be treated as broken weight data solely because their unit is
+    # still Gramm; those names can be normalized separately.
+    if _is_piece_like(name) and unit == "g" and not _has_explicit_weight(name):
         return PortionRepairDetectionReason.PIECE_NAME_GRAM_UNIT
 
     if weight == 1 and portion.rank == 1 and not _is_gram_like(name, unit):
@@ -382,6 +390,20 @@ def apply_finding(
     proposal = finding.ai_proposal or {}
     if not proposal:
         raise ValueError(f"Finding {finding.id} has no AI proposal — cannot apply.")
+
+    from supply.services.portion_repair_ai import GeminiPortionRepairProposal, _is_safe_for_automatic_application
+
+    parsed_proposal = GeminiPortionRepairProposal.model_validate(proposal)
+    if not _is_safe_for_automatic_application(finding, parsed_proposal):
+        finding.status = PortionRepairStatus.PENDING_REVIEW
+        finding.save(update_fields=["status", "updated_at"])
+        return {
+            "applied": False,
+            "finding_id": finding.id,
+            "applied_portion_id": finding.applied_portion_id,
+            "moved_recipe_item_ids": finding.moved_recipe_item_ids or [],
+            "affected_recipe_ids": finding.affected_recipe_ids or [],
+        }
 
     proposed_weight = proposal.get("proposed_weight_g")
     if finding.portion.weight_status == "ai_proposed" or proposed_weight is None or proposed_weight <= 0:

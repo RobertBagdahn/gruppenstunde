@@ -119,10 +119,6 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
 
       <div>
         <label className="block text-sm font-medium mb-1.5">Zutaten *</label>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          Gesamtmengen für <strong>{inputPortions} {inputPortions === 1 ? 'Person' : 'Personen'}</strong>.
-          Beim Speichern werden sie auf eine Portion normiert.
-        </div>
         <div className="bg-card rounded-xl border">
           <InlineIngredientEditor
             ref={editorRef}

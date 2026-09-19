@@ -45,6 +45,15 @@ class PortionRepairFinding(models.Model):
         default=PortionRepairStatus.CANDIDATE,
         verbose_name=_("Status"),
     )
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Freigegeben am"))
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="portion_repair_findings_approved",
+        verbose_name=_("Freigegeben von"),
+    )
 
     # --- Before values (snapshot at scan time) ------------------------------
     before_snapshot = models.JSONField(default=dict, verbose_name=_("Vorher-Werte"))

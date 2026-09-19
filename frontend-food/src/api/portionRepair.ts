@@ -10,6 +10,11 @@ import {
   PortionRepairRejectResponseSchema,
   type PortionRepairApplyResponse,
   type PortionRepairRejectResponse,
+  PortionRepairProcessResponseSchema,
+  PortionRepairApproveResponseSchema,
+  PortionRepairBulkApplyResponseSchema,
+  PortionRepairBulkApproveResponseSchema,
+  type PortionRepairProcessResponse,
 } from '@/schemas/portionRepair';
 
 const BASE = `${API_BASE_URL}/api/admin/data-quality/portion-repair`;
@@ -28,11 +33,15 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json();
 }
 
-async function postJson<T>(url: string): Promise<T> {
+async function postJson<T>(url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'X-CSRFToken': getCsrfToken() },
+    headers: {
+      'X-CSRFToken': getCsrfToken(),
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -84,5 +93,64 @@ export function usePortionRepairReject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portion-repair-findings'] });
     },
+  });
+}
+
+export function usePortionRepairScan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (limit: number): Promise<PortionRepairProcessResponse> => {
+      const data = await postJson(`${BASE}/scan/`, { limit });
+      return PortionRepairProcessResponseSchema.parse(data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['portion-repair-findings'] }),
+  });
+}
+
+export function usePortionRepairEvaluate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (limit: number): Promise<PortionRepairProcessResponse> => {
+      const data = await postJson(`${BASE}/evaluate/`, { limit });
+      return PortionRepairProcessResponseSchema.parse(data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['portion-repair-findings'] }),
+  });
+}
+
+export function usePortionRepairApprove() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (findingId: number) => {
+      const data = await postJson(`${BASE}/${findingId}/approve/`);
+      return PortionRepairApproveResponseSchema.parse(data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['portion-repair-findings'] }),
+  });
+}
+
+export function usePortionRepairApplyApproved() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (findingIds: number[]) => {
+      const data = await postJson(`${BASE}/apply-approved/`, { finding_ids: findingIds });
+      return PortionRepairBulkApplyResponseSchema.parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portion-repair-findings'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient'] });
+    },
+  });
+}
+
+export function usePortionRepairApproveSelected() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (findingIds: number[]) => {
+      const data = await postJson(`${BASE}/approve-selected/`, { finding_ids: findingIds });
+      return PortionRepairBulkApproveResponseSchema.parse(data);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['portion-repair-findings'] }),
   });
 }

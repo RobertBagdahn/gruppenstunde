@@ -39,6 +39,7 @@ const mockFindings = [
     affected_recipe_ids: [],
     applied_at: null,
     rejected_at: null,
+    approved_at: null,
     created_at: '2026-09-15T10:00:00',
   },
   {
@@ -76,6 +77,7 @@ const mockFindings = [
     affected_recipe_ids: [],
     applied_at: null,
     rejected_at: null,
+    approved_at: null,
     created_at: '2026-09-15T10:01:00',
   },
   {
@@ -113,17 +115,10 @@ const mockFindings = [
     affected_recipe_ids: [7],
     applied_at: '2026-09-15T11:00:00',
     rejected_at: null,
+    approved_at: '2026-09-15T10:30:00',
     created_at: '2026-09-15T10:02:00',
   },
 ];
-
-const mockApply = vi.fn().mockResolvedValue({
-  applied: true,
-  finding_id: 1,
-  applied_portion_id: 14,
-  moved_recipe_item_ids: [201, 202, 203],
-  affected_recipe_ids: [5],
-});
 
 const mockReject = vi.fn().mockResolvedValue({
   finding_id: 1,
@@ -142,14 +137,15 @@ vi.mock('@/api/portionRepair', () => ({
     isLoading: false,
     error: null,
   }),
-  usePortionRepairApply: () => ({
-    mutateAsync: mockApply,
-    isPending: false,
-  }),
   usePortionRepairReject: () => ({
     mutateAsync: mockReject,
     isPending: false,
   }),
+  usePortionRepairScan: () => ({ mutate: vi.fn(), isPending: false }),
+  usePortionRepairEvaluate: () => ({ mutate: vi.fn(), isPending: false }),
+  usePortionRepairApprove: () => ({ mutate: vi.fn(), isPending: false }),
+  usePortionRepairApproveSelected: () => ({ mutate: vi.fn(), isPending: false }),
+  usePortionRepairApplyApproved: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 function renderWithClient(ui: React.ReactElement) {
@@ -168,18 +164,14 @@ describe('PortionRepairList', () => {
     expect(screen.getByText('Käse')).toBeInTheDocument();
     expect(screen.getByText(/3 Rezept-Zutat\(en\)/)).toBeInTheDocument();
     expect(screen.getByText(/1 Zutat\(en\) umgestellt/)).toBeInTheDocument();
-    expect(screen.getAllByText('Anwenden').length).toBe(2);
+    expect(screen.getByText('Freigeben')).toBeInTheDocument();
   });
 
-  it('applies a finding after confirmation', async () => {
+  it('does not offer direct application before approval', () => {
     renderWithClient(<PortionRepairList />);
 
-    fireEvent.click(screen.getAllByText('Anwenden')[0]);
-    fireEvent.click(screen.getByText('Ja, anwenden'));
-
-    await waitFor(() => {
-      expect(mockApply).toHaveBeenCalledWith(1);
-    });
+    expect(screen.queryByText('Anwenden')).not.toBeInTheDocument();
+    expect(screen.getByText('Freigeben')).toBeInTheDocument();
   });
 
   it('rejects a finding after confirmation', async () => {
@@ -198,5 +190,12 @@ describe('PortionRepairList', () => {
 
     const rejectButtons = screen.getAllByText('Ablehnen');
     expect(rejectButtons.length).toBe(2);
+  });
+
+  it('shows the visible-ready selection control', () => {
+    renderWithClient(<PortionRepairList />);
+
+    expect(screen.getByText('Alle Bereiten auswählen')).toBeInTheDocument();
+    expect(screen.getByText('Auswahl freigeben (0)')).toBeInTheDocument();
   });
 });

@@ -100,6 +100,18 @@ def test_piece_name_with_gram_unit_flagged(ingredient, gram_unit):
 
 
 @pytest.mark.django_db
+def test_piece_name_with_explicit_weight_is_not_flagged(ingredient, gram_unit):
+    portion = make_portion(ingredient, gram_unit, name="1 Stück (150g)", weight_g=150.0)
+    assert _detect_reason(portion) is None
+
+
+@pytest.mark.django_db
+def test_handful_name_with_explicit_weight_is_not_flagged(ingredient, gram_unit):
+    portion = make_portion(ingredient, gram_unit, name="1 Handvoll (50g)", weight_g=50.0)
+    assert _detect_reason(portion) is None
+
+
+@pytest.mark.django_db
 def test_package_name_with_gram_unit_not_flagged(ingredient, gram_unit):
     portion = make_portion(ingredient, gram_unit, name="Packung", weight_g=200.0)
     assert _detect_reason(portion) is None
@@ -297,6 +309,75 @@ def test_evaluate_custom_threshold(ingredient, gram_unit, fake_gemini_response):
     finding.refresh_from_db()
     assert finding.status == PortionRepairStatus.READY
     assert finding.threshold == 0.75
+
+
+@pytest.mark.django_db
+def test_inconsistent_piece_unit_stays_pending_review(ingredient, gram_unit, fake_gemini_response):
+    from supply.services.portion_repair_ai import evaluate_finding
+
+    portion = make_portion(ingredient, gram_unit, name="Scheibe", weight_g=30.0)
+    finding = _candidate_finding(portion)
+    fake_gemini_response(
+        {
+            "classification": "piece",
+            "proposed_name": "Scheibe",
+            "proposed_weight_g": 30.0,
+            "proposed_quantity": 1.0,
+            "proposed_unit_name": "Gramm",
+            "confidence": 0.98,
+            "rationale": "Das Gewicht wirkt plausibel.",
+        }
+    )
+
+    evaluate_finding(finding)
+    finding.refresh_from_db()
+    assert finding.status == PortionRepairStatus.PENDING_REVIEW
+
+
+@pytest.mark.django_db
+def test_existing_positive_weight_is_not_reestimated_automatically(ingredient, gram_unit, fake_gemini_response):
+    from supply.services.portion_repair_ai import evaluate_finding
+
+    portion = make_portion(ingredient, gram_unit, name="Stück", weight_g=150.0)
+    finding = _candidate_finding(portion)
+    fake_gemini_response(
+        {
+            "classification": "piece",
+            "proposed_name": "Stück",
+            "proposed_weight_g": 120.0,
+            "proposed_quantity": 1.0,
+            "proposed_unit_name": "Stück",
+            "confidence": 0.98,
+            "rationale": "Durchschnittsschätzung.",
+        }
+    )
+
+    evaluate_finding(finding)
+    finding.refresh_from_db()
+    assert finding.status == PortionRepairStatus.PENDING_REVIEW
+
+
+@pytest.mark.django_db
+def test_ambiguous_piece_name_stays_pending_review(ingredient, gram_unit, fake_gemini_response):
+    from supply.services.portion_repair_ai import evaluate_finding
+
+    portion = make_portion(ingredient, gram_unit, name="Handvoll", weight_g=1.0)
+    finding = _candidate_finding(portion)
+    fake_gemini_response(
+        {
+            "classification": "piece",
+            "proposed_name": "Handvoll",
+            "proposed_weight_g": 30.0,
+            "proposed_quantity": 1.0,
+            "proposed_unit_name": "Stück",
+            "confidence": 0.95,
+            "rationale": "Durchschnittsschätzung.",
+        }
+    )
+
+    evaluate_finding(finding)
+    finding.refresh_from_db()
+    assert finding.status == PortionRepairStatus.PENDING_REVIEW
 
 
 @pytest.mark.django_db
@@ -522,6 +603,20 @@ def test_apply_untrusted_piece_weight_stays_pending_review(ingredient, gram_unit
         weight_source="ai",
     )
     finding = _ready_finding(portion, recipe_item_ids=[])
+
+    result = apply_finding(finding)
+
+    finding.refresh_from_db()
+    assert result["applied"] is False
+    assert finding.status == PortionRepairStatus.PENDING_REVIEW
+
+
+@pytest.mark.django_db
+def test_apply_rechecks_inconsistent_ready_proposal(ingredient, gram_unit):
+    portion = make_portion(ingredient, gram_unit, name="Scheibe", weight_g=30.0)
+    finding = _ready_finding(portion, proposed_weight_g=30.0)
+    finding.ai_proposal["proposed_unit_name"] = "Gramm"
+    finding.save(update_fields=["ai_proposal"])
 
     result = apply_finding(finding)
 

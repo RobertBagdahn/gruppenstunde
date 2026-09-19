@@ -28,6 +28,7 @@ class PortionRepairFindingOut(Schema):
     affected_recipe_ids: list[int]
     applied_at: str | None
     rejected_at: str | None
+    approved_at: str | None
     created_at: str
     repair_path: str = "review"
     suggested_weight_g: float | None = None
@@ -58,3 +59,43 @@ class PortionRepairRejectOut(Schema):
 
     finding_id: int
     status: str
+
+
+class PortionRepairProcessIn(Schema):
+    """Controls a bounded scan or evaluation run from the admin UI."""
+
+    limit: int = 20
+
+
+class PortionRepairProcessOut(Schema):
+    """Summary of a scan or AI evaluation run."""
+
+    processed: int
+    ready: int
+    pending_review: int
+    skipped: int
+    failed: int
+
+
+class PortionRepairApproveOut(Schema):
+    finding_id: int
+    status: str
+
+
+class PortionRepairBulkApproveIn(Schema):
+    finding_ids: list[int]
+
+
+class PortionRepairBulkApproveOut(Schema):
+    approved: list[int]
+    blocked: list[int]
+
+
+class PortionRepairBulkApplyIn(Schema):
+    finding_ids: list[int]
+
+
+class PortionRepairBulkApplyOut(Schema):
+    applied: list[int]
+    blocked: list[int]
+    failed: list[int]
