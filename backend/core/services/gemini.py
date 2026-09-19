@@ -5,6 +5,7 @@ All Gemini calls across the application MUST go through gemini_call() or
 gemini_image_call(). Direct genai.Client usage is not permitted elsewhere.
 """
 
+import json
 import logging
 import time
 import uuid
@@ -28,6 +29,7 @@ WINDOW_SECONDS = 900  # 15 minutes
 CACHE_KEY = "gemini_global_calls"
 DEFAULT_TEXT_MODEL = "gemini-3.5-flash-lite"
 FLEX_SERVICE_TIER = "flex"
+STRUCTURED_MAX_ATTEMPTS = 2
 
 EMBEDDING_LIMIT = 1000
 EMBEDDING_WINDOW_SECONDS = 300  # 5 minutes
@@ -333,6 +335,8 @@ def _update_interaction(
     tokens: dict | None = None,
     cost_eur: str | None = None,
     pricing_model: str = "",
+    structured_attempts: int | None = None,
+    structured_validation_error: str | None = None,
 ) -> None:
     """Update an existing AiInteraction record after completion."""
     if interaction is None:
@@ -350,6 +354,10 @@ def _update_interaction(
         update_kwargs["cost_eur"] = cost_eur
     if pricing_model:
         update_kwargs["pricing_model"] = pricing_model
+    if structured_attempts is not None:
+        update_kwargs["structured_attempts"] = structured_attempts
+    if structured_validation_error is not None:
+        update_kwargs["structured_validation_error"] = structured_validation_error[:2000]
     AiInteraction.objects.filter(id=interaction.id).update(**update_kwargs)
 
 
@@ -405,6 +413,37 @@ def _execute_gemini_call(
             pricing_model=model,
         )
         _handle_gemini_exception(exc, context)
+
+
+def _structured_schema(config):
+    """Return the Pydantic schema configured for a structured response, if any."""
+    return getattr(config, "response_schema", None) if config is not None else None
+
+
+def _validate_structured_response(response, config) -> None:
+    """Reject empty or schema-invalid structured responses before returning them."""
+    schema = _structured_schema(config)
+    if schema is None:
+        return
+    text = (response.text or "").strip() if response is not None else ""
+    if not text:
+        raise ValueError("structured response was empty")
+    if hasattr(schema, "model_validate_json"):
+        schema.model_validate_json(text)
+    else:
+        json.loads(text)
+
+
+def _structured_retry_contents(contents: str | list, error: Exception) -> str:
+    """Ask Gemini to repair only the structured output, not to invent new context."""
+    detail = str(error).strip()[:1000]
+    return (
+        f"{contents}\n\n"
+        "KORREKTUR: Deine vorherige Antwort war leer oder entsprach nicht dem vorgegebenen JSON-Schema. "
+        "Antworte jetzt ausschließlich mit einem vollständigen gültigen JSON-Objekt oder JSON-Array, "
+        "ohne Markdown, Kommentare oder zusätzliche Erklärungen. "
+        f"Validierungsfehler: {detail}"
+    )
 
 
 def gemini_call(
@@ -466,15 +505,40 @@ def gemini_call(
     else:
         config = types.GenerateContentConfig(http_options=http_options)
 
-    return _execute_gemini_call(
-        client=client,
-        model=model,
-        contents=contents,
-        config=config,
-        interaction=interaction,
-        interaction_id=interaction_id,
-        context=context,
-    )
+    structured_schema = _structured_schema(config)
+    current_contents = contents
+    last_error: Exception | None = None
+    max_attempts = STRUCTURED_MAX_ATTEMPTS if structured_schema is not None else 1
+    for attempt in range(max_attempts):
+        response, returned_interaction_id = _execute_gemini_call(
+            client=client,
+            model=model,
+            contents=current_contents,
+            config=config,
+            interaction=interaction,
+            interaction_id=interaction_id,
+            context=context,
+        )
+        if structured_schema is None:
+            return response, returned_interaction_id
+        try:
+            _validate_structured_response(response, config)
+            if structured_schema is not None:
+                _update_interaction(interaction, structured_attempts=attempt + 1)
+            return response, returned_interaction_id
+        except Exception as exc:
+            last_error = exc
+            _update_interaction(
+                interaction,
+                success=False,
+                error_code="structured_response_invalid",
+                response_text=(response.text or "") if response is not None else "",
+                structured_attempts=attempt + 1,
+                structured_validation_error=str(exc),
+            )
+            if attempt + 1 < STRUCTURED_MAX_ATTEMPTS:
+                current_contents = _structured_retry_contents(contents, exc)
+    raise GeminiInvalidResponseError("Die KI konnte keine gültige strukturierte Antwort liefern.") from last_error
 
 
 def _map_exception_to_error_code(exc: Exception) -> str:

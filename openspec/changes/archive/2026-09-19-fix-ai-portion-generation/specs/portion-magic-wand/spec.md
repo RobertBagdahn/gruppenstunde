@@ -20,3 +20,20 @@ The AI MAY return additional typical portions. Each new portion SHALL be indepen
 - **WHEN** the AI proposes new `Stück` and `Packung` portions with valid weights
 - **THEN** the dialog SHALL render two independent selectable suggestions with canonical unit labels
 - **THEN** applying the preview SHALL create only the selected suggestions
+
+### Requirement: Portions and packages are presented as separate operation groups
+The shared magic-wand dialog SHALL show portion operations and package operations in separate groups while using one preview token and one atomic apply action. Package operations SHALL be persisted as `Package` records, never as `Portion` records.
+
+#### Scenario: AI suggests Stück and Packung
+- **WHEN** the preview contains a `Stück` operation and a `package` operation
+- **THEN** the dialog SHALL render `Stück` under `Portionen`
+- **THEN** the dialog SHALL render the package under `Packungen`
+- **THEN** applying the selected operations SHALL create the correct model type for each operation
+
+### Requirement: Apply rejects invalid operations atomically
+The apply endpoint SHALL reject missing or foreign source IDs, duplicate packages, stale preview tokens and invalid weights with a client error. No portion or package change SHALL remain after rejection.
+
+#### Scenario: Selected operation references no source
+- **WHEN** a delete or replacement operation references a missing source portion
+- **THEN** the endpoint SHALL return HTTP 422
+- **THEN** no operation in the request SHALL be persisted

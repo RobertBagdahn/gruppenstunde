@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.cache import cache
 from ninja.errors import HttpError
+from pydantic import BaseModel, Field
 
 from core.services.gemini import (
     CACHE_KEY,
@@ -148,6 +149,100 @@ class TestErrorHandling:
             gemini_call(user=user, model="test", contents="hello")
         assert exc_info.value.status_code == 503
         assert "invalid provider configuration" in str(exc_info.value)
+
+    @patch("core.services.gemini._get_client")
+    @pytest.mark.django_db
+    def test_structured_response_retries_after_invalid_json(self, mock_get_client, user):
+        from google.genai import types
+
+        class Extraction(BaseModel):
+            name: str
+
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        invalid = MagicMock(text="not-json", usage_metadata=None)
+        valid = MagicMock(text='{"name":"Apfel"}', usage_metadata=None)
+        mock_client.models.generate_content.side_effect = [invalid, valid]
+
+        response, interaction_id = gemini_call(
+            user=user,
+            model="test",
+            contents="Extrahiere eine Zutat.",
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=Extraction,
+            ),
+        )
+
+        assert response.text == '{"name":"Apfel"}'
+        assert mock_client.models.generate_content.call_count == 2
+        retry_prompt = mock_client.models.generate_content.call_args_list[1].kwargs["contents"]
+        assert "KORREKTUR" in retry_prompt
+        from content.models import AiInteraction
+
+        interaction = AiInteraction.objects.get(id=interaction_id)
+        assert interaction.structured_attempts == 2
+        assert interaction.structured_validation_error
+
+    @patch("core.services.gemini._get_client")
+    @pytest.mark.django_db
+    def test_structured_response_rejects_two_invalid_attempts(self, mock_get_client, user):
+        from google.genai import types
+
+        class Extraction(BaseModel):
+            name: str
+
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.models.generate_content.side_effect = [
+            MagicMock(text="", usage_metadata=None),
+            MagicMock(text='{"wrong":true}', usage_metadata=None),
+        ]
+
+        with pytest.raises(HttpError) as exc_info:
+            gemini_call(
+                user=user,
+                model="test",
+                contents="Extrahiere eine Zutat.",
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=Extraction,
+                ),
+            )
+
+        assert exc_info.value.status_code == 502
+        assert mock_client.models.generate_content.call_count == 2
+
+    @pytest.mark.parametrize("first_text", ["", "not-json", '{"wrong":true}'])
+    @patch("core.services.gemini._get_client")
+    @pytest.mark.django_db
+    def test_structured_response_retries_empty_malformed_and_schema_invalid_output(
+        self, mock_get_client, user, first_text
+    ):
+        from google.genai import types
+
+        class Extraction(BaseModel):
+            name: str = Field(min_length=1)
+
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.models.generate_content.side_effect = [
+            MagicMock(text=first_text, usage_metadata=None),
+            MagicMock(text='{"name":"Karotte"}', usage_metadata=None),
+        ]
+
+        response, _ = gemini_call(
+            user=user,
+            model="test",
+            contents="Extrahiere eine Zutat.",
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=Extraction,
+            ),
+        )
+
+        assert response.text == '{"name":"Karotte"}'
+        assert mock_client.models.generate_content.call_count == 2
 
 
 class TestImageCall:

@@ -22,6 +22,8 @@ class AiInteraction(models.Model):
     duration_ms = models.IntegerField(null=True, blank=True)
     success = models.BooleanField(default=True)
     error_code = models.CharField(max_length=50, blank=True, default="")
+    structured_attempts = models.PositiveSmallIntegerField(default=1)
+    structured_validation_error = models.TextField(blank=True, default="")
     prompt_tokens = models.IntegerField(null=True, blank=True)
     completion_tokens = models.IntegerField(null=True, blank=True)
     total_tokens = models.IntegerField(null=True, blank=True)

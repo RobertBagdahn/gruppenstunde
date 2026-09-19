@@ -20,12 +20,17 @@ The Food ingredient detail page SHALL provide exactly one portions magic-wand ac
 - **THEN** no AI request SHALL be made
 
 ### Requirement: The preview includes complete contextual suggestions
-The preview service SHALL provide the AI with the available ingredient name, description, aliases, current portions, packages, nutrition, categories, physical properties and bounded recipe-usage context. The response SHALL identify existing sources and new proposed portions separately.
+The preview service SHALL provide the AI with the available ingredient name, description, aliases, current portions, packages, nutrition, categories, physical properties and bounded recipe-usage context. The response SHALL identify existing sources and new proposed portions separately. The service SHALL normalize accepted unit aliases before returning operations and SHALL preserve valid partial results instead of requiring an arbitrary minimum count.
 
 #### Scenario: Ingredient with existing data is analyzed
 - **WHEN** the editor requests a preview for an ingredient with portions, packages and recipe usages
 - **THEN** the AI request SHALL include those relevant context fields
 - **THEN** the response SHALL contain structured operations with names, quantities, measuring units and proposed positive weights
+
+#### Scenario: Only a small number of valid suggestions is returned
+- **WHEN** the AI returns fewer than four distinct but complete suggestions
+- **THEN** the preview SHALL return those valid suggestions
+- **THEN** it SHALL not replace them with an empty result solely because the count is below four
 
 ### Requirement: Weighted portions are protected
 The wand SHALL exclude active portions with a positive weight from replacement and SHALL leave them unchanged during apply.
@@ -43,6 +48,15 @@ The AI MAY return additional typical portions. Each new portion SHALL be indepen
 - **THEN** the dialog SHALL render two independent selectable suggestions
 - **THEN** applying the preview SHALL create only the selected suggestions
 
+### Requirement: Portions and packages are presented as separate operation groups
+The shared magic-wand dialog SHALL show portion operations and package operations in separate groups while using one preview token and one atomic apply action. Package operations SHALL be persisted as `Package` records, never as `Portion` records.
+
+#### Scenario: AI suggests Stück and Packung
+- **WHEN** the preview contains a `Stück` operation and a `package` operation
+- **THEN** the dialog SHALL render `Stück` under `Portionen`
+- **THEN** the dialog SHALL render the package under `Packungen`
+- **THEN** applying the selected operations SHALL create the correct model type for each operation
+
 ### Requirement: Missing AI weights require manual input
 Every portion selected for creation or replacement SHALL have a positive weight. If the AI does not provide a usable weight, the dialog SHALL provide a manual positive-weight field and SHALL block apply until it is valid.
 
@@ -52,7 +66,7 @@ Every portion selected for creation or replacement SHALL have a positive weight.
 - **THEN** the apply action SHALL remain blocked until the entered weight is greater than zero
 
 ### Requirement: Applying a preview replaces selected incomplete rows atomically
-The apply endpoint SHALL revalidate permissions and current data, soft-delete selected unweighted source portions and create complete replacements/new portions in one transaction. A failed validation SHALL roll back the entire operation.
+The apply endpoint SHALL revalidate permissions and current data, soft-delete selected unweighted source portions and create complete replacements/new portions in one transaction. It SHALL reject missing or foreign source IDs, duplicate packages, stale preview tokens and invalid weights with a client error. A failed validation SHALL roll back the entire operation.
 
 #### Scenario: Confirmed replacement is applied
 - **WHEN** an editor confirms a preview replacing an unweighted `Stück` portion with `weight_g=150`
@@ -64,6 +78,11 @@ The apply endpoint SHALL revalidate permissions and current data, soft-delete se
 - **WHEN** a selected source portion receives a weight after preview but before apply
 - **THEN** the apply endpoint SHALL return a conflict error
 - **THEN** no selected source SHALL be deleted and no replacement SHALL be created
+
+#### Scenario: Selected operation references no source
+- **WHEN** a delete or replacement operation references a missing source portion
+- **THEN** the endpoint SHALL return HTTP 422
+- **THEN** no operation in the request SHALL be persisted
 
 ### Requirement: Unselected incomplete rows cannot remain active silently
 If an unweighted existing portion is deselected, the preview SHALL require either a positive manual weight for that portion or an explicit delete-without-replacement choice.

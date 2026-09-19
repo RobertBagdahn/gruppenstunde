@@ -4,17 +4,31 @@ Usage:
     uv run python manage.py batch_generate_default_portions [--limit N] [--dry-run]
 """
 
-import json
 import time
-from typing import Any
 
 from django.core.management.base import BaseCommand
+from google.genai import types
+from pydantic import BaseModel, Field
 
 from core.services.gemini import GeminiUnavailableError, gemini_call
 from supply.models import Ingredient, MeasuringUnit, Portion
 
 BATCH_SIZE = 10
 GEMINI_MODEL = "gemini-3.1-flash-lite"
+
+
+class BatchPortionSuggestion(BaseModel):
+    name: str
+    weight_g: float = Field(gt=0)
+    quantity: float = 1.0
+    measuring_unit_name: str
+    rank: int = 1
+    portion_type: str = "rezeptportion"
+
+
+class BatchPortionSuggestions(BaseModel):
+    suggestions: list[BatchPortionSuggestion] = Field(min_length=1)
+
 
 SYSTEM_PROMPT = """Du bist ein Experte für Lebensmittelportionen und deutsche Küche.
 
@@ -55,14 +69,14 @@ Beispiele:
 - Fleisch (pro Person): name="Portion", weight_g=150, measuring_unit_name="Gramm"
 - Wurst/Aufschnitt: name="Scheibe", weight_g=15, measuring_unit_name="Gramm"
 
-Antworte NUR mit einem JSON-Array. Keine Erklärung, kein Markdown."""
+    Antworte NUR mit einem JSON-Objekt {{"suggestions": [...]}}. Keine Erklärung, kein Markdown."""
 
 USER_PROMPT_TEMPLATE = """Gib für jede dieser Zutaten eine typische Rezeptportion (pro Person) zurück:
 
 {ingredient_list}
 
-Antworte als JSON-Array:
-[{{"name": "...", "weight_g": ..., "quantity": 1.0, "measuring_unit_name": "...", "rank": 1, "portion_type": "rezeptportion"}}, ...]"""
+Antworte als JSON-Objekt:
+{{"suggestions": [{{"name": "...", "weight_g": ..., "quantity": 1.0, "measuring_unit_name": "...", "rank": 1, "portion_type": "rezeptportion"}}, ...]}}"""
 
 
 class Command(BaseCommand):
@@ -145,6 +159,9 @@ class Command(BaseCommand):
                     bypass_limits=True,
                     is_background=True,
                     context="batch_generate_default_portions",
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json", response_schema=BatchPortionSuggestions
+                    ),
                 )
                 elapsed = time.time() - t0
                 total_time += elapsed
@@ -161,12 +178,10 @@ class Command(BaseCommand):
                     text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
                     text = text.strip()
 
-                suggestions: list[dict[str, Any]] = json.loads(text)
-
-                if not isinstance(suggestions, list):
-                    self.stdout.write(f" FEHLER (kein Array) ({elapsed:.1f}s)")
-                    failed += len(batch)
-                    continue
+                suggestions = [
+                    suggestion.model_dump()
+                    for suggestion in BatchPortionSuggestions.model_validate_json(text).suggestions
+                ]
 
                 # Map suggestions back to ingredients (maintain order)
                 for i, suggestion in enumerate(suggestions):

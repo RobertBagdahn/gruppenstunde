@@ -1,10 +1,10 @@
 """Recipe step AI service for KI-powered step generation and ingredient assignment."""
 
-import json
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser
 from ninja.errors import HttpError
+from pydantic import BaseModel, Field
 
 from core.services.gemini import GeminiUnavailableError, gemini_call
 from recipe.models import Recipe
@@ -14,6 +14,46 @@ logger = logging.getLogger(__name__)
 # Gemini model to use for recipe steps
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 MAX_TOKENS = 2000
+
+
+class StepIngredientOutput(BaseModel):
+    recipe_item_id: int | None = None
+    quantity_modifier: float = 1.0
+    preparation: str = ""
+    sort_order: int = 0
+
+
+class StepOutput(BaseModel):
+    sort_order: int = 0
+    instruction: str = Field(min_length=1)
+    duration_minutes: int | None = None
+    section: str = ""
+    referenced_ingredient_names: list[str] = Field(default_factory=list)
+    step_ingredients: list[StepIngredientOutput] = Field(default_factory=list)
+
+
+class StepGenerationOutput(BaseModel):
+    steps: list[StepOutput] = Field(min_length=1)
+
+
+class IngredientSuggestion(BaseModel):
+    ingredient_name: str = Field(min_length=1)
+    preparation: str = ""
+    confidence: float = Field(default=0.5, ge=0, le=1)
+
+
+class IngredientSuggestionOutput(BaseModel):
+    suggestions: list[IngredientSuggestion] = Field(default_factory=list)
+
+
+class MarkdownStepOutput(BaseModel):
+    steps: list[dict] = Field(min_length=1)
+
+
+def _structured_config(schema: type[BaseModel]):
+    from google.genai import types
+
+    return types.GenerateContentConfig(response_mime_type="application/json", response_schema=schema)
 
 
 class AiStepService:
@@ -95,6 +135,7 @@ class AiStepService:
                 contents=prompt,
                 bypass_limits=bypass_limits,
                 context="recipe_step_generation",
+                config=_structured_config(StepGenerationOutput),
             )
         except HttpError:
             raise
@@ -171,6 +212,7 @@ class AiStepService:
                 contents=prompt,
                 bypass_limits=bypass_limits,
                 context="ingredient_assignment_suggestion",
+                config=_structured_config(IngredientSuggestionOutput),
             )
         except HttpError:
             raise
@@ -242,6 +284,7 @@ class AiStepService:
                 contents=prompt,
                 bypass_limits=bypass_limits,
                 context="recipe_markdown_conversion",
+                config=_structured_config(MarkdownStepOutput),
             )
         except HttpError:
             raise
@@ -441,24 +484,12 @@ def _parse_step_generation_response(response_text: str, item_id_map: dict) -> li
     Returns:
         List of step dictionaries
     """
-    # Try to extract JSON from response
     try:
-        # Try to find JSON block in response
-        start_object = response_text.find("{")
-        start_array = response_text.find("[")
-        if start_object == -1 and start_array == -1:
-            raise ValueError("No JSON found in response")
-        if start_array != -1 and (start_object == -1 or start_array < start_object):
-            json_str = response_text[start_array : response_text.rfind("]") + 1]
-        else:
-            json_str = response_text[start_object : response_text.rfind("}") + 1]
-        data = json.loads(json_str)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Invalid JSON in response: {exc}") from exc
+        data = StepGenerationOutput.model_validate_json(response_text)
+    except ValueError as exc:
+        raise ValueError(f"Invalid structured step response: {exc}") from exc
 
-    steps_data = data if isinstance(data, list) else data.get("steps", [])
-    if not steps_data:
-        raise ValueError("No steps found in response")
+    steps_data = [step.model_dump() for step in data.steps]
 
     # Convert to step format
     steps = []
@@ -500,26 +531,16 @@ def _parse_ingredient_suggestion_response(response_text: str) -> list[dict]:
     Returns a list of suggestion dictionaries (or empty list on error).
     """
     try:
-        # Try to extract JSON
-        start = response_text.find("{")
-        end = response_text.rfind("}") + 1
-        if start == -1 or end == 0:
-            return []
-
-        json_str = response_text[start:end]
-        data = json.loads(json_str)
-    except (json.JSONDecodeError, ValueError):
+        data = IngredientSuggestionOutput.model_validate_json(response_text)
+    except ValueError:
         return []
-
-    suggestions = data.get("suggestions", [])
 
     # Filter and return
     return [
         {
-            "ingredient_name": s.get("ingredient_name", ""),
-            "preparation": s.get("preparation", ""),
-            "confidence": float(s.get("confidence", 0.5)),
+            "ingredient_name": s.ingredient_name,
+            "preparation": s.preparation,
+            "confidence": s.confidence,
         }
-        for s in suggestions
-        if s.get("ingredient_name")
+        for s in data.suggestions
     ]

@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from core.services.gemini import GeminiUnavailableError, gemini_call
 from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.services.portion_integrity import validate_active_portion_weight
-from supply.services.portion_resolution import resolve_trusted_weight
+from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
 from supply.services.unit_resolution import resolve_canonical_unit
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ MIN_NEW_SUGGESTIONS = 4
 
 
 class MagicSuggestion(BaseModel):
-    operation: str = Field(description="replace or create")
+    operation: str = Field(description="replace, create or package")
     source_portion_id: int | None = None
     name: str
     quantity: float = 1.0
@@ -61,19 +61,25 @@ def _suggestion_prompt(context: dict, *, repair: bool = False) -> str:
             "Dies ist eine Reparaturanfrage. Die vorherige Antwort hatte keine "
             "brauchbare positive Gewichtsschaetzung oder zu wenige neue Vorschlaege. "
             f"Liefere mindestens {MIN_NEW_SUGGESTIONS} neue, unterschiedliche "
-            "praktische Portionen mit positivem Gesamtgewicht in Gramm. Bei "
+            "praktische Portionen sowie passende Packungen mit positivem Gesamtgewicht in Gramm. Bei "
             "Stueckwaren muss mindestens eine Stueck-Portion enthalten sein. "
             "Verwende fuer neue Vorschlaege operation='create' und source_portion_id=null; "
+            "verwende fuer Packungen operation='package'; "
             "verwende operation='replace' nur fuer eine explizit ungewichtete bestehende Portion. "
             "Nutze null nur fuer wirklich nicht bestimmbare Sonderfaelle."
         )
     else:
         guidance = (
-            "Liefere 5 bis 7 neue, unterschiedliche praktische Portionsvorschlaege "
-            "und schaetze fuer jeden ein positives Gesamtgewicht in Gramm. "
+            "Liefere 3 bis 6 neue, unterschiedliche praktische Portionsvorschlaege "
+            "und 1 bis 3 Packungsvorschlaege, jeweils mit positivem Gesamtgewicht in Gramm. "
             "Bei Stueckwaren muss mindestens eine Stueck-Portion vorgeschlagen werden. Fuer ein normales "
             "Neue Vorschlaege muessen operation='create' und source_portion_id=null haben; "
             "bereits gewichtete Portionen duerfen nicht als neue Vorschlaege wiederholt werden. "
+            "Bei zaehlbaren Lebensmitteln verwende fuer die Einzelportion den Namen 'Stück' "
+            "statt 'Portion'. 'Portion' ist nur fuer nicht zaehlbare Serviermengen erlaubt. "
+            "Packungen muessen operation='package' verwenden, quantity ist die Stueckzahl in der Packung "
+            "und proposed_weight_g immer das Gesamtgewicht der ganzen Packung. "
+            "Bereits vorhandene Packungen duerfen nicht dupliziert werden. "
             "Hotdog-Broetchen liegt ein Stueck typischerweise bei etwa 50 bis 60 g; "
             "passe den Wert nur bei abweichender Produktgroesse an. Wenn eine "
             "typische Packung sinnvoll ist, gib Stueckzahl und Gesamtgewicht an. "
@@ -85,11 +91,27 @@ def _suggestion_prompt(context: dict, *, repair: bool = False) -> str:
         "Fuer ungewichtete bestehende Portionen nutze operation='replace' und "
         "source_portion_id. Zusaetzliche sinnvolle Portionen nutze mit "
         "operation='create'. Namen duerfen keine Ziffern enthalten. "
+        "Packungsvorschlaege werden spaeter als Package gespeichert und niemals als Portion. "
         "Gib ausschliesslich strukturiertes JSON zurueck. "
         + guidance
         + "\n"
         + json.dumps(context, ensure_ascii=False, default=str)
     )
+
+
+def _existing_weight_note(ingredient_name: str, portion) -> str:
+    """Explain obviously implausible existing piece weights without mutating them."""
+    weight = portion.weight_g
+    if weight is None or not is_piece_like_name(portion.name):
+        return f"Aktuelles Gewicht: {weight:g} g." if weight is not None else "Gewicht unbekannt."
+    ingredient = ingredient_name.casefold()
+    if "hotdog" in ingredient or "brötchen" in ingredient or "broetchen" in ingredient:
+        if 40 <= weight <= 80:
+            return f"Aktuelles Gewicht: {weight:g} g. Das ist für ein Hotdog-Brötchen plausibel (etwa 50–60 g)."
+        return f"Aktuelles Gewicht: {weight:g} g. Das wirkt für ein Hotdog-Brötchen unplausibel; typisch sind etwa 50–60 g."
+    if weight <= 5:
+        return f"Aktuelles Gewicht: {weight:g} g. Das wirkt für eine Stückportion sehr wahrscheinlich unplausibel."
+    return f"Aktuelles Gewicht: {weight:g} g. Bitte auf Plausibilität prüfen."
 
 
 def _has_positive_practical_suggestion(response: MagicResponse) -> bool:
@@ -106,11 +128,15 @@ def _valid_suggestions(response: MagicResponse) -> list[MagicSuggestion]:
     valid = []
     seen: set[tuple[str, str, int | None]] = set()
     for suggestion in response.suggestions:
-        if suggestion.operation not in {"replace", "create"}:
+        if suggestion.operation not in {"replace", "create", "package"}:
             continue
         unit = _resolve_suggestion_unit(suggestion.measuring_unit_name)
         if suggestion.quantity <= 0 or unit is None:
             continue
+        if suggestion.name.strip().casefold() == "portion":
+            suggestion.name = "Stück"
+        if suggestion.name.strip().casefold() in PACKAGE_UNIT_ALIASES or "packung" in suggestion.name.casefold():
+            suggestion.operation = "package"
         suggestion.measuring_unit_name = unit.name
         key = (suggestion.operation, suggestion.name.strip().casefold(), suggestion.source_portion_id)
         if key in seen:
@@ -154,6 +180,7 @@ def _context(ingredient: Ingredient) -> dict:
     portions = list(ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit"))
     packages = list(ingredient.packages.filter(deleted_at__isnull=True))
     from recipe.models import RecipeItem
+    from supply.models import MeasuringUnit
 
     recipe_items = list(
         RecipeItem.objects.filter(portion__ingredient=ingredient)
@@ -189,6 +216,10 @@ def _context(ingredient: Ingredient) -> dict:
             for p in portions
         ],
         "packages": [{"name": p.name, "weight_g": p.weight_g} for p in packages],
+        "available_measuring_units": [
+            {"name": unit.name, "unit": unit.unit, "quantity": unit.quantity}
+            for unit in MeasuringUnit.objects.order_by("name")
+        ],
         "recipe_usage": [
             {"recipe": item.recipe.title, "quantity": item.quantity, "portion": item.portion.name}
             for item in recipe_items
@@ -252,7 +283,7 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
                     "rank": portion.rank,
                     "proposed_weight_g": portion.weight_g,
                     "confidence": None,
-                    "rationale": "Bereits gewichtete Portion bleibt unverändert.",
+                    "rationale": _existing_weight_note(ingredient.name, portion),
                     "selected": False,
                     "requires_manual_weight": False,
                     "delete_without_replacement": False,
@@ -279,9 +310,9 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
                 }
             )
     for index, suggestion in enumerate(valid_suggestions):
-        if suggestion.operation not in {"replace", "create"} or suggestion.quantity <= 0:
+        if suggestion.operation not in {"replace", "create", "package"} or suggestion.quantity <= 0:
             continue
-        if suggestion.source_portion_id in weighted_ids:
+        if suggestion.operation != "package" and suggestion.source_portion_id in weighted_ids:
             continue
         operations.append(
             {
@@ -313,20 +344,42 @@ def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
         .filter(deleted_at__isnull=True)
         .select_related("measuring_unit")
     }
-    from supply.models import Portion
+    from supply.models import Package, Portion
 
     replaced: list[int] = []
     created: list[int] = []
     deleted: list[int] = []
+    created_packages: list[int] = []
     names = {p.name.casefold() for p in active.values()}
     for operation in payload["operations"]:
         if operation.get("operation") == "unchanged":
             continue
+        if operation.get("operation") == "package":
+            if not operation.get("selected"):
+                continue
+            weight = operation.get("proposed_weight_g")
+            if weight is None or weight <= 0:
+                raise ValueError(f"Packung '{operation.get('name', '')}' benötigt ein positives Gewicht.")
+            if ingredient.packages.filter(name__iexact=operation["name"].strip(), deleted_at__isnull=True).exists():
+                raise ValueError(f"Packung '{operation['name']}' existiert bereits.")
+            package = Package(
+                ingredient=ingredient,
+                name=operation["name"].strip(),
+                weight_g=weight,
+                rank=operation.get("rank") or 1,
+            )
+            package.save()
+            created_packages.append(package.id)
+            continue
         source = active.get(operation.get("source_portion_id"))
+        if operation.get("source_portion_id") is not None and source is None:
+            raise ValueError("Die Quellportion existiert nicht mehr oder gehört nicht zu dieser Zutat.")
         if source is None and not operation.get("selected"):
             continue
         weight = operation.get("proposed_weight_g")
         if operation.get("delete_without_replacement"):
+            if source is None:
+                raise ValueError("Zum Löschen wurde keine gültige Quellportion angegeben.")
             if resolve_trusted_weight(source) is not None:
                 raise ValueError("Eine gewichtete Portion darf nicht ohne Ersatz gelöscht werden.")
             source.deleted_at = timezone.now()
@@ -385,4 +438,5 @@ def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
         "replaced_portion_ids": replaced,
         "created_portion_ids": created,
         "deleted_portion_ids": deleted,
+        "created_package_ids": created_packages,
     }

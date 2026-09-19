@@ -39,3 +39,4 @@ class PortionMagicApplyOut(Schema):
     replaced_portion_ids: list[int]
     created_portion_ids: list[int]
     deleted_portion_ids: list[int]
+    created_package_ids: list[int] = []

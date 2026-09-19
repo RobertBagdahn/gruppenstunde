@@ -24,6 +24,16 @@ Die Datenbasis enthält zugleich historische und fachlich uneinheitliche Portion
 
 ## Decisions
 
+### 0. Bestätigte Produktentscheidungen
+
+- Der Portions-Zauberstab bleibt eine einzelne Aktion und einen einzelnen Apply-Vorgang, zeigt aber zwei klar getrennte Bereiche: `Portionen` und `Packungen`.
+- Ein Apply ist vollständig atomar. Ungültige IDs, veraltete Quellen, Namenskollisionen oder fehlende positive Gewichte rollen die gesamte Transaktion zurück.
+- Stück-/Packungsgewichte werden mit zutatenspezifischen Regeln und KI-Kontext plausibilisiert. Eine Warnung blockiert nicht automatisch, erfordert aber eine sichtbare bewusste Auswahl beziehungsweise Bestätigung.
+- Bestehende unplausible Stückportionen bleiben zunächst unverändert. Der Dialog zeigt aktuelles Gewicht, Begründung und einen separaten Ersatzvorschlag.
+- Packungsnamen bleiben beschreibend und ohne Zahlen; Stückzahl und Gesamtgewicht stehen in strukturierten Feldern.
+- Die Datenmigration benennt nur sicher erkennbare generische `Portion`-Einträge um und erhält IDs sowie Rezeptreferenzen.
+- Backend und Food-Frontend werden nur gemeinsam aus demselben Release-Commit ausgeliefert.
+
 ### 1. Kanonische Einheitenauflösung vor fachlicher Validierung
 
 Die Backend-Service-Schicht erhält eine kleine, deterministische Auflösung für bekannte Schreibweisen wie `g`, `gramm`, `Stk`, `Stück` und `Packung`. Aufgelöst werden darf nur auf tatsächlich vorhandene Einheiten; unbekannte Einheiten bleiben ungültig und werden mit einem verständlichen Hinweis protokolliert beziehungsweise als nicht anwendbarer Vorschlag zurückgegeben.
@@ -50,6 +60,12 @@ Der Kontext-Hash umfasst die aktiven Portionen einschließlich Maßeinheit und G
 
 Das Backend-Schema `PortionMagicOperationOut` und das Frontend-Schema `PortionMagicOperationSchema` werden um den kanonischen Einheitenstatus beziehungsweise eine anwendbare Validierungsinformation erweitert, falls dies für die UI nötig ist. Die API bleibt auf denselben Preview-/Apply-Endpunkten; die Antwort enthält weiterhin Operationen und Zusammenfassung. Die Frontend-UI markiert unvollständige Vorschläge klar und blockiert Apply nur für ausgewählte ungültige Operationen.
 
+### 6. Zentraler Retry für strukturierte Food-/Rezept-Extraktionen
+
+`gemini_call` validiert bei vorhandenem `response_schema` zentral auf nichtleeren Inhalt und Pydantic-Kompatibilität. Bei einem Fehler wird genau ein zweiter Aufruf mit einem Korrekturprompt ausgeführt. Beide Versuche gehören zu einer Interaktion und erhalten einen Versuchszähler beziehungsweise Fehlergrund im Audit. Fachliche Mindestregeln wie „mindestens ein Rezeptschritt“ oder „mindestens eine Zutat“ werden je Schema definiert.
+
+Technische freie Text-, Bild- und Embedding-Aufrufe bleiben außerhalb dieses strukturierten Extraktionsvertrags. Der technische Schutz darf zentral wiederverwendbar sein, aber fachliche Regeln werden nur für Food- und Rezeptdaten verpflichtend.
+
 ## Risks / Trade-offs
 
 - **Historische Portionen können nicht eindeutig klassifiziert werden** → Migration nur für sicher erkennbare stückartige Einheiten/Namen; unsichere Fälle bleiben erhalten und werden als Prüfbedarf dokumentiert.
@@ -57,6 +73,8 @@ Das Backend-Schema `PortionMagicOperationOut` und das Frontend-Schema `PortionMa
 - **Synonymauflösung kann falsche Einheiten wählen** → Auflösung auf eine begrenzte Whitelist mit deterministischer Priorität und Tests für Konflikte.
 - **Zusätzliche Preview-Aufrufe erhöhen Kosten und Latenz** → höchstens ein Reparaturversuch; kein Retry, wenn bereits mindestens ein vollständiger Vorschlag vorhanden ist.
 - **Zod- und Pydantic-Verträge können auseinanderlaufen** → Contract-Tests mit identischen Preview- und Apply-Beispielen auf Backend und Food-Frontend.
+- **Backend und Food-Frontend werden in falscher Reihenfolge deployt** → gemeinsamer Release-Check und Deployment aus demselben Commit; neue Enum-Werte dürfen nicht einzeln live gehen.
+- **Retry akzeptiert syntaktisch valide, aber fachlich leere Daten** → schemaabhängige Mindestlängen und Pflichtfeldvalidierung nach Pydantic.
 
 ## Migration Plan
 
@@ -65,6 +83,7 @@ Das Backend-Schema `PortionMagicOperationOut` und das Frontend-Schema `PortionMa
 3. Backend-Service, API-Schema und Tests ausrollen; danach Frontend-Zod-Schema und Dialog aktualisieren.
 4. Nach Migration `uv run python manage.py makemigrations --check` und die relevanten Supply-/Food-Tests ausführen.
 5. Rollback: Anwendungscode kann auf die vorherige Preview-/Apply-Version zurückgesetzt werden. Die Datenmigration ist wegen möglicher FK- und Soft-Delete-Zustände nicht blind rückwärts zu rollen; vor Ausführung ist ein Datenbank-Backup erforderlich.
+6. Release-Prüfung: Backend und `frontend-food` werden aus demselben Commit gebaut. Vor dem Deploy werden Backend-Schema, Food-Zod-Schema, fokussierte Tests, `makemigrations --check` und die erforderlichen Migrationen geprüft. Danach wird zuerst die Migration sicher ausgeführt und anschließend Backend und Food-Frontend gemeinsam auf Traffic geschaltet.
 
 ## Open Questions
 

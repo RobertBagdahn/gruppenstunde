@@ -83,7 +83,7 @@ export function mergeMagicOperations(
 export function isMagicOperationInvalid(operation: PortionMagicOperation): boolean {
   if (operation.operation === 'unchanged') return false;
   if (operation.delete_without_replacement) return false;
-  if (!operation.selected && operation.operation === 'create') return false;
+  if (!operation.selected && operation.operation !== 'replace') return false;
   return !operation.proposed_weight_g || operation.proposed_weight_g <= 0;
 }
 
@@ -103,7 +103,12 @@ function SortableMagicOperation({
   const sortable = useSortable({ id: operation.operation_id, disabled: operation.operation === 'unchanged' });
   return <>{children({
     setNodeRef: sortable.setNodeRef,
-    style: { transform: CSS.Transform.toString(sortable.transform), transition: sortable.transition },
+    style: {
+      transform: CSS.Transform.toString(sortable.transform),
+      transition: sortable.transition,
+      opacity: sortable.isDragging ? 0.35 : 1,
+      zIndex: sortable.isDragging ? 10 : undefined,
+    },
     attributes: sortable.attributes,
     listeners: sortable.listeners,
   })}</>;
@@ -1073,10 +1078,11 @@ export default function IngredientDetailPage() {
   const hasInvalidMagicOperation = magicOperations.some(isMagicOperationInvalid);
 
   const hasPartialMagicResult = magicOperations.filter(
-    (operation) => operation.operation === 'create' || operation.operation === 'replace',
-  ).length > 0 && magicOperations.filter(
-    (operation) => operation.operation === 'create',
-  ).length < 4;
+    (operation) => operation.operation === 'create' || operation.operation === 'replace' || operation.operation === 'package',
+  ).length > 0;
+
+  const magicPortionOperations = magicOperations.filter((operation) => operation.operation !== 'package');
+  const magicPackageOperations = magicOperations.filter((operation) => operation.operation === 'package');
 
   const applyMagicPreview = () => {
     if (hasInvalidMagicOperation) {
@@ -1710,21 +1716,20 @@ export default function IngredientDetailPage() {
             <DialogDescription>
               Gewichtete Portionen bleiben unverändert. Ungewichtete Portionen werden standardmäßig ersetzt.
             </DialogDescription>
-            {hasPartialMagicResult && (
-              <p className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-                Es wurden passende Vorschläge gefunden. Die KI kann je nach Zutat unterschiedlich viele sinnvolle Portionen liefern.
-              </p>
-            )}
+            {hasPartialMagicResult && <p className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">Wähle passende Portionen und Packungen getrennt aus. Bestehende Gewichte bleiben unverändert.</p>}
           </DialogHeader>
           <DndContext sensors={magicSensors} collisionDetection={closestCenter} onDragEnd={handleMagicDragEnd}>
             <SortableContext items={magicOperations.map((operation) => operation.operation_id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-3">
-                {magicOperations.length === 0 && (
+              <div className="space-y-5">
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Portionen</h3>
+                  <div className="space-y-3">
+                {magicPortionOperations.length === 0 && (
               <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
                 Die KI hat keine neuen Portionen vorgeschlagen.
               </p>
             )}
-            {magicOperations.map((operation) => (
+             {magicPortionOperations.map((operation) => (
               <SortableMagicOperation key={operation.operation_id} operation={operation}>
                 {({ setNodeRef, style, attributes, listeners }) => (
                 <div ref={setNodeRef} style={style} className="rounded-lg border border-border p-3 space-y-2">
@@ -1742,7 +1747,7 @@ export default function IngredientDetailPage() {
                    <label htmlFor={`magic-select-${operation.operation_id}`} className="flex-1 cursor-pointer text-sm">
                      <span className="font-medium">{operation.name}</span>
                      <span className="block text-muted-foreground">
-                       {operation.operation === 'replace' ? 'Ersetzt eine ungewichtete Portion' : operation.operation === 'unchanged' ? 'Bleibt unverändert' : 'Neue typische Portion'} · {operation.measuring_unit_name}
+                      {operation.operation === 'replace' ? 'Ersetzt eine ungewichtete Portion' : operation.operation === 'unchanged' ? 'Bleibt unverändert' : operation.operation === 'package' ? 'Neue Packung für den Bereich Packungen' : 'Neue typische Portion'} · {operation.measuring_unit_name}
                      </span>
                     {operation.validation_message && (
                       <span className="block text-destructive">{operation.validation_message}</span>
@@ -1752,6 +1757,11 @@ export default function IngredientDetailPage() {
                 {operation.operation !== 'unchanged' && (
                   <div className="ml-7 text-sm font-medium text-primary">
                     {formatMagicWeight(operation.proposed_weight_g)}
+                  </div>
+                )}
+                {operation.operation === 'unchanged' && operation.proposed_weight_g != null && (
+                  <div className="ml-7 text-sm font-medium text-muted-foreground">
+                    Aktuelles Gewicht: {formatMagicWeight(operation.proposed_weight_g).replace('Neue Grammzahl: ', '')}
                   </div>
                 )}
                 {operation.selected && (
@@ -1806,7 +1816,33 @@ export default function IngredientDetailPage() {
                 </div>
                 )}
               </SortableMagicOperation>
-            ))}
+             ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Packungen</h3>
+                  <div className="space-y-3">
+                    {magicPackageOperations.length === 0 && <p className="rounded-lg border border-border p-3 text-sm text-muted-foreground">Keine neue Packung vorgeschlagen.</p>}
+                    {magicPackageOperations.map((operation) => (
+                      <SortableMagicOperation key={operation.operation_id} operation={operation}>
+                        {({ setNodeRef, style, attributes, listeners }) => (
+                          <div ref={setNodeRef} style={style} className="rounded-lg border border-border p-3 space-y-2">
+                            <div className="flex items-start gap-3">
+                              <button type="button" className="cursor-grab touch-none text-muted-foreground" aria-label="Packung verschieben" {...attributes} {...listeners}>⠿</button>
+                              <input id={`magic-select-${operation.operation_id}`} type="checkbox" checked={operation.selected} aria-label={`${operation.name} übernehmen`} onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })} className="mt-1" />
+                              <label htmlFor={`magic-select-${operation.operation_id}`} className="flex-1 cursor-pointer text-sm">
+                                <span className="font-medium">{operation.name}</span>
+                                <span className="block text-muted-foreground">Neue Packung · {operation.quantity} Stück · Gesamtgewicht</span>
+                              </label>
+                            </div>
+                            <div className="ml-7 text-sm font-medium text-primary">{formatMagicWeight(operation.proposed_weight_g)}</div>
+                            {operation.selected && <div className="ml-7 space-y-1"><Label htmlFor={`magic-weight-${operation.operation_id}`}>Gesamtgewicht der Packung (g)</Label><Input id={`magic-weight-${operation.operation_id}`} value={operation.proposed_weight_g ?? ''} onChange={(event) => updateMagicOperation(operation.operation_id, { proposed_weight_g: event.target.value ? Number(event.target.value.replace(',', '.')) : null })} type="text" inputMode="decimal" /></div>}
+                          </div>
+                        )}
+                      </SortableMagicOperation>
+                    ))}
+                  </div>
+                </div>
               </div>
             </SortableContext>
           </DndContext>

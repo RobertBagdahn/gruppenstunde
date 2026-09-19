@@ -72,4 +72,10 @@ describe('portion magic-wand ordering', () => {
     expect(isMagicOperationInvalid({ ...operation('replace', 'Stück', 'replace', 1), selected: false, proposed_weight_g: null, delete_without_replacement: true })).toBe(false);
     expect(isMagicOperationInvalid(operation('existing', '100 g', 'unchanged', 1))).toBe(false);
   });
+
+  it('keeps package suggestions distinct from portion suggestions', () => {
+    const packageOperation = { ...operation('package', 'Packung', 'create', 1), operation: 'package' as const };
+    expect(packageOperation.operation).toBe('package');
+    expect(packageOperation.name).toBe('Packung');
+  });
 });

@@ -64,9 +64,11 @@ describe('portion magic-wand contracts', () => {
       replaced_portion_ids: [12],
       created_portion_ids: [20],
       deleted_portion_ids: [12],
+      created_package_ids: [21],
     });
 
     expect(parsed.created_portion_ids).toEqual([20]);
     expect(parsed.deleted_portion_ids).toEqual([12]);
+    expect(parsed.created_package_ids).toEqual([21]);
   });
 });

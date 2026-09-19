@@ -180,7 +180,7 @@ export type Portion = z.infer<typeof PortionSchema>;
 
 export const PortionMagicOperationSchema = z.object({
   operation_id: z.string(),
-  operation: z.enum(['replace', 'create', 'unchanged']),
+  operation: z.enum(['replace', 'create', 'package', 'unchanged']),
   source_portion_id: z.number().nullable().optional(),
   name: z.string(),
   quantity: z.number().positive(),
@@ -209,6 +209,7 @@ export const PortionMagicApplySchema = z.object({
   replaced_portion_ids: z.array(z.number()),
   created_portion_ids: z.array(z.number()),
   deleted_portion_ids: z.array(z.number()),
+  created_package_ids: z.array(z.number()).default([]),
 });
 export type PortionMagicApply = z.infer<typeof PortionMagicApplySchema>;
 
