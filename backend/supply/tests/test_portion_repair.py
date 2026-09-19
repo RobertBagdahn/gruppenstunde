@@ -20,6 +20,7 @@ from supply.models import Ingredient, MeasuringUnit, Portion, PortionRepairFindi
 from supply.services.portion_repair import (
     _detect_reason,
     apply_finding,
+    extract_explicit_weight_g,
     get_candidate_portions,
     scan_suspicious_portions,
 )
@@ -103,6 +104,13 @@ def test_piece_name_with_gram_unit_flagged(ingredient, gram_unit):
 def test_piece_name_with_explicit_weight_is_not_flagged(ingredient, gram_unit):
     portion = make_portion(ingredient, gram_unit, name="1 Stück (150g)", weight_g=150.0)
     assert _detect_reason(portion) is None
+
+
+def test_extract_explicit_weight_from_legacy_name():
+    assert extract_explicit_weight_g("kleine (50g)") == 50.0
+    assert extract_explicit_weight_g("1 Stück (150 g)") == 150.0
+    assert extract_explicit_weight_g("100 Gramm") == 100.0
+    assert extract_explicit_weight_g("Stück") is None
 
 
 @pytest.mark.django_db

@@ -77,6 +77,18 @@ def _has_explicit_weight(name: str) -> bool:
     return bool(_EXPLICIT_WEIGHT_PATTERN.search(name or ""))
 
 
+def extract_explicit_weight_g(name: str | None) -> float | None:
+    """Extract a positive gram value explicitly written in a portion name."""
+    match = _EXPLICIT_WEIGHT_PATTERN.search(name or "")
+    if not match:
+        return None
+    value_match = re.search(r"\d+(?:[.,]\d+)?", match.group(0))
+    if not value_match:
+        return None
+    value = float(value_match.group(0).replace(",", "."))
+    return value if value > 0 else None
+
+
 def _detect_reason(portion: Portion) -> str | None:
     """Return the detection reason for a suspicious portion, or None."""
     name = portion.name or ""
