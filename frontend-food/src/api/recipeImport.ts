@@ -4,6 +4,11 @@
 import { API_BASE_URL } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
+import {
+  IngredientReviewPreviewSchema,
+  type IngredientReviewPreview,
+  type RecipeImportSource,
+} from '@/schemas/ingredientReview';
 
 // ---------------------------------------------------------------------------
 // Zod Schemas
@@ -176,6 +181,27 @@ export function useRecipeSmartInput() {
         throw new RecipeImportError(getImportErrorMessage(error.error_code, error.detail), error.error_code);
       }
       return RecipeImportUrlResponseSchema.parse(await res.json());
+    },
+  });
+}
+
+export function useRecipeIngredientReviewPreview() {
+  return useMutation({
+    mutationFn: async (sources: RecipeImportSource[]): Promise<IngredientReviewPreview> => {
+      const res = await fetch(`${API_BASE_URL}/api/recipes/ingredient-review/preview/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ sources }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Zutaten konnten nicht analysiert werden' }));
+        throw new RecipeImportError(error.detail ?? 'Zutaten konnten nicht analysiert werden', error.error_code);
+      }
+      return IngredientReviewPreviewSchema.parse(await res.json());
     },
   });
 }

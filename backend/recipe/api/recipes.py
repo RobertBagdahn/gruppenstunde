@@ -11,6 +11,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
 from ninja.errors import HttpError
+from pydantic import BaseModel, Field
 
 from content.base_api import (
     create_comment,
@@ -49,6 +50,7 @@ from recipe.schemas.import_schemas import (
     RecipeItemDraftOut,
     SmartRecipeInputIn,
 )
+from recipe.schemas.ingredient_review import IngredientReviewPreviewOut, RecipeImportSourceIn
 
 logger = logging.getLogger(__name__)
 
@@ -318,6 +320,32 @@ def list_my_recipes(request, page: int = 1, page_size: int = 20, folder: int | N
 # ===========================================================================
 # URL Import (must be before /{recipe_id}/ to avoid path conflict)
 # ===========================================================================
+
+
+class RecipeIngredientReviewSourcesIn(BaseModel):
+    """Sources accepted by the side-effect-free review preview."""
+
+    sources: list[RecipeImportSourceIn] = Field(default_factory=list)
+    input: str = ""
+
+
+@router.post("/ingredient-review/preview/", response=IngredientReviewPreviewOut)
+def preview_recipe_ingredient_review(request, payload: RecipeIngredientReviewSourcesIn):
+    """Return an ingredient review preview without persisting imported data."""
+    _require_auth(request)
+    from recipe.services.ingredient_review_service import preview_recipe_ingredients
+
+    sources = payload.sources
+    if not sources and payload.input.strip():
+        source_type = "url" if payload.input.strip().startswith(("http://", "https://")) else "text"
+        sources = [RecipeImportSourceIn(type=source_type, value=payload.input.strip())]
+    if not sources:
+        raise HttpError(422, "Bitte gib mindestens eine Quelle an")
+    try:
+        return preview_recipe_ingredients(sources, request.user)
+    except Exception as exc:
+        logger.exception("Recipe ingredient review preview failed")
+        raise HttpError(422, f"Zutaten konnten nicht analysiert werden: {exc}") from exc
 
 
 @router.post("/import-from-url/", response=RecipeImportPreviewOut)
@@ -656,6 +684,22 @@ def create_recipe(request, payload: RecipeCreateIn):
     if payload.form_loaded_at and (time.time() - payload.form_loaded_at < 5):
         raise HttpError(400, "Bitte warten Sie einen Moment")
 
+    if payload.ingredient_review_rows is not None:
+        if not payload.ingredient_review_rows:
+            raise HttpError(422, "Die Zutatenprüfung enthält keine bestätigten Zutaten")
+        if any(row.status != "confirmed" for row in payload.ingredient_review_rows):
+            raise HttpError(422, "Alle Zutaten müssen vor dem Speichern bestätigt werden")
+        review_by_key = {row.key: row for row in payload.ingredient_review_rows}
+        if len(review_by_key) != len(payload.ingredient_review_rows):
+            raise HttpError(422, "Die Zutatenprüfung enthält doppelte Zeilen")
+        missing_portions = [
+            f"rows.{index}.selected_portion_id"
+            for index, row in enumerate(payload.ingredient_review_rows)
+            if row.selected_portion_id is None and row.temporary_ingredient is None
+        ]
+        if missing_portions:
+            raise HttpError(422, f"Jede bestätigte Zutat benötigt eine Portion: {', '.join(missing_portions)}")
+
     recipe = Recipe(
         title=payload.title,
         summary=payload.summary,
@@ -699,10 +743,75 @@ def create_recipe(request, payload: RecipeCreateIn):
     recipe.authors.add(request.user)
 
     # Create recipe items first (triggers sync_recipe_nutritional_tags via signal)
-    for item_data in payload.recipe_items:
+    for index, item_data in enumerate(payload.recipe_items):
+        portion_id = item_data.portion_id
+        if payload.ingredient_review_rows is not None:
+            review = payload.ingredient_review_rows[index] if index < len(payload.ingredient_review_rows) else None
+            if review is None:
+                raise HttpError(422, "Rezeptposition fehlt in der Zutatenprüfung")
+            if review.temporary_ingredient is not None:
+                from django.utils.text import slugify
+
+                from supply.choices import IngredientStatusChoices, PhysicalViscosityChoices
+                from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Portion
+
+                draft = review.temporary_ingredient
+                base_slug = slugify(draft.name) or "zutat"
+                slug = base_slug
+                counter = 1
+                while Ingredient.objects.filter(slug=slug).exists():
+                    slug = f"{base_slug}-{counter}"
+                    counter += 1
+                values = draft.values
+                ingredient = Ingredient.objects.create(
+                    name=draft.name.strip(),
+                    slug=slug,
+                    description=draft.description,
+                    status=IngredientStatusChoices.DRAFT,
+                    energy_kcal=values.get("energy_kcal"),
+                    protein_g=values.get("protein_g"),
+                    fat_g=values.get("fat_g"),
+                    fat_sat_g=values.get("fat_sat_g"),
+                    carbohydrate_g=values.get("carbohydrate_g"),
+                    sugar_g=values.get("sugar_g"),
+                    fibre_g=values.get("fibre_g"),
+                    salt_g=values.get("salt_g"),
+                    child_score=values.get("child_score"),
+                    scout_score=values.get("scout_score"),
+                    environmental_score=values.get("environmental_score"),
+                    nova_score=values.get("nova_score"),
+                    nutri_score=values.get("nutri_score"),
+                    nutri_class=values.get("nutri_class"),
+                    physical_density=values.get("physical_density") or 1,
+                    physical_viscosity=values.get("physical_viscosity") or PhysicalViscosityChoices.SOLID,
+                )
+                aliases = values.get("aliases", [])
+                if isinstance(aliases, list):
+                    IngredientAlias.objects.bulk_create(
+                        [
+                            IngredientAlias(ingredient=ingredient, name=str(alias).strip())
+                            for alias in aliases
+                            if str(alias).strip()
+                        ]
+                    )
+                temporary_portion = draft.portions[0] if draft.portions else None
+                if temporary_portion is None or temporary_portion.weight_g is None or temporary_portion.weight_g <= 0:
+                    raise HttpError(422, f"Für {draft.name} fehlt ein gültiges Portionsgewicht")
+                unit_name = temporary_portion.measuring_unit_name or "Gramm"
+                unit, _ = MeasuringUnit.objects.get_or_create(name=unit_name)
+                portion = Portion.objects.create(
+                    ingredient=ingredient,
+                    name=temporary_portion.name,
+                    measuring_unit=unit,
+                    quantity=temporary_portion.quantity,
+                    weight_g=temporary_portion.weight_g,
+                    rank=1,
+                    created_by=request.user,
+                )
+                portion_id = portion.id
         RecipeItem.objects.create(
             recipe=recipe,
-            portion_id=item_data.portion_id,
+            portion_id=portion_id,
             client_request_id=item_data.client_request_id,
             quantity=item_data.quantity,
             sort_order=item_data.sort_order,

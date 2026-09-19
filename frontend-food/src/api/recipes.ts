@@ -29,6 +29,8 @@ import {
   type VerifyRequest,
 } from '@/schemas/recipe';
 import type { RecipeStepInput } from '@/schemas/recipeStep';
+import type { IngredientReviewRowInput } from '@/schemas/ingredientReview';
+import { IngredientReviewPreviewSchema, type IngredientReviewPreview } from '@/schemas/ingredientReview';
 import { ContentCommentSchema } from '@/schemas/content';
 
 const API_BASE = `${API_BASE_URL}/api/recipes`;
@@ -295,6 +297,7 @@ export interface RecipeCreatePayload {
   source_url?: string;
   image_url?: string;
   client_request_id?: string;
+  ingredient_review_rows?: IngredientReviewRowInput[];
 }
 
 export function useCreateRecipe() {
@@ -674,6 +677,20 @@ export function useUpdateVisibility(recipeId: number) {
 export function useEstimateQuantities(recipeId: number) {
   return useMutation({
     mutationFn: () => postJson(`${API_BASE}/${recipeId}/estimate-quantities/`, {}, EstimateQuantitiesSchema),
+  });
+}
+
+export function useRecipeIngredientSuggestionsPreview(recipeId: number) {
+  return useMutation({
+    mutationFn: async (): Promise<IngredientReviewPreview> => {
+      const res = await fetch(`${API_BASE}/${recipeId}/ai-suggest-ingredients-preview/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail ?? 'AI-Vorschläge konnten nicht geladen werden');
+      return IngredientReviewPreviewSchema.parse(await res.json());
+    },
   });
 }
 

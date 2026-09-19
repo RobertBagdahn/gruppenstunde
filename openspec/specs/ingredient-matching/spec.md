@@ -3,9 +3,7 @@
 ## Purpose
 
 Parsing, matching and AI enrichment of ingredient names against the ingredient database, with replacement-aware match results.
-
 ## Requirements
-
 ### Requirement: Name/Note Parser
 
 The system SHALL parse raw ingredient strings and extract quantity and unit on a best-effort basis. The parser SHALL extract known modifier words (state: frisch/TK/tiefgefroren/getrocknet/geräuchert/eingelegt/gemahlen/gerieben/geröstet; color: rot/grün/gelb/weiß/schwarz; size: groß/klein/dick/dünn; prep: gehackt/gewürfelt/geschnitten/geschält/gepresst) from the ingredient name and store them as the note. The parser SHALL search against both `Ingredient.name` and `IngredientAlias.name`.
@@ -107,24 +105,28 @@ The system SHALL compute a confidence score for each match attempt. The score SH
 - **THEN** confidence SHALL be the sigmoid-calibrated percentage from `similarity_to_pct()` divided by 100
 
 ### Requirement: Human-in-the-Loop
-
-The system SHALL trigger the existing ingredient search dialog for manual intervention in three cases: (a) grey zone — at least one candidate with confidence in range [0.3, stage_threshold) but none above threshold, (b) multiple matches — two or more candidates exceed threshold with score difference < 0.05, (c) complete miss — no candidate found in any algorithmic stage. The dialog SHALL show the top 5 candidates as suggestions when available. The user SHALL be able to search, select an existing ingredient, or create a new one.
+The system SHALL trigger human intervention for grey-zone matches, multiple close matches, and complete misses. The response SHALL show up to five candidates, confidence, matching method, and a human-readable reason. The matcher SHALL return unresolved preview data for complete misses and SHALL NOT create an Ingredient as a side effect.
 
 #### Scenario: Grey zone triggers dialog with top 5
-- **WHEN** confidence falls in the range [0.3, 0.5) and no candidate exceeds any stage threshold
-- **THEN** the system SHALL return needs_review=true with up to 5 candidate suggestions and the Frontend SHALL open the existing ingredient search dialog
+- **WHEN** confidence falls in the grey zone and no candidate exceeds its stage threshold
+- **THEN** the system SHALL return `needs_review=true` with up to five candidates and explanation data
 
 #### Scenario: Multiple matches trigger dialog
-- **WHEN** two candidates exceed the same stage threshold with score difference < 0.05
-- **THEN** the system SHALL return needs_review=true with all qualifying candidates and the Frontend SHALL open the existing ingredient search dialog
+- **WHEN** multiple candidates exceed a stage threshold with a score difference below the configured limit
+- **THEN** the system SHALL return `needs_review=true` with all relevant candidates and require user selection
+
+#### Scenario: Complete miss returns unresolved preview
+- **WHEN** no candidate is found by any algorithmic stage
+- **THEN** the system SHALL return `needs_review=true` with empty or generated candidates and a new-ingredient option
+- **THEN** the matcher SHALL not create a database row
 
 #### Scenario: Complete miss triggers dialog
 - **WHEN** no candidate is found by any algorithmic stage
-- **THEN** the system SHALL return needs_review=true with empty suggestions and the Frontend SHALL open the existing ingredient search dialog
+- **THEN** the system SHALL return `needs_review=true` with empty suggestions and the Frontend SHALL open the existing ingredient search dialog
 
 #### Scenario: User accepts suggestion
-- **WHEN** the user selects a candidate from the dialog
-- **THEN** the system SHALL use the user's choice and create the recipe item with the selected ingredient
+- **WHEN** the user selects a candidate from the review UI
+- **THEN** the system SHALL use the user's choice for the pending recipe item
 
 ### Requirement: Ingredient Usage Count
 
@@ -143,16 +145,15 @@ The system SHALL track how often each ingredient is used across all recipes. The
 - **THEN** candidates SHALL be ordered by `usage_count` descending before confidence scoring
 
 ### Requirement: MatchResult API Exposure
-
-The system SHALL expose all MatchResult fields in API responses: ingredient_id, name, confidence, matched_via (one of: jaccard, fuzzy, embed, gemini, new), note, is_new, needs_review. In addition, when a generic-to-concrete replacement mapping applies, the system SHALL expose replacement context fields: `replacement_for_item_id`, `replacement_reason`, and `replacement_confidence`.
+The system SHALL expose ingredient ID, name, confidence, matching method, note, new flag, review flag, candidates, and replacement context in review responses. It SHALL also expose a human-readable reason and technical details sufficient for the UI to explain why a candidate was proposed.
 
 #### Scenario: Successful match exposed
-- **WHEN** Stage 2 finds a match with confidence 0.85 via fuzzy matching
-- **THEN** the API response SHALL include matched_via="fuzzy", confidence=0.85, needs_review=false
+- **WHEN** a stage finds a match
+- **THEN** the API SHALL include the matching method, confidence, candidates where relevant, and explanation
 
 #### Scenario: Needs review exposed
-- **WHEN** the system triggers Human-in-the-Loop
-- **THEN** the API response SHALL include needs_review=true with the top candidates and their scores
+- **WHEN** the matcher triggers human review
+- **THEN** the API SHALL include `needs_review=true` and the data required for manual selection without persisting a new ingredient
 
 #### Scenario: Replacement result exposed
 - **WHEN** matching `Jodsalz` against a recipe containing mapped `Salz`

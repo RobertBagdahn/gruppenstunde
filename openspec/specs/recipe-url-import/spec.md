@@ -2,9 +2,7 @@
 
 ## Purpose
 Diese Spec definiert den URL-Import von Rezepten einschließlich Vorschau, Portionen und Quellen-URL innerhalb des vereinheitlichten Smart-Eingabeflusses.
-
 ## Requirements
-
 ### Requirement: URL Import Option in Recipe Creation UI
 Der URL-Import SHALL keine eigenständige Auswahloption mehr sein. Die Rezepterstellung SHALL ein einzelnes Smart-Eingabefeld anbieten, das eine URL entgegennimmt und den Importpfad serverseitig auslöst.
 
@@ -19,7 +17,16 @@ Der URL-Import SHALL keine eigenständige Auswahloption mehr sein. Die Rezepters
 - **THEN** SHALL keine Option "Von URL importieren" als eigene Auswahl erscheinen
 
 ### Requirement: Recipe Import from URL Endpoint
-The system SHALL provide an import endpoint that accepts the smart input value and returns a parsed recipe preview with matched or created ingredients. The response SHALL include the number of servings of the original recipe, preparation steps, source URL, the detected input type, a flag indicating whether the data was reconstructed via search grounding, and all fields required by the synchronized frontend Zod schema. Every returned recipe item SHALL either carry a usable portion reference or be explicitly flagged as requiring user clarification.
+The system SHALL provide an import endpoint that accepts one or more smart-input sources, including URLs and pasted recipe text, and returns a parsed recipe preview with reviewable ingredient candidates. The response SHALL include servings, preparation steps, source references, detected input type, reconstruction status, and all fields required by synchronized frontend schemas. Every recipe item SHALL carry a usable portion reference or an explicit clarification/review flag. The endpoint SHALL NOT persist a recipe, ingredient, or portion as a side effect of preview generation.
+
+#### Scenario: Successful import returns review preview
+- **WHEN** an authenticated user submits one or more valid recipe sources
+- **THEN** the response SHALL include metadata, steps, reviewable recipe items, source references, and portion suggestions
+- **THEN** no recipe, ingredient, or portion SHALL be persisted before final confirmation
+
+#### Scenario: Pasted website content is accepted
+- **WHEN** a user submits copied website content as a text source
+- **THEN** the import SHALL parse the text and return the same review contract as URL import
 
 #### Scenario: Successful import returns complete preview
 - **WHEN** a user submits a URL containing valid recipe data
@@ -52,7 +59,7 @@ The system SHALL provide an import endpoint that accepts the smart input value a
 - **THEN** the frontend Zod validation SHALL succeed without error
 
 ### Requirement: Ingredient Matching via Text Search and Gemini
-The system SHALL match extracted ingredients against existing database entries using text search (icontains on name + aliases) as pre-filter, then Gemini for final matching decision.
+The system SHALL match extracted ingredients against existing database entries using text search (icontains on name + aliases) as pre-filter, then Gemini for final matching decision. When no existing ingredient matches, the import SHALL return a complete temporary ingredient enrichment proposal for human review instead of creating an Ingredient immediately. The proposal SHALL include all fields required by the existing ingredient editor and SHALL remain temporary until final recipe save.
 
 #### Scenario: Existing ingredient matched
 - **WHEN** Gemini determines an extracted ingredient matches an existing Ingredient (based on top-5 text search candidates including aliases)
@@ -60,7 +67,16 @@ The system SHALL match extracted ingredients against existing database entries u
 
 #### Scenario: No match found — new ingredient created
 - **WHEN** Gemini determines no existing ingredient matches
-- **THEN** the system SHALL create a new Ingredient with all available fields populated via Gemini + Google Search Grounding
+- **THEN** the system SHALL return a temporary ingredient proposal instead of creating an Ingredient row
+
+#### Scenario: No existing ingredient
+- **WHEN** no existing ingredient is selected for an extracted name
+- **THEN** the response SHALL provide an AI ingredient proposal marked as new and requiring review
+- **THEN** no Ingredient row SHALL be created by the preview
+
+#### Scenario: No match found — ingredient remains temporary
+- **WHEN** Gemini determines no existing ingredient matches
+- **THEN** the system SHALL return a temporary ingredient proposal without creating an Ingredient row
 
 ### Requirement: New Ingredient Data Completeness
 When creating a new Ingredient via URL import, the system SHALL populate the following fields using Gemini + Google Search Grounding:
@@ -108,13 +124,19 @@ The system SHALL store the original import URL on the Recipe model in a `source_
 - **THEN** the original import URL SHALL remain unchanged
 
 ### Requirement: Preview Before Save
-The system SHALL persist the recipe draft immediately after the user confirms the URL import preview. After successful draft creation via `POST /api/recipes/`, the Wizard navigates to Step 1 (Basis & Portionen) before the user reviews and edits the imported ingredients in Step 2 (Zutaten) using the InlineIngredientEditor.
+The system SHALL route imported ingredient data through the dedicated review step before recipe creation. The recipe SHALL be created only after every review row is explicitly confirmed and the user completes final save.
+
+#### Scenario: User confirms imported ingredients
+- **WHEN** every review row is valid and explicitly confirmed
+- **THEN** the wizard SHALL allow final recipe save and persist the confirmed data atomically
+
+#### Scenario: User cancels review
+- **WHEN** the user cancels or confirms leaving before final save
+- **THEN** no recipe, ingredient, portion, or recipe item SHALL be created
 
 #### Scenario: User reviews and edits before saving
 - **WHEN** the user confirms the URL import preview
-- **THEN** the system SHALL create a recipe draft via `POST /api/recipes/` with the imported data and `status="draft"`
-- **THEN** the Wizard SHALL navigate to Step 1 (Basis & Portionen) before showing the imported ingredients in Step 2 (Zutaten) in the InlineIngredientEditor
-- **THEN** the user can modify title, recipe type, ingredients before proceeding
+- **THEN** the system SHALL keep the imported data available for review and editing before final save
 
 ### Requirement: Loading State During Import
 The system SHALL display a loading indicator with the message "Rezept wird analysiert... Das kann einen Moment dauern." during the import process.

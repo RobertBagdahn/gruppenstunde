@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
-import type { RecipeImportUrlResponse } from '@/api/recipeImport';
+import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
 import { useIngredient } from '@/api/supplies';
+import { useCreateRecipe } from '@/api/recipes';
 import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
 
 import WizardStepMethod, { type WizardStepMethodHandle, type WizardState } from './WizardStepMethod';
@@ -15,19 +16,21 @@ import WizardStepMetadata from './WizardStepMetadata';
 import WizardStepSteps from './WizardStepSteps';
 import type { WizardStepStepsHandle } from './WizardStepSteps';
 import WizardStepPreview, { type WizardStepPreviewHandle } from './WizardStepPreview';
+import RecipeIngredientReviewStep from './RecipeIngredientReviewStep';
+import { useRecipeIngredientReviewStore } from '@/store/useRecipeIngredientReviewStore';
 
 interface RecipeWizardState extends WizardState {
   inputServings: number | null;
   inputItemsAreContextual: boolean;
 }
 
-const STEP_LABELS = ['KI-Eingabe', 'Basis & Portionen', 'Zutaten', 'Materialien', 'Zubereitung', 'Vorschau'];
+const BASE_STEP_LABELS = ['KI-Eingabe', 'Basis & Portionen', 'Zutaten', 'Materialien', 'Zubereitung', 'Vorschau'];
 
-function StepIndicator({ currentStep }: { currentStep: number }) {
+function StepIndicator({ currentStep, labels }: { currentStep: number; labels: string[] }) {
   return (
     <nav aria-label="Rezept-Erstellungs-Fortschritt" className="w-full">
       <ol className="flex items-center justify-center gap-1 sm:gap-2">
-        {STEP_LABELS.map((label, i) => {
+        {labels.map((label, i) => {
           const isActive = i === currentStep;
           const isCompleted = i < currentStep;
           return (
@@ -46,7 +49,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               <span className="hidden sm:block ml-1.5 text-xs font-medium text-muted-foreground truncate max-w-[70px]">
                 {label}
               </span>
-              {i < STEP_LABELS.length - 1 && (
+              {i < labels.length - 1 && (
                 <div
                   className={`hidden sm:block w-6 h-0.5 mx-1 rounded transition-colors ${i < currentStep ? 'bg-primary' : 'bg-muted-foreground/20'}`}
                 />
@@ -154,7 +157,24 @@ export default function RecipeWizard() {
 
   const [stepTitle, setStepTitle] = useState('');
   const [stepRecipeType, setStepRecipeType] = useState<string | null>(null);
-  const [smartResult, setSmartResult] = useState<RecipeImportUrlResponse | null>(null);
+  const [smartResult, setSmartResult] = useState<IngredientReviewPreview | null>(null);
+  const initializeReview = useRecipeIngredientReviewStore((store) => store.initialize);
+  const getFinalizedRows = useRecipeIngredientReviewStore((store) => store.getFinalizedRows);
+  const setReviewError = useRecipeIngredientReviewStore((store) => store.setError);
+  const resetReview = useRecipeIngredientReviewStore((store) => store.reset);
+  const reviewRows = useRecipeIngredientReviewStore((store) => store.rows);
+  const hasReviewStep = smartResult !== null && reviewRows.length > 0;
+  const reviewIsDirty = useRecipeIngredientReviewStore((store) => store.isDirty);
+
+  useEffect(() => {
+    if (!reviewIsDirty) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [reviewIsDirty]);
 
   // Stays null until the metadata step reported its state from the loaded
   // recipe. Sending the uninitialised defaults wiped AI-generated content.
@@ -165,6 +185,7 @@ export default function RecipeWizard() {
   }, []);
 
   const [isSaving, setIsSaving] = useState(false);
+  const createRecipe = useCreateRecipe();
   const methodStepRef = useRef<WizardStepMethodHandle>(null);
   const basisStepRef = useRef<WizardStepBasisHandle>(null);
   const previewStepRef = useRef<WizardStepPreviewHandle>(null);
@@ -209,7 +230,53 @@ export default function RecipeWizard() {
         }
       }
 
-      if (state.currentStep === 2) {
+      const ingredientStep = hasReviewStep ? 3 : 2;
+      const metadataStep = hasReviewStep ? 5 : 4;
+
+      if (hasReviewStep && state.currentStep === 2) {
+        const finalizedRows = getFinalizedRows();
+        if (!finalizedRows) {
+          toast.error('Bitte bestätige alle Zutaten und löse offene Zuordnungen.');
+          setIsSaving(false);
+          return;
+        }
+        const recipe = await createRecipe.mutateAsync({
+          title: stepTitle.trim(),
+          description: smartResult?.recipe_draft.description,
+          summary: smartResult?.recipe_draft.summary,
+          recipe_type: stepRecipeType ?? 'warm_meal',
+          portions: 1,
+          difficulty: smartResult?.recipe_draft.difficulty || 'easy',
+          execution_time: smartResult?.recipe_draft.execution_time_choice || 'less_30',
+          preparation_time: smartResult?.recipe_draft.preparation_time_choice || 'none',
+          source_url: smartResult?.recipe_draft.source_url,
+          image_url: smartResult?.recipe_draft.image_url,
+          scout_level_ids: smartResult?.recipe_draft.scout_level_ids,
+          tag_ids: smartResult?.recipe_draft.tag_ids,
+          recipe_items: finalizedRows.map((row, index) => ({
+            portion_id: row.selected_portion_id,
+            quantity: row.quantity,
+            sort_order: index,
+            note: '',
+            is_optional: false,
+          })),
+          ingredient_review_rows: finalizedRows,
+          steps: (smartResult?.recipe_draft.steps ?? []).map((instruction, index) => ({
+            sort_order: index,
+            instruction,
+            duration_minutes: null,
+            section: '',
+            step_ingredients: [],
+          })),
+        });
+        updateState({
+          recipeId: recipe.id,
+          recipeSlug: recipe.slug,
+          inputServings: state.inputServings ?? 1,
+        });
+      }
+
+      if (state.currentStep === ingredientStep) {
         if (!(await (ingredientsStepRef.current?.save() ?? Promise.resolve(false)))) {
           setIsSaving(false);
           return;
@@ -225,7 +292,7 @@ export default function RecipeWizard() {
         // Materials persist immediately through their own endpoints.
       }
 
-      if (state.currentStep === 4) {
+      if (state.currentStep === metadataStep) {
         if (state.recipeId) {
           const body = buildMetadataPatch(metadataRef.current);
           if (body) await saveRecipe(state.recipeId, body);
@@ -236,6 +303,7 @@ export default function RecipeWizard() {
         }
       }
     } catch (err) {
+      setReviewError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen');
       toast.error('Speichern fehlgeschlagen', {
         description: err instanceof Error ? err.message : 'Unbekannter Fehler',
       });
@@ -248,18 +316,21 @@ export default function RecipeWizard() {
       ...prev,
       currentStep: prev.currentStep + 1,
     }));
-  }, [state, stepTitle, stepRecipeType, saveRecipe]);
+  }, [createRecipe, getFinalizedRows, hasReviewStep, saveRecipe, setReviewError, smartResult, state, stepTitle, stepRecipeType, updateState]);
 
   const handleBack = useCallback(async () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      if (state.currentStep === 2 && state.recipeId) {
+      const ingredientStep = hasReviewStep ? 3 : 2;
+      const metadataStep = hasReviewStep ? 5 : 4;
+
+      if (state.currentStep === ingredientStep && state.recipeId) {
         const saved = await (ingredientsStepRef.current?.save() ?? Promise.resolve(true));
         if (!saved) return;
         await saveRecipe(state.recipeId, { title: stepTitle, recipe_type: stepRecipeType });
       }
-      if (state.currentStep === 4) {
+      if (state.currentStep === metadataStep) {
         if (state.recipeId) {
           const body = buildMetadataPatch(metadataRef.current);
           if (body) await saveRecipe(state.recipeId, body);
@@ -273,7 +344,7 @@ export default function RecipeWizard() {
     } finally {
       setIsSaving(false);
     }
-  }, [isSaving, state.currentStep, state.recipeId, stepTitle, stepRecipeType, saveRecipe]);
+  }, [hasReviewStep, isSaving, state.currentStep, state.recipeId, stepTitle, stepRecipeType, saveRecipe]);
 
   const handleFinish = useCallback(async () => {
     setIsSaving(true);
@@ -282,25 +353,13 @@ export default function RecipeWizard() {
     return success;
   }, []);
 
-  const handleCreated = useCallback((
-    recipeId: number,
-    recipeSlug: string,
-    inputServings?: number | null,
-    inputItemsAreContextual = false,
-  ) => {
-    updateState({
-      recipeId,
-      recipeSlug,
-      inputServings: inputServings ?? null,
-      inputItemsAreContextual,
-    });
-  }, [updateState]);
+  useEffect(() => () => resetReview(), [resetReview]);
 
   const handleMetadataChange = useCallback((snapshot: MetadataSnapshot) => {
     metadataRef.current = snapshot;
   }, []);
 
-  const handleSmartResult = useCallback((result: RecipeImportUrlResponse) => {
+  const handleSmartResult = useCallback((result: IngredientReviewPreview) => {
     setSmartResult(result);
     setStepTitle(result.recipe_draft.title);
     setStepRecipeType(result.recipe_draft.recipe_type || 'warm_meal');
@@ -310,10 +369,18 @@ export default function RecipeWizard() {
       inputServings: result.recipe_draft.servings ?? 1,
       inputItemsAreContextual: false,
     });
-  }, [updateState]);
+    initializeReview(result);
+  }, [initializeReview, updateState]);
 
   const activeRecipeId = state.recipeId;
   const activeRecipeSlug = state.recipeSlug;
+  const stepLabels = hasReviewStep
+    ? [BASE_STEP_LABELS[0], BASE_STEP_LABELS[1], 'Zutaten prüfen', ...BASE_STEP_LABELS.slice(2)]
+    : BASE_STEP_LABELS;
+  const ingredientStep = hasReviewStep ? 3 : 2;
+  const materialsStep = ingredientStep + 1;
+  const methodStep = materialsStep + 1;
+  const previewStep = methodStep + 1;
 
   const stepComponents: Record<number, ReactNode> = {
     0: (
@@ -333,12 +400,14 @@ export default function RecipeWizard() {
         initialRecipeType={stepRecipeType}
         onTitleChange={setStepTitle}
         onRecipeTypeChange={setStepRecipeType}
-        onCreated={handleCreated}
-        existingRecipeId={state.recipeId}
-        existingRecipeSlug={state.recipeSlug}
+         onDraftChange={({ title, recipeType, servings }) => {
+           setStepTitle(title);
+           setStepRecipeType(recipeType);
+           updateState({ inputServings: servings });
+         }}
       />
     ),
-    2: (
+    2: hasReviewStep ? <RecipeIngredientReviewStep /> : (
       <WizardStepIngredients
         ref={ingredientsStepRef}
         recipeId={state.recipeId}
@@ -353,10 +422,26 @@ export default function RecipeWizard() {
         initialItemsAreContextual={state.inputItemsAreContextual}
       />
     ),
-    3: activeRecipeSlug ? (
+    3: hasReviewStep ? (
+      <WizardStepIngredients
+        ref={ingredientsStepRef}
+        recipeId={state.recipeId}
+        recipeSlug={state.recipeSlug ?? ''}
+        creationMethod={state.creationMethod}
+        onIngredientsCountChange={() => {}}
+        onTitleChange={setStepTitle}
+        onRecipeTypeChange={setStepRecipeType}
+        title={stepTitle}
+        recipeType={stepRecipeType}
+        initialInputPortions={state.inputServings}
+        initialItemsAreContextual={state.inputItemsAreContextual}
+      />
+    ) : activeRecipeSlug ? (
       <WizardStepMaterials recipeId={activeRecipeId ?? 0} />
     ) : null,
-    4: activeRecipeSlug ? (
+    4: hasReviewStep && activeRecipeSlug ? (
+      <WizardStepMaterials recipeId={activeRecipeId ?? 0} />
+    ) : activeRecipeSlug ? (
       <div className="space-y-6">
         <WizardStepMetadata
           recipeId={activeRecipeId ?? 0}
@@ -367,7 +452,26 @@ export default function RecipeWizard() {
         <WizardStepSteps ref={stepsStepRef} recipeSlug={activeRecipeSlug} />
       </div>
     ) : null,
-    5: activeRecipeSlug ? (
+    5: hasReviewStep && activeRecipeSlug ? (
+      <div className="space-y-6">
+        <WizardStepMetadata
+          recipeId={activeRecipeId ?? 0}
+          recipeSlug={activeRecipeSlug}
+          onDataChange={handleMetadataChange}
+          initialData={metadataRef.current ?? undefined}
+        />
+        <WizardStepSteps ref={stepsStepRef} recipeSlug={activeRecipeSlug} />
+      </div>
+    ) : activeRecipeSlug ? (
+      <WizardStepPreview
+        ref={previewStepRef}
+        recipeSlug={activeRecipeSlug}
+        onFinish={() => {
+          if (activeRecipeSlug) navigate(`/recipes/${activeRecipeSlug}`);
+        }}
+      />
+    ) : null,
+    6: hasReviewStep && activeRecipeSlug ? (
       <WizardStepPreview
         ref={previewStepRef}
         recipeSlug={activeRecipeSlug}
@@ -379,12 +483,12 @@ export default function RecipeWizard() {
   };
 
   const isFirst = state.currentStep === 0;
-  const isLast = state.currentStep === 5;
+  const isLast = state.currentStep === previewStep;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
       <div className="mb-8">
-        <StepIndicator currentStep={state.currentStep} />
+        <StepIndicator currentStep={state.currentStep} labels={stepLabels} />
       </div>
 
       <div className="min-h-[400px]">

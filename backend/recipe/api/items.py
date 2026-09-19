@@ -22,6 +22,12 @@ from recipe.schemas import (
     RecipeItemReplaceIn,
     RecipeItemUpdateIn,
 )
+from recipe.schemas.ingredient_review import (
+    IngredientReviewPreviewOut,
+    IngredientReviewRowOut,
+    ReviewPortionOut,
+    ReviewTechnicalDetailsOut,
+)
 from supply.models import Portion
 from supply.services.portion_resolution import resolve_trusted_weight
 
@@ -584,6 +590,63 @@ def ai_suggest_ingredients(request, recipe_id: int):
         ],
         "ai_interaction_id": interaction_id,
     }
+
+
+@router.post("/{recipe_id}/ai-suggest-ingredients-preview/", response=IngredientReviewPreviewOut)
+def ai_suggest_ingredients_preview(request, recipe_id: int):
+    """Return existing-recipe AI ingredient suggestions without applying them."""
+    _require_auth(request)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    from recipe.services.ai_ingredients_service import RecipeAiIngredientsService
+
+    results, interaction_id = RecipeAiIngredientsService().get_full_suggestions(recipe, user=request.user)
+    if results is None:
+        raise HttpError(503, "KI-Vorschläge konnten nicht generiert werden")
+    rows = []
+    for index, result in enumerate(results):
+        portion = None
+        if result.portion_id:
+            portion = ReviewPortionOut(
+                id=result.portion_id,
+                name=result.portion_name or "Portion",
+                quantity=1,
+                measuring_unit_id=result.measuring_unit_id,
+                measuring_unit_name=result.measuring_unit_name,
+            )
+        rows.append(
+            IngredientReviewRowOut(
+                key=f"existing-recipe-{recipe.id}-{index}",
+                source_text=result.ingredient_name,
+                selected_ingredient_id=result.ingredient_id,
+                selected_ingredient_name=result.ingredient_name,
+                suggested_ingredient_id=result.ingredient_id,
+                suggested_ingredient_name=result.ingredient_name,
+                selected_portion=portion,
+                suggested_portion=portion,
+                quantity=result.quantity,
+                suggested_quantity=result.quantity,
+                reason=result.note or "AI-Vorschlag für das bestehende Rezept.",
+                technical_details=ReviewTechnicalDetailsOut(method="recipe_ai_suggest", confidence=1.0),
+                new_ingredient_draft=None,
+                status="open" if portion else "unresolved",
+            )
+        )
+    return IngredientReviewPreviewOut(
+        rows=rows,
+        sources=[],
+        ai_interaction_id=interaction_id,
+        recipe_draft={
+            "title": recipe.title,
+            "description": recipe.description or "",
+            "summary": recipe.summary or "",
+            "servings": recipe.portions,
+            "recipe_type": recipe.recipe_type or "",
+            "steps": [],
+        },
+    )
 
 
 @router.post("/{recipe_id}/ai-apply-ingredients/", response=list[RecipeItemOut])

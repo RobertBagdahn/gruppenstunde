@@ -1,21 +1,16 @@
-import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useCallback, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { toast } from 'sonner';
-import { useCreateRecipe } from '@/api/recipes';
-import { useConfirmPortion } from '@/api/supplies';
-import type { RecipeImportUrlResponse } from '@/api/recipeImport';
+import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 import RecipeServingContextSelector from './RecipeServingContextSelector';
-import { toBasePerServing } from '@/lib/cookingQuantityScale';
 
 interface WizardStepBasisProps {
-  result: RecipeImportUrlResponse | null;
+  result: IngredientReviewPreview | null;
   initialTitle: string;
   initialRecipeType: string | null;
   onTitleChange: (title: string) => void;
   onRecipeTypeChange: (type: string | null) => void;
-  onCreated: (recipeId: number, recipeSlug: string, inputServings: number) => void;
-  existingRecipeId: number | null;
-  existingRecipeSlug: string | null;
+  onDraftChange: (draft: { title: string; recipeType: string; servings: number }) => void;
 }
 
 export interface WizardStepBasisHandle {
@@ -28,19 +23,11 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
   initialRecipeType,
   onTitleChange,
   onRecipeTypeChange,
-  onCreated,
-  existingRecipeId,
-  existingRecipeSlug,
+  onDraftChange,
 }, ref) {
-  const createRecipe = useCreateRecipe();
-  const confirmPortion = useConfirmPortion();
   const [title, setTitle] = useState(initialTitle || result?.recipe_draft.title || '');
   const [recipeType, setRecipeType] = useState(initialRecipeType || result?.recipe_draft.recipe_type || 'warm_meal');
   const [servings, setServings] = useState(result?.recipe_draft.servings ?? 1);
-  const [selectedPortions, setSelectedPortions] = useState<Record<number, number>>({});
-  const createdRef = useRef<{ id: number; slug: string } | null>(
-    existingRecipeId && existingRecipeSlug ? { id: existingRecipeId, slug: existingRecipeSlug } : null,
-  );
   const [servingsConfirmed, setServingsConfirmed] = useState(false);
 
   useEffect(() => {
@@ -68,10 +55,6 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
       toast.error('Die KI-Analyse ist noch nicht abgeschlossen.');
       return false;
     }
-    if (createdRef.current) {
-      onCreated(createdRef.current.id, createdRef.current.slug, servings);
-      return true;
-    }
     if (!title.trim()) {
       toast.error('Bitte gib einen Titel ein.');
       return false;
@@ -89,74 +72,9 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
       return false;
     }
 
-    const unresolved = result.recipe_items
-      .map((item, index) => ({ item, index }))
-      .filter(({ item, index }) => item.needs_unit_clarification && !selectedPortions[index] && !item.confirmation_required);
-    if (unresolved.length > 0) {
-      toast.error('Bitte wähle für alle markierten Zutaten eine Einheit.');
-      return false;
-    }
-
-    try {
-      const resolvedPortions: Record<number, number> = { ...selectedPortions };
-      for (const [index, item] of result.recipe_items.entries()) {
-        if (!item.confirmation_required || resolvedPortions[index]) continue;
-        if (!item.ingredient_slug || !item.suggested_portion_name || item.weight_proposal_g == null) {
-          throw new Error(`Für ${item.ingredient_name} fehlt eine bestätigte Portion.`);
-        }
-        const portion = await confirmPortion.mutateAsync({
-          slug: item.ingredient_slug,
-          data: {
-            name: item.suggested_portion_name,
-            weight_g: item.weight_proposal_g,
-            quantity: 1,
-            existing_portion_id: null,
-          },
-        });
-        resolvedPortions[index] = portion.id;
-      }
-
-      const recipe = await createRecipe.mutateAsync({
-        title: title.trim(),
-        description: result.recipe_draft.description,
-        summary: result.recipe_draft.summary,
-        recipe_type: recipeType,
-        portions: 1,
-        difficulty: result.recipe_draft.difficulty || 'easy',
-        execution_time: result.recipe_draft.execution_time_choice || 'less_30',
-        preparation_time: result.recipe_draft.preparation_time_choice || 'none',
-        source_url: result.recipe_draft.source_url,
-        image_url: result.recipe_draft.image_url,
-        scout_level_ids: result.recipe_draft.scout_level_ids,
-        tag_ids: result.recipe_draft.tag_ids,
-        recipe_items: result.recipe_items.map((item, index) => ({
-          portion_id: item.needs_unit_clarification
-            ? resolvedPortions[index]
-            : item.portion_id,
-          quantity: toBasePerServing(item.quantity, servings),
-          sort_order: index,
-          note: item.note,
-          is_optional: false,
-        })),
-        steps: result.recipe_draft.steps.map((instruction, index) => ({
-          sort_order: index,
-          instruction,
-          duration_minutes: null,
-          section: '',
-          step_ingredients: [],
-        })),
-      });
-      createdRef.current = { id: recipe.id, slug: recipe.slug };
-      onCreated(recipe.id, recipe.slug, servings);
-      toast.success('Rezeptdaten übernommen.');
-      return true;
-    } catch (error) {
-      toast.error('Rezept konnte nicht angelegt werden', {
-        description: error instanceof Error ? error.message : 'Unbekannter Fehler',
-      });
-      return false;
-    }
-  }, [confirmPortion, createRecipe, onCreated, result, selectedPortions, servings, servingsConfirmed, title, recipeType]);
+    onDraftChange({ title: title.trim(), recipeType, servings });
+    return true;
+  }, [onDraftChange, result, servings, servingsConfirmed, title, recipeType]);
 
   useImperativeHandle(ref, () => ({ save }), [save]);
 
@@ -172,12 +90,6 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
           Prüfe Titel, Rezeptart und die Originalportionen. Inspi normiert die Mengen beim Speichern intern auf eine Portion.
         </p>
       </div>
-
-      {result.is_reconstructed && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950" role="status">
-          Die Seite war nicht direkt abrufbar. Die KI hat die Angaben über die Websuche rekonstruiert. Bitte prüfe sie sorgfältig.
-        </div>
-      )}
 
       <div className="space-y-4 rounded-xl border bg-card p-4 sm:p-5">
         <div>
@@ -214,35 +126,6 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
         confirmLabel="Personenzahl geprüft"
       />
 
-      {result.recipe_items.some((item) => item.needs_unit_clarification) && (
-        <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
-          <div>
-            <h3 className="text-sm font-semibold text-amber-950">Einheiten prüfen</h3>
-            <p className="mt-1 text-sm text-amber-900">
-              Für diese Zutaten wurde keine sichere Einheit erkannt. Ohne Auswahl würde die Menge fälschlich als Gramm gespeichert.
-            </p>
-          </div>
-          {result.recipe_items.map((item, index) => item.needs_unit_clarification && (
-            <label key={`${item.ingredient_id}-${index}`} className="flex flex-col gap-1 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between">
-              <span>{item.quantity} {item.ingredient_name}</span>
-              <select
-                value={selectedPortions[index] ?? ''}
-                onChange={(event) => setSelectedPortions((current) => ({ ...current, [index]: Number(event.target.value) }))}
-                className="rounded-md border border-amber-300 bg-white px-2 py-1.5"
-                data-testid={`recipe-unit-review-${index}`}
-              >
-                 <option value="">Einheit auswählen</option>
-                 {item.available_portions.map((portion) => (
-                   <option key={portion.id} value={portion.id}>{portion.name}</option>
-                 ))}
-                 {item.confirmation_required && item.weight_proposal_g != null && item.suggested_portion_name && (
-                   <option value="">Neuen Vorschlag bestätigen: {item.suggested_portion_name} ({item.weight_proposal_g} g)</option>
-                 )}
-              </select>
-            </label>
-          ))}
-        </div>
-      )}
     </div>
   );
 });

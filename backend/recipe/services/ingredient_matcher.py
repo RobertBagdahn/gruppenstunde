@@ -61,6 +61,8 @@ class MatchResult(BaseModel):
     is_new: bool = False
     needs_review: bool = False
     candidates: list[MatchCandidate] = []
+    reason: str = ""
+    technical_details: dict[str, Any] = {}
 
     # Replacement context — set when the matched ingredient is the concrete
     # target of an active generic-to-concrete mapping whose source ingredient
@@ -202,6 +204,8 @@ class IngredientMatcher:
                     confidence=1.0,
                     matched_via="jaccard",
                     note=note,
+                    reason="Der Zutatenname entspricht genau einer vorhandenen Zutat.",
+                    technical_details={"stage": "jaccard", "comparison": "exact_name"},
                 )
 
         from supply.models import IngredientAlias
@@ -226,6 +230,8 @@ class IngredientMatcher:
                 confidence=1.0,
                 matched_via="jaccard",
                 note=note,
+                reason="Ein vorhandener Alias entspricht dem eingegebenen Zutatenname.",
+                technical_details={"stage": "jaccard", "comparison": "alias"},
             )
 
         results: list[MatchCandidate] = []
@@ -243,6 +249,8 @@ class IngredientMatcher:
                     confidence=1.0,
                     matched_via="jaccard",
                     note=note,
+                    reason="Die Wörter des Zutatenname passen vollständig zu einer vorhandenen Zutat.",
+                    technical_details={"stage": "jaccard", "score": score},
                 )
             if score >= GREY_ZONE_MIN:
                 results.append(MatchCandidate(id=cand["id"], name=cand["name"], confidence=score))
@@ -267,6 +275,8 @@ class IngredientMatcher:
                 candidates=results[:5],
                 matched_via="jaccard",
                 confidence=best.confidence,
+                reason="Mehrere Zutaten sind ähnlich wahrscheinlich und müssen geprüft werden.",
+                technical_details={"stage": "jaccard", "score": best.confidence},
             )
 
         if best.confidence >= JACCARD_THRESHOLD:
@@ -276,6 +286,8 @@ class IngredientMatcher:
                 confidence=best.confidence,
                 matched_via="jaccard",
                 note=note,
+                reason="Die Wörter des Namens passen ausreichend zu einer vorhandenen Zutat.",
+                technical_details={"stage": "jaccard", "score": best.confidence},
             )
 
         # Grey zone
@@ -287,6 +299,8 @@ class IngredientMatcher:
                 candidates=results[:5],
                 matched_via="jaccard",
                 confidence=best.confidence,
+                reason="Mehrere Zutaten sind ähnlich wahrscheinlich und müssen geprüft werden.",
+                technical_details={"stage": "fuzzy", "score": best.confidence},
             )
 
         return None
@@ -359,6 +373,8 @@ class IngredientMatcher:
                 candidates=results[:5],
                 matched_via="fuzzy",
                 confidence=best.confidence,
+                reason="Der Name ähnelt einer vorhandenen Zutat ausreichend stark.",
+                technical_details={"stage": "fuzzy", "score": best.confidence},
             )
 
         if best.confidence >= FUZZY_THRESHOLD:
@@ -378,6 +394,8 @@ class IngredientMatcher:
                 candidates=results[:5],
                 matched_via="fuzzy",
                 confidence=best.confidence,
+                reason="Die semantische Ähnlichkeit zu einer vorhandenen Zutat ist ausreichend hoch.",
+                technical_details={"stage": "embedding", "score": best.confidence},
             )
 
         return None
@@ -432,6 +450,8 @@ class IngredientMatcher:
                 candidates=similar[:5],
                 matched_via="embed",
                 confidence=best.confidence,
+                reason="Die semantische Ähnlichkeit ist nicht eindeutig und muss geprüft werden.",
+                technical_details={"stage": "embedding", "score": best.confidence},
             )
 
         return None
@@ -449,6 +469,8 @@ class IngredientMatcher:
             candidates=[],
             matched_via="new",
             confidence=0.0,
+            reason="Es wurde keine passende bestehende Zutat gefunden.",
+            technical_details={"stage": "human_review"},
         )
 
     # -------------------------------------------------------------------

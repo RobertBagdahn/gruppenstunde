@@ -1,7 +1,9 @@
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { useRecipeSmartInput, type RecipeImportUrlResponse } from '@/api/recipeImport';
+import { useRecipeIngredientReviewPreview } from '@/api/recipeImport';
+import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
+import type { RecipeImportSource } from '@/schemas/ingredientReview';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 
 export type CreationMethod = 'manual' | 'ai' | 'url' | 'smart' | null;
@@ -17,7 +19,7 @@ export interface WizardState {
 interface WizardStepMethodProps {
   state: WizardState;
   updateState: (patch: Partial<WizardState>) => void;
-  onSmartResult: (result: RecipeImportUrlResponse) => void;
+  onSmartResult: (result: IngredientReviewPreview) => void;
   initialInput?: string;
 }
 
@@ -32,8 +34,9 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
   initialInput = '',
 }, ref) {
   const [input, setInput] = useState(initialInput);
+  const [sources, setSources] = useState<RecipeImportSource[]>([]);
   const hasResultRef = useRef(false);
-  const smartInput = useRecipeSmartInput();
+  const smartInput = useRecipeIngredientReviewPreview();
 
   const analyze = useCallback(async (): Promise<boolean> => {
     const value = input.trim();
@@ -42,7 +45,9 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
       return false;
     }
     try {
-      const result = await smartInput.mutateAsync(value);
+      const sourceType: RecipeImportSource['type'] = /^https?:\/\//i.test(value) ? 'url' : 'text';
+      const nextSources = sources.length > 0 ? sources : [{ type: sourceType, value }];
+      const result = await smartInput.mutateAsync(nextSources);
       updateState({ creationMethod: 'smart' });
       onSmartResult(result);
       hasResultRef.current = true;
@@ -53,7 +58,7 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
       });
       return false;
     }
-  }, [input, smartInput, updateState, onSmartResult]);
+  }, [input, onSmartResult, sources, smartInput, updateState]);
 
   useImperativeHandle(ref, () => ({
     primaryAction: async () => {
@@ -91,6 +96,33 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
           className="w-full resize-y rounded-lg border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
           data-testid="recipe-smart-input"
         />
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const value = input.trim();
+              if (!value) return;
+              const type = /^https?:\/\//i.test(value) ? 'url' : 'text';
+              setSources((current) => [...current, { type, value }]);
+              setInput('');
+              hasResultRef.current = false;
+            }}
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-muted"
+          >
+            Quelle hinzufügen
+          </button>
+          {sources.map((source, index) => (
+            <button
+              key={`${source.type}-${index}`}
+              type="button"
+              onClick={() => setSources((current) => current.filter((_, sourceIndex) => sourceIndex !== index))}
+              className="max-w-full truncate rounded-full bg-muted px-3 py-1.5 text-xs text-muted-foreground"
+              title="Quelle entfernen"
+            >
+              {source.type === 'url' ? source.value : 'Eingefügter Text'} ×
+            </button>
+          ))}
+        </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
           Bei blockierten Webseiten versucht die KI, das Rezept über die Websuche zu rekonstruieren. Prüfe die Angaben danach trotzdem.
         </p>

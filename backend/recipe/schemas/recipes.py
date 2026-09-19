@@ -12,6 +12,7 @@ from content.base_schemas import (
     ContentUpdateIn,
 )
 
+from .ingredient_review import IngredientReviewRowIn
 from .items import RecipeItemCreateIn, RecipeItemOut
 from .materials import RecipeMaterialOut
 from .steps import RecipeStepIn, RecipeStepOut
@@ -390,6 +391,7 @@ class RecipeCreateIn(ContentCreateIn):
     source_url: str = ""
     image_url: str = ""
     idempotency_key: str | None = None
+    ingredient_review_rows: list[IngredientReviewRowIn] | None = None
     # Ownership & Sharing (for breakfast wizard)
     shared_group_ids: list[int] = []
     visibility: str = "private"  # accepted from frontend but always forced to "private" on backend

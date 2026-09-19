@@ -1,0 +1,39 @@
+import { describe, expect, it } from 'vitest';
+import { useRecipeIngredientReviewStore } from './useRecipeIngredientReviewStore';
+import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
+
+const preview: IngredientReviewPreview = {
+  recipe_draft: {
+    title: 'Test', description: '', summary: '', servings: 2, preparation_time: null,
+    execution_time: null, recipe_type: 'warm_meal', difficulty: 'easy',
+    execution_time_choice: 'less_30', preparation_time_choice: 'none',
+    scout_level_ids: [], tag_ids: [], steps: [], source_url: '', image_url: '',
+  },
+  sources: [],
+  ai_interaction_id: null,
+  rows: [{
+    key: 'one', source_text: '1 Apfel', sources: [], selected_ingredient_id: 1,
+    selected_ingredient_slug: 'apfel', selected_ingredient_name: 'Apfel',
+    suggested_ingredient_id: 1, suggested_ingredient_name: 'Apfel', candidates: [],
+    selected_portion: { id: 2, name: 'Stück', quantity: 1, weight_g: 120, measuring_unit_id: 1, measuring_unit_name: 'Stück', is_new: false },
+    suggested_portion: null, quantity: 1, suggested_quantity: 1, reason: 'Exakt',
+    technical_details: null, conflicts: [], new_ingredient_draft: null, status: 'open',
+  }],
+};
+
+describe('useRecipeIngredientReviewStore', () => {
+  it('requires explicit confirmation before finalization', () => {
+    const store = useRecipeIngredientReviewStore.getState();
+    store.initialize(preview);
+    expect(store.getFinalizedRows()).toBeNull();
+    store.confirmRow('one');
+    expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()).toHaveLength(1);
+  });
+
+  it('bulk confirms complete rows but leaves incomplete rows open', () => {
+    const store = useRecipeIngredientReviewStore.getState();
+    store.initialize(preview);
+    store.confirmCompleteRows();
+    expect(useRecipeIngredientReviewStore.getState().rows[0].status).toBe('confirmed');
+  });
+});
