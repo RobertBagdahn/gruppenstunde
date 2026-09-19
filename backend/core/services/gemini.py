@@ -416,13 +416,38 @@ def _execute_gemini_call(
 
 
 def _structured_schema(config):
-    """Return the Pydantic schema configured for a structured response, if any."""
-    return getattr(config, "response_schema", None) if config is not None else None
+    """Return the schema configured for a structured response, if any."""
+    if config is None:
+        return None
+    return getattr(config, "response_schema", None) or getattr(config, "response_json_schema", None)
 
 
-def _validate_structured_response(response, config) -> None:
+def _add_property_ordering(schema):
+    """Add Gemini's supported property ordering to every object schema."""
+    if isinstance(schema, list):
+        return [_add_property_ordering(value) for value in schema]
+    if not isinstance(schema, dict):
+        return schema
+
+    normalized = {key: _add_property_ordering(value) for key, value in schema.items()}
+    properties = normalized.get("properties")
+    if isinstance(properties, dict):
+        normalized["propertyOrdering"] = list(properties)
+    return normalized
+
+
+def _apply_structured_output_rules(config):
+    """Apply Gemini's documented JSON-schema rules to a Pydantic response."""
+    schema = getattr(config, "response_schema", None)
+    if schema is None or not hasattr(schema, "model_json_schema"):
+        return config
+
+    json_schema = _add_property_ordering(schema.model_json_schema())
+    return config.model_copy(update={"response_schema": None, "response_json_schema": json_schema})
+
+
+def _validate_structured_response(response, schema) -> None:
     """Reject empty or schema-invalid structured responses before returning them."""
-    schema = _structured_schema(config)
     if schema is None:
         return
     text = (response.text or "").strip() if response is not None else ""
@@ -506,6 +531,7 @@ def gemini_call(
         config = types.GenerateContentConfig(http_options=http_options)
 
     structured_schema = _structured_schema(config)
+    config = _apply_structured_output_rules(config)
     current_contents = contents
     last_error: Exception | None = None
     max_attempts = STRUCTURED_MAX_ATTEMPTS if structured_schema is not None else 1
@@ -522,7 +548,7 @@ def gemini_call(
         if structured_schema is None:
             return response, returned_interaction_id
         try:
-            _validate_structured_response(response, config)
+            _validate_structured_response(response, structured_schema)
             if structured_schema is not None:
                 _update_interaction(interaction, structured_attempts=attempt + 1)
             return response, returned_interaction_id

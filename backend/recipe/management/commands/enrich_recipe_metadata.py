@@ -12,9 +12,10 @@ Usage:
 
 import json
 import time
-from typing import cast
+from typing import Literal
 
 from django.core.management.base import BaseCommand
+from pydantic import BaseModel, RootModel
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 
@@ -24,7 +25,18 @@ SYSTEM_PROMPT = """Du bist ein Koch-Experte. Schätze für jedes Rezept die folg
 - execution_time: "less_30", "30_60", "60_90" oder "more_90" (Kochzeit in Minuten)
 - preparation_time: "none", "less_15", "15_30", "30_60" oder "more_60" (Vorbereitungszeit)
 Antworte NUR mit einem JSON-Array. Jedes Element hat "id" (die Recipe-ID) und die 3 Felder.
-Keine Erklärungen, kein Markdown-Block."""
+Jedes Eingabe-Rezept muss genau einmal im Ergebnis vorkommen. Keine Erklärungen, kein Markdown-Block."""
+
+
+class RecipeMetadataItem(BaseModel):
+    id: int
+    difficulty: Literal["easy", "medium", "hard"]
+    execution_time: Literal["less_30", "30_60", "60_90", "more_90"]
+    preparation_time: Literal["none", "less_15", "15_30", "30_60", "more_60"]
+
+
+class RecipeMetadataBatch(RootModel[list[RecipeMetadataItem]]):
+    """Structured metadata response for one recipe batch."""
 
 
 class Command(BaseCommand):
@@ -116,6 +128,7 @@ class Command(BaseCommand):
 
         config = types.GenerateContentConfig(
             response_mime_type="application/json",
+            response_schema=RecipeMetadataBatch,
             temperature=0.1,
         )
 
@@ -132,7 +145,8 @@ class Command(BaseCommand):
             return []
 
         try:
-            return cast(list[dict], json.loads(response.text))
-        except json.JSONDecodeError:
+            result = RecipeMetadataBatch.model_validate_json(response.text)
+            return [item.model_dump() for item in result.root]
+        except (json.JSONDecodeError, ValueError):
             self.stderr.write(self.style.WARNING(f"  Invalid JSON from AI: {response.text[:200]}"))
             return []

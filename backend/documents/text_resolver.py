@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 
+from pydantic import BaseModel, Field
 from schema import EventConfig, RegistrationConfig
 
 GERMAN_WEEKDAYS = {
@@ -169,9 +170,13 @@ def generate_ai_text(
 ) -> str:
     """Generate text using Google Gemini AI."""
     try:
+        from google.genai import types
         from ninja.errors import HttpError
 
         from core.services.gemini import gemini_call
+
+        class GeneratedTextOutput(BaseModel):
+            text: str = Field(min_length=1, description="Erzeugter deutscher Fließtext ohne Markdown")
 
         block_labels = {
             "greeting": "Begrüßungstext",
@@ -191,19 +196,25 @@ Datum: {context["formatted_date_range"]}
 Teilnehmer: {config.participants.type}{theme_line}
 
 Schreibe 3-5 Sätze. Sachlich, freundlich, an Eltern und Pfadfinder gerichtet.
-Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
+Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext.
+Antworte ausschließlich als JSON-Objekt mit dem erforderlichen Feld "text"."""
 
         response, _interaction_id = gemini_call(
             user=None,
             model="gemini-3.1-flash-lite",
             contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=GeneratedTextOutput,
+            ),
             bypass_limits=True,
             is_background=True,
             context="document_text_generation",
         )
         if response is None:
             raise ValueError("KI-Client nicht verfügbar")
-        text = response.text.strip() if response.text else ""
+        result = GeneratedTextOutput.model_validate_json(response.text or "")
+        text = result.text.strip()
         if not text:
             raise ValueError("KI hat leere Antwort generiert")
         return text

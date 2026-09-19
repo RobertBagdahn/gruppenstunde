@@ -176,6 +176,9 @@ class TestErrorHandling:
 
         assert response.text == '{"name":"Apfel"}'
         assert mock_client.models.generate_content.call_count == 2
+        first_config = mock_client.models.generate_content.call_args_list[0].kwargs["config"]
+        assert first_config.response_schema is None
+        assert first_config.response_json_schema["propertyOrdering"] == ["name"]
         retry_prompt = mock_client.models.generate_content.call_args_list[1].kwargs["contents"]
         assert "KORREKTUR" in retry_prompt
         from content.models import AiInteraction

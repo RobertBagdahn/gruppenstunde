@@ -616,7 +616,7 @@ class RecipeQuantityEstimationService:
                 name = item.portion.ingredient.name
             else:
                 name = f"Item {item.id}"
-            item_lines.append(f"  - id={item.id}: {name}")
+            item_lines.append(f"  - id={item.id}: {name} (aktuelle Menge: {item.quantity})")
 
         items_str = "\n".join(item_lines)
         servings = recipe.portions or 1
@@ -627,6 +627,9 @@ class RecipeQuantityEstimationService:
             f"{f'Beschreibung: {recipe.description}' if recipe.description else ''}\n\n"
             f"Folgende Zutaten sind bereits im Rezept:\n{items_str}\n\n"
             "Schätze für JEDE Zutat eine realistische Menge in Gramm für EINE Person.\n"
+            "Gib für JEDE aufgeführte item_id genau einen Eintrag zurück. Das gilt auch für "
+            "Zutaten mit aktueller Menge 0; 0 bedeutet nicht, dass die Zutat ignoriert werden soll, "
+            "sondern dass eine neue realistische Menge vorgeschlagen werden muss.\n"
             "Orientierung:\n"
             "- Sättigungsbeilagen (Nudeln, Reis, Kartoffeln): 100-200g\n"
             "- Gemüse/Obst: 80-200g\n"
@@ -637,7 +640,7 @@ class RecipeQuantityEstimationService:
             "- Gewürze/Kräuter: 1-5g\n"
             "- Öle/Butter: 5-15g\n"
             "- Flüssigkeiten (Milch, Brühe): 100-250ml\n\n"
-            "Gib die item_id und estimated_grams_per_person für jedes Item zurück."
+            "Gib ausschließlich die item_id und estimated_grams_per_person für jedes Item zurück."
         )
 
     # -------------------------------------------------------------------

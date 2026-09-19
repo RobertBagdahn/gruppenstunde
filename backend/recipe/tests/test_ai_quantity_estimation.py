@@ -1,5 +1,7 @@
 """Tests for AI quantity estimation response conversion."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from recipe.services.ai_ingredients_service import (
@@ -13,6 +15,26 @@ from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 @pytest.mark.django_db
 class TestRecipeQuantityEstimationService:
+    def test_estimate_prompt_requires_suggestions_for_zero_quantity_items(self):
+        recipe = make_recipe(title="Kartoffelsalat", portions=1)
+        ingredient = make_ingredient(name="Rohe Kartoffeln")
+        gram_unit = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
+        portion = make_portion(
+            ingredient=ingredient,
+            measuring_unit=gram_unit,
+            name="Gramm",
+            quantity=1.0,
+            weight_g=1.0,
+            rank=1,
+        )
+        item = SimpleNamespace(id=123, portion=portion, quantity=0)
+
+        prompt = RecipeQuantityEstimationService()._build_estimate_prompt(recipe, [item])
+
+        assert f"id={item.id}: Rohe Kartoffeln" in prompt
+        assert "aktuelle Menge: 0" in prompt
+        assert "auch für Zutaten mit aktueller Menge 0" in prompt
+
     def test_build_response_uses_default_editable_portion(self):
         recipe = make_recipe(title="Frühstück", portions=1)
         ingredient = make_ingredient(name="Haferflocken")
