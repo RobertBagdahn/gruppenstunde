@@ -214,6 +214,11 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     data = payload.dict(exclude_unset=True)
     expected_grams_total = data.pop("expected_grams_total", None)
 
+    # PATCH clients may send null for fields that are not being changed. The
+    # database column is non-nullable, so treat a null quantity as omitted.
+    if data.get("quantity") is None:
+        data.pop("quantity", None)
+
     # Determine resulting optional/exchange state to validate mutual exclusion.
     result_is_optional = data.get("is_optional", item.is_optional)
     result_exchange_group = data["exchange_group_id"] if "exchange_group_id" in data else item.exchange_group_id

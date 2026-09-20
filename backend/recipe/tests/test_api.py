@@ -748,6 +748,23 @@ class TestRecipeItems:
         assert resp.status_code == 200
         assert RecipeItem.objects.filter(id=item.id).count() == 0
 
+    def test_update_item_with_null_quantity_keeps_existing_quantity(self, auth_client, db, portion):
+        user = auth_client._user
+        recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, created_by=user)
+        recipe.authors.add(user)
+        item = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=100, sort_order=0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/recipe-items/{item.id}/",
+            data=json.dumps({"quantity": None, "note": "Geändert"}),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 200
+        item.refresh_from_db()
+        assert item.quantity == 100
+        assert item.note == "Geändert"
+
 
 # ---------------------------------------------------------------------------
 # Image Upload

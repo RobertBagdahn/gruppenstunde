@@ -146,6 +146,16 @@ export const BASE_METRIC_UNIT_NAMES = new Set(['Gramm', 'g', 'kg', 'Kilogramm', 
 
 type EditablePortion = EditableItem['ingredient_portions'][number];
 
+/** Keep portion choices distinct and make missing piece weights actionable. */
+export function formatPortionOptionLabel(portion: EditablePortion): string {
+  const unitName = portion.measuring_unit_name || portion.name;
+  const portionName = portion.quantity !== 1 ? portion.name : unitName;
+  const weight = portion.weight_g && portion.weight_g > 0
+    ? ` (${formatGramsShort(portion.weight_g)})`
+    : ' (Gewicht fehlt)';
+  return `${portionName}${weight}`;
+}
+
 /** A portion is entered directly in a metric unit only when it is not a
  * pre-scaled/composite portion. For example, "1 Portion trocken" uses the
  * underlying unit "Gramm", but the editor quantity is a portion count. */
@@ -429,10 +439,15 @@ function IngredientRow({
           className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
         >
           {item.ingredient_portions.map((p) => {
-            // Use the same composite-portion label rule: if portion.quantity !== 1, show portion name
-            const optionLabel = p.quantity !== 1 ? p.name : (p.measuring_unit_name || p.name);
+            const optionLabel = formatPortionOptionLabel(p);
+            const normalizedPortionName = p.name.toLowerCase();
+            const normalizedUnitName = (p.measuring_unit_name || '').toLowerCase();
+            const isPieceLike = normalizedUnitName === 'stück'
+              || normalizedUnitName === 'stk.'
+              || normalizedPortionName.includes('stück');
+            const isUnusablePiece = isPieceLike && (!p.weight_g || p.weight_g <= 0);
             return (
-              <option key={p.id} value={p.id}>
+              <option key={p.id} value={p.id} disabled={isUnusablePiece && p.name.toLowerCase().includes('stück')}>
                 {optionLabel}
               </option>
             );
