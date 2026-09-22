@@ -45,7 +45,7 @@ class TestGenerateStepsFromItems(TestCase):
         # Mock Gemini response
         mock_response = MagicMock()
         mock_response.text = f"""
-        [
+        {{"steps": [
             {{
                 "sort_order": 1,
                 "instruction": "Mix {{Flour}} with {{Water}}",
@@ -56,7 +56,7 @@ class TestGenerateStepsFromItems(TestCase):
                     {{"recipe_item_id": {self.water_item.id}, "quantity_modifier": 1.0, "preparation": "", "sort_order": 2}}
                 ]
             }}
-        ]
+        ]}}
         """
         mock_gemini.return_value = (mock_response, "interaction-id")
 
@@ -217,7 +217,7 @@ class TestConvertMarkdownToSteps(TestCase):
         """Test successful markdown conversion."""
         mock_response = MagicMock()
         mock_response.text = """
-        [
+        {"steps": [
             {
                 "sort_order": 1,
                 "instruction": "Mix ingredients",
@@ -225,7 +225,7 @@ class TestConvertMarkdownToSteps(TestCase):
                 "section": "",
                 "step_ingredients": []
             }
-        ]
+        ]}
         """
         mock_gemini.return_value = (mock_response, "interaction-id")
 
