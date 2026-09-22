@@ -64,3 +64,23 @@ Die AI-Zutaten-Vorschläge SHALL keine Zutaten vorschlagen die bereits im Rezept
 - **THEN** erscheint „Nudeln" in den Vorschlägen als neuer (anderer) Begriff
 - **WHEN** ein Rezept „Nudeln" enthält (generisch)
 - **THEN** erscheinen spezifische Formen wie „Fusilli trocken" weiterhin als Vorschlag
+
+### Requirement: „Weitere Zutaten" ergänzen ein bestehendes Rezept
+
+Enthält ein Rezept bereits Zutaten, SHALL der Prompt für „Weitere Zutaten" die vorhandenen Zutaten, Kurzbeschreibung, Beschreibung und Zubereitungsschritte als Kontext enthalten und ausschließlich neue, ergänzende Zutaten anfordern (z.B. weiteres Gemüse, Kräuter, Gewürze, Toppings). Zusätzlich SHALL das Backend Vorschläge deterministisch herausfiltern, die eine vorhandene Zutat in anderer Form, Sorte oder als Kompositum-Kopf wiederholen, sowie Wasser jeder Art.
+
+#### Scenario: Varianten vorhandener Zutaten werden ausgeschlossen
+
+- **WHEN** ein Rezept „Langkornreis trocken", „Speisezwiebel frisch", „Olivenöl" und „Jodsalz" enthält
+- **THEN** erscheinen „Reis trocken", „Zwiebel frisch", „Rapsöl" und „Meersalz" NICHT in den Vorschlägen
+- **THEN** dürfen „Zucchini frisch" und „Schwarzer Pfeffer gemahlen" vorgeschlagen werden
+
+#### Scenario: Kein Wasser als Ergänzung
+
+- **WHEN** ein Rezept bereits Zutaten enthält
+- **THEN** erscheinen „Leitungswasser" oder „Trinkwasser aus der Leitung" NICHT in den Vorschlägen
+
+#### Scenario: Leeres Rezept
+
+- **WHEN** ein Rezept noch keine Zutaten enthält
+- **THEN** fordert der Prompt weiterhin eine vollständige Zutatenliste an

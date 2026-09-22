@@ -7,6 +7,7 @@ and estimates realistic quantities per person.
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AbstractBaseUser
@@ -15,6 +16,7 @@ from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
 from core.services.gemini import gemini_call
+from supply.services.term_normalization import normalize_term
 
 if TYPE_CHECKING:
     from recipe.models import Recipe
@@ -22,6 +24,64 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
+
+
+# ---------------------------------------------------------------------------
+# Duplicate / trivial detection for "weitere Zutaten" suggestions
+# ---------------------------------------------------------------------------
+
+# Words describing state, colour, size or packaging — not the ingredient itself.
+_DESCRIPTOR_WORDS = {
+    "frisch", "tk", "tiefgekühlt", "trocken", "getrocknet", "geräuchert", "eingelegt",
+    "gemahlen", "gerieben", "geröstet", "gekocht", "roh", "ganz", "gehackt", "natur", "bio",
+    "aus", "der", "die", "das", "dem", "den", "dose", "glas", "und", "mit", "von", "vom",
+    "leitung", "fein", "grob", "klein", "kleine", "groß", "große", "mittel",
+    "rot", "rote", "roter", "gelb", "gelbe", "gelber", "grün", "grüne", "grüner",
+    "weiß", "weiße", "weißer", "schwarz", "schwarze", "schwarzer",
+}  # fmt: skip
+
+# Compound heads where any two variants count as the same ingredient
+# (a recipe rarely needs a second salt or a second cooking oil).
+_GROUP_HEADS = tuple(normalize_term(w) for w in ("salz", "öl"))
+
+_TRIVIAL_WORDS = {"wasser", "leitungswasser", "trinkwasser", "eiswürfel", "eis"}
+
+_UUID_PLACEHOLDER = re.compile(r"\{[0-9a-fA-F-]{32,36}\}")
+
+
+def _core_stems(name: str) -> set[str]:
+    """Stemmed core words of an ingredient name (descriptors removed)."""
+    words = re.findall(r"[a-zäöüß]+", name.lower())
+    return {normalize_term(w) for w in words if w not in _DESCRIPTOR_WORDS and len(w) >= 3}
+
+
+def is_duplicate_ingredient_name(name: str, existing_names: list[str]) -> bool:
+    """True if `name` denotes an ingredient that is already among `existing_names`.
+
+    Matches identical core words and German compound heads, so "Reis trocken"
+    counts as duplicate of "Langkornreis" and "Zwiebel frisch" of "Speisezwiebel".
+    Salt and oil variants are grouped ("Meersalz" vs. "Jodsalz").
+    """
+    stems = _core_stems(name)
+    if not stems:
+        return False
+    for existing in existing_names:
+        for a in stems:
+            for b in _core_stems(existing):
+                if a == b:
+                    return True
+                short, long_ = (a, b) if len(a) <= len(b) else (b, a)
+                if len(short) >= 4 and long_.endswith(short):
+                    return True
+                if any(a.endswith(head) and b.endswith(head) for head in _GROUP_HEADS):
+                    return True
+    return False
+
+
+def is_trivial_ingredient_name(name: str) -> bool:
+    """True for ingredients that add no value as a suggestion (e.g. tap water)."""
+    words = set(re.findall(r"[a-zäöüß]+", name.lower()))
+    return bool(words & _TRIVIAL_WORDS)
 
 
 # ---------------------------------------------------------------------------
@@ -342,17 +402,42 @@ class RecipeAiIngredientsService:
         matched = self.match_ingredients(ai_output.items, recipe=recipe, create_missing=False)
         results = self.assign_portions(matched, create_missing=False)
 
-        # Filter out ingredients already present in the recipe
-        from recipe.models import RecipeItem
-
-        existing_ingredient_ids = set(
-            RecipeItem.objects.filter(recipe=recipe)
-            .select_related("portion__ingredient")
-            .values_list("portion__ingredient_id", flat=True)
-        )
-        results = [r for r in results if r.ingredient_id not in existing_ingredient_ids]
+        # Filter out ingredients already present in the recipe (by id and by
+        # name/compound overlap, e.g. "Reis trocken" vs. "Langkornreis") as a
+        # safety net in case the model ignores the exclusion list in the prompt.
+        existing_ids, existing_names = self._existing_ingredients(recipe)
+        results = [
+            r
+            for r in results
+            if r.replacement_for_item_id is not None
+            or (
+                r.ingredient_id not in existing_ids
+                and not is_duplicate_ingredient_name(r.ingredient_name, existing_names)
+                and not (existing_names and is_trivial_ingredient_name(r.ingredient_name))
+            )
+        ]
 
         return results, interaction_id
+
+    @staticmethod
+    def _existing_ingredients(recipe: Recipe) -> tuple[set[int], list[str]]:
+        """Return (ingredient ids, ingredient names) already used in the recipe."""
+        from recipe.models import RecipeItem
+
+        rows = (
+            RecipeItem.objects.filter(recipe=recipe, portion__isnull=False)
+            .order_by("sort_order", "id")
+            .values_list("portion__ingredient_id", "portion__ingredient__name")
+        )
+        ids: set[int] = set()
+        names: list[str] = []
+        for ingredient_id, name in rows:
+            if ingredient_id is None or ingredient_id in ids:
+                continue
+            ids.add(ingredient_id)
+            if name:
+                names.append(name)
+        return ids, names
 
     def _build_suggest_prompt(self, recipe: Recipe, user: AbstractBaseUser | None = None) -> str:
         """Build prompt for ingredient suggestion."""
@@ -364,10 +449,68 @@ class RecipeAiIngredientsService:
         if recipe.recipe_type:
             parts.append(f" (Typ: {recipe.recipe_type})")
 
+        if recipe.summary:
+            parts.append(f"\nKurzbeschreibung: {recipe.summary}")
+
         if recipe.description:
             parts.append(f"\nBeschreibung: {recipe.description}")
 
-        parts.append(
+        steps = [
+            _UUID_PLACEHOLDER.sub("Zutat", step.instruction).strip()
+            for step in recipe.steps.order_by("sort_order", "id")
+            if step.instruction.strip()
+        ]
+        if steps:
+            parts.append("\nZubereitung:\n" + "\n".join(f"{i}. {step}" for i, step in enumerate(steps, 1)))
+
+        _, existing_names = self._existing_ingredients(recipe)
+        if existing_names:
+            parts.append(self._build_extend_instructions(existing_names))
+        else:
+            parts.append(self._build_full_list_instructions())
+
+        from core.services.prompt_context import build_prompt_context
+
+        context_block = build_prompt_context(user)
+        if context_block:
+            parts.append(f"\n\n{context_block}")
+
+        return "".join(parts)
+
+    @staticmethod
+    def _build_extend_instructions(existing_names: list[str]) -> str:
+        """Instructions for extending a recipe that already has ingredients."""
+        existing_list = "\n".join(f"- {name}" for name in existing_names)
+        return (
+            "\n\nDas Rezept enthält BEREITS diese Zutaten:\n"
+            f"{existing_list}\n\n"
+            "AUFGABE: Schlage ausschließlich NEUE, ergänzende Zutaten vor, die das Rezept "
+            "sinnvoll erweitern und geschmacklich abrunden. Passend zum Gericht sind z.B. "
+            "weitere Gemüsesorten, frische Kräuter, Gewürze, Aromaten (Knoblauch, Ingwer, Chili), "
+            "Säure (Zitrone, Essig), Toppings (Nüsse, Saaten, Käse) oder eine passende Proteinquelle.\n\n"
+            "STRENG VERBOTEN:\n"
+            "- Jede Zutat aus der obigen Liste erneut vorzuschlagen – auch nicht in anderer "
+            "Schreibweise, Sorte, Form oder als Ober-/Unterbegriff (ist 'Langkornreis' "
+            "vorhanden, KEIN 'Reis trocken'; ist 'Speisezwiebel' vorhanden, KEINE 'Zwiebel frisch'; "
+            "ist 'Jodsalz' vorhanden, KEIN weiteres Salz; ist ein Öl vorhanden, KEIN weiteres Bratöl)\n"
+            "- Wasser, Leitungswasser, Trinkwasser oder Eiswürfel\n"
+            "- Zutaten, die nicht zum Gericht passen\n\n"
+            "Schlage 3 bis 8 Zutaten vor, die wirklich einen Mehrwert bringen. Gib realistische "
+            "Gramm-Mengen für EINE Person an (Gemüse: 50-150g, Gewürze/Kräuter: 1-5g, "
+            "Toppings: 10-30g, Protein: 80-150g).\n\n"
+            "REGELN FÜR ZUTATENNAMEN:\n"
+            "- Jeder Name MUSS eine Zustandsform enthalten: frisch, TK, getrocknet, geräuchert, "
+            "aus der Dose, eingelegt, gemahlen, gerieben, geröstet\n"
+            "- Richtig: 'Paprika rot frisch', 'Knoblauch frisch', 'Schwarzer Pfeffer gemahlen'\n"
+            "- VERBOTEN: Zutaten mit 'und' im Namen (nie 'Salz und Pfeffer' — stattdessen zwei "
+            "getrennte Zutaten)\n"
+            "Gib nur die Zutaten zurück, keine Anleitung."
+        )
+
+    @staticmethod
+    def _build_full_list_instructions() -> str:
+        """Instructions for a recipe without any ingredients yet."""
+        return (
             "\n\nGib eine vollständige Zutatenliste mit realistischen Gramm-Mengen "
             "für EINE Person an. Orientierung:\n"
             "- Sättigungsbeilagen (Nudeln, Reis, Kartoffeln): 100-200g\n"
@@ -390,14 +533,6 @@ class RecipeAiIngredientsService:
             "Menge angeben: 'Jodsalz', 'Schwarzer Pfeffer gemahlen', 'Leitungswasser'\n"
             "Gib nur die Zutaten zurück, keine Anleitung."
         )
-
-        from core.services.prompt_context import build_prompt_context
-
-        context_block = build_prompt_context(user)
-        if context_block:
-            parts.append(f"\n\n{context_block}")
-
-        return "".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -534,7 +669,7 @@ class RecipeQuantityEstimationService:
                 # No active rank=1 portion exists for this ingredient (e.g. all
                 # candidates soft-deleted) — nothing safe to estimate against.
                 logger.warning(
-                    "AI quantity estimation: no active rank=1 portion for item %s " "(ingredient '%s') — skipping",
+                    "AI quantity estimation: no active rank=1 portion for item %s (ingredient '%s') — skipping",
                     item.id,
                     ingredient_name,
                 )
