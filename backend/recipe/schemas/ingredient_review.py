@@ -28,6 +28,7 @@ class ReviewSourceOut(BaseModel):
 class IngredientMatchCandidateOut(BaseModel):
     id: int
     name: str
+    slug: str = ""
     confidence: float = Field(ge=0, le=1)
 
 
@@ -55,6 +56,7 @@ class TemporaryIngredientDraftOut(BaseModel):
     status: str = "draft"
     values: dict[str, Any] = Field(default_factory=dict)
     portions: list[ReviewPortionOut] = Field(default_factory=list)
+    quantity: float | None = Field(default=None, gt=0, description="Suggested portion count from the import")
 
 
 class IngredientReviewRowOut(BaseModel):
@@ -87,6 +89,9 @@ class IngredientReviewPreviewOut(BaseModel):
     sources: list[ReviewSourceOut] = Field(default_factory=list)
     ai_interaction_id: str | None = None
     recipe_draft: RecipeDraftOut
+    # True when the page was unreachable and the data was reconstructed via
+    # search grounding. The UI must ask the user to verify it.
+    is_reconstructed: bool = False
 
 
 class IngredientReviewRowIn(BaseModel):

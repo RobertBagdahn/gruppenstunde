@@ -21,6 +21,7 @@ import { useUpdateIngredient } from '@/api/supplies';
 import { useCurrentUser } from '@/api/auth';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
+import PortionPicker from './PortionPicker';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { normalizeServingContext, scaleQuantity, toBasePerServing } from '@/lib/cookingQuantityScale';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
@@ -36,6 +37,7 @@ export interface EditableItem {
   portion_id: number | null;
   ingredient_id: number | null;
   ingredient_name: string;
+  ingredient_slug?: string | null;
   quantity: number;
   /** Raw input string while the user is typing — allows empty/partial input */
   quantityInput: string;
@@ -45,7 +47,7 @@ export interface EditableItem {
   is_optional: boolean;
   exchange_group_id: number | null;
   exchange_position: number | null;
-  ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number; is_weight_trusted?: boolean; weight_status?: string | null }[];
+  ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number; is_weight_trusted?: boolean; is_piece_like?: boolean | null; weight_status?: string | null }[];
   /** Backend-computed weight (grams) for `baseQuantity` — authoritative, unlike
    *  the client-side `ingredient_portions[].weight_g` lookup (which can be
    *  wrong/missing if `portion_id` doesn't match any listed portion). Used to
@@ -134,34 +136,38 @@ export interface InlineIngredientEditorHandle {
 /** Formats a gram value compactly for inline display next to a portion unit,
  *  e.g. "125g" or "1,3kg". Used in the AI-Mengenschätzung preview table so the
  *  gram equivalent is always visible regardless of the portion unit shown. */
-function formatGramsShort(grams: number): string {
-  if (!Number.isFinite(grams) || grams <= 0) return '0g';
-  if (grams >= 1000) {
-    return `${(grams / 1000).toFixed(1).replace('.', ',')}kg`;
-  }
-  return `${Math.round(grams * 10) / 10}g`;
-}
+import { formatGramsShort, formatPortionOptionLabel, isDirectMetricPortion } from '@/lib/portionLabels';
+export { formatGramsShort, formatPortionOptionLabel };
 
-export const BASE_METRIC_UNIT_NAMES = new Set(['Gramm', 'g', 'kg', 'Kilogramm', 'Milliliter', 'ml', 'Liter', 'l']);
+export { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
+import { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
 
 type EditablePortion = EditableItem['ingredient_portions'][number];
 
-/** Keep portion choices distinct and make missing piece weights actionable. */
-export function formatPortionOptionLabel(portion: EditablePortion): string {
-  const unitName = portion.measuring_unit_name || portion.name;
-  const portionName = portion.quantity !== 1 ? portion.name : unitName;
-  const weight = portion.weight_g && portion.weight_g > 0
-    ? ` (${formatGramsShort(portion.weight_g)})`
-    : ' (Gewicht fehlt)';
-  return `${portionName}${weight}`;
+/** Editor display label for a portion: direct metric portions show the
+ * measuring-unit name; piece-like, composite and pre-weighed portions
+ * ("kleine (50g)", "100g Reis") show their own name. */
+function portionDisplayLabel(
+  portion: { name: string; quantity: number; weight_g?: number | null; measuring_unit_name: string | null; is_piece_like?: boolean | null },
+  fallbackUnit = 'g',
+): string {
+  if (portion.is_piece_like) return portion.name;
+  if (portion.quantity !== 1) return portion.name;
+  if (BASE_METRIC_UNIT_NAMES.has(portion.measuring_unit_name ?? fallbackUnit) && !isDirectMetricPortion(portion, fallbackUnit)) {
+    return portion.name;
+  }
+  return portion.measuring_unit_name ?? fallbackUnit;
 }
 
-/** A portion is entered directly in a metric unit only when it is not a
- * pre-scaled/composite portion. For example, "1 Portion trocken" uses the
- * underlying unit "Gramm", but the editor quantity is a portion count. */
-function isDirectMetricPortion(portion: EditablePortion | undefined, fallbackUnit: string | null | undefined): boolean {
-  if (portion && portion.quantity !== 1) return false;
-  return BASE_METRIC_UNIT_NAMES.has(portion?.measuring_unit_name ?? fallbackUnit ?? 'g');
+/** The ingredient's gram fallback portion ('g', weight_g=1, backend rank 9999). */
+function findGramFallbackPortion(item: EditableItem): EditablePortion | null {
+  return (
+    item.ingredient_portions.find((p) => {
+      const name = (p.name || '').toLowerCase();
+      const unit = (p.measuring_unit_name || '').toLowerCase();
+      return p.weight_g === 1 && (name === 'g' || unit === 'g' || unit === 'gramm');
+    }) ?? null
+  );
 }
 
 /** Authoritative gram weight for an item's *current* quantity.
@@ -224,7 +230,11 @@ export function applyEstimateToItem(
 
 /** Convert an editor value back to the normalized RecipeItem quantity sent to
  * the API. Composite portions keep their unit count; direct metric portions
- * convert the displayed grams through their grams-per-unit ratio. */
+ * convert the displayed grams through their grams-per-unit ratio.
+
+ * Never returns 0/NaN/Infinity — the result is guarded and falls back to 1
+ * (one portion) so invalid values cannot reach the backend (which rejects
+ * them with 422 or, historically, crashed with a 500). */
 export function toPersistedRecipeItemQuantity(item: EditableItem, scale: number): number {
   const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
   const isMetric = isDirectMetricPortion(currentPortion, item.measuring_unit_name);
@@ -233,7 +243,49 @@ export function toPersistedRecipeItemQuantity(item: EditableItem, scale: number)
     : (currentPortion?.weight_g ?? 1);
   const multiplier = isMetric ? item.quantity / portionWeightG : item.quantity;
   const normalizedMultiplier = Math.round(multiplier * 1000) / 1000;
-  return toBasePerServing(normalizedMultiplier, scale);
+  const result = toBasePerServing(normalizedMultiplier, scale);
+  return Number.isFinite(result) && result > 0 ? result : 1;
+}
+
+/** Pure portion-switch computation for an editable row.
+ *
+ *  Gram-preserving when both the current weight and the new portion's weight
+ *  are known; otherwise falls back to exactly one portion of the new portion
+ *  so the quantity can never collapse to 0/NaN (which used to crash the
+ *  backend with a 500). */
+export function applyPortionChange(item: EditableItem, newPortion: EditablePortion): EditableItem {
+  const currentGrams = getItemWeightG(item);
+  const hasKnownCurrentGrams = Number.isFinite(currentGrams) && currentGrams > 0;
+  const newWeightG = newPortion.weight_g && newPortion.weight_g > 0 ? newPortion.weight_g : null;
+  const isNewMetric = isDirectMetricPortion(newPortion, newPortion.measuring_unit_name);
+
+  let newQty: number;
+  let nextBaseWeightG: number;
+  let nextBaseQuantity: number;
+  if (hasKnownCurrentGrams && newWeightG != null) {
+    const newMultiplier = Math.round((currentGrams / newWeightG) * 100) / 100;
+    newQty = isNewMetric ? currentGrams : newMultiplier;
+    nextBaseWeightG = currentGrams;
+    nextBaseQuantity = newMultiplier;
+  } else {
+    newQty = isNewMetric && newWeightG != null ? newWeightG : 1;
+    nextBaseWeightG = newWeightG != null ? newWeightG : 1;
+    nextBaseQuantity = 1;
+  }
+
+  const label = portionDisplayLabel(newPortion);
+
+  return {
+    ...item,
+    portion_id: newPortion.id,
+    measuring_unit_name: label,
+    quantity: newQty,
+    quantityInput: String(newQty),
+    baseWeightG: nextBaseWeightG,
+    baseQuantity: nextBaseQuantity,
+    isDirty: true,
+    aiExpectedGramsTotal: undefined,
+  };
 }
 
 export function normalizeItems(
@@ -276,9 +328,7 @@ export function normalizeItems(
     }
 
     const label = currentPortion
-      ? currentPortion.quantity !== 1
-        ? currentPortion.name
-        : (currentPortion.measuring_unit_name || currentPortion.name)
+      ? portionDisplayLabel(currentPortion, item.measuring_unit_name || 'g')
       : (item.measuring_unit_name || 'g');
 
     return {
@@ -286,6 +336,7 @@ export function normalizeItems(
       portion_id: item.portion_id, // Keep original portion_id for save
       ingredient_id: item.ingredient_id ?? null,
       ingredient_name: item.ingredient_name,
+      ingredient_slug: item.ingredient_slug ?? null,
       quantity: qty,
       quantityInput: String(qty),
       measuring_unit_name: label,
@@ -298,6 +349,8 @@ export function normalizeItems(
         weight_g: p.weight_g,
         measuring_unit_name: p.measuring_unit_name,
         rank: p.rank ?? 999,
+        is_weight_trusted: p.is_weight_trusted,
+        is_piece_like: p.is_piece_like,
       })),
       is_optional: item.is_optional ?? false,
       exchange_group_id: item.exchange_group_id ?? null,
@@ -371,6 +424,8 @@ interface IngredientRowProps {
   handleQuantityInputChange: (id: number, raw: string) => void;
   handleQuantityBlur: (id: number) => void;
   handlePortionChange: (id: number, portionId: number) => void;
+  handleSelectStandardMeasure: (id: number, measure: import('./PortionPicker').PickerStandardMeasure) => void;
+  handleSelectGrams: (id: number) => void;
   handleNoteChange: (id: number, note: string) => void;
   handleDelete: (id: number) => void;
   setAlternativeTargetId: (id: number | null) => void;
@@ -390,6 +445,8 @@ function IngredientRow({
   handleQuantityInputChange,
   handleQuantityBlur,
   handlePortionChange,
+  handleSelectStandardMeasure,
+  handleSelectGrams,
   handleNoteChange,
   handleDelete,
   setAlternativeTargetId,
@@ -431,41 +488,40 @@ function IngredientRow({
         data-testid={`item-quantity-${item.id}`}
         className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
       />
-      {item.ingredient_portions.length > 1 ? (
-        <select
-          value={item.portion_id ?? ''}
-          onChange={(e) => handlePortionChange(item.id, parseInt(e.target.value))}
-          data-testid={`item-portion-${item.id}`}
-          className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
-        >
-          {item.ingredient_portions.map((p) => {
-            const optionLabel = formatPortionOptionLabel(p);
-            const normalizedPortionName = p.name.toLowerCase();
-            const normalizedUnitName = (p.measuring_unit_name || '').toLowerCase();
-            const isPieceLike = normalizedUnitName === 'stück'
-              || normalizedUnitName === 'stk.'
-              || normalizedPortionName.includes('stück');
-            const isUnusablePiece = isPieceLike && (!p.weight_g || p.weight_g <= 0);
-            return (
-              <option key={p.id} value={p.id} disabled={isUnusablePiece && p.name.toLowerCase().includes('stück')}>
-                {optionLabel}
-              </option>
-            );
-          })}
-        </select>
-      ) : (
-        <span className="text-xs text-muted-foreground min-w-[3.5rem]">
-          {item.measuring_unit_name || 'g'}
-        </span>
-      )}
+      <PortionPicker
+        portions={item.ingredient_portions.map((p) => ({
+          id: p.id,
+          name: p.name,
+          quantity: p.quantity,
+          weight_g: p.weight_g,
+          measuring_unit_name: p.measuring_unit_name,
+          rank: p.rank,
+          is_weight_trusted: p.is_weight_trusted,
+        }))}
+        value={item.portion_id}
+        ingredientSlug={item.ingredient_slug ?? undefined}
+        onSelectPortion={(portionId) => handlePortionChange(item.id, portionId)}
+        onSelectStandardMeasure={(measure) => handleSelectStandardMeasure(item.id, measure)}
+        onSelectGrams={() => handleSelectGrams(item.id)}
+      />
       <span className="text-xs text-muted-foreground min-w-[4rem] text-right tabular-nums">
-        {item.ingredient_portions.find((portion) => portion.id === item.portion_id)?.is_weight_trusted === false ? (
-          <span className="text-destructive" title="Das Portionsgewicht muss bestätigt werden.">
-            Gewicht bestätigen
-          </span>
-        ) : (
-          `= ${Math.round(getItemWeightG(item) * 10) / 10} g`
-        )}
+        {(() => {
+          const currentPortion = item.ingredient_portions.find((portion) => portion.id === item.portion_id);
+          const weightG = getItemWeightG(item);
+          const weightUnknown = currentPortion?.is_weight_trusted === false || !Number.isFinite(weightG) || weightG <= 0;
+          if (weightUnknown) {
+            return (
+              <span
+                className="inline-flex items-center gap-0.5 text-amber-600"
+                title="Das Portionsgewicht muss bestätigt werden."
+              >
+                <span className="material-symbols-outlined text-[14px]">warning_amber</span>
+                Gewicht unbekannt
+              </span>
+            );
+          }
+          return `= ${Math.round(weightG * 10) / 10} g`;
+        })()}
       </span>
       <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
       {expandedNotes.has(item.id) || item.note ? (
@@ -684,28 +740,50 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         if (item.id !== id) return item;
         const newPortion = item.ingredient_portions.find((p) => p.id === portionId);
         if (!newPortion) return item;
+        return applyPortionChange(item, newPortion);
+      }),
+    );
+  }, []);
 
-        const currentGrams = getItemWeightG(item);
-        const newWeightG = newPortion.weight_g ?? 1;
-        const isNewMetric = isDirectMetricPortion(newPortion, newPortion.measuring_unit_name);
-
-        const newMultiplier = Math.round((currentGrams / newWeightG) * 100) / 100;
-        const newQty = isNewMetric
-          ? currentGrams
-          : newMultiplier;
-
-        const label = newPortion.quantity !== 1
-          ? newPortion.name
-          : newPortion.measuring_unit_name ?? 'g';
-
+  // Standard measures (EL, TL, Tasse, …) are display-only: the item switches
+  // to the ingredient's gram fallback portion (or portion_id=null = grams)
+  // and the quantity becomes the computed gram amount. Nothing is persisted
+  // as a new portion.
+  const handleSelectStandardMeasure = useCallback((id: number, measure: import('./PortionPicker').PickerStandardMeasure) => {
+    setEditItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const gramPortion = findGramFallbackPortion(item);
         return {
           ...item,
-          portion_id: portionId,
-          measuring_unit_name: label,
-          quantity: newQty,
-          quantityInput: String(newQty),
-          baseWeightG: currentGrams,
-          baseQuantity: newMultiplier,
+          portion_id: gramPortion?.id ?? null,
+          measuring_unit_name: 'Gramm',
+          quantity: measure.grams,
+          quantityInput: String(measure.grams),
+          baseWeightG: measure.grams,
+          baseQuantity: measure.grams,
+          isDirty: true,
+          aiExpectedGramsTotal: undefined,
+        };
+      }),
+    );
+  }, []);
+
+  const handleSelectGrams = useCallback((id: number) => {
+    setEditItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const gramPortion = findGramFallbackPortion(item);
+        const currentGrams = getItemWeightG(item);
+        const baseQuantity = Number.isFinite(currentGrams) && currentGrams > 0 ? currentGrams : item.quantity;
+        return {
+          ...item,
+          portion_id: gramPortion?.id ?? null,
+          measuring_unit_name: 'Gramm',
+          quantity: baseQuantity,
+          quantityInput: String(baseQuantity),
+          baseWeightG: baseQuantity,
+          baseQuantity,
           isDirty: true,
           aiExpectedGramsTotal: undefined,
         };
@@ -743,13 +821,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           return;
         }
 
-        // Use the same composite-portion label rule
-        const portionLabel = bestPortion.quantity !== 1
-          ? bestPortion.name
-          : (bestPortion.measuring_unit_name || 'g');
+        // Same piece-aware label/composite rule as everywhere else
+        const portionLabel = portionDisplayLabel(bestPortion);
 
-        const isMetric = bestPortion.quantity === 1
-          && BASE_METRIC_UNIT_NAMES.has(bestPortion.measuring_unit_name ?? 'g');
+        const isMetric = isDirectMetricPortion(bestPortion, '');
         const initialQuantity = isMetric ? (bestPortion.weight_g ?? 1) : 1;
         const displayedQuantity = scaleQuantity(initialQuantity, scale);
         const rowKey = `ing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -760,18 +835,21 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             portion_id: bestPortion.id,
             ingredient_id: ingredient.id,
             ingredient_name: ingredient.name,
+            ingredient_slug: ingredient.slug,
             quantity: displayedQuantity,
             quantityInput: String(displayedQuantity),
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number | null }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number | null; is_weight_trusted?: boolean | null; is_piece_like?: boolean | null }) => ({
               id: p.id,
               name: p.name,
               quantity: p.quantity,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
               rank: p.rank ?? 999,
+              is_weight_trusted: p.is_weight_trusted,
+              is_piece_like: p.is_piece_like,
             })),
             is_optional: false,
             exchange_group_id: null,
@@ -863,15 +941,12 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           return;
         }
 
-        // Use the same composite-portion label rule
-        const portionLabel = selectedPortion!.quantity !== 1
-          ? selectedPortion!.name
-          : (selectedPortion!.measuring_unit_name || 'g');
+        // Same piece-aware label/composite rule as everywhere else
+        const portionLabel = portionDisplayLabel(selectedPortion!);
 
         const selectedWeightG = selectedPortion!.weight_g ?? 1;
         const totalWeightG = selectedWeightG * quantity;
-        const isMetric = selectedPortion!.quantity === 1
-          && BASE_METRIC_UNIT_NAMES.has(selectedPortion!.measuring_unit_name ?? 'g');
+        const isMetric = isDirectMetricPortion(selectedPortion!, '');
         const displayedBaseQuantity = isMetric ? totalWeightG : quantity;
         const displayedQuantity = scaleQuantity(displayedBaseQuantity, scale);
         const rowKey = `ing-dlg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -883,18 +958,21 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             portion_id: selectedPortion!.id,
             ingredient_id: ingredientId,
             ingredient_name: ingredientName,
+            ingredient_slug: ingredientSlug,
             quantity: displayedQuantity,
             quantityInput: String(displayedQuantity),
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number; is_weight_trusted?: boolean | null; is_piece_like?: boolean | null }) => ({
               id: p.id,
               name: p.name,
               quantity: p.quantity,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
               rank: p.rank ?? 999,
+              is_weight_trusted: p.is_weight_trusted,
+              is_piece_like: p.is_piece_like,
             })),
             is_optional: false,
             exchange_group_id: null,
@@ -1090,8 +1168,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
         const alternativeWeightG = bestPortion.weight_g ?? 1;
-        const isMetric = bestPortion.quantity === 1
-          && BASE_METRIC_UNIT_NAMES.has(bestPortion.measuring_unit_name ?? 'g');
+        const isMetric = isDirectMetricPortion(bestPortion, '');
         const alternativeQuantity = isMetric ? alternativeWeightG : 1;
         const displayedAlternativeQuantity = scaleQuantity(alternativeQuantity, scale);
         const altKey = `ing-alt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1106,9 +1183,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             portion_id: bestPortion.id,
             ingredient_id: ingredientId,
             ingredient_name: ingredientName,
+            ingredient_slug: ingredientSlug,
             quantity: displayedAlternativeQuantity,
             quantityInput: String(displayedAlternativeQuantity),
-            measuring_unit_name: bestPortion.quantity !== 1 ? bestPortion.name : (bestPortion.measuring_unit_name || 'g'),
+            measuring_unit_name: portionDisplayLabel(bestPortion),
             note: '',
             sort_order: maxSort + 1,
             ingredient_portions: portions.map(
@@ -1119,6 +1197,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                 weight_g: number | null;
                 measuring_unit_name: string | null;
                 rank?: number | null;
+                is_weight_trusted?: boolean | null;
+                is_piece_like?: boolean | null;
               }) => ({
                 id: p.id,
                 name: p.name,
@@ -1126,6 +1206,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                 weight_g: p.weight_g,
                 measuring_unit_name: p.measuring_unit_name,
                 rank: p.rank ?? 999,
+                is_weight_trusted: p.is_weight_trusted,
+                is_piece_like: p.is_piece_like,
               }),
             ),
             is_optional: false,
@@ -1450,6 +1532,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
               handleQuantityInputChange={handleQuantityInputChange}
               handleQuantityBlur={handleQuantityBlur}
               handlePortionChange={handlePortionChange}
+              handleSelectStandardMeasure={handleSelectStandardMeasure}
+              handleSelectGrams={handleSelectGrams}
               handleNoteChange={handleNoteChange}
               handleDelete={handleDelete}
               setAlternativeTargetId={setAlternativeTargetId}

@@ -89,6 +89,13 @@ class RecipeStepsListOut(Schema):
     count: int = 0
 
 
+class GeneratedRecipeStepsOut(Schema):
+    """Schema for AI-generated recipe steps."""
+
+    steps: list[RecipeStepOut] = []
+    ai_interaction_id: str | None = None
+
+
 # --- Input Schemas with Validation ---
 
 

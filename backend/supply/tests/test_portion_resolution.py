@@ -7,7 +7,9 @@ from supply.models import Portion
 from supply.services.portion_resolution import (
     build_suggested_portion_name,
     find_matching_piece_portion,
+    is_direct_metric_portion,
     is_piece_like_name,
+    is_pre_weighed_metric_portion,
     normalize_portion_name,
     resolve_trusted_weight,
 )
@@ -149,3 +151,30 @@ class TestSuggestedPortionName:
     def test_falls_back_to_default(self):
         name = build_suggested_portion_name(None, None, None)
         assert name == "stück"
+
+
+@pytest.mark.django_db
+class TestDirectMetricPortion:
+    def _portion(self, name: str, unit: str, weight_g: float | None, quantity: float = 1.0) -> Portion:
+        return baker.make(
+            Portion,
+            ingredient=make_ingredient(name=f"Zutat {name}"),
+            measuring_unit=make_measuring_unit(name=unit),
+            name=name,
+            quantity=quantity,
+            weight_g=weight_g,
+        )
+
+    def test_unit_portions_are_direct(self):
+        assert is_direct_metric_portion(self._portion("1 Gramm", "Gramm", 1.0))
+        assert is_direct_metric_portion(self._portion("Liter", "Liter", 1000.0))
+
+    def test_pre_weighed_gram_portions_are_counts(self):
+        for name, weight in [("100g Reis", 100.0), ("Dose 400g", 400.0), ("EL", 15.0)]:
+            portion = self._portion(name, "Gramm", weight)
+            assert not is_direct_metric_portion(portion), name
+            assert is_pre_weighed_metric_portion(portion), name
+
+    def test_composite_and_non_metric_portions(self):
+        assert not is_direct_metric_portion(self._portion("1 Portion Nudeln", "Gramm", 125.0, quantity=125))
+        assert not is_pre_weighed_metric_portion(self._portion("EL", "EL", 15.0))

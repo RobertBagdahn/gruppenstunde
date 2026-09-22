@@ -13,18 +13,13 @@ import { useIngredientSearch } from '@/api/supplies';
 import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/api/supplies';
 import type { Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
+import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
 
 // ---------------------------------------------------------------------------
 // Nutriscore Badge
 // ---------------------------------------------------------------------------
 
-const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
-  A: { bg: 'bg-green-600', text: 'text-white' },
-  B: { bg: 'bg-lime-500', text: 'text-white' },
-  C: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
-  D: { bg: 'bg-orange-500', text: 'text-white' },
-  E: { bg: 'bg-red-600', text: 'text-white' },
-};
+const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 function NutriscoreBadge({ nutriClass }: { nutriClass: number | null | undefined }) {
   if (!nutriClass) return <span className="text-muted-foreground text-xs">–</span>;

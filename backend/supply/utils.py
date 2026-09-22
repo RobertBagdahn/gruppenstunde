@@ -73,11 +73,19 @@ def build_portion_display(
           instead of "{measuring_unit} {ingredient_name}". Using the underlying
           measuring_unit name (often "Gramm") here would be misleading, since
           `quantity` is a count of that portion, not a gram amount — same bug
-          class as recipe #434.
+          class as recipe #434. Pre-weighed gram portions ("100g Reis",
+          quantity=1, unit=Gramm, weight_g=100) are treated the same way.
     """
-    from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
+    from supply.services.portion_resolution import (
+        is_piece_like_name,
+        is_pre_weighed_metric_portion,
+        resolve_trusted_weight,
+    )
 
-    is_composite = bool(portion and portion.quantity and portion.quantity != 1)
+    # Pre-weighed gram portions ("100g Reis") are counts, labeled by their own name.
+    is_composite = bool(portion and portion.quantity and portion.quantity != 1) or is_pre_weighed_metric_portion(
+        portion
+    )
     is_piece = bool(portion and is_piece_like_name(portion.name))
 
     # Compute total weight (trusted weights only — unconfirmed piece weights

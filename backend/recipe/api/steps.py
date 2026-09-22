@@ -10,7 +10,7 @@ from ninja import Body, Router
 from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem, RecipeStep, RecipeStepIngredient
-from recipe.schemas import RecipeStepIn, RecipeStepOut, RecipeStepsBatchIn
+from recipe.schemas import GeneratedRecipeStepsOut, RecipeStepIn, RecipeStepOut, RecipeStepsBatchIn
 from recipe.services.step_ai_service import AiStepService
 
 logger = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ def batch_update_recipe_steps(request, slug: str, payload: RecipeStepsBatchIn):
     return list(steps)
 
 
-@router.post("/{slug}/steps/generate-from-items/", response={200: dict})
+@router.post("/{slug}/steps/generate-from-items/", response=GeneratedRecipeStepsOut)
 def generate_steps_from_items(request, slug: str):
     """Generate steps from recipe items using AI."""
     _require_auth(request)

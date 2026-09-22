@@ -3,16 +3,18 @@
 Stages:
   1. Wort-Jaccard (threshold 0.90)
   2. pg_trgm + Levenshtein (threshold 0.70)
-  3. Embedding via pgvector (threshold 0.50)
+  3. Embedding via pgvector — candidates only, never an automatic match
   4. Human-in-the-Loop + Gemini enrichment
 
 All stages search both Ingredient.name and IngredientAlias.name.
-Candidates are ordered by usage_count descending.
+Candidates are ordered by usage_count descending. Every result carries
+the top candidates of the deciding stage.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -35,10 +37,30 @@ def _get_setting(name: str, default: float) -> float:
 
 JACCARD_THRESHOLD = _get_setting("INGREDIENT_MATCHER_JACCARD_THRESHOLD", 0.90)
 FUZZY_THRESHOLD = _get_setting("INGREDIENT_MATCHER_FUZZY_THRESHOLD", 0.70)
+# Retained for configuration compatibility — the embedding stage never
+# auto-matches (see _stage_embedding), so this threshold is not consulted.
 EMBEDDING_THRESHOLD = _get_setting("INGREDIENT_MATCHER_EMBEDDING_THRESHOLD", 0.50)
 GREY_ZONE_MIN = _get_setting("INGREDIENT_MATCHER_GREY_ZONE_MIN", 0.30)
 MULTI_MATCH_SCORE_DIFF = _get_setting("INGREDIENT_MATCHER_MULTI_MATCH_DIFF", 0.05)
 MAX_CANDIDATES_PER_STAGE = 8
+
+# Fallback quantity/unit stripping — applied when the parser could not split
+# cleanly. Longer alternatives first so "Liter" wins over "l".
+QUANTITY_UNIT_STRIP_PATTERN = re.compile(
+    r"^(?P<qty>\d+(?:[.,]\d+)?)\s*(?P<unit>kg|g|ml|Liter|l|EL|TL|Msp\.?|Pck\.?|Pkg\.?|Bd\.?|"
+    r"Stück|Dose[n]?|Glas|Gläser|Tasse[n]?|Becher|Packung[en]?|Päckchen|Handvoll|Bund|Prise|Schuss|Scheibe[n]?|Zehe[n]?)?\s+",
+    re.IGNORECASE,
+)
+QUANTITY_WORD_STRIP_PATTERN = re.compile(
+    r"^(?:etwas|ein\s+paar|einige|ein|eine|einen|einer|ca\.?|circa|etwa|rund)\s+",
+    re.IGNORECASE,
+)
+# Leading bare unit without a number — Gemini extractions often echo
+# "Liter Orangensaft" after stripping the quantity themselves.
+BARE_UNIT_STRIP_PATTERN = re.compile(
+    r"^(?:kg|g|ml|Liter|l|EL|TL|Stück|Dose|Glas|Gläser|Tasse|Becher|Packung|Päckchen|Handvoll|Bund|Prise|Schuss|Scheibe|Zehe)\s+",
+    re.IGNORECASE,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +71,7 @@ MAX_CANDIDATES_PER_STAGE = 8
 class MatchCandidate(BaseModel):
     id: int
     name: str
+    slug: str = ""
     confidence: float
 
 
@@ -114,24 +137,41 @@ class IngredientMatcher:
         # Low-confidence parser matches are suggestions only. Keep the raw
         # spelling so typoed input can reach the fuzzy stage.
         clean_name = parsed.name if parsed.confidence >= 0.9 else raw_name.strip()
+        strip_details: dict[str, Any] = {}
+
+        if parsed.confidence < 0.9:
+            stripped = cls._strip_quantity_unit(raw_name)
+            if stripped is not None and stripped["rest"].strip():
+                clean_name = stripped["rest"].strip()
+                strip_details = {
+                    "parsed_quantity": stripped["quantity"],
+                    "parsed_unit": stripped["unit"],
+                }
+        elif parsed.quantity or parsed.unit:
+            strip_details = {"parsed_quantity": parsed.quantity, "parsed_unit": parsed.unit}
 
         # Stage 1: Wort-Jaccard
         result = cls._stage_jaccard(clean_name, raw_name.strip(), parsed.note)
         if result is not None:
+            result.technical_details.update(strip_details)
             return result
 
         # Stage 2: pg_trgm + Levenshtein
         result = cls._stage_fuzzy(clean_name, raw_name.strip(), parsed.note)
         if result is not None:
+            result.technical_details.update(strip_details)
             return result
 
         # Stage 3: Embedding
         result = cls._stage_embedding(clean_name, parsed.note)
         if result is not None:
+            result.technical_details.update(strip_details)
             return result
 
         # Stage 4: No algorithmic match → HITL
-        return cls._stage_human_dialog(clean_name, parsed.note)
+        result = cls._stage_human_dialog(clean_name, parsed.note)
+        result.technical_details.update(strip_details)
+        return result
 
     # -------------------------------------------------------------------
     # Replacement context (generic-to-concrete mappings)
@@ -204,6 +244,9 @@ class IngredientMatcher:
                     confidence=1.0,
                     matched_via="jaccard",
                     note=note,
+                    candidates=[
+                        MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=1.0)
+                    ],
                     reason="Der Zutatenname entspricht genau einer vorhandenen Zutat.",
                     technical_details={"stage": "jaccard", "comparison": "exact_name"},
                 )
@@ -230,6 +273,14 @@ class IngredientMatcher:
                 confidence=1.0,
                 matched_via="jaccard",
                 note=note,
+                candidates=[
+                    MatchCandidate(
+                        id=alias.ingredient_id,
+                        name=alias.ingredient.name,
+                        slug=alias.ingredient.slug,
+                        confidence=1.0,
+                    )
+                ],
                 reason="Ein vorhandener Alias entspricht dem eingegebenen Zutatenname.",
                 technical_details={"stage": "jaccard", "comparison": "alias"},
             )
@@ -249,11 +300,16 @@ class IngredientMatcher:
                     confidence=1.0,
                     matched_via="jaccard",
                     note=note,
+                    candidates=[
+                        MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=1.0)
+                    ],
                     reason="Die Wörter des Zutatenname passen vollständig zu einer vorhandenen Zutat.",
                     technical_details={"stage": "jaccard", "score": score},
                 )
             if score >= GREY_ZONE_MIN:
-                results.append(MatchCandidate(id=cand["id"], name=cand["name"], confidence=score))
+                results.append(
+                    MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=score)
+                )
 
         if not results:
             return None
@@ -286,6 +342,7 @@ class IngredientMatcher:
                 confidence=best.confidence,
                 matched_via="jaccard",
                 note=note,
+                candidates=results[:5],
                 reason="Die Wörter des Namens passen ausreichend zu einer vorhandenen Zutat.",
                 technical_details={"stage": "jaccard", "score": best.confidence},
             )
@@ -320,7 +377,9 @@ class IngredientMatcher:
             for ing in cls._get_candidates_ordered():
                 score = cls._normalized_levenshtein(clean_name.lower(), ing["name"].lower())
                 if score >= GREY_ZONE_MIN:
-                    results.append(MatchCandidate(id=ing["id"], name=ing["name"], confidence=score))
+                    results.append(
+                        MatchCandidate(id=ing["id"], name=ing["name"], slug=ing.get("slug", ""), confidence=score)
+                    )
             results.sort(key=lambda candidate: candidate.confidence, reverse=True)
             return cls._fuzzy_result(clean_name, note, results[:MAX_CANDIDATES_PER_STAGE])
 
@@ -349,7 +408,9 @@ class IngredientMatcher:
             combined = 0.6 * trigram_score + 0.4 * levenshtein_score
 
             if combined >= GREY_ZONE_MIN:
-                trigram_results.append(MatchCandidate(id=trigram_ing.id, name=trigram_ing.name, confidence=combined))
+                trigram_results.append(
+                    MatchCandidate(id=trigram_ing.id, name=trigram_ing.name, slug=trigram_ing.slug, confidence=combined)
+                )
 
         return cls._fuzzy_result(clean_name, note, trigram_results)
 
@@ -384,6 +445,7 @@ class IngredientMatcher:
                 confidence=best.confidence,
                 matched_via="fuzzy",
                 note=note,
+                candidates=results[:5],
             )
 
         if best.confidence >= GREY_ZONE_MIN:
@@ -406,6 +468,12 @@ class IngredientMatcher:
 
     @classmethod
     def _stage_embedding(cls, clean_name: str, note: str) -> MatchResult | None:
+        from django.db import connection
+
+        # pgvector lookups are unsupported on SQLite — skip the stage there.
+        if connection.vendor == "sqlite":
+            return None
+
         from pgvector.django import CosineDistance
 
         from supply.models import Ingredient
@@ -426,35 +494,33 @@ class IngredientMatcher:
             cosine_sim = 1.0 - float(item.distance)
             confidence = cls._sigmoid_calibrate(cosine_sim)
             if confidence >= GREY_ZONE_MIN:
-                similar.append(MatchCandidate(id=item.id, name=item.name, confidence=confidence))
+                similar.append(MatchCandidate(id=item.id, name=item.name, slug=item.slug, confidence=confidence))
 
+        return cls._embedding_result(clean_name, note, similar)
+
+    @classmethod
+    def _embedding_result(cls, clean_name: str, note: str, similar: list[MatchCandidate]) -> MatchResult | None:
+        """Build the embedding-stage result from ranked candidates.
+
+        Embedding results never auto-match: the stored embedding space is not
+        calibrated for unrelated pairs (observed cosine ~0.6 for arbitrary
+        German food terms), so a threshold hit is not trustworthy. The top
+        candidates are offered for explicit human selection instead.
+        """
         if not similar:
             return None
 
         best = similar[0]
-
-        if best.confidence >= EMBEDDING_THRESHOLD:
-            return MatchResult(
-                ingredient_id=best.id,
-                name=best.name,
-                confidence=best.confidence,
-                matched_via="embed",
-                note=note,
-            )
-
-        if best.confidence >= GREY_ZONE_MIN:
-            return MatchResult(
-                needs_review=True,
-                name=clean_name,
-                note=note,
-                candidates=similar[:5],
-                matched_via="embed",
-                confidence=best.confidence,
-                reason="Die semantische Ähnlichkeit ist nicht eindeutig und muss geprüft werden.",
-                technical_details={"stage": "embedding", "score": best.confidence},
-            )
-
-        return None
+        return MatchResult(
+            needs_review=True,
+            name=clean_name,
+            note=note,
+            candidates=similar[:5],
+            matched_via="embed",
+            confidence=best.confidence,
+            reason="Die semantische Ähnlichkeit zu einer vorhandenen Zutat ist nicht eindeutig und muss geprüft werden.",
+            technical_details={"stage": "embedding", "score": best.confidence},
+        )
 
     # -------------------------------------------------------------------
     # Stage 4: Human Dialog
@@ -478,11 +544,45 @@ class IngredientMatcher:
     # -------------------------------------------------------------------
 
     @classmethod
+    def _strip_quantity_unit(cls, raw_name: str) -> dict[str, Any] | None:
+        """Strip a leading quantity/unit token from a raw ingredient string.
+
+        Returns {"quantity": float, "unit": str, "rest": str} or None when
+        nothing was stripped. Purely a fallback for unparsed inputs; the
+        parser remains the primary quantity/unit splitter. A leading bare unit
+        (Gemini often strips the number itself) is only accepted when the
+        remainder is a known ingredient, so real names like "Glasnudeln" are
+        never cut apart.
+        """
+        stripped = raw_name.strip()
+
+        unit_match = QUANTITY_UNIT_STRIP_PATTERN.match(stripped)
+        if unit_match:
+            qty_str = unit_match.group("qty").replace(",", ".")
+            return {
+                "quantity": float(qty_str),
+                "unit": unit_match.group("unit") or "",
+                "rest": stripped[unit_match.end() :],
+            }
+
+        word_match = QUANTITY_WORD_STRIP_PATTERN.match(stripped)
+        if word_match:
+            return {"quantity": 0, "unit": "", "rest": stripped[word_match.end() :]}
+
+        bare_match = BARE_UNIT_STRIP_PATTERN.match(stripped)
+        if bare_match:
+            rest = stripped[bare_match.end() :].strip()
+            if rest and IngredientNameParser._ingredient_exists(rest):
+                return {"quantity": 0, "unit": bare_match.group(0).strip(), "rest": rest}
+
+        return None
+
+    @classmethod
     def _get_candidates_ordered(cls) -> list[dict[str, Any]]:
-        """Return all ingredient (id, name) ordered by usage_count DESC."""
+        """Return all ingredient (id, name, slug) ordered by usage_count DESC."""
         from supply.models import Ingredient
 
-        return [dict(row) for row in Ingredient.objects.order_by("-usage_count", "name").values("id", "name")]
+        return [dict(row) for row in Ingredient.objects.order_by("-usage_count", "name").values("id", "name", "slug")]
 
     @classmethod
     def _normalized_levenshtein(cls, a: str, b: str) -> float:

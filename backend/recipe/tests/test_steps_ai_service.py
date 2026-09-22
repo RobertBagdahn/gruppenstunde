@@ -242,3 +242,48 @@ class TestConvertMarkdownToSteps(TestCase):
 
         with pytest.raises(Exception) or pytest.raises(AssertionError):
             AiStepService.convert_markdown_to_steps(recipe=recipe_empty, description="Some markdown", user=self.user)
+
+
+@pytest.mark.django_db
+class TestGenerateStepsFromItemsEndpoint(TestCase):
+    """API test for the generate-from-items endpoint response serialization."""
+
+    def setUp(self):
+        """Create test fixtures."""
+        from django.core.cache import cache
+
+        cache.clear()
+        self.user = User.objects.create_user(username="stepapi", password="test123")
+        self.recipe = Recipe.objects.create(title="Step API Recipe", slug="step-api-recipe", created_by=self.user)
+        unit = MeasuringUnit.objects.create(name="grams", name_short="g")
+        ingredient = Ingredient.objects.create(name="Flour")
+        portion = Portion.objects.create(ingredient=ingredient, measuring_unit=unit, quantity=100)
+        self.item = RecipeItem.objects.create(recipe=self.recipe, portion=portion, quantity=2)
+        self.client.force_login(self.user)
+
+    @patch("recipe.api.steps.AiStepService.generate_steps_from_items")
+    def test_returns_serialized_steps(self, mock_generate):
+        """Generated steps are persisted and returned as JSON."""
+        mock_generate.return_value = (
+            [
+                {
+                    "sort_order": 1,
+                    "instruction": "Mix flour",
+                    "duration_minutes": 5,
+                    "section": "",
+                    "step_ingredients": [
+                        {"recipe_item_id": self.item.id, "quantity_modifier": 1.0, "preparation": "", "sort_order": 1}
+                    ],
+                }
+            ],
+            None,
+        )
+
+        response = self.client.post(f"/api/recipes/{self.recipe.slug}/steps/generate-from-items/")
+
+        assert response.status_code == 200, response.content
+        data = response.json()
+        assert data["ai_interaction_id"] is None
+        assert len(data["steps"]) == 1
+        assert data["steps"][0]["instruction"] == "Mix flour"
+        assert data["steps"][0]["step_ingredients"][0]["recipe_item_id"] == self.item.id

@@ -62,6 +62,14 @@ export default {
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
         },
+        nutri: {
+          a: "hsl(var(--nutri-a))",
+          b: "hsl(var(--nutri-b))",
+          c: "hsl(var(--nutri-c))",
+          d: "hsl(var(--nutri-d))",
+          e: "hsl(var(--nutri-e))",
+          "dark-text": "hsl(var(--nutri-dark-text))",
+        },
         inspi: {
           green: "#16a34a",
           yellow: "#f59e0b",

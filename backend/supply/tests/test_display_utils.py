@@ -95,6 +95,24 @@ class TestBuildPortionDisplay:
         assert "7g" in display or "8g" in display  # 0.5 × 14g = 7g (rounded to 5g step)
         assert missing is False
 
+    def test_pre_weighed_gram_portion_uses_portion_name(self):
+        ingredient = self._make_ingredient("Langkornreis")
+        unit = self._make_unit("Gramm")
+        portion = baker.make(
+            Portion, ingredient=ingredient, measuring_unit=unit, name="100g Reis", quantity=1.0, weight_g=100.0
+        )
+        display, _ = build_portion_display(1.5, portion, ingredient)
+        assert display == "1,5 100g Reis (150g)"
+
+    def test_gram_unit_portion_keeps_unit_label(self):
+        ingredient = self._make_ingredient("Langkornreis")
+        unit = self._make_unit("Gramm")
+        portion = baker.make(
+            Portion, ingredient=ingredient, measuring_unit=unit, name="1 Gramm", quantity=1.0, weight_g=1.0
+        )
+        display, _ = build_portion_display(125, portion, ingredient)
+        assert display.startswith("125 Gramm Langkornreis")
+
     def test_stueck_unit_is_suppressed(self):
         ingredient = self._make_ingredient("Äpfel")
         unit = self._make_unit("Stück")

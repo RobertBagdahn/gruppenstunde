@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import math
 from typing import cast
 
 from django.db import IntegrityError, transaction
@@ -218,6 +219,14 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     # database column is non-nullable, so treat a null quantity as omitted.
     if data.get("quantity") is None:
         data.pop("quantity", None)
+
+    # DB constraint recipe_item_quantity_positive would crash with a 500 for
+    # invalid client values — reject them explicitly instead. Pydantic v2 lets
+    # NaN/Inf through by default, so non-finite values must be caught here.
+    if data.get("quantity") is not None:
+        quantity_value = data["quantity"]
+        if not math.isfinite(quantity_value) or quantity_value <= 0:
+            raise HttpError(422, "Menge muss größer als 0 sein.")
 
     # Determine resulting optional/exchange state to validate mutual exclusion.
     result_is_optional = data.get("is_optional", item.is_optional)

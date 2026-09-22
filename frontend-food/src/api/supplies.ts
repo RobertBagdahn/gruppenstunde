@@ -33,6 +33,7 @@ import {
   ComparisonOutSchema,
   PortionMagicPreviewSchema,
   PortionMagicApplySchema,
+  StandardMeasureSchema,
   type PortionMagicOperation,
 } from '@/schemas/supply';
 import { PaginatedRecipesSchema } from '@/schemas/recipe';
@@ -292,6 +293,19 @@ export function useIngredientPortions(slug: string) {
     queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/portions/`, z.array(PortionSchema)),
     enabled: !!slug,
     staleTime: 60_000,
+  });
+}
+
+/**
+ * Fetch the fixed standard-measure catalog (EL, TL, Tasse, …) for an
+ * ingredient. Display-only reference data — nothing is persisted.
+ */
+export function useStandardMeasures(slug: string) {
+  return useQuery({
+    queryKey: ['standard-measures', slug] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/standard-measures/`, z.array(StandardMeasureSchema)),
+    enabled: !!slug,
+    staleTime: 5 * 60_000,
   });
 }
 

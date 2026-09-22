@@ -71,7 +71,7 @@ class AiRateLimitError(Exception):
 
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
-GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
+GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image"
 
 # ---------------------------------------------------------------------------
 # Content type labels and prompts

@@ -51,6 +51,7 @@ class PortionOut(Schema):
     weight_confirmed_at: datetime | None = None
     weight_confidence: float | None = None
     is_weight_trusted: bool = False
+    is_piece_like: bool = False
 
     @staticmethod
     def resolve_is_default(obj) -> bool:
@@ -72,6 +73,15 @@ class PortionOut(Schema):
             return cast(bool, obj.get("is_weight_trusted", False))
         trusted = getattr(obj, "is_weight_trusted", None)
         return bool(trusted) if trusted is not None else False
+
+    @staticmethod
+    def resolve_is_piece_like(obj) -> bool:
+        """Countable piece semantics (backend-authoritative classification)."""
+        from supply.services.portion_resolution import is_piece_like_name
+
+        if isinstance(obj, dict):
+            return cast(bool, obj.get("is_piece_like", False))
+        return is_piece_like_name(getattr(obj, "name", None))
 
 
 class PortionCreateIn(Schema):
@@ -714,3 +724,18 @@ class IngredientSimilarOut(Schema):
     name: str
     slug: str
     similarity_pct: float
+
+
+class StandardMeasureOut(Schema):
+    """A standard kitchen measure (EL, TL, Tasse, …) for an ingredient.
+
+    Display-only reference data: the weight is computed from the ingredient's
+    physical density (generic 1 g/ml fallback) and is never persisted as a
+    portion.
+    """
+
+    key: str
+    name: str
+    grams: float
+    unit_name: str = "g"
+    is_approx: bool = True

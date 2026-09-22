@@ -341,8 +341,16 @@ def preview_recipe_ingredient_review(request, payload: RecipeIngredientReviewSou
         sources = [RecipeImportSourceIn(type=source_type, value=payload.input.strip())]
     if not sources:
         raise HttpError(422, "Bitte gib mindestens eine Quelle an")
+    from recipe.services.exceptions import SourceUnreachableError
+
     try:
         return preview_recipe_ingredients(sources, request.user)
+    except SourceUnreachableError:
+        raise HttpError(
+            422,
+            "Die Seite konnte nicht geladen werden und auch die Websuche hat kein passendes Rezept gefunden. "
+            "Bitte kopiere den Rezepttext oder versuche eine andere Quelle.",
+        ) from None
     except Exception as exc:
         logger.exception("Recipe ingredient review preview failed")
         raise HttpError(422, f"Zutaten konnten nicht analysiert werden: {exc}") from exc

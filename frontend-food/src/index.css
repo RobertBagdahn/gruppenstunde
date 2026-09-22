@@ -29,6 +29,13 @@
     --chart-3: 201 96% 32%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    /* Official Nutri-Score palette (Santé publique France) */
+    --nutri-a: 150 95% 26%;
+    --nutri-b: 83 60% 46%;
+    --nutri-c: 48 99% 50%;
+    --nutri-d: 33 100% 47%;
+    --nutri-e: 13 86% 48%;
+    --nutri-dark-text: 240 10% 10%;
   }
 }
 

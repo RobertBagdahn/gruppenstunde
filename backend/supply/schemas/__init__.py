@@ -38,6 +38,7 @@ from .ingredients import (
     PortionSuggestionOut,
     PortionUpdateIn,
     SharedGroupOut,
+    StandardMeasureOut,
 )
 from .materials import (
     ContentMaterialItemIn,
@@ -161,5 +162,6 @@ __all__ = [
     "RetailSectionOut",
     "RetailSectionUpdateIn",
     "SharedGroupOut",
+    "StandardMeasureOut",
     "UnitConversionResultOut",
 ]

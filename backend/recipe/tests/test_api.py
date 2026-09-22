@@ -719,6 +719,27 @@ class TestRecipeItems:
         data = resp.json()
         assert len(data) == 1
 
+    def test_list_items_flags_piece_like_portions(self, api_client, db, approved_recipe, ingredient, measuring_unit):
+        """The frontend counts piece-like portions (1 = 1 Stück) based on the
+        backend-authoritative is_piece_like flag — always derived from the
+        portion         NAME, never from the measuring unit."""
+        from supply.models import Portion
+
+        piece_portion = Portion.objects.create(
+            ingredient=ingredient,
+            measuring_unit=measuring_unit,  # "Gramm" — not piece-like by unit!
+            name="kleine (50g)",
+            quantity=1.0,
+            weight_g=50.0,
+            rank=1,
+        )
+        RecipeItem.objects.create(recipe=approved_recipe, portion=piece_portion, quantity=1.0, sort_order=0)
+
+        resp = api_client.get(f"/api/recipes/{approved_recipe.id}/recipe-items/")
+        assert resp.status_code == 200
+        portions = {p["id"]: p for p in resp.json()[0]["ingredient_portions"]}
+        assert portions[piece_portion.id]["is_piece_like"] is True
+
     def test_create_item(self, auth_client, db, portion):
         user = auth_client._user
         recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, created_by=user)

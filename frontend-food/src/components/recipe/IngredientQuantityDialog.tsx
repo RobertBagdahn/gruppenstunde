@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Egg } from 'lucide-react';
 import {
   Dialog,
@@ -6,20 +6,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
 import type { Portion } from '@/schemas/supply';
 
 interface IngredientQuantityDialogProps {
-  ingredient: { id: number; name: string; portions: Portion[] };
+  ingredient: { id: number; name: string; slug: string; portions: Portion[] };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  initialQuantity?: number;
+  confirmLabel?: string;
+}
+
+function findGramPortion(portions: Portion[]): Portion | null {
+  return (
+    portions.find((p) => {
+      const name = (p.name || '').toLowerCase();
+      const unit = (p.measuring_unit_name || '').toLowerCase();
+      return p.weight_g === 1 && p.quantity === 1 && (name === 'g' || unit === 'g' || unit === 'gramm');
+    }) ?? null
+  );
 }
 
 export default function IngredientQuantityDialog({
@@ -27,14 +33,21 @@ export default function IngredientQuantityDialog({
   open,
   onOpenChange,
   onConfirm,
+  initialQuantity = 1,
+  confirmLabel = 'Hinzufügen',
 }: IngredientQuantityDialogProps) {
   // rank=1 is the Normalportion/default; portions are sorted by rank asc from backend
-  const defaultPortion = ingredient.portions.find((p) => p.rank === 1) ?? ingredient.portions[0] ?? null;
-
-  const [selectedPortionId, setSelectedPortionId] = useState<string>(
-    defaultPortion ? String(defaultPortion.id) : '',
+  const gramPortion = useMemo(() => findGramPortion(ingredient.portions), [ingredient.portions]);
+  const defaultPortion = useMemo(
+    () => ingredient.portions.find((p) => p.rank === 1) ?? ingredient.portions[0] ?? null,
+    [ingredient.portions],
   );
-  const [quantity, setQuantity] = useState<number>(1);
+
+  // null = direct gram entry
+  const [selectedPortionId, setSelectedPortionId] = useState<string | null>(
+    defaultPortion ? String(defaultPortion.id) : null,
+  );
+  const [quantity, setQuantity] = useState<number>(initialQuantity > 0 ? initialQuantity : 1);
 
   const selectedPortion = ingredient.portions.find(
     (p) => String(p.id) === selectedPortionId,
@@ -43,6 +56,11 @@ export default function IngredientQuantityDialog({
   const totalWeightG = selectedPortion?.weight_g
     ? quantity * selectedPortion.weight_g
     : null;
+
+  const handleSelectStandardMeasure = (measure: PickerStandardMeasure) => {
+    setSelectedPortionId(gramPortion ? String(gramPortion.id) : null);
+    setQuantity(measure.grams);
+  };
 
   const handleConfirm = () => {
     onConfirm(
@@ -78,20 +96,24 @@ export default function IngredientQuantityDialog({
           {ingredient.portions.length > 0 && (
             <div>
               <label className="text-sm font-medium">Einheit</label>
-              <Select value={selectedPortionId} onValueChange={setSelectedPortionId}>
-                <SelectTrigger className="w-full mt-1">
-                  <SelectValue placeholder="Portion wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ingredient.portions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
-                      {p.measuring_unit_name ? ` (${p.measuring_unit_name})` : ''}
-                      {p.weight_g ? ` — ${p.weight_g}g` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="mt-1">
+                <PortionPicker
+                  portions={ingredient.portions.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    quantity: p.quantity,
+                    weight_g: p.weight_g,
+                    measuring_unit_name: p.measuring_unit_name,
+                    rank: p.rank,
+                    is_weight_trusted: p.is_weight_trusted,
+                  }))}
+                  value={selectedPortionId != null ? Number(selectedPortionId) : null}
+                  ingredientSlug={ingredient.slug}
+                  onSelectPortion={(portionId) => setSelectedPortionId(String(portionId))}
+                  onSelectStandardMeasure={handleSelectStandardMeasure}
+                  onSelectGrams={() => setSelectedPortionId(null)}
+                />
+              </div>
             </div>
           )}
 
@@ -112,7 +134,7 @@ export default function IngredientQuantityDialog({
               onClick={handleConfirm}
               className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Hinzufügen
+              {confirmLabel}
             </button>
           </div>
         </div>

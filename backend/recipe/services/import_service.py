@@ -53,10 +53,22 @@ def import_from_url(url: str) -> ImportedRecipe:
     _validate_public_hostname(parsed_url.hostname)
 
     try:
+        # Many recipe sites (e.g. chefkoch.de) block requests that look like
+        # bots. Send realistic browser headers to retrieve publicly available
+        # recipe pages.
+        browser_headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+            ),
+            "Accept": ("text/html,application/xhtml+xml,application/xml;q=0.9," "image/avif,image/webp,*/*;q=0.8"),
+            "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+            "Connection": "keep-alive",
+        }
         with httpx.Client(
             follow_redirects=False,
             timeout=15.0,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; InspiBot/1.0)"},
+            headers=browser_headers,
         ) as client:
             current_url = url
             response = None
@@ -275,7 +287,7 @@ def _parse_ingredient_string(s: str) -> ImportedIngredient:
         quantity = quantity_match.group(1).replace(",", ".")
         remainder = quantity_match.group(2).strip()
         unit_match = re.match(
-            r"^(kg|ml|g|l|EL|TL|Stück|Stk\.?|Prise|Bund|Dosen?|Becher|Packungen?|Scheiben?)(?:\s+|$)(.*)$",
+            r"^(kg|g|ml|Liter|l|EL|TL|Stück|Stk\.?|Dosen?|Gläser|Glas|Tassen|Tasse|Becher|Packungen|Päckchen|Handvoll|Prise|Bund|Scheiben?|Zehen?)(?:\s+|$)(.*)$",
             remainder,
             re.IGNORECASE,
         )

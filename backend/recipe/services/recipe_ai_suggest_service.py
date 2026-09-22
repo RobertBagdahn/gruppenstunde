@@ -494,16 +494,20 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
     if measuring_unit:
         # Canonical portion: one "count" equals exactly one `measuring_unit`
         # (quantity == 1). Avoids matching "Packung"-style multiplier portions.
-        portion = (
-            Portion.objects.filter(
-                ingredient=ingredient,
-                measuring_unit=measuring_unit,
-                quantity=1,
-                deleted_at__isnull=True,
-            )
-            .order_by("rank")
-            .first()
-        )
+        from supply.services.portion_resolution import METRIC_UNIT_GRAMS, is_direct_metric_portion
+
+        candidates = Portion.objects.filter(
+            ingredient=ingredient,
+            measuring_unit=measuring_unit,
+            quantity=1,
+            deleted_at__isnull=True,
+        ).order_by("rank", "id")
+        # For metric units only a true unit portion (weight == 1 unit) is canonical;
+        # pre-weighed portions like "Dose 400g" share the Gramm unit but are counts.
+        if (measuring_unit.name or "").strip().lower() in METRIC_UNIT_GRAMS:
+            portion = next((p for p in candidates if is_direct_metric_portion(p)), None)
+        else:
+            portion = candidates.first()
         if portion:
             return portion
 

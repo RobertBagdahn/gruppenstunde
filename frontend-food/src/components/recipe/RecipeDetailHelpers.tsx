@@ -4,13 +4,7 @@ import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
 
-export const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
-  A: { bg: 'bg-green-600', text: 'text-white' },
-  B: { bg: 'bg-lime-500', text: 'text-white' },
-  C: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
-  D: { bg: 'bg-orange-500', text: 'text-white' },
-  E: { bg: 'bg-red-600', text: 'text-white' },
-};
+export { NUTRI_SCORE_COLORS_BY_LETTER as NUTRI_SCORE_COLORS } from '@/schemas/supply';
 
 // --- Collapsible Section Component ---
 export function AnalysisSection({

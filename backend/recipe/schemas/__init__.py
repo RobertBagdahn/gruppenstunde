@@ -80,6 +80,7 @@ from .rules import (
     RuleUpdateIn,
 )
 from .steps import (
+    GeneratedRecipeStepsOut,
     RecipeStepIn,
     RecipeStepIngredientIn,
     RecipeStepIngredientOut,
@@ -115,6 +116,7 @@ __all__ = [
     "ExchangeGroupMemberOut",
     "FoodDashboardOut",
     "ForkRecipeIn",
+    "GeneratedRecipeStepsOut",
     "ImprovementListOut",
     "ImprovementOut",
     "IngredientMatchCandidateOut",

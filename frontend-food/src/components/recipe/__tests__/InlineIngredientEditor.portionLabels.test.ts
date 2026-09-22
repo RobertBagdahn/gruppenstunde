@@ -19,7 +19,7 @@ describe('formatPortionOptionLabel', () => {
       weight_g: 100,
       measuring_unit_name: 'Gramm',
       rank: 2,
-    })).toBe('Gramm (100g)');
+    })).toBe('Gramm grob (100g)');
   });
 
   it('makes an unweighted piece explicit', () => {

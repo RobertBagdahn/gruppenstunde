@@ -40,6 +40,12 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # Always revalidate the SPA shell so deployments reach users immediately
+    # (hashed assets below stay immutable anyway).
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
     # Cache static assets
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 1y;

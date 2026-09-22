@@ -7,14 +7,9 @@ import {
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 import { cn } from '@/lib/utils';
+import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
 
-const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
-  A: { bg: 'bg-green-600', text: 'text-white' },
-  B: { bg: 'bg-lime-500', text: 'text-white' },
-  C: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
-  D: { bg: 'bg-orange-500', text: 'text-white' },
-  E: { bg: 'bg-red-600', text: 'text-white' },
-};
+const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 interface RecipeMetaCardProps {
   recipe: RecipeDetail;

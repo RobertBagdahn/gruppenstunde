@@ -3,11 +3,11 @@ import { useIngredientScores } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
 
 const NUTRI_COLORS: Record<number, { bg: string; label: string }> = {
-  1: { bg: 'bg-green-600', label: 'A' },
-  2: { bg: 'bg-lime-500', label: 'B' },
-  3: { bg: 'bg-yellow-400', label: 'C' },
-  4: { bg: 'bg-orange-500', label: 'D' },
-  5: { bg: 'bg-red-600', label: 'E' },
+  1: { bg: 'bg-nutri-a', label: 'A' },
+  2: { bg: 'bg-nutri-b', label: 'B' },
+  3: { bg: 'bg-nutri-c', label: 'C' },
+  4: { bg: 'bg-nutri-d', label: 'D' },
+  5: { bg: 'bg-nutri-e', label: 'E' },
 };
 
 export default function NutriLandscapeTab() {

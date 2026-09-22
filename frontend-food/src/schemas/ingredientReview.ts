@@ -34,6 +34,7 @@ export type ReviewSource = z.infer<typeof ReviewSourceSchema>;
 export const IngredientMatchCandidateSchema = z.object({
   id: z.number(),
   name: z.string(),
+  slug: z.string().default(''),
   confidence: z.number().min(0).max(1),
 });
 export type IngredientMatchCandidate = z.infer<typeof IngredientMatchCandidateSchema>;
@@ -61,6 +62,7 @@ export const TemporaryIngredientDraftSchema = z.object({
   status: z.string().default('draft'),
   values: z.record(z.unknown()).default({}),
   portions: z.array(ReviewPortionSchema).default([]),
+  quantity: z.number().positive().nullable().default(null),
 });
 export type TemporaryIngredientDraft = z.infer<typeof TemporaryIngredientDraftSchema>;
 
@@ -91,6 +93,9 @@ export const IngredientReviewPreviewSchema = z.object({
   sources: z.array(ReviewSourceSchema).default([]),
   ai_interaction_id: z.string().nullable().default(null),
   recipe_draft: ReviewRecipeDraftSchema,
+  // True when the page was unreachable and the data was reconstructed via
+  // search grounding. The UI must ask the user to verify it.
+  is_reconstructed: z.boolean().optional().default(false),
 });
 export type IngredientReviewPreview = z.infer<typeof IngredientReviewPreviewSchema>;
 

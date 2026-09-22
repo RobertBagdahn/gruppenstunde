@@ -46,7 +46,7 @@ The system SHALL calculate the cost of each Gemini call based on the model's pri
 - **THEN** `pricing_model` SHALL be set to the model identifier used for pricing lookup
 
 #### Scenario: Image model cost calculation (Phase 1 — vor Modality-Spike)
-- **WHEN** a call to `gemini-3.1-flash-image-preview` completes
+- **WHEN** a call to `gemini-3.1-flash-image` completes
 - **THEN** the system SHALL apply text-token pricing rates ($0,25 input, $1,50 output)
 - **THEN** the `image_output_per_1m_usd` rate ($30) SHALL be reserved for activation after modality detection is verified
 

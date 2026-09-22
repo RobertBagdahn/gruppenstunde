@@ -91,6 +91,12 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
         </p>
       </div>
 
+      {result.is_reconstructed && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+          Die Quelle hat den automatischen Abruf blockiert — die Daten wurden über die Websuche rekonstruiert. Bitte prüfe alle Angaben sorgfältig.
+        </div>
+      )}
+
       <div className="space-y-4 rounded-xl border bg-card p-4 sm:p-5">
         <div>
           <label htmlFor="recipe-basis-title" className="mb-1.5 block text-sm font-medium">Titel *</label>

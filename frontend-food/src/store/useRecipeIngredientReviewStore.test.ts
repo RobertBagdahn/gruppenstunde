@@ -11,6 +11,7 @@ const preview: IngredientReviewPreview = {
   },
   sources: [],
   ai_interaction_id: null,
+  is_reconstructed: false,
   rows: [{
     key: 'one', source_text: '1 Apfel', sources: [], selected_ingredient_id: 1,
     selected_ingredient_slug: 'apfel', selected_ingredient_name: 'Apfel',

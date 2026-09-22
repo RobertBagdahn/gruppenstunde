@@ -647,7 +647,7 @@ class RecipeQuantityEstimationService:
         corruption bug (see design.md for the recipe #59 "Linsensuppe" case).
         """
         from supply.services.portion_integrity import get_active_rank1_portion
-        from supply.services.portion_resolution import resolve_trusted_weight
+        from supply.services.portion_resolution import is_pre_weighed_metric_portion, resolve_trusted_weight
 
         estimates_by_id = {e.item_id: e for e in ai_output.items}
         results = []
@@ -693,7 +693,7 @@ class RecipeQuantityEstimationService:
             # MUST be used as the label — using the underlying measuring_unit
             # name ("Gramm") is misleading, since quantity_per_portion here is a
             # count of that portion, not a gram amount.
-            if target_portion.quantity != 1 and target_portion.name:
+            if target_portion.name and (target_portion.quantity != 1 or is_pre_weighed_metric_portion(target_portion)):
                 unit = target_portion.name
             elif target_portion.measuring_unit:
                 unit = target_portion.measuring_unit.name

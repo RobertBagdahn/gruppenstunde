@@ -48,6 +48,7 @@ from supply.schemas import (
     PortionOut,
     PortionReorderIn,
     PortionUpdateIn,
+    StandardMeasureOut,
 )
 from supply.services.portion_integrity import (
     create_replacement_portion,
@@ -392,6 +393,44 @@ def list_generic_terms(request):
     from supply.services.generic_terms import get_generic_terms
 
     return sorted(get_generic_terms())
+
+
+@ingredient_router.get("/{slug}/standard-measures/", response=list[StandardMeasureOut])
+def list_standard_measures(request, slug: str):
+    """Standard kitchen measures (EL, TL, Tasse, …) for an ingredient.
+
+    Pure reference data for the portion picker: weights are derived from the
+    ingredient's physical density (generic 1 g/ml fallback) and are never
+    persisted as portions. Must stay registered before the `/{slug}/` route.
+    """
+    from supply.data.standard_measures import STANDARD_MEASURES
+
+    ingredient = get_object_or_404(Ingredient, slug=slug, deleted_at__isnull=True)
+
+    density = ingredient.physical_density or 0
+    # Default density is 1.0 — treat it as "not explicitly set" so the
+    # frontend can mark the gram amount as approximate.
+    has_explicit_density = density > 0 and density != 1.0
+    multiplier = density if has_explicit_density else 1.0
+
+    measures: list[StandardMeasureOut] = []
+    for measure in STANDARD_MEASURES:
+        if measure.volume_ml is not None:
+            grams = round(measure.volume_ml * multiplier, 2)
+            is_approx = not has_explicit_density
+        else:
+            grams = measure.grams or 0.0
+            is_approx = True
+        measures.append(
+            StandardMeasureOut(
+                key=measure.key,
+                name=measure.name,
+                grams=grams,
+                unit_name=measure.unit_name,
+                is_approx=is_approx,
+            )
+        )
+    return measures
 
 
 @ingredient_router.post("/ai-create/", response=IngredientDetailOut)

@@ -119,26 +119,43 @@ describe('applyEstimateToItem', () => {
       ingredient_portions: [
         {
           id: 100,
-          name: '100g Zutat',
+          name: 'Gramm',
           quantity: 1,
-          weight_g: 100,
+          weight_g: 1,
           measuring_unit_name: 'Gramm',
           rank: 1,
         },
       ],
       baseWeightG: 50,
-      baseQuantity: 0.5,
+      baseQuantity: 50,
     });
     const estimate = makeEstimate({
       portion_id: 100,
       unit: 'Gramm',
-      quantity_per_portion: 0.5,
+      quantity_per_portion: 50,
       grams_total: 50,
     });
 
     const result = applyEstimateToItem(item, estimate);
 
     expect(result.quantity).toBe(50);
+    expect(toPersistedRecipeItemQuantity(result, 1)).toBe(50);
+  });
+
+  it('keeps pre-weighed gram portions ("100g Zutat") as portion counts', () => {
+    const item = makeItem({
+      portion_id: 100,
+      ingredient_portions: [
+        { id: 100, name: '100g Zutat', quantity: 1, weight_g: 100, measuring_unit_name: 'Gramm', rank: 1 },
+      ],
+      baseWeightG: 50,
+      baseQuantity: 0.5,
+    });
+    const estimate = makeEstimate({ portion_id: 100, unit: 'Gramm', quantity_per_portion: 0.5, grams_total: 50 });
+
+    const result = applyEstimateToItem(item, estimate);
+
+    expect(result.quantity).toBe(0.5);
     expect(toPersistedRecipeItemQuantity(result, 1)).toBe(0.5);
   });
 

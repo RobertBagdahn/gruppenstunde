@@ -11,14 +11,9 @@ import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { useRetailSections } from '@/api/supplies';
 import { UnknownIngredientDialog } from './UnknownIngredientDialog';
+import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
 
-const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
-  A: { bg: 'bg-green-600', text: 'text-white' },
-  B: { bg: 'bg-lime-500', text: 'text-white' },
-  C: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
-  D: { bg: 'bg-orange-500', text: 'text-white' },
-  E: { bg: 'bg-red-600', text: 'text-white' },
-};
+const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 function formatNum(v: number | null | undefined): string {
   return v != null ? parseFloat(v.toFixed(1)) + 'g' : '';

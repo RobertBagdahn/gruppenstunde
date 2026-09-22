@@ -114,7 +114,7 @@ ALL_MODIFIERS: set[str] = STATE_MODIFIERS | COLOR_MODIFIERS | SIZE_MODIFIERS | P
 
 # Quantity/unit patterns for best-effort parsing
 QUANTITY_UNIT_PATTERN = re.compile(
-    r"^(?P<qty>\d+(?:[.,]\d+)?)\s*(?P<unit>g|kg|ml|l|EL|TL|Msp\.?|Pck\.?|Pkg\.?|Bd\.?|Stück|Dose|Glas|Bund|Prise|Schuss|cm|Scheibe[n]?|Zehe[n]?)?\s+",
+    r"^(?P<qty>\d+(?:[.,]\d+)?)\s*(?P<unit>kg|g|ml|Liter|l|EL|TL|Msp\.?|Pck\.?|Pkg\.?|Bd\.?|Stück|Dose[n]?|Glas|Gläser|Tasse[n]?|Becher|Packung[en]?|Päckchen|Handvoll|Bund|Prise|Schuss|cm|Scheibe[n]?|Zehe[n]?)?\s+",
     re.IGNORECASE,
 )
 
@@ -123,6 +123,7 @@ UNIT_CANONICAL: dict[str, str] = {
     "kg": "kg",
     "ml": "ml",
     "l": "l",
+    "liter": "Liter",
     "el": "EL",
     "tl": "TL",
     "msp": "Messerspitze",
@@ -141,6 +142,13 @@ UNIT_CANONICAL: dict[str, str] = {
     "dosen": "Dose",
     "glas": "Glas",
     "gläser": "Glas",
+    "tasse": "Tasse",
+    "tassen": "Tasse",
+    "becher": "Becher",
+    "packung": "Packung",
+    "packungen": "Packung",
+    "päckchen": "Päckchen",
+    "handvoll": "Handvoll",
     "bund": "Bund",
     "prise": "Prise",
     "prisen": "Prise",

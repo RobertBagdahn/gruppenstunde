@@ -286,6 +286,49 @@ def _unit_name_lower(portion) -> str:
     return (getattr(measuring_unit, "name", "") or "").strip().lower()
 
 
+METRIC_UNIT_GRAMS = {
+    "g": 1.0,
+    "gramm": 1.0,
+    "ml": 1.0,
+    "milliliter": 1.0,
+    "kg": 1000.0,
+    "kilogramm": 1000.0,
+    "l": 1000.0,
+    "liter": 1000.0,
+}
+
+
+def is_direct_metric_portion(portion) -> bool:
+    """Return True when a RecipeItem quantity on `portion` is a plain metric amount.
+
+    Only a single (quantity == 1), non-piece portion whose weight equals one
+    metric unit qualifies ("Gramm" = 1 g, "Liter" = 1000 g). Pre-weighed
+    portions that merely use a gram unit ("100g Reis", "Dose 400g", "EL 15g":
+    quantity=1, unit=Gramm, weight_g != 1) are counts of that portion.
+    """
+    if portion is None:
+        return False
+    if getattr(portion, "quantity", 1) != 1:
+        return False
+    if is_piece_like_name(getattr(portion, "name", None)):
+        return False
+    unit_grams = METRIC_UNIT_GRAMS.get(_unit_name_lower(portion))
+    if unit_grams is None:
+        return False
+    weight = getattr(portion, "weight_g", None)
+    return weight is None or abs(float(weight) - unit_grams) <= 1e-6
+
+
+def is_pre_weighed_metric_portion(portion) -> bool:
+    """Return True for gram/ml-unit portions that are counts ("100g Reis")."""
+    return (
+        portion is not None
+        and _unit_name_lower(portion) in METRIC_UNIT_GRAMS
+        and not is_piece_like_name(getattr(portion, "name", None))
+        and not is_direct_metric_portion(portion)
+    )
+
+
 def resolve_trusted_weight(portion) -> float | None:
     """Return `portion.weight_g` when it may be used for gram calculations.
 

@@ -43,6 +43,38 @@ describe('InlineIngredientEditor.normalizeItems', () => {
     measuring_unit_name: 'Gramm',
   });
 
+  describe('pre-weighed gram portions (quantity=1, unit=Gramm, weight_g≠1)', () => {
+    const reisPortion = {
+      id: 418,
+      name: '100g Reis',
+      quantity: 1,
+      weight_g: 100,
+      rank: 1,
+      is_default: true,
+      measuring_unit_id: null,
+      measuring_unit_name: 'Gramm',
+    };
+
+    it('treats the portion as a count, not as direct grams', () => {
+      const items = [
+        makeRecipeItem({ id: 1, quantity: 1.25, portion_id: 418, weight_g: 125, ingredient_portions: [reisPortion] }),
+      ];
+
+      const [item] = normalizeItems(items, 1);
+      expect(item.quantity).toBe(1.25);
+      expect(item.measuring_unit_name).toBe('100g Reis');
+      expect(getItemWeightG(item)).toBe(125);
+    });
+
+    it('multiplies an entered count by the portion weight', () => {
+      const [item] = normalizeItems(
+        [makeRecipeItem({ id: 1, quantity: 1, portion_id: 418, weight_g: 100, ingredient_portions: [reisPortion] })],
+        1,
+      );
+      expect(getItemWeightG({ ...item, quantity: 125 } as EditableItem)).toBe(12500);
+    });
+  });
+
   describe('composite portions (quantity !== 1)', () => {
     it('displays the portion count and uses the composite portion name as label', () => {
       const items = [
@@ -152,7 +184,7 @@ describe('InlineIngredientEditor.normalizeItems', () => {
   });
 
   describe('portions with weight_g != 1 (e.g. "100g Haferflocken")', () => {
-    it('displays grams, not the portion multiplier', () => {
+    it('displays the portion count labeled with the portion name', () => {
       const items = [
         makeRecipeItem({
           id: 1,
@@ -167,8 +199,8 @@ describe('InlineIngredientEditor.normalizeItems', () => {
       ];
 
       const result = normalizeItems(items, 1);
-      expect(result[0].quantity).toBe(60);
-      expect(result[0].measuring_unit_name).toBe('Gramm');
+      expect(result[0].quantity).toBe(0.6);
+      expect(result[0].measuring_unit_name).toBe('100g Haferflocken');
       expect(getItemWeightG(result[0])).toBe(60);
     });
   });

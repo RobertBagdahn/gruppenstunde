@@ -175,8 +175,18 @@ export const PortionSchema = z.object({
   weight_confirmed_at: z.string().nullable().optional(),
   weight_confidence: z.number().nullable().optional(),
   is_weight_trusted: z.boolean().optional(),
+  is_piece_like: z.boolean().optional(),
 });
 export type Portion = z.infer<typeof PortionSchema>;
+
+export const StandardMeasureSchema = z.object({
+  key: z.string(),
+  name: z.string(),
+  grams: z.number(),
+  unit_name: z.string().default('g'),
+  is_approx: z.boolean().default(true),
+});
+export type StandardMeasure = z.infer<typeof StandardMeasureSchema>;
 
 export const PortionMagicOperationSchema = z.object({
   operation_id: z.string(),
@@ -389,21 +399,19 @@ export type NutriScoreDetail = z.infer<typeof NutriScoreDetailSchema>;
 
 // --- Nutri-Score Colors (for UI) ---
 
-export const NUTRI_SCORE_COLORS: Record<number, { bg: string; text: string; label: string }> = {
-  1: { bg: 'bg-green-600', text: 'text-white', label: 'A' },
-  2: { bg: 'bg-green-400', text: 'text-white', label: 'B' },
-  3: { bg: 'bg-yellow-400', text: 'text-black', label: 'C' },
-  4: { bg: 'bg-orange-400', text: 'text-white', label: 'D' },
-  5: { bg: 'bg-red-500', text: 'text-white', label: 'E' },
+/** Official Nutri-Score colors, keyed by letter. */
+export const NUTRI_SCORE_COLORS_BY_LETTER: Record<string, { bg: string; text: string }> = {
+  A: { bg: 'bg-nutri-a', text: 'text-white' },
+  B: { bg: 'bg-nutri-b', text: 'text-white' },
+  C: { bg: 'bg-nutri-c', text: 'text-nutri-dark-text' },
+  D: { bg: 'bg-nutri-d', text: 'text-white' },
+  E: { bg: 'bg-nutri-e', text: 'text-white' },
 };
 
-export const NUTRI_SCORE_COLORS_BY_LETTER: Record<string, { bg: string; text: string }> = {
-  A: { bg: 'bg-green-600', text: 'text-white' },
-  B: { bg: 'bg-lime-500', text: 'text-white' },
-  C: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
-  D: { bg: 'bg-orange-500', text: 'text-white' },
-  E: { bg: 'bg-red-600', text: 'text-white' },
-};
+/** Official Nutri-Score colors, keyed by nutri class (1 = A … 5 = E). */
+export const NUTRI_SCORE_COLORS: Record<number, { bg: string; text: string; label: string }> = Object.fromEntries(
+  ['A', 'B', 'C', 'D', 'E'].map((label, idx) => [idx + 1, { ...NUTRI_SCORE_COLORS_BY_LETTER[label], label }]),
+);
 
 // --- Legacy Material Content schemas (used by api/materials.ts) ---
 

@@ -143,6 +143,41 @@ class TestParseRuleBased:
         assert result.name == "Knoblauch"
         assert result.note == ""
 
+    def test_liter_unit_parsed(self):
+        make_ingredient(name="Orangensaft")
+        result = IngredientNameParser.parse("1 Liter Orangensaft")
+        assert result.quantity == 1.0
+        assert result.unit == "Liter"
+        assert result.name == "Orangensaft"
+        assert result.note == ""
+
+    def test_dose_unit_parsed(self):
+        make_ingredient(name="Ananas")
+        result = IngredientNameParser.parse("1 Dose Ananas")
+        assert result.quantity == 1.0
+        assert result.unit == "Dose"
+        assert result.name == "Ananas"
+
+    def test_tasse_unit_parsed(self):
+        make_ingredient(name="Reis")
+        result = IngredientNameParser.parse("2 Tassen Reis")
+        assert result.quantity == 2.0
+        assert result.unit == "Tasse"
+        assert result.name == "Reis"
+
+    def test_packung_unit_parsed(self):
+        make_ingredient(name="Nudeln")
+        result = IngredientNameParser.parse("1 Packung Nudeln")
+        assert result.quantity == 1.0
+        assert result.unit == "Packung"
+        assert result.name == "Nudeln"
+
+    def test_container_phrase_stays_identity(self):
+        result = IngredientNameParser.parse("Tomaten aus der Dose")
+        assert result.name == "Tomaten aus der Dose"
+        assert result.note == ""
+        assert result.quantity == 0
+
 
 @pytest.mark.django_db
 class TestParseJaccardFallback:

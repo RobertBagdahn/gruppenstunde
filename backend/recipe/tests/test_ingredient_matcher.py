@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from recipe.services.ingredient_matcher import IngredientMatcher, MatchResult
+from recipe.services.ingredient_matcher import IngredientMatcher, MatchCandidate, MatchResult
 from supply.tests import make_ingredient
 
 
@@ -85,6 +85,115 @@ class TestStage4HumanDialog:
                     assert result.confidence == 0.0
                     assert result.ingredient_id is None
                     assert result.candidates == []
+
+
+@pytest.mark.django_db
+class TestCandidateListOnAllResults:
+    """Every match result carries the top candidates of the deciding stage."""
+
+    def test_confident_fuzzy_match_carries_candidates(self):
+        make_ingredient(name="Kirschen", usage_count=30)
+        result = IngredientMatcher.match("Kirsche(n)")
+        assert result.matched_via == "fuzzy"
+        assert result.ingredient_id is not None
+        assert len(result.candidates) >= 1
+        assert all(c.slug for c in result.candidates)
+
+    def test_exact_match_carries_candidate(self):
+        ing = make_ingredient(name="Orangensaft")
+        result = IngredientMatcher.match("Orangensaft")
+        assert result.ingredient_id == ing.id
+        assert len(result.candidates) == 1
+        assert result.candidates[0].slug == ing.slug
+        assert result.candidates[0].confidence == 1.0
+
+    def test_grey_zone_candidates_have_slug(self):
+        make_ingredient(name="Zwiebel rot", usage_count=100)
+        make_ingredient(name="Zwiebel frisch", usage_count=50)
+        result = IngredientMatcher.match("Zwiebel")
+        assert result.needs_review is True
+        assert len(result.candidates) >= 2
+        assert all(c.slug for c in result.candidates)
+
+
+@pytest.mark.django_db
+class TestEmbeddingStageCandidatesOnly:
+    """Embedding stage never auto-matches — it only proposes candidates."""
+
+    def test_embedding_result_is_candidates_only(self):
+        ing = make_ingredient(name="Rindergehacktes")
+        result = IngredientMatcher._embedding_result(
+            "Rinderhack",
+            "",
+            [MatchCandidate(id=ing.id, name=ing.name, slug=ing.slug, confidence=0.72)],
+        )
+        assert result.needs_review is True
+        assert result.ingredient_id is None
+        assert result.matched_via == "embed"
+        assert result.candidates[0].slug == ing.slug
+        assert result.candidates[0].confidence == 0.72
+
+    def test_embedding_result_empty_returns_none(self):
+        assert IngredientMatcher._embedding_result("Rinderhack", "", []) is None
+
+    def test_embedding_result_keeps_top_five(self):
+        cands = [
+            MatchCandidate(id=i, name=f"Zutat {i}", slug=f"zutat-{i}", confidence=0.9 - i * 0.01) for i in range(7)
+        ]
+        result = IngredientMatcher._embedding_result("Freekeh", "", cands)
+        assert len(result.candidates) == 5
+
+
+@pytest.mark.django_db
+class TestQuantityTokenStripping:
+    """Matcher strips leading quantity/unit tokens when the parser failed."""
+
+    def test_liter_prefixed_name_matched(self):
+        make_ingredient(name="Orangensaft")
+        result = IngredientMatcher.match("1 Liter Orangensaft")
+        assert result.ingredient_id is not None
+        assert result.name == "Orangensaft"
+        assert result.technical_details.get("parsed_quantity") == 1.0
+        assert result.technical_details.get("parsed_unit") == "Liter"
+
+    def test_quantity_without_unit_stripped(self):
+        make_ingredient(name="Fladenbrot")
+        result = IngredientMatcher.match("2 Fladenbrot")
+        assert result.ingredient_id is not None
+        assert result.name == "Fladenbrot"
+        assert result.technical_details.get("parsed_quantity") == 2.0
+
+    def test_quantity_word_stripped(self):
+        make_ingredient(name="Rohrzucker")
+        result = IngredientMatcher.match("etwas Rohrzucker brauner")
+        # Grey zone (Rohrzucker 0.5) — the candidate must be offered
+        assert result.needs_review is True
+        candidate_names = [c.name for c in result.candidates]
+        assert "Rohrzucker" in candidate_names
+
+    def test_no_leading_token_not_stripped(self):
+        make_ingredient(name="Orangensaft 100%")
+        result = IngredientMatcher.match("Orangensaft 100%")
+        assert result.ingredient_id is not None
+        assert result.name == "Orangensaft 100%"
+        assert "parsed_quantity" not in result.technical_details
+
+    def test_bare_unit_prefix_stripped(self):
+        make_ingredient(name="Orangensaft")
+        result = IngredientMatcher.match("Liter Orangensaft")
+        assert result.ingredient_id is not None
+        assert result.name == "Orangensaft"
+        assert result.technical_details.get("parsed_unit") == "Liter"
+
+    def test_real_name_with_unit_prefix_not_cut(self):
+        make_ingredient(name="Glasnudeln")
+        result = IngredientMatcher.match("Glasnudeln")
+        assert result.ingredient_id is not None
+        assert result.name == "Glasnudeln"
+        assert "parsed_unit" not in result.technical_details
+
+    def test_strip_helper_returns_none_without_prefix(self):
+        assert IngredientMatcher._strip_quantity_unit("Orangensaft 100%") is None
 
 
 @pytest.mark.django_db

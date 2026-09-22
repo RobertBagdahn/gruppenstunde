@@ -7,7 +7,7 @@ import {
   AiMaterialSuggestionsSchema,
 } from './recipe';
 import { PortionOptionSchema, ShoppingItemSourceSchema, MealPlanCostSummarySchema } from './mealPlan';
-import { IngredientDetailSchema } from './supply';
+import { IngredientDetailSchema, StandardMeasureSchema } from './supply';
 import {
   PriceApplyRequestSchema,
   PriceApplyResponseSchema,
@@ -29,6 +29,14 @@ describe('food API contracts', () => {
       weight_g: 0,
       count: 0,
     });
+  });
+
+  it('parses the standard-measure catalog with backend-matching defaults', () => {
+    // Mirrors StandardMeasureOut (Pydantic) — field names, types and defaults
+    // must stay in sync (see backend/supply/tests/test_contract_schemas.py).
+    const parsed = StandardMeasureSchema.parse({ key: 'el', name: '1 EL', grams: 12 });
+    expect(parsed).toEqual({ key: 'el', name: '1 EL', grams: 12, unit_name: 'g', is_approx: true });
+    expect(StandardMeasureSchema.parse({ key: 'tl', name: '1 TL', grams: 4, is_approx: false }).is_approx).toBe(false);
   });
 
   it('requires server permission and synchronised visibility fields', () => {
@@ -196,6 +204,7 @@ describe('food API contracts', () => {
       affected_recipe_ids: [],
       applied_at: null,
       rejected_at: null,
+      approved_at: null,
       created_at: '2026-01-01T00:00:00Z',
       repair_path: 'review',
       suggested_weight_g: null,

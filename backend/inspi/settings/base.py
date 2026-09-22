@@ -178,7 +178,7 @@ GEMINI_PRICING = {
         "input_per_1m_usd": 0.25,
         "output_per_1m_usd": 1.50,
     },
-    "gemini-3.1-flash-image-preview": {
+    "gemini-3.1-flash-image": {
         "type": "image",
         "input_per_1m_usd": 0.25,
         "output_per_1m_usd": 1.50,

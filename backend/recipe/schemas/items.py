@@ -111,6 +111,8 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_ingredient_portions(obj) -> list:
+        from supply.services.portion_resolution import is_piece_like_name
+
         ingredient = None
         if obj.portion and obj.portion.ingredient:
             ingredient = obj.portion.ingredient
@@ -132,6 +134,7 @@ class RecipeItemOut(Schema):
                 "weight_confirmed_at": p.weight_confirmed_at,
                 "weight_confidence": p.weight_confidence,
                 "is_weight_trusted": p.is_weight_trusted,
+                "is_piece_like": is_piece_like_name(p.name),
             }
             for p in ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit").all()
         ]

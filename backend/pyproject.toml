@@ -186,3 +186,8 @@ omit = ["*/migrations/*", "*/tests/*"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 50
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+]
