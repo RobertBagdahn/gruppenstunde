@@ -5,11 +5,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from content.choices import ContentStatus
-from recipe.models import Recipe
+from recipe.models import Recipe, RecipeItem
 from recipe.services.ai_ingredients_service import (
     AiIngredientSuggestion,
     MatchedIngredientResult,
     RecipeAiIngredientsService,
+    is_duplicate_ingredient_name,
+    is_trivial_ingredient_name,
 )
 from supply.models import Ingredient, MeasuringUnit, Portion
 
@@ -154,3 +156,58 @@ class TestAiIngredientsServiceDeduplication:
             assert result.ingredient_id is None
             assert result.is_new_ingredient is True
             assert not Ingredient.objects.filter(name="Spezialgewürz").exists()
+
+
+class TestDuplicateIngredientNames:
+    EXISTING = ["Langkornreis trocken", "Speisezwiebel frisch", "Olivenöl", "Jodsalz"]
+
+    @pytest.mark.parametrize(
+        "name",
+        ["Reis trocken", "Zwiebel frisch", "Olivenöl", "Rapsöl", "Meersalz", "Zwiebeln"],
+    )
+    def test_detects_duplicates_and_variants(self, name):
+        assert is_duplicate_ingredient_name(name, self.EXISTING) is True
+
+    @pytest.mark.parametrize(
+        "name",
+        ["Zucchini frisch", "Schwarzer Pfeffer gemahlen", "Sojasauce", "Frühlingszwiebel frisch", "Karotte frisch"],
+    )
+    def test_keeps_new_ingredients(self, name):
+        assert is_duplicate_ingredient_name(name, self.EXISTING) is False
+
+    def test_trivial_water_is_detected(self):
+        assert is_trivial_ingredient_name("Trinkwasser aus der Leitung") is True
+        assert is_trivial_ingredient_name("Leitungswasser") is True
+        assert is_trivial_ingredient_name("Zucchini frisch") is False
+
+
+@pytest.mark.django_db
+class TestSuggestPromptWithExistingIngredients:
+    def test_prompt_lists_existing_ingredients_and_forbids_repeats(self, draft_recipe, portion_nudeln):
+        RecipeItem.objects.create(recipe=draft_recipe, portion=portion_nudeln, quantity=1.25)
+        prompt = RecipeAiIngredientsService()._build_suggest_prompt(draft_recipe)
+        assert "BEREITS diese Zutaten" in prompt
+        assert "- Fusilli trocken" in prompt
+        assert "Leitungswasser, Trinkwasser" in prompt
+        assert "vollständige Zutatenliste" not in prompt
+
+    def test_prompt_without_items_requests_full_list(self, draft_recipe):
+        prompt = RecipeAiIngredientsService()._build_suggest_prompt(draft_recipe)
+        assert "vollständige Zutatenliste" in prompt
+        assert "BEREITS" not in prompt
+
+    def test_full_suggestions_filter_variants_and_water(self, draft_recipe, portion_nudeln):
+        RecipeItem.objects.create(recipe=draft_recipe, portion=portion_nudeln, quantity=1.25)
+        service = RecipeAiIngredientsService()
+        matched = [
+            MatchedIngredientResult(None, name, None, None, 10.0, None, None, is_new_ingredient=True)
+            for name in ["Fusilli", "Trinkwasser aus der Leitung", "Zucchini frisch"]
+        ]
+        with (
+            patch.object(service, "suggest_ingredients", return_value=(MagicMock(items=[1]), "iid")),
+            patch.object(service, "match_ingredients", return_value=matched),
+            patch.object(service, "assign_portions", side_effect=lambda m, **_: m),
+        ):
+            results, interaction_id = service.get_full_suggestions(draft_recipe)
+        assert [r.ingredient_name for r in results] == ["Zucchini frisch"]
+        assert interaction_id == "iid"
