@@ -186,7 +186,7 @@ GEMINI_PRICING = {
     },
     "gemini-embedding-001": {
         "type": "embedding",
-        "input_per_1m_usd": 0.00015,
+        "input_per_1m_usd": 0.15,
     },
 }
 USD_TO_EUR = env.float("USD_TO_EUR", default=0.92)

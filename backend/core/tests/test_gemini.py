@@ -293,3 +293,42 @@ class TestCostCalculation:
         from core.services.gemini import _calculate_cost_eur
 
         assert _calculate_cost_eur(DEFAULT_TEXT_MODEL, None) is None
+
+
+class TestImageCostCalculation:
+    def test_image_tokens_use_image_rate(self):
+        from types import SimpleNamespace
+
+        from core.services.gemini import _calculate_cost_eur
+
+        um = SimpleNamespace(
+            prompt_token_count=1_000_000,
+            candidates_token_count=2_000_000,
+            candidates_tokens_details=[
+                SimpleNamespace(modality=SimpleNamespace(value="IMAGE"), token_count=1_000_000),
+                SimpleNamespace(modality=SimpleNamespace(value="TEXT"), token_count=1_000_000),
+            ],
+        )
+        result = _calculate_cost_eur("gemini-3.1-flash-image", um)
+        # input 0.25 + text output 1.50 + image output 30.00 = 31.75 USD * 0.92 = 29.21 EUR.
+        assert result == "29.210000"
+
+    def test_missing_modality_details_falls_back_to_text_rate(self):
+        from types import SimpleNamespace
+
+        from core.services.gemini import _calculate_cost_eur
+
+        um = SimpleNamespace(
+            prompt_token_count=1_000_000, candidates_token_count=1_000_000, candidates_tokens_details=None
+        )
+        # 0.25 + 1.50 = 1.75 USD * 0.92 = 1.61 EUR.
+        assert _calculate_cost_eur("gemini-3.1-flash-image", um) == "1.610000"
+
+    def test_embedding_price(self):
+        from types import SimpleNamespace
+
+        from core.services.gemini import _calculate_cost_eur
+
+        um = SimpleNamespace(prompt_token_count=1_000_000, candidates_token_count=0)
+        # 0.15 USD * 0.92 = 0.138 EUR.
+        assert _calculate_cost_eur("gemini-embedding-001", um) == "0.138000"

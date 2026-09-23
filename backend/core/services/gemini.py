@@ -9,6 +9,7 @@ import json
 import logging
 import time
 import uuid
+from types import SimpleNamespace
 from typing import NoReturn
 
 from django.conf import settings
@@ -297,6 +298,17 @@ def _extract_usage_metadata(source) -> dict:
         return {}
 
 
+def _image_output_tokens(usage_metadata) -> int:
+    """Sum IMAGE-modality output tokens from candidates_tokens_details."""
+    details = getattr(usage_metadata, "candidates_tokens_details", None) or []
+    total = 0
+    for detail in details:
+        modality = getattr(detail, "modality", None)
+        if getattr(modality, "value", modality) == "IMAGE":
+            total += getattr(detail, "token_count", 0) or 0
+    return total
+
+
 def _calculate_cost_eur(model: str, usage_metadata) -> str | None:
     """Calculate cost in EUR from token usage and Gemini pricing table.
 
@@ -315,8 +327,13 @@ def _calculate_cost_eur(model: str, usage_metadata) -> str | None:
     output_tokens = usage_metadata.candidates_token_count or 0
 
     try:
+        image_rate = pricing.get("image_output_per_1m_usd")
+        image_tokens = _image_output_tokens(usage_metadata) if image_rate is not None else 0
+        text_output_tokens = max(output_tokens - image_tokens, 0)
         input_cost = input_tokens / 1_000_000 * pricing["input_per_1m_usd"]
-        output_cost = output_tokens / 1_000_000 * pricing.get("output_per_1m_usd", 0)
+        output_cost = text_output_tokens / 1_000_000 * pricing.get("output_per_1m_usd", 0)
+        if image_tokens:
+            output_cost += image_tokens / 1_000_000 * image_rate
         usd_to_eur = Decimal(str(getattr(settings, "USD_TO_EUR", 0.92)))
         cost_usd = Decimal(str(input_cost + output_cost))
         cost_eur = (cost_usd * usd_to_eur).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
@@ -628,6 +645,29 @@ def gemini_image_call(
     )
 
 
+def _embedding_usage(response) -> SimpleNamespace | None:
+    """Build usage metadata for an EmbedContentResponse.
+
+    Vertex AI embedding responses carry no usage_metadata; the input token
+    count is reported per embedding in ``statistics.token_count``.
+    """
+    try:
+        counts = [e.statistics.token_count for e in response.embeddings if e.statistics]
+    except AttributeError:
+        return None
+    if not counts or not all(isinstance(c, int | float) for c in counts):
+        return None
+    prompt_tokens = int(sum(counts))
+    return SimpleNamespace(
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=prompt_tokens,
+            candidates_token_count=0,
+            total_token_count=prompt_tokens,
+            thoughts_token_count=None,
+        )
+    )
+
+
 def gemini_embed(
     *,
     user: AbstractBaseUser | None = None,
@@ -699,8 +739,9 @@ def gemini_embed(
 
         if response.embeddings:
             duration = int((time.monotonic() - start) * 1000)
-            tokens = _extract_usage_metadata(response)
-            cost = _calculate_cost_eur(model, response.usage_metadata if hasattr(response, "usage_metadata") else None)
+            usage = _embedding_usage(response)
+            tokens = _extract_usage_metadata(usage)
+            cost = _calculate_cost_eur(model, usage.usage_metadata if usage else None)
             _update_interaction(
                 interaction,
                 success=True,

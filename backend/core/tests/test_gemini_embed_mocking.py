@@ -164,3 +164,30 @@ class TestGeminiEmbedWithMocking:
             )
 
             assert len(result) == target_dim
+
+
+class TestGeminiEmbedCost:
+    """Embedding responses carry token counts in statistics, not usage_metadata."""
+
+    def test_embedding_usage_from_statistics(self):
+        from types import SimpleNamespace
+
+        from core.services.gemini import _calculate_cost_eur, _embedding_usage
+
+        response = SimpleNamespace(
+            embeddings=[SimpleNamespace(values=[0.1], statistics=SimpleNamespace(token_count=1_000_000.0))]
+        )
+        usage = _embedding_usage(response)
+
+        assert usage is not None
+        assert usage.usage_metadata.prompt_token_count == 1_000_000
+        assert usage.usage_metadata.candidates_token_count == 0
+        assert _calculate_cost_eur("gemini-embedding-001", usage.usage_metadata) is not None
+
+    def test_embedding_usage_without_statistics_returns_none(self):
+        from types import SimpleNamespace
+
+        from core.services.gemini import _embedding_usage
+
+        response = SimpleNamespace(embeddings=[SimpleNamespace(values=[0.1], statistics=None)])
+        assert _embedding_usage(response) is None

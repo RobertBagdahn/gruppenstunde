@@ -40,24 +40,25 @@ The system SHALL extract token usage data from every successful Gemini API respo
 The system SHALL calculate the cost of each Gemini call based on the model's pricing table and store it in EUR. When a model is not listed in `GEMINI_PRICING`, the system SHALL log a warning and SHALL NOT silently discard the pricing information.
 
 #### Scenario: Text model cost calculation
-- **WHEN** a call to `gemini-3.1-flash-lite` consumes X input tokens and Y output tokens
+- **WHEN** a call to `gemini-3.5-flash-lite` consumes X input tokens and Y output tokens
 - **THEN** the cost SHALL be `(X / 1_000_000 * INPUT_PRICE_USD + Y / 1_000_000 * OUTPUT_PRICE_USD) * USD_TO_EUR`
 - **THEN** `cost_eur` SHALL be stored as a Decimal with 6 decimal places
 - **THEN** `pricing_model` SHALL be set to the model identifier used for pricing lookup
 
-#### Scenario: Image model cost calculation (Phase 1 — vor Modality-Spike)
+#### Scenario: Image model cost calculation
 - **WHEN** a call to `gemini-3.1-flash-image` completes
-- **THEN** the system SHALL apply text-token pricing rates ($0,25 input, $1,50 output)
-- **THEN** the `image_output_per_1m_usd` rate ($30) SHALL be reserved for activation after modality detection is verified
+- **THEN** input tokens SHALL use `input_per_1m_usd` ($0.25)
+- **THEN** output tokens with IMAGE modality in `usage_metadata.candidates_tokens_details` SHALL use `image_output_per_1m_usd` ($30)
+- **THEN** all remaining output tokens SHALL use `output_per_1m_usd` ($1.50)
 
-#### Scenario: Image model cost calculation (Phase 2 — nach Modality-Spike)
-- **WHEN** `usage_metadata.prompt_tokens_details` / `candidates_tokens_details` distinguish TEXT vs IMAGE modality
-- **THEN** IMAGE-modality tokens SHALL use `image_output_per_1m_usd` rate
-- **THEN** TEXT-modality tokens SHALL use standard `output_per_1m_usd` rate
+#### Scenario: Image model without modality details
+- **WHEN** an image model response has no `candidates_tokens_details`
+- **THEN** all output tokens SHALL use `output_per_1m_usd`
 
 #### Scenario: Embedding model cost calculation
 - **WHEN** a call to `gemini-embedding-001` completes
-- **THEN** the system SHALL use embedding-specific pricing ($0.00015/1M input)
+- **THEN** the system SHALL use embedding-specific pricing ($0.15/1M input)
+- **THEN** input tokens SHALL be taken from `embeddings[].statistics.token_count`, because embedding responses carry no `usage_metadata`
 - **THEN** only input tokens SHALL be charged (output is free)
 
 #### Scenario: Unknown model logs warning
