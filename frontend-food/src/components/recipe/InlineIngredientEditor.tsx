@@ -1430,11 +1430,15 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     )) {
       return Promise.resolve(true);
     }
+    // Quantities for a single person need no normalization, so skip the confirmation.
+    if (scale === 1) {
+      return performSave();
+    }
     return new Promise<boolean>((resolve) => {
       saveConfirmationRef.current = resolve;
       setShowSaveConfirmation(true);
     });
-  }, [editItems, recipeId]);
+  }, [editItems, recipeId, scale, performSave]);
 
   latestHandleSaveRef.current = handleSave;
 

@@ -149,7 +149,10 @@ export default function RecipeDetailPage() {
 
   // This is a transient input context. It is intentionally reset whenever the
   // ingredient editor is opened again and is never read from the recipe.
-  const [editInputPortions, setEditInputPortions] = useState<number | null>(null);
+  // Opening via ?edit=ingredients starts at 1 portion, so no confirmation is needed.
+  const [editInputPortions, setEditInputPortions] = useState<number | null>(
+    searchParams.get('edit') === 'ingredients' ? 1 : null,
+  );
   const [editInputPortionsDraft, setEditInputPortionsDraft] = useState(1);
 
   const [showCloneDialog, setShowCloneDialog] = useState(false);
@@ -773,8 +776,9 @@ export default function RecipeDetailPage() {
               variant="outline"
               size="sm"
            onClick={() => {
-             setEditInputPortionsDraft(1);
-             setEditInputPortions(null);
+             // Only ask for the serving context when the user scaled away from 1 portion.
+             setEditInputPortionsDraft(displayedPortions);
+             setEditInputPortions(displayedPortions === 1 ? 1 : null);
              setIsInlineEditMode(true);
            }}
               title="Zutaten bearbeiten"

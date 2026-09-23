@@ -242,7 +242,6 @@ test.describe('Food data integrity release flows', () => {
 
     await page.goto('/recipes/salz-suppe');
     await page.getByTestId('ingredients-edit-trigger').click();
-    await page.getByTestId('recipe-serving-context-confirm').click();
     const suggestButton = page.getByRole('button', { name: /Weitere Zutaten/i });
     await expect(suggestButton).toBeVisible();
     await suggestButton.click();
