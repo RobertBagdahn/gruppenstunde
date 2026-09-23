@@ -4,8 +4,9 @@
  *
  * Used on RecipeDetailPage and other recipe views.
  */
-import { useState, useMemo } from 'react';
-import { AlertTriangle, ChevronDown, Search } from 'lucide-react';
+import { useState, useMemo, type ReactNode } from 'react';
+import { AlertTriangle, ChefHat, ChevronDown, Coins, Scale, Search, Tag, TrendingUp } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { AvailableConversionBatchItem, Portion } from '@/schemas/supply';
@@ -50,8 +51,14 @@ const UNIT_SHORT: Record<string, string> = {
 
 const BASE_METRIC_UNIT_NAMES = new Set(['Gramm', 'g', 'kg', 'Kilogramm', 'Milliliter', 'ml', 'Liter', 'l']);
 
+/**
+ * A portion is metric when its *name* is a plain metric amount ("Gramm", "100g Reis").
+ * The measuring unit only decides for unnamed portions — named portions such as "Stück"
+ * are often stored in grams but still describe a natural portion.
+ */
 function isGramPortion(portionName?: string | null, unitName?: string | null): boolean {
-  return BASE_METRIC_UNIT_NAMES.has(unitName ?? '') || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg|ml|l)\b/i.test(portionName ?? '');
+  if (!portionName) return BASE_METRIC_UNIT_NAMES.has(unitName ?? '');
+  return BASE_METRIC_UNIT_NAMES.has(portionName) || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg|ml|l)\b/i.test(portionName);
 }
 
 function shortUnit(name: string): string {
@@ -63,23 +70,81 @@ function formatPrice(priceEur: number): string {
   return `${priceEur.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 }
 
+function formatShare(part: number, total: number): string {
+  const percent = (part / total) * 100;
+  return percent > 0 && percent < 1 ? '< 1 %' : `${Math.round(percent)} %`;
+}
+
+function formatCount(value: number): string {
+  return value.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: value < 1 ? 2 : 1 });
+}
+
 function formatPortionAmount(amount: number, portionName: string): string {
+  // Pre-weighed metric portions ("100g Reis") read as a multiple of the portion.
+  if (/^\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l)\b/i.test(portionName)) return `${formatCount(amount)} × ${portionName}`;
+
   const match = portionName.match(/^(\d+(?:[.,]\d+)?)\s+(.*)$/);
   const count = match ? amount * parseFloat(match[1].replace(',', '.')) : amount;
   const name = match ? match[2] : portionName;
 
-  return `${count.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} ${name}`;
+  return `${formatCount(count)} ${name}`;
 }
 
-function PortionLine({ label, amount, perUnit }: { label: string; amount: string; perUnit: string | null }) {
+function PortionPill({
+  title,
+  amount,
+  perUnit,
+  tone,
+}: {
+  title: string;
+  amount: string;
+  perUnit: string | null;
+  tone: 'selected' | 'approx';
+}) {
   return (
-    <div className="flex items-baseline gap-2 text-sm text-muted-foreground">
-      <span className="w-14 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-        {label}
-      </span>
-      <span className="text-foreground/80">{amount}</span>
-      {perUnit && <span className="text-xs text-muted-foreground/80">à {perUnit}</span>}
-    </div>
+    <span
+      title={title}
+      className={cn(
+        'inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm text-foreground',
+        tone === 'selected' ? 'border-primary/25 bg-primary/[0.06]' : 'border-border bg-background',
+      )}
+    >
+      {tone === 'selected' ? (
+        <ChefHat className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+      ) : (
+        <span className="shrink-0 text-muted-foreground" aria-hidden="true">≈</span>
+      )}
+      <span className="sr-only">{title}:</span>
+      <span className="min-w-0 break-words font-medium">{amount}</span>
+      {perUnit && <span className="shrink-0 text-xs text-muted-foreground">à {perUnit}</span>}
+    </span>
+  );
+}
+
+function Fact({ icon: Icon, children, className }: { icon: LucideIcon; children: ReactNode; className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap tabular-nums', className)}>
+      <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
+function NutriBadge({ nutriClass, className }: { nutriClass: number | null | undefined; className?: string }) {
+  const colors = nutriClass != null ? NUTRI_SCORE_COLORS[nutriClass] : undefined;
+  if (!colors) return null;
+  return (
+    <span
+      className={cn(
+        colors.bg,
+        colors.text,
+        'h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-extrabold leading-none',
+        className,
+      )}
+      title={`Nutri-Score ${colors.label}`}
+    >
+      {colors.label}
+    </span>
   );
 }
 
@@ -173,6 +238,7 @@ export default function IngredientList({
   // Totals over the default ingredients — exchange alternatives are not added up.
   const totalWeightG = sortedItems.reduce((sum, item) => sum + item.weight_g * portionsMultiplier, 0);
   const totalPriceEur = sortedItems.reduce((sum, item) => sum + (itemPrice(item) ?? 0), 0);
+  const maxPriceEur = Math.max(0, ...sortedItems.map((item) => itemPrice(item) ?? 0));
   const unpricedCount = sortedItems.filter((item) => itemPrice(item) == null).length;
 
   const toggleExpanded = (itemId: number) => {
@@ -192,15 +258,14 @@ export default function IngredientList({
     const formatted = formatQuantity(weightG, item.ingredient_viscosity, item.ingredient_density);
     const portionsList: Portion[] = item.ingredient_portions ?? [];
 
-    // Selected portion: the portion chosen for this recipe item.
-    // Metric selections (g/ml) are skipped — they would only repeat the amount column.
+    // Selected portion: the portion chosen for this recipe item. Metric selections (g/ml,
+    // "100g Reis") are skipped — they would only repeat the amount column.
     const selectedPortion = portionsList.find((p) => p.id === item.portion_id) ?? null;
-    const selectedIsMetric = selectedPortion
-      ? isGramPortion(selectedPortion.name, selectedPortion.measuring_unit_name)
-      : true;
+    const selectedName = selectedPortion?.name ?? item.portion_name ?? null;
     const selectedAmount = item.quantity * portionsMultiplier;
-    const selectedDisplay = selectedPortion && !selectedIsMetric && selectedAmount > 0
-      ? formatPortionAmount(selectedAmount, shortUnit(selectedPortion.name))
+    const selectedIsMetric = isGramPortion(selectedName, selectedPortion?.measuring_unit_name ?? item.measuring_unit_name);
+    const selectedDisplay = selectedName && !selectedIsMetric && selectedAmount > 0
+      ? formatPortionAmount(selectedAmount, shortUnit(selectedName))
       : null;
     const selectedPerUnit = selectedDisplay && selectedPortion?.weight_g
       ? formatQuantity(selectedPortion.weight_g, item.ingredient_viscosity, item.ingredient_density).display
@@ -213,7 +278,7 @@ export default function IngredientList({
       .sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999))[0];
     const primaryAmount = primaryPortion?.weight_g ? weightG / primaryPortion.weight_g : null;
     const primaryDisplay = primaryPortion
-      && primaryPortion.id !== selectedPortion?.id
+      && (primaryPortion.id !== selectedPortion?.id || !selectedDisplay)
       && primaryAmount != null
       && primaryAmount >= 0.05
       ? formatPortionAmount(primaryAmount, shortUnit(primaryPortion.name))
@@ -223,11 +288,18 @@ export default function IngredientList({
       : null;
 
     const isExpanded = expandedItems.has(item.id);
-    const allPortions = displayPortions.length ? calculateNaturalPortions(weightG, displayPortions) : [];
+    // Further portions exclude the ones already shown in the portion row.
+    const shownPortionIds = new Set([selectedDisplay ? selectedPortion?.id : null, primaryDisplay ? primaryPortion?.id : null]);
+    const furtherPortions = calculateNaturalPortions(
+      weightG,
+      displayPortions.filter((p) => !shownPortionIds.has(p.id)),
+    );
 
     const priceEur = itemPrice(item);
-    const priceShare = priceEur != null && totalPriceEur > 0 ? priceEur / totalPriceEur : null;
-    const priceSharePercent = priceShare != null ? Math.round(priceShare * 100) : null;
+    const showShares = sortedItems.length > 1;
+    const priceShare = showShares && priceEur != null && totalPriceEur > 0 ? formatShare(priceEur, totalPriceEur) : null;
+    const weightShare = showShares && totalWeightG > 0 ? formatShare(weightG, totalWeightG) : null;
+    const isCostDriver = showShares && priceEur != null && priceEur === maxPriceEur && priceEur > 0;
 
     const itemConversions = item.ingredient_id && availableConversions
       ? availableConversions.find((ac) => ac.ingredient_id === item.ingredient_id)?.conversions ?? []
@@ -239,212 +311,205 @@ export default function IngredientList({
     const alternatives = item.exchange_group_id != null
       ? (exchangeGroups.get(item.exchange_group_id) ?? []).filter((m) => (m.exchange_position ?? 0) > 0)
       : [];
-    const nutriColors = item.ingredient_nutri_class != null
-      ? NUTRI_SCORE_COLORS[item.ingredient_nutri_class]
-      : undefined;
     const displayName = item.ingredient_name || item.note || 'Zutat';
     const note = item.note && item.note !== displayName
       ? item.note.trim().replace(/^\((.*)\)$/, '$1').trim()
       : null;
     const showSection = Boolean(item.ingredient_retail_section_name) && sortMode === 'amount';
-    const hasChips = showSection || item.is_optional || showWeightWarning || item.has_missing_weight;
+
+    const pricePerKg = item.ingredient_price_per_kg;
+    const hasFactsRow = showSection || item.is_optional || showWeightWarning || item.has_missing_weight
+      || pricePerKg != null || weightShare != null || priceShare != null || furtherPortions.length > 0;
 
     return (
+      // Row layout: 1) amount · name · score/price, 2) portions, 3) facts and badges.
+      // Rows 2 and 3 start in the name column; the subgrid keeps columns aligned across the list.
       <li
         key={item.id}
-        className="grid break-inside-avoid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-x-3 rounded-lg border bg-card px-3 py-2.5 sm:grid-cols-[5.5rem_minmax(0,1fr)_auto] sm:px-4"
+        className="col-span-3 grid grid-cols-subgrid gap-y-1.5 px-6 py-3 transition-colors hover:bg-muted/30 sm:px-4"
       >
-        {/* Column 1: amount (right-aligned so units line up) */}
-        <div className="justify-self-end text-right leading-6 tabular-nums">
+        {/* Row 1 */}
+        <div className="min-w-[3rem] justify-self-end whitespace-nowrap text-right leading-6 tabular-nums">
           <UnitSwitcher originalDisplay={formatted.display} conversions={itemConversions} weightG={weightG} />
         </div>
-
-        {/* Column 2: name, portions, chips */}
-        <div className="min-w-0 space-y-1">
-          <div className="leading-6">
-            {item.ingredient_slug ? (
-              <Link
-                to={`/ingredients/${item.ingredient_slug}`}
-                className="font-medium text-foreground text-base hover:text-primary hover:underline transition-colors"
-                title={`${displayName} – Details anzeigen`}
-              >
-                {displayName}
-              </Link>
-            ) : (
-              <span className="font-medium text-foreground text-base">{displayName}</span>
-            )}
-            {alternatives.length > 0 && (
-              <span className="ml-1.5 text-sm text-muted-foreground">
-                (oder: {alternatives.map((m) => m.ingredient_name).join(' / ')})
-              </span>
-            )}
-            {note && <span className="ml-1.5 text-sm text-muted-foreground italic">({note})</span>}
-          </div>
-
-          {selectedDisplay && <PortionLine label="Gewählt" amount={selectedDisplay} perUnit={selectedPerUnit} />}
-          {primaryDisplay && <PortionLine label="Primär" amount={`≈ ${primaryDisplay}`} perUnit={primaryPerUnit} />}
-
-          {hasChips && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              {showSection && (
-                <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                  {item.ingredient_retail_section_name}
-                </span>
-              )}
-              {item.is_optional && (
-                <span className="rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-xs text-foreground">
-                  optional
-                </span>
-              )}
-              {showWeightWarning && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-accent">
-                  <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
-                  Dominiert das Rezept
-                </span>
-              )}
-              {item.has_missing_weight && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
-                  <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
-                  Gewicht unbekannt
-                </span>
-              )}
-            </div>
-          )}
-
-          {allPortions.length > 1 && (
-            <button
-              type="button"
-              onClick={() => toggleExpanded(item.id)}
-              className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
-              aria-expanded={isExpanded}
+        <div className="min-w-0 break-words leading-6">
+          {item.ingredient_slug ? (
+            <Link
+              to={`/ingredients/${item.ingredient_slug}`}
+              className="font-semibold text-foreground text-base hyphens-auto hover:text-primary hover:underline transition-colors"
+              title={`${displayName} – Details anzeigen`}
             >
-              <ChevronDown
-                className={cn('w-3.5 h-3.5 transition-transform', isExpanded && 'rotate-180')}
-                aria-hidden="true"
-              />
-              {isExpanded ? 'Weniger anzeigen' : `Alle Portionen (${allPortions.length})`}
-            </button>
+              {displayName}
+            </Link>
+          ) : (
+            <span className="font-semibold text-foreground text-base hyphens-auto">{displayName}</span>
           )}
-          {isExpanded && allPortions.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              {allPortions.map((np, idx) => (
-                <span key={idx} className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                  {np.display}
-                </span>
-              ))}
-            </div>
+          {alternatives.length > 0 && (
+            <span className="ml-1.5 text-sm text-muted-foreground">
+              oder {alternatives.map((m) => m.ingredient_name).join(' / ')}
+            </span>
           )}
+          {note && <span className="ml-1.5 inline-block text-sm text-muted-foreground italic">({note})</span>}
+          <NutriBadge
+            nutriClass={item.ingredient_nutri_class}
+            className="ml-1.5 inline-flex -translate-y-px align-middle sm:hidden"
+          />
+        </div>
+        <div className="flex items-center justify-end gap-2.5 self-start leading-6">
+          <span className="hidden w-5 justify-center sm:flex">
+            <NutriBadge nutriClass={item.ingredient_nutri_class} className="flex" />
+          </span>
+          <span
+            className={cn(
+              'whitespace-nowrap text-right text-sm font-semibold tabular-nums',
+              priceEur != null ? 'text-foreground' : 'text-muted-foreground/60',
+            )}
+          >
+            {priceEur != null ? formatPrice(priceEur) : '–'}
+          </span>
         </div>
 
-        {/* Column 3: Nutri-Score + price with share of total price, in fixed-width slots */}
-        <div className="flex items-start gap-2.5 pt-0.5">
-          <span className="flex w-5 justify-center">
-            {nutriColors && (
-              <span
-                className={cn(
-                  nutriColors.bg,
-                  nutriColors.text,
-                  'flex h-5 w-5 items-center justify-center rounded text-[11px] font-extrabold',
-                )}
-                title={`Nutri-Score ${nutriColors.label}`}
-              >
-                {nutriColors.label}
-              </span>
+        {/* Row 2: selected (recipe) portion and primary portion */}
+        {(selectedDisplay || primaryDisplay) && (
+          <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-1.5">
+            {selectedDisplay && (
+              <PortionPill title="Im Rezept" amount={selectedDisplay} perUnit={selectedPerUnit} tone="selected" />
             )}
-          </span>
-          <div className="w-16 space-y-1">
-            <p className="text-right text-sm font-medium leading-5 tabular-nums text-muted-foreground">
-              {priceEur != null ? formatPrice(priceEur) : '–'}
-            </p>
-            {priceShare != null && (
-              <div
-                className="h-1 overflow-hidden rounded-full bg-muted"
-                role="img"
-                aria-label={`${priceSharePercent} % des Gesamtpreises`}
-                title={`${priceSharePercent} % des Gesamtpreises`}
-              >
-                <div
-                  className="ml-auto h-full rounded-full bg-primary/70"
-                  style={{ width: `${Math.max(priceShare * 100, 2)}%` }}
-                />
-              </div>
+            {primaryDisplay && (
+              <PortionPill title="Entspricht ungefähr" amount={primaryDisplay} perUnit={primaryPerUnit} tone="approx" />
             )}
           </div>
-        </div>
+        )}
+
+        {/* Row 3: badges and facts, each with a quiet icon */}
+        {hasFactsRow && (
+          <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {item.is_optional && (
+              <span className="rounded border border-dashed border-foreground/25 px-1.5 font-medium leading-5 text-foreground/70">
+                optional
+              </span>
+            )}
+            {item.has_missing_weight && (
+              <Fact icon={AlertTriangle} className="font-medium text-destructive">Gewicht unbekannt</Fact>
+            )}
+            {showWeightWarning && (
+              <Fact icon={AlertTriangle} className="font-medium text-foreground">Dominiert das Rezept</Fact>
+            )}
+            {showSection && <Fact icon={Tag}>{item.ingredient_retail_section_name}</Fact>}
+            {weightShare && <Fact icon={Scale}>{weightShare} der Menge</Fact>}
+            {pricePerKg != null && <Fact icon={Coins}>{formatPrice(pricePerKg)}/kg</Fact>}
+            {priceShare && (
+              isCostDriver ? (
+                <Fact icon={TrendingUp} className="rounded bg-accent/15 px-1.5 font-medium leading-5 text-foreground">
+                  Kostentreiber · {priceShare} der Kosten
+                </Fact>
+              ) : (
+                <Fact icon={TrendingUp}>{priceShare} der Kosten</Fact>
+              )
+            )}
+            {furtherPortions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => toggleExpanded(item.id)}
+                className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+                aria-expanded={isExpanded}
+              >
+                <ChevronDown
+                  className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-180')}
+                  aria-hidden="true"
+                />
+                {isExpanded ? 'Weniger' : `Weitere Portionen (${furtherPortions.length})`}
+              </button>
+            )}
+          </div>
+        )}
+        {isExpanded && furtherPortions.length > 0 && (
+          <div className="col-span-2 col-start-2 flex flex-wrap gap-1.5">
+            {furtherPortions.map((np) => (
+              <span key={np.name} className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs text-foreground/80">
+                {np.display}
+              </span>
+            ))}
+          </div>
+        )}
       </li>
     );
   };
 
   return (
     <div className={className}>
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-        <span className="text-xs text-muted-foreground">Sortieren nach</span>
-        <div role="radiogroup" aria-label="Zutaten sortieren" className="inline-flex rounded-lg border bg-muted p-0.5">
-          {SORT_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={sortMode === option.value}
-              onClick={() => setSortMode(option.value)}
-              className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                sortMode === option.value
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {showSearch && (
+          <div className="relative min-w-[12rem] flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Zutat suchen..."
+              className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Sortieren nach</span>
+          <div role="radiogroup" aria-label="Zutaten sortieren" className="inline-flex rounded-lg border bg-muted p-0.5">
+            {SORT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={sortMode === option.value}
+                onClick={() => setSortMode(option.value)}
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  sortMode === option.value
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {showSearch && (
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Zutat suchen..."
-            className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-      )}
+      {/* On phones the list bleeds to the edges of the surrounding section card (p-6) to gain width. */}
+      <div className="-mx-6 overflow-hidden border-y bg-card sm:mx-0 sm:rounded-xl sm:border">
+        {filteredItems.length === 0 ? (
+          <p className="px-4 py-6 text-center text-muted-foreground text-sm">Keine Zutaten gefunden</p>
+        ) : (
+          // One shared grid: amount and price columns size to the widest entry of the whole list.
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 sm:gap-x-4">
+            {groups.map((group) => (
+              <section key={group.name ?? 'all'} className="col-span-3 grid grid-cols-subgrid border-b last:border-b-0">
+                {group.name && (
+                  <h3 className="col-span-3 flex items-baseline gap-1.5 border-b bg-muted/60 px-6 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-4">
+                    {group.name}
+                    <span className="font-normal normal-case tracking-normal">({group.items.length})</span>
+                  </h3>
+                )}
+                <ul className="col-span-3 grid grid-cols-subgrid divide-y divide-border">
+                  {group.items.map(renderItem)}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
 
-      {filteredItems.length === 0 ? (
-        <p className="rounded-xl border px-4 py-6 text-center text-muted-foreground text-sm">
-          Keine Zutaten gefunden
-        </p>
-      ) : (
-        // Two columns on wide screens, filled top-down so the reading order stays column-wise.
-        <div className="xl:columns-2 xl:gap-4">
-          {groups.map((group) => (
-            <section key={group.name ?? 'all'} className="mb-2">
-              {group.name && (
-                <h3 className="mb-1.5 mt-1 flex items-baseline gap-1.5 break-after-avoid px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {group.name}
-                  <span className="font-normal normal-case tracking-normal">({group.items.length})</span>
-                </h3>
-              )}
-              <ul className="space-y-2">{group.items.map(renderItem)}</ul>
-            </section>
-          ))}
+        {/* Summary */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t bg-muted/40 px-6 py-2.5 text-sm sm:px-4">
+          <span className="text-muted-foreground">
+            {`${sortedItems.length} ${sortedItems.length === 1 ? 'Zutat' : 'Zutaten'} · ${formatQuantity(totalWeightG, null, null).display}`}
+          </span>
+          <span className="font-semibold tabular-nums text-foreground">
+            {totalPriceEur > 0 ? `Gesamt ${formatPrice(totalPriceEur)}` : '–'}
+            {unpricedCount > 0 && (
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">({unpricedCount} ohne Preis)</span>
+            )}
+          </span>
         </div>
-      )}
-
-      {/* Summary */}
-      <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t pt-3 text-sm">
-        <span className="text-muted-foreground">
-          {`${sortedItems.length} ${sortedItems.length === 1 ? 'Zutat' : 'Zutaten'} · ${formatQuantity(totalWeightG, null, null).display}`}
-        </span>
-        <span className="font-semibold tabular-nums text-foreground">
-          {totalPriceEur > 0 ? formatPrice(totalPriceEur) : '–'}
-          {unpricedCount > 0 && (
-            <span className="ml-1.5 text-xs font-normal text-muted-foreground">({unpricedCount} ohne Preis)</span>
-          )}
-        </span>
       </div>
     </div>
   );
