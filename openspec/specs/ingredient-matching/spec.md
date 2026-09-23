@@ -6,7 +6,7 @@ Parsing, matching and AI enrichment of ingredient names against the ingredient d
 ## Requirements
 ### Requirement: Name/Note Parser
 
-The system SHALL parse raw ingredient strings and extract quantity and unit on a best-effort basis. The parser SHALL extract known modifier words (state: frisch/TK/tiefgefroren/getrocknet/geräuchert/eingelegt/gemahlen/gerieben/geröstet; color: rot/grün/gelb/weiß/schwarz; size: groß/klein/dick/dünn; prep: gehackt/gewürfelt/geschnitten/geschält/gepresst) from the ingredient name and store them as the note. The parser SHALL search against both `Ingredient.name` and `IngredientAlias.name`.
+The system SHALL parse raw ingredient strings and extract quantity and unit on a best-effort basis. The parser SHALL extract known modifier words (state: frisch/TK/tiefgefroren/getrocknet/geräuchert/eingelegt/gemahlen/gerieben/geröstet; color: rot/grün/gelb/weiß/schwarz; size: groß/klein/dick/dünn; prep: gehackt/gewürfelt/geschnitten/geschält/gepresst) from the ingredient name and store them as the note. The parser SHALL search against both `Ingredient.name` and `IngredientAlias.name`. The parser SHALL recognize a canonical unit list including `Liter`, `Dose`, `Glas`, `Tasse`, `Becher`, `Packung`, `Handvoll`, `Bund`, `Scheibe`, `Zehe`, `Prise`, `Schuss`, `Päckchen`, and abbreviations (`l`, `ml`, `g`, `kg`, `EL`, `TL`, `Stück`, `Stk.`, `Pck.`, `Bd.`) and SHALL strip quantity and unit from the matched name.
 
 #### Scenario: Simple state modifier extracted
 - **WHEN** the parser receives "Fladenbrot frisch"
@@ -23,6 +23,14 @@ The system SHALL parse raw ingredient strings and extract quantity and unit on a
 #### Scenario: Quantity and unit parsed (best effort)
 - **WHEN** the parser receives "200g Mehl"
 - **THEN** it SHALL return quantity=200, unit="g", name="Mehl", note=""
+
+#### Scenario: Liter unit parsed
+- **WHEN** the parser receives "1 Liter Orangensaft"
+- **THEN** it SHALL return quantity=1, unit="Liter", name="Orangensaft", note=""
+
+#### Scenario: Container unit parsed
+- **WHEN** the parser receives "1 Dose Ananas"
+- **THEN** it SHALL return quantity=1, unit="Dose", name="Ananas", note=""
 
 #### Scenario: Quantity without unit defaults to Stück
 - **WHEN** the parser receives "2 Fladenbrot"
@@ -42,7 +50,7 @@ The system SHALL parse raw ingredient strings and extract quantity and unit on a
 
 ### Requirement: Cascading Ingredient Matcher
 
-The system SHALL provide a unified `IngredientMatcher` service with four cascading stages: Wort-Jaccard, pg_trgm+Levenshtein, Embedding (pgvector), Human Dialog + Gemini enrichment. Each stage SHALL compute a confidence score (0.0–1.0). All stages SHALL search both `Ingredient.name` and `IngredientAlias.name`. The first stage whose score exceeds its threshold SHALL return the match immediately (first-above-threshold). Candidates SHALL be ordered by `usage_count` (descending) before scoring. If multiple candidates pass a threshold with score difference < 0.05, the system SHALL trigger Human-in-the-Loop. If no candidate exceeds a stage threshold but at least one has confidence ≥ 0.3 (grey zone), the system SHALL trigger Human-in-the-Loop with the top 5 candidates.
+The system SHALL provide a unified `IngredientMatcher` service with four cascading stages: Wort-Jaccard, pg_trgm+Levenshtein, Embedding (pgvector), Human Dialog + Gemini enrichment. Each stage SHALL compute a confidence score (0.0–1.0). All stages SHALL search both `Ingredient.name` and `IngredientAlias.name`. The first stage whose score exceeds its threshold SHALL return the match immediately (first-above-threshold). Candidates SHALL be ordered by `usage_count` (descending) before scoring. If multiple candidates pass a threshold with score difference < 0.05, the system SHALL trigger Human-in-the-Loop. If no candidate exceeds a stage threshold but at least one has confidence ≥ 0.3 (grey zone), the system SHALL trigger Human-in-the-Loop with the top 5 candidates. The embedding stage SHALL never produce an automatic match: its best candidate SHALL only be returned as a `needs_review` result with the top 5 candidates. Every match result SHALL carry the top candidates of the deciding stage.
 
 #### Scenario: Exact word-Jaccard match
 - **WHEN** the matcher searches for "Fladenbrot" and DB has "Fladenbrot" (usage_count=42)
@@ -56,9 +64,17 @@ The system SHALL provide a unified `IngredientMatcher` service with four cascadi
 - **WHEN** the matcher searches for "Champninon" (typo) and DB has "Champignon" (usage_count=30)
 - **THEN** Stage 1 SHALL compute Jaccard {champninon} vs {champignon} ≈ word sets identical → Jaccard=1.0 but not exact string match, cascade to Stage 2; Stage 2 SHALL compute pg_trgm + Levenshtein weighted score ≥ 0.70 and return MATCH
 
-#### Scenario: Semantic match via embedding
+#### Scenario: Semantic match via embedding only proposes candidates
 - **WHEN** the matcher searches for "Rinderhack" and DB has "Rindergehacktes" (no Jaccard/fuzzy match)
-- **THEN** Stage 3 SHALL find cosine distance ≤ threshold via pgvector and return MATCH
+- **THEN** Stage 3 SHALL find cosine distance ≤ threshold via pgvector and return `needs_review=true` with the top 5 embedding candidates; it SHALL NOT return an automatic match
+
+#### Scenario: Embedding candidates carry confidence
+- **WHEN** an embedding-stage result is returned
+- **THEN** the candidate list SHALL include the sigmoid-calibrated confidence per candidate
+
+#### Scenario: Confident match carries stage candidates
+- **WHEN** a stage returns a match above its threshold
+- **THEN** the result SHALL include the top candidates of that stage alongside the match
 
 #### Scenario: No match found — human dialog then enrichment
 - **WHEN** all three algorithm stages find no match for "Freekeh"
@@ -145,15 +161,19 @@ The system SHALL track how often each ingredient is used across all recipes. The
 - **THEN** candidates SHALL be ordered by `usage_count` descending before confidence scoring
 
 ### Requirement: MatchResult API Exposure
-The system SHALL expose ingredient ID, name, confidence, matching method, note, new flag, review flag, candidates, and replacement context in review responses. It SHALL also expose a human-readable reason and technical details sufficient for the UI to explain why a candidate was proposed.
+The system SHALL expose ingredient ID, name, confidence, matching method, note, new flag, review flag, candidates, and replacement context in review responses. It SHALL also expose a human-readable reason and technical details sufficient for the UI to explain why a candidate was proposed. Every candidate SHALL include `id`, `name`, `slug`, and `confidence`.
 
 #### Scenario: Successful match exposed
 - **WHEN** a stage finds a match
-- **THEN** the API SHALL include the matching method, confidence, candidates where relevant, and explanation
+- **THEN** the API SHALL include the matching method, confidence, the stage's top candidates, and explanation
 
 #### Scenario: Needs review exposed
 - **WHEN** the matcher triggers human review
 - **THEN** the API SHALL include `needs_review=true` and the data required for manual selection without persisting a new ingredient
+
+#### Scenario: Candidate exposes slug
+- **WHEN** a candidate is serialized
+- **THEN** it SHALL include the ingredient `slug` for resolving detail and portion endpoints
 
 #### Scenario: Replacement result exposed
 - **WHEN** matching `Jodsalz` against a recipe containing mapped `Salz`
@@ -162,3 +182,18 @@ The system SHALL expose ingredient ID, name, confidence, matching method, note, 
 #### Scenario: Normal result unchanged
 - **WHEN** no replacement mapping applies
 - **THEN** the existing match fields SHALL remain available and replacement fields SHALL be null
+
+### Requirement: Quantity-token stripping fallback
+When the parser produces no name with a quantity/unit split (confidence below 0.9), the matcher SHALL strip a leading quantity and unit token (number plus known unit or bare number followed by a name) from the raw string before running the Jaccard and fuzzy stages. The stripped quantity and unit SHALL be preserved on the match result as technical details for downstream quantity conversion.
+
+#### Scenario: Liter prefixed name matched after stripping
+- **WHEN** the parser fails on "1 Liter Orangensaft" and the matcher strips "1 Liter"
+- **THEN** Stage 1/2 SHALL match "Orangensaft" and the result SHALL carry the stripped quantity 1 and unit "Liter" as technical details
+
+#### Scenario: Quantity without unit stripped
+- **WHEN** the parser fails on "2 Fladenbrot"
+- **THEN** the matcher SHALL strip "2" and SHALL match "Fladenbrot" with quantity 2 retained
+
+#### Scenario: No leading token — no stripping
+- **WHEN** a raw string starts with the ingredient name (e.g. "Orangensaft 100%")
+- **THEN** the matcher SHALL not strip any token and SHALL match against the full name
