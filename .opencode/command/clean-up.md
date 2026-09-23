@@ -4,7 +4,7 @@ description: Audit the repo for schema mismatches, bugs, dead code, TODOs, missi
 
 Run a repo-wide quality audit of the Inspi monorepo.
 
-Load and follow the **clean-up** skill (`.opencode/skills/clean-up/SKILL.md`) end to end.
+Load and follow the **clean-up** skill (`.claude/skills/clean-up/SKILL.md`) end to end.
 
 **Input**: The argument after `/clean-up` sets the scope:
 - empty → whole repo
