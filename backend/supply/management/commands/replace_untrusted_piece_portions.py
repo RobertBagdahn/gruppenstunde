@@ -25,7 +25,8 @@ from django.utils import timezone
 from recipe.models import Recipe, RecipeItem
 from recipe.services.recipe_checks import recalculate_recipe_cache
 from supply.choices import PortionWeightSource, PortionWeightStatus
-from supply.models import MeasuringUnit, Portion
+from supply.models import Portion
+from supply.services.portion_integrity import get_or_create_gram_portion
 from supply.services.portion_resolution import (
     is_piece_like_name,
     resolve_trusted_weight,
@@ -217,23 +218,6 @@ class Command(BaseCommand):
         same_unit = [c for c in whole if portion.name.lower() in c.name.lower()]
         return (same_unit or whole or candidates or [None])[0]
 
-    def _gram_portion(self, ingredient) -> Portion:
-        for candidate in ingredient.portions.filter(deleted_at__isnull=True, name__iexact="g"):
-            if resolve_trusted_weight(candidate) == 1.0:
-                return candidate
-        unit, _ = MeasuringUnit.objects.get_or_create(
-            name="g",
-            defaults={"description": "Gramm", "quantity": 1.0, "unit": "g"},
-        )
-        return Portion.objects.create(
-            name="g",
-            ingredient=ingredient,
-            measuring_unit=unit,
-            quantity=1.0,
-            weight_g=1.0,
-            rank=9999,
-        )
-
     @transaction.atomic
     def _apply(self, plan: Plan) -> set[int]:
         recipe_ids: set[int] = set()
@@ -244,13 +228,21 @@ class Command(BaseCommand):
             portion.weight_confirmed_at = now
             portion.save(update_fields=["weight_status", "weight_source", "weight_confirmed_at", "updated_at"])
             recipe_ids.update(RecipeItem.objects.filter(portion=portion).values_list("recipe_id", flat=True))
+        placeholders: dict[int, Portion] = {}
         for item, grams in plan.to_grams:
-            item.portion = self._gram_portion(item.portion.ingredient)
+            placeholders[item.portion.id] = item.portion
+            item.portion = get_or_create_gram_portion(item.portion.ingredient)
             item.quantity = max(round(grams, 2), 0.0001)
             item.save(update_fields=["portion", "quantity"])
             recipe_ids.add(item.recipe_id)
         for item, target in plan.to_piece:
+            placeholders[item.portion.id] = item.portion
             item.portion = target
             item.save(update_fields=["portion"])
             recipe_ids.add(item.recipe_id)
+        # Placeholders are no longer referenced; hide them from the portion picker.
+        for portion in placeholders.values():
+            if not RecipeItem.objects.filter(portion=portion).exists():
+                portion.deleted_at = now
+                portion.save(update_fields=["deleted_at", "updated_at"])
         return recipe_ids

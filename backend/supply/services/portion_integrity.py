@@ -43,6 +43,51 @@ def is_referenced_by_recipe_items(portion) -> bool:
     return RecipeItem.objects.filter(portion=portion).exists()
 
 
+def get_or_create_gram_portion(ingredient) -> Portion:
+    """Return the ingredient's technical "g" portion (1 g), creating it if missing."""
+    from supply.models import MeasuringUnit, Portion
+
+    for candidate in ingredient.portions.filter(deleted_at__isnull=True, name__iexact="g"):
+        if resolve_trusted_weight(candidate) == 1.0:
+            return candidate
+    unit, _ = MeasuringUnit.objects.get_or_create(
+        name="g",
+        defaults={"description": "Gramm", "quantity": 1.0, "unit": "g"},
+    )
+    return Portion.objects.create(
+        name="g",
+        ingredient=ingredient,
+        measuring_unit=unit,
+        quantity=1.0,
+        weight_g=1.0,
+        rank=9999,
+    )
+
+
+def rebind_recipe_items_to_grams(portion) -> list[int]:
+    """Move all RecipeItems of `portion` onto the ingredient's gram portion.
+
+    Only for portions weighing exactly 1 g, so quantities stay unchanged. The
+    source portion is soft-deleted afterwards when nothing references it anymore.
+    """
+    from recipe.models import RecipeItem
+
+    if portion.weight_g != 1.0:
+        raise ValueError("Nur 1-g-Portionen können verlustfrei auf Gramm umgestellt werden.")
+    gram_portion = get_or_create_gram_portion(portion.ingredient)
+    updated_ids: list[int] = []
+    for item in RecipeItem.objects.filter(portion=portion):
+        item.portion = gram_portion
+        item.save(update_fields=["portion"])
+        updated_ids.append(item.id)
+    if not RecipeItem.objects.filter(portion=portion).exists():
+        portion.deleted_at = timezone.now()
+        portion.save(update_fields=["deleted_at", "updated_at"])
+    if updated_ids:
+        logger.info("Rebound %d RecipeItem(s) from portion %s onto grams", len(updated_ids), portion.id)
+    return updated_ids
+
+
 def get_active_rank1_portion(ingredient, *, exclude_portion_id: int | None = None):
     """Return the ingredient's single active (non-deleted) rank=1 portion, if any."""
     qs = ingredient.portions.filter(rank=1, deleted_at__isnull=True).select_related("measuring_unit")
@@ -100,7 +145,7 @@ def rebind_recipe_items_to_rank1(portion, *, updated_by=None) -> list[int]:
     target = get_active_rank1_portion(ingredient, exclude_portion_id=portion.pk)
     if target is None:
         raise ValueError(
-            f"Keine andere aktive rank=1-Portion für Zutat '{ingredient.name}' verfügbar — " "Rebind nicht möglich."
+            f"Keine andere aktive rank=1-Portion für Zutat '{ingredient.name}' verfügbar — Rebind nicht möglich."
         )
     return rebind_recipe_items_to_portion(portion, target, updated_by=updated_by)
 

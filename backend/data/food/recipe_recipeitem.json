@@ -143,12 +143,12 @@
     "model": "recipe.recipeitem",
     "pk": 377,
     "fields": {
-      "quantity": 0.3194,
+      "quantity": 0.33,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 90,
       "exchange_group_id": null
     }
@@ -241,12 +241,12 @@
     "model": "recipe.recipeitem",
     "pk": 394,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 68,
       "exchange_group_id": null
     }
@@ -297,12 +297,12 @@
     "model": "recipe.recipeitem",
     "pk": 407,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 70,
       "exchange_group_id": null
     }
@@ -857,12 +857,12 @@
     "model": "recipe.recipeitem",
     "pk": 420,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 71,
       "exchange_group_id": null
     }
@@ -913,7 +913,7 @@
     "model": "recipe.recipeitem",
     "pk": 423,
     "fields": {
-      "quantity": 12.0,
+      "quantity": 1.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -969,7 +969,7 @@
     "model": "recipe.recipeitem",
     "pk": 397,
     "fields": {
-      "quantity": 12.0,
+      "quantity": 1.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -983,7 +983,7 @@
     "model": "recipe.recipeitem",
     "pk": 410,
     "fields": {
-      "quantity": 12.0,
+      "quantity": 1.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -997,12 +997,12 @@
     "model": "recipe.recipeitem",
     "pk": 400,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 200.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7072,
+      "portion_id": 82183,
       "recipe_id": 69,
       "exchange_group_id": null
     }
@@ -1235,12 +1235,12 @@
     "model": "recipe.recipeitem",
     "pk": 365,
     "fields": {
-      "quantity": 0.16,
+      "quantity": 8.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 56950,
+      "portion_id": 84610,
       "recipe_id": 88,
       "exchange_group_id": null
     }
@@ -1338,7 +1338,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 71,
       "exchange_group_id": null
     }
@@ -1352,7 +1352,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 70,
       "exchange_group_id": null
     }
@@ -1366,7 +1366,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 68,
       "exchange_group_id": null
     }
@@ -1380,7 +1380,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 90,
       "exchange_group_id": null
     }
@@ -1473,12 +1473,12 @@
     "model": "recipe.recipeitem",
     "pk": 477,
     "fields": {
-      "quantity": 1.15,
+      "quantity": 29.9,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7195,
+      "portion_id": 81805,
       "recipe_id": 80,
       "exchange_group_id": null
     }
@@ -1492,7 +1492,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 359,
       "exchange_group_id": null
     }
@@ -1599,7 +1599,7 @@
     "model": "recipe.recipeitem",
     "pk": 516,
     "fields": {
-      "quantity": 12.0,
+      "quantity": 1.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -1613,7 +1613,7 @@
     "model": "recipe.recipeitem",
     "pk": 442,
     "fields": {
-      "quantity": 12.0,
+      "quantity": 1.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -1865,12 +1865,12 @@
     "model": "recipe.recipeitem",
     "pk": 513,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 95,
       "exchange_group_id": null
     }
@@ -1977,7 +1977,7 @@
     "model": "recipe.recipeitem",
     "pk": 465,
     "fields": {
-      "quantity": 50.0,
+      "quantity": 0.33,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -2005,7 +2005,7 @@
     "model": "recipe.recipeitem",
     "pk": 467,
     "fields": {
-      "quantity": 50.0,
+      "quantity": 0.33,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -2495,12 +2495,12 @@
     "model": "recipe.recipeitem",
     "pk": 519,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 200.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7072,
+      "portion_id": 82183,
       "recipe_id": 96,
       "exchange_group_id": null
     }
@@ -2537,12 +2537,12 @@
     "model": "recipe.recipeitem",
     "pk": 455,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 74,
       "exchange_group_id": null
     }
@@ -2607,12 +2607,12 @@
     "model": "recipe.recipeitem",
     "pk": 427,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 72,
       "exchange_group_id": null
     }
@@ -2621,12 +2621,12 @@
     "model": "recipe.recipeitem",
     "pk": 439,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 73,
       "exchange_group_id": null
     }
@@ -2724,7 +2724,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 95,
       "exchange_group_id": null
     }
@@ -2733,12 +2733,12 @@
     "model": "recipe.recipeitem",
     "pk": 501,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 94,
       "exchange_group_id": null
     }
@@ -2747,12 +2747,12 @@
     "model": "recipe.recipeitem",
     "pk": 490,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 92,
       "exchange_group_id": null
     }
@@ -2761,12 +2761,12 @@
     "model": "recipe.recipeitem",
     "pk": 479,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 81,
       "exchange_group_id": null
     }
@@ -2845,12 +2845,12 @@
     "model": "recipe.recipeitem",
     "pk": 474,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 79,
       "exchange_group_id": null
     }
@@ -2892,7 +2892,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 72,
       "exchange_group_id": null
     }
@@ -2957,12 +2957,12 @@
     "model": "recipe.recipeitem",
     "pk": 559,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 102,
       "exchange_group_id": null
     }
@@ -3027,12 +3027,12 @@
     "model": "recipe.recipeitem",
     "pk": 580,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 111,
       "exchange_group_id": null
     }
@@ -3116,7 +3116,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 125,
       "exchange_group_id": null
     }
@@ -3139,12 +3139,12 @@
     "model": "recipe.recipeitem",
     "pk": 552,
     "fields": {
-      "quantity": 4.0,
+      "quantity": 104.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7195,
+      "portion_id": 81805,
       "recipe_id": 101,
       "exchange_group_id": null
     }
@@ -3153,12 +3153,12 @@
     "model": "recipe.recipeitem",
     "pk": 343,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 84,
       "exchange_group_id": null
     }
@@ -3307,12 +3307,12 @@
     "model": "recipe.recipeitem",
     "pk": 568,
     "fields": {
-      "quantity": 25.0,
+      "quantity": 1.25,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 582,
+      "portion_id": 89692,
       "recipe_id": 83,
       "exchange_group_id": null
     }
@@ -3531,12 +3531,12 @@
     "model": "recipe.recipeitem",
     "pk": 629,
     "fields": {
-      "quantity": 0.0645,
+      "quantity": 0.0667,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 125,
       "exchange_group_id": null
     }
@@ -3825,12 +3825,12 @@
     "model": "recipe.recipeitem",
     "pk": 566,
     "fields": {
-      "quantity": 1.54,
+      "quantity": 40.04,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7195,
+      "portion_id": 81805,
       "recipe_id": 106,
       "exchange_group_id": null
     }
@@ -3881,12 +3881,12 @@
     "model": "recipe.recipeitem",
     "pk": 550,
     "fields": {
-      "quantity": 1.33,
+      "quantity": 199.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45657,
+      "portion_id": 81085,
       "recipe_id": 100,
       "exchange_group_id": null
     }
@@ -3909,7 +3909,7 @@
     "model": "recipe.recipeitem",
     "pk": 562,
     "fields": {
-      "quantity": 12.0,
+      "quantity": 1.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -3951,7 +3951,7 @@
     "model": "recipe.recipeitem",
     "pk": 639,
     "fields": {
-      "quantity": 50.0,
+      "quantity": 1.5,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -4175,12 +4175,12 @@
     "model": "recipe.recipeitem",
     "pk": 587,
     "fields": {
-      "quantity": 0.1667,
+      "quantity": 25.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 48490,
+      "portion_id": 82272,
       "recipe_id": 182,
       "exchange_group_id": null
     }
@@ -4194,7 +4194,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 102,
       "exchange_group_id": null
     }
@@ -4203,12 +4203,12 @@
     "model": "recipe.recipeitem",
     "pk": 569,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 50.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 48207,
+      "portion_id": 82150,
       "recipe_id": 125,
       "exchange_group_id": null
     }
@@ -4217,12 +4217,12 @@
     "model": "recipe.recipeitem",
     "pk": 616,
     "fields": {
-      "quantity": 0.4,
+      "quantity": 60.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55145,
+      "portion_id": 83867,
       "recipe_id": 138,
       "exchange_group_id": null
     }
@@ -4483,12 +4483,12 @@
     "model": "recipe.recipeitem",
     "pk": 654,
     "fields": {
-      "quantity": 0.67,
+      "quantity": 100.5,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55995,
+      "portion_id": 84230,
       "recipe_id": 219,
       "exchange_group_id": null
     }
@@ -4497,12 +4497,12 @@
     "model": "recipe.recipeitem",
     "pk": 653,
     "fields": {
-      "quantity": 0.375,
+      "quantity": 0.3875,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 124,
       "exchange_group_id": null
     }
@@ -4525,12 +4525,12 @@
     "model": "recipe.recipeitem",
     "pk": 657,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 49.5,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55145,
+      "portion_id": 83867,
       "recipe_id": 219,
       "exchange_group_id": null
     }
@@ -4553,12 +4553,12 @@
     "model": "recipe.recipeitem",
     "pk": 658,
     "fields": {
-      "quantity": 0.6,
+      "quantity": 60.0,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 32537,
+      "portion_id": 86419,
       "recipe_id": 219,
       "exchange_group_id": null
     }
@@ -4931,12 +4931,12 @@
     "model": "recipe.recipeitem",
     "pk": 659,
     "fields": {
-      "quantity": 5.0,
+      "quantity": 40.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7144,
+      "portion_id": 83439,
       "recipe_id": 135,
       "exchange_group_id": null
     }
@@ -4945,12 +4945,12 @@
     "model": "recipe.recipeitem",
     "pk": 667,
     "fields": {
-      "quantity": 6.25,
+      "quantity": 50.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7169,
+      "portion_id": 83440,
       "recipe_id": 132,
       "exchange_group_id": null
     }
@@ -4959,12 +4959,12 @@
     "model": "recipe.recipeitem",
     "pk": 641,
     "fields": {
-      "quantity": 1.072,
+      "quantity": 160.8,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55995,
+      "portion_id": 84230,
       "recipe_id": 138,
       "exchange_group_id": null
     }
@@ -5197,12 +5197,12 @@
     "model": "recipe.recipeitem",
     "pk": 715,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 5.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 51941,
+      "portion_id": 83689,
       "recipe_id": 122,
       "exchange_group_id": null
     }
@@ -5575,12 +5575,12 @@
     "model": "recipe.recipeitem",
     "pk": 665,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 50.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 48207,
+      "portion_id": 82150,
       "recipe_id": 222,
       "exchange_group_id": null
     }
@@ -5986,7 +5986,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 190,
       "exchange_group_id": null
     }
@@ -6107,12 +6107,12 @@
     "model": "recipe.recipeitem",
     "pk": 760,
     "fields": {
-      "quantity": 0.65,
+      "quantity": 0.6717,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 217,
       "exchange_group_id": null
     }
@@ -6121,12 +6121,12 @@
     "model": "recipe.recipeitem",
     "pk": 848,
     "fields": {
-      "quantity": 10.0,
+      "quantity": 100.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7162,
+      "portion_id": 82981,
       "recipe_id": 216,
       "exchange_group_id": null
     }
@@ -6135,12 +6135,12 @@
     "model": "recipe.recipeitem",
     "pk": 838,
     "fields": {
-      "quantity": 0.65,
+      "quantity": 0.6717,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 208,
       "exchange_group_id": null
     }
@@ -6154,7 +6154,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 208,
       "exchange_group_id": null
     }
@@ -6317,12 +6317,12 @@
     "model": "recipe.recipeitem",
     "pk": 816,
     "fields": {
-      "quantity": 1.2,
+      "quantity": 120.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 32537,
+      "portion_id": 86419,
       "recipe_id": 181,
       "exchange_group_id": null
     }
@@ -6345,12 +6345,12 @@
     "model": "recipe.recipeitem",
     "pk": 815,
     "fields": {
-      "quantity": 1.5,
+      "quantity": 150.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 32537,
+      "portion_id": 86419,
       "recipe_id": 180,
       "exchange_group_id": null
     }
@@ -6555,12 +6555,12 @@
     "model": "recipe.recipeitem",
     "pk": 813,
     "fields": {
-      "quantity": 0.8667,
+      "quantity": 130.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 51608,
+      "portion_id": 83543,
       "recipe_id": 173,
       "exchange_group_id": null
     }
@@ -6639,12 +6639,12 @@
     "model": "recipe.recipeitem",
     "pk": 786,
     "fields": {
-      "quantity": 0.055,
+      "quantity": 2.75,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55532,
+      "portion_id": 84028,
       "recipe_id": 155,
       "exchange_group_id": null
     }
@@ -6667,12 +6667,12 @@
     "model": "recipe.recipeitem",
     "pk": 837,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 15.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58027,
+      "portion_id": 85072,
       "recipe_id": 170,
       "exchange_group_id": null
     }
@@ -6700,7 +6700,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 166,
       "exchange_group_id": null
     }
@@ -6821,12 +6821,12 @@
     "model": "recipe.recipeitem",
     "pk": 842,
     "fields": {
-      "quantity": 1.3333,
+      "quantity": 199.99,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45657,
+      "portion_id": 81085,
       "recipe_id": 191,
       "exchange_group_id": null
     }
@@ -6835,12 +6835,12 @@
     "model": "recipe.recipeitem",
     "pk": 844,
     "fields": {
-      "quantity": 1.3333,
+      "quantity": 199.99,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45657,
+      "portion_id": 81085,
       "recipe_id": 183,
       "exchange_group_id": null
     }
@@ -6849,12 +6849,12 @@
     "model": "recipe.recipeitem",
     "pk": 804,
     "fields": {
-      "quantity": 0.1667,
+      "quantity": 25.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 48529,
+      "portion_id": 82285,
       "recipe_id": 185,
       "exchange_group_id": null
     }
@@ -6919,12 +6919,12 @@
     "model": "recipe.recipeitem",
     "pk": 749,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 15.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50614,
+      "portion_id": 83142,
       "recipe_id": 156,
       "exchange_group_id": null
     }
@@ -6933,12 +6933,12 @@
     "model": "recipe.recipeitem",
     "pk": 780,
     "fields": {
-      "quantity": 0.3667,
+      "quantity": 55.01,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 60596,
+      "portion_id": 86172,
       "recipe_id": 155,
       "exchange_group_id": null
     }
@@ -7199,12 +7199,12 @@
     "model": "recipe.recipeitem",
     "pk": 789,
     "fields": {
-      "quantity": 0.3226,
+      "quantity": 0.3334,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 166,
       "exchange_group_id": null
     }
@@ -7241,12 +7241,12 @@
     "model": "recipe.recipeitem",
     "pk": 783,
     "fields": {
-      "quantity": 0.011,
+      "quantity": 5.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50188,
+      "portion_id": 82971,
       "recipe_id": 155,
       "exchange_group_id": null
     }
@@ -7395,12 +7395,12 @@
     "model": "recipe.recipeitem",
     "pk": 925,
     "fields": {
-      "quantity": 0.0645,
+      "quantity": 0.0667,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 222,
       "exchange_group_id": null
     }
@@ -7409,12 +7409,12 @@
     "model": "recipe.recipeitem",
     "pk": 930,
     "fields": {
-      "quantity": 0.3194,
+      "quantity": 0.33,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 213,
       "exchange_group_id": null
     }
@@ -7437,7 +7437,7 @@
     "model": "recipe.recipeitem",
     "pk": 2128,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 0.5,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -7451,7 +7451,7 @@
     "model": "recipe.recipeitem",
     "pk": 2139,
     "fields": {
-      "quantity": 0.0444,
+      "quantity": 0.666,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -7540,7 +7540,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7840,
+      "portion_id": 81594,
       "recipe_id": 320,
       "exchange_group_id": null
     }
@@ -7549,12 +7549,12 @@
     "model": "recipe.recipeitem",
     "pk": 2103,
     "fields": {
-      "quantity": 0.03,
+      "quantity": 4.5,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50614,
+      "portion_id": 83142,
       "recipe_id": 320,
       "exchange_group_id": null
     }
@@ -7563,12 +7563,12 @@
     "model": "recipe.recipeitem",
     "pk": 909,
     "fields": {
-      "quantity": 0.1467,
+      "quantity": 22.0,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 60596,
+      "portion_id": 86172,
       "recipe_id": 153,
       "exchange_group_id": null
     }
@@ -7610,7 +7610,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 128,
       "exchange_group_id": null
     }
@@ -7661,12 +7661,12 @@
     "model": "recipe.recipeitem",
     "pk": 533,
     "fields": {
-      "quantity": 0.8333,
+      "quantity": 25.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15363,
+      "portion_id": 82723,
       "recipe_id": 98,
       "exchange_group_id": null
     }
@@ -7689,7 +7689,7 @@
     "model": "recipe.recipeitem",
     "pk": 2140,
     "fields": {
-      "quantity": 0.0017,
+      "quantity": 0.025,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -7885,12 +7885,12 @@
     "model": "recipe.recipeitem",
     "pk": 876,
     "fields": {
-      "quantity": 0.1006,
+      "quantity": 0.104,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 190,
       "exchange_group_id": null
     }
@@ -7955,12 +7955,12 @@
     "model": "recipe.recipeitem",
     "pk": 2119,
     "fields": {
-      "quantity": 0.39,
+      "quantity": 0.403,
       "sort_order": 18,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 320,
       "exchange_group_id": null
     }
@@ -8109,12 +8109,12 @@
     "model": "recipe.recipeitem",
     "pk": 2135,
     "fields": {
-      "quantity": 1.6667,
+      "quantity": 50.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15372,
+      "portion_id": 81574,
       "recipe_id": 322,
       "exchange_group_id": null
     }
@@ -8123,7 +8123,7 @@
     "model": "recipe.recipeitem",
     "pk": 2131,
     "fields": {
-      "quantity": 0.002,
+      "quantity": 0.5,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -8193,12 +8193,12 @@
     "model": "recipe.recipeitem",
     "pk": 2141,
     "fields": {
-      "quantity": 26.666666666666668,
+      "quantity": 0.8889,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 595,
+      "portion_id": 87204,
       "recipe_id": 323,
       "exchange_group_id": null
     }
@@ -8263,7 +8263,7 @@
     "model": "recipe.recipeitem",
     "pk": 2122,
     "fields": {
-      "quantity": 0.0042,
+      "quantity": 0.5,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -8291,7 +8291,7 @@
     "model": "recipe.recipeitem",
     "pk": 2123,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 0.5,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -8305,7 +8305,7 @@
     "model": "recipe.recipeitem",
     "pk": 2133,
     "fields": {
-      "quantity": 0.0067,
+      "quantity": 0.1,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -8520,7 +8520,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 222,
       "exchange_group_id": null
     }
@@ -8534,7 +8534,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 213,
       "exchange_group_id": null
     }
@@ -8585,7 +8585,7 @@
     "model": "recipe.recipeitem",
     "pk": 910,
     "fields": {
-      "quantity": 20.0,
+      "quantity": 1.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -8753,12 +8753,12 @@
     "model": "recipe.recipeitem",
     "pk": 2159,
     "fields": {
-      "quantity": 10.0,
+      "quantity": 0.3333,
       "sort_order": 18,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 595,
+      "portion_id": 87204,
       "recipe_id": 323,
       "exchange_group_id": null
     }
@@ -8795,7 +8795,7 @@
     "model": "recipe.recipeitem",
     "pk": 2173,
     "fields": {
-      "quantity": 20.0,
+      "quantity": 2.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -8828,7 +8828,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 328,
       "exchange_group_id": null
     }
@@ -8996,7 +8996,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7870,
+      "portion_id": 84471,
       "recipe_id": 329,
       "exchange_group_id": null
     }
@@ -9089,7 +9089,7 @@
     "model": "recipe.recipeitem",
     "pk": 2436,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.5,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
@@ -9117,7 +9117,7 @@
     "model": "recipe.recipeitem",
     "pk": 2213,
     "fields": {
-      "quantity": 0.0021,
+      "quantity": 0.25,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -9131,7 +9131,7 @@
     "model": "recipe.recipeitem",
     "pk": 2174,
     "fields": {
-      "quantity": 0.025,
+      "quantity": 0.25,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -9173,12 +9173,12 @@
     "model": "recipe.recipeitem",
     "pk": 2178,
     "fields": {
-      "quantity": 0.1667,
+      "quantity": 25.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 46801,
+      "portion_id": 81564,
       "recipe_id": 325,
       "exchange_group_id": null
     }
@@ -9229,12 +9229,12 @@
     "model": "recipe.recipeitem",
     "pk": 2223,
     "fields": {
-      "quantity": 0.125,
+      "quantity": 0.12,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 328,
       "exchange_group_id": null
     }
@@ -9304,7 +9304,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 329,
       "exchange_group_id": null
     }
@@ -9327,12 +9327,12 @@
     "model": "recipe.recipeitem",
     "pk": 2246,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 50.0,
       "sort_order": 17,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45828,
+      "portion_id": 81156,
       "recipe_id": 329,
       "exchange_group_id": null
     }
@@ -9355,12 +9355,12 @@
     "model": "recipe.recipeitem",
     "pk": 2248,
     "fields": {
-      "quantity": 2.0,
+      "quantity": 40.0,
       "sort_order": 19,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7875,
+      "portion_id": 81196,
       "recipe_id": 329,
       "exchange_group_id": null
     }
@@ -9416,7 +9416,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7866,
+      "portion_id": 84690,
       "recipe_id": 327,
       "exchange_group_id": null
     }
@@ -9444,7 +9444,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15,
+      "portion_id": 13,
       "recipe_id": 325,
       "exchange_group_id": null
     }
@@ -9495,12 +9495,12 @@
     "model": "recipe.recipeitem",
     "pk": 2189,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 99.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15146,
+      "portion_id": 86750,
       "recipe_id": 326,
       "exchange_group_id": null
     }
@@ -9654,7 +9654,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7863,
+      "portion_id": 82661,
       "recipe_id": 326,
       "exchange_group_id": null
     }
@@ -9705,12 +9705,12 @@
     "model": "recipe.recipeitem",
     "pk": 2146,
     "fields": {
-      "quantity": 0.03,
+      "quantity": 4.5,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50614,
+      "portion_id": 83142,
       "recipe_id": 323,
       "exchange_group_id": null
     }
@@ -9738,7 +9738,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 323,
       "exchange_group_id": null
     }
@@ -9831,12 +9831,12 @@
     "model": "recipe.recipeitem",
     "pk": 2156,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 49.5,
       "sort_order": 15,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45761,
+      "portion_id": 81129,
       "recipe_id": 323,
       "exchange_group_id": null
     }
@@ -9887,12 +9887,12 @@
     "model": "recipe.recipeitem",
     "pk": 2162,
     "fields": {
-      "quantity": 0.5,
+      "quantity": 75.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 51095,
+      "portion_id": 83332,
       "recipe_id": 324,
       "exchange_group_id": null
     }
@@ -9934,7 +9934,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 324,
       "exchange_group_id": null
     }
@@ -9943,12 +9943,12 @@
     "model": "recipe.recipeitem",
     "pk": 2167,
     "fields": {
-      "quantity": 0.5,
+      "quantity": 75.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 46801,
+      "portion_id": 81564,
       "recipe_id": 324,
       "exchange_group_id": null
     }
@@ -10013,7 +10013,7 @@
     "model": "recipe.recipeitem",
     "pk": 2179,
     "fields": {
-      "quantity": 12.5,
+      "quantity": 4.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -10027,7 +10027,7 @@
     "model": "recipe.recipeitem",
     "pk": 2155,
     "fields": {
-      "quantity": 50.0,
+      "quantity": 4.5,
       "sort_order": 14,
       "note": "",
       "is_optional": false,
@@ -10046,7 +10046,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15,
+      "portion_id": 13,
       "recipe_id": 324,
       "exchange_group_id": null
     }
@@ -10153,7 +10153,7 @@
     "model": "recipe.recipeitem",
     "pk": 2331,
     "fields": {
-      "quantity": 0.0033,
+      "quantity": 0.05,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -10181,12 +10181,12 @@
     "model": "recipe.recipeitem",
     "pk": 2337,
     "fields": {
-      "quantity": 0.0007,
+      "quantity": 17.0,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6832,
+      "portion_id": 85098,
       "recipe_id": 336,
       "exchange_group_id": null
     }
@@ -10195,7 +10195,7 @@
     "model": "recipe.recipeitem",
     "pk": 2268,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 13,
       "note": "",
       "is_optional": false,
@@ -10251,12 +10251,12 @@
     "model": "recipe.recipeitem",
     "pk": 2271,
     "fields": {
-      "quantity": 0.0017,
+      "quantity": 100.0,
       "sort_order": 16,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58087,
+      "portion_id": 85101,
       "recipe_id": 331,
       "exchange_group_id": null
     }
@@ -10293,7 +10293,7 @@
     "model": "recipe.recipeitem",
     "pk": 2332,
     "fields": {
-      "quantity": 0.0444,
+      "quantity": 0.67,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -10377,7 +10377,7 @@
     "model": "recipe.recipeitem",
     "pk": 2333,
     "fields": {
-      "quantity": 0.0444,
+      "quantity": 0.67,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -10438,7 +10438,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 335,
       "exchange_group_id": null
     }
@@ -10517,12 +10517,12 @@
     "model": "recipe.recipeitem",
     "pk": 2281,
     "fields": {
-      "quantity": 0.53,
+      "quantity": 79.5,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47626,
+      "portion_id": 81906,
       "recipe_id": 332,
       "exchange_group_id": null
     }
@@ -10559,12 +10559,12 @@
     "model": "recipe.recipeitem",
     "pk": 2264,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 2.5,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 60734,
+      "portion_id": 50,
       "recipe_id": 331,
       "exchange_group_id": null
     }
@@ -10587,12 +10587,12 @@
     "model": "recipe.recipeitem",
     "pk": 2284,
     "fields": {
-      "quantity": 0.12,
+      "quantity": 30.0,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6832,
+      "portion_id": 85098,
       "recipe_id": 332,
       "exchange_group_id": null
     }
@@ -10606,7 +10606,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 332,
       "exchange_group_id": null
     }
@@ -10615,12 +10615,12 @@
     "model": "recipe.recipeitem",
     "pk": 2286,
     "fields": {
-      "quantity": 1.67,
+      "quantity": 50.1,
       "sort_order": 14,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15389,
+      "portion_id": 83059,
       "recipe_id": 332,
       "exchange_group_id": null
     }
@@ -10648,7 +10648,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7881,
+      "portion_id": 84979,
       "recipe_id": 333,
       "exchange_group_id": null
     }
@@ -10657,12 +10657,12 @@
     "model": "recipe.recipeitem",
     "pk": 2341,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 250.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6832,
+      "portion_id": 85098,
       "recipe_id": 337,
       "exchange_group_id": null
     }
@@ -10671,7 +10671,7 @@
     "model": "recipe.recipeitem",
     "pk": 2334,
     "fields": {
-      "quantity": 0.0033,
+      "quantity": 0.05,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -10727,12 +10727,12 @@
     "model": "recipe.recipeitem",
     "pk": 2292,
     "fields": {
-      "quantity": 0.3,
+      "quantity": 15.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45785,
+      "portion_id": 81139,
       "recipe_id": 333,
       "exchange_group_id": null
     }
@@ -10769,12 +10769,12 @@
     "model": "recipe.recipeitem",
     "pk": 2265,
     "fields": {
-      "quantity": 0.0067,
+      "quantity": 25.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58590,
+      "portion_id": 85299,
       "recipe_id": 331,
       "exchange_group_id": null
     }
@@ -10788,7 +10788,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 333,
       "exchange_group_id": null
     }
@@ -10797,7 +10797,7 @@
     "model": "recipe.recipeitem",
     "pk": 2260,
     "fields": {
-      "quantity": 0.125,
+      "quantity": 1.25,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -10881,7 +10881,7 @@
     "model": "recipe.recipeitem",
     "pk": 2256,
     "fields": {
-      "quantity": 0.075,
+      "quantity": 0.75,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -10928,7 +10928,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 334,
       "exchange_group_id": null
     }
@@ -10937,7 +10937,7 @@
     "model": "recipe.recipeitem",
     "pk": 2330,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 1.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -10951,12 +10951,12 @@
     "model": "recipe.recipeitem",
     "pk": 2348,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 15.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47626,
+      "portion_id": 81906,
       "recipe_id": 337,
       "exchange_group_id": null
     }
@@ -10965,12 +10965,12 @@
     "model": "recipe.recipeitem",
     "pk": 2335,
     "fields": {
-      "quantity": 0.2222,
+      "quantity": 33.33,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47626,
+      "portion_id": 81906,
       "recipe_id": 336,
       "exchange_group_id": null
     }
@@ -10979,7 +10979,7 @@
     "model": "recipe.recipeitem",
     "pk": 2266,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.25,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
@@ -10993,12 +10993,12 @@
     "model": "recipe.recipeitem",
     "pk": 2336,
     "fields": {
-      "quantity": 0.1111,
+      "quantity": 16.66,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 49496,
+      "portion_id": 82678,
       "recipe_id": 336,
       "exchange_group_id": null
     }
@@ -11026,7 +11026,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7885,
+      "portion_id": 85643,
       "recipe_id": 333,
       "exchange_group_id": null
     }
@@ -11035,12 +11035,12 @@
     "model": "recipe.recipeitem",
     "pk": 2301,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 49.5,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47626,
+      "portion_id": 81906,
       "recipe_id": 334,
       "exchange_group_id": null
     }
@@ -11138,7 +11138,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 334,
       "exchange_group_id": null
     }
@@ -11217,12 +11217,12 @@
     "model": "recipe.recipeitem",
     "pk": 2315,
     "fields": {
-      "quantity": 0.3,
+      "quantity": 60.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7072,
+      "portion_id": 82183,
       "recipe_id": 335,
       "exchange_group_id": null
     }
@@ -11231,7 +11231,7 @@
     "model": "recipe.recipeitem",
     "pk": 2343,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -11348,7 +11348,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 338,
       "exchange_group_id": null
     }
@@ -11404,7 +11404,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 338,
       "exchange_group_id": null
     }
@@ -11413,12 +11413,12 @@
     "model": "recipe.recipeitem",
     "pk": 2355,
     "fields": {
-      "quantity": 0.53,
+      "quantity": 79.5,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 46801,
+      "portion_id": 81564,
       "recipe_id": 338,
       "exchange_group_id": null
     }
@@ -11483,7 +11483,7 @@
     "model": "recipe.recipeitem",
     "pk": 2267,
     "fields": {
-      "quantity": 0.025,
+      "quantity": 0.25,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
@@ -11558,7 +11558,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 333,
       "exchange_group_id": null
     }
@@ -11651,12 +11651,12 @@
     "model": "recipe.recipeitem",
     "pk": 2410,
     "fields": {
-      "quantity": 0.1667,
+      "quantity": 0.1,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15179,
+      "portion_id": 7,
       "recipe_id": 342,
       "exchange_group_id": null
     }
@@ -11665,7 +11665,7 @@
     "model": "recipe.recipeitem",
     "pk": 2418,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -11721,7 +11721,7 @@
     "model": "recipe.recipeitem",
     "pk": 2432,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 0.5,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -11749,12 +11749,12 @@
     "model": "recipe.recipeitem",
     "pk": 2438,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 2.5,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 59666,
+      "portion_id": 85776,
       "recipe_id": 344,
       "exchange_group_id": null
     }
@@ -11763,12 +11763,12 @@
     "model": "recipe.recipeitem",
     "pk": 2386,
     "fields": {
-      "quantity": 0.0267,
+      "quantity": 40.0,
       "sort_order": 13,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47626,
+      "portion_id": 81906,
       "recipe_id": 340,
       "exchange_group_id": null
     }
@@ -11796,7 +11796,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 344,
       "exchange_group_id": null
     }
@@ -11824,7 +11824,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 344,
       "exchange_group_id": null
     }
@@ -11833,12 +11833,12 @@
     "model": "recipe.recipeitem",
     "pk": 2456,
     "fields": {
-      "quantity": 0.3333,
+      "quantity": 49.99,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47626,
+      "portion_id": 81906,
       "recipe_id": 346,
       "exchange_group_id": null
     }
@@ -11847,7 +11847,7 @@
     "model": "recipe.recipeitem",
     "pk": 2457,
     "fields": {
-      "quantity": 0.0021,
+      "quantity": 0.25,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -11861,12 +11861,12 @@
     "model": "recipe.recipeitem",
     "pk": 2433,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 2.5,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50614,
+      "portion_id": 83142,
       "recipe_id": 344,
       "exchange_group_id": null
     }
@@ -11931,7 +11931,7 @@
     "model": "recipe.recipeitem",
     "pk": 2401,
     "fields": {
-      "quantity": 0.0006,
+      "quantity": 0.24,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -11959,12 +11959,12 @@
     "model": "recipe.recipeitem",
     "pk": 2400,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 62.5,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6832,
+      "portion_id": 85098,
       "recipe_id": 342,
       "exchange_group_id": null
     }
@@ -12062,7 +12062,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7895,
+      "portion_id": 82677,
       "recipe_id": 339,
       "exchange_group_id": null
     }
@@ -12169,7 +12169,7 @@
     "model": "recipe.recipeitem",
     "pk": 2381,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.04,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -12267,7 +12267,7 @@
     "model": "recipe.recipeitem",
     "pk": 2434,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -12323,12 +12323,12 @@
     "model": "recipe.recipeitem",
     "pk": 2360,
     "fields": {
-      "quantity": 1.6,
+      "quantity": 80.0,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 46516,
+      "portion_id": 81440,
       "recipe_id": 338,
       "exchange_group_id": null
     }
@@ -12398,7 +12398,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 342,
       "exchange_group_id": null
     }
@@ -12412,7 +12412,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 343,
       "exchange_group_id": null
     }
@@ -12421,7 +12421,7 @@
     "model": "recipe.recipeitem",
     "pk": 2382,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.0375,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -12435,12 +12435,12 @@
     "model": "recipe.recipeitem",
     "pk": 2397,
     "fields": {
-      "quantity": 0.1333,
+      "quantity": 20.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 49496,
+      "portion_id": 82678,
       "recipe_id": 341,
       "exchange_group_id": null
     }
@@ -12449,7 +12449,7 @@
     "model": "recipe.recipeitem",
     "pk": 2407,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.25,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -12477,12 +12477,12 @@
     "model": "recipe.recipeitem",
     "pk": 2430,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 30.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15183,
+      "portion_id": 84182,
       "recipe_id": 344,
       "exchange_group_id": null
     }
@@ -12519,7 +12519,7 @@
     "model": "recipe.recipeitem",
     "pk": 2425,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -12533,7 +12533,7 @@
     "model": "recipe.recipeitem",
     "pk": 2435,
     "fields": {
-      "quantity": 0.0333,
+      "quantity": 0.5,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -12547,7 +12547,7 @@
     "model": "recipe.recipeitem",
     "pk": 2459,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -12580,7 +12580,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15,
+      "portion_id": 37707,
       "recipe_id": 342,
       "exchange_group_id": null
     }
@@ -12622,7 +12622,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 345,
       "exchange_group_id": null
     }
@@ -12650,7 +12650,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 346,
       "exchange_group_id": null
     }
@@ -12715,12 +12715,12 @@
     "model": "recipe.recipeitem",
     "pk": 2373,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 25.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 32538,
+      "portion_id": 81402,
       "recipe_id": 340,
       "exchange_group_id": null
     }
@@ -12729,7 +12729,7 @@
     "model": "recipe.recipeitem",
     "pk": 2398,
     "fields": {
-      "quantity": 0.0017,
+      "quantity": 0.255,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -12762,7 +12762,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 340,
       "exchange_group_id": null
     }
@@ -12771,12 +12771,12 @@
     "model": "recipe.recipeitem",
     "pk": 2444,
     "fields": {
-      "quantity": 1.6,
+      "quantity": 80.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47326,
+      "portion_id": 81778,
       "recipe_id": 345,
       "exchange_group_id": null
     }
@@ -12855,7 +12855,7 @@
     "model": "recipe.recipeitem",
     "pk": 2431,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -12869,7 +12869,7 @@
     "model": "recipe.recipeitem",
     "pk": 2378,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.5,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -12883,7 +12883,7 @@
     "model": "recipe.recipeitem",
     "pk": 2403,
     "fields": {
-      "quantity": 0.025,
+      "quantity": 0.25,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -12897,7 +12897,7 @@
     "model": "recipe.recipeitem",
     "pk": 2383,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 0.5,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
@@ -12911,7 +12911,7 @@
     "model": "recipe.recipeitem",
     "pk": 2460,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 0.15,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
@@ -12925,12 +12925,12 @@
     "model": "recipe.recipeitem",
     "pk": 2408,
     "fields": {
-      "quantity": 0.02,
+      "quantity": 60.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 46516,
+      "portion_id": 81440,
       "recipe_id": 342,
       "exchange_group_id": null
     }
@@ -12953,7 +12953,7 @@
     "model": "recipe.recipeitem",
     "pk": 2409,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
@@ -12967,7 +12967,7 @@
     "model": "recipe.recipeitem",
     "pk": 2437,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 0.1,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
@@ -12995,7 +12995,7 @@
     "model": "recipe.recipeitem",
     "pk": 2421,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -13009,7 +13009,7 @@
     "model": "recipe.recipeitem",
     "pk": 2441,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.5,
       "sort_order": 15,
       "note": "",
       "is_optional": false,
@@ -13023,7 +13023,7 @@
     "model": "recipe.recipeitem",
     "pk": 2544,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.04,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -13037,12 +13037,12 @@
     "model": "recipe.recipeitem",
     "pk": 2529,
     "fields": {
-      "quantity": 0.0017,
+      "quantity": 40.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47899,
+      "portion_id": 82029,
       "recipe_id": 354,
       "exchange_group_id": null
     }
@@ -13051,7 +13051,7 @@
     "model": "recipe.recipeitem",
     "pk": 2526,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -13065,7 +13065,7 @@
     "model": "recipe.recipeitem",
     "pk": 2533,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.0375,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -13121,7 +13121,7 @@
     "model": "recipe.recipeitem",
     "pk": 2530,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.25,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -13135,12 +13135,12 @@
     "model": "recipe.recipeitem",
     "pk": 2523,
     "fields": {
-      "quantity": 1.6,
+      "quantity": 80.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47326,
+      "portion_id": 81778,
       "recipe_id": 353,
       "exchange_group_id": null
     }
@@ -13163,12 +13163,12 @@
     "model": "recipe.recipeitem",
     "pk": 2571,
     "fields": {
-      "quantity": 1.6,
+      "quantity": 80.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47326,
+      "portion_id": 81778,
       "recipe_id": 358,
       "exchange_group_id": null
     }
@@ -13210,7 +13210,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7998,
+      "portion_id": 82684,
       "recipe_id": 355,
       "exchange_group_id": null
     }
@@ -13289,7 +13289,7 @@
     "model": "recipe.recipeitem",
     "pk": 2541,
     "fields": {
-      "quantity": 0.0083,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -13434,7 +13434,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 356,
       "exchange_group_id": null
     }
@@ -13443,12 +13443,12 @@
     "model": "recipe.recipeitem",
     "pk": 2557,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 30.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50361,
+      "portion_id": 83045,
       "recipe_id": 356,
       "exchange_group_id": null
     }
@@ -13737,12 +13737,12 @@
     "model": "recipe.recipeitem",
     "pk": 2518,
     "fields": {
-      "quantity": 0.13,
+      "quantity": 19.5,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50358,
+      "portion_id": 83044,
       "recipe_id": 352,
       "exchange_group_id": null
     }
@@ -13807,7 +13807,7 @@
     "model": "recipe.recipeitem",
     "pk": 2473,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 1.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -13821,7 +13821,7 @@
     "model": "recipe.recipeitem",
     "pk": 2520,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 3.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -13877,7 +13877,7 @@
     "model": "recipe.recipeitem",
     "pk": 2528,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -13891,7 +13891,7 @@
     "model": "recipe.recipeitem",
     "pk": 2539,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 0.5,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -13919,12 +13919,12 @@
     "model": "recipe.recipeitem",
     "pk": 2540,
     "fields": {
-      "quantity": 0.3167,
+      "quantity": 47.5,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 49496,
+      "portion_id": 82678,
       "recipe_id": 355,
       "exchange_group_id": null
     }
@@ -13933,12 +13933,12 @@
     "model": "recipe.recipeitem",
     "pk": 2475,
     "fields": {
-      "quantity": 0.1333,
+      "quantity": 20.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58084,
+      "portion_id": 85100,
       "recipe_id": 348,
       "exchange_group_id": null
     }
@@ -14106,7 +14106,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 349,
       "exchange_group_id": null
     }
@@ -14199,12 +14199,12 @@
     "model": "recipe.recipeitem",
     "pk": 2472,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 50.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7072,
+      "portion_id": 82183,
       "recipe_id": 347,
       "exchange_group_id": null
     }
@@ -14227,12 +14227,12 @@
     "model": "recipe.recipeitem",
     "pk": 2485,
     "fields": {
-      "quantity": 0.53,
+      "quantity": 79.5,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 51602,
+      "portion_id": 83541,
       "recipe_id": 350,
       "exchange_group_id": null
     }
@@ -14241,12 +14241,12 @@
     "model": "recipe.recipeitem",
     "pk": 2486,
     "fields": {
-      "quantity": 0.52,
+      "quantity": 0.5373,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 350,
       "exchange_group_id": null
     }
@@ -14288,7 +14288,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 350,
       "exchange_group_id": null
     }
@@ -14325,12 +14325,12 @@
     "model": "recipe.recipeitem",
     "pk": 2492,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 15.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55255,
+      "portion_id": 83917,
       "recipe_id": 350,
       "exchange_group_id": null
     }
@@ -14414,7 +14414,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 353,
       "exchange_group_id": null
     }
@@ -14428,7 +14428,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 357,
       "exchange_group_id": null
     }
@@ -14442,7 +14442,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 356,
       "exchange_group_id": null
     }
@@ -14479,12 +14479,12 @@
     "model": "recipe.recipeitem",
     "pk": 2603,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 50.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7926,
+      "portion_id": 86207,
       "recipe_id": 360,
       "exchange_group_id": null
     }
@@ -14526,7 +14526,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 8003,
+      "portion_id": 86214,
       "recipe_id": 365,
       "exchange_group_id": null
     }
@@ -14554,7 +14554,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 365,
       "exchange_group_id": null
     }
@@ -14605,12 +14605,12 @@
     "model": "recipe.recipeitem",
     "pk": 2677,
     "fields": {
-      "quantity": 0.6667,
+      "quantity": 20.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15426,
+      "portion_id": 82753,
       "recipe_id": 366,
       "exchange_group_id": null
     }
@@ -14619,12 +14619,12 @@
     "model": "recipe.recipeitem",
     "pk": 2666,
     "fields": {
-      "quantity": 0.6,
+      "quantity": 30.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47326,
+      "portion_id": 81778,
       "recipe_id": 365,
       "exchange_group_id": null
     }
@@ -14680,7 +14680,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 362,
       "exchange_group_id": null
     }
@@ -14722,7 +14722,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 358,
       "exchange_group_id": null
     }
@@ -14787,12 +14787,12 @@
     "model": "recipe.recipeitem",
     "pk": 2661,
     "fields": {
-      "quantity": 1.5384615384615385,
+      "quantity": 1.5385,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 1077,
+      "portion_id": 84228,
       "recipe_id": 365,
       "exchange_group_id": null
     }
@@ -14848,7 +14848,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 362,
       "exchange_group_id": null
     }
@@ -14899,12 +14899,12 @@
     "model": "recipe.recipeitem",
     "pk": 2597,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 10.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45785,
+      "portion_id": 81139,
       "recipe_id": 360,
       "exchange_group_id": null
     }
@@ -15170,7 +15170,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 365,
       "exchange_group_id": null
     }
@@ -15207,12 +15207,12 @@
     "model": "recipe.recipeitem",
     "pk": 2578,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 30.0,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58104,
+      "portion_id": 85107,
       "recipe_id": 358,
       "exchange_group_id": null
     }
@@ -15249,12 +15249,12 @@
     "model": "recipe.recipeitem",
     "pk": 2582,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 10.0,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 56950,
+      "portion_id": 84610,
       "recipe_id": 358,
       "exchange_group_id": null
     }
@@ -15338,7 +15338,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7925,
+      "portion_id": 85959,
       "recipe_id": 359,
       "exchange_group_id": null
     }
@@ -15417,12 +15417,12 @@
     "model": "recipe.recipeitem",
     "pk": 2632,
     "fields": {
-      "quantity": 0.13,
+      "quantity": 19.5,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 49476,
+      "portion_id": 82670,
       "recipe_id": 363,
       "exchange_group_id": null
     }
@@ -15436,7 +15436,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 363,
       "exchange_group_id": null
     }
@@ -15674,7 +15674,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 360,
       "exchange_group_id": null
     }
@@ -15716,7 +15716,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7929,
+      "portion_id": 84122,
       "recipe_id": 364,
       "exchange_group_id": null
     }
@@ -15744,7 +15744,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15,
+      "portion_id": 13,
       "recipe_id": 364,
       "exchange_group_id": null
     }
@@ -15856,7 +15856,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 362,
       "exchange_group_id": null
     }
@@ -15893,7 +15893,7 @@
     "model": "recipe.recipeitem",
     "pk": 2697,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 0.5,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -15940,7 +15940,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 368,
       "exchange_group_id": null
     }
@@ -15968,7 +15968,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 377,
       "exchange_group_id": null
     }
@@ -15991,7 +15991,7 @@
     "model": "recipe.recipeitem",
     "pk": 2767,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.3,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -16047,12 +16047,12 @@
     "model": "recipe.recipeitem",
     "pk": 2748,
     "fields": {
-      "quantity": 0.6,
+      "quantity": 30.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47326,
+      "portion_id": 81778,
       "recipe_id": 375,
       "exchange_group_id": null
     }
@@ -16080,7 +16080,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 374,
       "exchange_group_id": null
     }
@@ -16103,7 +16103,7 @@
     "model": "recipe.recipeitem",
     "pk": 2693,
     "fields": {
-      "quantity": 0.0033,
+      "quantity": 0.495,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -16117,7 +16117,7 @@
     "model": "recipe.recipeitem",
     "pk": 2771,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -16187,12 +16187,12 @@
     "model": "recipe.recipeitem",
     "pk": 2714,
     "fields": {
-      "quantity": 40.0,
+      "quantity": 4.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 613,
+      "portion_id": 87780,
       "recipe_id": 369,
       "exchange_group_id": null
     }
@@ -16201,7 +16201,7 @@
     "model": "recipe.recipeitem",
     "pk": 2680,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -16257,7 +16257,7 @@
     "model": "recipe.recipeitem",
     "pk": 2772,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 1.0,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -16299,7 +16299,7 @@
     "model": "recipe.recipeitem",
     "pk": 2773,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 0.075,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -16318,7 +16318,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 367,
       "exchange_group_id": null
     }
@@ -16374,7 +16374,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 376,
       "exchange_group_id": null
     }
@@ -16425,7 +16425,7 @@
     "model": "recipe.recipeitem",
     "pk": 2687,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 0.5,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -16439,12 +16439,12 @@
     "model": "recipe.recipeitem",
     "pk": 2744,
     "fields": {
-      "quantity": 0.06,
+      "quantity": 3.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 59666,
+      "portion_id": 85776,
       "recipe_id": 373,
       "exchange_group_id": null
     }
@@ -16481,7 +16481,7 @@
     "model": "recipe.recipeitem",
     "pk": 2775,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
@@ -16803,12 +16803,12 @@
     "model": "recipe.recipeitem",
     "pk": 2706,
     "fields": {
-      "quantity": 1.6667,
+      "quantity": 500.01,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15225,
+      "portion_id": 86749,
       "recipe_id": 369,
       "exchange_group_id": null
     }
@@ -16831,7 +16831,7 @@
     "model": "recipe.recipeitem",
     "pk": 2691,
     "fields": {
-      "quantity": 0.0042,
+      "quantity": 0.5,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -16873,7 +16873,7 @@
     "model": "recipe.recipeitem",
     "pk": 2766,
     "fields": {
-      "quantity": 0.0125,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -16892,7 +16892,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 35321,
+      "portion_id": 45,
       "recipe_id": 377,
       "exchange_group_id": null
     }
@@ -16948,7 +16948,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 368,
       "exchange_group_id": null
     }
@@ -16990,7 +16990,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 373,
       "exchange_group_id": null
     }
@@ -17013,12 +17013,12 @@
     "model": "recipe.recipeitem",
     "pk": 2719,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 15.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58027,
+      "portion_id": 85072,
       "recipe_id": 370,
       "exchange_group_id": null
     }
@@ -17069,12 +17069,12 @@
     "model": "recipe.recipeitem",
     "pk": 2758,
     "fields": {
-      "quantity": 0.3,
+      "quantity": 15.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45785,
+      "portion_id": 81139,
       "recipe_id": 376,
       "exchange_group_id": null
     }
@@ -17102,7 +17102,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7884,
+      "portion_id": 82020,
       "recipe_id": 376,
       "exchange_group_id": null
     }
@@ -17116,7 +17116,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 369,
       "exchange_group_id": null
     }
@@ -17144,7 +17144,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7885,
+      "portion_id": 85643,
       "recipe_id": 376,
       "exchange_group_id": null
     }
@@ -17158,7 +17158,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 378,
       "exchange_group_id": null
     }
@@ -17195,12 +17195,12 @@
     "model": "recipe.recipeitem",
     "pk": 2782,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 50.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6832,
+      "portion_id": 85098,
       "recipe_id": 378,
       "exchange_group_id": null
     }
@@ -17242,7 +17242,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15,
+      "portion_id": 37707,
       "recipe_id": 368,
       "exchange_group_id": null
     }
@@ -17270,7 +17270,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 375,
       "exchange_group_id": null
     }
@@ -17284,7 +17284,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 370,
       "exchange_group_id": null
     }
@@ -17307,7 +17307,7 @@
     "model": "recipe.recipeitem",
     "pk": 2841,
     "fields": {
-      "quantity": 0.0133,
+      "quantity": 0.2,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
@@ -17377,7 +17377,7 @@
     "model": "recipe.recipeitem",
     "pk": 2842,
     "fields": {
-      "quantity": 0.0133,
+      "quantity": 0.2,
       "sort_order": 13,
       "note": "",
       "is_optional": false,
@@ -17461,7 +17461,7 @@
     "model": "recipe.recipeitem",
     "pk": 2880,
     "fields": {
-      "quantity": 0.0021,
+      "quantity": 0.25,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -17503,7 +17503,7 @@
     "model": "recipe.recipeitem",
     "pk": 2877,
     "fields": {
-      "quantity": 0.0017,
+      "quantity": 0.255,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -17559,7 +17559,7 @@
     "model": "recipe.recipeitem",
     "pk": 2798,
     "fields": {
-      "quantity": 0.008,
+      "quantity": 0.12,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -17573,7 +17573,7 @@
     "model": "recipe.recipeitem",
     "pk": 2825,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 1.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -17587,7 +17587,7 @@
     "model": "recipe.recipeitem",
     "pk": 2893,
     "fields": {
-      "quantity": 0.0083,
+      "quantity": 0.25,
       "sort_order": 19,
       "note": "",
       "is_optional": false,
@@ -17615,7 +17615,7 @@
     "model": "recipe.recipeitem",
     "pk": 2820,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.25,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -17671,7 +17671,7 @@
     "model": "recipe.recipeitem",
     "pk": 2851,
     "fields": {
-      "quantity": 0.0333,
+      "quantity": 0.5,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -17699,12 +17699,12 @@
     "model": "recipe.recipeitem",
     "pk": 2836,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 6.0,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7944,
+      "portion_id": 84558,
       "recipe_id": 383,
       "exchange_group_id": null
     }
@@ -17769,7 +17769,7 @@
     "model": "recipe.recipeitem",
     "pk": 2846,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -17811,12 +17811,12 @@
     "model": "recipe.recipeitem",
     "pk": 2826,
     "fields": {
-      "quantity": 0.375,
+      "quantity": 0.38,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7870,
+      "portion_id": 84471,
       "recipe_id": 382,
       "exchange_group_id": null
     }
@@ -17839,12 +17839,12 @@
     "model": "recipe.recipeitem",
     "pk": 2850,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 0.0333,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 800,
+      "portion_id": 89072,
       "recipe_id": 384,
       "exchange_group_id": null
     }
@@ -17923,12 +17923,12 @@
     "model": "recipe.recipeitem",
     "pk": 2803,
     "fields": {
-      "quantity": 0.3,
+      "quantity": 15.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45785,
+      "portion_id": 81139,
       "recipe_id": 380,
       "exchange_group_id": null
     }
@@ -17993,7 +17993,7 @@
     "model": "recipe.recipeitem",
     "pk": 2839,
     "fields": {
-      "quantity": 0.002,
+      "quantity": 0.2,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
@@ -18021,12 +18021,12 @@
     "model": "recipe.recipeitem",
     "pk": 2801,
     "fields": {
-      "quantity": 0.02,
+      "quantity": 1.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 59666,
+      "portion_id": 85776,
       "recipe_id": 379,
       "exchange_group_id": null
     }
@@ -18105,12 +18105,12 @@
     "model": "recipe.recipeitem",
     "pk": 2789,
     "fields": {
-      "quantity": 0.67,
+      "quantity": 100.5,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 47626,
+      "portion_id": 81906,
       "recipe_id": 378,
       "exchange_group_id": null
     }
@@ -18147,12 +18147,12 @@
     "model": "recipe.recipeitem",
     "pk": 2891,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 7.5,
       "sort_order": 17,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7953,
+      "portion_id": 82197,
       "recipe_id": 386,
       "exchange_group_id": null
     }
@@ -18161,12 +18161,12 @@
     "model": "recipe.recipeitem",
     "pk": 2892,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 10.0,
       "sort_order": 18,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7954,
+      "portion_id": 82750,
       "recipe_id": 386,
       "exchange_group_id": null
     }
@@ -18217,7 +18217,7 @@
     "model": "recipe.recipeitem",
     "pk": 2829,
     "fields": {
-      "quantity": 0.0016,
+      "quantity": 0.4,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -18231,7 +18231,7 @@
     "model": "recipe.recipeitem",
     "pk": 2844,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -18245,7 +18245,7 @@
     "model": "recipe.recipeitem",
     "pk": 2875,
     "fields": {
-      "quantity": 0.0312,
+      "quantity": 0.25,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -18259,7 +18259,7 @@
     "model": "recipe.recipeitem",
     "pk": 2818,
     "fields": {
-      "quantity": 0.0125,
+      "quantity": 5.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -18278,7 +18278,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 383,
       "exchange_group_id": null
     }
@@ -18301,7 +18301,7 @@
     "model": "recipe.recipeitem",
     "pk": 2821,
     "fields": {
-      "quantity": 0.075,
+      "quantity": 0.75,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -18315,7 +18315,7 @@
     "model": "recipe.recipeitem",
     "pk": 2878,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 0.25,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -18329,7 +18329,7 @@
     "model": "recipe.recipeitem",
     "pk": 2833,
     "fields": {
-      "quantity": 0.002,
+      "quantity": 0.03,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -18497,12 +18497,12 @@
     "model": "recipe.recipeitem",
     "pk": 2857,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 60734,
+      "portion_id": 50,
       "recipe_id": 385,
       "exchange_group_id": null
     }
@@ -18651,7 +18651,7 @@
     "model": "recipe.recipeitem",
     "pk": 2890,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.5,
       "sort_order": 16,
       "note": "",
       "is_optional": false,
@@ -18679,12 +18679,12 @@
     "model": "recipe.recipeitem",
     "pk": 2871,
     "fields": {
-      "quantity": 0.27,
+      "quantity": 40.5,
       "sort_order": 18,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45761,
+      "portion_id": 81129,
       "recipe_id": 385,
       "exchange_group_id": null
     }
@@ -18712,7 +18712,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7953,
+      "portion_id": 82197,
       "recipe_id": 385,
       "exchange_group_id": null
     }
@@ -18740,7 +18740,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 380,
       "exchange_group_id": null
     }
@@ -18749,7 +18749,7 @@
     "model": "recipe.recipeitem",
     "pk": 2955,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 0.15,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -18763,7 +18763,7 @@
     "model": "recipe.recipeitem",
     "pk": 2934,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 0.5,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -18796,7 +18796,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 392,
       "exchange_group_id": null
     }
@@ -18833,7 +18833,7 @@
     "model": "recipe.recipeitem",
     "pk": 2951,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 0.5,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -18847,7 +18847,7 @@
     "model": "recipe.recipeitem",
     "pk": 2910,
     "fields": {
-      "quantity": 0.0222,
+      "quantity": 0.33,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -18889,7 +18889,7 @@
     "model": "recipe.recipeitem",
     "pk": 2935,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.25,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -18903,7 +18903,7 @@
     "model": "recipe.recipeitem",
     "pk": 2930,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 0.25,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -18917,7 +18917,7 @@
     "model": "recipe.recipeitem",
     "pk": 2982,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -18959,7 +18959,7 @@
     "model": "recipe.recipeitem",
     "pk": 2956,
     "fields": {
-      "quantity": 0.0333,
+      "quantity": 0.5,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -19001,12 +19001,12 @@
     "model": "recipe.recipeitem",
     "pk": 2922,
     "fields": {
-      "quantity": 0.5,
+      "quantity": 0.0167,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 800,
+      "portion_id": 89072,
       "recipe_id": 389,
       "exchange_group_id": null
     }
@@ -19020,7 +19020,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 393,
       "exchange_group_id": null
     }
@@ -19029,12 +19029,12 @@
     "model": "recipe.recipeitem",
     "pk": 2925,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 0.0083,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 800,
+      "portion_id": 89072,
       "recipe_id": 389,
       "exchange_group_id": null
     }
@@ -19043,12 +19043,12 @@
     "model": "recipe.recipeitem",
     "pk": 2927,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 0.8,
       "sort_order": 13,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 967,
+      "portion_id": 86924,
       "recipe_id": 389,
       "exchange_group_id": null
     }
@@ -19155,7 +19155,7 @@
     "model": "recipe.recipeitem",
     "pk": 2952,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -19239,12 +19239,12 @@
     "model": "recipe.recipeitem",
     "pk": 2947,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 7.5,
       "sort_order": 19,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7953,
+      "portion_id": 82197,
       "recipe_id": 390,
       "exchange_group_id": null
     }
@@ -19253,12 +19253,12 @@
     "model": "recipe.recipeitem",
     "pk": 2894,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 100.0,
       "sort_order": 20,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 48207,
+      "portion_id": 82150,
       "recipe_id": 386,
       "exchange_group_id": null
     }
@@ -19295,7 +19295,7 @@
     "model": "recipe.recipeitem",
     "pk": 2998,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 0.075,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -19309,7 +19309,7 @@
     "model": "recipe.recipeitem",
     "pk": 2832,
     "fields": {
-      "quantity": 0.0533,
+      "quantity": 0.8,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -19351,7 +19351,7 @@
     "model": "recipe.recipeitem",
     "pk": 2989,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.5,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -19365,7 +19365,7 @@
     "model": "recipe.recipeitem",
     "pk": 2948,
     "fields": {
-      "quantity": 0.025,
+      "quantity": 0.25,
       "sort_order": 20,
       "note": "",
       "is_optional": false,
@@ -19384,7 +19384,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7955,
+      "portion_id": 85087,
       "recipe_id": 387,
       "exchange_group_id": null
     }
@@ -19393,12 +19393,12 @@
     "model": "recipe.recipeitem",
     "pk": 2896,
     "fields": {
-      "quantity": 0.4,
+      "quantity": 60.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 51095,
+      "portion_id": 83332,
       "recipe_id": 387,
       "exchange_group_id": null
     }
@@ -19449,7 +19449,7 @@
     "model": "recipe.recipeitem",
     "pk": 2978,
     "fields": {
-      "quantity": 375.0,
+      "quantity": 37.5,
       "sort_order": 15,
       "note": "",
       "is_optional": false,
@@ -19533,12 +19533,12 @@
     "model": "recipe.recipeitem",
     "pk": 2901,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 0.0103,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 387,
       "exchange_group_id": null
     }
@@ -19650,7 +19650,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 390,
       "exchange_group_id": null
     }
@@ -19743,7 +19743,7 @@
     "model": "recipe.recipeitem",
     "pk": 2963,
     "fields": {
-      "quantity": 0.0003,
+      "quantity": 0.3,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -19757,12 +19757,12 @@
     "model": "recipe.recipeitem",
     "pk": 2949,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 1.5,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 60734,
+      "portion_id": 50,
       "recipe_id": 391,
       "exchange_group_id": null
     }
@@ -19771,7 +19771,7 @@
     "model": "recipe.recipeitem",
     "pk": 2950,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 0.25,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -19827,7 +19827,7 @@
     "model": "recipe.recipeitem",
     "pk": 2909,
     "fields": {
-      "quantity": 0.1333,
+      "quantity": 1.33,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -19953,7 +19953,7 @@
     "model": "recipe.recipeitem",
     "pk": 2933,
     "fields": {
-      "quantity": 0.0125,
+      "quantity": 1.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -20000,7 +20000,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 387,
       "exchange_group_id": null
     }
@@ -20014,7 +20014,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 210,
       "exchange_group_id": null
     }
@@ -20028,7 +20028,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 389,
       "exchange_group_id": null
     }
@@ -20149,7 +20149,7 @@
     "model": "recipe.recipeitem",
     "pk": 2936,
     "fields": {
-      "quantity": 0.0125,
+      "quantity": 0.25,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -20177,7 +20177,7 @@
     "model": "recipe.recipeitem",
     "pk": 2931,
     "fields": {
-      "quantity": 0.05,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -20191,7 +20191,7 @@
     "model": "recipe.recipeitem",
     "pk": 2937,
     "fields": {
-      "quantity": 0.075,
+      "quantity": 0.75,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -20205,7 +20205,7 @@
     "model": "recipe.recipeitem",
     "pk": 3022,
     "fields": {
-      "quantity": 0.0017,
+      "quantity": 0.0255,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
@@ -20219,7 +20219,7 @@
     "model": "recipe.recipeitem",
     "pk": 3070,
     "fields": {
-      "quantity": 0.0125,
+      "quantity": 0.12,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
@@ -20247,7 +20247,7 @@
     "model": "recipe.recipeitem",
     "pk": 3005,
     "fields": {
-      "quantity": 50.0,
+      "quantity": 5.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
@@ -20373,12 +20373,12 @@
     "model": "recipe.recipeitem",
     "pk": 3073,
     "fields": {
-      "quantity": 0.0017,
+      "quantity": 80.0,
       "sort_order": 15,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55558,
+      "portion_id": 84039,
       "recipe_id": 398,
       "exchange_group_id": null
     }
@@ -20443,7 +20443,7 @@
     "model": "recipe.recipeitem",
     "pk": 3026,
     "fields": {
-      "quantity": 0.0333,
+      "quantity": 0.333,
       "sort_order": 16,
       "note": "",
       "is_optional": false,
@@ -20457,12 +20457,12 @@
     "model": "recipe.recipeitem",
     "pk": 3075,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 100.0,
       "sort_order": 17,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 48207,
+      "portion_id": 82150,
       "recipe_id": 398,
       "exchange_group_id": null
     }
@@ -20471,12 +20471,12 @@
     "model": "recipe.recipeitem",
     "pk": 3100,
     "fields": {
-      "quantity": 0.03,
+      "quantity": 4.5,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 59565,
+      "portion_id": 85725,
       "recipe_id": 402,
       "exchange_group_id": null
     }
@@ -20709,12 +20709,12 @@
     "model": "recipe.recipeitem",
     "pk": 3067,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 0.25,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 15299,
+      "portion_id": 85082,
       "recipe_id": 398,
       "exchange_group_id": null
     }
@@ -20737,7 +20737,7 @@
     "model": "recipe.recipeitem",
     "pk": 3014,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 0.667,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -20751,7 +20751,7 @@
     "model": "recipe.recipeitem",
     "pk": 3068,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 0.25,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
@@ -20821,7 +20821,7 @@
     "model": "recipe.recipeitem",
     "pk": 3010,
     "fields": {
-      "quantity": 0.0033,
+      "quantity": 0.66,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -20849,7 +20849,7 @@
     "model": "recipe.recipeitem",
     "pk": 3011,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 0.667,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -20891,7 +20891,7 @@
     "model": "recipe.recipeitem",
     "pk": 3063,
     "fields": {
-      "quantity": 0.0667,
+      "quantity": 1.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -20933,12 +20933,12 @@
     "model": "recipe.recipeitem",
     "pk": 3006,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 1.5,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 60734,
+      "portion_id": 50,
       "recipe_id": 394,
       "exchange_group_id": null
     }
@@ -21115,12 +21115,12 @@
     "model": "recipe.recipeitem",
     "pk": 3086,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 1.5,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 71848,
+      "portion_id": 83746,
       "recipe_id": 399,
       "exchange_group_id": null
     }
@@ -21157,7 +21157,7 @@
     "model": "recipe.recipeitem",
     "pk": 3009,
     "fields": {
-      "quantity": 0.075,
+      "quantity": 0.75,
       "sort_order": 14,
       "note": "",
       "is_optional": false,
@@ -21395,12 +21395,12 @@
     "model": "recipe.recipeitem",
     "pk": 3034,
     "fields": {
-      "quantity": 0.07,
+      "quantity": 10.5,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 50614,
+      "portion_id": 83142,
       "recipe_id": 396,
       "exchange_group_id": null
     }
@@ -21414,7 +21414,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7972,
+      "portion_id": 86739,
       "recipe_id": 396,
       "exchange_group_id": null
     }
@@ -21451,12 +21451,12 @@
     "model": "recipe.recipeitem",
     "pk": 3038,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 49.5,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 46801,
+      "portion_id": 81564,
       "recipe_id": 396,
       "exchange_group_id": null
     }
@@ -21493,7 +21493,7 @@
     "model": "recipe.recipeitem",
     "pk": 3012,
     "fields": {
-      "quantity": 0.0167,
+      "quantity": 0.334,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -21507,12 +21507,12 @@
     "model": "recipe.recipeitem",
     "pk": 3042,
     "fields": {
-      "quantity": 0.01,
+      "quantity": 1.5,
       "sort_order": 15,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 51010,
+      "portion_id": 83295,
       "recipe_id": 396,
       "exchange_group_id": null
     }
@@ -21540,7 +21540,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7953,
+      "portion_id": 82197,
       "recipe_id": 396,
       "exchange_group_id": null
     }
@@ -21633,7 +21633,7 @@
     "model": "recipe.recipeitem",
     "pk": 3190,
     "fields": {
-      "quantity": 0.0083,
+      "quantity": 0.25,
       "sort_order": 12,
       "note": "",
       "is_optional": false,
@@ -21717,7 +21717,7 @@
     "model": "recipe.recipeitem",
     "pk": 3181,
     "fields": {
-      "quantity": 0.0333,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -21731,12 +21731,12 @@
     "model": "recipe.recipeitem",
     "pk": 3154,
     "fields": {
-      "quantity": 0.2667,
+      "quantity": 40.0,
       "sort_order": 13,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58104,
+      "portion_id": 85107,
       "recipe_id": 406,
       "exchange_group_id": null
     }
@@ -21773,12 +21773,12 @@
     "model": "recipe.recipeitem",
     "pk": 3147,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 20.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7995,
+      "portion_id": 84468,
       "recipe_id": 406,
       "exchange_group_id": null
     }
@@ -21848,7 +21848,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 406,
       "exchange_group_id": null
     }
@@ -21871,12 +21871,12 @@
     "model": "recipe.recipeitem",
     "pk": 3186,
     "fields": {
-      "quantity": 0.0067,
+      "quantity": 50.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45657,
+      "portion_id": 81085,
       "recipe_id": 409,
       "exchange_group_id": null
     }
@@ -21927,12 +21927,12 @@
     "model": "recipe.recipeitem",
     "pk": 3207,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 5.0,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 57509,
+      "portion_id": 84854,
       "recipe_id": 411,
       "exchange_group_id": null
     }
@@ -21988,7 +21988,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 8002,
+      "portion_id": 86218,
       "recipe_id": 408,
       "exchange_group_id": null
     }
@@ -22058,7 +22058,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 406,
       "exchange_group_id": null
     }
@@ -22067,12 +22067,12 @@
     "model": "recipe.recipeitem",
     "pk": 3182,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 3.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 8003,
+      "portion_id": 86214,
       "recipe_id": 409,
       "exchange_group_id": null
     }
@@ -22123,12 +22123,12 @@
     "model": "recipe.recipeitem",
     "pk": 3176,
     "fields": {
-      "quantity": 0.04,
+      "quantity": 2.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 57509,
+      "portion_id": 84854,
       "recipe_id": 408,
       "exchange_group_id": null
     }
@@ -22156,7 +22156,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7926,
+      "portion_id": 86207,
       "recipe_id": 408,
       "exchange_group_id": null
     }
@@ -22165,7 +22165,7 @@
     "model": "recipe.recipeitem",
     "pk": 3129,
     "fields": {
-      "quantity": 0.0013,
+      "quantity": 0.15,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
@@ -22179,7 +22179,7 @@
     "model": "recipe.recipeitem",
     "pk": 3145,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -22193,12 +22193,12 @@
     "model": "recipe.recipeitem",
     "pk": 3150,
     "fields": {
-      "quantity": 0.0067,
+      "quantity": 1.01,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 54872,
+      "portion_id": 83755,
       "recipe_id": 406,
       "exchange_group_id": null
     }
@@ -22235,12 +22235,12 @@
     "model": "recipe.recipeitem",
     "pk": 3110,
     "fields": {
-      "quantity": 0.81,
+      "quantity": 0.837,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 403,
       "exchange_group_id": null
     }
@@ -22263,12 +22263,12 @@
     "model": "recipe.recipeitem",
     "pk": 3212,
     "fields": {
-      "quantity": 1.9,
+      "quantity": 95.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 57509,
+      "portion_id": 84854,
       "recipe_id": 412,
       "exchange_group_id": null
     }
@@ -22277,7 +22277,7 @@
     "model": "recipe.recipeitem",
     "pk": 3187,
     "fields": {
-      "quantity": 0.0333,
+      "quantity": 0.5,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
@@ -22319,7 +22319,7 @@
     "model": "recipe.recipeitem",
     "pk": 3178,
     "fields": {
-      "quantity": 0.0125,
+      "quantity": 1.25,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -22333,12 +22333,12 @@
     "model": "recipe.recipeitem",
     "pk": 3142,
     "fields": {
-      "quantity": 0.2667,
+      "quantity": 40.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45711,
+      "portion_id": 81107,
       "recipe_id": 406,
       "exchange_group_id": null
     }
@@ -22403,7 +22403,7 @@
     "model": "recipe.recipeitem",
     "pk": 3189,
     "fields": {
-      "quantity": 0.0312,
+      "quantity": 0.25,
       "sort_order": 11,
       "note": "",
       "is_optional": false,
@@ -22529,12 +22529,12 @@
     "model": "recipe.recipeitem",
     "pk": 3156,
     "fields": {
-      "quantity": 0.27,
+      "quantity": 40.5,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 58363,
+      "portion_id": 85209,
       "recipe_id": 407,
       "exchange_group_id": null
     }
@@ -22548,7 +22548,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7998,
+      "portion_id": 82684,
       "recipe_id": 407,
       "exchange_group_id": null
     }
@@ -22627,12 +22627,12 @@
     "model": "recipe.recipeitem",
     "pk": 3165,
     "fields": {
-      "quantity": 0.2,
+      "quantity": 30.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 49499,
+      "portion_id": 82679,
       "recipe_id": 407,
       "exchange_group_id": null
     }
@@ -22646,7 +22646,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 407,
       "exchange_group_id": null
     }
@@ -22730,7 +22730,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 8006,
+      "portion_id": 83306,
       "recipe_id": 410,
       "exchange_group_id": null
     }
@@ -22758,7 +22758,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 8008,
+      "portion_id": 82581,
       "recipe_id": 410,
       "exchange_group_id": null
     }
@@ -22767,7 +22767,7 @@
     "model": "recipe.recipeitem",
     "pk": 2983,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -22828,7 +22828,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7994,
+      "portion_id": 82698,
       "recipe_id": 405,
       "exchange_group_id": null
     }
@@ -23047,12 +23047,12 @@
     "model": "recipe.recipeitem",
     "pk": 3299,
     "fields": {
-      "quantity": 1.9772,
+      "quantity": 296.58,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55995,
+      "portion_id": 84230,
       "recipe_id": 220,
       "exchange_group_id": null
     }
@@ -23584,7 +23584,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7880,
+      "portion_id": 83594,
       "recipe_id": 332,
       "exchange_group_id": null
     }
@@ -23831,12 +23831,12 @@
     "model": "recipe.recipeitem",
     "pk": 3294,
     "fields": {
-      "quantity": 0.7378,
+      "quantity": 110.67,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 55145,
+      "portion_id": 83867,
       "recipe_id": 220,
       "exchange_group_id": null
     }
@@ -24181,12 +24181,12 @@
     "model": "recipe.recipeitem",
     "pk": 3242,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 5.0,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45785,
+      "portion_id": 81139,
       "recipe_id": 414,
       "exchange_group_id": null
     }
@@ -24209,12 +24209,12 @@
     "model": "recipe.recipeitem",
     "pk": 3245,
     "fields": {
-      "quantity": 0.04,
+      "quantity": 2.0,
       "sort_order": 10,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 57509,
+      "portion_id": 84854,
       "recipe_id": 414,
       "exchange_group_id": null
     }
@@ -24354,7 +24354,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 414,
       "exchange_group_id": null
     }
@@ -24363,7 +24363,7 @@
     "model": "recipe.recipeitem",
     "pk": 3371,
     "fields": {
-      "quantity": 0.022,
+      "quantity": 2.2,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -24545,7 +24545,7 @@
     "model": "recipe.recipeitem",
     "pk": 3359,
     "fields": {
-      "quantity": 60.0,
+      "quantity": 7.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -24615,12 +24615,12 @@
     "model": "recipe.recipeitem",
     "pk": 3364,
     "fields": {
-      "quantity": 0.0333,
+      "quantity": 5.0,
       "sort_order": 8,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 71848,
+      "portion_id": 83746,
       "recipe_id": 432,
       "exchange_group_id": null
     }
@@ -24629,12 +24629,12 @@
     "model": "recipe.recipeitem",
     "pk": 3373,
     "fields": {
-      "quantity": 0.1760086128143668,
+      "quantity": 0.18,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 433,
       "exchange_group_id": null
     }
@@ -24671,12 +24671,12 @@
     "model": "recipe.recipeitem",
     "pk": 3345,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 49.5,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45657,
+      "portion_id": 81085,
       "recipe_id": 415,
       "exchange_group_id": null
     }
@@ -24704,7 +24704,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 8017,
+      "portion_id": 85963,
       "recipe_id": 415,
       "exchange_group_id": null
     }
@@ -24727,12 +24727,12 @@
     "model": "recipe.recipeitem",
     "pk": 3396,
     "fields": {
-      "quantity": 3.520178428649581,
+      "quantity": 100.0,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7863,
+      "portion_id": 82661,
       "recipe_id": 434,
       "exchange_group_id": null
     }
@@ -24769,12 +24769,12 @@
     "model": "recipe.recipeitem",
     "pk": 3399,
     "fields": {
-      "quantity": 0.17600892143247907,
+      "quantity": 0.18,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 434,
       "exchange_group_id": null
     }
@@ -24853,12 +24853,12 @@
     "model": "recipe.recipeitem",
     "pk": 3427,
     "fields": {
-      "quantity": 0.97,
+      "quantity": 1.0023,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 55,
       "exchange_group_id": null
     }
@@ -24914,7 +24914,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 32543,
+      "portion_id": 35511,
       "recipe_id": 440,
       "exchange_group_id": null
     }
@@ -25007,12 +25007,12 @@
     "model": "recipe.recipeitem",
     "pk": 3418,
     "fields": {
-      "quantity": 0.2344,
+      "quantity": 0.2422,
       "sort_order": 3,
       "note": "in Streifen",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 6846,
+      "portion_id": 16,
       "recipe_id": 58,
       "exchange_group_id": null
     }
@@ -25049,7 +25049,7 @@
     "model": "recipe.recipeitem",
     "pk": 3372,
     "fields": {
-      "quantity": 0.0001,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -25077,12 +25077,12 @@
     "model": "recipe.recipeitem",
     "pk": 3375,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 49.5,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45657,
+      "portion_id": 81085,
       "recipe_id": 215,
       "exchange_group_id": null
     }
@@ -25133,12 +25133,12 @@
     "model": "recipe.recipeitem",
     "pk": 3377,
     "fields": {
-      "quantity": 0.33,
+      "quantity": 49.5,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 60596,
+      "portion_id": 86172,
       "recipe_id": 215,
       "exchange_group_id": null
     }
@@ -25175,7 +25175,7 @@
     "model": "recipe.recipeitem",
     "pk": 3398,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 0.5,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -25623,7 +25623,7 @@
     "model": "recipe.recipeitem",
     "pk": 3435,
     "fields": {
-      "quantity": 20.0,
+      "quantity": 1.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -25693,7 +25693,7 @@
     "model": "recipe.recipeitem",
     "pk": 3447,
     "fields": {
-      "quantity": 20.0,
+      "quantity": 1.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -25749,7 +25749,7 @@
     "model": "recipe.recipeitem",
     "pk": 3459,
     "fields": {
-      "quantity": 20.0,
+      "quantity": 1.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
@@ -25833,7 +25833,7 @@
     "model": "recipe.recipeitem",
     "pk": 3547,
     "fields": {
-      "quantity": 0.0011,
+      "quantity": 0.625,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -25847,7 +25847,7 @@
     "model": "recipe.recipeitem",
     "pk": 3548,
     "fields": {
-      "quantity": 0.0021,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -25889,7 +25889,7 @@
     "model": "recipe.recipeitem",
     "pk": 3549,
     "fields": {
-      "quantity": 0.001,
+      "quantity": 0.75,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -25917,12 +25917,12 @@
     "model": "recipe.recipeitem",
     "pk": 3475,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 10.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 33079,
+      "portion_id": 81491,
       "recipe_id": 464,
       "exchange_group_id": null
     }
@@ -26160,7 +26160,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 467,
       "exchange_group_id": null
     }
@@ -26300,7 +26300,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 467,
       "exchange_group_id": null
     }
@@ -26342,7 +26342,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 466,
       "exchange_group_id": null
     }
@@ -26435,7 +26435,7 @@
     "model": "recipe.recipeitem",
     "pk": 3533,
     "fields": {
-      "quantity": 30.0,
+      "quantity": 3.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -26510,7 +26510,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 465,
       "exchange_group_id": null
     }
@@ -26608,7 +26608,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 465,
       "exchange_group_id": null
     }
@@ -26650,7 +26650,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 464,
       "exchange_group_id": null
     }
@@ -26701,7 +26701,7 @@
     "model": "recipe.recipeitem",
     "pk": 3552,
     "fields": {
-      "quantity": 0.03,
+      "quantity": 0.25,
       "sort_order": 7,
       "note": "",
       "is_optional": true,
@@ -26762,7 +26762,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 464,
       "exchange_group_id": null
     }
@@ -26813,12 +26813,12 @@
     "model": "recipe.recipeitem",
     "pk": 3560,
     "fields": {
-      "quantity": 0.25,
+      "quantity": 2.5,
       "sort_order": 0,
       "note": "zum Einfetten",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 33184,
+      "portion_id": 85169,
       "recipe_id": 475,
       "exchange_group_id": null
     }
@@ -27037,12 +27037,12 @@
     "model": "recipe.recipeitem",
     "pk": 3514,
     "fields": {
-      "quantity": 0.5833,
+      "quantity": 87.5,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 46801,
+      "portion_id": 81564,
       "recipe_id": 468,
       "exchange_group_id": null
     }
@@ -27191,7 +27191,7 @@
     "model": "recipe.recipeitem",
     "pk": 3535,
     "fields": {
-      "quantity": 20.0,
+      "quantity": 4.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -27210,7 +27210,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7889,
+      "portion_id": 81151,
       "recipe_id": 347,
       "exchange_group_id": null
     }
@@ -27280,7 +27280,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7872,
+      "portion_id": 82200,
       "recipe_id": 466,
       "exchange_group_id": null
     }
@@ -27499,12 +27499,12 @@
     "model": "recipe.recipeitem",
     "pk": 788,
     "fields": {
-      "quantity": 1.6,
+      "quantity": 80.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 48207,
+      "portion_id": 82150,
       "recipe_id": 166,
       "exchange_group_id": null
     }
@@ -27513,12 +27513,12 @@
     "model": "recipe.recipeitem",
     "pk": 676,
     "fields": {
-      "quantity": 0.1467,
+      "quantity": 22.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 45657,
+      "portion_id": 81085,
       "recipe_id": 153,
       "exchange_group_id": null
     }
@@ -27681,7 +27681,7 @@
     "model": "recipe.recipeitem",
     "pk": 2339,
     "fields": {
-      "quantity": 0.1,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -27728,7 +27728,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7912,
+      "portion_id": 83978,
       "recipe_id": 73,
       "exchange_group_id": null
     }
@@ -27765,7 +27765,7 @@
     "model": "recipe.recipeitem",
     "pk": 2532,
     "fields": {
-      "quantity": 0.0025,
+      "quantity": 0.04,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -27779,12 +27779,12 @@
     "model": "recipe.recipeitem",
     "pk": 3101,
     "fields": {
-      "quantity": 0.03,
+      "quantity": 4.5,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 49476,
+      "portion_id": 82670,
       "recipe_id": 402,
       "exchange_group_id": null
     }
@@ -27835,12 +27835,12 @@
     "model": "recipe.recipeitem",
     "pk": 2506,
     "fields": {
-      "quantity": 0.5,
+      "quantity": 25.0,
       "sort_order": 0,
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 49521,
+      "portion_id": 82687,
       "recipe_id": 352,
       "exchange_group_id": null
     }
@@ -28050,7 +28050,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7958,
+      "portion_id": 84904,
       "recipe_id": 359,
       "exchange_group_id": null
     }
@@ -28106,7 +28106,7 @@
       "note": "",
       "is_optional": false,
       "exchange_position": null,
-      "portion_id": 7881,
+      "portion_id": 84979,
       "recipe_id": 376,
       "exchange_group_id": null
     }
@@ -28297,7 +28297,7 @@
     "model": "recipe.recipeitem",
     "pk": 430,
     "fields": {
-      "quantity": 12.0,
+      "quantity": 1.0,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -28311,7 +28311,7 @@
     "model": "recipe.recipeitem",
     "pk": 3550,
     "fields": {
-      "quantity": 0.006,
+      "quantity": 1.0,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -28325,7 +28325,7 @@
     "model": "recipe.recipeitem",
     "pk": 3580,
     "fields": {
-      "quantity": 20.0,
+      "quantity": 4.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -28339,7 +28339,7 @@
     "model": "recipe.recipeitem",
     "pk": 7,
     "fields": {
-      "quantity": 50.0,
+      "quantity": 1.5,
       "sort_order": 6,
       "note": "Brühpulver",
       "is_optional": false,
@@ -28437,7 +28437,7 @@
     "model": "recipe.recipeitem",
     "pk": 2536,
     "fields": {
-      "quantity": 0.005,
+      "quantity": 0.05,
       "sort_order": 9,
       "note": "",
       "is_optional": false,
