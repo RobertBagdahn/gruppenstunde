@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, AlertTriangle, Minus, Plus } from 'lucide-react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { EntityLink } from '@/components/shared/EntityLink';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
@@ -728,18 +728,42 @@ export default function RecipeDetailPage() {
               <UtensilsCrossed className="w-5 h-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="flex items-center gap-2 text-xl font-semibold leading-tight">
-                Zutaten
-                {(recipe.recipe_items?.length ?? 0) > 0 && (
-                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium leading-none text-muted-foreground">
-                    {recipe.recipe_items?.length} Zutaten
-                  </span>
-                )}
-              </h2>
+              <h2 className="text-xl font-semibold leading-tight">Zutaten</h2>
               {!isInlineEditMode && (
-                <p className="text-sm text-muted-foreground leading-tight mt-0.5">
-                  {portionsMultiplier === 1 ? 'pro Portion' : `für ${portionsMultiplier} Portionen`}
-                </p>
+                isDirty ? (
+                  <p className="text-sm text-muted-foreground leading-tight mt-0.5">
+                    {`für ${displayedPortions} ${displayedPortions === 1 ? 'Portion' : 'Portionen'}`}
+                  </p>
+                ) : (
+                  // View-only scaling: changes the displayed amounts, never the stored recipe.
+                  <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <span>für</span>
+                    <div className="inline-flex items-center rounded-full border bg-background">
+                      <button
+                        type="button"
+                        onClick={() => setPortionsMultiplier(Math.max(1, portionsMultiplier - 1))}
+                        disabled={portionsMultiplier <= 1}
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-foreground hover:bg-muted disabled:opacity-40"
+                        aria-label="Portion verringern"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="min-w-[1.5rem] text-center font-semibold tabular-nums text-foreground" aria-live="polite">
+                        {portionsMultiplier}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPortionsMultiplier(Math.min(100, portionsMultiplier + 1))}
+                        disabled={portionsMultiplier >= 100}
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-foreground hover:bg-muted disabled:opacity-40"
+                        aria-label="Portion erhöhen"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <span>{portionsMultiplier === 1 ? 'Portion' : 'Portionen'}</span>
+                  </div>
+                )
               )}
             </div>
           </div>
@@ -1126,15 +1150,13 @@ export default function RecipeDetailPage() {
           defaultOpen={mode === 'steps'}
           accentColor="text-blue-600"
           preview={
-            <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full flex items-center gap-1">
-              {recipe.steps_count !== undefined ? (
-                <>
-                  <span>{recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}</span>
-                </>
-              ) : (
-                <span>Keine strukturierten Schritte</span>
-              )}
-            </div>
+            recipe.steps_count ? (
+              <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+                {recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">Noch keine Schritte – hier anlegen</span>
+            )
           }
         >
           <StepEditor
@@ -1157,15 +1179,13 @@ export default function RecipeDetailPage() {
             defaultOpen={mode === 'steps'}
             accentColor="text-blue-600"
             preview={
-              <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full flex items-center gap-1">
-                {recipe.steps_count !== undefined ? (
-                  <>
-                    <span>{recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}</span>
-                  </>
-                ) : (
-                  <span>Keine strukturierten Schritte</span>
-                )}
-              </div>
+              recipe.steps_count ? (
+                <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+                  {recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">Keine strukturierten Schritte</span>
+              )
             }
           >
             <RecipeStepsReadOnly
