@@ -29,7 +29,7 @@ def sugar_ingredient(db):
     return Ingredient.objects.create(
         name="Zucker",
         slug="zucker",
-        status="approved",
+        status="verified",
         energy_kcal=406,
         protein_g=0.0,
         fat_g=0.0,
@@ -46,7 +46,7 @@ def salt_ingredient(db):
     return Ingredient.objects.create(
         name="Salz",
         slug="salz",
-        status="approved",
+        status="verified",
         energy_kcal=0,
         protein_g=0.0,
         fat_g=0.0,
@@ -63,7 +63,7 @@ def flour_ingredient(db):
     return Ingredient.objects.create(
         name="Mehl",
         slug="mehl",
-        status="approved",
+        status="verified",
         energy_kcal=339,
         protein_g=10.3,
         fat_g=1.0,

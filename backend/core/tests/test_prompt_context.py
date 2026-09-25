@@ -27,14 +27,16 @@ def test_prompt_context_includes_profile_tags_and_own_pantry_only():
     profile = UserProfile.objects.create(user=user)
     tag = NutritionalTag.objects.create(name="Vegan", name_opposite="Tierische Produkte")
     profile.nutritional_tags.add(tag)
-    Ingredient.objects.create(name="Eigener Vorrat", slug="eigener-vorrat", created_by=user, status="user_content")
-    Ingredient.objects.create(name="Fremder Vorrat", slug="fremder-vorrat", created_by=other, status="user_content")
+    Ingredient.objects.create(name="Eigener Vorrat", slug="eigener-vorrat", owner=user, created_by=user)
+    Ingredient.objects.create(name="Fremder Vorrat", slug="fremder-vorrat", owner=other, created_by=other)
+    Ingredient.objects.create(name="Importierter Entwurf", slug="importierter-entwurf", created_by=user)
 
     context = build_prompt_context(user, include_pantry=True)
 
     assert "Ernährungsvorgaben: Tierische Produkte" in context
     assert "Eigener Vorrat" in context
     assert "Fremder Vorrat" not in context
+    assert "Importierter Entwurf" not in context
 
 
 @pytest.mark.django_db

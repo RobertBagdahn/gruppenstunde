@@ -265,11 +265,17 @@ export type IngredientPriceProposalList = z.infer<typeof IngredientPriceProposal
 // Ingredient (List / Detail)
 // ---------------------------------------------------------------------------
 
+export const IngredientStatusSchema = z.enum(['draft', 'verified']);
+export type IngredientStatus = z.infer<typeof IngredientStatusSchema>;
+
+export const IngredientVisibilitySchema = z.enum(['private', 'shared', 'public']);
+export type IngredientVisibility = z.infer<typeof IngredientVisibilitySchema>;
+
 export const IngredientListItemSchema = z.object({
   id: z.number(),
   name: z.string(),
   slug: z.string(),
-  status: z.string(),
+  status: IngredientStatusSchema,
   energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
@@ -283,6 +289,7 @@ export const IngredientListItemSchema = z.object({
   groups: z.array(IngredientGroupSchema),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
+  can_verify: z.boolean(),
 });
 export type IngredientListItem = z.infer<typeof IngredientListItemSchema>;
 
@@ -291,11 +298,11 @@ export const IngredientDetailSchema = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string(),
-  status: z.string(),
+  status: IngredientStatusSchema,
   name_warning: z.string().nullable().optional(),
   owner_id: z.number().nullable().optional(),
   owner_name: z.string().nullable().optional(),
-  visibility: z.enum(['private', 'shared', 'public', 'group']),
+  visibility: IngredientVisibilitySchema,
   shared_groups: z.array(SharedGroupSchema).default([]),
   created_by_name: z.string().nullable().optional(),
 
@@ -369,6 +376,7 @@ export const IngredientDetailSchema = z.object({
   quality_score_updated_at: z.string().nullable().optional(),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
+  can_verify: z.boolean(),
 });
 export type IngredientDetail = z.infer<typeof IngredientDetailSchema>;
 
@@ -794,7 +802,7 @@ export type IngredientImportUrlIn = z.infer<typeof IngredientImportUrlInSchema>;
 export const IngredientDraftSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
-  status: z.string(),
+  status: IngredientStatusSchema,
   retail_section_id: z.number().nullable(),
 });
 export type IngredientDraft = z.infer<typeof IngredientDraftSchema>;

@@ -19,12 +19,12 @@ from supply.services.term_normalization import normalize_term
 
 @pytest.fixture
 def ingredient_a(db):
-    return Ingredient.objects.create(name="Fusilli trocken", status="approved")
+    return Ingredient.objects.create(name="Fusilli trocken", status="verified")
 
 
 @pytest.fixture
 def ingredient_b(db):
-    return Ingredient.objects.create(name="Spaghetti trocken", status="approved")
+    return Ingredient.objects.create(name="Spaghetti trocken", status="verified")
 
 
 # ---------------------------------------------------------------------------
@@ -122,8 +122,8 @@ class TestIngredientNameWarningApi:
         assert resp.status_code == 200
         assert resp.json()["name_warning"] is None
 
-    def test_alias_create_response_includes_is_generic(self, auth_client, ingredient_b):
-        resp = auth_client.post(
+    def test_alias_create_response_includes_is_generic(self, admin_client, ingredient_b):
+        resp = admin_client.post(
             f"/api/ingredients/{ingredient_b.slug}/aliases/",
             data=json.dumps({"name": "Pasta", "is_generic": True}),
             content_type="application/json",

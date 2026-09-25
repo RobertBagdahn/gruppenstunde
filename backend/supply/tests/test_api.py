@@ -72,7 +72,7 @@ def ingredient(db, retail_section):
     return Ingredient.objects.create(
         name="Weizenmehl",
         slug="weizenmehl",
-        status="approved",
+        status="verified",
         retail_section=retail_section,
         energy_kcal=339,
         protein_g=10.3,
@@ -219,7 +219,7 @@ class TestIngredientList:
         assert data["items"][0]["name"] == "Weizenmehl"
 
     def test_list_filter_by_status(self, api_client, ingredient):
-        resp = api_client.get("/api/ingredients/?status=approved")
+        resp = api_client.get("/api/ingredients/?status=verified")
         data = resp.json()
         assert data["total"] == 1
 
@@ -274,6 +274,7 @@ class TestIngredientCreate:
 class TestIngredientUpdate:
     def test_update_ingredient(self, auth_client, ingredient):
         ingredient.created_by = auth_client._user
+        ingredient.status = "draft"
         ingredient.save()
         resp = auth_client.patch(
             f"/api/ingredients/{ingredient.slug}/",
@@ -300,7 +301,8 @@ class TestPortions:
 
     def test_create_portion(self, auth_client, ingredient, measuring_unit):
         ingredient.created_by = auth_client._user
-        ingredient.save(update_fields=["created_by"])
+        ingredient.status = "draft"
+        ingredient.save(update_fields=["created_by", "status"])
         resp = auth_client.post(
             f"/api/ingredients/{ingredient.slug}/portions/",
             data=json.dumps(
@@ -359,7 +361,8 @@ class TestRetailSections:
 class TestIngredientAliases:
     def test_create_alias(self, auth_client, ingredient):
         ingredient.created_by = auth_client._user
-        ingredient.save(update_fields=["created_by"])
+        ingredient.status = "draft"
+        ingredient.save(update_fields=["created_by", "status"])
         resp = auth_client.post(
             f"/api/ingredients/{ingredient.slug}/aliases/",
             data=json.dumps({"name": "Weizenmehl 405"}),
@@ -370,7 +373,8 @@ class TestIngredientAliases:
 
     def test_create_alias_trimmed_and_duplicates(self, auth_client, ingredient):
         ingredient.created_by = auth_client._user
-        ingredient.save(update_fields=["created_by"])
+        ingredient.status = "draft"
+        ingredient.save(update_fields=["created_by", "status"])
         # Trimmed test
         resp = auth_client.post(
             f"/api/ingredients/{ingredient.slug}/aliases/",
@@ -398,7 +402,8 @@ class TestIngredientAliases:
 
     def test_delete_alias(self, auth_client, ingredient):
         ingredient.created_by = auth_client._user
-        ingredient.save(update_fields=["created_by"])
+        ingredient.status = "draft"
+        ingredient.save(update_fields=["created_by", "status"])
         alias = IngredientAlias.objects.create(
             ingredient=ingredient,
             name="Mehl",
@@ -409,7 +414,8 @@ class TestIngredientAliases:
 
     def test_create_alias_race_condition_safe(self, auth_client, ingredient):
         ingredient.created_by = auth_client._user
-        ingredient.save(update_fields=["created_by"])
+        ingredient.status = "draft"
+        ingredient.save(update_fields=["created_by", "status"])
         """
         Test that duplicate alias detection is atomic (inside select_for_update block).
         Sequential simulation: first request creates alias, second request should get 409.

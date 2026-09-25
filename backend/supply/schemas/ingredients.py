@@ -10,6 +10,8 @@ from content.schemas.base import TagOut
 from .ingredient_price_proposals import IngredientPriceProposalOut
 from .reference import IngredientGroupOut, NutritionalTagOut
 
+IngredientStatus = Literal["draft", "verified"]
+
 
 class IngredientAliasOut(Schema):
     """Output schema for an ingredient alias."""
@@ -221,7 +223,7 @@ class IngredientListOut(Schema):
     id: int
     name: str
     slug: str
-    status: str
+    status: IngredientStatus
     energy_kcal: float | None
     protein_g: float | None
     fat_g: float | None
@@ -235,6 +237,7 @@ class IngredientListOut(Schema):
     groups: list[IngredientGroupOut] = []
     can_edit: bool = False
     can_delete: bool = False
+    can_verify: bool = False
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
@@ -254,13 +257,13 @@ class IngredientDetailOut(Schema):
     name: str
     slug: str
     description: str
-    status: str
+    status: IngredientStatus
     name_warning: str | None = None
 
     # Ownership & Visibility (for breakfast wizard user-generated items)
     owner_id: int | None = None
     owner_name: str | None = None
-    visibility: Literal["private", "shared", "public", "group"] = "private"
+    visibility: Literal["private", "shared", "public"] = "private"
     shared_groups: list[SharedGroupOut] = []
     created_by_name: str | None = None
 
@@ -336,6 +339,7 @@ class IngredientDetailOut(Schema):
     quality_score_updated_at: datetime | None = None
     can_edit: bool = False
     can_delete: bool = False
+    can_verify: bool = False
     ai_interaction_id: str | None = None
 
     @staticmethod
@@ -568,7 +572,7 @@ class IngredientUpdateIn(Schema):
     nutritional_tag_ids: list[int] | None = None
     group_ids: list[int] | None = None
     tag_ids: list[str] | None = None
-    status: str | None = None
+    status: IngredientStatus | None = None
     is_standalone_food: bool | None = None
     ingredient_ref_id: int | None = None
 
@@ -691,7 +695,7 @@ class IngredientDraftOut(Schema):
 
     name: str
     description: str | None = None
-    status: str = "draft"
+    status: IngredientStatus = "draft"
     retail_section_id: int | None = None
 
 

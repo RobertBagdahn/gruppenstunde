@@ -417,7 +417,7 @@ class Command(BaseCommand):
                 description=(fields.get("description", "") or "")[:1000],
                 physical_density=self._safe_float(fields.get("physical_density")) or 1.0,
                 physical_viscosity=fields.get("physical_viscosity", "solid"),
-                status=IngredientStatusChoices.USER_CONTENT,
+                status=IngredientStatusChoices.DRAFT,
                 # Nutritional data from metainfo
                 energy_kcal=self._safe_float(meta.get("energy_kcal") or meta.get("energy_kj")),
                 protein_g=self._safe_float(meta.get("protein_g")),

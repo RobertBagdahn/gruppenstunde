@@ -197,6 +197,7 @@ class RecipeAiIngredientsService:
         *,
         recipe: Recipe | None = None,
         create_missing: bool = True,
+        user: AbstractBaseUser | None = None,
     ) -> list[MatchedIngredientResult]:
         """Match suggested ingredient names via IngredientMatcher.
 
@@ -215,7 +216,7 @@ class RecipeAiIngredientsService:
 
         for suggestion in suggestions:
             raw_name = suggestion.name.strip()
-            match_result = IngredientMatcher.match(raw_name, recipe=recipe)
+            match_result = IngredientMatcher.match(raw_name, user, recipe=recipe)
 
             ingredient_id = match_result.ingredient_id
             ingredient_name = match_result.name if match_result.name else raw_name
@@ -229,7 +230,7 @@ class RecipeAiIngredientsService:
                     ingredient_name = existing.name
                     is_new = False
                 elif create_missing:
-                    ingredient_id, ingredient_name, is_new = self._create_draft_ingredient(raw_name)
+                    ingredient_id, ingredient_name, is_new = self._create_draft_ingredient(raw_name, user)
                 else:
                     is_new = True
 
@@ -287,7 +288,7 @@ class RecipeAiIngredientsService:
         return existing
 
     @staticmethod
-    def _create_draft_ingredient(raw_name: str) -> tuple[int, str, bool]:
+    def _create_draft_ingredient(raw_name: str, user: AbstractBaseUser | None = None) -> tuple[int, str, bool]:
         """Create a draft Ingredient for an unresolved name. Returns (id, name, True)."""
         from supply.choices import IngredientStatusChoices
         from supply.models import Ingredient
@@ -303,6 +304,7 @@ class RecipeAiIngredientsService:
             name=raw_name,
             slug=slug,
             status=IngredientStatusChoices.DRAFT,
+            created_by=user if user is not None and user.is_authenticated else None,
         )
         return new_ingredient.id, new_ingredient.name, True
 
@@ -399,7 +401,7 @@ class RecipeAiIngredientsService:
         if not ai_output or not ai_output.items:
             return None, interaction_id
 
-        matched = self.match_ingredients(ai_output.items, recipe=recipe, create_missing=False)
+        matched = self.match_ingredients(ai_output.items, recipe=recipe, create_missing=False, user=user)
         results = self.assign_portions(matched, create_missing=False)
 
         # Filter out ingredients already present in the recipe (by id and by

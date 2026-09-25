@@ -151,6 +151,7 @@ _ingredient_tracked_fields = {
     "season_start",
     "season_end",
     "status",
+    "visibility",
     "retail_section_id",
     "is_standalone_food",
     "standalone_type",

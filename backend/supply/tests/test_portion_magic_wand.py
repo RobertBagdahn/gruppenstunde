@@ -25,8 +25,9 @@ def client(user):
 
 
 @pytest.fixture
-def ingredient(db):
-    return make_ingredient(name="Apfel", slug="apfel")
+def ingredient(db, user):
+    # Draft created by the test user: non-staff users may only repair their own drafts.
+    return make_ingredient(name="Apfel", slug="apfel", status="draft", created_by=user)
 
 
 @pytest.fixture
@@ -138,8 +139,8 @@ def test_apply_replaces_unweighted_portion_atomically(client, ingredient, gram_u
 
 
 @pytest.mark.django_db
-def test_hotdog_preview_returns_positive_piece_estimate_without_mutation(client, gram_unit):
-    ingredient = make_ingredient(name="Hotdog-Brötchen", slug="hotdog-broetchen")
+def test_hotdog_preview_returns_positive_piece_estimate_without_mutation(client, user, gram_unit):
+    ingredient = make_ingredient(name="Hotdog-Brötchen", slug="hotdog-broetchen", status="draft", created_by=user)
     with patch("supply.services.portion_magic_wand.gemini_call") as gemini:
         gemini.return_value = (
             _response(

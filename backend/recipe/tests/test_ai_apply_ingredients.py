@@ -16,12 +16,12 @@ def gramm_unit(db):
 
 @pytest.fixture
 def ingredient_zucker(db, gramm_unit):
-    return Ingredient.objects.create(name="Zucker", slug="zucker", status=ContentStatus.APPROVED)
+    return Ingredient.objects.create(name="Zucker", slug="zucker", status="verified")
 
 
 @pytest.fixture
 def ingredient_salz(db, gramm_unit):
-    return Ingredient.objects.create(name="Salz", slug="salz", status=ContentStatus.APPROVED)
+    return Ingredient.objects.create(name="Salz", slug="salz", status="verified")
 
 
 @pytest.fixture

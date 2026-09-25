@@ -34,7 +34,6 @@ class MeasuringUnitType(models.TextChoices):
 class IngredientStatusChoices(models.TextChoices):
     DRAFT = "draft", _("Entwurf")
     VERIFIED = "verified", _("Verifiziert")
-    USER_CONTENT = "user_content", _("Benutzer erstellt")
 
 
 class StorageTypeChoices(models.TextChoices):

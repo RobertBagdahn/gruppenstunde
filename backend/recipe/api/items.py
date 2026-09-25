@@ -727,6 +727,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
                 name=name,
                 slug=slug,
                 status=IngredientStatusChoices.DRAFT,
+                created_by=request.user,
             )
             ingredient_id = ingredient.id
 

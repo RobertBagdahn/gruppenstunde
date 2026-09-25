@@ -29,7 +29,7 @@ def test_package_fixture_import_is_idempotent(tmp_path):
         Ingredient,
         name="Importzutat",
         slug="importzutat",
-        status="approved",
+        status="verified",
         retail_section=retail_section,
     )
     package = baker.make(Package, ingredient=ingredient, name="Packung (500g)", weight_g=500, rank=1)

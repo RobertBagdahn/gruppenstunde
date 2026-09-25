@@ -40,7 +40,7 @@ def ingredient(db):
     return Ingredient.objects.create(
         name="Mehl",
         slug="mehl",
-        status="approved",
+        status="verified",
         energy_kcal=339,
         protein_g=10.3,
         fat_g=1.0,

@@ -48,6 +48,37 @@ def _collaborator_roles(resource: Any, user: Any) -> set[str]:
     )
 
 
+def _has_group_collaboration(resource: Any, user: Any) -> bool:
+    """Return whether one of the user's active groups is a collaborator of ``resource``."""
+    if not getattr(user, "is_authenticated", False) or not getattr(resource, "pk", None):
+        return False
+    group_ids = _active_group_ids(user)
+    if not group_ids:
+        return False
+    content_type = ContentType.objects.get_for_model(resource, for_concrete_model=False)
+    return ContentCollaborator.objects.filter(
+        content_type=content_type,
+        object_id=resource.pk,
+        group_id__in=group_ids,
+    ).exists()
+
+
+def _is_ingredient(resource: Any) -> bool:
+    return resource.__class__.__name__ == "Ingredient"
+
+
+def _ingredient_public_q() -> Q:
+    """Ingredients everyone may read: verified system Ingredients and verified public user Ingredients."""
+    return Q(owner__isnull=True, status="verified") | Q(visibility="public", status="verified")
+
+
+def _ingredient_is_public(ingredient: Any) -> bool:
+    """Object counterpart of ``_ingredient_public_q``."""
+    if getattr(ingredient, "status", None) != "verified":
+        return False
+    return getattr(ingredient, "owner_id", None) is None or getattr(ingredient, "visibility", None) == "public"
+
+
 def _shared_group_ids(resource: Any) -> set[int]:
     manager = getattr(resource, "shared_groups", None)
     if manager is None:
@@ -81,20 +112,26 @@ def can_read(resource: Any, user: Any, *, transitive: bool = False) -> bool:
     roles = _collaborator_roles(resource, user)
     if roles:
         return True
+    if _has_group_collaboration(resource, user):
+        return True
 
     group_ids = _shared_group_ids(resource)
     is_member, _ = _active_membership(user, group_ids)
     if is_member:
         return True
 
-    visibility = getattr(resource, "visibility", None)
-    if visibility == "public":
-        return True
-    if getattr(resource, "owner_id", None) is None and getattr(resource, "status", None) in {
-        "approved",
-        "verified",
-    }:
-        return True
+    if _is_ingredient(resource):
+        if _ingredient_is_public(resource):
+            return True
+    else:
+        visibility = getattr(resource, "visibility", None)
+        if visibility == "public":
+            return True
+        if getattr(resource, "owner_id", None) is None and getattr(resource, "status", None) in {
+            "approved",
+            "verified",
+        }:
+            return True
     if transitive and getattr(user, "is_authenticated", False):
         from content.services.transitive_visibility import (
             ingredient_visible_transitively,
@@ -211,21 +248,13 @@ def get_visible_recipe_or_404(user: Any, recipe_id: int, *, allow_system_draft: 
     return recipe
 
 
-def visible_ingredient_queryset(user: Any):
-    """Return a prefetched Ingredient queryset visible to ``user``."""
+def _visible_ingredient_q(user: Any) -> Q:
+    """Filter for Ingredients a non-staff ``user`` may read (mirrors ``can_read``)."""
     from supply.models import Ingredient
 
-    base = Ingredient.objects.select_related("retail_section", "owner").prefetch_related(
-        "groups",
-        "shared_groups",
-    )
-    if _is_staff(user):
-        return base
-
-    system_q = Q(owner__isnull=True, status__in=("approved", "verified"))
-    public_q = Q(owner__isnull=False, visibility="public", status="approved")
+    public_q = _ingredient_public_q()
     if not getattr(user, "is_authenticated", False):
-        return base.filter(system_q | public_q)
+        return public_q
 
     user_group_ids = _active_group_ids(user)
     content_type = ContentType.objects.get_for_model(Ingredient, for_concrete_model=False)
@@ -240,7 +269,39 @@ def visible_ingredient_queryset(user: Any):
     own_q = Q(owner_id=user.id) | Q(created_by_id=user.id)
     group_q = Q(shared_groups__id__in=user_group_ids)
     collaborator_q = Q(id__in=collaborator_ids) | Q(id__in=group_collaborator_ids)
-    return base.filter(system_q | public_q | own_q | group_q | collaborator_q).distinct()
+    return public_q | own_q | group_q | collaborator_q
+
+
+def _ingredient_base_queryset():
+    from supply.models import Ingredient
+
+    return Ingredient.objects.select_related("retail_section", "owner").prefetch_related(
+        "groups",
+        "shared_groups",
+    )
+
+
+def visible_ingredient_queryset(user: Any):
+    """Return a prefetched Ingredient queryset visible to ``user``."""
+    base = _ingredient_base_queryset()
+    if _is_staff(user):
+        return base
+    return base.filter(_visible_ingredient_q(user)).distinct()
+
+
+def matchable_ingredient_queryset(user: Any):
+    """Candidates for the recipe ingredient matcher.
+
+    Readable Ingredients plus system drafts (``owner=None``), so imports reuse
+    existing drafts instead of creating duplicates. Never includes private or
+    shared Ingredients of other users.
+    """
+    base = _ingredient_base_queryset()
+    system_draft_q = Q(owner__isnull=True, status="draft")
+    if _is_staff(user):
+        # Staff may read everything, but must not get other users' private Ingredients as match.
+        return base.filter(_ingredient_public_q() | system_draft_q | Q(owner_id=user.id)).distinct()
+    return base.filter(_visible_ingredient_q(user) | system_draft_q).distinct()
 
 
 def public_recipe_queryset():
@@ -255,10 +316,7 @@ def public_recipe_queryset():
 def public_ingredient_queryset():
     from supply.models import Ingredient
 
-    return Ingredient.objects.filter(
-        Q(owner__isnull=True, status__in=("approved", "verified"))
-        | Q(owner__isnull=False, visibility="public", status="approved")
-    )
+    return Ingredient.objects.filter(_ingredient_public_q())
 
 
 def get_visible_ingredient_or_404(user: Any, ingredient_id: int, *, allow_system_draft: bool = False):

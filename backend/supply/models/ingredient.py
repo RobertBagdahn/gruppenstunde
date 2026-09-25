@@ -224,10 +224,13 @@ class Ingredient(SoftDeleteModel):
     )
     visibility = models.CharField(
         max_length=20,
-        choices=[("private", _("Privat")), ("shared", _("Geteilt"))],
+        choices=[("private", _("Privat")), ("shared", _("Geteilt")), ("public", _("Öffentlich"))],
         default="private",
         verbose_name=_("Sichtbarkeit"),
-        help_text=_("Privat: nur für Owner + dessen Gruppe sichtbar. Geteilt: mit selected_groups"),
+        help_text=_(
+            "Privat: nur für Owner + dessen Gruppe sichtbar. Geteilt: mit selected_groups. "
+            "Öffentlich: nur über Verifizierung erreichbar."
+        ),
     )
     shared_groups = models.ManyToManyField(
         "profiles.UserGroup",
@@ -316,6 +319,16 @@ class Ingredient(SoftDeleteModel):
         verbose_name = _("Zutat")
         verbose_name_plural = _("Zutaten")
         ordering = ["name"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(status__in=[IngredientStatusChoices.DRAFT, IngredientStatusChoices.VERIFIED]),
+                name="ingredient_status_valid",
+            ),
+            models.CheckConstraint(
+                condition=~Q(visibility="public") | Q(status=IngredientStatusChoices.VERIFIED),
+                name="ingredient_public_requires_verified",
+            ),
+        ]
 
     def __str__(self):
         return self.name

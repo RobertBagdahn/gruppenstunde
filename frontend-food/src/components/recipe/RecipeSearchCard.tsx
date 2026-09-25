@@ -53,12 +53,7 @@ export default function SearchResultCard({ result, onClick }: SearchResultCardPr
   }
 
   const ingredient = result as IngredientSearchResult;
-  const ingredientBadgeMap: Record<string, 'verified' | 'community' | 'draft'> = {
-    verified: 'verified',
-    user_content: 'community',
-    draft: 'draft',
-  };
-  const badge = ingredientBadgeMap[ingredient.status ?? 'community'] ?? 'community';
+  const badge: 'verified' | 'draft' = ingredient.status === 'verified' ? 'verified' : 'draft';
   const price = ingredient.price_per_kg != null
     ? `${ingredient.price_per_kg.toFixed(2).replace('.', ',')} €/kg`
     : '—';

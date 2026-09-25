@@ -24,6 +24,8 @@ import {
 } from '@/api/supplies';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
+import type { IngredientStatus } from '@/schemas/supply';
+import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 
 
 // ---------------------------------------------------------------------------
@@ -33,7 +35,7 @@ import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 interface IngredientFormData {
   name: string;
   description: string;
-  status: string;
+  status: IngredientStatus;
   retail_section_id: number | null;
 }
 
@@ -43,12 +45,6 @@ const EMPTY_FORM: IngredientFormData = {
   status: 'draft',
   retail_section_id: null,
 };
-
-const STATUS_OPTIONS = [
-  { value: 'draft', label: 'Entwurf' },
-  { value: 'user_content', label: 'Nutzercontent' },
-  { value: 'approved', label: 'Geprüft' },
-];
 
 const STEPS = [
   { label: 'Beschreiben', icon: Pencil },
@@ -211,7 +207,7 @@ export default function CreateIngredientPage() {
     slug: string;
     name: string;
     description: string | null;
-    status: string;
+    status: IngredientStatus;
     retail_section_id: number | null;
     ai_interaction_id?: string | null;
   } | null>(null);
@@ -586,18 +582,10 @@ export default function CreateIngredientPage() {
             <h3 className="text-sm font-medium mb-4">Klassifikation</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => updateForm({ status: e.target.value })}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <span className="block text-xs text-muted-foreground mb-1">Status</span>
+                <p className="rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                  {ingredientStatusLabel(formData.status)} – neue Zutaten werden vom Team geprüft
+                </p>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Warengruppe</label>
@@ -663,7 +651,7 @@ export default function CreateIngredientPage() {
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
                   <span className="material-symbols-outlined text-[14px]">label</span>
-                  {STATUS_OPTIONS.find((o) => o.value === formData.status)?.label ?? formData.status}
+                  {ingredientStatusLabel(formData.status)}
                 </span>
                 {formData.retail_section_id && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">

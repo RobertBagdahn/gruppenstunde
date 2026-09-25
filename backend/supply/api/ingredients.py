@@ -74,7 +74,7 @@ def preview_portion_magic_wand(request, slug: str):
     from supply.services.portion_magic_wand import preview_portions
 
     ingredient = get_ingredient_detail_or_404(request.user, slug)
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
     return preview_portions(ingredient, user=request.user)
 
@@ -87,7 +87,7 @@ def apply_portion_magic_wand(request, slug: str, payload: PortionMagicApplyIn):
     from supply.services.portion_magic_wand import apply_portions
 
     ingredient = get_ingredient_detail_or_404(request.user, slug)
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
     try:
         return apply_portions(ingredient, payload=payload.dict(), user=request.user)
@@ -144,160 +144,25 @@ def _has_editor_collab_access(ingredient: Ingredient, user) -> bool:
 
 
 def _can_edit_ingredient(ingredient: Ingredient, user) -> bool:
-    """Whether `user` may edit/delete this ingredient's own fields."""
-    if user is None:
+    """Whether `user` may edit/delete this ingredient, its portions, packages and aliases."""
+    if user is None or not user.is_authenticated:
         return False
-    if not user.is_authenticated:
-        return False
-    if _is_staff_or_admin_user(user):
-        return True
-    if ingredient.status == "verified" and ingredient.owner_id is None:
-        return False
-    if ingredient.status == "approved" and ingredient.owner_id is None:
-        return True
     from content.services.food_access import can_edit
 
     return can_edit(ingredient, user)
 
 
-def _can_edit_portions(ingredient: Ingredient, user) -> bool:
-    """Whether `user` may add/edit portions on this ingredient.
+def _can_verify_ingredient(user) -> bool:
+    from supply.services.ingredient_status import can_verify
 
-    Drafts are owner/collaborator-only; verified ingredients are locked to
-    staff; any other status (e.g. community-submitted) is open to any
-    authenticated user, consistent with crowd-sourced portion sizes.
-    """
-    if not user.is_authenticated:
-        return False
-    if _is_staff_or_admin_user(user):
-        return True
-    if ingredient.status == "verified" and ingredient.owner_id is None:
-        return False
-    if ingredient.status == "approved" and ingredient.owner_id is None:
-        return True
-    from content.services.food_access import can_edit
-
-    return can_edit(ingredient, user)
+    return can_verify(user)
 
 
 def _visible_ingredients_qs(request):
-    """Base queryset of ingredients visible to the requesting user (hides drafts).
-
-    Handles both:
-    - Old model: status-based visibility (draft/approved/verified)
-    - New model: owner/visibility/shared_groups (breakfast wizard)
-    """
+    """Base queryset of ingredients visible to the requesting user (see ``food_access``)."""
     from content.services.food_access import visible_ingredient_queryset
 
     return visible_ingredient_queryset(request.user)
-
-
-# ===========================================================================
-# Breakfast Wizard Visibility Functions
-# ===========================================================================
-# New visibility model for breakfast wizard user-generated items
-
-
-def _can_view_ingredient_breakfast(ingredient: Ingredient, user) -> bool:
-    """Check if user can view ingredient in breakfast wizard context.
-
-    Rules:
-    - System ingredients (owner=None, status=approved) are always visible
-    - User-owned ingredients (owner=user) are visible to owner
-    - Ingredients in user's groups are visible (owner set, visibility=private, in user's groups)
-    - Ingredients shared with user's groups (visibility=shared, shared_groups contains user's groups)
-    - Staff can see everything
-    """
-    if user is None or not user.is_authenticated:
-        # Unauthenticated users can only see system ingredients
-        return ingredient.owner_id is None and ingredient.status == "approved"
-
-    if _is_staff_or_admin_user(user):
-        return True
-
-    # System ingredients are always visible
-    if ingredient.owner_id is None:
-        return ingredient.status == "approved"
-
-    # Owner can always see their own ingredient
-    if ingredient.owner_id == user.id:
-        return True
-
-    from content.services.food_access import can_read
-
-    if ingredient.visibility == "private":
-        # Private ingredients visible to members of owner's groups
-        # Need to check if owner is in any of user's groups
-        # Actually, this is not right. Let me reconsider.
-        # Looking at the spec again: "Private Zutaten sind nur für den Owner + seine Gruppe sichtbar"
-        # This means: visible to owner + members of the owner's group
-        # But we don't track which group an ingredient "belongs" to directly.
-        # Instead, we use shared_groups for "shared" visibility.
-        # For "private" items, they're visible to... whom?
-        # Looking at the spec scenario more carefully:
-        # "user erstellt neue Zutat im Wizard (Gruppe: Wölflinge Hütte)" -> owner set, but where's the group stored?
-        # I think the group is determined by context (group_id param) not stored on ingredient.
-        # For now, let's say private items are only visible to owner.
-        return can_read(ingredient, user)
-
-    if ingredient.visibility == "shared":
-        # Shared ingredients visible to members of shared_groups
-        return can_read(ingredient, user)
-
-    return False
-
-
-def _get_visible_ingredients_for_breakfast_qs(user, group_ids: list[int] | None = None):
-    """Get ingredients visible to user for breakfast wizard.
-
-    Args:
-        user: The requesting user
-        group_ids: Optional list of group IDs to filter for (e.g., user's current group context)
-
-    Returns:
-        Queryset of visible Ingredient objects
-    """
-    from profiles.models import UserGroup as Group
-
-    qs = Ingredient.objects.select_related("owner", "retail_section").prefetch_related(
-        "shared_groups", "tags", "groups"
-    )
-
-    if _is_staff_or_admin_user(user):
-        return qs
-
-    # System ingredients (owner=None, status=approved) are always visible
-    system_q = Q(owner__isnull=True, status="approved")
-
-    if not user.is_authenticated:
-        return qs.filter(system_q)
-
-    # User's own ingredients
-    own_q = Q(owner=user)
-
-    # Get user's groups
-    user_groups = Group.objects.filter(memberships__user=user)
-
-    # Private ingredients visible to owner (we don't have group ownership, so only owner sees)
-    # Actually, reconsidering: the spec says "sichtbar für: alle Users der Gruppe Wölflinge Hütte"
-    # But the ingredient itself doesn't know its "group". This seems like a limitation.
-    # Let me reread the requirement more carefully...
-    # "visibility=private, group=Wölflinge Hütte" - so there's a group field?
-    # But we didn't add a group field to Ingredient, only shared_groups M2M.
-    # I think the spec might be using "group" to refer to context, not a stored field.
-    # For now, let's implement: private items only visible to owner.
-
-    # Shared ingredients visible to members of shared_groups
-    # This needs to check if any of the ingredient's shared_groups contain the user
-    shared_q = Q(visibility="shared", shared_groups__in=user_groups)
-
-    visibility_q = system_q | own_q | shared_q
-
-    if group_ids:
-        # If specific groups are requested, filter shared items to only those groups
-        visibility_q = visibility_q | Q(visibility="shared", shared_groups__in=Group.objects.filter(id__in=group_ids))
-
-    return qs.filter(visibility_q).distinct()
 
 
 # ===========================================================================
@@ -361,6 +226,7 @@ def list_ingredients(
     for item in items:
         item.can_edit = _can_edit_ingredient(item, user)
         item.can_delete = _can_edit_ingredient(item, user)
+        item.can_verify = _can_verify_ingredient(user)
 
     if name:
         log_search(name, total, user)
@@ -443,6 +309,7 @@ def ai_create(request, payload: IngredientAiCreateIn):
     ingredient = ai_create_ingredient(payload.name, user=request.user)
     ingredient.can_edit = True
     ingredient.can_delete = True
+    ingredient.can_verify = _can_verify_ingredient(request.user)
     return ingredient
 
 
@@ -458,6 +325,7 @@ def get_ingredient(request, slug: str):
 
     ingredient.can_edit = _can_edit_ingredient(ingredient, request.user)
     ingredient.can_delete = _can_edit_ingredient(ingredient, request.user)
+    ingredient.can_verify = _can_verify_ingredient(request.user)
     from content.services.audit_service import log_private_staff_food_access
 
     log_private_staff_food_access(request.user, ingredient, request.path)
@@ -530,6 +398,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
     ingredient.refresh_from_db()
     ingredient.can_edit = True
     ingredient.can_delete = True
+    ingredient.can_verify = _can_verify_ingredient(request.user)
     return ingredient
 
 
@@ -551,9 +420,12 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat bearbeiten")
 
+    from supply.services.ingredient_status import can_verify, set_ingredient_status
+
     data_preview = payload.dict(exclude_unset=True)
-    if data_preview.get("status") == "verified" and not _is_staff_or_admin_user(request.user):
-        raise HttpError(403, "Nur Admins können den Status auf 'verified' setzen")
+    new_status = data_preview.get("status")
+    if new_status is not None and new_status != ingredient.status and not can_verify(request.user):
+        raise HttpError(403, "Nur Staff darf den Status einer Zutat ändern")
 
     # Only owner can change visibility/sharing for breakfast wizard items
     if ingredient.owner and ("visibility" in data_preview or "shared_group_ids" in data_preview):
@@ -582,6 +454,7 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     breakfast_tag_ids = data.pop("tag_ids", None)
     visibility = data.pop("visibility", None)
     shared_group_ids = data.pop("shared_group_ids", None)
+    data.pop("status", None)
 
     for field, value in data.items():
         if field in nutritional_fields:
@@ -593,7 +466,11 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
         ingredient.visibility = visibility
 
     ingredient.updated_by = request.user
+    ingredient._changed_by = request.user
     ingredient.save()
+
+    if new_status is not None and new_status != ingredient.status:
+        set_ingredient_status(ingredient, new_status, actor=request.user)
 
     if tag_ids is not None:
         ingredient.nutritional_tags.set(tag_ids)
@@ -631,6 +508,7 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     ingredient.refresh_from_db()
     ingredient.can_edit = _can_edit_ingredient(ingredient, request.user)
     ingredient.can_delete = _can_edit_ingredient(ingredient, request.user)
+    ingredient.can_verify = _can_verify_ingredient(request.user)
     return ingredient
 
 
@@ -679,7 +557,7 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     ingredient = Ingredient.objects.filter(slug=slug).first()
     if ingredient is None:
         raise HttpError(404, "Zutat nicht gefunden")
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat anzulegen")
     name = payload.name.strip()
 
@@ -751,7 +629,7 @@ def confirm_portion(request, slug: str, payload: PortionConfirmIn):
     ingredient = Ingredient.objects.filter(slug=slug).first()
     if ingredient is None:
         raise HttpError(404, "Zutat nicht gefunden")
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bestätigen")
 
     if payload.weight_g is not None and payload.weight_g <= 0:
@@ -787,7 +665,7 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
     from content.services.food_access import get_ingredient_detail_or_404
 
     ingredient = get_ingredient_detail_or_404(request.user, slug)
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
 
     for order in payload.orders:
@@ -820,7 +698,7 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
 
     ingredient = get_ingredient_detail_or_404(request.user, slug)
 
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat anzulegen")
 
     try:
@@ -976,7 +854,7 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
     ingredient = get_ingredient_detail_or_404(request.user, slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, diese Portion zu bearbeiten")
 
     data = payload.dict(exclude_unset=True)
@@ -1125,7 +1003,7 @@ def delete_portion(request, slug: str, portion_id: int):
     ingredient = get_ingredient_detail_or_404(request.user, slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, diese Portion zu löschen")
 
     if is_referenced_by_recipe_items(portion):
@@ -1161,7 +1039,7 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
     ingredient = get_ingredient_detail_or_404(request.user, slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
 
     portions = list(Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank", "id"))
@@ -1221,7 +1099,7 @@ def create_package(request, slug: str, payload: PackageCreateIn):
     ingredient = get_ingredient_detail_or_404(request.user, slug)
     name = payload.name.strip()
 
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Packungen für diese Zutat anzulegen")
 
     if Package.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
@@ -1259,7 +1137,7 @@ def reorder_packages(request, slug: str, payload: PackageReorderIn):
     from content.services.food_access import get_ingredient_detail_or_404
 
     ingredient = get_ingredient_detail_or_404(request.user, slug)
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Packungen für diese Zutat zu bearbeiten")
 
     with transaction.atomic():
@@ -1280,7 +1158,7 @@ def update_package(request, slug: str, package_id: int, payload: PackageUpdateIn
     ingredient = get_ingredient_detail_or_404(request.user, slug)
     package = get_object_or_404(Package, id=package_id, ingredient=ingredient)
 
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, diese Packung zu bearbeiten")
 
     if payload.name is not None:
@@ -1333,7 +1211,7 @@ def delete_package(request, slug: str, package_id: int):
     ingredient = get_ingredient_detail_or_404(request.user, slug)
     package = get_object_or_404(Package, id=package_id, ingredient=ingredient)
 
-    if not _can_edit_portions(ingredient, request.user):
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, diese Packung zu löschen")
 
     package.soft_delete()

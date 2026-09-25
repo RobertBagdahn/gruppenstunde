@@ -203,7 +203,7 @@ class TestCascading:
     def test_stage2_definitive_when_stage1_fails(self):
         ing = make_ingredient(name="Champignon")
 
-        def stage2_match(clean_name, raw_name, note):
+        def stage2_match(clean_name, raw_name, note, candidate_qs):
             return MatchResult(
                 ingredient_id=ing.id,
                 name=ing.name,
@@ -220,7 +220,7 @@ class TestCascading:
     def test_stage3_definitive_when_stage1_and_stage2_fail(self):
         ing = make_ingredient(name="Rindergehacktes")
 
-        def stage3_match(clean_name, note):
+        def stage3_match(clean_name, note, candidate_qs):
             return MatchResult(
                 ingredient_id=ing.id,
                 name=ing.name,

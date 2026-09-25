@@ -19,7 +19,7 @@ def ingredient(db, retail_section):
     return Ingredient.objects.create(
         name="Testzutat",
         slug="testzutat",
-        status="approved",
+        status="verified",
         retail_section=retail_section,
     )
 

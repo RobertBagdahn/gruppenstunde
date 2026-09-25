@@ -413,16 +413,28 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: User 
 
 
 def _match_or_create_ingredient(name: str, user: User | None) -> Ingredient:
-    """Find an existing ingredient by name/alias or create a new one."""
+    """Find an existing ingredient by name/alias or create a new one.
+
+    Only matchable candidates are considered (readable Ingredients plus system drafts),
+    never private Ingredients of other users.
+    """
+    from content.services.food_access import matchable_ingredient_queryset
+    from supply.choices import IngredientStatusChoices
     from supply.models import Ingredient, IngredientAlias
 
+    candidates = Ingredient.objects.filter(pk__in=matchable_ingredient_queryset(user).values("pk"))
+
     # Exact name match
-    ingredient = Ingredient.objects.filter(name__iexact=name).first()
+    ingredient = candidates.filter(name__iexact=name).first()
     if ingredient:
         return ingredient
 
     # Alias match
-    alias = IngredientAlias.objects.filter(name__iexact=name).select_related("ingredient").first()
+    alias = (
+        IngredientAlias.objects.filter(name__iexact=name, ingredient_id__in=candidates.values("pk"))
+        .select_related("ingredient")
+        .first()
+    )
     if alias:
         return alias.ingredient
 
@@ -437,7 +449,7 @@ def _match_or_create_ingredient(name: str, user: User | None) -> Ingredient:
     return Ingredient.objects.create(
         name=name,
         slug=slug,
-        status="user_content",
+        status=IngredientStatusChoices.DRAFT,
         created_by=user if user and user.is_authenticated else None,
     )
 

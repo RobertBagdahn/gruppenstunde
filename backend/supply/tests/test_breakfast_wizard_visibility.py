@@ -67,75 +67,6 @@ class TestBreakfastWizardVisibility(TestCase):
             group="breakfast_wizard",
         )
 
-    def test_system_ingredient_always_visible(self):
-        """System ingredients (owner=None, status=approved) are always visible."""
-        # Create system ingredient
-        system_ingredient = Ingredient.objects.create(
-            name="Vollkornbrot",
-            slug="vollkornbrot",
-            status="approved",
-            owner=None,
-            visibility="private",
-            is_standalone_food=True,
-        )
-        system_ingredient.tags.add(self.tag_base)
-
-        # Should be visible to any user (authenticated or not)
-        from supply.api.ingredients import _can_view_ingredient_breakfast
-
-        assert _can_view_ingredient_breakfast(system_ingredient, self.user_woelflinge)
-        assert _can_view_ingredient_breakfast(system_ingredient, self.user_no_group)
-        assert _can_view_ingredient_breakfast(system_ingredient, None)
-
-    def test_private_ingredient_only_owner_can_view(self):
-        """Private ingredients are only visible to owner (current implementation)."""
-        # Create private ingredient owned by woelflinge user
-        private_ingredient = Ingredient.objects.create(
-            name="Glutenfreies Brot",
-            slug="glutenfreies-brot",
-            status="approved",
-            owner=self.user_woelflinge,
-            visibility="private",
-            is_standalone_food=True,
-        )
-        private_ingredient.tags.add(self.tag_base)
-
-        from supply.api.ingredients import _can_view_ingredient_breakfast
-
-        # Owner can view
-        assert _can_view_ingredient_breakfast(private_ingredient, self.user_woelflinge)
-
-        # Other group members cannot view (private = only owner)
-        assert not _can_view_ingredient_breakfast(private_ingredient, self.user_jungpfadfinder)
-
-        # Unauthenticated users cannot view
-        assert not _can_view_ingredient_breakfast(private_ingredient, None)
-
-    def test_shared_ingredient_visible_to_shared_groups(self):
-        """Shared ingredients are visible to members of shared_groups."""
-        # Create shared ingredient
-        shared_ingredient = Ingredient.objects.create(
-            name="Spezial-Marmelade",
-            slug="spezial-marmelade",
-            status="approved",
-            owner=self.user_woelflinge,
-            visibility="shared",
-            is_standalone_food=True,
-        )
-        shared_ingredient.tags.add(self.tag_extra)
-        shared_ingredient.shared_groups.add(self.group_woelflinge, self.group_jungpfadfinder)
-
-        from supply.api.ingredients import _can_view_ingredient_breakfast
-
-        # Owner can view
-        assert _can_view_ingredient_breakfast(shared_ingredient, self.user_woelflinge)
-
-        # Members of shared groups can view
-        assert _can_view_ingredient_breakfast(shared_ingredient, self.user_jungpfadfinder)
-
-        # User not in shared groups cannot view
-        assert not _can_view_ingredient_breakfast(shared_ingredient, self.user_no_group)
-
     def test_ingredient_creation_sets_owner(self):
         """Creating an ingredient sets owner to current user."""
         client = Client()
@@ -191,7 +122,7 @@ class TestBreakfastWizardVisibility(TestCase):
         system_ingredient = Ingredient.objects.create(
             name="System Brot",
             slug="system-brot",
-            status="approved",
+            status="verified",
             owner=None,
             visibility="private",
             is_standalone_food=True,
@@ -201,7 +132,7 @@ class TestBreakfastWizardVisibility(TestCase):
         private_ingredient = Ingredient.objects.create(
             name="Privates Brot",
             slug="privates-brot",
-            status="approved",
+            status="draft",
             owner=self.user_jungpfadfinder,
             visibility="private",
             is_standalone_food=True,
@@ -211,7 +142,7 @@ class TestBreakfastWizardVisibility(TestCase):
         shared_ingredient = Ingredient.objects.create(
             name="Geteiltes Brot",
             slug="geteiltes-brot",
-            status="approved",
+            status="draft",
             owner=self.user_jungpfadfinder,
             visibility="shared",
             is_standalone_food=True,
