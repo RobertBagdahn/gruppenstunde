@@ -7,6 +7,7 @@ from typing import cast
 
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
@@ -795,11 +796,23 @@ def create_recipe(request, payload: RecipeCreateIn):
                 )
                 aliases = values.get("aliases", [])
                 if isinstance(aliases, list):
+                    # Alias names are unique (case-insensitive); skip names that
+                    # already point to another ingredient instead of failing.
+                    alias_names: dict[str, str] = {}
+                    for alias in aliases:
+                        name = str(alias).strip()
+                        if name:
+                            alias_names.setdefault(name.lower(), name)
+                    taken = set(
+                        IngredientAlias.objects.annotate(name_lower=Lower("name"))
+                        .filter(is_generic=False, name_lower__in=alias_names)
+                        .values_list("name_lower", flat=True)
+                    )
                     IngredientAlias.objects.bulk_create(
                         [
-                            IngredientAlias(ingredient=ingredient, name=str(alias).strip())
-                            for alias in aliases
-                            if str(alias).strip()
+                            IngredientAlias(ingredient=ingredient, name=name)
+                            for key, name in alias_names.items()
+                            if key not in taken
                         ]
                     )
                 temporary_portion = draft.portions[0] if draft.portions else None

@@ -305,6 +305,38 @@ class TestCreateRecipe:
         data = resp.json()
         assert len(data["recipe_items"]) == 1
 
+    def test_create_with_temporary_ingredient_skips_taken_aliases(self, auth_client, ingredient):
+        from supply.models import IngredientAlias
+
+        IngredientAlias.objects.create(ingredient=ingredient, name="Knoblauchzehe")
+        resp = auth_client.post(
+            "/api/recipes/",
+            data=json.dumps(
+                {
+                    "title": "Knoblauchbrot",
+                    "recipe_items": [{"portion_id": None, "quantity": 2, "sort_order": 0}],
+                    "ingredient_review_rows": [
+                        {
+                            "key": "row-1",
+                            "status": "confirmed",
+                            "quantity": 2,
+                            "temporary_ingredient": {
+                                "name": "Knoblauch frisch",
+                                "values": {"energy_kcal": 149, "aliases": ["knoblauchzehe", "Knolle", "knolle"]},
+                                "portions": [{"name": "Zehe", "quantity": 1, "weight_g": 4, "is_new": True}],
+                            },
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 200
+        created = Ingredient.objects.get(name="Knoblauch frisch")
+        assert list(created.aliases.values_list("name", flat=True)) == ["Knolle"]
+        assert IngredientAlias.objects.get(name="Knoblauchzehe").ingredient == ingredient
+
     def test_create_keeps_normalized_item_quantity_when_portions_is_provided(self, auth_client, portion):
         resp = auth_client.post(
             "/api/recipes/",

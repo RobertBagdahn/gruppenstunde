@@ -96,7 +96,11 @@ function newIngredientRow(overrides: Partial<IngredientReviewRow> = {}): Ingredi
 
 describe('RecipeIngredientReviewStep', () => {
   beforeEach(() => {
-    vi.mocked(useIngredientPortions).mockReturnValue({ data: portions } as never);
+    // Portions are only known for the candidate ingredient, so the dialog must
+    // load them for the ingredient it was opened for.
+    vi.mocked(useIngredientPortions).mockImplementation(((slug: string) => (
+      slug === 'ananas' ? { data: portions, isSuccess: true } : { data: [], isSuccess: Boolean(slug) }
+    )) as never);
     useRecipeIngredientReviewStore.setState({
       rows: [],
       sources: [],

@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { IngredientReviewRow, ReviewPortion } from '@/schemas/ingredientReview';
-import type { Portion } from '@/schemas/supply';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import { useIngredientPortions } from '@/api/supplies';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
@@ -216,12 +215,16 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
     id: number;
     name: string;
     slug: string;
-    portions: Portion[];
   } | null>(null);
   const confirmRow = useRecipeIngredientReviewStore((state) => state.confirmRow);
   const complete = isIngredientReviewRowComplete(row);
   const updateRow = useRecipeIngredientReviewStore((state) => state.updateRow);
-  const { data: portions = [] } = useIngredientPortions(row.selected_ingredient_slug);
+  // The quantity dialog must always offer the portions of the ingredient it was
+  // opened for — not those of the row's previous selection.
+  const {
+    data: dialogPortions = [],
+    isSuccess: dialogPortionsReady,
+  } = useIngredientPortions(quantityIngredient?.slug ?? '');
   const draft = row.new_ingredient_draft;
 
   const updateDraft = (field: string, value: string) => {
@@ -241,7 +244,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   };
 
   const openQuantityDialogFor = (id: number, name: string, slug: string) => {
-    setQuantityIngredient({ id, name, slug, portions });
+    setQuantityIngredient({ id, name, slug });
     updateRow(row.key, {
       selected_ingredient_id: id,
       selected_ingredient_name: name,
@@ -259,7 +262,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
 
   const handleQuantityConfirm = (portionId: number | null, _measuringUnitId: number | null, quantity: number) => {
     if (!quantityIngredient) return;
-    const portion = portions.find((p) => p.id === portionId);
+    const portion = dialogPortions.find((p) => p.id === portionId);
     const selectedPortion: ReviewPortion | null = portion
       ? {
           id: portion.id,
@@ -455,9 +458,10 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       )}
 
       {/* Quantity dialog for existing ingredients */}
-      {quantityIngredient && (
+      {quantityIngredient && dialogPortionsReady && (
         <IngredientQuantityDialog
-          ingredient={quantityIngredient}
+          key={quantityIngredient.slug}
+          ingredient={{ ...quantityIngredient, portions: dialogPortions }}
           open={!!quantityIngredient}
           onOpenChange={(isOpen) => {
             if (!isOpen) setQuantityIngredient(null);

@@ -240,6 +240,10 @@ export default function RecipeWizard() {
           setIsSaving(false);
           return;
         }
+        // Review quantities are totals for the original servings; recipes are
+        // stored per single portion.
+        const servings = state.inputServings && state.inputServings > 0 ? state.inputServings : 1;
+        const perPortionRows = finalizedRows.map((row) => ({ ...row, quantity: row.quantity / servings }));
         const recipe = await createRecipe.mutateAsync({
           title: stepTitle.trim(),
           description: smartResult?.recipe_draft.description,
@@ -253,14 +257,14 @@ export default function RecipeWizard() {
           image_url: smartResult?.recipe_draft.image_url,
           scout_level_ids: smartResult?.recipe_draft.scout_level_ids,
           tag_ids: smartResult?.recipe_draft.tag_ids,
-          recipe_items: finalizedRows.map((row, index) => ({
+          recipe_items: perPortionRows.map((row, index) => ({
             portion_id: row.selected_portion_id,
             quantity: row.quantity,
             sort_order: index,
             note: '',
             is_optional: false,
           })),
-          ingredient_review_rows: finalizedRows,
+          ingredient_review_rows: perPortionRows,
           steps: (smartResult?.recipe_draft.steps ?? []).map((instruction, index) => ({
             sort_order: index,
             instruction,
