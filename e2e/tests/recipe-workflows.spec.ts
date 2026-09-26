@@ -57,8 +57,32 @@ function recipeDetail() {
   };
 }
 
+/** Mirrors `IngredientReviewPreviewSchema`. The row is complete, so the
+ *  "Zutaten prüfen" step can confirm it without opening any dialog. */
 function smartDraft() {
   return {
+    rows: [{
+      key: 'row-1',
+      source_text: '400 g Mehl',
+      sources: [{ type: 'text', label: 'Eingefügter Text', value: 'Kartoffelsuppe für 4 Personen' }],
+      selected_ingredient_id: 7,
+      selected_ingredient_slug: 'e2e-mehl',
+      selected_ingredient_name: 'E2E Mehl',
+      suggested_ingredient_id: 7,
+      suggested_ingredient_name: 'E2E Mehl',
+      candidates: [],
+      selected_portion: { id: 11, name: 'Gramm', quantity: 1, weight_g: 1, measuring_unit_id: 1, measuring_unit_name: 'g', is_new: false },
+      suggested_portion: { id: 11, name: 'Gramm', quantity: 1, weight_g: 1, measuring_unit_id: 1, measuring_unit_name: 'g', is_new: false },
+      quantity: 400,
+      suggested_quantity: 400,
+      reason: '',
+      technical_details: null,
+      conflicts: [],
+      new_ingredient_draft: null,
+      status: 'open',
+    }],
+    sources: [{ type: 'text', label: 'Eingefügter Text', value: 'Kartoffelsuppe für 4 Personen' }],
+    ai_interaction_id: null,
     recipe_draft: {
       title: 'Smart E2E Rezept',
       description: '## Zubereitung\nAlles gut vermischen.',
@@ -76,29 +100,13 @@ function smartDraft() {
       source_url: '',
       image_url: '',
     },
-    recipe_items: [{
-      ingredient_id: 7,
-      ingredient_name: 'E2E Mehl',
-      quantity: 400,
-      measuring_unit_id: 1,
-      measuring_unit_name: 'g',
-      note: '',
-      is_new_ingredient: false,
-      portion_id: 11,
-      needs_unit_clarification: false,
-      suggested_unit_name: '',
-      suggested_portion_weight_g: null,
-      available_portions: [],
-    }],
-    created_ingredients: [],
-    input_type: 'prompt',
     is_reconstructed: false,
   };
 }
 
 async function mockUnifiedWizard(page: Page) {
   const detail = recipeDetail();
-  await page.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: smartDraft() }));
+  await page.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({ json: smartDraft() }));
   await page.route('**/api/recipes/', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
     await route.fulfill({ json: detail });
@@ -139,6 +147,9 @@ test.describe('Recipe Workflows', () => {
     await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
     await expect(page.locator('#recipe-basis-title')).toHaveValue('Smart E2E Rezept');
     await page.getByTestId('recipe-serving-context-confirm').click();
+    await page.getByTestId('recipe-wizard-next').click();
+    await expect(page.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
+    await page.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
     await page.getByTestId('recipe-wizard-next').click();
     await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
   });

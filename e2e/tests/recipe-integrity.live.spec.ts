@@ -7,7 +7,7 @@ async function createRecipeFixture(
   api: FoodApi,
   resources: { track: (resource: { kind: 'ingredient' | 'recipe'; id?: number; slug?: string }) => void },
   uniqueName: (prefix: string) => string,
-): Promise<Record<string, unknown>> {
+): Promise<{ recipe: Record<string, unknown>; ingredient: Record<string, unknown>; portion: Record<string, unknown> }> {
   const csrf = await getCsrfToken(api);
   const ingredientResponse = await api.post('/api/ingredients/', {
     headers: { 'X-CSRFToken': csrf },
@@ -35,13 +35,31 @@ async function createRecipeFixture(
   });
   const recipe = assertRecord(await expectJsonResponse(recipeResponse));
   resources.track({ kind: 'recipe', id: Number(recipe.id) });
-  return recipe;
+  return { recipe, ingredient, portion };
+}
+
+/** The materials step sits between the ingredients and the preparation step. */
+async function skipMaterials(page: import('@playwright/test').Page): Promise<void> {
+  await expect(page.getByRole('heading', { name: 'Materialien' })).toBeVisible();
+  await page.getByTestId('recipe-wizard-next').click();
 }
 
 async function advanceToPreview(page: import('@playwright/test').Page): Promise<void> {
+  await skipMaterials(page);
   await expect(page.getByRole('heading', { name: 'Zubereitung' })).toBeVisible();
   await page.getByTestId('recipe-wizard-next').click();
   await expect(page.getByRole('heading', { name: 'Vorschau & Speichern' })).toBeVisible();
+}
+
+/** The editor only asks for the serving context when the detail page shows
+ *  more than one portion, so scale the view up before opening it. */
+async function openIngredientEditorForPersons(page: import('@playwright/test').Page, persons: number): Promise<void> {
+  for (let count = 1; count < persons; count++) {
+    await page.getByRole('button', { name: 'Portion erhöhen' }).click();
+  }
+  await page.getByTestId('ingredients-edit-trigger').click();
+  await page.getByTestId('recipe-serving-context-input').fill(String(persons));
+  await page.getByTestId('recipe-serving-context-confirm').click();
 }
 
 async function confirmIngredientSave(page: import('@playwright/test').Page): Promise<void> {
@@ -54,8 +72,11 @@ async function confirmIngredientSave(page: import('@playwright/test').Page): Pro
 test.describe('Recipe persistence integrity', () => {
   test('persists manual title, metadata, and preparation through the full wizard', async ({ foodPage, resources, uniqueName }) => {
     const title = uniqueName('E2E Wizard Rezept');
-    await foodPage.route('**/api/recipes/smart-input/', async (route) => {
+    await foodPage.route('**/api/recipes/ingredient-review/preview/', async (route) => {
       await route.fulfill({ json: {
+        rows: [],
+        sources: [{ type: 'text', label: 'Eingefügter Text', value: title }],
+        ai_interaction_id: null,
         recipe_draft: {
           title,
           description: '',
@@ -73,9 +94,6 @@ test.describe('Recipe persistence integrity', () => {
           source_url: '',
           image_url: '',
         },
-        recipe_items: [],
-        created_ingredients: [],
-        input_type: 'prompt',
         is_reconstructed: false,
       } });
     });
@@ -87,6 +105,7 @@ test.describe('Recipe persistence integrity', () => {
     await foodPage.getByRole('button', { name: 'Warme Mahlzeit' }).first().click();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await confirmIngredientSave(foodPage);
+    await skipMaterials(foodPage);
 
     await foodPage.getByPlaceholder('Kurze Zusammenfassung...').fill('E2E Zusammenfassung');
     await foodPage.getByPlaceholder('Ausführliche Beschreibung in Markdown...').fill('E2E Beschreibung');
@@ -111,29 +130,42 @@ test.describe('Recipe persistence integrity', () => {
   });
 
   test('keeps an intercepted AI draft editable through reload', async ({ foodPage, api, resources, uniqueName }) => {
-    const fixture = await createRecipeFixture(api, resources, uniqueName);
-    // When ai-create returns input_servings, the wizard skips the context selector
-    fixture.input_servings = 4;
-    await foodPage.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: {
+    const { recipe: fixture, ingredient, portion } = await createRecipeFixture(api, resources, uniqueName);
+    const source = { type: 'text', label: 'Eingefügter Text', value: 'E2E KI Rezept' };
+    const reviewPortion = {
+      id: Number(portion.id), name: String(portion.name), quantity: Number(portion.quantity),
+      weight_g: Number(portion.weight_g), measuring_unit_id: Number(portion.measuring_unit_id),
+      measuring_unit_name: String(portion.measuring_unit_name ?? 'Gramm'), is_new: false,
+    };
+    await foodPage.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({ json: {
+      rows: [{
+        key: 'row-1', source_text: '42 Fixture Zutat', sources: [source],
+        selected_ingredient_id: Number(ingredient.id), selected_ingredient_slug: String(ingredient.slug),
+        selected_ingredient_name: String(ingredient.name), suggested_ingredient_id: Number(ingredient.id),
+        suggested_ingredient_name: String(ingredient.name), candidates: [],
+        selected_portion: reviewPortion, suggested_portion: reviewPortion,
+        quantity: 42, suggested_quantity: 42, reason: '', technical_details: null, conflicts: [],
+        new_ingredient_draft: null, status: 'open',
+      }],
+      sources: [source],
+      ai_interaction_id: null,
       recipe_draft: {
         title: String(fixture.title), description: String(fixture.description ?? ''), summary: '', servings: 4,
         preparation_time: null, execution_time: null, recipe_type: 'warm_meal', difficulty: 'easy',
         execution_time_choice: 'less_30', preparation_time_choice: 'none', scout_level_ids: [], tag_ids: [],
         steps: [], source_url: '', image_url: '',
       },
-      recipe_items: (fixture.recipe_items as Array<Record<string, unknown>>).map((item) => ({
-        ingredient_id: item.ingredient_id ?? 1, ingredient_name: 'Fixture Zutat', quantity: 42,
-        measuring_unit_id: 1, measuring_unit_name: 'g', note: '', is_new_ingredient: false,
-        portion_id: item.portion_id, needs_unit_clarification: false, suggested_unit_name: '',
-        suggested_portion_weight_g: null, available_portions: [],
-      })),
-      created_ingredients: [], input_type: 'prompt', is_reconstructed: false,
+      is_reconstructed: false,
     } }));
 
     await foodPage.goto('/recipes/new');
     await foodPage.getByTestId('recipe-smart-input').fill('E2E KI Rezept');
     await foodPage.getByTestId('recipe-wizard-next').click();
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
+    await foodPage.getByTestId('recipe-wizard-next').click();
+    // Confirming the reviewed ingredients creates the recipe.
+    await expect(foodPage.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
+    await foodPage.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
     const quantity = foodPage.locator('input[data-testid^="item-quantity-"]').first();
@@ -143,20 +175,19 @@ test.describe('Recipe persistence integrity', () => {
     await advanceToPreview(foodPage);
     await foodPage.getByTestId('recipe-wizard-finish').click();
     await foodPage.waitForURL(/\/recipes\/[^/]+$/);
+    const createdSlug = foodPage.url().split('/').pop();
+    const created = assertRecord(await foodPage.request.get(`/api/recipes/by-slug/${createdSlug}/`).then((response) => response.json()));
+    resources.track({ kind: 'recipe', id: Number(created.id) });
     await foodPage.reload();
-    await foodPage.getByTestId('ingredients-edit-trigger').click();
-    await foodPage.getByTestId('recipe-serving-context-input').fill('4');
-    await foodPage.getByTestId('recipe-serving-context-confirm').click();
+    await openIngredientEditorForPersons(foodPage, 4);
     await expect(foodPage.locator('input[data-testid^="item-quantity-"]').first()).toHaveValue('42');
   });
 
   test('confirms four-person quantity normalization before saving', async ({ foodPage, api, resources, uniqueName }) => {
-    const recipe = await createRecipeFixture(api, resources, uniqueName);
+    const { recipe } = await createRecipeFixture(api, resources, uniqueName);
     const slug = String(recipe.slug);
     await foodPage.goto(`/recipes/${slug}`);
-    await foodPage.getByTestId('ingredients-edit-trigger').click();
-    await foodPage.getByTestId('recipe-serving-context-input').fill('4');
-    await foodPage.getByTestId('recipe-serving-context-confirm').click();
+    await openIngredientEditorForPersons(foodPage, 4);
     await expect(foodPage.getByTestId('recipe-serving-context-summary')).toContainText('Gesamtmengen für 4 Personen');
     await foodPage.getByTestId('ingredient-editor-save').click();
     // With no ingredient changes, saving is a no-op and does not need a
