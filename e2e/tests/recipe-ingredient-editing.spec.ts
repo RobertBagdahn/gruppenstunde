@@ -31,8 +31,13 @@ async function login(page: Page) {
 }
 
 async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
-  await page.route('**/api/recipes/smart-input/', (route) => route.fulfill({
+  // Mirrors `IngredientReviewPreviewSchema`. Empty `rows` skips the
+  // "Zutaten prüfen" step, so the wizard goes straight to the ingredient editor.
+  await page.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({
     json: {
+      rows: [],
+      sources: [{ type: 'text', label: 'Eingefügter Text', value: 'E2E Rezept' }],
+      ai_interaction_id: null,
       recipe_draft: {
         title: 'E2E Rezept',
         description: '',
@@ -50,9 +55,6 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
         source_url: '',
         image_url: '',
       },
-      recipe_items: [],
-      created_ingredients: [],
-      input_type: 'prompt',
       is_reconstructed: false,
     },
   }));
