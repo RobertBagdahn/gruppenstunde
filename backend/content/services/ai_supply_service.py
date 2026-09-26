@@ -263,7 +263,7 @@ def match_ingredients_to_database(suggestions: list[dict[str, Any]]) -> list[dic
         portion_id = None
         portion_name = None
         if match:
-            portions_qs = match.portions.filter(deleted_at__isnull=True).select_related("measuring_unit")
+            portions_qs = match.portions.active().select_related("measuring_unit")
 
             selected = None
             suggested_unit = suggestion.get("unit", "").strip().lower()

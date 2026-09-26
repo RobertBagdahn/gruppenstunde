@@ -21,7 +21,7 @@ class Command(BaseCommand):
         limit = options["limit"]
         candidates = []
         blocked = 0
-        qs = Portion.objects.filter(deleted_at__isnull=True).order_by("id")
+        qs = Portion.objects.active().order_by("id")
         for portion in qs.iterator():
             weight = extract_explicit_weight_g(portion.name)
             if weight is None:
@@ -48,7 +48,12 @@ class Command(BaseCommand):
 
         applied = 0
         for portion_id, weight in candidates:
-            portion = Portion.objects.get(pk=portion_id, deleted_at__isnull=True)
+            try:
+                portion = Portion.objects.active().get(pk=portion_id)
+            except Portion.DoesNotExist:
+                # Deleted or superseded since the candidate list was built —
+                # a superseded portion must stay frozen at its old weight.
+                continue
             portion.weight_g = weight
             portion.weight_status = PortionWeightStatus.IMPORTED
             portion.weight_source = PortionWeightSource.IMPORT

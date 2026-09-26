@@ -142,7 +142,7 @@ class Command(BaseCommand):
             for ing in base_ings:
                 if not ing.standard_recipe_weight_g:
                     continue
-                portion = Portion.objects.filter(ingredient=ing, rank=1, deleted_at__isnull=True).first()
+                portion = Portion.objects.active().filter(ingredient=ing, rank=1).first()
                 was_created = portion is None
                 if was_created:
                     portion = Portion.objects.create(

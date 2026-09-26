@@ -76,7 +76,7 @@ def measure_violation(name: str, weight_g: float) -> str | None:
 def collect_findings() -> list[Finding]:
     referenced = set(RecipeItem.objects.values_list("portion_id", flat=True).distinct())
     findings: list[Finding] = []
-    portions = Portion.objects.filter(deleted_at__isnull=True, weight_g__isnull=False).select_related("ingredient")
+    portions = Portion.objects.active().filter(weight_g__isnull=False).select_related("ingredient")
     for portion in portions.iterator():
         weight = float(portion.weight_g)
         used = portion.id in referenced

@@ -102,7 +102,7 @@ def _deduplicate_portions():
     from supply.models.ingredient import Portion
 
     dupes = (
-        Portion.objects.filter(deleted_at__isnull=True)
+        Portion.objects.active()
         .annotate(name_lower=Lower("name"))
         .values("name_lower", "ingredient_id")
         .annotate(cnt=Count("id"))

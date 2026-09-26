@@ -426,6 +426,10 @@ export const IngredientPortionSchema = z.object({
   measuring_unit_id: z.number().nullable(),
   quantity: z.number().nullable(),
   weight_g: z.number().nullable(),
+  // Portions are always filtered to active ones server-side; kept optional
+  // here for schema parity with PortionSchema (see openspec change
+  // `portion-superseded-versions`).
+  superseded_by_id: z.number().nullable().optional(),
 });
 export type IngredientPortion = z.infer<typeof IngredientPortionSchema>;
 

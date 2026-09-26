@@ -498,7 +498,7 @@ class Command(BaseCommand):
         mu_cache = {mu.pk: mu for mu in MeasuringUnit.objects.all()}
 
         # Load existing portions for dedup
-        existing_portions_qs = Portion.objects.filter(deleted_at__isnull=True).values(
+        existing_portions_qs = Portion.objects.active().values(
             "id", "ingredient_id", "name", "measuring_unit_id", "quantity"
         )
         existing_portions = {
@@ -625,7 +625,7 @@ class Command(BaseCommand):
             mu_cache = {mu.pk: mu for mu in MeasuringUnit.objects.all()}
 
             # Load existing portions for dedup
-            existing_portions_qs = Portion.objects.filter(deleted_at__isnull=True).values(
+            existing_portions_qs = Portion.objects.active().values(
                 "id", "ingredient_id", "name", "measuring_unit_id", "quantity"
             )
             existing_portions = {

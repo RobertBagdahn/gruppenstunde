@@ -62,6 +62,14 @@ export type PriceCoverage = z.infer<typeof PriceCoverageSchema>;
 
 // --- RecipeItem ---
 
+/** The active portion a superseded `RecipeItem.portion` was replaced by. */
+export const CurrentPortionSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  weight_g: z.number().nullable(),
+});
+export type CurrentPortion = z.infer<typeof CurrentPortionSchema>;
+
 export const RecipeItemSchema = z.object({
   id: z.number(),
   portion_id: z.number().nullable(),
@@ -93,8 +101,21 @@ export const RecipeItemSchema = z.object({
   weight_source: z.string().nullable().optional(),
   weight_confirmed_at: z.string().nullable().optional(),
   is_weight_trusted: z.boolean().optional(),
+  current_portion: CurrentPortionSchema.nullable().optional(),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;
+
+/** Request/response for `POST .../recipe-items/adopt-current-portions/`. */
+export const AdoptCurrentPortionsInSchema = z.object({
+  item_ids: z.array(z.number()).nullable().optional(),
+});
+export type AdoptCurrentPortionsIn = z.infer<typeof AdoptCurrentPortionsInSchema>;
+
+export const AdoptCurrentPortionsOutSchema = z.object({
+  updated_count: z.number(),
+  items: z.array(RecipeItemSchema),
+});
+export type AdoptCurrentPortionsOut = z.infer<typeof AdoptCurrentPortionsOutSchema>;
 
 // --- AI ingredient suggestion (MUST stay in sync with backend AiIngredientSuggestionOut) ---
 

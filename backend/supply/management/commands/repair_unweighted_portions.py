@@ -72,9 +72,7 @@ class PlannedChange:
 def unweighted_portions() -> list[Portion]:
     """Return all active portions without a trusted weight."""
     portions = (
-        Portion.objects.filter(deleted_at__isnull=True)
-        .select_related("ingredient", "measuring_unit")
-        .order_by("ingredient_id", "rank", "id")
+        Portion.objects.active().select_related("ingredient", "measuring_unit").order_by("ingredient_id", "rank", "id")
     )
     return [p for p in portions if resolve_trusted_weight(p) is None]
 
@@ -82,7 +80,7 @@ def unweighted_portions() -> list[Portion]:
 def _portion_context(portion: Portion) -> dict:
     siblings = [
         {"name": s.name, "weight_g": resolve_trusted_weight(s)}
-        for s in portion.ingredient.portions.filter(deleted_at__isnull=True).exclude(pk=portion.pk)
+        for s in portion.ingredient.portions.active().exclude(pk=portion.pk)
         if resolve_trusted_weight(s) is not None and s.name.casefold() not in {"g", "gramm"}
     ]
     return {
@@ -239,10 +237,7 @@ class Command(BaseCommand):
             return set()
         now = timezone.now()
         portions = {
-            p.id: p
-            for p in Portion.objects.select_for_update().filter(
-                id__in=[c.portion_id for c in changes], deleted_at__isnull=True
-            )
+            p.id: p for p in Portion.objects.select_for_update().active().filter(id__in=[c.portion_id for c in changes])
         }
         missing = [c.portion_id for c in changes if c.action != "review" and c.portion_id not in portions]
         if missing:
@@ -264,7 +259,8 @@ class Command(BaseCommand):
 
             name = change.new_name
             name_taken = (
-                Portion.objects.filter(ingredient_id=portion.ingredient_id, name__iexact=name, deleted_at__isnull=True)
+                Portion.objects.active()
+                .filter(ingredient_id=portion.ingredient_id, name__iexact=name)
                 .exclude(pk=portion.pk)
                 .exists()
             )

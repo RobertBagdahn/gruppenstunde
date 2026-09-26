@@ -17,7 +17,7 @@ class Command(BaseCommand):
         duplicates_found = False
         for ingredient in Ingredient.objects.all():
             # Get all non-deleted portions for this ingredient
-            portions = ingredient.portions.filter(deleted_at__isnull=True)
+            portions = ingredient.portions.active()
 
             # Group by the canonical identity used by recipe imports.
             portion_groups = (
@@ -70,13 +70,11 @@ class Command(BaseCommand):
 
         no_default_found = False
         for ingredient in Ingredient.objects.all():
-            has_rank1 = ingredient.portions.filter(rank=1, deleted_at__isnull=True).exists()
+            has_rank1 = ingredient.portions.active().filter(rank=1).exists()
             if not has_rank1:
                 no_default_found = True
                 portions_info = list(
-                    ingredient.portions.filter(deleted_at__isnull=True)
-                    .values("id", "name", "rank", "weight_g")
-                    .order_by("rank")[:5]
+                    ingredient.portions.active().values("id", "name", "rank", "weight_g").order_by("rank")[:5]
                 )
                 self.stdout.write(
                     self.style.WARNING(

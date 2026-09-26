@@ -34,6 +34,8 @@ function makeItem(overrides: Partial<EditableItem> = {}): EditableItem {
     ingredient_portions: [],
     baseWeightG: 7.3128,
     baseQuantity: 0.073,
+    currentPortion: null,
+    selectedPortionFallback: null,
     ...overrides,
   };
 }

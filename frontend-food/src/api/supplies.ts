@@ -19,6 +19,7 @@ import {
   RetailSectionSchema,
   PaginatedIngredientSchema,
   PortionSchema,
+  PortionUpdateResponseSchema,
   PackageSchema,
   MaterialListItemSchema,
   type PortionSuggestion,
@@ -347,10 +348,16 @@ export function useUpdatePortion(slug: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ portionId, data }: { portionId: number; data: Record<string, unknown> }) =>
-      patchJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/${portionId}/`, data, PortionSchema),
-    onSuccess: () => {
+      patchJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/${portionId}/`, data, PortionUpdateResponseSchema),
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+      // A weight change on a referenced portion supersedes it instead of
+      // updating in place — recipes still showing it need their caches
+      // invalidated too (see openspec change `portion-superseded-versions`).
+      if (result.replaced_portion_id != null) {
+        queryClient.invalidateQueries({ queryKey: ['recipe'] });
+      }
     },
   });
 }

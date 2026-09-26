@@ -226,13 +226,12 @@ def _get_rank1_portion(ingredient: Ingredient) -> Any | None:
     from supply.models import Portion
 
     portion = (
-        Portion.objects.filter(ingredient_id=ingredient.id, rank=1, deleted_at__isnull=True)
-        .select_related("measuring_unit")
-        .first()
+        Portion.objects.active().filter(ingredient_id=ingredient.id, rank=1).select_related("measuring_unit").first()
     )
     if portion is None:
         portion = (
-            Portion.objects.filter(ingredient_id=ingredient.id, deleted_at__isnull=True)
+            Portion.objects.active()
+            .filter(ingredient_id=ingredient.id)
             .select_related("measuring_unit")
             .order_by("rank")
             .first()

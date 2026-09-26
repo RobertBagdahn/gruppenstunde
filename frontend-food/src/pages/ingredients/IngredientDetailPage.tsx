@@ -591,8 +591,15 @@ function PortionCard({
         },
       },
       {
-        onSuccess: () => {
-          toast.success('Portion aktualisiert');
+        onSuccess: (result) => {
+          const referencingCount = result.referencing_recipe_count ?? 0;
+          if (result.replaced_portion_id != null && referencingCount > 0) {
+            toast.success('Gespeichert', {
+              description: `${referencingCount} ${referencingCount === 1 ? 'Rezept behält' : 'Rezepte behalten'} das alte Gewicht, bis sie aktualisiert werden.`,
+            });
+          } else {
+            toast.success('Portion aktualisiert');
+          }
           setEditing(false);
         },
         onError: (err: Error) => toast.error('Fehler', { description: err.message }),

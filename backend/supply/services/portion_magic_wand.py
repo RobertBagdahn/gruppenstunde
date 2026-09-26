@@ -177,7 +177,7 @@ def _has_enough_actionable_suggestions(
 
 
 def _context(ingredient: Ingredient) -> dict:
-    portions = list(ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit"))
+    portions = list(ingredient.portions.active().select_related("measuring_unit"))
     packages = list(ingredient.packages.filter(deleted_at__isnull=True))
     from recipe.models import RecipeItem
     from supply.models import MeasuringUnit
@@ -245,9 +245,7 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
     if response is None:
         raise GeminiUnavailableError("KI nicht verfügbar")
     parsed = MagicResponse.model_validate_json(response.text)
-    weighted_ids = {
-        p.id for p in ingredient.portions.filter(deleted_at__isnull=True) if resolve_trusted_weight(p) is not None
-    }
+    weighted_ids = {p.id for p in ingredient.portions.active() if resolve_trusted_weight(p) is not None}
     valid_suggestions = _valid_suggestions(parsed)
     repaired = False
     if not _has_enough_actionable_suggestions(valid_suggestions, weighted_ids):
@@ -270,7 +268,7 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
         for suggestion in valid_suggestions
         if suggestion.operation == "replace" and suggestion.source_portion_id is not None
     }
-    for portion in ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit"):
+    for portion in ingredient.portions.active().select_related("measuring_unit"):
         if resolve_trusted_weight(portion) is not None:
             operations.append(
                 {
@@ -338,12 +336,7 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
 def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
     if payload["preview_token"] != _token(_context(ingredient)):
         raise ValueError("Die Vorschau ist veraltet. Bitte starte den Portions-Zauberstab erneut.")
-    active = {
-        p.id: p
-        for p in ingredient.portions.select_for_update()
-        .filter(deleted_at__isnull=True)
-        .select_related("measuring_unit")
-    }
+    active = {p.id: p for p in ingredient.portions.select_for_update().active().select_related("measuring_unit")}
     from supply.models import Package, Portion
 
     replaced: list[int] = []
@@ -430,9 +423,7 @@ def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
         portion.save()
         names.add(name.casefold())
         created.append(portion.id)
-    portions = list(
-        ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit").order_by("rank", "id")
-    )
+    portions = list(ingredient.portions.active().select_related("measuring_unit").order_by("rank", "id"))
     return {
         "portions": portions,
         "replaced_portion_ids": replaced,

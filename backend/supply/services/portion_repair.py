@@ -160,9 +160,7 @@ def get_candidate_portions():
     from supply.models import Portion
 
     portions = list(
-        Portion.objects.filter(deleted_at__isnull=True)
-        .select_related("ingredient", "measuring_unit")
-        .order_by("ingredient_id", "rank", "id")
+        Portion.objects.active().select_related("ingredient", "measuring_unit").order_by("ingredient_id", "rank", "id")
     )
     return [p for p in portions if _detect_reason(p) is not None]
 
@@ -331,11 +329,12 @@ def _update_unreferenced_portion(portion: Portion, proposal: dict) -> None:
     name = proposal.get("proposed_name") or portion.name
     if (
         name.lower() != (portion.name or "").lower()
-        and Portion.objects.filter(
+        and Portion.objects.active()
+        .filter(
             ingredient=portion.ingredient,
             name__iexact=name,
-            deleted_at__isnull=True,
-        ).exists()
+        )
+        .exists()
     ):
         name = f"{name} (korrigiert)"
 
@@ -354,6 +353,13 @@ def _apply_to_portion(portion: Portion, proposal: dict, intended_item_ids: list[
     portion is created and only the intended RecipeItems are moved.
     Unreferenced portions are updated in place. Returns (applied_portion,
     moved_recipe_item_ids, affected_recipe_ids).
+
+    Deliberately uses `create_replacement_portion` (no supersede): only the
+    RecipeItems named in `intended_item_ids` move onto the replacement, so
+    `portion` legitimately stays active in parallel for whichever items were
+    NOT part of this repair batch — superseding it here would hide it from
+    those still-valid references (see openspec change
+    `portion-superseded-versions`, decision D4).
     """
     from recipe.models import RecipeItem
     from supply.services.portion_integrity import create_replacement_portion

@@ -1277,11 +1277,7 @@ def _build_recipe_items_v2(
             # AI weight proposal (possibly against an existing portion).
             suggested_name = build_suggested_portion_name(unit_str, note, ingredient_name)
             existing = find_matching_piece_portion(ingredient, suggested_name)
-            active_portions = list(
-                ingredient.portions.filter(deleted_at__isnull=True)
-                .select_related("measuring_unit")
-                .order_by("rank", "id")
-            )
+            active_portions = list(ingredient.portions.active().select_related("measuring_unit").order_by("rank", "id"))
             available_portions = _serialize_portions(active_portions)
             suggested_portion_name = suggested_name
             if existing is not None and existing.is_weight_trusted:
@@ -1314,9 +1310,7 @@ def _build_recipe_items_v2(
                 weight_status = portion.weight_status if portion else None
             available_portions = (
                 _serialize_portions(
-                    ingredient.portions.filter(deleted_at__isnull=True)
-                    .select_related("measuring_unit")
-                    .order_by("rank", "id")
+                    ingredient.portions.active().select_related("measuring_unit").order_by("rank", "id")
                 )
                 if needs_clarification
                 else []
@@ -1551,19 +1545,21 @@ def _resolve_portion(
 
         if (
             not is_metric_base
-            and Portion.objects.filter(
+            and Portion.objects.active()
+            .filter(
                 ingredient_id=ingredient_id,
                 name__iexact=p_name,
-                deleted_at__isnull=True,
-            ).exists()
+            )
+            .exists()
         ):
             suffix = f" ({weight:g} g)" if weight else " (Import)"
             p_name = f"{p_name}{suffix}"
 
         next_rank = 1
-        if Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True, rank=1).exists():
+        if Portion.objects.active().filter(ingredient_id=ingredient_id, rank=1).exists():
             next_rank = (
-                Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True)
+                Portion.objects.active()
+                .filter(ingredient_id=ingredient_id)
                 .order_by("-rank")
                 .values_list("rank", flat=True)
                 .first()

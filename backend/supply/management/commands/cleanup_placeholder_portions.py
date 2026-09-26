@@ -35,7 +35,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         referenced = set(RecipeItem.objects.values_list("portion_id", flat=True))
         candidates = (
-            Portion.objects.filter(name__in=PLACEHOLDER_NAMES, deleted_at__isnull=True)
+            Portion.objects.active()
+            .filter(name__in=PLACEHOLDER_NAMES)
             .exclude(id__in=referenced)
             .select_related("ingredient", "measuring_unit")
         )
@@ -47,7 +48,7 @@ class Command(BaseCommand):
                 continue
             has_alternative = any(
                 resolve_trusted_weight_result(other).is_trusted
-                for other in portion.ingredient.portions.filter(deleted_at__isnull=True)
+                for other in portion.ingredient.portions.active()
                 .exclude(pk=portion.pk)
                 .select_related("measuring_unit")
             )
@@ -78,7 +79,7 @@ class Command(BaseCommand):
         self.stdout.write(f"APPLIED deleted={len(to_delete)} promoted={promoted}")
 
     def _promote_main_portion(self, ingredient) -> bool:
-        active = ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit")
+        active = ingredient.portions.active().select_related("measuring_unit")
         if active.filter(rank=1).exists():
             return False
         trusted = [p for p in active.order_by("rank", "id") if resolve_trusted_weight_result(p).is_trusted]

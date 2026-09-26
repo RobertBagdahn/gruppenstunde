@@ -10,8 +10,9 @@ through the dedicated rebind helpers in this module.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from django.db import transaction
 from django.utils import timezone
 
 from supply.choices import PortionWeightSource, PortionWeightStatus
@@ -47,7 +48,7 @@ def get_or_create_gram_portion(ingredient) -> Portion:
     """Return the ingredient's technical "g" portion (1 g), creating it if missing."""
     from supply.models import MeasuringUnit, Portion
 
-    for candidate in ingredient.portions.filter(deleted_at__isnull=True, name__iexact="g"):
+    for candidate in ingredient.portions.active().filter(name__iexact="g"):
         if resolve_trusted_weight(candidate) == 1.0:
             return candidate
     unit, _ = MeasuringUnit.objects.get_or_create(
@@ -90,7 +91,7 @@ def rebind_recipe_items_to_grams(portion) -> list[int]:
 
 def get_active_rank1_portion(ingredient, *, exclude_portion_id: int | None = None):
     """Return the ingredient's single active (non-deleted) rank=1 portion, if any."""
-    qs = ingredient.portions.filter(rank=1, deleted_at__isnull=True).select_related("measuring_unit")
+    qs = ingredient.portions.active().filter(rank=1).select_related("measuring_unit")
     if exclude_portion_id is not None:
         qs = qs.exclude(pk=exclude_portion_id)
     return qs.order_by("id").first()
@@ -177,14 +178,12 @@ def create_replacement_portion(old_portion, **new_attrs):
 
     ingredient = old_portion.ingredient
     name = new_attrs.get("name") or old_portion.name
-    if Portion.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
+    if Portion.objects.active().filter(ingredient=ingredient, name__iexact=name).exists():
         name = f"{name} (neu)"
 
     rank = new_attrs.get("rank", old_portion.rank)
-    if rank == 1 and Portion.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exists():
-        taken_ranks = set(
-            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list("rank", flat=True)
-        )
+    if rank == 1 and Portion.objects.active().filter(ingredient=ingredient, rank=1).exists():
+        taken_ranks = set(Portion.objects.active().filter(ingredient=ingredient).values_list("rank", flat=True))
         rank = 2
         while rank in taken_ranks:
             rank += 1
@@ -214,6 +213,86 @@ def create_replacement_portion(old_portion, **new_attrs):
         old_portion.name,
     )
     return portion
+
+
+def supersede_portion(old_portion, *, actor=None, **new_attrs: Any):
+    """Replace `old_portion` with a new Portion carrying `new_attrs`, marking
+    `old_portion` as superseded (`superseded_by`/`superseded_at`) instead of
+    leaving a visible "(neu)" duplicate active (see openspec change
+    `portion-superseded-versions`).
+
+    The new Portion takes over `old_portion`'s name and rank by default —
+    `new_attrs` may override either. Existing RecipeItems keep pointing at
+    `old_portion`, which stays fully resolvable (weight, nutrition, cost) but
+    is excluded from every "active" listing, picker and dedup pass.
+
+    Any Portion that already pointed at `old_portion` via `superseded_by` is
+    re-pointed at the new Portion (path compression — every superseded
+    Portion always resolves to the current one in a single hop).
+
+    Runs inside its own atomic transaction with `select_for_update()` on
+    `old_portion`, so concurrent updates to the same Portion serialize instead
+    of racing on the unique-name/rank constraints.
+    """
+    from supply.models import Portion
+
+    with transaction.atomic():
+        old_portion = Portion.objects.select_for_update().get(pk=old_portion.pk)
+        ingredient = old_portion.ingredient
+        name = new_attrs.get("name") or old_portion.name
+        rank = new_attrs.get("rank", old_portion.rank)
+        now = timezone.now()
+
+        # Temporarily drop `old_portion` out of the "active" set (via
+        # deleted_at) before creating the new one, so the unique
+        # name/rank-1 constraints never see two active rows at once —
+        # neither creating the new row first nor superseding the old one
+        # first would work otherwise, since `superseded_by` can only point
+        # at a Portion that already has a primary key.
+        old_portion.deleted_at = now
+        old_portion.save(update_fields=["deleted_at"])
+
+        new_portion = Portion(
+            ingredient=ingredient,
+            name=name,
+            quantity=new_attrs.get("quantity", old_portion.quantity),
+            measuring_unit=new_attrs.get("measuring_unit", old_portion.measuring_unit),
+            rank=rank,
+            created_by=new_attrs.get("created_by"),
+        )
+        new_portion.weight_g = new_attrs.get("weight_g")
+        # A correction requested through the editor carries an explicitly
+        # chosen weight — record it as confirmed so it stays a trusted
+        # calculation base.
+        if new_portion.weight_g is not None and new_portion.weight_g > 0:
+            new_portion.weight_status = PortionWeightStatus.CONFIRMED
+            new_portion.weight_source = PortionWeightSource.MANUAL
+            new_portion.weight_confirmed_at = now
+        validate_active_portion_weight(new_portion)
+        new_portion.save()
+
+        old_portion.deleted_at = None
+        old_portion.superseded_by = new_portion
+        old_portion.superseded_at = now
+        old_portion.save(update_fields=["deleted_at", "superseded_by", "superseded_at"])
+
+        # Path compression: anything that pointed at old_portion now points
+        # directly at new_portion, so every chain stays one hop deep.
+        Portion.objects.filter(superseded_by=old_portion).update(superseded_by=new_portion)
+
+        from content.services.audit_service import log_field_change
+
+        log_field_change(old_portion, "superseded_by", None, new_portion.id, user=actor)
+
+    logger.info(
+        "Superseded portion %s (%s) with %s (%s) for ingredient '%s'",
+        old_portion.id,
+        old_portion.name,
+        new_portion.id,
+        new_portion.name,
+        ingredient.name,
+    )
+    return new_portion
 
 
 def _pick_rank1_winner(candidates: list, referenced_ids: set[int]):
@@ -254,12 +333,15 @@ def dedupe_rank1_portions(*, dry_run: bool = False) -> list[dict]:
     changes: list[dict] = []
 
     duplicated = Ingredient.objects.annotate(
-        rank1_count=Count("portions", filter=Q(portions__rank=1, portions__deleted_at__isnull=True)),
+        rank1_count=Count(
+            "portions",
+            filter=Q(portions__rank=1, portions__deleted_at__isnull=True, portions__superseded_by__isnull=True),
+        ),
     ).filter(rank1_count__gt=1)
 
     for ingredient in duplicated:
         candidates = list(
-            ingredient.portions.filter(rank=1, deleted_at__isnull=True).order_by("id"),
+            ingredient.portions.active().filter(rank=1).order_by("id"),
         )
         referenced_ids = set(
             RecipeItem.objects.filter(portion__in=candidates).values_list("portion_id", flat=True),
@@ -268,7 +350,7 @@ def dedupe_rank1_portions(*, dry_run: bool = False) -> list[dict]:
 
         # Find a free rank to demote the losers to (start at 2, skip taken ranks)
         taken_ranks = set(
-            ingredient.portions.filter(deleted_at__isnull=True).values_list("rank", flat=True),
+            ingredient.portions.active().values_list("rank", flat=True),
         )
         next_free_rank = 2
         for loser in candidates:
@@ -319,12 +401,7 @@ def rebind_dead_portion_references(*, dry_run: bool = False, recipe_id: int | No
         target = get_active_rank1_portion(ingredient, exclude_portion_id=portion.pk)
         if target is None:
             # Fall back to any active portion for this ingredient
-            target = (
-                ingredient.portions.filter(deleted_at__isnull=True)
-                .exclude(pk=portion.pk)
-                .order_by("rank", "id")
-                .first()
-            )
+            target = ingredient.portions.active().exclude(pk=portion.pk).order_by("rank", "id").first()
         if target is None:
             logger.warning(
                 "RecipeItem %s references deleted portion %s (%s) but no active "

@@ -463,6 +463,7 @@ def get_recipe(request, recipe_id: int):
         "recipe_items__portion__ingredient__retail_section",
         "recipe_items__portion__ingredient__portions__measuring_unit",
         "recipe_items__portion__measuring_unit",
+        "recipe_items__portion__superseded_by",
         "steps__step_ingredients__recipe_item__portion__ingredient",
         "authors__profile",
     )
@@ -502,6 +503,7 @@ def get_recipe_by_slug(request, slug: str):
             "recipe_items__portion__ingredient__retail_section",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
+            "recipe_items__portion__superseded_by",
             "steps__step_ingredients__recipe_item__portion__ingredient",
             "authors__profile",
         ),
@@ -890,9 +892,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         portion_ids = {
             item_data["portion_id"] for item_data in recipe_items_data if item_data["portion_id"] is not None
         }
-        valid_portion_ids = set(
-            Portion.objects.filter(id__in=portion_ids, deleted_at__isnull=True).values_list("id", flat=True)
-        )
+        valid_portion_ids = set(Portion.objects.active().filter(id__in=portion_ids).values_list("id", flat=True))
         missing_portion_ids = portion_ids - valid_portion_ids
         if missing_portion_ids:
             raise HttpError(400, f"Portionen nicht gefunden: {missing_portion_ids}")
@@ -900,9 +900,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
 
         unweighted_portion_ids = {
             portion.id
-            for portion in Portion.objects.filter(id__in=portion_ids, deleted_at__isnull=True).select_related(
-                "measuring_unit"
-            )
+            for portion in Portion.objects.active().filter(id__in=portion_ids).select_related("measuring_unit")
             if resolve_trusted_weight(portion) is None
         }
         if unweighted_portion_ids:

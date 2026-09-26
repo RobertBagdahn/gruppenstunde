@@ -176,8 +176,18 @@ export const PortionSchema = z.object({
   weight_confidence: z.number().nullable().optional(),
   is_weight_trusted: z.boolean().optional(),
   is_piece_like: z.boolean().optional(),
+  superseded_by_id: z.number().nullable().optional(),
 });
 export type Portion = z.infer<typeof PortionSchema>;
+
+/** Response of `PATCH .../portions/{id}/`. When a weight change had to
+ * supersede a referenced portion, `replaced_portion_id` carries the old
+ * portion's id and `referencing_recipe_count` how many recipes still use it. */
+export const PortionUpdateResponseSchema = PortionSchema.extend({
+  replaced_portion_id: z.number().nullable().optional(),
+  referencing_recipe_count: z.number().optional(),
+});
+export type PortionUpdateResponse = z.infer<typeof PortionUpdateResponseSchema>;
 
 export const StandardMeasureSchema = z.object({
   key: z.string(),

@@ -34,6 +34,7 @@ from content.schemas.data_quality import (
     NutriScoreClassOut,
     NutriScoreDistributionOut,
     NutritionPlausibilityOut,
+    OutdatedPortionRecipeOut,
     PaginatedAuditLogOut,
     PaginatedCompletenessOut,
     PaginatedDuplicatePairOut,
@@ -729,10 +730,10 @@ def merge_ingredients(request, body: MergeRequestIn):
             if created:
                 aliases_added += 1
 
-        source_portions = list(source.portions.filter(deleted_at__isnull=True))
+        source_portions = list(source.portions.active())
         portions_moved = 0
 
-        target_portion_names = {p.name.lower(): p for p in target.portions.filter(deleted_at__isnull=True)}
+        target_portion_names = {p.name.lower(): p for p in target.portions.active()}
         max_target_rank = target.portions.aggregate(m=db_models.Max("rank"))["m"] or 1
 
         for source_portion in source_portions:
@@ -1022,7 +1023,7 @@ def missing_system_portions(request, page: int = 1, page_size: int = 20):
 
     items: list = []
     for ing in qs:
-        if not ing.portions.filter(deleted_at__isnull=True).exists():
+        if not ing.portions.active().exists():
             items.append(
                 MissingSystemPortionOut(
                     id=ing.id,
@@ -1036,6 +1037,54 @@ def missing_system_portions(request, page: int = 1, page_size: int = 20):
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
     page_items = items[start : start + page_size]
+    return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+
+
+@admin_router.get("/recipes/outdated-portions/")
+def recipes_with_outdated_portions(request, page: int = 1, page_size: int = 20):
+    """Recipes with RecipeItems still referencing a superseded Portion.
+
+    Surfaces the "Rezepte mit veralteten Portionen" metric introduced by
+    openspec change `portion-superseded-versions`: these recipes keep their
+    stale weights until someone accepts the corrected portion via
+    `POST /api/recipes/{id}/recipe-items/adopt-current-portions/`.
+    """
+    _require_staff(request)
+    from django.db.models import Count
+
+    from recipe.models import Recipe, RecipeItem
+
+    # Count via RecipeItem directly (not a Count(..., distinct=True) on a
+    # multi-valued reverse relation from Recipe) to avoid the classic Django
+    # multiple-join aggregation pitfall.
+    counts_by_recipe_id = dict(
+        RecipeItem.objects.filter(
+            portion__superseded_by__isnull=False,
+            portion__deleted_at__isnull=True,
+        )
+        .values("recipe_id")
+        .annotate(outdated_item_count=Count("id"))
+        .values_list("recipe_id", "outdated_item_count")
+    )
+
+    total = len(counts_by_recipe_id)
+    total_pages = max(1, math.ceil(total / page_size))
+    ordered_ids = [
+        recipe_id for recipe_id, _ in sorted(counts_by_recipe_id.items(), key=lambda kv: kv[1], reverse=True)
+    ]
+    start = (page - 1) * page_size
+    page_ids = ordered_ids[start : start + page_size]
+    recipes_by_id = {r.id: r for r in Recipe.objects.filter(id__in=page_ids)}
+    page_items = [
+        OutdatedPortionRecipeOut(
+            id=recipe_id,
+            title=recipes_by_id[recipe_id].title,
+            slug=recipes_by_id[recipe_id].slug,
+            outdated_item_count=counts_by_recipe_id[recipe_id],
+        )
+        for recipe_id in page_ids
+        if recipe_id in recipes_by_id
+    ]
     return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
 

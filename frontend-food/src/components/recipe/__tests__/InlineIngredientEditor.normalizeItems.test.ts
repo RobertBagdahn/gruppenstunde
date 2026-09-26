@@ -225,6 +225,8 @@ describe('InlineIngredientEditor.normalizeItems', () => {
         ],
         baseWeightG: 125,
         baseQuantity: 125,
+        currentPortion: null,
+        selectedPortionFallback: null,
       };
 
       expect(getItemWeightG(item)).toBe(125);

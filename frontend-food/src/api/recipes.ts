@@ -12,6 +12,7 @@ import {
   PaginatedRecipesSchema,
   RecipeDetailSchema,
   RecipeItemSchema,
+  AdoptCurrentPortionsOutSchema,
   RecipeItemExchangeGroupSchema,
   RecipeSimilarSchema,
   NutriScoreDetailSchema,
@@ -401,6 +402,21 @@ export function useCreateRecipeItem(recipeId: number) {
       client_request_id?: string;
       idempotency_key?: string;
     }) => postJson(`${API_BASE}/${recipeId}/recipe-items/`, data, RecipeItemSchema),
+    onSuccess: () => {
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+export function useAdoptCurrentPortions(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemIds?: number[]) =>
+      postJson(
+        `${API_BASE}/${recipeId}/recipe-items/adopt-current-portions/`,
+        { item_ids: itemIds ?? null },
+        AdoptCurrentPortionsOutSchema,
+      ),
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);
     },

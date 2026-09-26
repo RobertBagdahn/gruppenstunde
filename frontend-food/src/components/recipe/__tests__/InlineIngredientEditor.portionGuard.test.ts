@@ -23,6 +23,8 @@ const baseItem: EditableItem = {
   ingredient_portions: [],
   baseWeightG: 0,
   baseQuantity: 1,
+  currentPortion: null,
+  selectedPortionFallback: null,
 };
 
 const stubPiece = {

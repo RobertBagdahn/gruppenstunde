@@ -240,6 +240,15 @@ class MissingSystemPortionOut(Schema):
     missing_portions: list[str]
 
 
+class OutdatedPortionRecipeOut(Schema):
+    """A recipe with at least one RecipeItem still pointing at a superseded Portion."""
+
+    id: int
+    title: str
+    slug: str
+    outdated_item_count: int
+
+
 # ---------------------------------------------------------------------------
 # Trend
 # ---------------------------------------------------------------------------

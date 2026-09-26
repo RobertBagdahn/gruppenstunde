@@ -13,6 +13,8 @@ from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup, RecipeItemIdempotencyRecord
 from recipe.schemas import (
+    AdoptCurrentPortionsIn,
+    AdoptCurrentPortionsOut,
     AiIngredientApplyIn,
     AiIngredientSuggestionsOut,
     EstimateQuantitiesOut,
@@ -87,7 +89,52 @@ def list_recipe_items(request, recipe_id: int):
         "portion",
         "portion__ingredient",
         "portion__measuring_unit",
+        "portion__superseded_by",
     )
+
+
+@router.post("/{recipe_id}/recipe-items/adopt-current-portions/", response=AdoptCurrentPortionsOut)
+def adopt_current_portions(request, recipe_id: int, payload: AdoptCurrentPortionsIn):
+    """Move RecipeItems of a superseded portion onto its current successor.
+
+    Keeps `quantity` (the count) unchanged — only the referenced portion, and
+    with it the resolved gram weight, changes. `item_ids=None` (the default)
+    updates every affected item of the recipe; the single-item "Aktualisieren"
+    action in the editor passes exactly one id (see openspec change
+    `portion-superseded-versions`).
+    """
+    _require_auth(request)
+
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung, dieses Rezept zu bearbeiten")
+
+    items_qs = RecipeItem.objects.filter(recipe=recipe, portion__superseded_by__isnull=False).select_related(
+        "portion__superseded_by"
+    )
+    if payload.item_ids is not None:
+        items_qs = items_qs.filter(id__in=payload.item_ids)
+
+    updated_items = []
+    with transaction.atomic():
+        for item in items_qs:
+            successor = item.portion.superseded_by
+            if successor.deleted_at is not None or successor.superseded_by_id is not None:
+                continue
+            item.portion = successor
+            item.save(update_fields=["portion"])
+            updated_items.append(item)
+
+    updated_ids = {item.id for item in updated_items}
+    items = list(
+        RecipeItem.objects.filter(recipe=recipe, id__in=updated_ids).select_related(
+            "portion",
+            "portion__ingredient",
+            "portion__measuring_unit",
+            "portion__superseded_by",
+        )
+    )
+    return {"updated_count": len(items), "items": items}
 
 
 def _compute_item_payload_hash(payload: RecipeItemCreateIn) -> str:
@@ -149,7 +196,7 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
 
         if item is None:
             if payload.portion_id is not None:
-                portion = Portion.objects.filter(id=payload.portion_id, deleted_at__isnull=True).first()
+                portion = Portion.objects.active().filter(id=payload.portion_id).first()
                 if portion is None:
                     raise HttpError(400, "Portion existiert nicht")
                 _require_weighted_portion(portion)
@@ -360,7 +407,8 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
 
         if not already_applied:
             target_portion = (
-                Portion.objects.filter(id=payload.portion_id, deleted_at__isnull=True)
+                Portion.objects.active()
+                .filter(id=payload.portion_id)
                 .select_related("ingredient", "measuring_unit")
                 .first()
             )
@@ -694,11 +742,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
     def _resolve_portion(item_in: AiIngredientApplyIn):
         """Return (portion, ingredient_id) creating draft data on demand."""
         if item_in.portion_id is not None:
-            portion = (
-                Portion.objects.filter(id=item_in.portion_id, deleted_at__isnull=True)
-                .select_related("ingredient")
-                .first()
-            )
+            portion = Portion.objects.active().filter(id=item_in.portion_id).select_related("ingredient").first()
             if portion is None:
                 raise HttpError(400, "Portion existiert nicht")
             return portion, portion.ingredient_id
@@ -732,7 +776,8 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
             ingredient_id = ingredient.id
 
         portion = (
-            Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True)
+            Portion.objects.active()
+            .filter(ingredient_id=ingredient_id)
             .select_related("ingredient")
             .order_by("rank")
             .first()

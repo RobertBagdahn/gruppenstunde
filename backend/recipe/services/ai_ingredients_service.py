@@ -333,7 +333,8 @@ class RecipeAiIngredientsService:
 
             # Find best portion: rank=1 is the Normalportion
             portion = (
-                Portion.objects.filter(ingredient_id=result.ingredient_id, rank=1, deleted_at__isnull=True)
+                Portion.objects.active()
+                .filter(ingredient_id=result.ingredient_id, rank=1)
                 .select_related("measuring_unit")
                 .first()
             )
@@ -341,7 +342,8 @@ class RecipeAiIngredientsService:
             if not portion:
                 # Fallback: get any portion ordered by rank
                 portion = (
-                    Portion.objects.filter(ingredient_id=result.ingredient_id, deleted_at__isnull=True)
+                    Portion.objects.active()
+                    .filter(ingredient_id=result.ingredient_id)
                     .select_related("measuring_unit")
                     .order_by("rank")
                     .first()
@@ -355,11 +357,14 @@ class RecipeAiIngredientsService:
                     name="g",
                     defaults={"description": "Gramm", "quantity": 1.0, "unit": "g"},
                 )
-                portion = Portion.objects.filter(
-                    ingredient=ingredient,
-                    name="g",
-                    deleted_at__isnull=True,
-                ).first()
+                portion = (
+                    Portion.objects.active()
+                    .filter(
+                        ingredient=ingredient,
+                        name="g",
+                    )
+                    .first()
+                )
                 if not portion:
                     portion = Portion.objects.create(
                         name="g",

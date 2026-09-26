@@ -54,6 +54,7 @@ class PortionOut(Schema):
     weight_confidence: float | None = None
     is_weight_trusted: bool = False
     is_piece_like: bool = False
+    superseded_by_id: int | None = None
 
     @staticmethod
     def resolve_is_default(obj) -> bool:
@@ -104,6 +105,19 @@ class PortionUpdateIn(Schema):
     measuring_unit_id: int | None = None
     weight_g: float | None = None
     rank: int | None = None
+
+
+class PortionUpdateOut(PortionOut):
+    """Response of `PATCH .../portions/{id}/`.
+
+    When the weight change had to supersede a referenced portion instead of
+    updating it in place, `replaced_portion_id` carries the old portion's id
+    and `referencing_recipe_count` the number of recipes still using it
+    (unchanged), so the frontend can invalidate caches and show a toast.
+    """
+
+    replaced_portion_id: int | None = None
+    referencing_recipe_count: int = 0
 
 
 class PortionConfirmIn(Schema):
@@ -394,7 +408,7 @@ class IngredientDetailOut(Schema):
                 "weight_confidence": p.weight_confidence,
                 "is_weight_trusted": p.is_weight_trusted,
             }
-            for p in obj.portions.select_related("measuring_unit").filter(deleted_at__isnull=True)
+            for p in obj.portions.select_related("measuring_unit").active()
         ]
 
     @staticmethod

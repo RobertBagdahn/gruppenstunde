@@ -345,9 +345,7 @@ class Command(BaseCommand):
     def _replace_ingredients(self, apply: bool) -> set[int]:
         recipe_ids: set[int] = set()
         for slug, old_ingredient, old_portion, new_ingredient, new_portion, quantity in REPLACEMENTS:
-            target = Portion.objects.filter(
-                ingredient__name=new_ingredient, name=new_portion, deleted_at__isnull=True
-            ).first()
+            target = Portion.objects.active().filter(ingredient__name=new_ingredient, name=new_portion).first()
             if target is None:
                 self.stdout.write(f"MISSING  target {new_ingredient} / {new_portion}")
                 continue

@@ -410,6 +410,14 @@ class IngredientAlias(models.Model):
         return f"{self.name} → {self.ingredient.name}"
 
 
+class PortionQuerySet(models.QuerySet):
+    """Portion queryset with the ``active`` filter used throughout the app."""
+
+    def active(self):
+        """Portions that are neither soft-deleted nor superseded by a newer version."""
+        return self.filter(deleted_at__isnull=True, superseded_by__isnull=True)
+
+
 class Portion(models.Model):
     """A specific portion of an ingredient with a measuring unit."""
 
@@ -481,6 +489,22 @@ class Portion(models.Model):
         blank=True,
         related_name="portions_updated",
     )
+    superseded_by = models.ForeignKey(
+        "self",
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
+        related_name="superseded_versions",
+        verbose_name=_("Abgelöst durch"),
+        help_text=_(
+            "Gesetzt, wenn eine Gewichtsänderung diese referenzierte Portion nicht in place "
+            "ändern durfte: verweist auf die neue Portion. Bestehende RecipeItems behalten "
+            "diese Portion unverändert; sie erscheint aber nirgends mehr zur Auswahl."
+        ),
+    )
+    superseded_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Abgelöst am"))
+
+    objects = PortionQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("Portion")
@@ -490,12 +514,12 @@ class Portion(models.Model):
             models.UniqueConstraint(
                 Lower("name"),
                 "ingredient_id",
-                condition=Q(deleted_at__isnull=True),
+                condition=Q(deleted_at__isnull=True, superseded_by__isnull=True),
                 name="unique_portion_name_per_ingredient",
             ),
             models.UniqueConstraint(
                 fields=["ingredient"],
-                condition=Q(rank=1, deleted_at__isnull=True),
+                condition=Q(rank=1, deleted_at__isnull=True, superseded_by__isnull=True),
                 name="unique_rank1_portion_per_ingredient",
             ),
         ]

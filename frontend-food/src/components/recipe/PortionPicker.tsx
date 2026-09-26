@@ -37,6 +37,12 @@ interface PortionPickerProps {
   portions: PortionPickerPortion[];
   /** Currently selected portion id — null means direct grams. */
   value: number | null;
+  /** The item's own portion when `value` isn't found in `portions` — e.g. it
+   *  was superseded by a corrected version and is excluded from the pickable
+   *  list (see openspec change `portion-superseded-versions`). Shown as the
+   *  selected value in the trigger and marked as selected if present, but
+   *  never offered as an option to pick. */
+  selectedFallback?: { id: number; name: string; weight_g: number | null } | null;
   /** Slug used to load the standard-measure catalog; hides that section when omitted. */
   ingredientSlug?: string;
   onSelectPortion: (portionId: number) => void;
@@ -53,6 +59,7 @@ function portionDisplayName(portion: PortionPickerPortion): string {
 export default function PortionPicker({
   portions,
   value,
+  selectedFallback,
   ingredientSlug,
   onSelectPortion,
   onSelectStandardMeasure,
@@ -66,9 +73,16 @@ export default function PortionPicker({
   const close = () => setIsOpen(false);
 
   const selectedPortion = value != null ? portions.find((p) => p.id === value) ?? null : null;
-  const triggerWeight = selectedPortion && selectedPortion.weight_g && selectedPortion.weight_g > 0
-    ? formatGramsShort(selectedPortion.weight_g)
-    : (selectedPortion ? 'Gewicht fehlt' : null);
+  const isFallbackSelected = !selectedPortion && value != null && selectedFallback?.id === value;
+  const triggerLabel = selectedPortion
+    ? portionDisplayName(selectedPortion)
+    : isFallbackSelected
+      ? selectedFallback!.name
+      : 'Gramm';
+  const triggerWeightG = selectedPortion?.weight_g ?? (isFallbackSelected ? selectedFallback!.weight_g : null);
+  const triggerWeight = triggerWeightG && triggerWeightG > 0
+    ? formatGramsShort(triggerWeightG)
+    : ((selectedPortion || isFallbackSelected) ? 'Gewicht fehlt' : null);
 
   const sortedPortions = [...portions].sort((a, b) => a.rank - b.rank);
 
@@ -82,9 +96,9 @@ export default function PortionPicker({
         aria-label="Portion wählen"
         className="w-full flex items-center justify-between gap-1 min-w-[4.5rem] px-1.5 py-1.5 text-xs text-muted-foreground border border-input rounded-md bg-background hover:bg-muted transition-colors"
       >
-        <span className="truncate">{selectedPortion ? portionDisplayName(selectedPortion) : 'Gramm'}</span>
+        <span className="truncate">{triggerLabel}</span>
         <span className={cn('flex items-center gap-1 shrink-0', 'text-xs tabular-nums')}>
-          {triggerWeight && <span className={selectedPortion && (!selectedPortion.weight_g || selectedPortion.weight_g <= 0) ? 'text-amber-600' : ''}>{triggerWeight}</span>}
+          {triggerWeight && <span className={!triggerWeightG || triggerWeightG <= 0 ? 'text-amber-600' : ''}>{triggerWeight}</span>}
           <ChevronDown size={12} className={cn('transition-transform', isOpen && 'rotate-180')} />
         </span>
       </button>

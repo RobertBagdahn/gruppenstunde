@@ -8,6 +8,14 @@ from ninja import Schema
 from supply.schemas.ingredients import PortionOut
 
 
+class CurrentPortionOut(Schema):
+    """The active portion a superseded `RecipeItem.portion` was replaced by."""
+
+    id: int
+    name: str
+    weight_g: float | None
+
+
 class RecipeItemOut(Schema):
     id: int
     portion_id: int | None = None
@@ -39,6 +47,7 @@ class RecipeItemOut(Schema):
     weight_source: str | None = None
     weight_confirmed_at: datetime | None = None
     is_weight_trusted: bool = False
+    current_portion: CurrentPortionOut | None = None
 
     @staticmethod
     def resolve_idempotency_key(obj) -> str | None:
@@ -136,7 +145,7 @@ class RecipeItemOut(Schema):
                 "is_weight_trusted": p.is_weight_trusted,
                 "is_piece_like": is_piece_like_name(p.name),
             }
-            for p in ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit").all()
+            for p in ingredient.portions.active().select_related("measuring_unit").all()
         ]
 
     @staticmethod
@@ -204,6 +213,23 @@ class RecipeItemOut(Schema):
         ingredient = obj.portion.ingredient if obj.portion else None
         _, has_missing = build_portion_display(obj.quantity, obj.portion, ingredient)
         return has_missing
+
+    @staticmethod
+    def resolve_current_portion(obj) -> dict | None:
+        """The portion `obj.portion` was superseded by, if any and still active.
+
+        `None` when the item's portion was never superseded, or when its
+        successor was itself deleted/further superseded (rebinding on delete
+        should prevent that — see `delete_portion` — but this stays defensive).
+        """
+        if not obj.portion:
+            return None
+        successor = obj.portion.superseded_by
+        if successor is None:
+            return None
+        if successor.deleted_at is not None or successor.superseded_by_id is not None:
+            return None
+        return {"id": successor.id, "name": successor.name, "weight_g": successor.weight_g}
 
 
 class RecipeItemCreateIn(Schema):
@@ -321,6 +347,25 @@ class RecipeItemReplaceIn(Schema):
     ingredient_id: int | None = None
     quantity: float | None = None
     client_request_id: str | None = None
+
+
+class AdoptCurrentPortionsIn(Schema):
+    """Input for `POST .../recipe-items/adopt-current-portions/`.
+
+    `item_ids=None` adopts the current portion for every RecipeItem of the
+    recipe whose portion has been superseded; an explicit list restricts it
+    to those items (used by the single-item "Aktualisieren" action, which
+    passes exactly one id).
+    """
+
+    item_ids: list[int] | None = None
+
+
+class AdoptCurrentPortionsOut(Schema):
+    """Response of `POST .../recipe-items/adopt-current-portions/`."""
+
+    updated_count: int
+    items: list[RecipeItemOut]
 
 
 # ---------------------------------------------------------------------------

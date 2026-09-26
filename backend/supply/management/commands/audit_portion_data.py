@@ -12,7 +12,7 @@ class Command(BaseCommand):
     help = "Audit gram portion variants, missing weights and obvious placeholders without changing data."
 
     def handle(self, *args, **options):
-        active = Portion.objects.filter(deleted_at__isnull=True).select_related("ingredient", "measuring_unit")
+        active = Portion.objects.active().select_related("ingredient", "measuring_unit")
         gram_groups: dict[int, list[dict]] = defaultdict(list)
         missing_weight = 0
         one_gram = 0
