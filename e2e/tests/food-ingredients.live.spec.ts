@@ -119,6 +119,7 @@ test.describe('Ingredient permissions and integrity', () => {
       data: {
         title: recipeTitle,
         recipe_type: 'warm_meal',
+        input_servings: 1,
         recipe_items: [{
           portion_id: Number(portion.id),
           quantity: 1,

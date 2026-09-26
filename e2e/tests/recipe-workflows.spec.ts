@@ -57,8 +57,14 @@ function recipeDetail() {
   };
 }
 
-function smartDraft() {
+function smartPreview() {
+  // No ingredient rows: the wizard skips "Zutaten prüfen" and creates the
+  // draft when leaving "Basis & Portionen".
   return {
+    rows: [],
+    sources: [],
+    ai_interaction_id: null,
+    is_reconstructed: false,
     recipe_draft: {
       title: 'Smart E2E Rezept',
       description: '## Zubereitung\nAlles gut vermischen.',
@@ -76,33 +82,17 @@ function smartDraft() {
       source_url: '',
       image_url: '',
     },
-    recipe_items: [{
-      ingredient_id: 7,
-      ingredient_name: 'E2E Mehl',
-      quantity: 400,
-      measuring_unit_id: 1,
-      measuring_unit_name: 'g',
-      note: '',
-      is_new_ingredient: false,
-      portion_id: 11,
-      needs_unit_clarification: false,
-      suggested_unit_name: '',
-      suggested_portion_weight_g: null,
-      available_portions: [],
-    }],
-    created_ingredients: [],
-    input_type: 'prompt',
-    is_reconstructed: false,
   };
 }
 
 async function mockUnifiedWizard(page: Page) {
   const detail = recipeDetail();
-  await page.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: smartDraft() }));
+  await page.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({ json: smartPreview() }));
   await page.route('**/api/recipes/', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
     await route.fulfill({ json: detail });
   });
+  await page.route('**/api/recipes/101/', (route) => route.fulfill({ json: detail }));
   await page.route('**/api/recipes/by-slug/smart-e2e-rezept/', (route) => route.fulfill({ json: detail }));
   await page.route('**/api/recipes/101/steps/', (route) => route.fulfill({ json: [] }));
   await page.route('**/api/recipes/smart-e2e-rezept/steps/batch', (route) => route.fulfill({ json: [] }));
@@ -141,6 +131,16 @@ test.describe('Recipe Workflows', () => {
     await page.getByTestId('recipe-serving-context-confirm').click();
     await page.getByTestId('recipe-wizard-next').click();
     await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get('draft')).toBe('101');
+    expect(new URL(page.url()).searchParams.get('step')).toBe('ingredients');
+  });
+
+  test('unified wizard can start manually without AI', async ({ page }) => {
+    await page.goto(`${FOOD_URL}/recipes/new`);
+    await page.getByTestId('recipe-manual-start').click();
+    await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
+    await expect(page.locator('#recipe-basis-title')).toHaveValue('');
+    await expect(page.getByTestId('recipe-serving-context-input')).toHaveValue('');
   });
 
   test('unified wizard remains usable at 320px', async ({ page }) => {

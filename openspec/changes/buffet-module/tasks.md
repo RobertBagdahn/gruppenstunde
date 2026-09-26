@@ -5,7 +5,7 @@
 
 ## 1. Freigabe
 
-- [ ] 1.1 Zuordnungstabelle in `design.md` (D10) mit Robert durchgehen, offene Fragen (Apfelzimttee 146/415) klären, Freigabe im Change vermerken
+- [x] 1.1 Zuordnungstabelle in `design.md` (D10) mit Robert durchgehen, offene Fragen (Apfelzimttee 146/415) klären, Freigabe im Change vermerken (freigegeben 26.09.2026; 146 und 415 beide behalten)
 
 ## 2. Backend: Modelle und Migrationen
 

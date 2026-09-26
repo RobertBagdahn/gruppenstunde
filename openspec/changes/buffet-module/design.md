@@ -129,7 +129,7 @@ Der Block zum automatischen Anlegen von Portionen (`meal_plan.py:1043-1061`) und
 ### D9: Merge-Services extrahieren
 Die Logik aus `content/api/data_quality.py` (`merge_ingredients`, `recipe_merge`) wandert nach `supply/services/ingredient_merge.py` bzw. `recipe/services/recipe_merge.py`. Die API-Funktionen werden zu dünnen Wrappern. `migrate_buffet_roles` nutzt dieselben Services. Ergänzung: Nährwerte werden aus der Quelle übernommen, wenn das Ziel `energy_kcal` in (None, 0) hat (Fall „Brötchen“ mit 0 kcal).
 
-### D10: Zuordnungstabelle (zur Freigabe)
+### D10: Zuordnungstabelle (freigegeben am 26.09.2026)
 
 IDs und Namen stammen aus der lokalen DB (Prod-Export vom 25.09.2026). Nutzung: R = RecipeItems, M = MealItems.
 
@@ -247,7 +247,7 @@ Legende:
 | ✅ | 7346, 7347, 7345 | Saft (Apfel), Saft (Multivitamin), Saft (Orange) | Zutat | |
 | ✅ | 436, 437, 438 | Kaffee, Kakao, Tee | Rezept | Standard: Kaffee, Tee |
 | ✅ | 108, 109 | Tasse Kaffee mit Hafermilch, Hafermilch Kakao | Rezept | |
-| ✅ | 146, 415 | Apfelzimttee, Apfel-Zimt Getränk | Rezept | ⚠️ inhaltlich prüfen, ob Dublette |
+| ✅ | 146, 415 | Apfelzimttee, Apfel-Zimt Getränk | Rezept | keine Dublette (Tee vs. Apfelpunsch), beide behalten – entschieden 26.09.2026 |
 | ✅ | 156, 136, 152, 149, 145 | Ingwertee mit Zitronen, Krümeltee, Marrokantischer Minzetee, Ostfriesentee, Waldbeeretee | Rezept | |
 | ✅ | 153 | Tschai einfach/günstig | Rezept | Ziel |
 | 🔀→153 | 155, 215 | Tschai einfach/günstig | Rezept | |
@@ -311,5 +311,4 @@ Reihenfolge: `ingredient-status-visibility-unification` (ISVU) → `portion-supe
 
 ## Open Questions
 
-- Sind „Apfelzimttee“ (146) und „Apfel-Zimt Getränk“ (415) inhaltlich dasselbe? Falls ja, vor dem Echtlauf als `merge_into` eintragen.
 - Soll „Snack“ eine eigene Vorlage bekommen (z. B. Wanderproviant: Brot, Belag herzhaft, Obst, Müsliriegel)? Vorerst nein.
