@@ -36,6 +36,7 @@ from session.api import router as session_router
 from shopping.api import kitchen_reminder_router, shopping_router
 from supply.api import (
     breakfast_catalog_router,
+    data_offensive_router,
     equipment_router,
     ingredient_group_router,
     ingredient_router,
@@ -63,6 +64,7 @@ api.add_router("/admin/", admin_router)
 api.add_router("/admin/tags/", admin_tags_router)
 # Specific staff-only routes must precede the catch-all data-quality router.
 api.add_router("/admin/data-quality/portion-repair/", portion_repair_router)
+api.add_router("/admin/data-quality/offensive/", data_offensive_router)
 api.add_router("/admin/data-quality/", dq_admin_router)
 api.add_router("/data-quality/", dq_public_router)
 api.add_router("/planner/", planner_router)

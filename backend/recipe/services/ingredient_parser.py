@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
+from core.services.gemini import DEFAULT_TEXT_MODEL
+
 if TYPE_CHECKING:
     pass
 
@@ -383,7 +385,7 @@ class IngredientNameParser:
 
             response, _ = gemini_call(
                 user=None,
-                model="gemini-3.1-flash-lite",
+                model=DEFAULT_TEXT_MODEL,
                 contents=f"Parse diese Zutatenangabe in Name, Note (Modifikator), Menge und Einheit:\n{raw}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

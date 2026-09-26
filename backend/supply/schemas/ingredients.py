@@ -669,6 +669,9 @@ class IngredientSuggestAllOut(Schema):
 
     price_per_kg: float | None = None
 
+    retail_section_id: int | None = None
+    retail_section_name: str | None = None
+
     ai_suggest: IngredientAiSuggestOut
     aliases: list[str] = []
     nutritional_tags: list[NutritionalTagOut] = []

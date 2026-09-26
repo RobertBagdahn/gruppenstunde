@@ -16,7 +16,7 @@ from django.utils import timezone
 from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
 from supply.services.price_service import is_missing_price, price_or_none
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 MAX_PROPOSED_PRICE_EUR = Decimal("1000.00")
 

@@ -31,13 +31,14 @@ from django.db import transaction
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
+from core.services.gemini import DEFAULT_TEXT_MODEL
 from recipe.models import Recipe, RecipeItem
 from recipe.services.recipe_checks import recalculate_recipe_cache
 from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.models import Portion
 from supply.services.portion_resolution import resolve_trusted_weight
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 DEFAULT_BATCH_SIZE = 40
 # Referenced portions keep their weight; the estimate only confirms it when close enough.
 REFERENCED_CONFIRM_TOLERANCE = 0.5

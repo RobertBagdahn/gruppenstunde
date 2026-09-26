@@ -11,12 +11,13 @@ import logging
 from django.core.management.base import BaseCommand
 from pydantic import BaseModel, Field
 
+from core.services.gemini import DEFAULT_TEXT_MODEL
 from recipe.models import Recipe, RecipeItem
 from recipe.services.recipe_checks import recalculate_recipe_cache
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 
 # ---------------------------------------------------------------------------

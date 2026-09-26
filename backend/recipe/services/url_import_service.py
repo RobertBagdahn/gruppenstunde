@@ -21,14 +21,14 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from pydantic import BaseModel, Field
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
 from recipe.services.exceptions import NoRecipeFoundError
 from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 # Valid choice values for validation
 VALID_RECIPE_TYPES = {"breakfast", "warm_meal", "cold_meal", "dessert", "recipe_part", "drink", "snack"}

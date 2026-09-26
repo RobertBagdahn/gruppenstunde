@@ -588,6 +588,10 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
             nutri_changed = True
         setattr(ingredient, field, value)
 
+    # A retail section chosen by a person must not be overwritten by rules or AI.
+    if "retail_section_id" in data:
+        ingredient.retail_section_source = "manual" if data["retail_section_id"] else ""
+
     # Handle visibility changes
     if visibility is not None:
         ingredient.visibility = visibility

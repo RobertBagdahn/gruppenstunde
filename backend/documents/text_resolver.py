@@ -201,7 +201,7 @@ Antworte ausschließlich als JSON-Objekt mit dem erforderlichen Feld "text"."""
 
         response, _interaction_id = gemini_call(
             user=None,
-            model="gemini-3.1-flash-lite",
+            model="gemini-3.5-flash-lite",  # gemini_call routes to DEFAULT_TEXT_MODEL anyway
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

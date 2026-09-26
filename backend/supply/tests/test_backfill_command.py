@@ -19,8 +19,8 @@ class TestBackfillRetailSectionsCommand:
 
         _get_retail_section_by_name.cache_clear()
         # Create retail sections
-        self.rs_kaese = RetailSection.objects.get_or_create(name="Milchprodukte & Käse", defaults={"rank": 1})[0]
-        self.rs_oele = RetailSection.objects.get_or_create(name="Öle & Soßen", defaults={"rank": 2})[0]
+        self.rs_kaese = RetailSection.objects.get_or_create(name="Käse", defaults={"rank": 1})[0]
+        self.rs_oele = RetailSection.objects.get_or_create(name="Öle & Essig", defaults={"rank": 2})[0]
         self.rs_kuehlung = RetailSection.objects.get_or_create(name="Kühlung", defaults={"rank": 3})[0]
 
         # Create ingredients

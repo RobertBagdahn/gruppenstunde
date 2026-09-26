@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
+from core.services.gemini import DEFAULT_TEXT_MODEL
+
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
 
@@ -20,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 # Container units without a fixed gram equivalent — resolved via Gemini.
 CONTAINER_UNITS: set[str] = {

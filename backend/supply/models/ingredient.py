@@ -12,10 +12,12 @@ from pgvector.django import VectorField
 from content.models import SoftDeleteModel, Tag
 
 from ..choices import (
+    AiReviewVerdictChoices,
     IngredientStatusChoices,
     PhysicalViscosityChoices,
     PortionWeightSource,
     PortionWeightStatus,
+    RetailSectionSourceChoices,
     StorageTypeChoices,
 )
 from .reference import NutritionalTag, RetailSection
@@ -312,10 +314,38 @@ class Ingredient(SoftDeleteModel):
     )
     quality_score_updated_at = models.DateTimeField(null=True, blank=True)
 
+    # Data offensive: provenance of the retail section and the last AI review.
+    retail_section_source = models.CharField(
+        max_length=10,
+        choices=RetailSectionSourceChoices.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Herkunft der Warengruppe"),
+        help_text=_("Manuell gesetzte Warengruppen werden von Regeln und KI nicht überschrieben."),
+    )
+    ai_reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("KI-geprüft am"))
+    ai_review_verdict = models.CharField(
+        max_length=20,
+        choices=AiReviewVerdictChoices.choices,
+        blank=True,
+        default="",
+        verbose_name=_("KI-Prüfergebnis"),
+    )
+    ai_review_notes = models.JSONField(default=dict, blank=True, verbose_name=_("KI-Prüfnotizen"))
+
     class Meta:
         verbose_name = _("Zutat")
         verbose_name_plural = _("Zutaten")
         ordering = ["name"]
+        constraints = [
+            # System ingredients (no owner) must have unique names; private user
+            # ingredients may reuse names. Prevents "34× Nudeln" from ever returning.
+            models.UniqueConstraint(
+                Lower("name"),
+                condition=Q(deleted_at__isnull=True, owner__isnull=True),
+                name="uniq_system_ingredient_name",
+            ),
+        ]
 
     def __str__(self):
         return self.name

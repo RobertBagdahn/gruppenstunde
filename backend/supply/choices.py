@@ -140,3 +140,21 @@ class RecipeObjectiveChoices(models.TextChoices):
     TASTE = "taste", _("Geschmack")
     COST = "cost", _("Kosten")
     FULFILLMENT = "fulfillment", _("Sättigung")
+
+
+class RetailSectionSourceChoices(models.TextChoices):
+    """Where an ingredient's retail section assignment came from."""
+
+    RULE = "rule", _("Regel")
+    AI = "ai", _("KI")
+    MANUAL = "manual", _("Manuell")
+
+
+class AiReviewVerdictChoices(models.TextChoices):
+    """Outcome of the batch AI review of an ingredient."""
+
+    OK = "ok", _("Plausibel")
+    CORRECTED = "corrected", _("Korrigiert")
+    RENAME = "rename", _("Umbenennen")
+    DUPLICATE = "duplicate", _("Duplikat")
+    NOT_AN_INGREDIENT = "not_an_ingredient", _("Keine Zutat")

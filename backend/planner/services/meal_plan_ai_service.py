@@ -12,7 +12,7 @@ from google.genai import types as genai_types
 from pydantic import BaseModel, Field, ValidationError
 
 from content.choices import ContentStatus
-from core.services.gemini import GeminiInvalidResponseError, GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiInvalidResponseError, GeminiUnavailableError, gemini_call
 from core.services.prompt_context import build_prompt_context
 from planner.models import Meal, MealItem
 from planner.schemas.ai_generation import AiApplyOut, SkippedItem
@@ -20,7 +20,7 @@ from recipe.models import Recipe
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 AI_TIMEOUT_SECONDS = 60
 
 REQUIRED_MEAL_TYPES = ["breakfast", "lunch", "dinner"]
@@ -485,7 +485,7 @@ class MealPlanAiService:
             tag_names = [t.name_opposite or t.name for t in tags]
             if tag_names:
                 constraints_parts.append(
-                    f"Ernährungseinschränkungen: {', '.join(tag_names)}. " "Schlage nur konforme Gerichte vor."
+                    f"Ernährungseinschränkungen: {', '.join(tag_names)}. Schlage nur konforme Gerichte vor."
                 )
         if budget_per_person_per_day is not None:
             constraints_parts.append(

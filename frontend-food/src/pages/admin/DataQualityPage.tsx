@@ -3,8 +3,10 @@ import { cn } from '@/lib/utils';
 import DataQualityIngredientsPage from './DataQualityIngredientsPage';
 import DataQualityRecipesPage from './DataQualityRecipesPage';
 import PortionRepairList from '@/components/data-quality/PortionRepairList';
+import DataOffensivePage from './DataOffensivePage';
 
 const TABS = [
+  { key: 'cockpit', label: 'Cockpit' },
   { key: 'ingredients', label: 'Zutaten' },
   { key: 'recipes', label: 'Rezepte' },
   { key: 'portion-repair', label: 'Portions-Reparatur' },
@@ -15,9 +17,9 @@ type TabKey = (typeof TABS)[number]['key'];
 export default function DataQualityPage() {
   const { section } = useParams<{ section?: string }>();
   const navigate = useNavigate();
-  const activeTab: TabKey = (TABS.find((t) => t.key === section)?.key) ?? 'ingredients';
+  const activeTab: TabKey = (TABS.find((t) => t.key === section)?.key) ?? 'cockpit';
 
-  if (!section) return <Navigate to="/admin/data-quality/ingredients" replace />;
+  if (!section) return <Navigate to="/admin/data-quality/cockpit" replace />;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
@@ -45,6 +47,7 @@ export default function DataQualityPage() {
         ))}
       </div>
 
+      {activeTab === 'cockpit' && <DataOffensivePage />}
       {activeTab === 'ingredients' && <DataQualityIngredientsPage />}
       {activeTab === 'recipes' && <DataQualityRecipesPage />}
       {activeTab === 'portion-repair' && <PortionRepairList />}

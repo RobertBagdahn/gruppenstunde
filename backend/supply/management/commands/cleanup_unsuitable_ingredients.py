@@ -12,7 +12,7 @@ import os
 from django.core.management.base import BaseCommand
 from pydantic import BaseModel, Field
 
-from core.services.gemini import gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, gemini_call
 
 
 class SuitabilityResult(BaseModel):
@@ -47,7 +47,9 @@ class Command(BaseCommand):
         from core.services.gemini import GeminiUnavailableError
 
         # Build ingredient list
-        items_text = "\n".join([f"{i+1}. {item['name']}: {item['description']}" for i, item in enumerate(batch_items)])
+        items_text = "\n".join(
+            [f"{i + 1}. {item['name']}: {item['description']}" for i, item in enumerate(batch_items)]
+        )
 
         prompt = f"""Bewerte jede Zutat für die Eignung bei Pfadfinderlagern (Stammeslager).
 
@@ -80,7 +82,7 @@ Zutaten zur Klassifizierung:
         try:
             response, _interaction_id = gemini_call(
                 user=None,
-                model="gemini-3.1-flash-lite",
+                model=DEFAULT_TEXT_MODEL,
                 contents=prompt,
                 config=config,
                 context="classify_ingredients",
@@ -151,7 +153,7 @@ Zutaten zur Klassifizierung:
             batch = ingredients[batch_start:batch_end]
 
             self.stdout.write(
-                f"\n[{batch_start+1}/{len(ingredients)}] Classifying batch {batch_start+1}-{batch_end}..."
+                f"\n[{batch_start + 1}/{len(ingredients)}] Classifying batch {batch_start + 1}-{batch_end}..."
             )
 
             # Prepare batch data

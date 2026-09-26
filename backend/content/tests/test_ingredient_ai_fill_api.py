@@ -83,7 +83,8 @@ class TestNutritionPlausibilityAPI:
         assert "Energy Drink" in names
 
     def test_filter_by_anomaly_type(self, admin_client, test_ingredients):
-        res = admin_client.get(f"{BASE}/ingredients/nutrition-plausibility/?anomaly_type=sugar_gt_carbs")
+        # Carbs stored as 0 while sugar is set is the broken-import signature.
+        res = admin_client.get(f"{BASE}/ingredients/nutrition-plausibility/?anomaly_type=broken_import")
         assert res.status_code == 200
         data = res.json()
         assert any(item["name"] == "Kirschpraline" for item in data["items"])

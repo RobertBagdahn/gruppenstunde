@@ -17,7 +17,9 @@ from typing import Literal
 from django.core.management.base import BaseCommand
 from pydantic import BaseModel, RootModel
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+from core.services.gemini import DEFAULT_TEXT_MODEL
+
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 SYSTEM_PROMPT = """Du bist ein Koch-Experte. Schätze für jedes Rezept die folgenden Metadaten:
 
