@@ -7,6 +7,9 @@ from django.test import Client
 from content.choices import LinkType
 from content.models import ContentLink
 
+# Gemini fallbacks (parser, enrichment, embeddings) are incidental here; keep them offline.
+pytestmark = pytest.mark.usefixtures("gemini_unavailable")
+
 BASE = "/api/admin/data-quality"
 
 

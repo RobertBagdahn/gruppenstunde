@@ -660,7 +660,7 @@ def test_command_dry_run_writes_nothing(ingredient, gram_unit):
 
 
 @pytest.mark.django_db
-def test_command_scan_creates_candidates(ingredient, gram_unit):
+def test_command_scan_creates_candidates(ingredient, gram_unit, gemini_unavailable):
     from io import StringIO
 
     from django.core.management import call_command
