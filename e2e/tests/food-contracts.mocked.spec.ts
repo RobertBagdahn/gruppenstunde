@@ -53,10 +53,40 @@ function recipeDetail(title: string, slug: string) {
   };
 }
 
+/** Mirrors `IngredientReviewRowSchema`: a complete row the "Zutaten prüfen"
+ *  step can confirm directly. */
+function reviewRow(source: { type: 'url' | 'text'; label: string; value: string }) {
+  const portion = { id: 11, name: 'Gramm', quantity: 1, weight_g: 1, measuring_unit_id: 1, measuring_unit_name: 'g', is_new: false };
+  return {
+    key: 'row-1',
+    source_text: '400 g Mehl',
+    sources: [source],
+    selected_ingredient_id: 7,
+    selected_ingredient_slug: 'e2e-mehl',
+    selected_ingredient_name: 'E2E Mehl',
+    suggested_ingredient_id: 7,
+    suggested_ingredient_name: 'E2E Mehl',
+    candidates: [],
+    selected_portion: portion,
+    suggested_portion: portion,
+    quantity: 400,
+    suggested_quantity: 400,
+    reason: '',
+    technical_details: null,
+    conflicts: [],
+    new_ingredient_draft: null,
+    status: 'open',
+  };
+}
+
 test('unified smart recipe wizard accepts one AI result and preserves the draft flow', async ({ foodPage }) => {
   const created = recipeDetail('Smart E2E Rezept', 'smart-e2e-rezept');
   const smartBodies: Record<string, unknown>[] = [];
+  const source = { type: 'text' as const, label: 'Eingefügter Text', value: 'Kartoffelsuppe für 4 Personen' };
   const draft = {
+    rows: [reviewRow(source)],
+    sources: [source],
+    ai_interaction_id: null,
     recipe_draft: {
       title: 'Smart E2E Rezept',
       description: '## Zubereitung\nAlles gut vermischen.',
@@ -74,27 +104,11 @@ test('unified smart recipe wizard accepts one AI result and preserves the draft 
       source_url: '',
       image_url: '',
     },
-    recipe_items: [{
-      ingredient_id: 7,
-      ingredient_name: 'E2E Mehl',
-      quantity: 400,
-      measuring_unit_id: 1,
-      measuring_unit_name: 'g',
-      note: '',
-      is_new_ingredient: false,
-      portion_id: 11,
-      needs_unit_clarification: false,
-      suggested_unit_name: '',
-      suggested_portion_weight_g: null,
-      available_portions: [],
-    }],
-    created_ingredients: [],
-    input_type: 'prompt',
     is_reconstructed: false,
   };
 
   await foodPage.route('**/api/auth/me/', (route) => route.fulfill({ json: mockUser }));
-  await foodPage.route('**/api/recipes/smart-input/', async (route) => {
+  await foodPage.route('**/api/recipes/ingredient-review/preview/', async (route) => {
     smartBodies.push(assertRecord(route.request().postDataJSON()));
     await route.fulfill({ json: draft });
   });
@@ -112,16 +126,23 @@ test('unified smart recipe wizard accepts one AI result and preserves the draft 
   await foodPage.getByTestId('recipe-smart-input').fill('Kartoffelsuppe für 4 Personen');
   await foodPage.getByTestId('recipe-wizard-next').click();
   await expect.poll(() => smartBodies).toHaveLength(1);
-  expect(smartBodies[0]).toEqual({ input: 'Kartoffelsuppe für 4 Personen' });
+  expect(smartBodies[0]).toEqual({ sources: [{ type: 'text', value: 'Kartoffelsuppe für 4 Personen' }] });
 
   await expect(foodPage.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
   await foodPage.getByTestId('recipe-serving-context-confirm').click();
+  await foodPage.getByTestId('recipe-wizard-next').click();
+  await expect(foodPage.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
+  await foodPage.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
   await foodPage.getByTestId('recipe-wizard-next').click();
   await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
 });
 
 test('smart input maps a URL result and preserves metadata on create', async ({ foodPage }) => {
+  const source = { type: 'url' as const, label: 'example.test', value: 'https://example.test/recipe' };
   const draft = {
+    rows: [reviewRow(source)],
+    sources: [source],
+    ai_interaction_id: null,
     recipe_draft: {
       title: 'Importiertes E2E Rezept',
       description: 'Importbeschreibung',
@@ -139,23 +160,13 @@ test('smart input maps a URL result and preserves metadata on create', async ({ 
       source_url: 'https://example.test/recipe',
       image_url: '',
     },
-    recipe_items: [{
-      ingredient_id: 7,
-      ingredient_name: 'E2E Mehl',
-      quantity: 400,
-      measuring_unit_id: 1,
-      measuring_unit_name: 'g',
-      note: 'gesiebt',
-      is_new_ingredient: false,
-      portion_id: 11,
-    }],
-    created_ingredients: [],
+    is_reconstructed: false,
   };
   const created = recipeDetail('Importiertes E2E Rezept', 'importiertes-e2e-rezept');
   const recipeCreateBodies: Record<string, unknown>[] = [];
 
   await foodPage.route('**/api/auth/me/', (route) => route.fulfill({ json: mockUser }));
-  await foodPage.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: { ...draft, input_type: 'url', is_reconstructed: false } }));
+  await foodPage.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({ json: draft }));
   await foodPage.route('**/api/recipes/', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
     recipeCreateBodies.push(assertRecord(route.request().postDataJSON()));
@@ -173,7 +184,10 @@ test('smart input maps a URL result and preserves metadata on create', async ({ 
   await foodPage.getByTestId('recipe-serving-context-confirm').click();
   await foodPage.getByTestId('recipe-wizard-next').click();
 
-  await foodPage.getByRole('button', { name: 'Weiter' }).click();
+  // The recipe is created when the reviewed ingredients are confirmed.
+  await expect(foodPage.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
+  await foodPage.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
+  await foodPage.getByTestId('recipe-wizard-next').click();
   await expect.poll(() => recipeCreateBodies).toHaveLength(1);
   expect(recipeCreateBodies[0]).toMatchObject({
     title: 'Importiertes E2E Rezept',
@@ -181,14 +195,19 @@ test('smart input maps a URL result and preserves metadata on create', async ({ 
     scout_level_ids: [2],
     tag_ids: ['058e7081-bb7d-4412-a67c-a828052c3910'],
   });
-  expect((recipeCreateBodies[0].recipe_items as Array<Record<string, unknown>>)[0]?.quantity).toBe(100);
+  // 400 g total for 4 servings are stored per single portion.
+  expect((recipeCreateBodies[0].recipe_items as Array<Record<string, unknown>>)[0]).toMatchObject({ portion_id: 11, quantity: 100 });
 });
 
 test('smart input shows classified German errors without partial navigation', async ({ foodPage }) => {
   await foodPage.route('**/api/auth/me/', (route) => route.fulfill({ json: mockUser }));
-  await foodPage.route('**/api/recipes/smart-input/', (route) => route.fulfill({
+  // The preview hook shows `detail` verbatim, so the backend sends German text.
+  await foodPage.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({
     status: 422,
-    json: { error_code: 'IMPORT_NO_RECIPE_FOUND', detail: 'No recipe' },
+    json: {
+      error_code: 'IMPORT_NO_RECIPE_FOUND',
+      detail: 'Auf der Seite wurden keine Rezeptdaten gefunden. Bitte prüfe den Link oder gib das Rezept manuell ein.',
+    },
   }));
 
   await foodPage.goto('/recipes/new');
