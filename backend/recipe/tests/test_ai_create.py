@@ -76,7 +76,7 @@ class TestAiCreateEndpoint:
         assert data["title"] == "Nudelauflauf"
         assert data["recipe_type"] == "warm_meal"
         assert data["portions"] == 1
-        assert data["input_servings"] == 4
+        assert data["source_servings"] == 4
         assert data["status"] == "draft"
         assert len(data["recipe_items"]) == 4
         assert data["recipe_items"][0]["ingredient_name"] == "Nudeln"

@@ -1,70 +1,59 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useRecipeBySlug } from '@/api/recipes';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
+import { normalizeServingContext } from '@/lib/cookingQuantityScale';
 import InlineIngredientEditor from './InlineIngredientEditor';
 import type { InlineIngredientEditorHandle } from './InlineIngredientEditor';
-import type { DraftCreationResult, DraftIngredientItem } from './InlineIngredientEditor';
-import { normalizeServingContext } from '@/lib/cookingQuantityScale';
-import { toast } from 'sonner';
+import { useWizardStep } from './wizardContext';
 
 interface WizardStepIngredientsProps {
-  recipeId: number | null;
+  recipeId: number;
   recipeSlug: string;
-  creationMethod: 'manual' | 'ai' | 'url' | 'smart' | null;
-  onIngredientsCountChange: (count: number) => void;
-  onTitleChange: (title: string) => void;
-  onRecipeTypeChange: (type: string | null) => void;
   title: string;
   recipeType: string | null;
-  initialInputPortions?: number | null;
-  initialItemsAreContextual?: boolean;
-  onCreateDraft?: (items: DraftIngredientItem[]) => Promise<DraftCreationResult | null>;
+  onTitleChange: (title: string) => void;
+  onRecipeTypeChange: (type: string | null) => void;
+  saveRecipe: (body: Record<string, unknown>) => Promise<void>;
 }
 
-export interface WizardStepIngredientsHandle {
-  save: () => Promise<boolean>;
-}
-
-const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStepIngredientsProps>(function WizardStepIngredients({
+export default function WizardStepIngredients({
   recipeId,
   recipeSlug,
-  creationMethod: _creationMethod,
-  onIngredientsCountChange,
-  onTitleChange,
-  onRecipeTypeChange,
   title,
   recipeType,
-  initialInputPortions,
-  initialItemsAreContextual = false,
-  onCreateDraft,
-}: WizardStepIngredientsProps, ref) {
+  onTitleChange,
+  onRecipeTypeChange,
+  saveRecipe,
+}: WizardStepIngredientsProps) {
   const { data: recipe, isLoading } = useRecipeBySlug(recipeSlug);
   const items = recipe?.recipe_items ?? [];
   const portions = recipe?.portions ?? 1;
   const editorRef = useRef<InlineIngredientEditorHandle>(null);
-  const inputPortions = normalizeServingContext(initialInputPortions ?? 1);
+  // Quantities are stored per portion; show them for the original servings.
+  const inputPortions = normalizeServingContext(recipe?.source_servings ?? 1);
+  const { registerLeave } = useWizardStep();
 
-  useImperativeHandle(ref, () => ({
-    save: () => {
-      if (!editorRef.current) {
-        toast.error('Die Zutaten werden noch geladen.');
-        return Promise.resolve(false);
-      }
-      return editorRef.current.save();
-    },
-  }), []);
+  useEffect(() => registerLeave(async () => {
+    if (!editorRef.current) {
+      toast.error('Die Zutaten werden noch geladen.');
+      return false;
+    }
+    if (!title.trim()) {
+      toast.error('Bitte gib einen Titel ein.');
+      return false;
+    }
+    // Save the basics first: the editor shows its own success toast, which
+    // must not be followed by an error toast from this PATCH.
+    const body: Record<string, unknown> = { title: title.trim() };
+    if (recipeType) body.recipe_type = recipeType;
+    await saveRecipe(body);
+    return editorRef.current.save();
+  }), [recipeType, registerLeave, saveRecipe, title]);
 
-  void _creationMethod;
-
-  useEffect(() => {
-    onIngredientsCountChange(items.length);
-  }, [items.length, onIngredientsCountChange]);
-
-  // Wait for the freshly created recipe (with its imported/mapped ingredients) to
-  // load before mounting InlineIngredientEditor — its internal state is only
-  // initialized once on mount, so mounting with an empty `items` array (before
-  // the fetch resolves) would permanently show an empty ingredient list.
-  if (recipeId !== null && (isLoading || !recipe)) {
+  // Wait for the recipe (with its imported/mapped ingredients) before mounting
+  // InlineIngredientEditor — it initializes its state only once on mount.
+  if (isLoading || !recipe) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         Lade Zutaten...
@@ -79,12 +68,18 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
         <p className="text-sm text-muted-foreground mt-2">
           Gib deinem Rezept einen Namen, wähle den Typ und füge Zutaten hinzu.
         </p>
+        {recipe.source_servings && (
+          <p className="text-xs text-muted-foreground mt-1" data-testid="recipe-source-servings">
+            Originalrezept für {recipe.source_servings} {recipe.source_servings === 1 ? 'Person' : 'Personen'}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1.5">Titel *</label>
+          <label htmlFor="recipe-ingredients-title" className="block text-sm font-medium mb-1.5">Titel *</label>
           <input
+            id="recipe-ingredients-title"
             type="text"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
@@ -93,7 +88,7 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Rezept-Typ *</label>
+          <span className="block text-sm font-medium mb-1.5">Rezept-Typ *</span>
           <div className="grid grid-cols-2 gap-1.5">
             {RECIPE_TYPE_OPTIONS.map((option) => {
               const isSelected = recipeType === option.value;
@@ -102,6 +97,7 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
                   key={option.value}
                   type="button"
                   onClick={() => onRecipeTypeChange(option.value)}
+                  aria-pressed={isSelected}
                   className={`flex items-center gap-1 px-2 py-1.5 text-xs font-medium border rounded-md transition-colors ${
                     isSelected
                       ? 'border-primary bg-primary/10 text-primary'
@@ -118,7 +114,7 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1.5">Zutaten *</label>
+        <span className="block text-sm font-medium mb-1.5">Zutaten *</span>
         <div className="bg-card rounded-xl border">
           <InlineIngredientEditor
             ref={editorRef}
@@ -127,16 +123,13 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
             items={items}
             portions={portions}
             inputPortions={inputPortions}
-            itemsAreContextual={initialItemsAreContextual}
+            itemsAreContextual={false}
             onClose={() => {}}
             onSaved={() => {}}
             onSave={() => {}}
-            onCreateDraft={onCreateDraft}
           />
         </div>
       </div>
     </div>
   );
-});
-
-export default WizardStepIngredients;
+}

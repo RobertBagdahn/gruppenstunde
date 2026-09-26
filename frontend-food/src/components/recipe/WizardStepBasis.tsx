@@ -1,60 +1,43 @@
-import { useCallback, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 import RecipeServingContextSelector from './RecipeServingContextSelector';
+import { useWizardStep } from './wizardContext';
+
+export interface BasisDraft {
+  title: string;
+  recipeType: string;
+  servings: number;
+}
 
 interface WizardStepBasisProps {
-  result: IngredientReviewPreview | null;
+  /** Manual mode starts empty and needs no servings confirmation. */
+  isManual: boolean;
+  isReconstructed: boolean;
   initialTitle: string;
   initialRecipeType: string | null;
-  onTitleChange: (title: string) => void;
-  onRecipeTypeChange: (type: string | null) => void;
-  onDraftChange: (draft: { title: string; recipeType: string; servings: number }) => void;
+  initialServings: number | null;
+  initialServingsConfirmed: boolean;
+  onDraftChange: (draft: BasisDraft) => void;
 }
 
-export interface WizardStepBasisHandle {
-  save: () => Promise<boolean>;
-}
-
-const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(function WizardStepBasis({
-  result,
+export default function WizardStepBasis({
+  isManual,
+  isReconstructed,
   initialTitle,
   initialRecipeType,
-  onTitleChange,
-  onRecipeTypeChange,
+  initialServings,
+  initialServingsConfirmed,
   onDraftChange,
-}, ref) {
-  const [title, setTitle] = useState(initialTitle || result?.recipe_draft.title || '');
-  const [recipeType, setRecipeType] = useState(initialRecipeType || result?.recipe_draft.recipe_type || 'warm_meal');
-  const [servings, setServings] = useState(result?.recipe_draft.servings ?? 1);
-  const [servingsConfirmed, setServingsConfirmed] = useState(false);
+}: WizardStepBasisProps) {
+  const [title, setTitle] = useState(initialTitle);
+  const [recipeType, setRecipeType] = useState<string | null>(initialRecipeType);
+  const [servings, setServings] = useState<number | null>(initialServings);
+  const [servingsConfirmed, setServingsConfirmed] = useState(isManual || initialServingsConfirmed);
+  const { registerLeave } = useWizardStep();
 
-  useEffect(() => {
-    if (!result) return;
-    setTitle((current) => current || result.recipe_draft.title);
-    setRecipeType((current) => current || result.recipe_draft.recipe_type || 'warm_meal');
-    setServings(result.recipe_draft.servings ?? 1);
-    setServingsConfirmed(false);
-    onTitleChange(result.recipe_draft.title);
-    onRecipeTypeChange(result.recipe_draft.recipe_type || 'warm_meal');
-  }, [onRecipeTypeChange, onTitleChange, result]);
-
-  const updateTitle = (value: string) => {
-    setTitle(value);
-    onTitleChange(value);
-  };
-
-  const updateRecipeType = (value: string) => {
-    setRecipeType(value);
-    onRecipeTypeChange(value);
-  };
-
-  const save = useCallback(async (): Promise<boolean> => {
-    if (!result) {
-      toast.error('Die KI-Analyse ist noch nicht abgeschlossen.');
-      return false;
-    }
+  useEffect(() => registerLeave((direction) => {
+    if (direction === 'back') return true;
     if (!title.trim()) {
       toast.error('Bitte gib einen Titel ein.');
       return false;
@@ -63,35 +46,34 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
       toast.error('Bitte wähle einen Rezept-Typ.');
       return false;
     }
-    if (!servingsConfirmed) {
-      toast.error('Bitte bestätige zuerst die Personenzahl.');
+    if (servings === null) {
+      toast.error('Bitte gib die Personenzahl des Originalrezepts an.');
       return false;
     }
     if (!Number.isInteger(servings) || servings < 1 || servings > 100) {
       toast.error('Die Personenzahl muss zwischen 1 und 100 liegen.');
       return false;
     }
-
+    if (!servingsConfirmed) {
+      toast.error('Bitte bestätige zuerst die Personenzahl.');
+      return false;
+    }
     onDraftChange({ title: title.trim(), recipeType, servings });
     return true;
-  }, [onDraftChange, result, servings, servingsConfirmed, title, recipeType]);
-
-  useImperativeHandle(ref, () => ({ save }), [save]);
-
-  if (!result) {
-    return <div className="py-12 text-center text-muted-foreground">Warte auf die KI-Analyse…</div>;
-  }
+  }), [onDraftChange, recipeType, registerLeave, servings, servingsConfirmed, title]);
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-xl font-display font-bold">Basis & Portionen</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Prüfe Titel, Rezeptart und die Originalportionen. Inspi normiert die Mengen beim Speichern intern auf eine Portion.
+          {isManual
+            ? 'Lege Titel, Rezeptart und die Personenzahl fest. Zutaten ergänzt du im nächsten Schritt.'
+            : 'Prüfe Titel, Rezeptart und die Originalportionen. Inspi normiert die Mengen beim Speichern intern auf eine Portion.'}
         </p>
       </div>
 
-      {result.is_reconstructed && (
+      {isReconstructed && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
           Die Quelle hat den automatischen Abruf blockiert — die Daten wurden über die Websuche rekonstruiert. Bitte prüfe alle Angaben sorgfältig.
         </div>
@@ -103,7 +85,9 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
           <input
             id="recipe-basis-title"
             value={title}
-            onChange={(event) => updateTitle(event.target.value)}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="z. B. Nudelauflauf mit Hackfleisch"
+            data-testid="recipe-basis-title"
             className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
           />
         </div>
@@ -114,7 +98,8 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
               <button
                 key={option.value}
                 type="button"
-                onClick={() => updateRecipeType(option.value)}
+                onClick={() => setRecipeType(option.value)}
+                aria-pressed={recipeType === option.value}
                 className={`rounded-md border px-2 py-1.5 text-xs font-medium ${recipeType === option.value ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted'}`}
               >
                 {option.label}
@@ -127,13 +112,12 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
       <RecipeServingContextSelector
         value={servings}
         onChange={setServings}
-        onConfirm={() => setServingsConfirmed(true)}
-        description="Für wie viele Personen ist das Originalrezept gedacht? Diese Angabe bestimmt, wie die Mengen im nächsten Schritt angezeigt werden."
-        confirmLabel="Personenzahl geprüft"
+        onConfirm={isManual ? undefined : () => setServingsConfirmed(true)}
+        description={isManual
+          ? 'Für wie viele Personen gibst du die Mengen im nächsten Schritt ein?'
+          : 'Für wie viele Personen ist das Originalrezept gedacht? Diese Angabe bestimmt, wie die Mengen im nächsten Schritt angezeigt werden.'}
+        confirmLabel={servingsConfirmed ? 'Personenzahl bestätigt' : 'Personenzahl geprüft'}
       />
-
     </div>
   );
-});
-
-export default WizardStepBasis;
+}

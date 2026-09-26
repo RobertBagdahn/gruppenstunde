@@ -350,7 +350,7 @@ def test_ai_created_draft_retains_items_and_is_owned_by_user(auth_client):
     assert recipe.status == "draft"
     assert recipe.recipe_items.count() == 1
     assert recipe.recipe_items.first().quantity == 100
-    assert recipe.input_servings == 4
+    assert recipe.source_servings == 4
 
 
 @pytest.mark.django_db
@@ -365,6 +365,7 @@ def test_url_created_draft_retains_source_metadata_items_and_steps(auth_client):
                 "description": "Importbeschreibung",
                 "recipe_type": "warm_meal",
                 "source_url": "https://www.chefkoch.de/rezepte/test",
+                "input_servings": 1,
                 "recipe_items": [
                     {
                         "portion_id": portion.id,

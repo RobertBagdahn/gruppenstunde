@@ -1,50 +1,30 @@
-import { forwardRef, useImperativeHandle } from 'react';
-import { toast } from 'sonner';
+import { useEffect } from 'react';
 import { useRecipeBySlug, useUpdateRecipe } from '@/api/recipes';
 import { useRecipeSteps } from '@/hooks/useRecipeSteps';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import RecipeIngredientsTable from '@/components/recipe/RecipeIngredientsTable';
 import { Badge } from '@/components/ui/badge';
 import { getRecipeExecutionTimeLabel, RECIPE_DIFFICULTY_OPTIONS, RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
+import { useWizardStep } from './wizardContext';
 
 interface WizardStepPreviewProps {
   recipeSlug: string;
-  onFinish: () => void;
 }
 
-export interface WizardStepPreviewHandle {
-  primaryAction: () => Promise<boolean>;
-}
-
-const WizardStepPreview = forwardRef<WizardStepPreviewHandle, WizardStepPreviewProps>(function WizardStepPreview({ recipeSlug, onFinish }, ref) {
+export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps) {
   const { data: recipe } = useRecipeBySlug(recipeSlug);
   const { data: steps } = useRecipeSteps(recipeSlug);
-  const updateRecipe = useUpdateRecipe(recipe?.id ?? 0);
+  const { mutateAsync: updateRecipe } = useUpdateRecipe(recipe?.id ?? 0);
+  const { registerLeave } = useWizardStep();
+  const isPublic = recipe?.visibility === 'public';
 
-  const handleSubmit = async (): Promise<boolean> => {
-    try {
-      const isPublic = recipe?.visibility === 'public';
-      const payload: Record<string, unknown> = {};
-      if (isPublic) {
-        payload.status = 'submitted';
-      }
-      if (Object.keys(payload).length > 0) {
-        await updateRecipe.mutateAsync(payload as Parameters<typeof updateRecipe.mutateAsync>[0]);
-      }
-      toast.success('Rezept fertiggestellt!');
-      onFinish();
-      return true;
-    } catch (err) {
-      toast.error('Fehler beim Speichern', {
-        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
-      });
-      return false;
+  // Finishing submits public recipes for review; the wizard shows the toasts.
+  useEffect(() => registerLeave(async (direction) => {
+    if (direction === 'next' && isPublic) {
+      await updateRecipe({ status: 'submitted' });
     }
-  };
-
-  useImperativeHandle(ref, () => ({
-    primaryAction: handleSubmit,
-  }));
+    return true;
+  }), [isPublic, registerLeave, updateRecipe]);
 
   if (!recipe) {
     return (
@@ -79,8 +59,8 @@ const WizardStepPreview = forwardRef<WizardStepPreviewHandle, WizardStepPreviewP
           <div className="flex flex-wrap gap-2 mb-3">
             {difficultyLabel && <Badge variant="outline">{difficultyLabel}</Badge>}
             {executionLabel && <Badge variant="outline">{executionLabel}</Badge>}
-            {recipe.portions && recipe.portions > 1 && (
-              <Badge variant="outline">{recipe.portions} Portionen</Badge>
+            {recipe.source_servings && (
+              <Badge variant="outline">Originalrezept für {recipe.source_servings} Pers.</Badge>
             )}
           </div>
 
@@ -133,6 +113,4 @@ const WizardStepPreview = forwardRef<WizardStepPreviewHandle, WizardStepPreviewP
       </div>
     </div>
   );
-});
-
-export default WizardStepPreview;
+}

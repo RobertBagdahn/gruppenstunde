@@ -4,6 +4,7 @@ import datetime as dt
 from typing import Literal
 
 from ninja import Schema
+from pydantic import Field
 
 from content.base_schemas import (
     ContentCreateIn,
@@ -170,8 +171,8 @@ class RecipeDetailOut(ContentDetailOut):
 
     recipe_type: str
     portions: int | None
-    # Transient source context for recipe creation flows; never persisted on Recipe.
-    input_servings: int | None = None
+    # Servings of the original recipe; quantities are still stored per portion.
+    source_servings: int | None = None
     preparation_method: str = ""
     equipment: list[EquipmentOut] = []
     materials: list[RecipeMaterialOut] = []
@@ -208,11 +209,6 @@ class RecipeDetailOut(ContentDetailOut):
     next_best_recipes: list[RecipeSimilarOut] = []
     # Transient AI interaction id (set by ai-create) for feedback voting
     ai_interaction_id: str | None = None
-
-    @staticmethod
-    def resolve_input_servings(obj) -> int | None:
-        """Expose the transient creation context when a service attaches one."""
-        return getattr(obj, "input_servings", None)
 
     @staticmethod
     def resolve_ai_interaction_id(obj) -> str | None:
@@ -390,8 +386,10 @@ class RecipeCreateIn(ContentCreateIn):
     steps: list[RecipeStepIn] = []
     source_url: str = ""
     image_url: str = ""
-    idempotency_key: str | None = None
+    idempotency_key: str | None = Field(None, max_length=100)
     ingredient_review_rows: list[IngredientReviewRowIn] | None = None
+    # Servings the submitted quantities are meant for; the API divides by it.
+    input_servings: int | None = Field(None, ge=1, le=100)
     # Ownership & Sharing (for breakfast wizard)
     shared_group_ids: list[int] = []
     visibility: str = "private"  # accepted from frontend but always forced to "private" on backend
@@ -409,6 +407,7 @@ class RecipeUpdateIn(ContentUpdateIn):
 
     recipe_type: str | None = None
     portions: int | None = None
+    source_servings: int | None = Field(None, ge=1, le=100)
     preparation_method: str | None = None
     equipment_ids: list[int] | None = None
     nutritional_tag_ids: list[int] | None = None
