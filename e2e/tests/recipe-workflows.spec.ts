@@ -38,7 +38,7 @@ function recipeDetail() {
     can_delete: true,
     recipe_type: 'warm_meal',
     portions: 1,
-    input_servings: 4,
+    source_servings: 4,
     preparation_method: '',
     equipment: [],
     shared_groups: [],

@@ -232,6 +232,7 @@ def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
         difficulty=data.difficulty,
         execution_time=execution_time,
         portions=1,
+        source_servings=min(max(data.portions or 1, 1), 100),
         recipe_type=_map_recipe_type(data.recipe_type) or "",
         status="draft",
         owner=user if is_authenticated else None,
@@ -242,9 +243,6 @@ def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
     )
     if is_authenticated and user is not None:
         recipe.authors.add(user)
-    # Keep the AI's source context only on this response object. The recipe model
-    # remains normalized to one portion for all persisted consumers.
-    recipe.input_servings = data.portions
 
     # Create recipe items — match or create ingredients, then resolve portions
     from recipe.services.ingredient_matcher import IngredientMatcher

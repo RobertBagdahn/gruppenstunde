@@ -86,6 +86,18 @@ Der Handler für das Anlegen gehört dem Wizard (nicht einem Schritt): Nach dem 
 ### D6: Toasts
 Der Wizard zeigt pro Aktion höchstens einen Toast. Das Erfolgs-Toast „Rezept fertiggestellt!“ erscheint nur, wenn der Leave-Handler von `preview` `true` liefert. Fehler-Toasts werden zentral im Wizard aus Exceptions erzeugt, nicht zusätzlich in den Schritten.
 
+### Umsetzungsnotizen (Abweichungen)
+- **Idempotenz**: `RecipeCreateIn.idempotency_key` existierte zwar im Schema, wurde aber von `create_recipe` ignoriert. Neu:
+  - Feld `Recipe.creation_idempotency_key` (in derselben Migration wie `source_servings`) mit eindeutiger Bedingung pro Owner, sobald der Schlüssel nicht leer ist.
+  - Ein wiederholter POST mit demselben Schlüssel liefert das bestehende Rezept.
+  - Der Wizard erzeugt pro Durchlauf einen Schlüssel; zusätzlich blockiert ein Ref Doppelklicks, bevor neu gerendert wird.
+- **Schritt-Definition**: `WizardStepDef` enthält keine `Component`, weil die Schritte unterschiedliche Props brauchen. Der Wizard rendert sie per `switch` über die ID.
+- **Mehrere Handler je Schritt**: `preparation` besteht aus `WizardStepMetadata` und `WizardStepSteps`, deshalb hält der Kontext pro Schritt-ID eine Menge von Handlern. Sie laufen nacheinander.
+- **Hilfsfunktionen**: `buildMetadataPatch` liegt in `recipeWizardPayload.ts`. `formatSaveError` entfällt, weil PATCH jetzt über `useUpdateRecipe` läuft und `ApiError` die Fehlermeldungen formatiert.
+- **`useRecipeById`**: `useRecipe(id, { retry })` existierte bereits. Für die Wiederaufnahme wird ohne Retry geladen, damit „Entwurf nicht gefunden“ sofort erscheint.
+- **Browser-Zurück über den Anlegepunkt**: Solche History-Einträge haben keinen `draft`. Der Wizard ersetzt die URL dann durch den aktuellen Schritt des Entwurfs und zeigt einen Hinweis.
+- **Neue Zutat aus Review-Zeile**: `created_by` wurde entgegen der ISVU-Annahme noch nicht gesetzt und ist jetzt ergänzt.
+
 ## Risks / Trade-offs
 
 - [Abgebrochene Entwürfe sammeln sich an] → Bereits heute so, sobald das Rezept angelegt ist. `MyRecipesPage` zeigt Entwürfe; ein Aufräumen verwaister Entwürfe ist ein eigenes Thema.

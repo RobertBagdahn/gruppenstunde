@@ -5,7 +5,7 @@ import logging
 import time
 from typing import cast
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.http import HttpResponse
@@ -613,6 +613,17 @@ def create_recipe(request, payload: RecipeCreateIn):
         if missing_portions:
             raise HttpError(422, f"Jede bestätigte Zutat benötigt eine Portion: {', '.join(missing_portions)}")
 
+    # Clients send totals for the original servings; recipes are stored per portion.
+    if (payload.recipe_items or payload.ingredient_review_rows) and payload.input_servings is None:
+        raise HttpError(422, "Bitte gib die Personenzahl des Originalrezepts an.")
+    servings_divisor = payload.input_servings or 1
+
+    idempotency_key = (payload.idempotency_key or "").strip()
+    if idempotency_key:
+        existing = Recipe.objects.filter(owner=request.user, creation_idempotency_key=idempotency_key).first()
+        if existing is not None:
+            return _created_recipe_response(existing)
+
     recipe = Recipe(
         title=payload.title,
         summary=payload.summary,
@@ -629,8 +640,18 @@ def create_recipe(request, payload: RecipeCreateIn):
         visibility="private",
         status="draft",
         source_url=payload.source_url.strip(),
+        source_servings=payload.input_servings,
+        creation_idempotency_key=idempotency_key,
     )
-    recipe.save()
+    try:
+        with transaction.atomic():
+            recipe.save()
+    except IntegrityError as exc:
+        # A concurrent request with the same key won the race.
+        existing = Recipe.objects.filter(owner=request.user, creation_idempotency_key=idempotency_key).first()
+        if existing is None:
+            raise HttpError(409, "Das Rezept wurde bereits angelegt") from exc
+        return _created_recipe_response(existing)
 
     if payload.image_url:
         from content.services.image_service import download_external_image
@@ -681,6 +702,7 @@ def create_recipe(request, payload: RecipeCreateIn):
                     slug=slug,
                     description=draft.description,
                     status=IngredientStatusChoices.DRAFT,
+                    created_by=request.user,
                     energy_kcal=values.get("energy_kcal"),
                     protein_g=values.get("protein_g"),
                     fat_g=values.get("fat_g"),
@@ -738,7 +760,7 @@ def create_recipe(request, payload: RecipeCreateIn):
             recipe=recipe,
             portion_id=portion_id,
             client_request_id=item_data.client_request_id,
-            quantity=item_data.quantity,
+            quantity=item_data.quantity / servings_divisor,
             sort_order=item_data.sort_order,
             note=item_data.note,
             is_optional=item_data.is_optional,
@@ -786,11 +808,16 @@ def create_recipe(request, payload: RecipeCreateIn):
 
         recipe.shared_groups.set(payload.shared_group_ids)
 
+    return _created_recipe_response(recipe)
+
+
+def _created_recipe_response(recipe: Recipe) -> Recipe:
+    """Attach the runtime fields the detail schema expects for the creator."""
     recipe.emotion_counts = {}
     recipe.user_emotion = None
     recipe.can_edit = True
+    recipe.is_owner = True
     recipe.next_best_recipes = []
-
     return recipe
 
 

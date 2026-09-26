@@ -56,6 +56,19 @@ class Recipe(Content):
         verbose_name=_("Portionen"),
         help_text=_("Basis-Portionsanzahl (Normportionen)"),
     )
+    source_servings = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Original-Personenzahl"),
+        help_text=_("Personenzahl des Originalrezepts; Mengen sind trotzdem pro Portion gespeichert."),
+    )
+    creation_idempotency_key = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        verbose_name=_("Idempotenz-Schlüssel der Anlage"),
+        help_text=_("Verhindert doppelte Rezepte bei wiederholtem Absenden."),
+    )
 
     # --- Personal recipe fields ---
     owner = models.ForeignKey(
@@ -220,7 +233,6 @@ class Recipe(Content):
     emotion_counts: dict[str, int] = {}
     user_emotion: str | None = None
     next_best_recipes: list[dict[str, Any]] = []
-    input_servings: int | None = None
     ai_interaction_id: str | None = None
     _updating_score: bool = False
     _old_values: dict[str, Any] = {}
@@ -235,6 +247,13 @@ class Recipe(Content):
             models.Index(fields=["like_score"], name="recipe_like_score_idx"),
             models.Index(fields=["view_count"], name="recipe_view_count_idx"),
             models.Index(fields=["owner", "visibility", "status"], name="recipe_owner_vis_status_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "creation_idempotency_key"],
+                condition=~models.Q(creation_idempotency_key=""),
+                name="unique_recipe_creation_idempotency_key",
+            ),
         ]
 
     def __str__(self) -> str:

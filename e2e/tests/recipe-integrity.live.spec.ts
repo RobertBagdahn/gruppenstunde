@@ -112,8 +112,6 @@ test.describe('Recipe persistence integrity', () => {
 
   test('keeps an intercepted AI draft editable through reload', async ({ foodPage, api, resources, uniqueName }) => {
     const fixture = await createRecipeFixture(api, resources, uniqueName);
-    // When ai-create returns input_servings, the wizard skips the context selector
-    fixture.input_servings = 4;
     await foodPage.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: {
       recipe_draft: {
         title: String(fixture.title), description: String(fixture.description ?? ''), summary: '', servings: 4,

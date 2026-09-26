@@ -213,11 +213,12 @@ export function useRecipes(filters: Partial<RecipeFilter> = {}) {
   });
 }
 
-export function useRecipe(id: number) {
+export function useRecipe(id: number, options: { retry?: boolean } = {}) {
   return useQuery({
     queryKey: ['recipe', id] as const,
     queryFn: () => fetchJson(`${API_BASE}/${id}/`, RecipeDetailSchema),
     enabled: id > 0,
+    ...(options.retry === undefined ? {} : { retry: options.retry }),
   });
 }
 
@@ -299,6 +300,10 @@ export interface RecipeCreatePayload {
   image_url?: string;
   client_request_id?: string;
   ingredient_review_rows?: IngredientReviewRowInput[];
+  /** Servings the submitted quantities are meant for; required with ingredients. */
+  input_servings?: number;
+  /** Repeated submits with the same key return the already created recipe. */
+  idempotency_key?: string;
 }
 
 export function useCreateRecipe() {
@@ -337,6 +342,7 @@ export interface RecipeUpdatePayload {
   preparation_time?: string;
   difficulty?: string;
   status?: string;
+  source_servings?: number;
   scout_level_ids?: number[];
   tag_ids?: string[];
   shared_group_ids?: number[];
