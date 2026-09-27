@@ -289,6 +289,15 @@ Reihenfolge: `ingredient-status-visibility-unification` (ISVU) → `portion-supe
 | Seeds | grep nach `approved`/`user_content` | `seed_breakfast_catalog.py`/`tag_breakfast_prod.py` werden gelöscht |
 | Merge | nicht betroffen | Merge-Services extrahiert; Status des Ziels bleibt, Quelle wird entfernt |
 
+### Umsetzungsnotizen (Abweichungen)
+- **`seed_breakfast_catalog` bleibt für Dev-Datenbanken**: umbenannt in `seed_buffet_catalog`, erzeugt dieselben Testdaten, aber mit Rollen-Tags statt `breakfast-*` (Beläge werden anhand einer festen Süß-Liste auf `buffet-savory`/`buffet-sweet` aufgeteilt, Müsli/Haferflocken wandern zu `buffet-cereal`). `tag_breakfast_prod.py` ist gelöscht (Prod nutzt `migrate_buffet_roles`).
+- **`migrate_buffet_roles` verarbeitet `merge_into`-Einträge zuerst**, dann `keep`/`add`/`untag` — sonst würde eine später gemergte Dublette ihre frisch gesetzte Rolle an das Ziel verlieren, bevor sie zusammengeführt wird.
+- **`ingredient_merge.py` übernimmt jetzt auch Tags** (inkl. Rollen-Tags) vom Quell- zum Ziel-Datensatz und entfernt/hängt `MealItem`s um; steckt dieselbe Zutat bereits in derselben Mahlzeit (Ziel und Quelle), wird der Quell-Eintrag gelöscht statt einen doppelten `MealItem` zu erzeugen (verletzt sonst `unique_ingredient_per_meal`).
+- **`QuantityWarningOut` trägt zusätzlich `meal_id`** (nicht im Proposal-Text, aber nötig für den Link „Zur Mahlzeit“ in der Einkaufslisten-Hinweisbox).
+- **Warnungen der Einkaufslisten-Erzeugung sind transient**: `POST /shopping-lists/from-meal-plan/{id}/` berechnet sie einmalig für die Antwort; der persistierte `GET /shopping-lists/{id}/` liefert sie nicht erneut (keine Spalte auf `ShoppingList`). Das Frontend reicht sie einmalig über den Navigations-State an die Detailseite weiter; ein Neuladen der Detailseite zeigt sie nicht mehr an. Passt zum Spec-Wortlaut („Einkaufslisten-Erzeugung“), ist aber enger als „bei jedem Aufruf sichtbar“.
+- **`BuffetRoleOut.icon`** wird von der Content-Migration mit Lucide-Namen befüllt, aber im Builder/MealSlot (noch) nicht gerendert — nur Text-Label. Kein Task verlangt das Icon in der UI; nachrüstbar ohne Schema-Änderung.
+- **Restaurierung im Builder** nutzt `BuffetCatalogItemOut.default_selected` (bereits sichtbarkeitsgefiltert) statt der rohen `default_ingredient_ids`/`default_recipe_ids` aus `BuffetTemplateOut`, damit „unsichtbare Standardauswahl entfällt“ (Spec) auch beim ersten Öffnen ohne gespeicherten Zustand gilt.
+
 ## Risks / Trade-offs
 
 - [Prod-IDs weichen von lokal ab] → Adressierung über ID **und** Name, Abweichungen werden übersprungen und gemeldet (Spec `buffet-data-cleanup`); Dry-Run auf Prod vor dem Echtlauf.
