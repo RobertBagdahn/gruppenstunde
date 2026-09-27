@@ -281,19 +281,23 @@ class BulkResult:
 
 
 def publish_ingredients(*, ids: list[int] | None, apply: bool) -> BulkResult:
-    """Set eligible draft ingredients to ``verified``. Only rows without blocking issues."""
-    from supply.models import Ingredient
+    """Verify eligible system drafts (no owner, no blocking issues) via the status service.
 
-    queryset = Ingredient.objects.filter(status=IngredientStatusChoices.DRAFT)
+    User-owned ingredients are never published automatically: verifying them
+    would make a private ingredient public.
+    """
+    from supply.models import Ingredient
+    from supply.services.ingredient_status import SYSTEM, set_ingredient_status
+
+    queryset = Ingredient.objects.filter(status=IngredientStatusChoices.DRAFT, owner__isnull=True)
     if ids:
         queryset = queryset.filter(id__in=ids)
     rows = build_snapshot(queryset)
     eligible = [row.id for row in rows if row.publishable]
     result = BulkResult(changed=len(eligible), skipped=len(rows) - len(eligible))
-    if apply and eligible:
-        Ingredient.objects.filter(id__in=eligible).update(
-            status=IngredientStatusChoices.VERIFIED, updated_at=timezone.now()
-        )
+    if apply:
+        for ingredient in Ingredient.objects.filter(id__in=eligible):
+            set_ingredient_status(ingredient, IngredientStatusChoices.VERIFIED, actor=SYSTEM)
     return result
 
 
