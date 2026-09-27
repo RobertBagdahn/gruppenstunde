@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import type { z } from 'zod';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { useRecipes, useDeleteRecipe, useForkRecipe } from '@/api/recipes';
 import RecipeCard from '@/components/recipe/RecipeCard';
@@ -7,10 +8,14 @@ import RecipeTable from '@/components/recipe/RecipeTable';
 import RecipeFilterSidebar from '@/components/recipe/RecipeFilterSidebar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { RECIPE_SORT_OPTIONS, type RecipeFilter } from '@/schemas/recipe';
+import { RecipeListStateSchema } from '@/schemas/listState';
+import { takeLegacyValue } from '@/lib/listStateStorage';
+import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
 import ListPageHero from '@/components/shared/ListPageHero';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
+import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import EmptyState from '@/components/shared/EmptyState';
 import {
   Dialog,
@@ -21,92 +26,21 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
-const VIEW_STORAGE_KEY = 'recipe-search-view';
+type RecipeListState = z.infer<typeof RecipeListStateSchema>;
 type ViewMode = 'grid' | 'table';
 
-function getStoredView(): ViewMode {
-  try {
-    const stored = localStorage.getItem(VIEW_STORAGE_KEY);
-    if (stored === 'table') return 'table';
-  } catch {
-    /* localStorage not available */
-  }
-  return 'grid';
-}
-
-function setStoredView(view: ViewMode) {
-  try {
-    localStorage.setItem(VIEW_STORAGE_KEY, view);
-  } catch {
-    /* localStorage not available */
-  }
-}
-
-const DEFAULT_FILTERS: Partial<RecipeFilter> = {
+const RECIPE_LIST_DEFAULTS = {
   origin: ['verified'],
   sort: 'use_count',
+  view: 'grid',
   page: 1,
-  page_size: 20,
-};
+} satisfies Partial<RecipeListState>;
+const PERSIST_EXCLUDE = ['page'] as const;
+const COUNT_EXCLUDE = ['page', 'view'] as const;
 
-/** Deserialize URL search params into filter state */
-function searchParamsToFilters(params: URLSearchParams): Partial<RecipeFilter> {
-  const filters: Partial<RecipeFilter> = { ...DEFAULT_FILTERS };
-  const q = params.get('q');
-  if (q) filters.q = q;
-
-  const recipeType = params.getAll('recipe_type');
-  if (recipeType.length > 0) filters.recipe_type = recipeType;
-  const prepMethod = params.getAll('preparation_method');
-  if (prepMethod.length > 0) filters.preparation_method = prepMethod;
-  const difficulty = params.getAll('difficulty');
-  if (difficulty.length > 0) filters.difficulty = difficulty;
-  const executionTime = params.getAll('execution_time');
-  if (executionTime.length > 0) filters.execution_time = executionTime;
-  const origin = params.getAll('origin');
-  if (origin.length > 0) filters.origin = origin;
-  const sort = params.get('sort');
-  if (sort) filters.sort = sort;
-
-  const costsMin = params.get('costs_min');
-  if (costsMin) filters.costs_min = parseFloat(costsMin);
-  const costsMax = params.get('costs_max');
-  if (costsMax) filters.costs_max = parseFloat(costsMax);
-  const page = params.get('page');
-  if (page) filters.page = parseInt(page, 10);
-
-  const tagSlugs = params.getAll('tag_slugs');
-  if (tagSlugs.length > 0) filters.tag_slugs = tagSlugs;
-  return filters;
-}
-
-/** Serialize filter state into URLSearchParams */
-function filtersToSearchParams(filters: Partial<RecipeFilter>): URLSearchParams {
-  const params = new URLSearchParams();
-  if (filters.q) params.set('q', filters.q);
-  if (filters.recipe_type?.length) {
-    filters.recipe_type.forEach((v) => params.append('recipe_type', v));
-  }
-  if (filters.preparation_method?.length) {
-    filters.preparation_method.forEach((v) => params.append('preparation_method', v));
-  }
-  if (filters.difficulty?.length) {
-    filters.difficulty.forEach((v) => params.append('difficulty', v));
-  }
-  if (filters.execution_time?.length) {
-    filters.execution_time.forEach((v) => params.append('execution_time', v));
-  }
-  if (filters.origin?.length && !(filters.origin.length === 1 && filters.origin[0] === 'verified')) {
-    filters.origin.forEach((v) => params.append('origin', v));
-  }
-  if (filters.costs_min !== undefined) params.set('costs_min', String(filters.costs_min));
-  if (filters.costs_max !== undefined) params.set('costs_max', String(filters.costs_max));
-  if (filters.sort && filters.sort !== 'use_count') params.set('sort', filters.sort);
-  if (filters.page && filters.page > 1) params.set('page', String(filters.page));
-  if (filters.tag_slugs?.length) {
-    filters.tag_slugs.forEach((slug) => params.append('tag_slugs', slug));
-  }
-  return params;
+/** The view mode used to live in its own key; take it over once. */
+function migrateLegacyView() {
+  return takeLegacyValue('recipe-search-view') === 'table' ? { view: 'table' } : null;
 }
 
 function buildPageTitle(filters: Partial<RecipeFilter>): string {
@@ -132,37 +66,33 @@ function buildPageTitle(filters: Partial<RecipeFilter>): string {
 }
 
 export default function RecipeListPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const initialized = useRef(false);
-  const [filters, setFilters] = useState<Partial<RecipeFilter>>(DEFAULT_FILTERS);
-  const [searchInput, setSearchInput] = useState('');
+  const { state, patch, reset, activeCount, restored } = usePersistedListState({
+    key: 'recipes',
+    schema: RecipeListStateSchema,
+    defaults: RECIPE_LIST_DEFAULTS,
+    persistExclude: PERSIST_EXCLUDE,
+    countExclude: COUNT_EXCLUDE,
+    migrateLegacy: migrateLegacyView,
+  });
+  const { view, ...filterState } = state;
+  const viewMode: ViewMode = view;
+  const filters = useMemo<Partial<RecipeFilter>>(
+    () => ({ ...filterState, page_size: 20 }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(filterState)],
+  );
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
   const [cloneTarget, setCloneTarget] = useState<{ id: number; title: string } | null>(null);
   const [cloneTitle, setCloneTitle] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>(getStoredView);
 
-  const { data, isLoading, error, refetch } = useRecipes(filters);
+  const { data, isLoading, error, refetch } = useRecipes(filters, { enabled: restored });
   const deleteRecipe = useDeleteRecipe();
   const forkRecipe = useForkRecipe(cloneTarget?.id ?? 0);
 
-  useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true;
-      if (searchParams.toString()) {
-        const parsed = searchParamsToFilters(searchParams);
-        setFilters(parsed);
-        setSearchInput(parsed.q ?? '');
-      }
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (initialized.current) {
-      const newParams = filtersToSearchParams(filters);
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [filters, setSearchParams]);
+  const search = useDebouncedSearchInput(state.q ?? '', (value) => {
+    patch({ q: value.trim() || undefined, page: undefined }, { replace: true });
+  });
 
   useEffect(() => {
     document.title = buildPageTitle(filters);
@@ -172,22 +102,19 @@ export default function RecipeListPage() {
   }, [filters]);
 
   const handleFilterChange = useCallback((key: string, value: unknown) => {
-    setFilters((prev) => ({
-      ...prev,
+    patch({
       [key]: value,
-      ...(key !== 'page' ? { page: 1 } : {}),
-    }));
-  }, []);
+      ...(key !== 'page' ? { page: undefined } : {}),
+    } as Partial<RecipeListState>);
+  }, [patch]);
 
   const handleReset = useCallback(() => {
-    setFilters(DEFAULT_FILTERS);
-    setSearchInput('');
-  }, []);
+    reset();
+  }, [reset]);
 
   const toggleView = useCallback((mode: ViewMode) => {
-    setViewMode(mode);
-    setStoredView(mode);
-  }, []);
+    patch({ view: mode }, { replace: true });
+  }, [patch]);
 
   return (
     <EntityLinkContext.Provider value="list">
@@ -204,9 +131,9 @@ export default function RecipeListPage() {
 
       <ListPageSearchBar
         placeholder="Suche nach Rezepten..."
-        value={searchInput}
-        onChange={setSearchInput}
-        onSubmit={() => handleFilterChange('q', searchInput.trim() || undefined)}
+        value={search.input}
+        onChange={search.setInput}
+        onSubmit={search.submit}
         createLabel="Neues Rezept"
         createHref="/recipes/new"
         gradientClasses=""
@@ -220,6 +147,7 @@ export default function RecipeListPage() {
         />
 
         <div className="flex-1">
+          <ActiveFiltersHint activeCount={activeCount} onReset={handleReset} />
           <div className="flex items-center justify-between mb-4">
             <Link
               to="/recipes/new"
@@ -264,7 +192,7 @@ export default function RecipeListPage() {
 
           {error ? (
             <ErrorDisplay error={error} onRetry={() => refetch()} />
-          ) : isLoading ? (
+          ) : isLoading || !restored ? (
             viewMode === 'table' ? (
               <RecipeTableSkeleton />
             ) : (

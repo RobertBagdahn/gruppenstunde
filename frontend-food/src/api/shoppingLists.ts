@@ -91,8 +91,9 @@ async function deleteJson(url: string): Promise<void> {
 
 // --- Shopping List CRUD hooks ---
 
-export function useShoppingLists(page = 1, pageSize = 20, q = '') {
+export function useShoppingLists(page = 1, pageSize = 20, q = '', options: { enabled?: boolean } = {}) {
   return useQuery({
+    enabled: options.enabled ?? true,
     queryKey: ['shopping-lists', page, pageSize, q] as const,
     queryFn: () => {
       const params = new URLSearchParams({

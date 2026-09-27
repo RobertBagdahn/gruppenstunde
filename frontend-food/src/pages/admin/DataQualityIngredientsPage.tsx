@@ -1,4 +1,3 @@
-import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import CompletenessGrid from '@/components/data-quality/CompletenessGrid';
 import MissingClassificationList from '@/components/data-quality/MissingClassificationList';
@@ -6,29 +5,32 @@ import NutritionPlausibilityList from '@/components/data-quality/NutritionPlausi
 import PriceAnalysisTable from '@/components/data-quality/PriceAnalysisTable';
 import DuplicateDetectionList from '@/components/data-quality/DuplicateDetectionList';
 import { useNutritionPlausibility } from '@/api/dataQuality';
+import { DataQualityIngredientsStateSchema, type DATA_QUALITY_TABS } from '@/schemas/listState';
+import { usePersistedListState } from '@/hooks/usePersistedListState';
 
-const SUB_TABS = [
+const TAB_DEFAULTS = { tab: 'price' } as const;
+
+const SUB_TABS: readonly { key: (typeof DATA_QUALITY_TABS)[number]; label: string }[] = [
   { key: 'price', label: 'Preisanalyse' },
   { key: 'duplicates', label: 'Duplikate' },
   { key: 'completeness', label: 'Vollständigkeit' },
   { key: 'missing', label: 'Fehlende Klassifikation' },
   { key: 'plausibility', label: 'Nährwert-Plausibilität' },
-] as const;
+];
 
 export default function DataQualityIngredientsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabFromUrl = searchParams.get('tab');
-  const activeTab = SUB_TABS.some((t) => t.key === tabFromUrl) ? tabFromUrl! : 'price';
+  const { state, patch } = usePersistedListState({
+    key: 'data-quality-ingredients',
+    schema: DataQualityIngredientsStateSchema,
+    defaults: TAB_DEFAULTS,
+  });
+  const activeTab = state.tab;
 
   const { data: plausibilityData } = useNutritionPlausibility({ page: 1, page_size: 1 });
   const plausibilityCount = plausibilityData?.total;
 
-  const handleTabChange = (key: string) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set('tab', key);
-      return next;
-    });
+  const handleTabChange = (key: (typeof DATA_QUALITY_TABS)[number]) => {
+    patch({ tab: key });
   };
 
   return (

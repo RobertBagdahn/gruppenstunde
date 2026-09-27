@@ -165,7 +165,7 @@ export function useIngredientSearch(filters: IngredientSearchFilters = {}, enabl
   });
 }
 
-export function useIngredients(filters: IngredientFilters = {}) {
+export function useIngredients(filters: IngredientFilters = {}, options: { enabled?: boolean } = {}) {
   const params = new URLSearchParams();
   if (filters.page) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
@@ -177,6 +177,7 @@ export function useIngredients(filters: IngredientFilters = {}) {
 
   const qs = params.toString();
   return useQuery({
+    enabled: options.enabled ?? true,
     queryKey: ['ingredients', filters] as const,
     queryFn: () => fetchJson(`${INGREDIENT_BASE}/?${qs}`, PaginatedIngredientSchema),
   });

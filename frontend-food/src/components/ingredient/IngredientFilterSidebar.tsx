@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRetailSections } from '@/api/supplies';
+import { INGREDIENT_STATUS_OPTIONS } from '@/lib/ingredientStatus';
 
 interface IngredientFilters {
   retail_section?: number;
@@ -13,11 +14,11 @@ interface IngredientFilterSidebarProps {
   onReset: () => void;
 }
 
+const STATUS_ICONS: Record<string, string> = { draft: 'edit_note', verified: 'check_circle' };
+
 const STATUS_OPTIONS = [
   { value: '', label: 'Alle', icon: 'list' },
-  { value: 'published', label: 'Veroeffentlicht', icon: 'check_circle' },
-  { value: 'draft', label: 'Entwurf', icon: 'edit_note' },
-  { value: 'archived', label: 'Archiviert', icon: 'archive' },
+  ...INGREDIENT_STATUS_OPTIONS.map((option) => ({ ...option, icon: STATUS_ICONS[option.value] ?? 'label' })),
 ];
 
 export default function IngredientFilterSidebar({

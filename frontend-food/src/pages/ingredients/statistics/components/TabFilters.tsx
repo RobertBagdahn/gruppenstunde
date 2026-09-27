@@ -1,5 +1,8 @@
-import { useSearchParams } from 'react-router-dom';
 import { useRetailSections } from '@/api/supplies';
+import { IngredientStatsStateSchema } from '@/schemas/listState';
+import { usePersistedListState } from '@/hooks/usePersistedListState';
+
+const NO_DEFAULTS = {};
 
 interface TabFiltersProps {
   showRetailSection?: boolean;
@@ -14,20 +17,18 @@ export default function TabFilters({
   tagOptions = [],
   extraContent,
 }: TabFiltersProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { state, patch, reset } = usePersistedListState({
+    key: 'ingredient-stats',
+    schema: IngredientStatsStateSchema,
+    defaults: NO_DEFAULTS,
+  });
   const { data: retailSections } = useRetailSections();
 
-  const retailSectionId = searchParams.get('retail_section') || '';
-  const tagFilter = searchParams.get('tag') || '';
+  const retailSectionId = state.retail_section ?? '';
+  const tagFilter = state.tag ?? '';
 
-  const updateParam = (key: string, value: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-    setSearchParams(next, { replace: true });
+  const updateParam = (key: 'retail_section' | 'tag', value: string) => {
+    patch({ [key]: value || undefined }, { replace: true });
   };
 
   const hasFilters = retailSectionId || tagFilter;
@@ -68,7 +69,7 @@ export default function TabFilters({
 
       {hasFilters && (
         <button
-          onClick={() => setSearchParams({}, { replace: true })}
+          onClick={reset}
           className="px-3 py-1.5 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
         >
           Filter zurücksetzen

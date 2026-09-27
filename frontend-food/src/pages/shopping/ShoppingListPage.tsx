@@ -1,8 +1,7 @@
 /**
  * ShoppingListPage — List view of all shopping lists (own + shared).
  */
-import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, User as UserIcon } from 'lucide-react';
 import {
@@ -18,6 +17,9 @@ import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ListPageHero from '@/components/shared/ListPageHero';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
+import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
+import { ShoppingListStateSchema } from '@/schemas/listState';
+import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import EmptyState from '@/components/shared/EmptyState';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { toast } from 'sonner';
@@ -89,47 +91,35 @@ function getTimeAgo(date: Date): string {
   return date.toLocaleDateString('de-DE');
 }
 
+const SHOPPING_LIST_DEFAULTS = { sort: 'newest', page: 1 } as const;
+const PAGE_ONLY = ['page'] as const;
+
 export default function ShoppingListPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { state, patch, reset, activeCount, restored } = usePersistedListState({
+    key: 'shopping-lists',
+    schema: ShoppingListStateSchema,
+    defaults: SHOPPING_LIST_DEFAULTS,
+    persistExclude: PAGE_ONLY,
+    countExclude: PAGE_ONLY,
+  });
+  const { page, sort } = state;
+  const q = state.q ?? '';
+  const myDataOnly = state.mine === '1';
 
-  const page = parseInt(searchParams.get('page') ?? '1', 10) || 1;
-  const q = searchParams.get('q') ?? '';
-
-  const { data, isLoading, error } = useShoppingLists(page, 20, q);
+  const { data, isLoading, error } = useShoppingLists(page, 20, q, { enabled: restored });
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-  const [searchInput, setSearchInput] = useState(q);
-  const isInitialSearchSync = useRef(true);
-  const [sort, setSort] = useState('newest');
-  const [myDataOnly, setMyDataOnly] = useState(false);
+  const search = useDebouncedSearchInput(q, (value) => {
+    patch({ q: value || undefined, page: undefined }, { replace: true });
+  });
 
-  // Sync local input → URL param with debounce
-  useEffect(() => {
-    if (isInitialSearchSync.current) {
-      isInitialSearchSync.current = false;
-      return;
-    }
-    const timer = setTimeout(() => {
-      const newParams = new URLSearchParams(searchParams);
-      if (searchInput) {
-        newParams.set('q', searchInput);
-      } else {
-        newParams.delete('q');
-      }
-      newParams.set('page', '1');
-      setSearchParams(newParams, { replace: true });
-    }, 300);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput]);
-
-  if (userLoading || (isLoading && !data)) {
+  if (userLoading || !restored || (isLoading && !data)) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="animate-pulse space-y-4">
@@ -232,19 +222,21 @@ export default function ShoppingListPage() {
       {/* Search Bar */}
       <ListPageSearchBar
         placeholder="Einkaufsliste suchen..."
-        value={searchInput}
-        onChange={setSearchInput}
-        onSubmit={() => {}}
+        value={search.input}
+        onChange={search.setInput}
+        onSubmit={search.submit}
         createLabel="Neue Liste"
         onCreateClick={() => setShowCreate(true)}
         gradientClasses=""
       />
 
+      <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
+
       {/* My Data + Sort */}
       <div className="flex items-center justify-between mb-4">
         <button
           type="button"
-          onClick={() => setMyDataOnly(!myDataOnly)}
+          onClick={() => patch({ mine: myDataOnly ? undefined : '1' })}
           className={[
             'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-semibold border transition-all shadow-soft',
             myDataOnly
@@ -259,7 +251,7 @@ export default function ShoppingListPage() {
           <ArrowUpDown className="w-4 h-4 text-primary" />
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => patch({ sort: ShoppingListStateSchema.shape.sort.parse(e.target.value) })}
             className="px-3.5 py-1.5 rounded-xl border border-border text-sm bg-card hover:bg-muted/50 focus:ring-2 focus:ring-primary focus:outline-none font-semibold transition-all shadow-soft"
           >
             <option value="newest">Neueste</option>
@@ -312,7 +304,7 @@ export default function ShoppingListPage() {
           icon="shopping_cart"
           title="Noch keine Einkaufslisten"
           description={
-            searchInput
+            q
               ? 'Keine Einkaufslisten für diese Suche gefunden.'
               : 'Du hast noch keine Einkaufslisten. Erstelle eine neue Liste oder exportiere eine aus einem Rezept.'
           }
@@ -331,11 +323,7 @@ export default function ShoppingListPage() {
       <Pagination
         currentPage={page}
         totalPages={totalPages}
-        onPageChange={(newPage) => {
-          const newParams = new URLSearchParams(searchParams);
-          newParams.set('page', String(newPage));
-          setSearchParams(newParams, { replace: true });
-        }}
+        onPageChange={(newPage) => patch({ page: newPage })}
       />
     </div>
   );
