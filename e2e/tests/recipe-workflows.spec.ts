@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { REVIEW_PREVIEW_ROUTE, reviewPreview } from '../fixtures/ingredientReview';
 
 const FOOD_URL = 'http://localhost:5174';
 const SEED_USER = { email: 'admin@admin.de', password: 'admin' };
@@ -57,48 +58,24 @@ function recipeDetail() {
   };
 }
 
-function smartDraft() {
-  return {
-    recipe_draft: {
-      title: 'Smart E2E Rezept',
-      description: '## Zubereitung\nAlles gut vermischen.',
-      summary: 'Schnell und einfach',
-      servings: 4,
-      preparation_time: 10,
-      execution_time: 20,
-      recipe_type: 'warm_meal',
-      difficulty: 'easy',
-      execution_time_choice: 'less_30',
-      preparation_time_choice: 'less_15',
-      scout_level_ids: [],
-      tag_ids: [],
-      steps: ['Alles gut vermischen.'],
-      source_url: '',
-      image_url: '',
-    },
-    recipe_items: [{
-      ingredient_id: 7,
-      ingredient_name: 'E2E Mehl',
-      quantity: 400,
-      measuring_unit_id: 1,
-      measuring_unit_name: 'g',
-      note: '',
-      is_new_ingredient: false,
-      portion_id: 11,
-      needs_unit_clarification: false,
-      suggested_unit_name: '',
-      suggested_portion_weight_g: null,
-      available_portions: [],
-    }],
-    created_ingredients: [],
-    input_type: 'prompt',
-    is_reconstructed: false,
-  };
+// Empty `rows` skips the "Zutaten prüfen" step, so the wizard goes straight
+// from the basis step to the ingredient editor.
+function smartPreview() {
+  return reviewPreview({
+    title: 'Smart E2E Rezept',
+    description: '## Zubereitung\nAlles gut vermischen.',
+    summary: 'Schnell und einfach',
+    servings: 4,
+    preparation_time: 10,
+    execution_time: 20,
+    preparation_time_choice: 'less_15',
+    steps: ['Alles gut vermischen.'],
+  });
 }
 
 async function mockUnifiedWizard(page: Page) {
   const detail = recipeDetail();
-  await page.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: smartDraft() }));
+  await page.route(REVIEW_PREVIEW_ROUTE, (route) => route.fulfill({ json: smartPreview() }));
   await page.route('**/api/recipes/', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
     await route.fulfill({ json: detail });

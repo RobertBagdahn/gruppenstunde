@@ -79,49 +79,41 @@ test.describe('Food data integrity release flows', () => {
   test('requires piece-portion confirmation in the recipe wizard at 320px', async ({ page }) => {
     await installCommonRoutes(page);
     await page.setViewportSize({ width: 320, height: 720 });
-    await page.route(/\/api\/recipes\/smart-input\/?$/, (route) => fulfillJson(route, {
-      recipe_draft: {
-        title: 'Apfelspieße', description: '', summary: '', servings: 4,
-        preparation_time: null, execution_time: null, recipe_type: 'warm_meal',
-        difficulty: 'easy', execution_time_choice: 'less_30', preparation_time_choice: 'none',
-        scout_level_ids: [], tag_ids: [], steps: [], source_url: '', image_url: '',
-      },
-      recipe_items: [{
-        ingredient_id: 101, ingredient_name: 'Apfel', ingredient_slug: 'apfel', quantity: 4,
-        measuring_unit_id: null, measuring_unit_name: 'Stück', note: '', is_new_ingredient: false,
-        portion_id: null, needs_unit_clarification: true, suggested_unit_name: 'Stück',
-        suggested_portion_weight_g: 120, available_portions: [], weight_status: 'ai_proposed',
-        weight_proposal_g: 120, suggested_portion_name: '1 Apfel', confirmation_required: true,
-      }],
-      created_ingredients: [], input_type: 'text', is_reconstructed: false, ai_interaction_id: null,
-    }));
-    await page.route('**/api/ingredients/apfel/portions/confirm/**', (route) => fulfillJson(route, {
-      id: 81, name: '1 Apfel', quantity: 1, weight_g: 120, measuring_unit_id: null,
-      measuring_unit_name: 'Stück', weight_status: 'confirmed', weight_source: 'manual', is_weight_trusted: true,
-    }));
+    const recipeCreateRequests: string[] = [];
+    // The AI only suggests a new "1 Apfel" piece portion; no portion is
+    // selected yet, so the row cannot be confirmed without a human decision.
+    const suggestedPortion = {
+      id: null, name: '1 Apfel', quantity: 1, weight_g: 120,
+      measuring_unit_id: null, measuring_unit_name: 'Stück', is_new: true,
+    };
     await page.route('**/api/recipes/**', async (route) => {
       if (route.request().method() === 'POST' && route.request().url().endsWith('/api/recipes/')) {
+        recipeCreateRequests.push(route.request().url());
         await fulfillJson(route, { ...recipe, id: 8, slug: 'apfelspiesse', title: 'Apfelspieße' }, 201);
         return;
       }
       await route.continue();
     });
     // Register after the broad recipe fallback so Playwright gives this route priority.
-    await page.route('**/api/recipes/smart-input/**', (route) => fulfillJson(route, {
+    // Mirrors `IngredientReviewPreviewSchema`.
+    await page.route('**/api/recipes/ingredient-review/preview/', (route) => fulfillJson(route, {
+      rows: [{
+        key: 'row-0', source_text: '4 Äpfel', sources: [],
+        selected_ingredient_id: 101, selected_ingredient_slug: 'apfel', selected_ingredient_name: 'Apfel',
+        suggested_ingredient_id: 101, suggested_ingredient_name: 'Apfel', candidates: [],
+        selected_portion: null, suggested_portion: suggestedPortion,
+        quantity: 4, suggested_quantity: 4, reason: 'Neue Stück-Portion muss bestätigt werden.',
+        technical_details: null, conflicts: [], new_ingredient_draft: null, status: 'open',
+      }],
+      sources: [{ type: 'text', label: 'Eingefügter Text', value: 'Apfelspieße für vier Personen' }],
+      ai_interaction_id: null,
+      is_reconstructed: false,
       recipe_draft: {
         title: 'Apfelspieße', description: '', summary: '', servings: 4,
         preparation_time: null, execution_time: null, recipe_type: 'warm_meal',
         difficulty: 'easy', execution_time_choice: 'less_30', preparation_time_choice: 'none',
         scout_level_ids: [], tag_ids: [], steps: [], source_url: '', image_url: '',
       },
-      recipe_items: [{
-        ingredient_id: 101, ingredient_name: 'Apfel', ingredient_slug: 'apfel', quantity: 4,
-        measuring_unit_id: null, measuring_unit_name: 'Stück', note: '', is_new_ingredient: false,
-        portion_id: null, needs_unit_clarification: true, suggested_unit_name: 'Stück',
-        suggested_portion_weight_g: 120, available_portions: [], weight_status: 'ai_proposed',
-        weight_proposal_g: 120, suggested_portion_name: '1 Apfel', confirmation_required: true,
-      }],
-      created_ingredients: [], input_type: 'text', is_reconstructed: false, ai_interaction_id: null,
     }));
 
     await page.goto('/recipes/new');
@@ -132,8 +124,17 @@ test.describe('Food data integrity release flows', () => {
     await expect(page.getByText('Bitte bestätige zuerst die Personenzahl.')).toBeVisible();
     await page.getByTestId('recipe-serving-context-confirm').click();
     await page.getByTestId('recipe-wizard-next').click();
-    await expect(page.getByText(/Einheiten prüfen/)).toBeVisible();
-    await expect(page.locator('option', { hasText: 'Neuen Vorschlag bestätigen' })).toHaveCount(1);
+
+    await expect(page.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
+    const row = page.getByTestId('ingredient-review-row-row-0');
+    await expect(row).toContainText('4 Äpfel');
+    // Accepting all suggestions must not confirm a row without a selected portion.
+    await page.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
+    await expect(row).toContainText('Zu prüfen');
+    await page.getByTestId('recipe-wizard-next').click();
+    await expect(page.getByText('Bitte bestätige alle Zutaten und löse offene Zuordnungen.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
+    expect(recipeCreateRequests).toHaveLength(0);
   });
 
   test('approves a missing ingredient price and shows provenance and coverage', async ({ page }) => {

@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/food';
 import { assertRecord, expectJsonResponse, getCsrfToken } from '../fixtures/api';
+import { confirmableReviewRow, REVIEW_PREVIEW_ROUTE, reviewPreview } from '../fixtures/ingredientReview';
 
 type FoodApi = Parameters<typeof getCsrfToken>[0];
 
@@ -7,7 +8,7 @@ async function createRecipeFixture(
   api: FoodApi,
   resources: { track: (resource: { kind: 'ingredient' | 'recipe'; id?: number; slug?: string }) => void },
   uniqueName: (prefix: string) => string,
-): Promise<Record<string, unknown>> {
+): Promise<{ recipe: Record<string, unknown>; ingredient: Record<string, unknown>; portion: Record<string, unknown> }> {
   const csrf = await getCsrfToken(api);
   const ingredientResponse = await api.post('/api/ingredients/', {
     headers: { 'X-CSRFToken': csrf },
@@ -35,7 +36,7 @@ async function createRecipeFixture(
   });
   const recipe = assertRecord(await expectJsonResponse(recipeResponse));
   resources.track({ kind: 'recipe', id: Number(recipe.id) });
-  return recipe;
+  return { recipe, ingredient, portion };
 }
 
 async function advanceToPreview(page: import('@playwright/test').Page): Promise<void> {
@@ -54,31 +55,8 @@ async function confirmIngredientSave(page: import('@playwright/test').Page): Pro
 test.describe('Recipe persistence integrity', () => {
   test('persists manual title, metadata, and preparation through the full wizard', async ({ foodPage, resources, uniqueName }) => {
     const title = uniqueName('E2E Wizard Rezept');
-    await foodPage.route('**/api/recipes/smart-input/', async (route) => {
-      await route.fulfill({ json: {
-        recipe_draft: {
-          title,
-          description: '',
-          summary: '',
-          servings: 1,
-          preparation_time: null,
-          execution_time: null,
-          recipe_type: 'warm_meal',
-          difficulty: 'easy',
-          execution_time_choice: 'less_30',
-          preparation_time_choice: 'none',
-          scout_level_ids: [],
-          tag_ids: [],
-          steps: [],
-          source_url: '',
-          image_url: '',
-        },
-        recipe_items: [],
-        created_ingredients: [],
-        input_type: 'prompt',
-        is_reconstructed: false,
-      } });
-    });
+    // Empty `rows` skips the "Zutaten prüfen" step.
+    await foodPage.route(REVIEW_PREVIEW_ROUTE, (route) => route.fulfill({ json: reviewPreview({ title }) }));
     await foodPage.goto('/recipes/new');
     await foodPage.getByTestId('recipe-smart-input').fill(title);
     await foodPage.getByTestId('recipe-wizard-next').click();
@@ -111,30 +89,38 @@ test.describe('Recipe persistence integrity', () => {
   });
 
   test('keeps an intercepted AI draft editable through reload', async ({ foodPage, api, resources, uniqueName }) => {
-    const fixture = await createRecipeFixture(api, resources, uniqueName);
-    // When ai-create returns input_servings, the wizard skips the context selector
-    fixture.input_servings = 4;
-    await foodPage.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: {
-      recipe_draft: {
-        title: String(fixture.title), description: String(fixture.description ?? ''), summary: '', servings: 4,
-        preparation_time: null, execution_time: null, recipe_type: 'warm_meal', difficulty: 'easy',
-        execution_time_choice: 'less_30', preparation_time_choice: 'none', scout_level_ids: [], tag_ids: [],
-        steps: [], source_url: '', image_url: '',
-      },
-      recipe_items: (fixture.recipe_items as Array<Record<string, unknown>>).map((item) => ({
-        ingredient_id: item.ingredient_id ?? 1, ingredient_name: 'Fixture Zutat', quantity: 42,
-        measuring_unit_id: 1, measuring_unit_name: 'g', note: '', is_new_ingredient: false,
-        portion_id: item.portion_id, needs_unit_clarification: false, suggested_unit_name: '',
-        suggested_portion_weight_g: null, available_portions: [],
-      })),
-      created_ingredients: [], input_type: 'prompt', is_reconstructed: false,
-    } }));
+    const { recipe: fixture, ingredient, portion } = await createRecipeFixture(api, resources, uniqueName);
+    const title = uniqueName('E2E KI Rezept');
+    await foodPage.route(REVIEW_PREVIEW_ROUTE, (route) => route.fulfill({ json: reviewPreview({
+      title,
+      description: String(fixture.description ?? ''),
+      servings: 4,
+    }, [confirmableReviewRow({
+      key: 'row-0',
+      sourceText: '168 g Fixture Zutat',
+      ingredientId: Number(ingredient.id),
+      ingredientName: String(ingredient.name),
+      ingredientSlug: String(ingredient.slug),
+      portionId: Number(portion.id),
+      portionName: String(portion.name),
+      quantity: 168,
+    })]) }));
 
     await foodPage.goto('/recipes/new');
     await foodPage.getByTestId('recipe-smart-input').fill('E2E KI Rezept');
     await foodPage.getByTestId('recipe-wizard-next').click();
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
+    await expect(foodPage.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
+    await foodPage.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
+    // Leaving the review step creates the draft through the real backend.
+    const createResponse = foodPage.waitForResponse((response) => response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/api/recipes/');
+    await foodPage.getByTestId('recipe-wizard-next').click();
+    const createdResponse = await createResponse;
+    expect(createdResponse.ok()).toBe(true);
+    const created = assertRecord(await createdResponse.json());
+    resources.track({ kind: 'recipe', id: Number(created.id) });
     await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
     const quantity = foodPage.locator('input[data-testid^="item-quantity-"]').first();
     await quantity.fill('42');
@@ -151,7 +137,7 @@ test.describe('Recipe persistence integrity', () => {
   });
 
   test('confirms four-person quantity normalization before saving', async ({ foodPage, api, resources, uniqueName }) => {
-    const recipe = await createRecipeFixture(api, resources, uniqueName);
+    const { recipe } = await createRecipeFixture(api, resources, uniqueName);
     const slug = String(recipe.slug);
     await foodPage.goto(`/recipes/${slug}`);
     await foodPage.getByTestId('ingredients-edit-trigger').click();
