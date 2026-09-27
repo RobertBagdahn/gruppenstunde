@@ -106,8 +106,8 @@ async function createManualRecipe(page: Page, title: string): Promise<string> {
     await page.waitForTimeout(1500);
   }
 
-  // Step 2 (Zutaten) → 3 (Zubereitung) → 4 (Vorschau) → Fertigstellen
-  for (let i = 0; i < 2; i++) {
+  // Zutaten → Materialien → Zubereitung → Vorschau → Fertigstellen
+  for (let i = 0; i < 3; i++) {
     const next = page.getByTestId('recipe-wizard-next');
     if (await next.isVisible({ timeout: 3000 }).catch(() => false)) await next.click();
     const dialog = page.getByRole('dialog');
