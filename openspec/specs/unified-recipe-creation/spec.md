@@ -4,12 +4,13 @@
 Einheitlicher KI-gestützter Erstellungsweg für Rezepte mit Smart-Eingabe, serverseitiger Quellenerkennung, Grounding-Fallback und einem fünfstufigen Wizard.
 ## Requirements
 ### Requirement: Einheitliches Smart-Eingabefeld als einziger Einstieg
-Die Rezepterstellung unter `/recipes/new` SHALL genau einen Einstiegspunkt anbieten: ein einzelnes Smart-Eingabefeld, das eine URL, einen kopierten Rezepttext oder eine Freitext-Idee entgegennimmt. Eine Auswahl zwischen Erstellungsmethoden SHALL NICHT angezeigt werden. Innerhalb der Eingabekarte SHALL KEIN separater Aktions-Button gerendert werden. Die Analyse SHALL ausschließlich über die primäre Navigationsschaltfläche der Fußleiste („Rezept analysieren“) ausgelöst werden. Nach erfolgreicher Analyse SHALL der Wizard automatisch zu Schritt 2 („Basis & Portionen“) weiterschalten.
+Die Rezepterstellung unter `/recipes/new` SHALL als Haupteinstieg ein einzelnes Smart-Eingabefeld anbieten, das eine URL, einen kopierten Rezepttext oder eine Freitext-Idee entgegennimmt. Eine Auswahl zwischen Erstellungsmethoden (Karten) SHALL NICHT angezeigt werden. Unterhalb des Eingabefelds SHALL ein unauffälliger Textlink „Ohne KI manuell beginnen“ angezeigt werden, der die Analyse überspringt und direkt zu Schritt 2 („Basis & Portionen“) ohne Vorbelegung wechselt. Innerhalb der Eingabekarte SHALL KEIN separater Analyse-Button gerendert werden. Die Analyse SHALL ausschließlich über die primäre Navigationsschaltfläche der Fußleiste („Rezept analysieren“) ausgelöst werden. Nach erfolgreicher Analyse SHALL der Wizard automatisch zu Schritt 2 („Basis & Portionen“) weiterschalten.
 
 #### Scenario: Authentifizierter Nutzer öffnet die Erstellungsseite
 - **WHEN** ein authentifizierter Nutzer `/recipes/new` aufruft
 - **THEN** SHALL genau ein Eingabefeld für URL, Rezepttext oder Idee angezeigt werden
 - **THEN** SHALL keine Auswahlkarten für "Manuell", "Mit KI-Hilfe" oder "Von URL importieren" gerendert werden
+- **THEN** SHALL der Textlink „Ohne KI manuell beginnen“ sichtbar sein
 - **THEN** SHALL innerhalb der Eingabekarte kein zusätzlicher Analyse-Button gerendert werden
 - **THEN** SHALL die primäre Navigationsschaltfläche in der Fußleiste als „Rezept analysieren“ beschriftet sein
 
@@ -20,9 +21,14 @@ Die Rezepterstellung unter `/recipes/new` SHALL genau einen Einstiegspunkt anbie
 
 #### Scenario: Leere Eingabe blockiert die Analyse
 - **WHEN** der Nutzer auf „Rezept analysieren“ ohne Text im Eingabefeld klickt
-- **THEN** SHALL eine deutsche Hinweismeldung erscheinen
+- **THEN** SHALL eine deutsche Hinweismeldung erscheinen, die auch auf „Ohne KI manuell beginnen“ verweist
 - **THEN** SHALL kein API-Aufruf erfolgen
 - **THEN** SHALL der Wizard auf Schritt 1 verbleiben
+
+#### Scenario: Manueller Einstieg
+- **WHEN** der Nutzer auf „Ohne KI manuell beginnen“ klickt
+- **THEN** SHALL kein KI-Aufruf erfolgen
+- **THEN** SHALL der Wizard Schritt 2 („Basis & Portionen“) mit leerem Titel, ohne Rezepttyp und ohne Personenzahl anzeigen
 
 #### Scenario: Erfolgreiche Analyse schaltet automatisch auf Schritt 2
 - **WHEN** der Nutzer einen gültigen Link, Text oder eine Idee eingibt und auf „Rezept analysieren“ klickt
@@ -71,23 +77,6 @@ Kann eine Rezeptseite nicht abgerufen werden, SHALL das System die Rezeptdaten �
 - **THEN** SHALL kein Grounding-Aufruf erfolgen
 - **THEN** SHALL das Ergebnis nicht als rekonstruiert gekennzeichnet werden
 
-### Requirement: Fünfschrittiger Wizard mit Hilfetexten
-Der Wizard SHALL aus fünf Schritten bestehen: Smart-Eingabe, Basis und Portionen, Zutaten, Zubereitung, Vorschau. Jeder Schritt SHALL einen erklärenden deutschen Hilfetext anzeigen.
-
-#### Scenario: Fortschrittsanzeige zeigt fünf Schritte
-- **WHEN** der Wizard gerendert wird
-- **THEN** SHALL eine Fortschrittsanzeige mit fünf Schritten sichtbar sein
-- **THEN** SHALL der aktive Schritt hervorgehoben sein
-
-#### Scenario: Jeder Schritt erklärt seinen Zweck
-- **WHEN** ein beliebiger Schritt aktiv ist
-- **THEN** SHALL ein deutscher Hilfetext den Zweck des Schritts erklären
-
-#### Scenario: Mobile Darstellung ab 320px
-- **WHEN** der Wizard mit einer Viewport-Breite von 320px gerendert wird
-- **THEN** SHALL die Fortschrittsanzeige ohne horizontales Scrollen lesbar bleiben
-- **THEN** SHALL die Navigationsschaltflächen erreichbar bleiben
-
 ### Requirement: Original-Personenzahl im Schritt Basis und Portionen
 Der Wizard SHALL die Personenzahl des Originalrezepts im Schritt "Basis und Portionen" abfragen, bevor Zutatenmengen angezeigt werden. Ein Hilfetext SHALL erklären, dass Mengen intern auf eine Portion normiert werden.
 
@@ -116,3 +105,20 @@ Ruft ein Nutzer `/recipes/new` mit dem Query-Parameter `ingredient` auf, SHALL d
 - **WHEN** der übergebene Slug zu keiner sichtbaren Zutat gehört
 - **THEN** SHALL der Wizard ohne Vorbelegung starten
 - **THEN** SHALL kein Fehler angezeigt werden
+
+### Requirement: Wizard-Schritte mit Hilfetexten
+Der Wizard SHALL aus folgenden Schritten in dieser Reihenfolge bestehen: Eingabe, Basis & Portionen, Zutaten prüfen (nur wenn die Analyse Zutaten geliefert hat), Zutaten, Materialien, Zubereitung, Vorschau. Jeder Schritt SHALL einen erklärenden deutschen Hilfetext anzeigen.
+
+#### Scenario: Fortschrittsanzeige zeigt sichtbare Schritte
+- **WHEN** der Wizard gerendert wird
+- **THEN** SHALL eine Fortschrittsanzeige mit allen sichtbaren Schritten angezeigt werden (sechs ohne, sieben mit „Zutaten prüfen“)
+- **THEN** SHALL der aktive Schritt hervorgehoben sein
+
+#### Scenario: Jeder Schritt erklärt seinen Zweck
+- **WHEN** ein beliebiger Schritt aktiv ist
+- **THEN** SHALL ein deutscher Hilfetext den Zweck des Schritts erklären
+
+#### Scenario: Mobile Darstellung ab 320px
+- **WHEN** der Wizard mit einer Viewport-Breite von 320px gerendert wird
+- **THEN** SHALL die Fortschrittsanzeige ohne horizontales Scrollen lesbar bleiben
+- **THEN** SHALL die Navigationsschaltflächen erreichbar bleiben

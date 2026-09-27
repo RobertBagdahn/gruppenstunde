@@ -32,7 +32,9 @@ Die Rezepterstellung unter `/recipes/new` SHALL als Haupteinstieg ein einzelnes 
 - **THEN** SHALL die Schaltfläche während der Verarbeitung als deaktiviert mit der Beschriftung „Analysiert…“ dargestellt werden
 - **THEN** SHALL der Wizard nach erfolgreicher Antwort der Analyse unmittelbar auf Schritt 2 („Basis & Portionen“) wechseln, ohne dass ein weiterer Klick erforderlich ist
 
-### Requirement: Fünfschrittiger Wizard mit Hilfetexten
+## ADDED Requirements
+
+### Requirement: Wizard-Schritte mit Hilfetexten
 Der Wizard SHALL aus folgenden Schritten in dieser Reihenfolge bestehen: Eingabe, Basis & Portionen, Zutaten prüfen (nur wenn die Analyse Zutaten geliefert hat), Zutaten, Materialien, Zubereitung, Vorschau. Jeder Schritt SHALL einen erklärenden deutschen Hilfetext anzeigen.
 
 #### Scenario: Fortschrittsanzeige zeigt sichtbare Schritte
@@ -48,3 +50,9 @@ Der Wizard SHALL aus folgenden Schritten in dieser Reihenfolge bestehen: Eingabe
 - **WHEN** der Wizard mit einer Viewport-Breite von 320px gerendert wird
 - **THEN** SHALL die Fortschrittsanzeige ohne horizontales Scrollen lesbar bleiben
 - **THEN** SHALL die Navigationsschaltflächen erreichbar bleiben
+
+## REMOVED Requirements
+
+### Requirement: Fünfschrittiger Wizard mit Hilfetexten
+**Reason**: Der Wizard hat sechs bzw. sieben Schritte (bedingter Schritt „Zutaten prüfen“, Materialien).
+**Migration**: Ersetzt durch „Wizard-Schritte mit Hilfetexten“.

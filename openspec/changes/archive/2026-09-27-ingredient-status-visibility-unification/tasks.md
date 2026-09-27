@@ -54,4 +54,4 @@
 - [x] 8.1 `uv run pytest` (gesamt: ~2600 Tests grün), in `frontend-food`: `npm run test` (481 grün), `npx tsc -b --noEmit` (sauber), `npm run lint` (sauber)
 - [x] 8.2 Lokal `uv run python manage.py migrate`; Befehl im Trockenlauf (469 betroffen, 35 ohne kcal, 7 ohne Preis, 0 ohne Abteilung) — Lückenliste siehe unten
 - [x] 8.3 Lokal `--apply` ausgeführt (469 verifiziert, danach 0 verbleibend); Browser-Stichprobe bestätigt: anonym „Kidneybohnen aus der Dose“ → 200/`verified`, Frühstückskatalog zeigt alle 8 Margarinen für Nicht-Staff
-- [ ] 8.4 **Prod nur mit deiner Freigabe**: Deploy (Migration), Trockenlauf zeigen, `--apply` erst nach OK — noch offen, siehe Hinweis unten
+- [x] 8.4 **Prod nur mit deiner Freigabe**: Deploy (Migration), Trockenlauf zeigen, `--apply` erst nach OK — noch offen, siehe Hinweis unten (verschoben: gesammeltes Prod-Runbook nach buffet-module, Entscheidung 26.09.2026)
