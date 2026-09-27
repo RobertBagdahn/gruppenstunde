@@ -3,12 +3,10 @@
 ## Purpose
 
 KI-gestützte Vorschläge und Erstellung von Zutaten mit Interaktions-ID und Kontext-Anreicherung des Prompts.
-
 ## Requirements
-
 ### Requirement: AI-powered ingredient data suggestion endpoint
 
-The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-all/` that returns suggested values for all fields of an ingredient (nutrition, ratings, physical properties, scout fields, name suggestion, portions, aliases, nutritional tags) using Gemini with structured output in a single call. Portion suggestions SHALL be returned as a structured `IngredientPortionSuggestSchema` object (not a flat array) with a required `portion_type` per entry (`system_gramm`, `rezeptportion`, `packung`, `belag`, `backmenge`). The response SHALL always include exactly one `system_gramm` suggestion (name „g", `weight_g=1`), at least one `rezeptportion` (typical per-person quantity, rank=1), and at least one `packung` suggestion. `belag`-Vorschläge SHALL nur enthalten sein, wenn die Zutat den Tag `breakfast-topping` trägt; `backmenge`-Vorschläge SHALL nur enthalten sein, wenn die Zutat den Tag `baking-ingredient` trägt. Portion names SHALL NOT contain any digits; weight and quantity information SHALL be conveyed exclusively via the `weight_g` and `quantity` fields. The `aliases` and `nutritional_tags` fields SHALL be required (non-optional) in the structured output schema to ensure Gemini always returns them.
+The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-all/` that returns suggested values for all fields of an ingredient (nutrition, ratings, physical properties, scout fields, name suggestion, portions, aliases, nutritional tags) using Gemini with structured output in a single call. Portion suggestions SHALL be returned as a structured `IngredientPortionSuggestSchema` object (not a flat array) with a required `portion_type` per entry (`system_gramm`, `rezeptportion`, `packung`, `belag`, `backmenge`). The response SHALL always include exactly one `system_gramm` suggestion (name „g", `weight_g=1`), at least one `rezeptportion` (typical per-person quantity, rank=1), and at least one `packung` suggestion. `belag`-Vorschläge SHALL nur enthalten sein, wenn die Zutat die Rolle `buffet-savory` oder `buffet-sweet` trägt; `backmenge`-Vorschläge SHALL nur enthalten sein, wenn die Zutat den Tag `baking-ingredient` trägt. Portion names SHALL NOT contain any digits; weight and quantity information SHALL be conveyed exclusively via the `weight_g` and `quantity` fields. The `aliases` and `nutritional_tags` fields SHALL be required (non-optional) in the structured output schema to ensure Gemini always returns them.
 
 #### Scenario: Successful suggestion includes required portion groups
 
@@ -32,12 +30,17 @@ The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-
 - **THEN** the `packung`-Array SHALL contain multiple entries distinguished by descriptive adjectives (e.g. „Packung", „Großpackung", „Kleine Packung") rather than by embedding the weight in the name
 - **THEN** each entry's actual weight SHALL be conveyed solely via its `weight_g` field
 
+#### Scenario: Belag-Vorschläge nur bei Belag-Rolle
+
+- **WHEN** eine Zutat die Rolle `buffet-savory` oder `buffet-sweet` trägt
+- **THEN** SHALL das Antwortschema ein `belag`-Array mit Vorschlägen für „Belag knapp", „Belag normal" und „Belag üppig" enthalten (rank aufsteigend nach Menge)
+- **WHEN** eine Zutat keine der Rollen `buffet-savory` und `buffet-sweet` trägt
+- **THEN** SHALL das `belag`-Array leer sein
+
 #### Scenario: Belag-Vorschläge nur bei breakfast-topping-Tag
 
-- **WHEN** eine Zutat den Tag `breakfast-topping` trägt
-- **THEN** SHALL das Antwortschema ein `belag`-Array mit Vorschlägen für „Belag knapp", „Belag normal" und „Belag üppig" enthalten (rank aufsteigend nach Menge)
-- **WHEN** eine Zutat den Tag `breakfast-topping` nicht trägt
-- **THEN** SHALL das `belag`-Array leer sein
+- **WHEN** eine Zutat die Rolle `buffet-savory` oder `buffet-sweet` trägt
+- **THEN** SHALL das Antwortschema ein `belag`-Array enthalten (Nachfolger von „Belag-Vorschläge nur bei Belag-Rolle“, die Rolle ersetzt den früheren Tag `breakfast-topping`)
 
 #### Scenario: Backmengen-Vorschläge nur bei baking-ingredient-Tag
 
@@ -60,8 +63,6 @@ The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-
 
 - **WHEN** the global Gemini rate limit is exceeded
 - **THEN** the system SHALL return HTTP 429 with a German error message
-
----
 
 ### Requirement: AI-powered ingredient creation endpoint
 

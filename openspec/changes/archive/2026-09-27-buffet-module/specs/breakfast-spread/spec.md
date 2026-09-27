@@ -9,6 +9,11 @@ Das System SHALL Streichfette über den Rollen-Tag `buffet-fat` („Streichfett�
 - **WHEN** die Migrationen ausgeführt wurden
 - **THEN** SHALL ein Tag mit slug `buffet-fat` und name „Streichfett“ existieren
 
+#### Scenario: Tag existiert nach Seed
+
+- **WHEN** die Datenmigration bzw. `seed_buffet_catalog` ausgeführt wurde
+- **THEN** SHALL ein Tag mit slug `buffet-fat` und name „Streichfett“ existieren (Nachfolger von „Tag existiert nach Migration“)
+
 #### Scenario: Zutat mit Tag erscheint im Katalog
 
 - **WHEN** eine für den Nutzer sichtbare Zutat den Tag `buffet-fat` hat
@@ -23,6 +28,11 @@ Das System SHALL im `BreakfastCatalogOut`-Schema das Feld `fat_ingredients: list
 - **WHEN** `GET /api/supply/breakfast-catalog/` aufgerufen wird
 - **THEN** SHALL `fat_ingredients` alle sichtbaren Zutaten mit Tag `buffet-fat` enthalten (sortiert nach name)
 - **AND** SHALL jede Zutat `id`, `name`, `slug`, `energy_kcal`, `price_per_kg` und `portions` (nur aktive Portionen) enthalten
+
+#### Scenario: Katalog enthält breakfast-fat-Zutaten
+
+- **WHEN** `GET /api/supply/breakfast-catalog/` aufgerufen wird
+- **THEN** SHALL `fat_ingredients` alle sichtbaren Zutaten mit Rolle `buffet-fat` enthalten (Nachfolger von „Katalog enthält Streichfette“)
 
 #### Scenario: Beläge aus beiden Belag-Rollen
 

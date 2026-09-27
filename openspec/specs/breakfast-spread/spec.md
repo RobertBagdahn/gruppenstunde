@@ -1,30 +1,46 @@
 # breakfast-spread Specification
 
-## ADDED Requirements
-
+## Purpose
+Streichfette (Butter, Margarine) als eigene Buffet-Rolle mit eigenem Wizard-Schritt, Verteilung, Kcal-Berechnung und Leftover-Kalkulation behandeln, getrennt vom übrigen Belag.
+## Requirements
 ### Requirement: Content-Tag breakfast-fat
 
-Das System SHALL einen Content-Tag mit slug `breakfast-fat` bereitstellen. Zutaten mit diesem Tag SHALL im Frühstücksassistenten als Streichfette behandelt werden.
+Das System SHALL Streichfette über den Rollen-Tag `buffet-fat` („Streichfett“) kennzeichnen. Zutaten mit diesem Tag SHALL im Frühstücksassistenten und im Buffet-Builder als Streichfette behandelt werden. Der frühere Tag `breakfast-fat` entfällt.
+
+#### Scenario: Tag existiert nach Migration
+
+- **WHEN** die Migrationen ausgeführt wurden
+- **THEN** SHALL ein Tag mit slug `buffet-fat` und name „Streichfett“ existieren
 
 #### Scenario: Tag existiert nach Seed
 
-- **WHEN** das Seed-Kommando `seed_breakfast_catalog` ausgeführt wird
-- **THEN** SHALL ein Tag mit slug `breakfast-fat` und name `breakfast-fat` existieren
+- **WHEN** die Datenmigration bzw. `seed_buffet_catalog` ausgeführt wurde
+- **THEN** SHALL ein Tag mit slug `buffet-fat` und name „Streichfett“ existieren (Nachfolger von „Tag existiert nach Migration“)
 
 #### Scenario: Zutat mit Tag erscheint im Katalog
 
-- **WHEN** eine Zutat den Tag `breakfast-fat` hat und `is_standalone_food=true` ist
-- **THEN** SHALL sie im `GET /breakfast-catalog/`-Response unter `fat_ingredients` erscheinen
+- **WHEN** eine für den Nutzer sichtbare Zutat den Tag `buffet-fat` hat
+- **THEN** SHALL sie im `GET /api/supply/breakfast-catalog/`-Response unter `fat_ingredients` erscheinen, unabhängig von `is_standalone_food`
 
 ### Requirement: BreakfastCatalogOut um fat_ingredients erweitert
 
-Das System SHALL das `BreakfastCatalogOut`-Schema um das Feld `fat_ingredients: list[FatIngredientOut]` erweitern.
+Das System SHALL im `BreakfastCatalogOut`-Schema das Feld `fat_ingredients: list[FatIngredientOut]` liefern. Der Endpunkt `GET /api/supply/breakfast-catalog/` SHALL als Adapter auf die Buffet-Rollen arbeiten: `base_ingredients` ← `buffet-bread` (nur Zutaten), `fat_ingredients` ← `buffet-fat`, `topping_ingredients` ← `buffet-savory` ∪ `buffet-sweet`, `extra_ingredients` ← `buffet-fresh`, `drink_ingredients`/`drink_recipes` ← `buffet-drink`, `warm_meal_recipes` ← `buffet-dish` (nur Rezepte).
+
+#### Scenario: Katalog enthält Streichfette
+
+- **WHEN** `GET /api/supply/breakfast-catalog/` aufgerufen wird
+- **THEN** SHALL `fat_ingredients` alle sichtbaren Zutaten mit Tag `buffet-fat` enthalten (sortiert nach name)
+- **AND** SHALL jede Zutat `id`, `name`, `slug`, `energy_kcal`, `price_per_kg` und `portions` (nur aktive Portionen) enthalten
 
 #### Scenario: Katalog enthält breakfast-fat-Zutaten
 
-- **WHEN** `GET /breakfast-catalog/` aufgerufen wird
-- **THEN** SHALL `fat_ingredients` alle Zutaten mit Tag `breakfast-fat` und `is_standalone_food=true` enthalten (sortiert nach name)
-- **AND** SHALL jede Zutat `id`, `name`, `slug`, `energy_kcal`, `price_per_kg` und `portions` enthalten
+- **WHEN** `GET /api/supply/breakfast-catalog/` aufgerufen wird
+- **THEN** SHALL `fat_ingredients` alle sichtbaren Zutaten mit Rolle `buffet-fat` enthalten (Nachfolger von „Katalog enthält Streichfette“)
+
+#### Scenario: Beläge aus beiden Belag-Rollen
+
+- **WHEN** „Gouda“ die Rolle `buffet-savory` und „Nutella“ die Rolle `buffet-sweet` trägt
+- **THEN** SHALL beide in `topping_ingredients` erscheinen
 
 ### Requirement: Wizard-Schritt Streichfett
 
@@ -115,7 +131,7 @@ Streichfette SHALL als MealItems mit `quantity = gramsPerPerson`, `measuring_uni
 
 ### Requirement: Buttersorten-Präzisierung
 
-Butter und Margarine unterscheiden sich nicht in ihren Nährwerten (je 717 kcal/100g) aber im Preis (Butter 15€/kg, Margarine 8€/kg) und in der Packungsgröße (Butter 250g, Margarine 500g).
+Butter und Margarine SHALL mit unterschiedlichem Preis und Packungsgröße geführt werden, obwohl sie sich in den Nährwerten nicht unterscheiden (je 717 kcal/100g): Butter 15€/kg in 250g-Packungen, Margarine 8€/kg in 500g-Packungen.
 
 #### Scenario: Butter-Preis und Packung
 

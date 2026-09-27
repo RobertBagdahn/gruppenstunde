@@ -33,6 +33,11 @@ The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-
 - **WHEN** eine Zutat keine der Rollen `buffet-savory` und `buffet-sweet` trägt
 - **THEN** SHALL das `belag`-Array leer sein
 
+#### Scenario: Belag-Vorschläge nur bei breakfast-topping-Tag
+
+- **WHEN** eine Zutat die Rolle `buffet-savory` oder `buffet-sweet` trägt
+- **THEN** SHALL das Antwortschema ein `belag`-Array enthalten (Nachfolger von „Belag-Vorschläge nur bei Belag-Rolle“, die Rolle ersetzt den früheren Tag `breakfast-topping`)
+
 #### Scenario: Backmengen-Vorschläge nur bei baking-ingredient-Tag
 
 - **WHEN** eine Zutat den Tag `baking-ingredient` trägt

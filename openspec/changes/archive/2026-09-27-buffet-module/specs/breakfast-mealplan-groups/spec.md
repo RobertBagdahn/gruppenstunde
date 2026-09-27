@@ -27,3 +27,11 @@ Jede Kategorie SHALL als Sub-Card mit leichtem Rand, abgerundeten Ecken und Kate
 #### Scenario: Item ohne Rolle
 - **WHEN** eine Buffet-Mahlzeit ein manuell hinzugefügtes Rezept ohne Rollen-Tag enthält
 - **THEN** wird es im Abschnitt „Weitere“ als Einzelkarte angezeigt
+
+#### Scenario: Gemischte Frühstücks-Items
+- **WHEN** Brot, Belag und Getränke-Items vorhanden sind
+- **THEN** werden sie in separaten Kategorie-Blöcken angezeigt (Nachfolger von „Gemischte Buffet-Items“, gilt jetzt für jeden Mahlzeitentyp)
+
+#### Scenario: Nicht-Frühstücks-Item
+- **WHEN** ein Slot ein manuell hinzugefügtes Rezept ohne breakfast-Tag enthält
+- **THEN** wird es im Abschnitt „Weitere“ als Einzelkarte angezeigt (Nachfolger von „Item ohne Rolle“)

@@ -1,34 +1,43 @@
 # Breakfast MealPlan Groups
 
-## ADDED Requirements
-
+## Purpose
+Gruppierte Darstellung von Mahlzeit-Einträgen im MealSlot.
+## Requirements
 ### Requirement: MealSlot gruppiert Frühstücks-Items nach Kategorie
 
-Für Mahlzeiten mit `meal_type === 'breakfast'` SHALL der MealSlot die Items in Kategorien gruppieren, statt sie als einzelne Karten anzuzeigen.
+Für Mahlzeiten jedes Typs, die mindestens einen Eintrag mit gesetztem `buffet_role` oder einen Eintrag mit Buffet-Rollen-Tag enthalten, SHALL der MealSlot die Items nach Buffet-Rolle gruppieren, statt sie als einzelne Karten anzuzeigen.
 
-Die Kategorisierung SHALL über `item.ingredient_tags` erfolgen:
-- Tag `"breakfast-base"` → Kategorie "Brot"
-- Tag `"breakfast-topping"` → Kategorie "Belag"
-- Tag `"breakfast-warm-meal"` → Kategorie "Warme Gerichte"
-- Tag `"breakfast-drink"` → Kategorie "Getränke"
-- Kein passender Tag aber `recipe_id` → Abschnitt "Weitere" (Einzelkarten)
-- Kein passender Tag und `ingredient_id` → Kategorie "Extras"
+Die Kategorisierung SHALL in dieser Reihenfolge erfolgen:
+1. `item.buffet_role` (vom Buffet-Builder gesetzt), sonst
+2. der erste Rollen-Tag in `item.ingredient_tags` bzw. den Tags des Rezepts (Reihenfolge der Rollen gemäß `sort_order` der Tags).
 
-Items ohne Tag und ohne recipe_id/ingredient_id → Abschnitt "Weitere".
+Die Kategorie-Überschrift SHALL der deutsche Name der Rolle sein („Brot & Gebäck“, „Streichfett“, „Belag herzhaft“, „Belag süß“, „Soßen & Würze“, „Gemüse & Obst“, „Müsli & Joghurt“, „Getränke“, „Gerichte“). Items ohne Rolle SHALL im Abschnitt „Weitere“ als Einzelkarten erscheinen.
 
 Jede Kategorie SHALL als Sub-Card mit leichtem Rand, abgerundeten Ecken und Kategorie-Header dargestellt werden.
 
 #### Scenario: Brot-Items in Kategorie
-- **WHEN** ein Item ingredient_tags=["breakfast-base"] hat
-- **THEN** wird es in der Kategorie "Brot" angezeigt
+- **WHEN** ein Item `buffet_role="buffet-bread"` hat
+- **THEN** wird es in der Kategorie „Brot & Gebäck“ angezeigt
+
+#### Scenario: Gemischte Buffet-Items
+- **WHEN** Brot-, Belag- und Getränke-Items vorhanden sind
+- **THEN** werden sie in separaten Kategorie-Blöcken in Rollen-Reihenfolge angezeigt
+
+#### Scenario: Baguette-Mittagessen
+- **WHEN** ein Mittagessen mit der Vorlage „Belegte Baguettes“ gespeichert wurde
+- **THEN** werden die Items ebenfalls nach Rollen gruppiert
+
+#### Scenario: Item ohne Rolle
+- **WHEN** eine Buffet-Mahlzeit ein manuell hinzugefügtes Rezept ohne Rollen-Tag enthält
+- **THEN** wird es im Abschnitt „Weitere“ als Einzelkarte angezeigt
 
 #### Scenario: Gemischte Frühstücks-Items
 - **WHEN** Brot, Belag und Getränke-Items vorhanden sind
-- **THEN** werden sie in drei separaten Kategorie-Blöcken angezeigt
+- **THEN** werden sie in separaten Kategorie-Blöcken angezeigt (Nachfolger von „Gemischte Buffet-Items“, gilt jetzt für jeden Mahlzeitentyp)
 
 #### Scenario: Nicht-Frühstücks-Item
-- **WHEN** ein Frühstücks-Slot ein manuell hinzugefügtes Rezept ohne breakfast-Tag enthält
-- **THEN** wird es im Abschnitt "Weitere" als Einzelkarte angezeigt
+- **WHEN** ein Slot ein manuell hinzugefügtes Rezept ohne breakfast-Tag enthält
+- **THEN** wird es im Abschnitt „Weitere“ als Einzelkarte angezeigt (Nachfolger von „Item ohne Rolle“)
 
 ### Requirement: QuantityInput ohne doppelten Wert
 
@@ -46,7 +55,7 @@ Neues Format (erforderlich):
 
 ### Requirement: Kategorie-Summenzeilen (optional)
 
-Jede Kategoriegruppe KANN eine optionale Summenzeile am Ende enthalten, die die Gesamtanzahl Portionen und kcal der Kategorie anzeigt.
+Eine Kategoriegruppe SHALL optional eine Summenzeile am Ende zeigen dürfen, die die Gesamtanzahl Portionen und kcal der Kategorie anzeigt.
 
 #### Scenario: Summenzeile in Brot-Kategorie
 - **WHEN** drei Brote mit zusammen 4,0 Scheiben
