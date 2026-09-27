@@ -7,6 +7,7 @@
  */
 import { z } from 'zod';
 import { MealItemSchema } from './mealPlan';
+import { QuantityWarningSchema } from './buffet';
 
 // ============================================================================
 // Catalog schemas
@@ -233,6 +234,7 @@ export type WizardState = z.infer<typeof WizardStateSchema>;
 export const WizardItemsResponseSchema = z.object({
   meal_id: z.number(),
   items: z.array(MealItemSchema),
+  warnings: z.array(QuantityWarningSchema).default([]),
 });
 export type WizardItemsResponse = z.infer<typeof WizardItemsResponseSchema>;
 

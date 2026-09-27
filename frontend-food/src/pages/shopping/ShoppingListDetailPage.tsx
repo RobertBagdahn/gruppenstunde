@@ -3,8 +3,10 @@
  * checkboxes, progress bar, collaborator management, and real-time updates.
  */
 import { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
+import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
+import type { QuantityWarning } from '@/schemas/buffet';
 import {
   useShoppingList,
   useUpdateShoppingListItem,
@@ -34,9 +36,14 @@ export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
   const listId = parseInt(id ?? '0', 10);
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationState = location.state as { warnings?: QuantityWarning[]; mealPlanId?: number } | null;
 
   const { data: user } = useCurrentUser();
   const { data: list, isLoading, error, refetch } = useShoppingList(listId);
+  // The generation endpoint reports plausibility warnings only in its own response;
+  // they are carried here via navigation state right after "Einkaufsliste erstellen".
+  const warnings = navigationState?.warnings ?? list?.warnings ?? [];
   const updateItem = useUpdateShoppingListItem(listId);
   const addItem = useAddShoppingListItem(listId);
   const deleteList = useDeleteShoppingList();
@@ -275,6 +282,13 @@ export default function ShoppingListDetailPage() {
         <span className="text-border/85">•</span>
         <span>von {list.owner_username}</span>
       </div>
+
+      {/* Quantity plausibility warnings from generation */}
+      {warnings.length > 0 && (
+        <div className="mb-6">
+          <QuantityWarningsBanner warnings={warnings} mealPlanId={navigationState?.mealPlanId ?? list.source_id ?? undefined} />
+        </div>
+      )}
 
       {/* Progress */}
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />

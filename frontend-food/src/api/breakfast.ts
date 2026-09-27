@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { QuantityWarningSchema } from '@/schemas/buffet';
 import { API_BASE_URL } from '@/lib/api';
 import {
   BreakfastCatalogSchema,
@@ -221,7 +222,9 @@ export function useSaveBreakfastBulk(planId: number) {
         body: JSON.stringify({ meal_ids: mealIds, items }),
       });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
-      return z.object({ meal_ids: z.array(z.number()), meals_updated: z.number() }).parse(await res.json());
+      return z
+        .object({ meal_ids: z.array(z.number()), meals_updated: z.number(), warnings: z.array(QuantityWarningSchema).default([]) })
+        .parse(await res.json());
     },
     onSuccess: () => invalidateMealPlanQueries(queryClient, planId),
   });

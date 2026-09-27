@@ -46,6 +46,8 @@ describe('refMealItemsToWizardState', () => {
       portion_display: '',
       has_missing_weight: false,
       is_per_norm_person: true,
+      buffet_role: '',
+      warnings: [],
     } satisfies MealItem;
 
     const state = refMealItemsToWizardState([item], catalog, 10);

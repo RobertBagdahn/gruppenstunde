@@ -46,17 +46,17 @@
 
 ## 6. Frontend: Schemas und Hooks
 
-- [ ] 6.1 `frontend-food/src/schemas/buffet.ts` (Zod-Spiegel aller Buffet-Schemas inkl. `QuantityWarningSchema`)
-- [ ] 6.2 `schemas/mealPlan.ts`: `buffet_role`, `buffet_template_id`, `warnings` in betroffenen Antworten
-- [ ] 6.3 `api/buffet.ts`: `useBuffetTemplates(mealType)`, `useBuffetCatalog(templateSlug)`, `useBuffetState(planId, mealId)`, `useBuffetPreview` (debounced Mutation mit `dry_run`), `useSaveBuffet` (invalidiert Meal-Plan-Queries)
+- [x] 6.1 `frontend-food/src/schemas/buffet.ts` (Zod-Spiegel aller Buffet-Schemas inkl. `QuantityWarningSchema`)
+- [x] 6.2 `schemas/mealPlan.ts`: `buffet_role`, `buffet_template_id`, `warnings` in betroffenen Antworten
+- [x] 6.3 `api/buffet.ts`: `useBuffetTemplates(mealType)`, `useBuffetCatalog(templateSlug)`, `useBuffetState(planId, mealId)`, `useBuffetPreview` (debounced Mutation mit `dry_run`), `useSaveBuffet` (invalidiert Meal-Plan-Queries)
 
 ## 7. Frontend: UI
 
-- [ ] 7.1 `components/buffet/BuffetBuilder.tsx`: Vorlagenwahl, Rollen-Sektionen mit Chips (Suche ab > 8), Menge pro Rolle, Live-Vorschau (kcal vs. Ziel, Kosten, Warnungen), Wiederherstellung, Mobile ab 320 px, Lucide-Icons und Design-Tokens
-- [ ] 7.2 `pages/planning/MealSlot.tsx`: Aktion „Buffet zusammenstellen“ für alle Mahlzeitentypen außer `drinks`, `BreakfastQuickBuilder` ersetzen
-- [ ] 7.3 MealSlot-Gruppierung nach Rolle (`buffet_role` → Rollen-Tag), deutsche Überschriften
-- [ ] 7.4 Warnungs-Anzeige am MealItem und Hinweisbox in der Einkaufsliste
-- [ ] 7.5 `components/breakfast/BreakfastQuickBuilder.tsx` und `.test.tsx` löschen
+- [x] 7.1 `components/buffet/BuffetBuilder.tsx`: Vorlagenwahl, Rollen-Sektionen mit Chips (Suche ab > 8), Menge pro Rolle, Live-Vorschau (kcal vs. Ziel, Kosten, Warnungen), Wiederherstellung, Mobile ab 320 px, Lucide-Icons und Design-Tokens
+- [x] 7.2 `pages/planning/MealSlot.tsx`: Aktion „Buffet zusammenstellen“ für alle Mahlzeitentypen außer `drinks`, `BreakfastQuickBuilder` ersetzen
+- [x] 7.3 MealSlot-Gruppierung nach Rolle (`buffet_role` → Rollen-Tag), deutsche Überschriften
+- [x] 7.4 Warnungs-Anzeige am MealItem und Hinweisbox in der Einkaufsliste
+- [x] 7.5 `components/breakfast/BreakfastQuickBuilder.tsx` und `.test.tsx` löschen
 
 ## 8. Tests
 
@@ -67,9 +67,9 @@
 - [x] 8.5 Backend: Plausibilität (800 Stück → Warnung, 400 g → keine; Einkaufsliste liefert `warnings`)
 - [x] 8.6 Backend: `migrate_buffet_roles` (Dry-Run ändert nichts, Idempotenz, Namensabweichung wird übersprungen, Brötchen-Merge übernimmt kcal, Merge nur bei `owner=None`, Status/Visibility werden nie geändert, Bericht „manuell prüfen“ zur Laufzeit, alte Tags werden gelöscht)
 - [x] 8.7 Backend: Merge-Services (API-Verhalten unverändert, bestehende Tests grün)
-- [ ] 8.8 Frontend: BuffetBuilder (Vorauswahl nach Mahlzeitentyp, keine Default-Auswahl ohne Vorlage, Vorschau wird angezeigt, Speichern ruft Endpunkt ohne eigene Mengenberechnung)
-- [ ] 8.9 Frontend: MealSlot-Gruppierung für Mittagessen mit Buffet
-- [ ] 8.10 `uv run pytest planner supply recipe content`, `npm run lint`, `npm run typecheck`, `npm test` grün
+- [x] 8.8 Frontend: BuffetBuilder (Vorauswahl nach Mahlzeitentyp, keine Default-Auswahl ohne Vorlage, Vorschau wird angezeigt, Speichern ruft Endpunkt ohne eigene Mengenberechnung)
+- [x] 8.9 Frontend: MealSlot-Gruppierung für Mittagessen mit Buffet
+- [x] 8.10 `uv run pytest planner supply recipe content`, `npm run lint`, `npm run typecheck`, `npm test` grün
 
 ## 9. Rollout
 

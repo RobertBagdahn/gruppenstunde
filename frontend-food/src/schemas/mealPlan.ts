@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { UtensilsCrossed, Moon, Cookie, GlassWater } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
 import { PriceCoverageSchema } from './recipe';
+import { QuantityWarningSchema } from './buffet';
 
 // Lightweight nutritional tag schema for search results (backend only returns id+name)
 export const NutritionalTagPreviewSchema = z.object({
@@ -73,6 +74,8 @@ export const MealItemSchema = z.object({
   has_missing_weight: z.boolean().default(false),
   is_per_norm_person: z.boolean().default(true),
   recipe_portions: z.number().nullable().optional(),
+  buffet_role: z.string().default(''),
+  warnings: z.array(QuantityWarningSchema).default([]),
 });
 export type MealItem = z.infer<typeof MealItemSchema>;
 
@@ -93,6 +96,7 @@ export const MealSchema = z.object({
   is_reference: z.boolean(),
   ref_meal_id: z.number().nullable(),
   is_synced: z.boolean(),
+  buffet_template_id: z.number().nullable().optional(),
   is_external: z.boolean(),
   external_energy_kcal: z.number().nullable(),
   external_cost_per_person: z.number().nullable(),

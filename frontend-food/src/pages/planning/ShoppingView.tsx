@@ -218,7 +218,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
             createFromMealPlan.mutate(mealPlanId, {
               onSuccess: (created) => {
                 toast.success('Einkaufsliste erstellt');
-                navigate(`/shopping-lists/${created.id}`);
+                navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId } });
               },
               onError: (err) =>
                 toast.error('Fehler', { description: err.message }),

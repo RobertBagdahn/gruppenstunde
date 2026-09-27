@@ -8,10 +8,11 @@ import {
   RefreshCw,
   FileText,
   Shuffle,
-  Sparkles,
   ChevronDown,
   ChevronUp,
   Users,
+  LayoutGrid,
+  TriangleAlert,
 } from 'lucide-react';
 import { useRandomRecipeSuggestion, useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
@@ -26,7 +27,8 @@ import {
 } from '@/schemas/mealPlan';
 import type { Meal, RecipeSearchResult } from '@/schemas/mealPlan';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
-import { BreakfastQuickBuilder } from '@/components/breakfast/BreakfastQuickBuilder';
+import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
+import { BUFFET_ROLE_ORDER, buffetRoleName, itemBuffetRole } from '@/lib/buffetRoles';
 import RecipePreviewDialog from './RecipePreviewDialog';
 import { FactorInput } from './FactorInput';
 import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
@@ -84,7 +86,7 @@ export function MealSlot({
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [randomPreviewRecipe, setRandomPreviewRecipe] = useState<RecipeSearchResult | null>(null);
-  const [showQuickBuilder, setShowQuickBuilder] = useState(false);
+  const [showBuffetBuilder, setShowBuffetBuilder] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   const primaryTitle = useMemo(() => {
@@ -120,7 +122,7 @@ export function MealSlot({
   );
 
   const handleOpenWizard = () => {
-    setShowQuickBuilder(true);
+    setShowBuffetBuilder(true);
   };
 
   const randomQuery = useRandomRecipeSuggestion({
@@ -180,6 +182,63 @@ export function MealSlot({
     return 'Menge nicht angegeben';
   };
 
+  const renderMealItemCard = (it: Meal['items'][number]): React.ReactNode => {
+    const isIng = !it.recipe_id && it.ingredient_id;
+    const viol = (scanData?.violations.filter((v) => v.meal_id === meal.id && v.recipe_id === it.recipe_id) || []);
+    const allTags = viol.map((v) => v.nutritional_tag);
+    const dName = isIng ? it.ingredient_name : it.recipe_title;
+    return (
+      <div key={it.id} className="pl-7 py-1">
+        <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
+          <div className="flex items-start gap-3">
+            {it.recipe_id && <RecipeThumbnail imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded" className="rounded" />}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {it.recipe_id && it.recipe_slug ? <Link to={`/recipes/${it.recipe_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
+                  : it.ingredient_id ? <Link to={`/ingredients/${it.ingredient_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
+                  : <span className="text-base truncate block font-medium">{dName}</span>}
+                {isIng && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">Zutat</span>}
+                <NutriTagBadge allergenTags={allTags} />
+                {it.warnings.length > 0 && (
+                  <span title={it.warnings.map((w) => w.message).join(' ')} className="inline-flex shrink-0">
+                    <TriangleAlert className="w-3.5 h-3.5 text-destructive" />
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                {it.energy_kcal != null && <span>{Math.round(it.energy_kcal / effPortions)} kcal</span>}
+                {it.cost_eur != null && <span>{(it.cost_eur / effPortions).toFixed(2)} €</span>}
+                {isIng && !meal.is_synced && isPortionUnit(it.measuring_unit_name) ? (
+                  // NEW format: portion-based, editable
+                  <>
+                    {onUpdateItemQuantity ? <QuantityInput value={it.quantity ?? 0} onChange={(q) => onUpdateItemQuantity(it.id, q)} /> : <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} />}
+                    <span className="text-xs text-muted-foreground">{it.measuring_unit_name}{it.quantity_g != null ? <span className="text-muted-foreground/60 ml-0.5">({Math.round(it.quantity_g)}g)</span> : ''}</span>
+                  </>
+                ) : isIng && !meal.is_synced ? (
+                  <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {formatPortion(it)}
+                  </span>
+                ) : isIng && it.portion_display ? (
+                   // portion_display from backend (read-only)
+                    <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {formatPortion(it)}
+                   </span>
+                 ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
+                   // Portion-based, read-only fallback
+                    <span>{formatPortion(it)}</span>
+                 ) : isIng ? (
+                   // Raw unit, read-only fallback
+                    <span className="text-xs">{formatPortion(it)}</span>
+                 ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{it.factor.toFixed(2).replace('.', ',')}</span>)}
+              </div>
+            </div>
+            {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(it.id)} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"><X className="w-4 h-4" /></button>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (isEmpty && !meal.is_external) {
     return (
       <div className={`p-4 rounded-xl border-2 border-dashed ${mealColors.border}/40 bg-card/60 hover:bg-muted/30 transition-all space-y-3`}>
@@ -223,14 +282,14 @@ export function MealSlot({
                   <PlusCircle className="w-4 h-4" />
                   Gericht hinzufügen
                 </button>
-                {meal.meal_type === 'breakfast' && (
+                {meal.meal_type !== 'drinks' && (
                   <button
                     type="button"
                     onClick={handleOpenWizard}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-chart-4/30 bg-chart-4/10 text-chart-4 hover:bg-chart-4/20 transition-all"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Frühstücksbaukasten
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    Buffet zusammenstellen
                   </button>
                 )}
                 <button
@@ -426,8 +485,10 @@ export function MealSlot({
           <div className="space-y-2">
 
         {(() => {
-          if (meal.meal_type !== 'breakfast') {
-            // Non-breakfast: existing single-card rendering
+          const hasBuffetItems = meal.items.some((it) => it.factor >= 0.01 && itemBuffetRole(it) !== null);
+
+          if (!hasBuffetItems) {
+            // No buffet roles involved: existing single-card rendering
             const regItems: typeof meal.items = [];
             const vGroups = new Map<string, typeof meal.items>();
             for (const it of meal.items) {
@@ -440,55 +501,7 @@ export function MealSlot({
             }
             const out: React.ReactNode[] = [];
             for (const it of regItems) {
-              const isIng = !it.recipe_id && it.ingredient_id;
-              const viol = (scanData?.violations.filter((v) => v.meal_id === meal.id && v.recipe_id === it.recipe_id) || []);
-              const allTags = viol.map((v) => v.nutritional_tag);
-              const dName = isIng ? it.ingredient_name : it.recipe_title;
-              out.push(
-                <div key={it.id} className="pl-7 py-1">
-                  <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
-                    <div className="flex items-start gap-3">
-                      {it.recipe_id && <RecipeThumbnail imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded" className="rounded" />}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {it.recipe_id && it.recipe_slug ? <Link to={`/recipes/${it.recipe_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
-                            : it.ingredient_id ? <Link to={`/ingredients/${it.ingredient_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
-                            : <span className="text-base truncate block font-medium">{dName}</span>}
-                          {isIng && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">Zutat</span>}
-                          <NutriTagBadge allergenTags={allTags} />
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                          {it.energy_kcal != null && <span>{Math.round(it.energy_kcal / effPortions)} kcal</span>}
-                          {it.cost_eur != null && <span>{(it.cost_eur / effPortions).toFixed(2)} €</span>}
-                          {isIng && !meal.is_synced && isPortionUnit(it.measuring_unit_name) ? (
-                            // NEW format: portion-based, editable
-                            <>
-                              {onUpdateItemQuantity ? <QuantityInput value={it.quantity ?? 0} onChange={(q) => onUpdateItemQuantity(it.id, q)} /> : <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} />}
-                              <span className="text-xs text-muted-foreground">{it.measuring_unit_name}{it.quantity_g != null ? <span className="text-muted-foreground/60 ml-0.5">({Math.round(it.quantity_g)}g)</span> : ''}</span>
-                            </>
-                          ) : isIng && !meal.is_synced ? (
-                            <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
-                              {formatPortion(it)}
-                            </span>
-                          ) : isIng && it.portion_display ? (
-                             // portion_display from backend (read-only)
-                              <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                {formatPortion(it)}
-                             </span>
-                           ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
-                             // Portion-based, read-only fallback
-                              <span>{formatPortion(it)}</span>
-                           ) : isIng ? (
-                             // Raw unit, read-only fallback
-                              <span className="text-xs">{formatPortion(it)}</span>
-                           ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{it.factor.toFixed(2).replace('.', ',')}</span>)}
-                        </div>
-                      </div>
-                      {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(it.id)} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"><X className="w-4 h-4" /></button>}
-                    </div>
-                  </div>
-                </div>
-              );
+              out.push(renderMealItemCard(it));
             }
             // Variant groups
             for (const [, variants] of vGroups) {
@@ -521,39 +534,41 @@ export function MealSlot({
             return out;
           }
 
-          // Breakfast: group by ingredient_tags
-          const categories: { key: string; label: string; items: typeof meal.items; order: number }[] = [
-            { key: 'base', label: 'Brot', items: [], order: 1 },
-            { key: 'topping', label: 'Belag', items: [], order: 2 },
-            { key: 'warm', label: 'Warme Gerichte', items: [], order: 3 },
-            { key: 'drink', label: 'Getränke', items: [], order: 4 },
-            { key: 'extra', label: 'Extras', items: [], order: 5 },
-            { key: 'other', label: 'Weitere', items: [], order: 6 },
-          ];
-          const catMap = new Map(categories.map((c) => [c.key, c]));
-
+          // Buffet: group by role (item.buffet_role, else the first role tag), in role order.
+          // Items without a role appear individually in "Weitere".
+          const roleGroups = new Map<string, typeof meal.items>();
+          const otherItems: typeof meal.items = [];
           for (const item of meal.items) {
             if (item.factor < 0.01) continue;
-            const itags = new Set(item.ingredient_tags);
-            if (itags.has('breakfast-base')) catMap.get('base')!.items.push(item);
-            else if (itags.has('breakfast-topping')) catMap.get('topping')!.items.push(item);
-            else if (itags.has('breakfast-warm-meal') || item.recipe_type === 'breakfast') catMap.get('warm')!.items.push(item);
-            else if (itags.has('breakfast-drink') || item.recipe_type === 'drink') catMap.get('drink')!.items.push(item);
-            else if (item.ingredient_id && !item.recipe_id) catMap.get('extra')!.items.push(item);
-            else catMap.get('other')!.items.push(item);
+            const role = itemBuffetRole(item);
+            if (role) {
+              const list = roleGroups.get(role) ?? [];
+              list.push(item);
+              roleGroups.set(role, list);
+            } else {
+              otherItems.push(item);
+            }
           }
 
           const rendered: React.ReactNode[] = [];
 
-          for (const cat of categories) {
-            if (cat.items.length === 0) continue;
+          for (const role of BUFFET_ROLE_ORDER) {
+            const items = roleGroups.get(role);
+            if (!items || items.length === 0) continue;
+            const kcalSum = items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
+            const units = new Set(items.map((it) => it.measuring_unit_name).filter(Boolean));
+            const quantitySum = units.size === 1 && items.every((it) => it.quantity != null)
+              ? items.reduce((s, it) => s + (it.quantity ?? 0), 0)
+              : null;
+            const quantityUnit = units.size === 1 ? [...units][0] : '';
+
             rendered.push(
-              <div key={cat.key} className="pl-7 py-1">
+              <div key={role} className="pl-7 py-1" data-testid={`buffet-role-group-${role}`}>
                 <div className="rounded-lg border bg-card overflow-hidden">
                   <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider ${mealColors.bg} ${mealColors.text} border-b`}>
-                    {cat.label}
+                    {buffetRoleName(role)}
                   </div>
-                  {cat.items.map((item) => {
+                  {items.map((item) => {
                     const isIngredient = !item.recipe_id && item.ingredient_id;
                     const itemViolations = scanData?.violations.filter(
                       (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
@@ -578,6 +593,11 @@ export function MealSlot({
                                 <span className="text-sm truncate block font-medium">{displayName}</span>
                               )}
                               <NutriTagBadge allergenTags={itemAllergenTags} />
+                              {item.warnings.length > 0 && (
+                                <span title={item.warnings.map((w) => w.message).join(' ')} className="inline-flex shrink-0">
+                                  <TriangleAlert className="w-3.5 h-3.5 text-destructive" />
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
@@ -629,40 +649,21 @@ export function MealSlot({
                       </div>
                     );
                   })}
-                  {/* Sum row per category */}
-                  {cat.items.length > 0 && (() => {
-                    if (cat.key === 'base') {
-                      const sum = cat.items.reduce((s, it) => s + (it.quantity ?? 0), 0);
-                      const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                      const unit = cat.items.find((it) => it.measuring_unit_name)?.measuring_unit_name || 'Gramm';
-                      return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Brote gesamt</span><span className="text-muted-foreground">&times;{sum.toFixed(2).replace('.', ',')} {unit} · {Math.round(kcal)} kcal</span></div>;
-                    }
-                    if (cat.key === 'topping') {
-                      const sum = cat.items.reduce((s, it) => s + (it.quantity ?? 0), 0);
-                      const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                      const unit = cat.items.find((it) => it.measuring_unit_name)?.measuring_unit_name || 'Gramm';
-                      return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Belag gesamt</span><span className="text-muted-foreground">&times;{sum.toFixed(2).replace('.', ',')} {unit} · {Math.round(kcal)} kcal</span></div>;
-                    }
-                    if (cat.key === 'warm') {
-                      const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                      return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Warme Gerichte gesamt</span><span className="text-muted-foreground">{Math.round(kcal)} kcal</span></div>;
-                    }
-                    if (cat.key === 'drink') {
-                      const sum = cat.items.reduce((s, it) => s + (it.quantity ?? 0), 0);
-                      const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                      const unit = cat.items.find((it) => it.measuring_unit_name)?.measuring_unit_name || 'Tasse';
-                      return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Getränke gesamt</span><span className="text-muted-foreground">&times;{sum.toFixed(2).replace('.', ',')} {unit} · {Math.round(kcal)} kcal</span></div>;
-                    }
-                    if (cat.key === 'extra') {
-                      const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                      return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Extras gesamt</span><span className="text-muted-foreground">{Math.round(kcal)} kcal</span></div>;
-                    }
-                    const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                    return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Weitere gesamt</span><span className="text-muted-foreground">{Math.round(kcal)} kcal</span></div>;
-                  })()}
+                  <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium">
+                    <span>{buffetRoleName(role)} gesamt</span>
+                    <span className="text-muted-foreground">
+                      {quantitySum != null && `\u00d7${quantitySum.toFixed(2).replace('.', ',')} ${quantityUnit} \u00b7 `}
+                      {Math.round(kcalSum)} kcal
+                    </span>
+                  </div>
                 </div>
               </div>
             );
+          }
+
+          // Items without a role: individual cards, same style as the non-buffet rendering.
+          for (const item of otherItems) {
+            rendered.push(renderMealItemCard(item));
           }
 
           return rendered;
@@ -679,14 +680,14 @@ export function MealSlot({
                 <PlusCircle className="w-3.5 h-3.5" />
                 Weiteres Gericht oder Zutat hinzufügen
               </button>
-              {meal.meal_type === 'breakfast' && (
+              {meal.meal_type !== 'drinks' && (
                 <button
                   type="button"
                   onClick={handleOpenWizard}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-chart-4/30 text-chart-4 hover:bg-chart-4/5 transition-colors"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Im Frühstücksbaukasten bearbeiten
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  Im Buffet-Builder bearbeiten
                 </button>
               )}
             </div>
@@ -711,13 +712,14 @@ export function MealSlot({
         excludedIngredientIds={excludedIngredientIds}
       />
 
-      {/* Breakfast Quick Builder */}
-      {meal.meal_type === 'breakfast' && (
-        <BreakfastQuickBuilder
-          open={showQuickBuilder}
-          onOpenChange={setShowQuickBuilder}
+      {/* Buffet Builder */}
+      {meal.meal_type !== 'drinks' && (
+        <BuffetBuilder
+          open={showBuffetBuilder}
+          onOpenChange={setShowBuffetBuilder}
           mealPlanId={mealPlanId}
           mealId={meal.id}
+          mealType={meal.meal_type}
           normPortions={effPortions}
         />
       )}

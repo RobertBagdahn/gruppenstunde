@@ -36,6 +36,8 @@ describe('formatItemDisplay', () => {
       portion_display: '16,7 Gramm Emmentaler Hartkäse (17g)',
       has_missing_weight: false,
       is_per_norm_person: true,
+      buffet_role: '',
+      warnings: [],
     };
 
     const label = formatItemPortion(item);
@@ -70,6 +72,8 @@ describe('formatItemDisplay', () => {
       portion_display: '',
       has_missing_weight: false,
       is_per_norm_person: true,
+      buffet_role: '',
+      warnings: [],
     };
 
     const label = formatItemPortion(item);
@@ -103,6 +107,8 @@ describe('formatItemDisplay', () => {
         portion_display: '',
         has_missing_weight: false,
         is_per_norm_person: true,
+      buffet_role: '',
+      warnings: [],
       },
       {
         id: 2,
@@ -129,6 +135,8 @@ describe('formatItemDisplay', () => {
         portion_display: '',
         has_missing_weight: false,
         is_per_norm_person: true,
+      buffet_role: '',
+      warnings: [],
       },
     ];
 

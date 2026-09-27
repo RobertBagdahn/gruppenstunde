@@ -3,6 +3,7 @@
  * MUST stay in sync with backend/shopping/schemas.py
  */
 import { z } from 'zod';
+import { QuantityWarningSchema } from './buffet';
 
 // --- Collaborator ---
 
@@ -102,6 +103,7 @@ export const ShoppingListDetailSchema = z.object({
   is_owner: z.boolean().default(false),
   created_at: z.string(),
   updated_at: z.string(),
+  warnings: z.array(QuantityWarningSchema).default([]),
 });
 
 export type ShoppingListDetail = z.output<typeof ShoppingListDetailSchema>;
