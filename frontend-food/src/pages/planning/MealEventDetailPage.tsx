@@ -399,9 +399,10 @@ export default function MealPlanDetailPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 font-sans">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      {/* Wraps on narrow screens so the action buttons never squeeze the title to zero width. */}
+      <div className="flex flex-wrap items-center gap-3">
         <BackButton to="/meal-plans/app" />
-        <div className="border-l border-border pl-3 flex-1 min-w-0">
+        <div className="border-l border-border pl-3 flex-1 min-w-[10rem]">
           <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground truncate">{plan.name}</h1>
           <div className="flex flex-wrap gap-3 mt-1.5 text-xs font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
