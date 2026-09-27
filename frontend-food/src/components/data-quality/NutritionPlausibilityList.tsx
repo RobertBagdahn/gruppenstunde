@@ -17,14 +17,20 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Codes MUST match backend/supply/services/nutrition_plausibility.py ISSUE_LABELS.
 const ANOMALY_OPTIONS = [
   { value: '', label: 'Alle Auffälligkeiten' },
+  { value: 'broken_import', label: 'Import-Fehler (Fett/KH = 0)' },
+  { value: 'energy_kj_as_kcal', label: 'Energie in kJ statt kcal' },
+  { value: 'energy_mismatch', label: 'Energie passt nicht zu Makros' },
+  { value: 'energy_missing', label: 'Energie fehlt' },
   { value: 'sugar_gt_carbs', label: 'Zucker > Kohlenhydrate' },
   { value: 'sat_fat_gt_fat', label: 'Gesättigtes Fett > Gesamtfett' },
-  { value: 'macro_sum', label: 'Makro-Summe > 100g' },
-  { value: 'missing_energy', label: 'Fehlende Kalorien (trotz Makros)' },
-  { value: 'missing_macros', label: 'Fehlende Makros (trotz Kalorien)' },
-  { value: 'extreme_energy', label: 'Energiedichte > 900 kcal' },
+  { value: 'macro_sum_gt_100', label: 'Makro-Summe > 100 g' },
+  { value: 'all_zero', label: 'Alle Werte 0 (Platzhalter)' },
+  { value: 'macros_missing', label: 'Makros fehlen' },
+  { value: 'salt_sodium_mismatch', label: 'Salz/Natrium widersprüchlich' },
+  { value: 'invalid_value', label: 'Unmöglicher Wert' },
 ] as const;
 
 export default function NutritionPlausibilityList() {

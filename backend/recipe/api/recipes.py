@@ -684,6 +684,39 @@ def create_recipe(request, payload: RecipeCreateIn):
             if review is None:
                 raise HttpError(422, "Rezeptposition fehlt in der Zutatenprüfung")
             if review.temporary_ingredient is not None:
+                from django.db.models import Max
+
+                from supply.models import Ingredient, MeasuringUnit, Portion
+
+                draft = review.temporary_ingredient
+                existing = (
+                    Ingredient.objects.filter(name__iexact=draft.name.strip(), owner__isnull=True)
+                    .order_by("-usage_count", "id")
+                    .first()
+                )
+                if existing is not None:
+                    # System ingredient names are unique: reuse instead of duplicating.
+                    temporary_portion = draft.portions[0] if draft.portions else None
+                    if temporary_portion is None or not temporary_portion.weight_g or temporary_portion.weight_g <= 0:
+                        raise HttpError(422, f"Für {draft.name} fehlt ein gültiges Portionsgewicht")
+                    portion = existing.portions.active().filter(name__iexact=temporary_portion.name).first()
+                    if portion is None:
+                        unit, _ = MeasuringUnit.objects.get_or_create(
+                            name=temporary_portion.measuring_unit_name or "Gramm"
+                        )
+                        next_rank = (existing.portions.aggregate(m=Max("rank"))["m"] or 1) + 1
+                        portion = Portion.objects.create(
+                            ingredient=existing,
+                            name=temporary_portion.name,
+                            measuring_unit=unit,
+                            quantity=temporary_portion.quantity,
+                            weight_g=temporary_portion.weight_g,
+                            rank=next_rank,
+                            created_by=request.user,
+                        )
+                    portion_id = portion.id
+                    review = None
+            if review is not None and review.temporary_ingredient is not None:
                 from django.utils.text import slugify
 
                 from supply.choices import IngredientStatusChoices, PhysicalViscosityChoices

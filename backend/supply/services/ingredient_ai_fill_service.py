@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING, Any
 from django.contrib.auth.models import AbstractBaseUser
 from pydantic import Field, create_model
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
+from supply.services.ingredient_ai_suggest_service import INGREDIENT_DATA_RULES
 from supply.services.quality_score import calculate_ingredient_quality_score
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 # Field specifications for ingredient master data (Stammdaten)
 # Tuple: (type_annotation, description, category_label, field_label)
@@ -213,13 +214,8 @@ def fill_missing_ingredient_fields(
         f"Aufgabe: Schlage NUR Werte für die folgenden {len(missing_fields)} fehlenden Felder vor:\n"
         + "\n".join(missing_desc_lines)
         + "\n\n"
-        "Plausibilitätsregeln:\n"
-        "1. Zucker (sugar_g) darf nicht größer als Kohlenhydrate (carbohydrate_g) sein.\n"
-        "2. Gesättigte Fettsäuren (fat_sat_g) dürfen nicht größer als Gesamtfett (fat_g) sein.\n"
-        "3. Die Summe aus Protein, Fett und Kohlenhydraten darf 100g nicht überschreiten.\n"
-        "4. Kalorien müssen zu den Makronährstoffen passen: ~ 4*Protein + 4*Kohlenhydrate + 9*Fett + 2*Ballaststoffe.\n"
-        "5. Reine Speiseöle haben ~900 kcal, Wasser 0 kcal. Keine Werte über 900 kcal.\n"
-        "6. Wenn du ein Feld nicht sicher bestimmen kannst, setze es auf null."
+        f"{INGREDIENT_DATA_RULES}\n\n"
+        "Wenn du ein Feld nicht sicher bestimmen kannst, setze es auf null."
     )
 
     config = types.GenerateContentConfig(

@@ -9,6 +9,9 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
+from supply.data.retail_sections import resolve_section_name
+from supply.services.retail_section_classifier import classify_retail_section
+
 if TYPE_CHECKING:
     from supply.models import RetailSection
 
@@ -32,32 +35,32 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "SPEZIALI./KANDIERTE": "Süßwaren",
     "TAFELSCHOKOLADE": "Süßwaren",
     # Nudeln & Reis & Getreide
-    "TEIGWAREN": "Nudeln & Reis & Getreide",
-    "NUDEL": "Nudeln & Reis & Getreide",
-    "PASTA": "Nudeln & Reis & Getreide",
+    "TEIGWAREN": "Nudeln",
+    "NUDEL": "Nudeln",
+    "PASTA": "Nudeln",
     "REIS": "Nudeln & Reis & Getreide",
-    "SPAGHETTI": "Nudeln & Reis & Getreide",
+    "SPAGHETTI": "Nudeln",
     "COUSCOUS": "Nudeln & Reis & Getreide",
     # Milchprodukte
-    "JOGHURT": "Milchprodukte & Käse",
-    "QUARK": "Milchprodukte & Käse",
-    "PUDDING": "Milchprodukte & Käse",
-    "MILCHREIS": "Milchprodukte & Käse",
+    "JOGHURT": "Joghurt, Quark & Desserts",
+    "QUARK": "Joghurt, Quark & Desserts",
+    "PUDDING": "Joghurt, Quark & Desserts",
+    "MILCHREIS": "Joghurt, Quark & Desserts",
     "MILCH": "Milchprodukte & Käse",
     "SAHNE": "Milchprodukte & Käse",
-    "SCHMAND": "Milchprodukte & Käse",
+    "SCHMAND": "Joghurt, Quark & Desserts",
     "BUTTERMILCH": "Milchprodukte & Käse",
-    "SKYR": "Milchprodukte & Käse",
-    "CREME FRAICHE": "Milchprodukte & Käse",
-    "FRISCHKAESE": "Milchprodukte & Käse",
-    "SCHAFSKAESE": "Milchprodukte & Käse",
-    "SCHAFSKÄSE": "Milchprodukte & Käse",
+    "SKYR": "Joghurt, Quark & Desserts",
+    "CREME FRAICHE": "Joghurt, Quark & Desserts",
+    "FRISCHKAESE": "Käse",
+    "SCHAFSKAESE": "Käse",
+    "SCHAFSKÄSE": "Käse",
     # Käse
-    "KAESE": "Milchprodukte & Käse",
-    "KÄSE": "Milchprodukte & Käse",
-    "MOZZARELLA": "Milchprodukte & Käse",
-    "PARMESAN": "Milchprodukte & Käse",
-    "GOUDA": "Milchprodukte & Käse",
+    "KAESE": "Käse",
+    "KÄSE": "Käse",
+    "MOZZARELLA": "Käse",
+    "PARMESAN": "Käse",
+    "GOUDA": "Käse",
     # Tiefkühl (mehrdeutige Konvenienzprodukte -> eigene Gruppe statt Rateentscheidung, siehe D7)
     "TK-": "TK Fertiggerichte",
     "TIEFKUEHL": "TK Fertiggerichte",
@@ -69,21 +72,21 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "ESPRESSO": "Kaffee und Tee",
     "KAKAO": "Kaffee und Tee",
     # Backwaren
-    "KEKS": "Brot & Backwaren",
+    "KEKS": "Süßwaren & Kekse",
     "KNÄCKEBROT": "Brot & Backwaren",
     "KNACKEBROT": "Brot & Backwaren",
-    "LEBKUCHEN": "Brot & Backwaren",
+    "LEBKUCHEN": "Süßwaren & Kekse",
     "ZWIEBACK": "Brot & Backwaren",
     "TOAST": "Brot & Backwaren",
     "BROT": "Brot & Backwaren",
     # Brotaufstriche
-    "BROTAUFSTRICH": "Brot & Backwaren",
-    "NUSS-SCHOKO-CREME": "Brot & Backwaren",
-    "KONFITUER": "Brot & Backwaren",
-    "KONFITÜR": "Brot & Backwaren",
-    "MARMELADE": "Brot & Backwaren",
-    "HONIG": "Brot & Backwaren",
-    "NUTELLA": "Brot & Backwaren",
+    "BROTAUFSTRICH": "Brotaufstriche",
+    "NUSS-SCHOKO-CREME": "Brotaufstriche",
+    "KONFITUER": "Brotaufstriche",
+    "KONFITÜR": "Brotaufstriche",
+    "MARMELADE": "Brotaufstriche",
+    "HONIG": "Brotaufstriche",
+    "NUTELLA": "Brotaufstriche",
     # Saucen und Dressings
     "SAUCE": "Öle & Soßen",
     "DRESSING": "Öle & Soßen",
@@ -103,16 +106,16 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "CURRY": "Gewürze & Kräuter",
     "PAPRIKA PULVER": "Gewürze & Kräuter",
     # Backzutaten
-    "BACKZUTAT": "Brot & Backwaren",
-    "BACKMISCHUNG": "Brot & Backwaren",
-    "HEFE": "Brot & Backwaren",
-    "BACKPULVER": "Brot & Backwaren",
-    "VANILLEZUCKER": "Brot & Backwaren",
-    "GELATINE": "Brot & Backwaren",
-    "MEHL": "Brot & Backwaren",
-    "ZUCKER": "Brot & Backwaren",
-    "STAERKE": "Brot & Backwaren",
-    "STÄRKE": "Brot & Backwaren",
+    "BACKZUTAT": "Mehl, Zucker & Backzutaten",
+    "BACKMISCHUNG": "Mehl, Zucker & Backzutaten",
+    "HEFE": "Mehl, Zucker & Backzutaten",
+    "BACKPULVER": "Mehl, Zucker & Backzutaten",
+    "VANILLEZUCKER": "Mehl, Zucker & Backzutaten",
+    "GELATINE": "Mehl, Zucker & Backzutaten",
+    "MEHL": "Mehl, Zucker & Backzutaten",
+    "ZUCKER": "Mehl, Zucker & Backzutaten",
+    "STAERKE": "Mehl, Zucker & Backzutaten",
+    "STÄRKE": "Mehl, Zucker & Backzutaten",
     "SALZ": "Gewürze & Kräuter",
     # Konserven
     "DOSE": "Konserven & Gläser",
@@ -175,15 +178,15 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "CRACKER": "Salzige Snacks",
     "SALZSTANGEN": "Salzige Snacks",
     # Öl und Essig
-    "OEL": "Öle & Soßen",
-    "ÖL": "Öle & Soßen",
-    "ESSIG": "Öle & Soßen",
-    "OLIVENOEL": "Öle & Soßen",
-    "OLIVENÖL": "Öle & Soßen",
-    "PFLANZENOEL": "Öle & Soßen",
-    "PFLANZENÖL": "Öle & Soßen",
-    "BALSAMICO": "Öle & Soßen",
-    "BALSAMIC": "Öle & Soßen",
+    "OEL": "Öle & Essig",
+    "ÖL": "Öle & Essig",
+    "ESSIG": "Öle & Essig",
+    "OLIVENOEL": "Öle & Essig",
+    "OLIVENÖL": "Öle & Essig",
+    "PFLANZENOEL": "Öle & Essig",
+    "PFLANZENÖL": "Öle & Essig",
+    "BALSAMICO": "Öle & Essig",
+    "BALSAMIC": "Öle & Essig",
     # Müsli und Cerealien
     "MUESLI": "Brot & Backwaren",
     "MÜSLI": "Brot & Backwaren",
@@ -201,7 +204,7 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "LIMONADE": "Alkoholfreie Getränke",
     "EISTEE": "Alkoholfreie Getränke",
     "SOFTDRINK": "Alkoholfreie Getränke",
-    "NEKTAR": "Alkoholfreie Getränke",
+    "NEKTAR": "Säfte & Smoothies",
     # Alkoholische Getränke — eigene Gruppe (retail-sections-restructure D3).
     "BIER": "Alkoholische Getränke",
     "SPIRITUOSE": "Alkoholische Getränke",
@@ -213,35 +216,49 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "PIZZA": "TK Fertiggerichte",
     "FLAMMKUCHEN": "TK Fertiggerichte",
     # Eier
-    "EIER": "Milchprodukte & Käse",
-    "EI": "Milchprodukte & Käse",
+    "EIER": "Eier",
+    "EI": "Eier",
     # Käse (Namen ohne "Käse")
-    "CHEDDAR": "Milchprodukte & Käse",
-    "EMMENTALER": "Milchprodukte & Käse",
-    "FETA": "Milchprodukte & Käse",
-    "HALLOUMI": "Milchprodukte & Käse",
-    "MASCARPONE": "Milchprodukte & Käse",
-    "RICOTTA": "Milchprodukte & Käse",
-    "BUTTER": "Milchprodukte & Käse",
+    "CHEDDAR": "Käse",
+    "EMMENTALER": "Käse",
+    "FETA": "Käse",
+    "HALLOUMI": "Käse",
+    "MASCARPONE": "Käse",
+    "RICOTTA": "Käse",
+    "BUTTER": "Butter & Margarine",
     # Fleischersatz (eigene Gruppe statt Fleisch & Fisch, D7)
     "TOFU": "Fleischersatz",
     "SEITAN": "Fleischersatz",
     "TEMPEH": "Fleischersatz",
     # Aufstriche/Dips
-    "HUMMUS": "Öle & Soßen",
-    "GUACAMOLE": "Öle & Soßen",
+    "HUMMUS": "Feinkost & Kühltheke",
+    "GUACAMOLE": "Feinkost & Kühltheke",
     # Sonstiges
     "INGWER": "Gemüse",
-    "BACON": "Fleisch & Wurst",
+    "BACON": "Wurst & Aufschnitt",
     "BAMBUS": "Gemüse",
-    "CAPPELLETTI": "Nudeln & Reis & Getreide",
+    "CAPPELLETTI": "Nudeln",
     # Internationale Küche
-    "ASIA": "Gewürze & Kräuter",
-    "MEXIKAN": "Gewürze & Kräuter",
-    "SUSHI": "Fisch",
+    "ASIA": "Internationale Küche",
+    "MEXIKAN": "Internationale Küche",
+    "SUSHI": "Fisch & Meeresfrüchte",
     # Brotaufstriche (vegetarisch)
-    "VEGETARI. AUFSTRICH": "Öle & Soßen",
-    "FEINKOST BROTAUFSTRICH": "Öle & Soßen",
+    "VEGETARI. AUFSTRICH": "Feinkost & Kühltheke",
+    "FEINKOST BROTAUFSTRICH": "Feinkost & Kühltheke",
+}
+
+
+def _catalog_target(keyword: str, legacy_target: str) -> str:
+    """Prefer the compound-aware classifier; fall back to the legacy target."""
+    classification = classify_retail_section(keyword)
+    if classification is not None:
+        return classification.section
+    return resolve_section_name(legacy_target)
+
+
+# Resolve every REWE keyword onto the v2 catalog.
+KEYWORD_TO_RETAIL_SECTION_NAME = {
+    keyword: _catalog_target(keyword, section) for keyword, section in KEYWORD_TO_RETAIL_SECTION_NAME.items()
 }
 
 # Sort by length descending so longer (more specific) keywords match first
@@ -256,29 +273,35 @@ def _get_retail_section_by_name() -> dict[str, RetailSection]:
     return {rs.name: rs for rs in RetailSection.objects.all()}
 
 
+def _section_by_name(section_name: str) -> RetailSection | None:
+    return _get_retail_section_by_name().get(resolve_section_name(section_name))
+
+
 def get_retail_section(name: str, description: str = "") -> RetailSection | None:
     """Determine retail section from ingredient name and/or description.
 
-    Tries description first (REWE category), then falls back to name-based matching.
+    The compound-aware name classifier is authoritative; the REWE category in
+    the description is only a fallback for names the classifier cannot place.
     """
-    result = get_retail_section_from_description(description)
+    result = get_retail_section_from_name(name)
     if result:
         return result
-    return get_retail_section_from_name(name)
+    return get_retail_section_from_description(description)
 
 
 def get_retail_section_from_name(name: str) -> RetailSection | None:
-    """Match retail section from ingredient name using keywords."""
+    """Classify an ingredient name into a retail section."""
     if not name:
         return None
 
-    text = name.upper().strip()
-    section_name = _match_keywords(text)
+    classification = classify_retail_section(name)
+    if classification is not None:
+        return _section_by_name(classification.section)
+
+    section_name = _match_keywords(name.upper().strip())
     if section_name is None:
         return None
-
-    rs_map = _get_retail_section_by_name()
-    return rs_map.get(section_name)
+    return _section_by_name(section_name)
 
 
 def get_retail_section_from_description(description: str) -> RetailSection | None:
@@ -312,8 +335,7 @@ def get_retail_section_from_description(description: str) -> RetailSection | Non
     if section_name is None:
         return None
 
-    rs_map = _get_retail_section_by_name()
-    return rs_map.get(section_name)
+    return _section_by_name(section_name)
 
 
 def _match_keywords(text: str) -> str | None:

@@ -17,7 +17,7 @@ from django.core.management.base import BaseCommand
 from django.db.models import Q
 from pydantic import BaseModel, Field
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
 from supply.models import Ingredient
 from supply.services.nutri_service import update_ingredient_nutri_score
 
@@ -51,7 +51,7 @@ class NutritionFillSchema(BaseModel):
     physical_viscosity: str | None = Field(None, description="'solid', 'beverage', oder 'powder'")
 
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 
 def is_ugly_name(name: str) -> bool:

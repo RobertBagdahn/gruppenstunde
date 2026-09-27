@@ -14,6 +14,8 @@ from typing import Any, cast
 
 from ninja.errors import HttpError
 
+from core.services.gemini import DEFAULT_TEXT_MODEL
+
 logger = logging.getLogger(__name__)
 
 
@@ -1103,7 +1105,7 @@ Antworte nur auf Deutsch."""
     try:
         response, interaction_id = gemini_call(
             user=user,
-            model="gemini-3.1-flash-lite",
+            model=DEFAULT_TEXT_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

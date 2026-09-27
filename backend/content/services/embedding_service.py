@@ -228,7 +228,9 @@ def build_recipe_embedding_text(recipe) -> str:
     return " ".join(parts)
 
 
-def create_embedding(text: str, output_dimensionality: int | None = None) -> list[float] | None:
+def create_embedding(
+    text: str, output_dimensionality: int | None = None, *, bypass_limits: bool = False
+) -> list[float] | None:
     """
     Create a text embedding using Vertex AI Gemini model.
 
@@ -252,7 +254,7 @@ def create_embedding(text: str, output_dimensionality: int | None = None) -> lis
             model=EMBEDDING_MODEL,
             contents=text,
             output_dimensionality=dim,
-            bypass_limits=False,
+            bypass_limits=bypass_limits,
         ),
     )
 
@@ -301,7 +303,7 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
     return True
 
 
-def update_ingredient_embedding(ingredient, force: bool = False) -> bool:
+def update_ingredient_embedding(ingredient, force: bool = False, *, bypass_limits: bool = False) -> bool:
     """
     Update the embedding for an Ingredient.
     Uses hash-based change detection to avoid unnecessary regeneration.
@@ -322,7 +324,7 @@ def update_ingredient_embedding(ingredient, force: bool = False) -> bool:
             logger.debug("Skipping embedding update for Ingredient #%d — text hash unchanged", ingredient.pk)
             return False
 
-    embedding = create_embedding(text)
+    embedding = create_embedding(text, bypass_limits=bypass_limits)
     if embedding is None:
         return False
 

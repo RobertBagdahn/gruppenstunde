@@ -10,7 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
 from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.services.portion_integrity import validate_active_portion_weight
 from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
@@ -19,7 +19,7 @@ from supply.services.unit_resolution import resolve_canonical_unit
 if TYPE_CHECKING:
     from supply.models import Ingredient, MeasuringUnit
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 MIN_NEW_SUGGESTIONS = 4
 
 

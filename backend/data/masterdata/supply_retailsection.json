@@ -1,137 +1,344 @@
 [
-{
-  "model": "supply.retailsection",
-  "pk": 1,
-  "fields": {
-    "name": "Konserven & Gläser",
-    "description": "",
-    "rank": 0
+  {
+    "model": "supply.retailsection",
+    "pk": 4,
+    "fields": {
+      "name": "Obst",
+      "description": "Frisches Obst, Beeren, Zitrusfrüchte",
+      "rank": 1
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 2,
+    "fields": {
+      "name": "Gemüse",
+      "description": "Frisches Gemüse, Kartoffeln, Zwiebeln, Pilze",
+      "rank": 2
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 200,
+    "fields": {
+      "name": "Salate & frische Kräuter",
+      "description": "Blattsalate, Sprossen, frische Kräuter",
+      "rank": 3
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 7,
+    "fields": {
+      "name": "Brot & Backwaren",
+      "description": "Brot, Brötchen, Toast, Wraps, Kuchen vom Bäcker",
+      "rank": 4
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 111,
+    "fields": {
+      "name": "Fleisch",
+      "description": "Frisches Fleisch und Geflügel",
+      "rank": 5
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 201,
+    "fields": {
+      "name": "Wurst & Aufschnitt",
+      "description": "Wurst, Schinken, Salami, Würstchen",
+      "rank": 6
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 5,
+    "fields": {
+      "name": "Fisch & Meeresfrüchte",
+      "description": "Frischer, geräucherter und konservierter Fisch",
+      "rank": 7
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 6,
+    "fields": {
+      "name": "Milch & Pflanzendrinks",
+      "description": "Milch, Sahne, Buttermilch, Hafer-/Sojadrinks",
+      "rank": 8
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 202,
+    "fields": {
+      "name": "Joghurt, Quark & Desserts",
+      "description": "Joghurt, Quark, Skyr, Pudding, Kühldesserts",
+      "rank": 9
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 203,
+    "fields": {
+      "name": "Käse",
+      "description": "Hart-, Schnitt-, Weich- und Frischkäse",
+      "rank": 10
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 204,
+    "fields": {
+      "name": "Eier",
+      "description": "Hühnereier",
+      "rank": 11
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 205,
+    "fields": {
+      "name": "Butter & Margarine",
+      "description": "Butter, Margarine, Schmalz",
+      "rank": 12
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 206,
+    "fields": {
+      "name": "Fleischersatz & Tofu",
+      "description": "Tofu, Tempeh, Seitan, vegane Alternativen",
+      "rank": 13
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 207,
+    "fields": {
+      "name": "Feinkost & Kühltheke",
+      "description": "Frische Pasta, Salate, Dips, Teige",
+      "rank": 14
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 208,
+    "fields": {
+      "name": "Nudeln",
+      "description": "Trockene Teigwaren",
+      "rank": 15
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 9,
+    "fields": {
+      "name": "Reis & Getreide",
+      "description": "Reis, Couscous, Bulgur, Grieß, Quinoa",
+      "rank": 16
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 118,
+    "fields": {
+      "name": "Hülsenfrüchte",
+      "description": "Getrocknete Linsen, Bohnen, Kichererbsen",
+      "rank": 17
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 209,
+    "fields": {
+      "name": "Nüsse, Samen & Trockenobst",
+      "description": "Nüsse, Kerne, Saaten, Trockenfrüchte",
+      "rank": 18
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 210,
+    "fields": {
+      "name": "Müsli & Cerealien",
+      "description": "Müsli, Flocken, Cornflakes",
+      "rank": 19
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 211,
+    "fields": {
+      "name": "Mehl, Zucker & Backzutaten",
+      "description": "Mehl, Zucker, Backpulver, Hefe",
+      "rank": 20
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 212,
+    "fields": {
+      "name": "Brotaufstriche",
+      "description": "Konfitüre, Honig, Nuss-Nougat-Creme",
+      "rank": 21
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 1,
+    "fields": {
+      "name": "Konserven & Gläser",
+      "description": "Dosen- und Glaskonserven",
+      "rank": 22
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 213,
+    "fields": {
+      "name": "Öle & Essig",
+      "description": "Speiseöle, Essig, Bratfette",
+      "rank": 23
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 11,
+    "fields": {
+      "name": "Saucen & Würzsaucen",
+      "description": "Ketchup, Senf, Mayonnaise, Pesto, Sojasauce",
+      "rank": 24
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 8,
+    "fields": {
+      "name": "Gewürze & Trockenkräuter",
+      "description": "Salz, Pfeffer, Gewürze, getrocknete Kräuter",
+      "rank": 25
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 214,
+    "fields": {
+      "name": "Brühen, Suppen & Fertiggerichte",
+      "description": "Brühe, Fix-Produkte, Instantgerichte",
+      "rank": 26
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 215,
+    "fields": {
+      "name": "Internationale Küche",
+      "description": "Asia, Mexiko, Orient",
+      "rank": 27
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 216,
+    "fields": {
+      "name": "Süßwaren & Kekse",
+      "description": "Schokolade, Fruchtgummi, Kekse, Riegel",
+      "rank": 28
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 116,
+    "fields": {
+      "name": "Knabberartikel",
+      "description": "Chips, Flips, Salzstangen",
+      "rank": 29
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 217,
+    "fields": {
+      "name": "Kaffee, Tee & Kakao",
+      "description": "Kaffee, Tee, Kakaopulver",
+      "rank": 30
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 218,
+    "fields": {
+      "name": "Säfte & Smoothies",
+      "description": "Frucht- und Gemüsesäfte, Nektare, Smoothies",
+      "rank": 31
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 10,
+    "fields": {
+      "name": "Wasser & Erfrischungsgetränke",
+      "description": "Wasser, Limonade, Sirup, Eistee",
+      "rank": 32
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 219,
+    "fields": {
+      "name": "Alkoholische Getränke",
+      "description": "Bier, Wein, Spirituosen",
+      "rank": 33
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 220,
+    "fields": {
+      "name": "TK Obst & Gemüse",
+      "description": "Tiefkühl-Obst, -Gemüse, -Kräuter, Pommes",
+      "rank": 34
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 221,
+    "fields": {
+      "name": "TK Fleisch & Fisch",
+      "description": "Tiefkühl-Fleisch, -Fisch, -Meeresfrüchte",
+      "rank": 35
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 12,
+    "fields": {
+      "name": "TK Fertiggerichte & Pizza",
+      "description": "Tiefkühl-Pizza, -Gerichte, -Snacks",
+      "rank": 36
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 222,
+    "fields": {
+      "name": "TK Eis & Desserts",
+      "description": "Speiseeis, TK-Kuchen und -Desserts",
+      "rank": 37
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 223,
+    "fields": {
+      "name": "Sonstiges",
+      "description": "Nicht zuordenbar",
+      "rank": 38
+    }
   }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 2,
-  "fields": {
-    "name": "Gemüse",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 4,
-  "fields": {
-    "name": "Obst",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 5,
-  "fields": {
-    "name": "Fisch",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 6,
-  "fields": {
-    "name": "Milchprodukte & Käse",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 7,
-  "fields": {
-    "name": "Brot & Backwaren",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 8,
-  "fields": {
-    "name": "Gewürze & Kräuter",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 9,
-  "fields": {
-    "name": "Nudeln & Reis & Getreide",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 10,
-  "fields": {
-  "name": "Alkoholfreie Getränke",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 11,
-  "fields": {
-    "name": "Öle & Soßen",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 12,
-  "fields": {
-  "name": "TK Fertiggerichte",
-    "description": "",
-    "rank": 0
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 111,
-  "fields": {
-    "name": "Fleisch & Wurst",
-    "description": "Frisches Fleisch und Wurstwaren",
-    "rank": 3
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 114,
-  "fields": {
-    "name": "Gewürze & Kräuter",
-    "description": "Gewürze, Kräuter, Speiseöle",
-    "rank": 6
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 116,
-  "fields": {
-    "name": "Salzige Snacks",
-    "description": "Schokolade, Kekse, Chips",
-    "rank": 10
-  }
-},
-{
-  "model": "supply.retailsection",
-  "pk": 118,
-  "fields": {
-    "name": "Hülsenfrüchte & Nüsse",
-    "description": "Linsen, Bohnen, Mandeln, Walnüsse",
-    "rank": 12
-  }
-}
 ]

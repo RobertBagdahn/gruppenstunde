@@ -15,7 +15,7 @@ from django.db import transaction
 from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
-from core.services.gemini import gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, gemini_call
 from core.services.prompt_context import build_prompt_context
 from supply.choices import PortionWeightSource, PortionWeightStatus
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 # The AI schemas below prompt Gemini with a free-text recipe-type vocabulary
 # ('main', 'side', 'soup', ...) that does not match `supply.choices.RecipeTypeChoices`

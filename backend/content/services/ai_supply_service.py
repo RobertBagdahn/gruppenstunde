@@ -16,12 +16,12 @@ from django.contrib.auth.models import AbstractBaseUser
 from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
-from core.services.gemini import gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, gemini_call
 from core.services.prompt_context import build_prompt_context
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 AI_TIMEOUT_SECONDS = 30
 
 

@@ -66,7 +66,8 @@ class AiFillMissingBatchIn(Schema):
     ingredient_ids: list[int]
 
 
-DUPLICATE_CANDIDATE_LIMIT = 100
+# Most-used ingredients first: duplicates there hurt recipes and shopping lists most.
+DUPLICATE_CANDIDATE_LIMIT = 300
 DUPLICATE_NEIGHBOR_LIMIT = 10
 DUPLICATE_MAX_PAGE_SIZE = 50
 
@@ -364,7 +365,9 @@ def ingredient_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX
         from content.services.embedding_service import cosine_similarity
 
         candidates = list(
-            Ingredient.objects.filter(embedding__isnull=False).order_by("-id")[:DUPLICATE_CANDIDATE_LIMIT]
+            Ingredient.objects.filter(embedding__isnull=False).order_by("-usage_count", "-id")[
+                :DUPLICATE_CANDIDATE_LIMIT
+            ]
         )
         rows = []
         for index, source in enumerate(candidates):
@@ -381,7 +384,7 @@ def ingredient_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX
                     FROM supply_ingredient
                     WHERE embedding IS NOT NULL
                       AND deleted_at IS NULL
-                    ORDER BY id DESC
+                    ORDER BY usage_count DESC, id DESC
                     LIMIT {DUPLICATE_CANDIDATE_LIMIT}
                 )
                 SELECT a.id, a.name, a.slug,
@@ -460,7 +463,7 @@ def recipe_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX_PAG
                     FROM recipe_recipe
                     WHERE embedding IS NOT NULL
                       AND deleted_at IS NULL
-                    ORDER BY id DESC
+                    ORDER BY usage_count DESC, id DESC
                     LIMIT {DUPLICATE_CANDIDATE_LIMIT}
                 )
                 SELECT a.id, a.title, a.slug,
@@ -665,120 +668,31 @@ def merge_preview(request, source_id: int, target_id: int):
 @admin_router.post("/ingredients/merge/")
 def merge_ingredients(request, body: MergeRequestIn):
     _require_staff(request)
-    if body.source_id == body.target_id:
-        raise HttpError(400, "Quell- und Ziel-Zutat dürfen nicht identisch sein")
-
-    from django.contrib.contenttypes.models import ContentType
-
-    from content.models import ContentLink
-    from supply.models import IngredientAlias
+    from supply.services.ingredient_merge import IngredientMergeError, merge_ingredient
 
     try:
         source = Ingredient.all_objects.get(id=body.source_id)
         target = Ingredient.objects.get(id=body.target_id)
     except Ingredient.DoesNotExist:
-        raise HttpError(404, "Zutat nicht gefunden")
+        raise HttpError(404, "Zutat nicht gefunden") from None
 
-    if source.is_deleted:
-        raise HttpError(400, "Quell-Zutat wurde bereits zusammengeführt")
+    try:
+        result = merge_ingredient(source, target, user=request.user)
+    except IngredientMergeError as exc:
+        raise HttpError(400, str(exc)) from exc
 
-    ct = ContentType.objects.get_for_model(Ingredient)
+    from content.services.embedding_service import update_ingredient_embedding
 
-    if ContentLink.objects.filter(
-        source_content_type=ct,
-        source_object_id=source.id,
-        target_content_type=ct,
-        target_object_id=target.id,
-        link_type="duplicate_merged",
-    ).exists():
-        raise HttpError(400, "Dieses Zutaten-Paar wurde bereits zusammengeführt")
-
-    from django.db import transaction
-
-    from recipe.models import RecipeItem
-    from supply.models import UnitConversion
-    from supply.services.portion_integrity import rebind_recipe_items_to_portion
-
-    with transaction.atomic():
-        affected = RecipeItem.objects.filter(portion__ingredient=source).count()
-
-        target_max_alias_rank = (
-            IngredientAlias.objects.filter(ingredient=target).aggregate(m=db_models.Max("rank"))["m"] or 0
-        )
-
-        IngredientAlias.objects.get_or_create(
-            ingredient=target,
-            name=source.name,
-            defaults={
-                "rank": target_max_alias_rank + 1,
-                "is_generic": True,
-                "created_by": request.user,
-            },
-        )
-        aliases_added = 1
-
-        for alias in source.aliases.all():
-            _, created = IngredientAlias.objects.get_or_create(
-                ingredient=target,
-                name=alias.name,
-                defaults={
-                    "rank": target_max_alias_rank + 2 + alias.rank,
-                    "is_generic": True,
-                    "created_by": request.user,
-                },
-            )
-            if created:
-                aliases_added += 1
-
-        source_portions = list(source.portions.active())
-        portions_moved = 0
-
-        target_portion_names = {p.name.lower(): p for p in target.portions.active()}
-        max_target_rank = target.portions.aggregate(m=db_models.Max("rank"))["m"] or 1
-
-        for source_portion in source_portions:
-            existing = target_portion_names.get(source_portion.name.lower())
-            if existing is not None:
-                if RecipeItem.objects.filter(portion=source_portion).exists():
-                    rebind_recipe_items_to_portion(source_portion, existing)
-                source_portion.delete()
-            else:
-                if source_portion.rank == 1:
-                    max_target_rank += 1
-                    source_portion.rank = max_target_rank
-                source_portion.ingredient = target
-                source_portion.save(update_fields=["ingredient", "rank"])
-                portions_moved += 1
-
-        from planner.models import MealItem
-
-        MealItem.objects.filter(ingredient=source).update(ingredient=target)
-
-        UnitConversion.objects.filter(ingredient=source).delete()
-
-        from content.services.embedding_service import update_ingredient_embedding
-
-        try:
-            update_ingredient_embedding(target, force=True)
-        except Exception:
-            pass
-
-        source.soft_delete()
-
-        ContentLink.objects.create(
-            source_content_type=ct,
-            source_object_id=source.id,
-            target_content_type=ct,
-            target_object_id=target.id,
-            link_type="duplicate_merged",
-            created_by=request.user,
-        )
+    try:
+        update_ingredient_embedding(target, force=True)
+    except Exception:
+        logger.warning("Embedding refresh after merge failed for ingredient #%s", target.id, exc_info=True)
 
     return {
         "success": True,
-        "affected_recipe_items": affected,
-        "portions_moved": portions_moved,
-        "aliases_added": aliases_added,
+        "affected_recipe_items": result.affected_recipe_items,
+        "portions_moved": result.portions_moved,
+        "aliases_added": result.aliases_added,
     }
 
 
@@ -864,46 +778,44 @@ def nutrition_plausibility(
     request, page: int = 1, page_size: int = 20, anomaly_type: str | None = None, search: str | None = None
 ):
     _require_staff(request)
-    ingredients = Ingredient.objects.all()
-    items = []
-    for ing in ingredients:
-        macro_sum = (ing.protein_g or 0) + (ing.fat_g or 0) + (ing.carbohydrate_g or 0)
-        issue_type = None
-        issue = ""
-        if (ing.sugar_g or 0) > (ing.carbohydrate_g or 0):
-            issue_type = "sugar_gt_carbs"
-            issue = "Zucker ist größer als Kohlenhydrate"
-        elif (ing.fat_sat_g or 0) > (ing.fat_g or 0):
-            issue_type = "sat_fat_gt_fat"
-            issue = "Gesättigte Fettsäuren sind größer als Fett"
-        elif macro_sum > 110:
-            issue_type = "macro_sum_gt_100"
-            issue = f"Makro-Summe {round(macro_sum, 1)}g > 100g/100g"
-        elif not ing.energy_kcal and macro_sum > 0:
-            issue_type = "energy_missing"
-            issue = "Energiegehalt fehlt trotz vorhandener Makros"
-        elif ing.energy_kcal and not macro_sum:
-            issue_type = "macros_missing"
-            issue = "Makronährstoffe fehlen trotz Energiegehalt"
-        elif ing.energy_kcal and ing.energy_kcal > 900:
-            issue_type = "energy_too_high"
-            issue = f"Extrem hohe Energiedichte: {ing.energy_kcal} kcal/100g"
+    from supply.services.nutrition_plausibility import detect_nutrition_issues, ingredient_nutrition_values
 
-        if issue_type:
-            items.append(
-                NutritionPlausibilityOut(
-                    id=ing.id,
-                    name=ing.name,
-                    slug=ing.slug,
-                    energy_kcal=ing.energy_kcal or 0,
-                    protein_g=ing.protein_g or 0,
-                    fat_g=ing.fat_g or 0,
-                    carbohydrate_g=ing.carbohydrate_g or 0,
-                    macro_sum=round(macro_sum, 1),
-                    issue=issue,
-                    anomaly_type=issue_type,
-                )
+    items = []
+    for ing in Ingredient.objects.only(
+        "id",
+        "name",
+        "slug",
+        "energy_kcal",
+        "protein_g",
+        "fat_g",
+        "fat_sat_g",
+        "carbohydrate_g",
+        "sugar_g",
+        "fibre_g",
+        "salt_g",
+        "sodium_mg",
+    ).order_by("name"):
+        issues = detect_nutrition_issues(ingredient_nutrition_values(ing), name=ing.name)
+        if not issues:
+            continue
+        selected = next((issue for issue in issues if issue.code == anomaly_type), None) if anomaly_type else issues[0]
+        if selected is None:
+            continue
+        macro_sum = (ing.protein_g or 0) + (ing.fat_g or 0) + (ing.carbohydrate_g or 0)
+        items.append(
+            NutritionPlausibilityOut(
+                id=ing.id,
+                name=ing.name,
+                slug=ing.slug,
+                energy_kcal=ing.energy_kcal or 0,
+                protein_g=ing.protein_g or 0,
+                fat_g=ing.fat_g or 0,
+                carbohydrate_g=ing.carbohydrate_g or 0,
+                macro_sum=round(macro_sum, 1),
+                issue="; ".join(issue.label for issue in issues),
+                anomaly_type=selected.code,
             )
+        )
 
     if anomaly_type:
         items = [item for item in items if item.anomaly_type == anomaly_type]

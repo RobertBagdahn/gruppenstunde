@@ -22,6 +22,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from pydantic import BaseModel, Field, ValidationError
 
 from core.services.gemini import (
+    DEFAULT_TEXT_MODEL,
     GeminiUnavailableError,
     gemini_call,
     gemini_embed,
@@ -70,7 +71,7 @@ class AiRateLimitError(Exception):
     error_code = "AI_RATE_LIMITED"
 
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image"
 
 # ---------------------------------------------------------------------------

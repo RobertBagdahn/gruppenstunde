@@ -531,11 +531,11 @@ from django.core.cache import cache
 from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
-from core.services.gemini import gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, gemini_call
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 AI_TIMEOUT_MS = 30_000
 CACHE_TTL_SECONDS = 60 * 60 * 24  # 24 hours
 RATE_LIMIT_MAX = 10

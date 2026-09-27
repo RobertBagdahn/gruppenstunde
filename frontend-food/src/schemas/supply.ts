@@ -557,6 +557,9 @@ export const IngredientSuggestAllSchema = z.object({
 
   price_per_kg: z.number().nullable(),
 
+  retail_section_id: z.number().nullable().optional(),
+  retail_section_name: z.string().nullable().optional(),
+
   ai_suggest: IngredientAiSuggestSchema,
   aliases: z.array(z.string()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),

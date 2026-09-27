@@ -1182,6 +1182,10 @@ export default function IngredientDetailPage() {
       } else if (key.startsWith('tag_')) {
         const tagId = parseInt(key.replace('tag_', ''), 10);
         tagsToAssign.push(tagId);
+      } else if (key === 'retail_section') {
+        if (data.retail_section_id) {
+          scalarUpdates['retail_section_id'] = data.retail_section_id;
+        }
       } else if (key === 'name_suggestion') {
         const value = (data as Record<string, unknown>)[key];
         if (value && typeof value === 'string') {
@@ -2247,6 +2251,17 @@ function buildIngredientSuggestionFields(
       group: 'Preis',
       currentValue: ingredient[key] as unknown,
       suggestedValue: suggestions[key] as unknown,
+      type: 'scalar',
+    });
+  }
+
+  if (suggestions.retail_section_name) {
+    fields.push({
+      key: 'retail_section',
+      label: 'Warengruppe',
+      group: 'Klassifikation',
+      currentValue: ingredient.retail_section_name ?? null,
+      suggestedValue: suggestions.retail_section_name,
       type: 'scalar',
     });
   }

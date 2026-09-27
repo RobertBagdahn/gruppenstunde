@@ -16,6 +16,8 @@ from django.db.models import Max, Q
 from django.utils import timezone
 from ninja.errors import HttpError
 
+from core.services.gemini import DEFAULT_TEXT_MODEL
+
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser, User
 
@@ -501,7 +503,7 @@ class IntelligentSuggestionsService:
 
             response, interaction_id = gemini_call(
                 user=self.user,
-                model="gemini-3.1-flash-lite",
+                model=DEFAULT_TEXT_MODEL,
                 contents=prompt,
                 config=genai_types.GenerateContentConfig(
                     response_mime_type="application/json",

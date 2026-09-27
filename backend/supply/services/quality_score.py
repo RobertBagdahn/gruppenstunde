@@ -2,7 +2,11 @@
 
 import logging
 
+from supply.services.nutrition_plausibility import detect_nutrition_issues, ingredient_nutrition_values
 from supply.services.price_service import is_missing_price
+
+# Filled but implausible nutrition data is worth less than half of plausible data.
+IMPLAUSIBLE_NUTRITION_FACTOR = 0.4
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +16,7 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     Calculate a 0-100 quality score for an Ingredient.
 
     Categories and weights:
-    - Nutrition (42%): Filled nutritional fields
+    - Nutrition (42%): Filled nutritional fields, reduced when implausible
     - Price (15%): Has price_per_kg
     - Physical data (15%): Physical properties filled
     - Classification (15%): Retail section + nutritional tags
@@ -37,6 +41,8 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     ]
     filled = sum(1 for v in nutrition_fields if v is not None and v > 0)
     nutrition_score = (filled / len(nutrition_fields)) * 100
+    if detect_nutrition_issues(ingredient_nutrition_values(ingredient), name=ingredient.name or ""):
+        nutrition_score *= IMPLAUSIBLE_NUTRITION_FACTOR
     scores.append(("nutrition", 0.42, nutrition_score))
 
     # Price (15%)

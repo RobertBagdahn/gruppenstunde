@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router, Schema, Status
 from ninja.errors import HttpError
 
+from core.services.gemini import DEFAULT_TEXT_MODEL
 from event.choices import GenderChoices, ParticipantVisibilityChoices
 from event.models import (
     BookingOption,
@@ -470,7 +471,7 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
 
         response, interaction_id = gemini_call(
             user=request.user,
-            model="gemini-3.1-flash-lite",
+            model=DEFAULT_TEXT_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

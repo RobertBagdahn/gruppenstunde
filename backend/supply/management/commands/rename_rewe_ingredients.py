@@ -17,12 +17,12 @@ from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
 from supply.models import Ingredient
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
 
 class NameMapping(BaseModel):

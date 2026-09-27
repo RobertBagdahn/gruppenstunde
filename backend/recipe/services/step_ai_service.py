@@ -6,13 +6,13 @@ from django.contrib.auth.models import AbstractBaseUser
 from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
 from recipe.models import Recipe
 
 logger = logging.getLogger(__name__)
 
 # Gemini model to use for recipe steps
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 MAX_TOKENS = 2000
 
 

@@ -1,20 +1,30 @@
-"""KI-Gesamtvorschläge für Zutaten via Gemini mit Google Search Grounding.
+"""KI-Gesamtvorschläge für Zutaten via Gemini ("Zauberstab").
 
 Provides:
-- suggest_all_fields(): All fields in one call for existing ingredients
-- ai_create_ingredient(): Create a complete ingredient from just a name
+- suggest_all_fields(): All fields in one call for existing ingredients. The
+  prompt includes the current values, the rule-based plausibility findings and
+  the retail section catalog, so the model corrects instead of guessing blind.
+- ai_create_ingredient(): Create a complete ingredient from just a name.
+
+Both share ``INGREDIENT_DATA_RULES`` with the batch review
+(``ingredient_ai_review_service``) so single and batch results agree.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from django.contrib.auth.models import AbstractBaseUser, User
 from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
+from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
+from supply.data.retail_sections import RETAIL_SECTIONS
+from supply.services.nutrition_plausibility import (
+    detect_nutrition_issues,
+    ingredient_nutrition_values,
+)
 from supply.services.portion_knowledge import (
     IngredientPortionSuggestSchema,
     PortionSuggestion,
@@ -26,10 +36,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = DEFAULT_TEXT_MODEL
 
-# Model that supports structured output + Google Search together
-GEMINI_MODEL_WITH_SEARCH = "gemini-3.1-flash-lite"
+SectionName = Literal[tuple(entry["name"] for entry in RETAIL_SECTIONS)]  # type: ignore[valid-type]
+
+# Shared data rules for the single-ingredient wand, AI create and batch review.
+INGREDIENT_DATA_RULES = """BEZUG UND PLAUSIBILITÄT
+- Nährwerte immer pro 100 g des Produkts im Verkaufszustand (roh/ungekocht, Pulver als Pulver,
+  TK-Ware gefroren; Getränke pro 100 ml ≈ 100 g). Quelle: BLS/Souci-Fachmann-Kraut, deutsche Etiketten.
+- Energie IMMER in kcal (nie kJ). Über 900 kcal/100 g ist unmöglich (reines Öl ≈ 900).
+- sugar_g <= carbohydrate_g, fat_sat_g <= fat_g, protein+fat+carbohydrate+fibre <= 100.
+- Kohlenhydrate nach EU-Definition OHNE Ballaststoffe (nicht US-"total carbs").
+- energy_kcal ≈ 4·Eiweiß + 4·Kohlenhydrate + 9·Fett + 2·Ballaststoffe (±15 %).
+- salt_g = Natrium × 2,5 / 1000; sodium_mg = salt_g × 400.
+- 0 nur, wenn der Wert wirklich 0 ist. Unsicher? Realistisch schätzen statt 0 oder null.
+- Nutri-Score-Punkte (-15 bis 40) und NOVA (1–4) passend zur Verarbeitung (Saft/Limonade ≠ frisches Obst).
+
+WARENGRUPPE: entscheidend ist die Verkaufsform, nicht die Zutat darin.
+Orangensaft → Säfte & Smoothies (nicht Obst); getrocknete Aprikosen → Nüsse, Samen & Trockenobst;
+TK-Erbsen → TK Obst & Gemüse; Paprikapulver → Gewürze & Trockenkräuter; Kichererbsen (Dose) → Konserven & Gläser;
+Erdbeerjoghurt → Joghurt, Quark & Desserts; Schokolade Erdbeere → Süßwaren & Kekse."""
 
 # Re-exported for backward compatibility with existing callers/tests that
 # import PortionSuggestion from this module. Single Source of Truth lives in
@@ -96,12 +122,14 @@ class IngredientSuggestAllSchema(BaseModel):
 
     # Physikalische Eigenschaften
     physical_density: float | None = Field(None, description="Dichte in g/ml")
-    physical_viscosity: str | None = Field(None, description="Aggregatzustand: 'solid', 'beverage', oder 'powder'")
-    durability_in_days: int | None = Field(None, description="Haltbarkeit in Tagen")
+    physical_viscosity: Literal["solid", "beverage", "powder"] | None = Field(
+        None, description="Aggregatzustand: solid, beverage oder powder"
+    )
+    durability_in_days: int | None = Field(None, description="Haltbarkeit in Tagen (ungeöffnet)")
     max_storage_temperature: int | None = Field(None, description="Maximale Lagertemperatur in °C")
 
     # Scout/camp fields
-    storage_type: str | None = Field(None, description="Lagerungsart: dry/refrigerated/frozen/ambient")
+    storage_type: Literal["dry", "refrigerated", "frozen", "ambient"] | None = Field(None, description="Lagerungsart")
     cooking_factor: float | None = Field(None, description="Multiplikator Roh→Gekocht. Z.B. 2.5 für Nudeln")
     camp_suitable: bool | None = Field(None, description="Fürs Zeltlager geeignet (haltbar, kein Kühlschrank)")
     preparation_time_min: int | None = Field(None, description="Zubereitungsdauer in Minuten (Koch-/Backzeit)")
@@ -110,6 +138,11 @@ class IngredientSuggestAllSchema(BaseModel):
 
     # Preis
     price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg")
+
+    # Klassifikation
+    retail_section: SectionName | None = Field(  # type: ignore[valid-type]
+        None, description="Supermarkt-Warengruppe aus der Liste (Verkaufsform entscheidet)"
+    )
 
     # Create portion info as commentary in the prompt
     portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portions- und Package-Vorschläge")
@@ -165,6 +198,11 @@ class IngredientAiCreateSchema(BaseModel):
         description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen"
     )
 
+    # Klassifikation
+    retail_section: SectionName = Field(  # type: ignore[valid-type]
+        description="Supermarkt-Warengruppe aus der Liste (Verkaufsform entscheidet)"
+    )
+
     # Portionen + Packages (strukturiert)
     portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portions- und Package-Vorschläge")
 
@@ -183,8 +221,40 @@ class IngredientAiCreateSchema(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _current_values_block(ingredient: Ingredient) -> str:
+    """Current master data and rule findings as prompt context."""
+    values = ingredient_nutrition_values(ingredient)
+    issues = detect_nutrition_issues(values, name=ingredient.name)
+    nutrition = ", ".join(f"{k}={'?' if v is None else f'{v:g}'}" for k, v in values.items())
+    section = ingredient.retail_section.name if ingredient.retail_section_id else "?"
+    price = "?" if ingredient.price_per_kg is None else f"{float(ingredient.price_per_kg):g}"
+    issue_text = "; ".join(issue.label for issue in issues) or "keine"
+    return (
+        f"Aktuelle Werte: {nutrition}\n"
+        f"Warengruppe: {section} | Preis EUR/kg: {price} | Viskosität: {ingredient.physical_viscosity or '?'}\n"
+        f"Regelprüfung auffällig: {issue_text}\n"
+        f"Beschreibung: {(ingredient.description or '(fehlt)')[:300]}"
+    )
+
+
+def _clamp_suggested_nutrition(data: dict) -> None:
+    """Enforce hard nutrition constraints on AI output before it reaches the UI."""
+    carbs, sugar = data.get("carbohydrate_g"), data.get("sugar_g")
+    if carbs is not None and sugar is not None and sugar > carbs:
+        data["sugar_g"] = carbs
+    fat, sat = data.get("fat_g"), data.get("fat_sat_g")
+    if fat is not None and sat is not None and sat > fat:
+        data["fat_sat_g"] = fat
+    if data.get("salt_g") is not None:
+        data["sodium_mg"] = round(data["salt_g"] * 400, 1)
+
+
+def _retail_section_list() -> str:
+    return "\n".join(f"- {entry['name']}: {entry['description']}" for entry in RETAIL_SECTIONS)
+
+
 def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = None) -> dict:
-    """Suggest all fields for an existing ingredient using Gemini + Search Grounding.
+    """Suggest all fields for an existing ingredient (single-ingredient magic wand).
 
     Returns a dict with suggested values (None for fields that couldn't be determined).
     """
@@ -195,32 +265,27 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
     is_breakfast_topping, is_baking_ingredient = _ingredient_portion_tags(ingredient)
 
     prompt = (
-        f"Recherchiere die vollständigen Nährwerte, Bewertungen und physikalischen Eigenschaften "
-        f"für das Lebensmittel '{ingredient.name}'. "
-        f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen.\n\n"
-        f"Schreibe eine aussagekräftige, detaillierte Beschreibung (mindestens 100 Zeichen) für diese Zutat. "
-        f"Beschreibe: Geschmack, Textur/Konsistenz, Aussehen, typische Verwendung in der Küche, "
-        f"Herkunft, Lagerungshinweise und kulinarische Besonderheiten. "
-        f"Dieser Text wird für die semantische Suche (Embeddings) verwendet und soll die Zutat "
-        f"möglichst präzise charakterisieren, damit ähnliche Zutaten gut gefunden werden können.\n\n"
-        f"Schlage einen präziseren Namen vor, falls aktuell zu generisch. "
-        f"Keine Marken, keine Mengenangaben. Z.B. 'Kuhmilch 3,5% Fett' statt 'Milch'.\n\n"
+        f"Du bist Lebensmittel-Datenkurator für eine deutsche Koch- und Einkaufsplattform für Pfadfinderlager.\n"
+        f"Prüfe und vervollständige die Stammdaten der Zutat '{ingredient.name}'.\n\n"
+        f"{_current_values_block(ingredient)}\n\n"
+        f"AUFGABE\n"
+        f"- Übernimm plausible aktuelle Werte. Korrigiere Werte, die die Regelprüfung als auffällig meldet oder die "
+        f"den Regeln widersprechen, und ergänze fehlende ('?').\n"
+        f"- Schreibe eine sachliche Beschreibung (100–400 Zeichen): Art, Geschmack, Textur, typische Verwendung, "
+        f"Lagerung. Keine Marken, keine Werbung. Der Text dient der semantischen Suche.\n"
+        f"- name_suggestion nur, wenn der Name eine Marke, Menge, Werbesprache oder einen Tippfehler enthält oder "
+        f"zu vage ist (z. B. 'Milch' → 'Kuhmilch 3,5 % Fett'). Sonst null.\n"
+        f"- Mindestens 3 Aliase: gängige Synonyme, regionale Namen, Singular/Plural (z. B. 'Möhre', 'Karotte', "
+        f"'Mohrrübe'). Keine Marken.\n"
+        f"- Ernährungstags nur, wenn sicher (z. B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', "
+        f"'eifrei', 'sojafrei', 'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig').\n"
+        f"- Lagerung: storage_type, cooking_factor (Roh→Gekocht, 1.0 ohne Aufquellen), camp_suitable (ohne Kühlung "
+        f"mehrere Tage haltbar), preparation_time_min (0 wenn roh essbar), Saison nur für frisches Obst/Gemüse.\n"
+        f"- price_per_kg: realistischer Durchschnittspreis im deutschen Supermarkt 2026.\n\n"
+        f"{INGREDIENT_DATA_RULES}\n\n"
+        f"WARENGRUPPEN (retail_section, genau eine):\n{_retail_section_list()}\n\n"
         f"{build_portion_prompt_section(is_breakfast_topping=is_breakfast_topping, is_baking_ingredient=is_baking_ingredient)}\n\n"
-        f"Gib mindestens 3 alternative Bezeichnungen/Aliase für die Zutat an. "
-        f"Die Aliase sollen spezifischer sein als der Zutatenname. "
-        f"Z.B. für 'Nudeln': 'Nudeln (Fusilli)', 'Nudeln (Makkaroni)', 'Nudeln (Spaghetti)'.\n\n"
-        f"Recherchiere zutreffende Ernährungstags für das Lebensmittel "
-        f"(z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', "
-        f"'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig').\n\n"
-        f"Gib auch die Lagereigenschaften an:\n"
-        f"- storage_type: 'dry' (Trocken), 'refrigerated', 'frozen', 'ambient' (Raumtemperatur)\n"
-        f"- cooking_factor: Multiplikator Roh→Gekocht. Z.B. 2.5 für Nudeln (100g→250g). 1.0 wenn kein Aufquellen.\n"
-        f"- camp_suitable: Ob die Zutat fürs Zeltlager geeignet ist (haltbar, kein Kühlschrank)\n"
-        f"- preparation_time_min: Zubereitungsdauer in Minuten (Kochzeit, Backzeit). 0 wenn roh genießbar.\n"
-        f"- season_start/end: Saison in Monaten (1-12), z.B. 4-6 für Spargel. null = ganzjährig.\n\n"
-        f"Schätze den typischen Preis in EUR pro kg (price_per_kg) basierend auf "
-        f"durchschnittlichen Supermarktpreisen in Deutschland.\n\n"
-        f"Wenn du einen Wert nicht sicher bestimmen kannst, setze ihn auf null."
+        f"Wenn du einen Wert nicht bestimmen kannst, setze ihn auf null."
     )
     prompt_context = build_prompt_context(user)
     if prompt_context:
@@ -244,6 +309,18 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
 
     result = IngredientSuggestAllSchema.model_validate_json(response.text)
     data = result.model_dump()
+
+    _clamp_suggested_nutrition(data)
+    section_name = data.pop("retail_section", None)
+    data["retail_section_id"] = None
+    data["retail_section_name"] = None
+    if section_name:
+        from supply.models import RetailSection
+
+        section = RetailSection.objects.filter(name=section_name).first()
+        if section is not None:
+            data["retail_section_id"] = section.id
+            data["retail_section_name"] = section.name
 
     portions_raw = data.pop("portions")
     data["portions"] = portions_raw
@@ -289,16 +366,22 @@ def ai_create_ingredient(
     bypass_limits: bool = False,
     is_background: bool = False,
 ) -> Ingredient:
-    """Create a complete ingredient from just a name using Gemini + Search Grounding.
+    """Create a complete ingredient from just a name using Gemini.
 
     Creates the Ingredient in the database with Portions and Aliases.
-    Returns the created Ingredient instance.
+    Returns the created Ingredient instance, or an existing ingredient with the
+    same (requested or AI-standardised) name to avoid duplicates.
     """
     from google.genai import types
 
     from core.services.prompt_context import build_prompt_context
-    from supply.choices import IngredientStatusChoices
-    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Package, Portion
+    from supply.choices import IngredientStatusChoices, RetailSectionSourceChoices
+    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Package, Portion, RetailSection
+
+    existing = Ingredient.objects.filter(name__iexact=name.strip()).order_by("-usage_count", "id").first()
+    if existing is not None:
+        existing.ai_interaction_id = None
+        return existing
 
     prompt = (
         f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
@@ -310,6 +393,8 @@ def ai_create_ingredient(
         f"typische Portionsgrößen, alternative Bezeichnungen, zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', 'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig') und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen. "
         f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren.\n\n"
+        f"{INGREDIENT_DATA_RULES}\n\n"
+        f"WARENGRUPPEN (retail_section, genau eine):\n{_retail_section_list()}\n\n"
         f"{build_portion_prompt_section(is_breakfast_topping=False, is_baking_ingredient=False)}"
     )
     prompt_context = build_prompt_context(user)
@@ -337,6 +422,11 @@ def ai_create_ingredient(
         raise HttpError(503, "KI nicht verfügbar")
 
     data = IngredientAiCreateSchema.model_validate_json(response.text)
+
+    existing = Ingredient.objects.filter(name__iexact=data.name.strip()).order_by("-usage_count", "id").first()
+    if existing is not None:
+        existing.ai_interaction_id = str(interaction_id) if interaction_id else None
+        return existing
 
     # Generate unique slug
     base_slug = slugify(data.name)
@@ -373,6 +463,8 @@ def ai_create_ingredient(
         durability_in_days=data.durability_in_days,
         max_storage_temperature=data.max_storage_temperature,
         price_per_kg=data.price_per_kg,
+        retail_section=RetailSection.objects.filter(name=data.retail_section).first(),
+        retail_section_source=RetailSectionSourceChoices.AI,
         created_by=cast(User, user) if user and user.is_authenticated else None,
     )
 
