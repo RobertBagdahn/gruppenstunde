@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   MoreVertical,
   Edit,
@@ -10,7 +9,7 @@ import {
   FileText,
   ClipboardCopy,
   Clock,
-  ChefHat,
+  LayoutGrid,
   AlertTriangle,
   ArrowRightLeft,
 } from 'lucide-react';
@@ -56,6 +55,7 @@ interface MealActionsMenuProps {
   onAddClick?: () => void;
   onAddNoteClick?: () => void;
   onCopyFromPlan?: () => void;
+  onOpenBuffetBuilder?: () => void;
   /** Other meals on the same day, used for overlap warnings. */
   siblingMeals?: Meal[];
 }
@@ -83,9 +83,9 @@ export function MealActionsMenu({
   onAddClick,
   onAddNoteClick,
   onCopyFromPlan,
+  onOpenBuffetBuilder,
   siblingMeals = [],
 }: MealActionsMenuProps) {
-  const navigate = useNavigate();
   const reorderMutation = useReorderMeals(planId);
   const [showSettings, setShowSettings] = useState(false);
   const [showTimeEdit, setShowTimeEdit] = useState(false);
@@ -212,10 +212,10 @@ export function MealActionsMenu({
               <span>Aus anderem Plan kopieren</span>
             </DropdownMenuItem>
           )}
-          {meal.meal_type === 'breakfast' && (
-            <DropdownMenuItem onClick={() => navigate(`/meal-plans/${planId}/meals/${meal.id}/breakfast-wizard`)}>
-              <ChefHat className="mr-2 h-4 w-4 text-primary" />
-              <span>Frühstücksassistent</span>
+          {meal.meal_type !== 'drinks' && onOpenBuffetBuilder && (
+            <DropdownMenuItem onClick={onOpenBuffetBuilder}>
+              <LayoutGrid className="mr-2 h-4 w-4 text-primary" />
+              <span>Buffetassistent</span>
             </DropdownMenuItem>
           )}
           {canEdit && !meal.is_synced && !meal.is_external && meal.items.length > 0 && (

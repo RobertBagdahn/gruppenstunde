@@ -262,6 +262,7 @@ export function MealSlot({
               onUpdateMeal={onUpdateMeal}
               onScaleMeal={onScaleMeal}
               onCopyFromPlan={() => onCopyFromPlan(meal.id)}
+              onOpenBuffetBuilder={handleOpenWizard}
             />
           )}
         </div>
@@ -439,6 +440,7 @@ export function MealSlot({
             onUpdateMeal={onUpdateMeal}
             onScaleMeal={onScaleMeal}
             onCopyFromPlan={() => onCopyFromPlan(meal.id)}
+            onOpenBuffetBuilder={handleOpenWizard}
           />
           <button
             type="button"

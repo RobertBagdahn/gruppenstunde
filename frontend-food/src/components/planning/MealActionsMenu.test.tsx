@@ -3,11 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MealActionsMenu } from './MealActionsMenu';
 import type { Meal } from '@/schemas/mealPlan';
 
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
-}));
-
 vi.mock('@/api/mealPlans', () => ({
   useReorderMeals: () => ({
     mutate: vi.fn(),
@@ -38,7 +33,74 @@ describe('MealActionsMenu', () => {
     items: [],
   };
 
-  it('navigates to direct-meal breakfast wizard when Frühstücksassistent is clicked', async () => {
+  it('opens the buffet builder when Buffetassistent is clicked', async () => {
+    const onOpenBuffetBuilder = vi.fn();
+    render(
+      <MealActionsMenu
+        meal={baseMeal}
+        canEdit={true}
+        planId={42}
+        onDeleteMeal={vi.fn()}
+        onUpdateMeal={vi.fn()}
+        onScaleMeal={vi.fn()}
+        onOpenBuffetBuilder={onOpenBuffetBuilder}
+      />
+    );
+
+    // Open dropdown menu
+    const trigger = screen.getByRole('button');
+    fireEvent.pointerDown(trigger);
+
+    // Find and click Buffetassistent
+    const wizardItem = await screen.findByText('Buffetassistent');
+    expect(wizardItem).toBeInTheDocument();
+    fireEvent.click(wizardItem);
+
+    expect(onOpenBuffetBuilder).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows Buffetassistent for lunch meals too', async () => {
+    const onOpenBuffetBuilder = vi.fn();
+    const lunchMeal: Meal = { ...baseMeal, id: 102, meal_type: 'lunch' };
+    render(
+      <MealActionsMenu
+        meal={lunchMeal}
+        canEdit={true}
+        planId={42}
+        onDeleteMeal={vi.fn()}
+        onUpdateMeal={vi.fn()}
+        onScaleMeal={vi.fn()}
+        onOpenBuffetBuilder={onOpenBuffetBuilder}
+      />
+    );
+
+    const trigger = screen.getByRole('button');
+    fireEvent.pointerDown(trigger);
+
+    expect(await screen.findByText('Buffetassistent')).toBeInTheDocument();
+  });
+
+  it('does not display Buffetassistent for drink meals', async () => {
+    const drinkMeal: Meal = { ...baseMeal, id: 103, meal_type: 'drinks' };
+    render(
+      <MealActionsMenu
+        meal={drinkMeal}
+        canEdit={true}
+        planId={42}
+        onDeleteMeal={vi.fn()}
+        onUpdateMeal={vi.fn()}
+        onScaleMeal={vi.fn()}
+        onOpenBuffetBuilder={vi.fn()}
+      />
+    );
+
+    const trigger = screen.getByRole('button');
+    fireEvent.pointerDown(trigger);
+
+    expect(screen.queryByText('Buffetassistent')).not.toBeInTheDocument();
+  });
+
+  it('does not display Buffetassistent when no handler is passed', async () => {
     render(
       <MealActionsMenu
         meal={baseMeal}
@@ -50,34 +112,9 @@ describe('MealActionsMenu', () => {
       />
     );
 
-    // Open dropdown menu
     const trigger = screen.getByRole('button');
     fireEvent.pointerDown(trigger);
 
-    // Find and click Frühstücksassistent
-    const wizardItem = await screen.findByText('Frühstücksassistent');
-    expect(wizardItem).toBeInTheDocument();
-    fireEvent.click(wizardItem);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/meal-plans/42/meals/101/breakfast-wizard');
-  });
-
-  it('does not display Frühstücksassistent for lunch meals', async () => {
-    const lunchMeal: Meal = { ...baseMeal, id: 102, meal_type: 'lunch' };
-    render(
-      <MealActionsMenu
-        meal={lunchMeal}
-        canEdit={true}
-        planId={42}
-        onDeleteMeal={vi.fn()}
-        onUpdateMeal={vi.fn()}
-        onScaleMeal={vi.fn()}
-      />
-    );
-
-    const trigger = screen.getByRole('button');
-    fireEvent.pointerDown(trigger);
-
-    expect(screen.queryByText('Frühstücksassistent')).not.toBeInTheDocument();
+    expect(screen.queryByText('Buffetassistent')).not.toBeInTheDocument();
   });
 });
