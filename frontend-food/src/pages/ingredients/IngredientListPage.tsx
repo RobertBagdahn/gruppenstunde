@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
 import { useIngredients, useDeleteIngredient, ApiDeleteError } from '@/api/supplies';
@@ -8,89 +8,64 @@ import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ListPageHero from '@/components/shared/ListPageHero';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
+import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import IngredientCard from '@/components/ingredient/IngredientCard';
 import IngredientFilterSidebar from '@/components/ingredient/IngredientFilterSidebar';
 import EmptyState from '@/components/shared/EmptyState';
 import UnauthGate from '@/components/shared/UnauthGate';
+import { IngredientListStateSchema, type INGREDIENT_SORT_VALUES } from '@/schemas/listState';
+import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
+import { parseIngredientStatus } from '@/lib/ingredientStatus';
 
-const SORT_OPTIONS = [
+const SORT_OPTIONS: { value: (typeof INGREDIENT_SORT_VALUES)[number]; label: string }[] = [
   { value: 'newest', label: 'Neueste' },
-  { value: 'oldest', label: 'Aelteste' },
+  { value: 'oldest', label: 'Älteste' },
   { value: 'name_asc', label: 'Name A-Z' },
   { value: 'name_desc', label: 'Name Z-A' },
 ];
 
+const INGREDIENT_LIST_DEFAULTS = { sort: 'newest', page: 1 } as const;
+const PERSIST_EXCLUDE = ['page'] as const;
+const COUNT_EXCLUDE = ['page'] as const;
+
 export default function IngredientListPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { data: user } = useCurrentUser();
-
-  // URL-driven state
-  const [name, setName] = useState(searchParams.get('name') || '');
-  const [retailSection, setRetailSection] = useState<number | undefined>(
-    searchParams.get('retail_section') ? Number(searchParams.get('retail_section')) : undefined,
-  );
-  const [status, setStatus] = useState(searchParams.get('status') || '');
-  const [origin, setOrigin] = useState(searchParams.get('origin') || '');
-  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
-  const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
-
-  // Sync URL params
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (name) params.set('name', name);
-    if (retailSection) params.set('retail_section', String(retailSection));
-    if (status) params.set('status', status);
-    if (origin && origin !== 'all') params.set('origin', origin);
-    if (sort && sort !== 'newest') params.set('sort', sort);
-    if (page > 1) params.set('page', String(page));
-    setSearchParams(params, { replace: true });
-  }, [name, retailSection, status, origin, sort, page, setSearchParams]);
+  const { state, patch, reset, activeCount, restored } = usePersistedListState({
+    key: 'ingredients',
+    schema: IngredientListStateSchema,
+    defaults: INGREDIENT_LIST_DEFAULTS,
+    persistExclude: PERSIST_EXCLUDE,
+    countExclude: COUNT_EXCLUDE,
+  });
+  const { name, retail_section: retailSection, status, origin, sort, page } = state;
 
   const { data, isLoading, error, refetch } = useIngredients({
     page,
     page_size: 20,
     name: name || undefined,
     retail_section: retailSection,
-    status: status || undefined,
-    origin: origin || undefined,
-    sort: sort || undefined,
-  });
+    status,
+    origin,
+    sort,
+  }, { enabled: restored });
 
   const deleteIngredient = useDeleteIngredient();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  // Search input with debounce
-  const [searchInput, setSearchInput] = useState(name);
-  const isInitialSearchSync = useRef(true);
-  useEffect(() => {
-    if (isInitialSearchSync.current) {
-      isInitialSearchSync.current = false;
-      return;
-    }
-    const timer = setTimeout(() => {
-      setName(searchInput);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+  const search = useDebouncedSearchInput(name ?? '', (value) => {
+    patch({ name: value || undefined, page: undefined }, { replace: true });
+  });
 
   const handleFilterChange = useCallback((key: string, value: unknown) => {
-    if (key === 'retail_section') setRetailSection(value as number | undefined);
-    else if (key === 'status') setStatus((value as string) ?? '');
-    else if (key === 'origin') setOrigin((value as string) ?? '');
-    setPage(1);
-  }, []);
+    if (key === 'retail_section') patch({ retail_section: value as number | undefined, page: undefined });
+    else if (key === 'status') patch({ status: parseIngredientStatus(String(value ?? '')), page: undefined });
+    else if (key === 'origin') patch({ origin: value === 'mine' ? 'mine' : undefined, page: undefined });
+  }, [patch]);
 
   const handleReset = useCallback(() => {
-    setRetailSection(undefined);
-    setStatus('');
-    setOrigin('');
-    setName('');
-    setSearchInput('');
-    setSort('newest');
-    setPage(1);
-  }, []);
+    reset();
+  }, [reset]);
 
   if (!user) {
     return (
@@ -117,9 +92,9 @@ export default function IngredientListPage() {
       {/* Search Bar */}
       <ListPageSearchBar
         placeholder="Zutat suchen..."
-        value={searchInput}
-        onChange={setSearchInput}
-        onSubmit={() => { setName(searchInput); setPage(1); }}
+        value={search.input}
+        onChange={search.setInput}
+        onSubmit={search.submit}
         createLabel="Neue Zutat"
         createHref="/ingredients/new"
         gradientClasses="from-primary/5 via-primary/10 to-primary/5"
@@ -128,13 +103,14 @@ export default function IngredientListPage() {
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         {/* Filter Sidebar */}
         <IngredientFilterSidebar
-          filters={{ retail_section: retailSection, status: status || undefined, origin: origin || undefined }}
+          filters={{ retail_section: retailSection, status, origin }}
           onFilterChange={handleFilterChange}
           onReset={handleReset}
         />
 
         {/* Results */}
         <div className="flex-1">
+          <ActiveFiltersHint activeCount={activeCount} onReset={handleReset} />
           {/* Sort */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -157,7 +133,7 @@ export default function IngredientListPage() {
               <span className="material-symbols-outlined text-muted-foreground text-[18px]">sort</span>
               <select
                 value={sort}
-                onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                onChange={(e) => patch({ sort: SORT_OPTIONS.find((opt) => opt.value === e.target.value)?.value, page: undefined })}
                 className="px-3 py-1.5 rounded-xl border border-border text-sm bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium shadow-sm transition-all"
               >
                 {SORT_OPTIONS.map((opt) => (
@@ -171,7 +147,7 @@ export default function IngredientListPage() {
 
           {error ? (
             <ErrorDisplay error={error} onRetry={() => refetch()} />
-          ) : isLoading ? (
+          ) : isLoading || !restored ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
@@ -208,7 +184,7 @@ export default function IngredientListPage() {
           <Pagination
             currentPage={data?.page ?? 1}
             totalPages={data?.total_pages ?? 1}
-            onPageChange={setPage}
+            onPageChange={(nextPage) => patch({ page: nextPage })}
           />
         </div>
       </div>
@@ -220,7 +196,7 @@ export default function IngredientListPage() {
           if (deleteTarget === null) return;
           deleteIngredient.mutate(deleteTarget, {
             onSuccess: () => {
-              toast.success('Zutat geloescht');
+              toast.success('Zutat gelöscht');
               setDeleteTarget(null);
               refetch();
             },
@@ -232,15 +208,15 @@ export default function IngredientListPage() {
                   description: `Entferne die Zutat zuerst aus folgenden Rezepten: ${recipeNames}`,
                 });
               } else {
-                toast.error('Fehler beim Loeschen', { description: err.message });
+                toast.error('Fehler beim Löschen', { description: err.message });
               }
             },
           });
         }}
         onCancel={() => setDeleteTarget(null)}
-        title="Zutat loeschen?"
-        description="Die Zutat und alle zugehoerigen Portionen und Preise werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Zutat löschen?"
+        description="Die Zutat und alle zugehörigen Portionen und Preise werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deleteIngredient.isPending}
       />
     </div>

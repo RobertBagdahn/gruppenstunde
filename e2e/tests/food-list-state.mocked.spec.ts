@@ -26,6 +26,7 @@ function ingredientItem(name: string) {
     groups: [],
     can_edit: true,
     can_delete: true,
+    can_verify: false,
   };
 }
 
@@ -80,7 +81,7 @@ test('restores Ingredient search, filter, sort, and page from the URL after relo
   expect(new URL(foodPage.url()).searchParams.get('page')).toBe('2');
 });
 
-test('restores ShoppingList search and page while sort and owner filters stay local', async ({ foodPage }) => {
+test('restores ShoppingList search, page, sort, and owner filter after reload', async ({ foodPage }) => {
   await foodPage.route('**/api/shopping-lists/**', (route) => {
     const url = new URL(route.request().url());
     if (url.pathname !== '/api/shopping-lists/' || route.request().method() !== 'GET') {
@@ -102,12 +103,39 @@ test('restores ShoppingList search and page while sort and owner filters stay lo
   await expect(foodPage.getByText('URL E2E Einkaufsliste', { exact: true })).toBeVisible();
   await foodPage.getByRole('combobox').selectOption('name_asc');
   await foodPage.getByRole('button', { name: 'Meine Daten' }).click();
-  expect(new URL(foodPage.url()).searchParams.get('sort')).toBeNull();
-  expect(new URL(foodPage.url()).searchParams.get('owner')).toBeNull();
+  await expect.poll(() => new URL(foodPage.url()).searchParams.get('mine')).toBe('1');
+  expect(new URL(foodPage.url()).searchParams.get('sort')).toBe('name_asc');
   await foodPage.reload();
   await expect(foodPage.getByPlaceholder('Einkaufsliste suchen...')).toHaveValue('URL E2E');
-  await expect(foodPage.getByRole('combobox')).toHaveValue('newest');
-  await expect(foodPage.getByRole('button', { name: 'Meine Daten' })).not.toHaveClass(/bg-primary/);
+  await expect(foodPage.getByRole('combobox')).toHaveValue('name_asc');
+  await expect(foodPage.getByRole('button', { name: 'Meine Daten' })).toHaveClass(/bg-primary/);
   expect(new URL(foodPage.url()).searchParams.get('q')).toBe('URL E2E');
   expect(new URL(foodPage.url()).searchParams.get('page')).toBe('2');
+});
+
+test('keeps recipe list filters when returning via the bottom navigation', async ({ foodPage }) => {
+  const recipeQueries: string[] = [];
+  await foodPage.route('**/api/recipes/?*', (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    recipeQueries.push(new URL(route.request().url()).search);
+    return route.fulfill({ json: { items: [], total: 0, page: 1, page_size: 20, total_pages: 1 } });
+  });
+
+  await foodPage.goto('/recipes?origin=mine&sort=newest');
+  await expect(foodPage.getByTestId('active-filters-hint')).toContainText('2 Filter aktiv');
+  // In-app navigation: the fixture clears localStorage on every full page load.
+  await foodPage.locator('a[href="/shopping-lists"]:visible').last().click();
+  await expect(foodPage).toHaveURL(/\/shopping-lists/);
+  await foodPage.locator('a[href="/recipes"]:visible').last().click();
+
+  await expect.poll(() => new URL(foodPage.url()).search).toBe('?origin=mine&sort=newest');
+  await expect(foodPage.locator('select').filter({ hasText: 'Neueste' }).first()).toHaveValue('newest');
+  expect(recipeQueries.at(-1)).toContain('origin=mine');
+
+  await foodPage.getByTestId('active-filters-hint').getByRole('button', { name: 'Zurücksetzen' }).click();
+  await expect.poll(() => new URL(foodPage.url()).search).toBe('');
+  await foodPage.locator('a[href="/shopping-lists"]:visible').last().click();
+  await foodPage.locator('a[href="/recipes"]:visible').last().click();
+  await expect(foodPage).toHaveURL(/\/recipes$/);
+  await expect(foodPage.getByTestId('active-filters-hint')).toHaveCount(0);
 });

@@ -1,3 +1,5 @@
+import { MealPlanDetailStateSchema } from '@/schemas/listState';
+import { usePersistedListState } from '@/hooks/usePersistedListState';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, useLocation, useSearchParams, NavLink } from 'react-router-dom';
@@ -84,6 +86,8 @@ function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
     }));
 }
 
+const MEAL_PLAN_DETAIL_DEFAULTS = { view: 'cards' } as const;
+
 export default function MealPlanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const mealPlanId = Number(id) || 0;
@@ -129,7 +133,13 @@ export default function MealPlanDetailPage() {
   }, [tabPath, navigate, mealPlanId]);
 
   const activeTab = (MAIN_TAB_KEYS.includes(tabPath as MainTabKey) ? tabPath : 'plan') as MainTabKey;
-  const planView = searchParams.get('view') === 'table' ? 'table' : 'cards';
+  // The plan view is a user preference shared across all meal plans.
+  const { state: detailState, patch: patchDetailState } = usePersistedListState({
+    key: 'meal-plan-detail',
+    schema: MealPlanDetailStateSchema,
+    defaults: MEAL_PLAN_DETAIL_DEFAULTS,
+  });
+  const planView = detailState.view;
   const shoppingSub = searchParams.get('sub') === 'costs' ? 'costs' : 'list';
   const cookingSub = searchParams.get('sub') === 'helpers' ? 'helpers' : 'schedule';
 
@@ -564,11 +574,7 @@ export default function MealPlanDetailPage() {
             <div className="inline-flex items-center p-1 rounded-xl bg-muted/60 border border-border">
               <button
                 type="button"
-                onClick={() => {
-                  const next = new URLSearchParams(searchParams);
-                  next.delete('view');
-                  setSearchParams(next, { replace: true });
-                }}
+                onClick={() => patchDetailState({ view: 'cards' }, { replace: true })}
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
                   planView === 'cards'
@@ -581,11 +587,7 @@ export default function MealPlanDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const next = new URLSearchParams(searchParams);
-                  next.set('view', 'table');
-                  setSearchParams(next, { replace: true });
-                }}
+                onClick={() => patchDetailState({ view: 'table' }, { replace: true })}
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
                   planView === 'table'

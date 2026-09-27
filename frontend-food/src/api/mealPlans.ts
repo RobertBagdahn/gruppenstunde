@@ -127,9 +127,10 @@ export interface MealPlanFilterParams {
   date_to?: string;
 }
 
-export function useMealPlans(filters: MealPlanFilterParams = {}) {
+export function useMealPlans(filters: MealPlanFilterParams = {}, options: { enabled?: boolean } = {}) {
   const queryKey = ['meal-plans', filters] as const;
   return useQuery<MealPlan[]>({
+    enabled: options.enabled ?? true,
     queryKey,
     queryFn: () => {
       const params = new URLSearchParams();

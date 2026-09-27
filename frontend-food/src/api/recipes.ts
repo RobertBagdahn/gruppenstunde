@@ -205,11 +205,12 @@ export function invalidateRecipeData(queryClient: QueryClient, recipeId: number)
 // Recipe Query Hooks
 // ==========================================================================
 
-export function useRecipes(filters: Partial<RecipeFilter> = {}) {
+export function useRecipes(filters: Partial<RecipeFilter> = {}, options: { enabled?: boolean } = {}) {
   const queryString = buildFilterParams(filters);
   return useQuery({
     queryKey: ['recipes', filters] as const,
     queryFn: () => fetchJson(`${API_BASE}/?${queryString}`, PaginatedRecipesSchema),
+    enabled: options.enabled ?? true,
   });
 }
 

@@ -22,6 +22,9 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import UnauthGate from '@/components/shared/UnauthGate';
 import ListPageHero from '@/components/shared/ListPageHero';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
+import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
+import { MealPlanListStateSchema } from '@/schemas/listState';
+import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import EmptyState from '@/components/shared/EmptyState';
 import MealPlanFilterSidebar from '@/components/planning/MealPlanFilterSidebar';
 import {
@@ -95,12 +98,19 @@ export default function MealPlanListPage() {
   return <MealPlanListPageInner />;
 }
 
+const MEAL_PLAN_LIST_DEFAULTS = { origin: 'all', sort: 'date_newest' } as const;
+
 function MealPlanListPageInner() {
   const navigate = useNavigate();
-  const [origin, setOrigin] = useState('all');
-  const [sort, setSort] = useState('date_newest');
-  const [searchInput, setSearchInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { state, patch, reset, activeCount, restored } = usePersistedListState({
+    key: 'meal-plans',
+    schema: MealPlanListStateSchema,
+    defaults: MEAL_PLAN_LIST_DEFAULTS,
+  });
+  const { origin, sort, q: searchQuery } = state;
+  const search = useDebouncedSearchInput(searchQuery ?? '', (value) => {
+    patch({ q: value.trim() || undefined }, { replace: true });
+  });
 
   const filters = useMemo(() => ({
     origin: origin === 'all' ? undefined : origin,
@@ -108,7 +118,7 @@ function MealPlanListPageInner() {
     search: searchQuery || undefined,
   }), [origin, sort, searchQuery]);
 
-  const { data: mealPlans, error, isLoading, refetch } = useMealPlans(filters);
+  const { data: mealPlans, error, isLoading, refetch } = useMealPlans(filters, { enabled: restored });
   const createMutation = useCreateMealPlan();
   const deleteMutation = useDeleteMealPlan();
   const duplicateMutation = useDuplicateMealPlan();
@@ -258,9 +268,6 @@ function MealPlanListPageInner() {
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
-  const handleSearch = () => {
-    setSearchQuery(searchInput.trim());
-  };
 
   const PlanCard = ({ plan }: { plan: MealPlan }) => {
     const badge = getPlanBadge(plan);
@@ -407,9 +414,9 @@ function MealPlanListPageInner() {
       {/* Search Bar */}
               <ListPageSearchBar
                 placeholder="Essensplan suchen..."
-                value={searchInput}
-                onChange={setSearchInput}
-                onSubmit={handleSearch}
+                value={search.input}
+                onChange={search.setInput}
+                onSubmit={search.submit}
                 createLabel="Neuer Essensplan"
                 onCreateClick={() => navigate('/meal-plans/new')}
                 gradientClasses=""
@@ -419,12 +426,13 @@ function MealPlanListPageInner() {
         {/* Filter Sidebar */}
         <MealPlanFilterSidebar
           origin={origin}
-          onOriginChange={(o) => setOrigin(o)}
-          onReset={() => setOrigin('all')}
+          onOriginChange={(o) => patch({ origin: MealPlanListStateSchema.shape.origin.parse(o) })}
+          onReset={() => patch({ origin: undefined })}
         />
 
         {/* Results */}
         <div className="flex-1 min-w-0">
+          <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
           {/* Sort */}
           <div className="flex items-center justify-between mb-4">
             <div className="text-xs text-muted-foreground font-semibold">
@@ -434,7 +442,7 @@ function MealPlanListPageInner() {
               <ArrowUpDown className="w-4 h-4 text-primary" />
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value)}
+                onChange={(e) => patch({ sort: MealPlanListStateSchema.shape.sort.parse(e.target.value) })}
                 className="px-3.5 py-1.5 rounded-xl border border-border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
               >
                 {MEALPLAN_SORT_OPTIONS.map((opt) => (
@@ -446,7 +454,7 @@ function MealPlanListPageInner() {
             </div>
           </div>
 
-          {isLoading ? (
+          {isLoading || !restored ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-primary/10 via-muted/50 to-primary/5 animate-pulse" />
