@@ -308,18 +308,34 @@ test.describe('Recipe ingredient editing — math correctness', () => {
     const quantityInputs = page.locator('input[data-testid^="item-quantity-"]');
     expect(await quantityInputs.count()).toBeGreaterThan(0);
 
+    // The required suite never calls live Gemini: answer the estimate with the
+    // recipe's real items (mirrors `EstimateQuantitiesSchema`).
+    await page.route('**/api/recipes/*/estimate-quantities/', async (route) => {
+      const recipeId = new URL(route.request().url()).pathname.split('/')[3];
+      const detail = await page.request.get(`/api/recipes/${recipeId}/`).then((response) => response.json()) as {
+        recipe_items: Array<{ id: number; portion_id: number | null; ingredient_name: string }>;
+      };
+      await route.fulfill({ json: { items: detail.recipe_items
+        .filter((item) => item.portion_id !== null)
+        .map((item) => ({
+          item_id: item.id,
+          ingredient_name: item.ingredient_name,
+          quantity_per_portion: 2,
+          portion_id: item.portion_id,
+          unit: 'g',
+          grams_total: 200,
+          weight_status: 'confirmed',
+          is_weight_trusted: true,
+        })) } });
+    });
+
     const triggerBtn = page.locator('[data-testid="ai-estimate-trigger"]').first();
     await expect(triggerBtn).toBeVisible({ timeout: 5000 });
     await triggerBtn.click();
-    await page.waitForTimeout(3000);
 
-    // Either the dialog opens (AI available) or the request fails silently —
-    // both are acceptable in this environment (no live Gemini credentials),
-    // but if it opens, the "Alt" column must never be blank/NaN — this is the
-    // exact regression for the "Alt zeigt falsche Werte" bug (getItemWeightG).
-    const dialogHeading = page.locator('text=AI-Mengenschätzung');
-    const opened = await dialogHeading.isVisible({ timeout: 2000 }).catch(() => false);
-    expect(opened).toBeTruthy();
+    // The "Alt" column must never be blank/NaN — the exact regression for the
+    // "Alt zeigt falsche Werte" bug (getItemWeightG).
+    await expect(page.locator('text=AI-Mengenschätzung').first()).toBeVisible();
 
     const altCells = page.locator('table td:nth-child(3)');
     const altCount = await altCells.count();
