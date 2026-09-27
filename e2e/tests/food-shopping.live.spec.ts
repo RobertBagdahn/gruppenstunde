@@ -229,6 +229,7 @@ test.describe('Shopping list permissions and persistence', () => {
         title: recipeTitle,
         recipe_type: 'warm_meal',
         portions: 1,
+        input_servings: 1,
         recipe_items: [{ portion_id: Number(portion.id), quantity: 2, sort_order: 0, note: '', is_optional: false }],
       },
     });
@@ -298,6 +299,7 @@ test.describe('Shopping list permissions and persistence', () => {
         title: recipeTitle,
         recipe_type: 'warm_meal',
         portions: 1,
+        input_servings: 1,
         recipe_items: [{ portion_id: Number(recipePortion.id), quantity: 2, sort_order: 0, note: '', is_optional: false }],
       },
     });

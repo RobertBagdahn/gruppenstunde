@@ -44,7 +44,7 @@ export function useRecipeIngredientReviewPreview() {
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Zutaten konnten nicht analysiert werden' }));
-        throw new RecipeImportError(error.detail ?? 'Zutaten konnten nicht analysiert werden', error.error_code);
+        throw new RecipeImportError(getImportErrorMessage(error.error_code, error.detail), error.error_code);
       }
       return IngredientReviewPreviewSchema.parse(await res.json());
     },

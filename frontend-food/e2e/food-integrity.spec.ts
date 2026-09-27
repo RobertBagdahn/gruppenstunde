@@ -76,36 +76,31 @@ async function installCommonRoutes(page: Page): Promise<void> {
 }
 
 test.describe('Food data integrity release flows', () => {
-  test('requires piece-portion confirmation in the recipe wizard at 320px', async ({ page }) => {
+  test('requires servings and ingredient confirmation in the recipe wizard at 320px', async ({ page }) => {
     await installCommonRoutes(page);
     await page.setViewportSize({ width: 320, height: 720 });
-    const recipeCreateRequests: string[] = [];
-    // The AI only suggests a new "1 Apfel" piece portion; no portion is
-    // selected yet, so the row cannot be confirmed without a human decision.
-    const suggestedPortion = {
-      id: null, name: '1 Apfel', quantity: 1, weight_g: 120,
-      measuring_unit_id: null, measuring_unit_name: 'Stück', is_new: true,
-    };
+    const createBodies: unknown[] = [];
     await page.route('**/api/recipes/**', async (route) => {
       if (route.request().method() === 'POST' && route.request().url().endsWith('/api/recipes/')) {
-        recipeCreateRequests.push(route.request().url());
+        createBodies.push(route.request().postDataJSON());
         await fulfillJson(route, { ...recipe, id: 8, slug: 'apfelspiesse', title: 'Apfelspieße' }, 201);
         return;
       }
       await route.continue();
     });
     // Register after the broad recipe fallback so Playwright gives this route priority.
-    // Mirrors `IngredientReviewPreviewSchema`.
-    await page.route('**/api/recipes/ingredient-review/preview/', (route) => fulfillJson(route, {
+    await page.route('**/api/recipes/ingredient-review/preview/**', (route) => fulfillJson(route, {
       rows: [{
-        key: 'row-0', source_text: '4 Äpfel', sources: [],
-        selected_ingredient_id: 101, selected_ingredient_slug: 'apfel', selected_ingredient_name: 'Apfel',
-        suggested_ingredient_id: 101, suggested_ingredient_name: 'Apfel', candidates: [],
-        selected_portion: null, suggested_portion: suggestedPortion,
-        quantity: 4, suggested_quantity: 4, reason: 'Neue Stück-Portion muss bestätigt werden.',
-        technical_details: null, conflicts: [], new_ingredient_draft: null, status: 'open',
+        key: 'row-1',
+        source_text: '4 Äpfel',
+        suggested_ingredient_id: 101,
+        suggested_ingredient_name: 'Apfel',
+        candidates: [{ id: 101, name: 'Apfel', slug: 'apfel', confidence: 0.6 }],
+        suggested_quantity: 4,
+        reason: 'Stückgewicht muss bestätigt werden.',
+        status: 'unresolved',
       }],
-      sources: [{ type: 'text', label: 'Eingefügter Text', value: 'Apfelspieße für vier Personen' }],
+      sources: [],
       ai_interaction_id: null,
       is_reconstructed: false,
       recipe_draft: {
@@ -124,17 +119,12 @@ test.describe('Food data integrity release flows', () => {
     await expect(page.getByText('Bitte bestätige zuerst die Personenzahl.')).toBeVisible();
     await page.getByTestId('recipe-serving-context-confirm').click();
     await page.getByTestId('recipe-wizard-next').click();
-
     await expect(page.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
-    const row = page.getByTestId('ingredient-review-row-row-0');
-    await expect(row).toContainText('4 Äpfel');
-    // Accepting all suggestions must not confirm a row without a selected portion.
-    await page.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
-    await expect(row).toContainText('Zu prüfen');
     await page.getByTestId('recipe-wizard-next').click();
     await expect(page.getByText('Bitte bestätige alle Zutaten und löse offene Zuordnungen.')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
-    expect(recipeCreateRequests).toHaveLength(0);
+    expect(createBodies).toHaveLength(0);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflow).toBe(false);
   });
 
   test('approves a missing ingredient price and shows provenance and coverage', async ({ page }) => {

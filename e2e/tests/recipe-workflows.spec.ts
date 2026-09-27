@@ -57,32 +57,14 @@ function recipeDetail() {
   };
 }
 
-/** Mirrors `IngredientReviewPreviewSchema`. The row is complete, so the
- *  "Zutaten prüfen" step can confirm it without opening any dialog. */
-function smartDraft() {
+function smartPreview() {
+  // No ingredient rows: the wizard skips "Zutaten prüfen" and creates the
+  // draft when leaving "Basis & Portionen".
   return {
-    rows: [{
-      key: 'row-1',
-      source_text: '400 g Mehl',
-      sources: [{ type: 'text', label: 'Eingefügter Text', value: 'Kartoffelsuppe für 4 Personen' }],
-      selected_ingredient_id: 7,
-      selected_ingredient_slug: 'e2e-mehl',
-      selected_ingredient_name: 'E2E Mehl',
-      suggested_ingredient_id: 7,
-      suggested_ingredient_name: 'E2E Mehl',
-      candidates: [],
-      selected_portion: { id: 11, name: 'Gramm', quantity: 1, weight_g: 1, measuring_unit_id: 1, measuring_unit_name: 'g', is_new: false },
-      suggested_portion: { id: 11, name: 'Gramm', quantity: 1, weight_g: 1, measuring_unit_id: 1, measuring_unit_name: 'g', is_new: false },
-      quantity: 400,
-      suggested_quantity: 400,
-      reason: '',
-      technical_details: null,
-      conflicts: [],
-      new_ingredient_draft: null,
-      status: 'open',
-    }],
-    sources: [{ type: 'text', label: 'Eingefügter Text', value: 'Kartoffelsuppe für 4 Personen' }],
+    rows: [],
+    sources: [],
     ai_interaction_id: null,
+    is_reconstructed: false,
     recipe_draft: {
       title: 'Smart E2E Rezept',
       description: '## Zubereitung\nAlles gut vermischen.',
@@ -100,17 +82,17 @@ function smartDraft() {
       source_url: '',
       image_url: '',
     },
-    is_reconstructed: false,
   };
 }
 
 async function mockUnifiedWizard(page: Page) {
   const detail = recipeDetail();
-  await page.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({ json: smartDraft() }));
+  await page.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({ json: smartPreview() }));
   await page.route('**/api/recipes/', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
     await route.fulfill({ json: detail });
   });
+  await page.route('**/api/recipes/101/', (route) => route.fulfill({ json: detail }));
   await page.route('**/api/recipes/by-slug/smart-e2e-rezept/', (route) => route.fulfill({ json: detail }));
   await page.route('**/api/recipes/101/steps/', (route) => route.fulfill({ json: [] }));
   await page.route('**/api/recipes/smart-e2e-rezept/steps/batch', (route) => route.fulfill({ json: [] }));
@@ -148,10 +130,17 @@ test.describe('Recipe Workflows', () => {
     await expect(page.locator('#recipe-basis-title')).toHaveValue('Smart E2E Rezept');
     await page.getByTestId('recipe-serving-context-confirm').click();
     await page.getByTestId('recipe-wizard-next').click();
-    await expect(page.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
-    await page.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
-    await page.getByTestId('recipe-wizard-next').click();
     await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get('draft')).toBe('101');
+    expect(new URL(page.url()).searchParams.get('step')).toBe('ingredients');
+  });
+
+  test('unified wizard can start manually without AI', async ({ page }) => {
+    await page.goto(`${FOOD_URL}/recipes/new`);
+    await page.getByTestId('recipe-manual-start').click();
+    await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
+    await expect(page.locator('#recipe-basis-title')).toHaveValue('');
+    await expect(page.getByTestId('recipe-serving-context-input')).toHaveValue('');
   });
 
   test('unified wizard remains usable at 320px', async ({ page }) => {

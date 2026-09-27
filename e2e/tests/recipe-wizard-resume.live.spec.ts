@@ -37,7 +37,7 @@ test.describe('Recipe wizard draft resume', () => {
     await expect(foodPage.getByTestId('recipe-wizard-back')).toBeDisabled();
 
     await foodPage.getByTestId('recipe-wizard-next').click();
-    await expect(foodPage.getByRole('heading', { name: 'Materialien' })).toBeVisible();
+    await expect(foodPage.getByRole('heading', { name: 'Materialien', exact: true })).toBeVisible();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await expect(foodPage.getByRole('heading', { name: 'Zubereitungsschritte' })).toBeVisible();
     await foodPage.getByTestId('recipe-wizard-next').click();
