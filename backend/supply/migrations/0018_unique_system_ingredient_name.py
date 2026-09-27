@@ -43,6 +43,11 @@ def merge_existing_duplicates(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    # Postgres refuses CREATE INDEX while the duplicate merge has pending deferred
+    # FK trigger events in the same transaction. Each merge_ingredient() call
+    # commits its own atomic block, so the constraint is added afterwards.
+    atomic = False
+
     dependencies = [
         ("content", "0014_aiinteraction_structured_retry"),
         ("profiles", "0002_initial"),
