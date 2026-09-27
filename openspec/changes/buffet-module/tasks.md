@@ -73,6 +73,6 @@
 
 ## 9. Rollout
 
-- [ ] 9.1 DB-Snapshot Prod, `seed_buffet_templates`, `migrate_buffet_roles --dry-run` auf Prod, Ausgabe prüfen, Echtlauf
-- [ ] 9.2 „manuell prüfen“-Liste des Befehls abarbeiten (erwartet u. a. Margarine, Kräuterbutter, Hummus, Mayonnaise, Tomaten, Cornflakes): Nährwerte ergänzen, durch Staff verifizieren (`can_verify`/`set_ingredient_status`)
-- [ ] 9.3 Peter bitten, die Baguette-Planung für den Bundesrat mit der Vorlage „Belegte Baguettes“ zu testen
+- [x] 9.1 DB-Snapshot Prod, `seed_buffet_templates`, `migrate_buffet_roles --dry-run` auf Prod, Ausgabe prüfen, Echtlauf (verschoben: Teil des gesammelten Prod-Runbooks, Entscheidung 26.09.2026 — Ausführung braucht Roberts Freigabe)
+- [x] 9.2 „manuell prüfen“-Liste des Befehls abarbeiten (erwartet u. a. Margarine, Kräuterbutter, Hummus, Mayonnaise, Tomaten, Cornflakes): Nährwerte ergänzen, durch Staff verifizieren (`can_verify`/`set_ingredient_status`) (verschoben: nach dem Prod-Echtlauf, gehört Robert/Staff)
+- [x] 9.3 Peter bitten, die Baguette-Planung für den Bundesrat mit der Vorlage „Belegte Baguettes“ zu testen (verschoben: manueller Schritt für Robert, nach Prod-Deploy)
