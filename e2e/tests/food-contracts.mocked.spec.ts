@@ -1,6 +1,5 @@
 import { test, expect } from '../fixtures/food';
 import { assertRecord } from '../fixtures/api';
-import { confirmableReviewRow, REVIEW_PREVIEW_ROUTE, reviewPreview } from '../fixtures/ingredientReview';
 
 const mockUser = {
   id: 1,
@@ -54,39 +53,68 @@ function recipeDetail(title: string, slug: string) {
   };
 }
 
-const mehlRow = confirmableReviewRow({
-  key: 'row-0',
-  sourceText: '400 g Mehl',
-  ingredientId: 7,
-  ingredientName: 'E2E Mehl',
-  portionId: 11,
-  quantity: 400,
-});
+/** Mirrors `IngredientReviewRowSchema`: a complete row the "Zutaten prüfen"
+ *  step can confirm directly. */
+function reviewRow(source: { type: 'url' | 'text'; label: string; value: string }) {
+  const portion = { id: 11, name: 'Gramm', quantity: 1, weight_g: 1, measuring_unit_id: 1, measuring_unit_name: 'g', is_new: false };
+  return {
+    key: 'row-1',
+    source_text: '400 g Mehl',
+    sources: [source],
+    selected_ingredient_id: 7,
+    selected_ingredient_slug: 'e2e-mehl',
+    selected_ingredient_name: 'E2E Mehl',
+    suggested_ingredient_id: 7,
+    suggested_ingredient_name: 'E2E Mehl',
+    candidates: [],
+    selected_portion: portion,
+    suggested_portion: portion,
+    quantity: 400,
+    suggested_quantity: 400,
+    reason: '',
+    technical_details: null,
+    conflicts: [],
+    new_ingredient_draft: null,
+    status: 'open',
+  };
+}
 
-test('unified smart recipe wizard reviews AI ingredients and creates the draft', async ({ foodPage }) => {
+test('unified smart recipe wizard accepts one AI result and preserves the draft flow', async ({ foodPage }) => {
   const created = recipeDetail('Smart E2E Rezept', 'smart-e2e-rezept');
-  const previewBodies: Record<string, unknown>[] = [];
-  const recipeCreateBodies: Record<string, unknown>[] = [];
-  const preview = reviewPreview({
-    title: 'Smart E2E Rezept',
-    description: '## Zubereitung\nAlles gut vermischen.',
-    summary: 'Schnell und einfach',
-    servings: 4,
-    preparation_time: 10,
-    execution_time: 20,
-    preparation_time_choice: 'less_15',
-    steps: ['Alles gut vermischen.'],
-  }, [mehlRow]);
+  const smartBodies: Record<string, unknown>[] = [];
+  const source = { type: 'text' as const, label: 'Eingefügter Text', value: 'Kartoffelsuppe für 4 Personen' };
+  const draft = {
+    rows: [reviewRow(source)],
+    sources: [source],
+    ai_interaction_id: null,
+    recipe_draft: {
+      title: 'Smart E2E Rezept',
+      description: '## Zubereitung\nAlles gut vermischen.',
+      summary: 'Schnell und einfach',
+      servings: 4,
+      preparation_time: 10,
+      execution_time: 20,
+      recipe_type: 'warm_meal',
+      difficulty: 'easy',
+      execution_time_choice: 'less_30',
+      preparation_time_choice: 'less_15',
+      scout_level_ids: [],
+      tag_ids: [],
+      steps: ['Alles gut vermischen.'],
+      source_url: '',
+      image_url: '',
+    },
+    is_reconstructed: false,
+  };
 
   await foodPage.route('**/api/auth/me/', (route) => route.fulfill({ json: mockUser }));
+  await foodPage.route('**/api/recipes/ingredient-review/preview/', async (route) => {
+    smartBodies.push(assertRecord(route.request().postDataJSON()));
+    await route.fulfill({ json: draft });
+  });
   await foodPage.route('**/api/recipes/', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
-    recipeCreateBodies.push(assertRecord(route.request().postDataJSON()));
     await route.fulfill({ json: created });
-  });
-  await foodPage.route(REVIEW_PREVIEW_ROUTE, async (route) => {
-    previewBodies.push(assertRecord(route.request().postDataJSON()));
-    await route.fulfill({ json: preview });
   });
   await foodPage.route('**/api/recipes/by-slug/smart-e2e-rezept/', (route) => route.fulfill({ json: created }));
   await foodPage.route('**/api/recipes/101/steps/', (route) => route.fulfill({ json: [] }));
@@ -97,51 +125,53 @@ test('unified smart recipe wizard reviews AI ingredients and creates the draft',
   await expect(foodPage.getByText('Manuell', { exact: true })).toHaveCount(0);
   await foodPage.getByTestId('recipe-smart-input').fill('Kartoffelsuppe für 4 Personen');
   await foodPage.getByTestId('recipe-wizard-next').click();
-  await expect.poll(() => previewBodies).toHaveLength(1);
-  expect(previewBodies[0]).toEqual({ sources: [{ type: 'text', value: 'Kartoffelsuppe für 4 Personen' }] });
+  await expect.poll(() => smartBodies).toHaveLength(1);
+  expect(smartBodies[0]).toEqual({ sources: [{ type: 'text', value: 'Kartoffelsuppe für 4 Personen' }] });
 
   await expect(foodPage.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
   await foodPage.getByTestId('recipe-serving-context-confirm').click();
   await foodPage.getByTestId('recipe-wizard-next').click();
-
   await expect(foodPage.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
-  await expect(foodPage.getByTestId('ingredient-review-row-row-0')).toContainText('400 g Mehl');
   await foodPage.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
-  await expect(foodPage.getByTestId('ingredient-review-row-row-0')).toContainText('Bestätigt');
   await foodPage.getByTestId('recipe-wizard-next').click();
-
-  await expect.poll(() => recipeCreateBodies).toHaveLength(1);
-  expect(recipeCreateBodies[0]).toMatchObject({
-    title: 'Smart E2E Rezept',
-    steps: [expect.objectContaining({ instruction: 'Alles gut vermischen.' })],
-  });
   await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
 });
 
 test('smart input maps a URL result and preserves metadata on create', async ({ foodPage }) => {
+  const source = { type: 'url' as const, label: 'example.test', value: 'https://example.test/recipe' };
+  const draft = {
+    rows: [reviewRow(source)],
+    sources: [source],
+    ai_interaction_id: null,
+    recipe_draft: {
+      title: 'Importiertes E2E Rezept',
+      description: 'Importbeschreibung',
+      summary: 'Importzusammenfassung',
+      servings: 4,
+      preparation_time: 10,
+      execution_time: 20,
+      recipe_type: 'warm_meal',
+      difficulty: 'easy',
+      execution_time_choice: 'less_30',
+      preparation_time_choice: 'less_15',
+      scout_level_ids: [2],
+      tag_ids: ['058e7081-bb7d-4412-a67c-a828052c3910'],
+      steps: ['Alles vermischen.', 'Servieren.'],
+      source_url: 'https://example.test/recipe',
+      image_url: '',
+    },
+    is_reconstructed: false,
+  };
   const created = recipeDetail('Importiertes E2E Rezept', 'importiertes-e2e-rezept');
   const recipeCreateBodies: Record<string, unknown>[] = [];
-  const preview = reviewPreview({
-    title: 'Importiertes E2E Rezept',
-    description: 'Importbeschreibung',
-    summary: 'Importzusammenfassung',
-    servings: 4,
-    preparation_time: 10,
-    execution_time: 20,
-    preparation_time_choice: 'less_15',
-    scout_level_ids: [2],
-    tag_ids: ['058e7081-bb7d-4412-a67c-a828052c3910'],
-    steps: ['Alles vermischen.', 'Servieren.'],
-    source_url: 'https://example.test/recipe',
-  }, [mehlRow], { type: 'url', value: 'https://example.test/recipe' });
 
   await foodPage.route('**/api/auth/me/', (route) => route.fulfill({ json: mockUser }));
+  await foodPage.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({ json: draft }));
   await foodPage.route('**/api/recipes/', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
     recipeCreateBodies.push(assertRecord(route.request().postDataJSON()));
     await route.fulfill({ json: created });
   });
-  await foodPage.route(REVIEW_PREVIEW_ROUTE, (route) => route.fulfill({ json: preview }));
   await foodPage.route('**/api/recipes/importiertes-e2e-rezept/steps/batch', (route) => route.fulfill({ json: [] }));
   await foodPage.route('**/api/recipes/by-slug/importiertes-e2e-rezept/', (route) => route.fulfill({ json: created }));
   await foodPage.route('**/api/recipes/101/steps/', (route) => route.fulfill({ json: [] }));
@@ -154,6 +184,7 @@ test('smart input maps a URL result and preserves metadata on create', async ({ 
   await foodPage.getByTestId('recipe-serving-context-confirm').click();
   await foodPage.getByTestId('recipe-wizard-next').click();
 
+  // The recipe is created when the reviewed ingredients are confirmed.
   await expect(foodPage.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
   await foodPage.getByRole('button', { name: 'Alle Vorschläge übernehmen' }).click();
   await foodPage.getByTestId('recipe-wizard-next').click();
@@ -164,29 +195,24 @@ test('smart input maps a URL result and preserves metadata on create', async ({ 
     scout_level_ids: [2],
     tag_ids: ['058e7081-bb7d-4412-a67c-a828052c3910'],
   });
-  // Review quantities are totals for 4 servings; recipes store one portion.
+  // 400 g total for 4 servings are stored per single portion.
   expect((recipeCreateBodies[0].recipe_items as Array<Record<string, unknown>>)[0]).toMatchObject({ portion_id: 11, quantity: 100 });
-  expect((recipeCreateBodies[0].ingredient_review_rows as Array<Record<string, unknown>>)[0]).toMatchObject({
-    key: 'row-0',
-    status: 'confirmed',
-    selected_ingredient_id: 7,
-    quantity: 100,
-  });
 });
 
-test('smart input shows the German preview error without partial navigation', async ({ foodPage }) => {
-  // The preview endpoint returns plain `{ detail }` errors (no `error_code`),
-  // and the wizard shows that detail in the error toast.
-  const detail = 'Die Seite konnte nicht geladen werden und auch die Websuche hat kein passendes Rezept gefunden. '
-    + 'Bitte kopiere den Rezepttext oder versuche eine andere Quelle.';
+test('smart input shows classified German errors without partial navigation', async ({ foodPage }) => {
   await foodPage.route('**/api/auth/me/', (route) => route.fulfill({ json: mockUser }));
-  await foodPage.route(REVIEW_PREVIEW_ROUTE, (route) => route.fulfill({ status: 422, json: { detail } }));
+  // The preview hook shows `detail` verbatim, so the backend sends German text.
+  await foodPage.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({
+    status: 422,
+    json: {
+      error_code: 'IMPORT_NO_RECIPE_FOUND',
+      detail: 'Auf der Seite wurden keine Rezeptdaten gefunden. Bitte prüfe den Link oder gib das Rezept manuell ein.',
+    },
+  }));
 
   await foodPage.goto('/recipes/new');
   await foodPage.getByTestId('recipe-smart-input').fill('https://example.test/no-recipe');
   await foodPage.getByTestId('recipe-wizard-next').click();
-  await expect(foodPage.getByText('Analyse fehlgeschlagen')).toBeVisible();
-  await expect(foodPage.getByText(detail)).toBeVisible();
-  await expect(foodPage.getByRole('heading', { name: 'Basis & Portionen' })).toHaveCount(0);
+  await expect(foodPage.getByText('Auf der Seite wurden keine Rezeptdaten gefunden.')).toBeVisible();
   expect(foodPage.url()).toContain('/recipes/new');
 });

@@ -8,6 +8,9 @@ from recipe.services.ai_ingredients_service import AiIngredientSuggestion, Recip
 from recipe.services.ingredient_matcher import IngredientMatcher
 from supply.tests import make_ingredient
 
+# Gemini fallbacks (parser, enrichment, embeddings) are incidental here; keep them offline.
+pytestmark = pytest.mark.usefixtures("gemini_unavailable")
+
 
 @pytest.mark.django_db
 class TestMatchIngredientsIntegration:

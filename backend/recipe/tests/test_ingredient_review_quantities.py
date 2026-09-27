@@ -11,6 +11,9 @@ from recipe.services.ingredient_review_service import preview_recipe_ingredients
 from recipe.services.url_import_service import GeminiIngredientMatch, GeminiRecipeExtraction
 from supply.tests import make_ingredient, make_portion
 
+# Gemini fallbacks (parser, enrichment, embeddings) are incidental here; keep them offline.
+pytestmark = pytest.mark.usefixtures("gemini_unavailable")
+
 EXTRACT_TARGET = "recipe.services.url_import_service.extract_smart_recipe_input"
 METADATA_TARGET = "recipe.services.ingredient_review_service._metadata_for_source"
 ENRICH_TARGET = "recipe.services.ingredient_enrichment.enrich_ingredient"

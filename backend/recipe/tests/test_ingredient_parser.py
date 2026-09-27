@@ -7,6 +7,9 @@ import pytest
 from recipe.services.ingredient_parser import IngredientNameParser
 from supply.tests import make_ingredient
 
+# Gemini fallbacks (parser, enrichment, embeddings) are incidental here; keep them offline.
+pytestmark = pytest.mark.usefixtures("gemini_unavailable")
+
 
 @pytest.mark.django_db
 class TestParseRuleBased:

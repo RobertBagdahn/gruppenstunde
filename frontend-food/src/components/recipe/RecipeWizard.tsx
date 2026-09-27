@@ -1,40 +1,45 @@
-import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
+import type { RecipeDetail } from '@/schemas/recipe';
 import { useIngredient } from '@/api/supplies';
-import { useCreateRecipe } from '@/api/recipes';
-import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
+import { useCreateRecipe, useRecipe, useUpdateRecipe, type RecipeCreatePayload } from '@/api/recipes';
+import { useRecipeIngredientReviewStore } from '@/store/useRecipeIngredientReviewStore';
 
-import WizardStepMethod, { type WizardStepMethodHandle, type WizardState } from './WizardStepMethod';
+import WizardStepMethod from './WizardStepMethod';
+import WizardStepBasis, { type BasisDraft } from './WizardStepBasis';
+import RecipeIngredientReviewStep from './RecipeIngredientReviewStep';
 import WizardStepIngredients from './WizardStepIngredients';
-import type { WizardStepIngredientsHandle } from './WizardStepIngredients';
-import WizardStepBasis, { type WizardStepBasisHandle } from './WizardStepBasis';
 import WizardStepMaterials from './WizardStepMaterials';
 import WizardStepMetadata from './WizardStepMetadata';
 import WizardStepSteps from './WizardStepSteps';
-import type { WizardStepStepsHandle } from './WizardStepSteps';
-import WizardStepPreview, { type WizardStepPreviewHandle } from './WizardStepPreview';
-import RecipeIngredientReviewStep from './RecipeIngredientReviewStep';
-import { useRecipeIngredientReviewStore } from '@/store/useRecipeIngredientReviewStore';
+import WizardStepPreview from './WizardStepPreview';
+import { WizardStepContext, type LeaveDirection, type LeaveHandler, type WizardStepContextValue } from './wizardContext';
+import {
+  FIRST_DRAFT_STEP,
+  WIZARD_STEP_IDS,
+  getCreationStepId,
+  getVisibleSteps,
+  resolveStepId,
+  type CreationMethod,
+  type WizardCtx,
+  type WizardStepDef,
+  type WizardStepId,
+} from './wizardSteps';
 
-interface RecipeWizardState extends WizardState {
-  inputServings: number | null;
-  inputItemsAreContextual: boolean;
-}
-
-const BASE_STEP_LABELS = ['KI-Eingabe', 'Basis & Portionen', 'Zutaten', 'Materialien', 'Zubereitung', 'Vorschau'];
-
-function StepIndicator({ currentStep, labels }: { currentStep: number; labels: string[] }) {
+function StepIndicator({ steps, activeIndex }: { steps: WizardStepDef[]; activeIndex: number }) {
+  const active = steps[activeIndex];
   return (
     <nav aria-label="Rezept-Erstellungs-Fortschritt" className="w-full">
       <ol className="flex items-center justify-center gap-1 sm:gap-2">
-        {labels.map((label, i) => {
-          const isActive = i === currentStep;
-          const isCompleted = i < currentStep;
+        {steps.map((step, i) => {
+          const isActive = i === activeIndex;
+          const isCompleted = i < activeIndex;
           return (
-            <li key={i} className="flex items-center">
+            <li key={step.id} className="flex items-center" data-testid={`recipe-wizard-indicator-${step.id}`}>
               <div
                 className={`
                   flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold border-2 transition-colors
@@ -43,522 +48,520 @@ function StepIndicator({ currentStep, labels }: { currentStep: number; labels: s
                   ${!isActive && !isCompleted ? 'border-muted-foreground/30 text-muted-foreground' : ''}
                 `}
                 aria-current={isActive ? 'step' : undefined}
+                title={step.label}
               >
                 {isCompleted ? <Check className="w-3.5 h-3.5" /> : i + 1}
               </div>
               <span className="hidden sm:block ml-1.5 text-xs font-medium text-muted-foreground truncate max-w-[70px]">
-                {label}
+                {step.label}
               </span>
-              {i < labels.length - 1 && (
+              {i < steps.length - 1 && (
                 <div
-                  className={`hidden sm:block w-6 h-0.5 mx-1 rounded transition-colors ${i < currentStep ? 'bg-primary' : 'bg-muted-foreground/20'}`}
+                  className={`hidden sm:block w-6 h-0.5 mx-1 rounded transition-colors ${i < activeIndex ? 'bg-primary' : 'bg-muted-foreground/20'}`}
                 />
               )}
             </li>
           );
         })}
       </ol>
+      {active && (
+        <p className="mt-3 text-center text-xs text-muted-foreground" data-testid="recipe-wizard-step-help">
+          <span className="font-medium text-foreground">
+            Schritt {activeIndex + 1} von {steps.length}: {active.label}
+          </span>
+          {' – '}
+          {active.help}
+        </p>
+      )}
     </nav>
   );
 }
 
-function validateStep(state: RecipeWizardState): string | null {
-  switch (state.currentStep) {
-    case 1:
-      return null;
-    default:
-      return null;
-  }
+function parseDraftId(raw: string | null): number | null {
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  const id = Number.parseInt(raw, 10);
+  return id > 0 ? id : null;
 }
 
-export interface MetadataSnapshot {
-  summary: string;
-  description: string;
-  difficulty: string;
-  executionTime: string;
-  preparationTime: string;
-  visibility: string;
-  selectedTagSlugs: string[];
+function newIdempotencyKey(): string {
+  return `recipe-wizard-${crypto.randomUUID()}`;
 }
 
-/**
- * Build the metadata PATCH body.
- *
- * Returns null while the metadata step has not reported its state yet, so
- * clicking through the step cannot overwrite existing content with defaults.
- * Choice fields are omitted when empty because the backend rejects empty
- * values for them; free-text fields stay clearable on purpose.
- */
-export function buildMetadataPatch(
-  meta: MetadataSnapshot | null,
-): Record<string, unknown> | null {
-  if (!meta) return null;
-
-  const body: Record<string, unknown> = {
-    summary: meta.summary,
-    description: meta.description,
-    tag_ids: meta.selectedTagSlugs,
-  };
-  if (meta.visibility) body.visibility = meta.visibility;
-  if (meta.difficulty) body.difficulty = meta.difficulty;
-  if (meta.executionTime) body.execution_time = meta.executionTime;
-  if (meta.preparationTime) body.preparation_time = meta.preparationTime;
-  return body;
+function errorMessage(error: unknown): string {
+  return error instanceof Error && error.message ? error.message : 'Unbekannter Fehler';
 }
 
-function getCsrfToken(): string {
-  const cookie = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith('csrftoken='));
-  return cookie ? cookie.split('=')[1] : '';
+interface BasicsState {
+  title: string;
+  recipeType: string | null;
+  servings: number | null;
+  servingsConfirmed: boolean;
 }
 
-export function formatSaveError(body: unknown): string {
-  if (body && typeof body === 'object' && 'msg' in body) {
-    const message = (body as { msg?: unknown }).msg;
-    if (typeof message === 'string' && message.trim()) return message;
-  }
-  if (typeof body === 'string' && body.trim()) return body;
-  if (Array.isArray(body)) {
-    const messages = body.map(formatSaveError).filter(Boolean);
-    if (messages.length > 0) return messages.join(', ');
-  }
-  if (body && typeof body === 'object') {
-    const record = body as Record<string, unknown>;
-    for (const key of ['detail', 'message', 'errors']) {
-      const message = formatSaveError(record[key]);
-      if (message) return message;
-    }
-    const fields = Object.entries(record)
-      .map(([field, value]) => {
-        const message = formatSaveError(value);
-        return message ? `${field}: ${message}` : '';
-      })
-      .filter(Boolean);
-    if (fields.length > 0) return fields.join('; ');
-  }
-  return 'Speichern fehlgeschlagen';
-}
+const EMPTY_BASICS: BasicsState = { title: '', recipeType: null, servings: null, servingsConfirmed: false };
 
 export default function RecipeWizard() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const ingredientSlug = searchParams.get('ingredient')?.trim() ?? '';
   const { data: linkedIngredient } = useIngredient(ingredientSlug);
-  const [state, setState] = useState<RecipeWizardState>({
-    currentStep: 0,
-    recipeId: null,
-    recipeSlug: null,
-    creationMethod: null,
-    aiInteractionId: null,
-    inputServings: null,
-        inputItemsAreContextual: false,
-  });
 
-  const [stepTitle, setStepTitle] = useState('');
-  const [stepRecipeType, setStepRecipeType] = useState<string | null>(null);
+  // --- Client state before the draft exists ---
+  const [creationMethod, setCreationMethod] = useState<CreationMethod | null>(null);
   const [smartResult, setSmartResult] = useState<IngredientReviewPreview | null>(null);
+  const [basics, setBasicsState] = useState<BasicsState>(EMPTY_BASICS);
+  // Leave handlers update the basics right before the draft is created, so
+  // the creation reads them from a ref instead of a stale render closure.
+  const basicsRef = useRef<BasicsState>(EMPTY_BASICS);
+  const setBasics = useCallback((update: BasicsState | ((current: BasicsState) => BasicsState)) => {
+    basicsRef.current = typeof update === 'function' ? update(basicsRef.current) : update;
+    setBasicsState(basicsRef.current);
+  }, []);
+  const idempotencyKeyRef = useRef(newIdempotencyKey());
+
   const initializeReview = useRecipeIngredientReviewStore((store) => store.initialize);
   const getFinalizedRows = useRecipeIngredientReviewStore((store) => store.getFinalizedRows);
   const setReviewError = useRecipeIngredientReviewStore((store) => store.setError);
   const resetReview = useRecipeIngredientReviewStore((store) => store.reset);
-  const reviewRows = useRecipeIngredientReviewStore((store) => store.rows);
-  const hasReviewStep = smartResult !== null && reviewRows.length > 0;
+  const reviewRowCount = useRecipeIngredientReviewStore((store) => store.rows.length);
   const reviewIsDirty = useRecipeIngredientReviewStore((store) => store.isDirty);
 
+  const ctx: WizardCtx = useMemo(() => ({ creationMethod, reviewRowCount }), [creationMethod, reviewRowCount]);
+  const visibleSteps = useMemo(() => getVisibleSteps(ctx), [ctx]);
+  const creationStepId = getCreationStepId(visibleSteps);
+
+  // --- URL state: ?draft=<recipeId>&step=<stepId> ---
+  const draftId = parseDraftId(searchParams.get('draft'));
+  const rawStep = searchParams.get('step');
+  const urlStepId = resolveStepId(rawStep, draftId !== null, ctx);
+  const [activeStepId, setActiveStepId] = useState<WizardStepId>(urlStepId);
+  const knownDraftIdRef = useRef<number | null>(draftId);
+
+  const draftQuery = useRecipe(draftId ?? 0, { retry: false });
+  const draft: RecipeDetail | null = draftQuery.data?.can_edit ? draftQuery.data : null;
+  const draftNotFound = draftId !== null && (draftQuery.isError || (draftQuery.data !== undefined && !draftQuery.data.can_edit));
+
+  const createRecipe = useCreateRecipe();
+  const { mutateAsync: updateRecipe } = useUpdateRecipe(draftId ?? 0);
+
+  // Title and type come from the server when a draft is resumed.
+  const loadedDraftIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!reviewIsDirty) return;
+    if (!draft || loadedDraftIdRef.current === draft.id) return;
+    loadedDraftIdRef.current = draft.id;
+    setBasics((current) => ({
+      ...current,
+      title: draft.title,
+      recipeType: draft.recipe_type || null,
+      servings: draft.source_servings ?? null,
+    }));
+  }, [draft, setBasics]);
+
+  // --- Leave handlers registered by the rendered step ---
+  const leaveHandlersRef = useRef(new Map<WizardStepId, Set<LeaveHandler>>());
+  const stepContexts = useMemo(() => {
+    const entries = WIZARD_STEP_IDS.map((id): [WizardStepId, WizardStepContextValue] => [id, {
+      registerLeave: (handler) => {
+        const handlers = leaveHandlersRef.current.get(id) ?? new Set<LeaveHandler>();
+        leaveHandlersRef.current.set(id, handlers);
+        handlers.add(handler);
+        return () => {
+          handlers.delete(handler);
+        };
+      },
+    }]);
+    return Object.fromEntries(entries) as Record<WizardStepId, WizardStepContextValue>;
+  }, []);
+
+  const runLeave = useCallback(async (id: WizardStepId, direction: LeaveDirection): Promise<boolean> => {
+    for (const handler of [...(leaveHandlersRef.current.get(id) ?? [])]) {
+      if (!(await handler(direction))) return false;
+    }
+    return true;
+  }, []);
+
+  // --- One action at a time; a ref also blocks clicks before the re-render ---
+  const busyRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const runExclusive = useCallback(async (action: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setIsSaving(true);
+    try {
+      await action();
+    } finally {
+      busyRef.current = false;
+      setIsSaving(false);
+    }
+  }, []);
+
+  const showError = useCallback((stepId: WizardStepId, error: unknown) => {
+    const message = errorMessage(error);
+    if (stepId === 'review') setReviewError(message);
+    toast.error(stepId === 'input' ? 'Analyse fehlgeschlagen' : 'Speichern fehlgeschlagen', { description: message });
+  }, [setReviewError]);
+
+  const writeUrl = useCallback((stepId: WizardStepId, nextDraftId: number | null, replace: boolean) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('step', stepId);
+      if (nextDraftId === null) next.delete('draft');
+      else next.set('draft', String(nextDraftId));
+      return next;
+    }, { replace });
+  }, [setSearchParams]);
+
+  const goToStep = useCallback((stepId: WizardStepId, nextDraftId: number | null) => {
+    if (nextDraftId !== null) knownDraftIdRef.current = nextDraftId;
+    setActiveStepId(stepId);
+    writeUrl(stepId, nextDraftId, false);
+  }, [writeUrl]);
+
+  // --- Browser back/forward and manual URL changes ---
+  useEffect(() => {
+    if (draftId !== null) knownDraftIdRef.current = draftId;
+    const knownDraftId = knownDraftIdRef.current;
+    if (knownDraftId !== null && draftId === null) {
+      // History entries from before the draft existed carry no client state.
+      writeUrl(activeStepId, knownDraftId, true);
+      toast.info('Das Rezept ist bereits angelegt. Titel und Typ änderst du im Schritt Zutaten.');
+      return;
+    }
+    if (urlStepId === activeStepId) {
+      if (rawStep !== urlStepId) writeUrl(urlStepId, draftId, true);
+      return;
+    }
+    if (busyRef.current) {
+      writeUrl(activeStepId, draftId, true);
+      return;
+    }
+    const from = activeStepId;
+    const order = visibleSteps.map((step) => step.id);
+    const direction: LeaveDirection = order.indexOf(urlStepId) < order.indexOf(from) ? 'back' : 'next';
+    void runExclusive(async () => {
+      let canLeave = false;
+      try {
+        canLeave = await runLeave(from, direction);
+      } catch (error) {
+        showError(from, error);
+      }
+      if (canLeave) setActiveStepId(urlStepId);
+      else writeUrl(from, draftId, true);
+    });
+  }, [activeStepId, draftId, rawStep, runExclusive, runLeave, showError, urlStepId, visibleSteps, writeUrl]);
+
+  // Warn before losing client-only state (nothing is on the server yet).
+  const hasUnsavedClientState = draftId === null && (creationMethod !== null || reviewIsDirty);
+  useEffect(() => {
+    if (!hasUnsavedClientState) return;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [reviewIsDirty]);
-
-  // Stays null until the metadata step reported its state from the loaded
-  // recipe. Sending the uninitialised defaults wiped AI-generated content.
-  const metadataRef = useRef<MetadataSnapshot | null>(null);
-
-  const updateState = useCallback((patch: Partial<RecipeWizardState>) => {
-    setState((prev) => ({ ...prev, ...patch }));
-  }, []);
-
-  const [isSaving, setIsSaving] = useState(false);
-  const createRecipe = useCreateRecipe();
-  const methodStepRef = useRef<WizardStepMethodHandle>(null);
-  const basisStepRef = useRef<WizardStepBasisHandle>(null);
-  const previewStepRef = useRef<WizardStepPreviewHandle>(null);
-  const ingredientsStepRef = useRef<WizardStepIngredientsHandle>(null);
-  const stepsStepRef = useRef<WizardStepStepsHandle>(null);
-
-  const saveRecipe = useCallback(async (recipeId: number, body: Record<string, unknown>) => {
-    const res = await fetchWithCsrf(`${API_BASE_URL}/api/recipes/${recipeId}/`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-      credentials: 'include',
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      throw new Error(formatSaveError(body));
-    }
-  }, []);
-
-  const handleNext = useCallback(async () => {
-    const error = validateStep(state);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      if (state.currentStep === 0) {
-        const shouldAdvance = await methodStepRef.current?.primaryAction();
-        if (!shouldAdvance) {
-          setIsSaving(false);
-          return;
-        }
-      }
-
-      if (state.currentStep === 1) {
-        if (!(await (basisStepRef.current?.save() ?? Promise.resolve(false)))) {
-          setIsSaving(false);
-          return;
-        }
-      }
-
-      const ingredientStep = hasReviewStep ? 3 : 2;
-      const metadataStep = hasReviewStep ? 5 : 4;
-
-      if (hasReviewStep && state.currentStep === 2) {
-        const finalizedRows = getFinalizedRows();
-        if (!finalizedRows) {
-          toast.error('Bitte bestätige alle Zutaten und löse offene Zuordnungen.');
-          setIsSaving(false);
-          return;
-        }
-        // Review quantities are totals for the original servings; recipes are
-        // stored per single portion.
-        const servings = state.inputServings && state.inputServings > 0 ? state.inputServings : 1;
-        const perPortionRows = finalizedRows.map((row) => ({ ...row, quantity: row.quantity / servings }));
-        const recipe = await createRecipe.mutateAsync({
-          title: stepTitle.trim(),
-          description: smartResult?.recipe_draft.description,
-          summary: smartResult?.recipe_draft.summary,
-          recipe_type: stepRecipeType ?? 'warm_meal',
-          portions: 1,
-          difficulty: smartResult?.recipe_draft.difficulty || 'easy',
-          execution_time: smartResult?.recipe_draft.execution_time_choice || 'less_30',
-          preparation_time: smartResult?.recipe_draft.preparation_time_choice || 'none',
-          source_url: smartResult?.recipe_draft.source_url,
-          image_url: smartResult?.recipe_draft.image_url,
-          scout_level_ids: smartResult?.recipe_draft.scout_level_ids,
-          tag_ids: smartResult?.recipe_draft.tag_ids,
-          recipe_items: perPortionRows.map((row, index) => ({
-            portion_id: row.selected_portion_id,
-            quantity: row.quantity,
-            sort_order: index,
-            note: '',
-            is_optional: false,
-          })),
-          ingredient_review_rows: perPortionRows,
-          steps: (smartResult?.recipe_draft.steps ?? []).map((instruction, index) => ({
-            sort_order: index,
-            instruction,
-            duration_minutes: null,
-            section: '',
-            step_ingredients: [],
-          })),
-        });
-        updateState({
-          recipeId: recipe.id,
-          recipeSlug: recipe.slug,
-          inputServings: state.inputServings ?? 1,
-        });
-      }
-
-      if (state.currentStep === ingredientStep) {
-        if (!(await (ingredientsStepRef.current?.save() ?? Promise.resolve(false)))) {
-          setIsSaving(false);
-          return;
-        }
-        const activeRecipeId = state.recipeId;
-        const body: Record<string, unknown> = {};
-        if (stepTitle) body.title = stepTitle;
-        if (stepRecipeType) body.recipe_type = stepRecipeType;
-        if (activeRecipeId) await saveRecipe(activeRecipeId, body);
-      }
-
-      if (state.currentStep === 3) {
-        // Materials persist immediately through their own endpoints.
-      }
-
-      if (state.currentStep === metadataStep) {
-        if (state.recipeId) {
-          const body = buildMetadataPatch(metadataRef.current);
-          if (body) await saveRecipe(state.recipeId, body);
-        }
-        if (!(await (stepsStepRef.current?.save() ?? Promise.resolve(true)))) {
-          setIsSaving(false);
-          return;
-        }
-      }
-    } catch (err) {
-      setReviewError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen');
-      toast.error('Speichern fehlgeschlagen', {
-        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
-      });
-      setIsSaving(false);
-      return;
-    }
-
-    setIsSaving(false);
-    setState((prev) => ({
-      ...prev,
-      currentStep: prev.currentStep + 1,
-    }));
-  }, [createRecipe, getFinalizedRows, hasReviewStep, saveRecipe, setReviewError, smartResult, state, stepTitle, stepRecipeType, updateState]);
-
-  const handleBack = useCallback(async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-    try {
-      const ingredientStep = hasReviewStep ? 3 : 2;
-      const metadataStep = hasReviewStep ? 5 : 4;
-
-      if (state.currentStep === ingredientStep && state.recipeId) {
-        const saved = await (ingredientsStepRef.current?.save() ?? Promise.resolve(true));
-        if (!saved) return;
-        await saveRecipe(state.recipeId, { title: stepTitle, recipe_type: stepRecipeType });
-      }
-      if (state.currentStep === metadataStep) {
-        if (state.recipeId) {
-          const body = buildMetadataPatch(metadataRef.current);
-          if (body) await saveRecipe(state.recipeId, body);
-        }
-        const saved = await (stepsStepRef.current?.save() ?? Promise.resolve(true));
-        if (!saved) return;
-      }
-      setState((prev) => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }));
-    } catch (err) {
-      toast.error('Speichern fehlgeschlagen', { description: err instanceof Error ? err.message : 'Unbekannter Fehler' });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [hasReviewStep, isSaving, state.currentStep, state.recipeId, stepTitle, stepRecipeType, saveRecipe]);
-
-  const handleFinish = useCallback(async () => {
-    setIsSaving(true);
-    const success = await previewStepRef.current?.primaryAction();
-    setIsSaving(false);
-    return success;
-  }, []);
+  }, [hasUnsavedClientState]);
 
   useEffect(() => () => resetReview(), [resetReview]);
 
-  const handleMetadataChange = useCallback((snapshot: MetadataSnapshot) => {
-    metadataRef.current = snapshot;
-  }, []);
+  // --- The single creation point ---
+  const createDraft = useCallback(async (): Promise<RecipeDetail | null> => {
+    const reviewIsVisible = visibleSteps.some((step) => step.id === 'review');
+    const finalizedRows = reviewIsVisible ? getFinalizedRows() : null;
+    if (reviewIsVisible && !finalizedRows) {
+      toast.error('Bitte bestätige alle Zutaten und löse offene Zuordnungen.');
+      return null;
+    }
+    const recipeDraft = smartResult?.recipe_draft;
+    const basics = basicsRef.current;
+    const payload: RecipeCreatePayload = {
+      title: basics.title.trim(),
+      recipe_type: basics.recipeType ?? 'warm_meal',
+      portions: 1,
+      description: recipeDraft?.description,
+      summary: recipeDraft?.summary,
+      difficulty: recipeDraft?.difficulty || 'easy',
+      execution_time: recipeDraft?.execution_time_choice || 'less_30',
+      preparation_time: recipeDraft?.preparation_time_choice || 'none',
+      source_url: recipeDraft?.source_url,
+      image_url: recipeDraft?.image_url,
+      scout_level_ids: recipeDraft?.scout_level_ids,
+      tag_ids: recipeDraft?.tag_ids,
+      steps: (recipeDraft?.steps ?? []).map((instruction, index) => ({
+        sort_order: index,
+        instruction,
+        duration_minutes: null,
+        section: '',
+        step_ingredients: [],
+      })),
+      idempotency_key: idempotencyKeyRef.current,
+      ...(basics.servings !== null ? { input_servings: basics.servings } : {}),
+    };
+    if (finalizedRows) {
+      // Totals for the original servings; the backend normalizes to one portion.
+      payload.recipe_items = finalizedRows.map((row, index) => ({
+        portion_id: row.selected_portion_id,
+        quantity: row.quantity,
+        sort_order: index,
+        note: '',
+        is_optional: false,
+      }));
+      payload.ingredient_review_rows = finalizedRows;
+    }
+    const recipe = await createRecipe.mutateAsync(payload);
+    queryClient.setQueryData(['recipe', recipe.id], recipe);
+    queryClient.setQueryData(['recipe', 'slug', recipe.slug], recipe);
+    return recipe;
+  }, [createRecipe, getFinalizedRows, queryClient, smartResult, visibleSteps]);
+
+  const saveRecipe = useCallback(async (body: Record<string, unknown>) => {
+    await updateRecipe(body);
+  }, [updateRecipe]);
+
+  const activeIndex = Math.max(0, visibleSteps.findIndex((step) => step.id === activeStepId));
+  const isFirst = activeIndex === 0;
+  const isLast = activeIndex === visibleSteps.length - 1;
+  const backLocked = draftId !== null && activeStepId === FIRST_DRAFT_STEP;
+
+  const handleNext = useCallback(() => runExclusive(async () => {
+    const from = activeStepId;
+    try {
+      if (!(await runLeave(from, 'next'))) return;
+      if (from === 'preview') {
+        toast.success('Rezept fertiggestellt!');
+        if (draft) navigate(`/recipes/${draft.slug}`);
+        return;
+      }
+      let nextDraftId = draftId;
+      if (from === creationStepId && draftId === null) {
+        const created = await createDraft();
+        if (!created) return;
+        nextDraftId = created.id;
+      }
+      const next = visibleSteps[activeIndex + 1];
+      if (next) goToStep(next.id, nextDraftId);
+    } catch (error) {
+      showError(from, error);
+    }
+  }), [activeIndex, activeStepId, createDraft, creationStepId, draft, draftId, goToStep, navigate, runExclusive, runLeave, showError, visibleSteps]);
+
+  const handleBack = useCallback(() => runExclusive(async () => {
+    const from = activeStepId;
+    const target = visibleSteps[activeIndex - 1];
+    if (!target || backLocked) return;
+    try {
+      if (!(await runLeave(from, 'back'))) return;
+      goToStep(target.id, draftId);
+    } catch (error) {
+      showError(from, error);
+    }
+  }), [activeIndex, activeStepId, backLocked, draftId, goToStep, runExclusive, runLeave, showError, visibleSteps]);
 
   const handleSmartResult = useCallback((result: IngredientReviewPreview) => {
+    setCreationMethod('smart');
     setSmartResult(result);
-    setStepTitle(result.recipe_draft.title);
-    setStepRecipeType(result.recipe_draft.recipe_type || 'warm_meal');
-    updateState({
-      creationMethod: 'smart',
-      aiInteractionId: result.ai_interaction_id ?? null,
-      inputServings: result.recipe_draft.servings ?? 1,
-      inputItemsAreContextual: false,
+    setBasics({
+      title: result.recipe_draft.title,
+      recipeType: result.recipe_draft.recipe_type || 'warm_meal',
+      servings: result.recipe_draft.servings ?? 1,
+      servingsConfirmed: false,
     });
     initializeReview(result);
-  }, [initializeReview, updateState]);
+  }, [initializeReview, setBasics]);
 
-  const activeRecipeId = state.recipeId;
-  const activeRecipeSlug = state.recipeSlug;
-  const stepLabels = hasReviewStep
-    ? [BASE_STEP_LABELS[0], BASE_STEP_LABELS[1], 'Zutaten prüfen', ...BASE_STEP_LABELS.slice(2)]
-    : BASE_STEP_LABELS;
-  const ingredientStep = hasReviewStep ? 3 : 2;
-  const materialsStep = ingredientStep + 1;
-  const methodStep = materialsStep + 1;
-  const previewStep = methodStep + 1;
+  const handleManualStart = useCallback(() => {
+    if (busyRef.current) return;
+    setCreationMethod('manual');
+    setSmartResult(null);
+    setBasics(EMPTY_BASICS);
+    resetReview();
+    goToStep('basis', null);
+  }, [goToStep, resetReview, setBasics]);
 
-  const stepComponents: Record<number, ReactNode> = {
-    0: (
-      <WizardStepMethod
-        ref={methodStepRef}
-        state={state}
-        updateState={updateState}
-        onSmartResult={handleSmartResult}
-        initialInput={linkedIngredient ? `Erstelle ein Rezept mit ${linkedIngredient.name}.` : ''}
-      />
-    ),
-    1: (
-      <WizardStepBasis
-        ref={basisStepRef}
-        result={smartResult}
-        initialTitle={stepTitle}
-        initialRecipeType={stepRecipeType}
-        onTitleChange={setStepTitle}
-        onRecipeTypeChange={setStepRecipeType}
-         onDraftChange={({ title, recipeType, servings }) => {
-           setStepTitle(title);
-           setStepRecipeType(recipeType);
-           updateState({ inputServings: servings });
-         }}
-      />
-    ),
-    2: hasReviewStep ? <RecipeIngredientReviewStep /> : (
-      <WizardStepIngredients
-        ref={ingredientsStepRef}
-        recipeId={state.recipeId}
-        recipeSlug={state.recipeSlug ?? ''}
-        creationMethod={state.creationMethod}
-        onIngredientsCountChange={() => {}}
-        onTitleChange={setStepTitle}
-        onRecipeTypeChange={setStepRecipeType}
-        title={stepTitle}
-        recipeType={stepRecipeType}
-        initialInputPortions={state.inputServings}
-        initialItemsAreContextual={state.inputItemsAreContextual}
-      />
-    ),
-    3: hasReviewStep ? (
-      <WizardStepIngredients
-        ref={ingredientsStepRef}
-        recipeId={state.recipeId}
-        recipeSlug={state.recipeSlug ?? ''}
-        creationMethod={state.creationMethod}
-        onIngredientsCountChange={() => {}}
-        onTitleChange={setStepTitle}
-        onRecipeTypeChange={setStepRecipeType}
-        title={stepTitle}
-        recipeType={stepRecipeType}
-        initialInputPortions={state.inputServings}
-        initialItemsAreContextual={state.inputItemsAreContextual}
-      />
-    ) : activeRecipeSlug ? (
-      <WizardStepMaterials recipeId={activeRecipeId ?? 0} />
-    ) : null,
-    4: hasReviewStep && activeRecipeSlug ? (
-      <WizardStepMaterials recipeId={activeRecipeId ?? 0} />
-    ) : activeRecipeSlug ? (
-      <div className="space-y-6">
-        <WizardStepMetadata
-          recipeId={activeRecipeId ?? 0}
-          recipeSlug={activeRecipeSlug}
-          onDataChange={handleMetadataChange}
-          initialData={metadataRef.current ?? undefined}
-        />
-        <WizardStepSteps ref={stepsStepRef} recipeSlug={activeRecipeSlug} />
+  const handleBasisChange = useCallback((next: BasisDraft) => {
+    setBasics({ title: next.title, recipeType: next.recipeType, servings: next.servings, servingsConfirmed: true });
+  }, [setBasics]);
+
+  const handleRestart = useCallback(() => {
+    knownDraftIdRef.current = null;
+    loadedDraftIdRef.current = null;
+    idempotencyKeyRef.current = newIdempotencyKey();
+    setCreationMethod(null);
+    setSmartResult(null);
+    setBasics(EMPTY_BASICS);
+    resetReview();
+    setActiveStepId('input');
+    setSearchParams(new URLSearchParams({ step: 'input' }), { replace: true });
+  }, [resetReview, setBasics, setSearchParams]);
+
+  const setTitle = useCallback((title: string) => setBasics((current) => ({ ...current, title })), [setBasics]);
+  const setRecipeType = useCallback(
+    (recipeType: string | null) => setBasics((current) => ({ ...current, recipeType })),
+    [setBasics],
+  );
+
+  if (draftNotFound) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4" data-testid="recipe-wizard-draft-not-found">
+        <h2 className="text-xl font-display font-bold">Entwurf nicht gefunden</h2>
+        <p className="text-sm text-muted-foreground">
+          Dieser Rezept-Entwurf existiert nicht oder gehört nicht zu deinem Konto.
+        </p>
+        <button
+          type="button"
+          onClick={handleRestart}
+          className="inline-flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+        >
+          Neu beginnen
+        </button>
       </div>
-    ) : null,
-    5: hasReviewStep && activeRecipeSlug ? (
-      <div className="space-y-6">
-        <WizardStepMetadata
-          recipeId={activeRecipeId ?? 0}
-          recipeSlug={activeRecipeSlug}
-          onDataChange={handleMetadataChange}
-          initialData={metadataRef.current ?? undefined}
-        />
-        <WizardStepSteps ref={stepsStepRef} recipeSlug={activeRecipeSlug} />
-      </div>
-    ) : activeRecipeSlug ? (
-      <WizardStepPreview
-        ref={previewStepRef}
-        recipeSlug={activeRecipeSlug}
-        onFinish={() => {
-          if (activeRecipeSlug) navigate(`/recipes/${activeRecipeSlug}`);
-        }}
-      />
-    ) : null,
-    6: hasReviewStep && activeRecipeSlug ? (
-      <WizardStepPreview
-        ref={previewStepRef}
-        recipeSlug={activeRecipeSlug}
-        onFinish={() => {
-          if (activeRecipeSlug) navigate(`/recipes/${activeRecipeSlug}`);
-        }}
-      />
-    ) : null,
+    );
+  }
+
+  const renderStep = (): ReactNode => {
+    switch (activeStepId) {
+      case 'input':
+        return (
+          <WizardStepMethod
+            aiInteractionId={smartResult?.ai_interaction_id ?? null}
+            hasResult={smartResult !== null}
+            onSmartResult={handleSmartResult}
+            onManualStart={handleManualStart}
+            initialInput={linkedIngredient ? `Erstelle ein Rezept mit ${linkedIngredient.name}.` : ''}
+          />
+        );
+      case 'basis':
+        return (
+          <WizardStepBasis
+            isManual={creationMethod === 'manual'}
+            isReconstructed={smartResult?.is_reconstructed ?? false}
+            initialTitle={basics.title}
+            initialRecipeType={basics.recipeType}
+            initialServings={basics.servings}
+            initialServingsConfirmed={basics.servingsConfirmed}
+            onDraftChange={handleBasisChange}
+          />
+        );
+      case 'review':
+        return <RecipeIngredientReviewStep />;
+      default:
+        break;
+    }
+    if (!draft) {
+      return (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          Lade Entwurf...
+        </div>
+      );
+    }
+    switch (activeStepId) {
+      case 'ingredients':
+        return (
+          <WizardStepIngredients
+            recipeId={draft.id}
+            recipeSlug={draft.slug}
+            title={basics.title}
+            recipeType={basics.recipeType}
+            onTitleChange={setTitle}
+            onRecipeTypeChange={setRecipeType}
+            saveRecipe={saveRecipe}
+          />
+        );
+      case 'materials':
+        return <WizardStepMaterials recipeId={draft.id} />;
+      case 'preparation':
+        return (
+          <div className="space-y-6">
+            <WizardStepMetadata recipeSlug={draft.slug} saveRecipe={saveRecipe} />
+            <WizardStepSteps recipeSlug={draft.slug} />
+          </div>
+        );
+      case 'preview':
+        return <WizardStepPreview recipeSlug={draft.slug} />;
+    }
   };
-
-  const isFirst = state.currentStep === 0;
-  const isLast = state.currentStep === previewStep;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
       <div className="mb-8">
-        <StepIndicator currentStep={state.currentStep} labels={stepLabels} />
+        <StepIndicator steps={visibleSteps} activeIndex={activeIndex} />
       </div>
 
-      <div className="min-h-[400px]">
-        {stepComponents[state.currentStep]}
+      <div className="min-h-[400px]" data-testid={`recipe-wizard-step-${activeStepId}`}>
+        <WizardStepContext.Provider key={activeStepId} value={stepContexts[activeStepId]}>
+          {renderStep()}
+        </WizardStepContext.Provider>
       </div>
 
-      <div className="flex items-center justify-between mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
-        <div>
-          {!isFirst && (
+      <div className="mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            {!isFirst && (
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={isSaving || backLocked}
+                title={backLocked ? 'Das Rezept ist bereits angelegt.' : undefined}
+                data-testid="recipe-wizard-back"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Zurück
+              </button>
+            )}
+          </div>
+          {!isLast && (
             <button
               type="button"
-              onClick={handleBack}
+              onClick={handleNext}
               disabled={isSaving}
-              data-testid="recipe-wizard-back"
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              data-testid="recipe-wizard-next"
+              className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
             >
-              <ChevronLeft className="w-4 h-4" />
-              Zurück
+              {isFirst ? (
+                isSaving ? (
+                  <>
+                    <Sparkles className="w-4 h-4 animate-spin" />
+                    Analysiert…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Rezept analysieren
+                  </>
+                )
+              ) : isSaving ? (
+                'Speichert...'
+              ) : (
+                <>
+                  Weiter
+                  <ChevronRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          )}
+          {isLast && (
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={isSaving}
+              data-testid="recipe-wizard-finish"
+              className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
+            >
+              {isSaving ? 'Speichert...' : (
+                <>
+                  Fertigstellen
+                  <Check className="w-4 h-4" />
+                </>
+              )}
             </button>
           )}
         </div>
-        {!isLast && (
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={isSaving}
-            data-testid="recipe-wizard-next"
-            className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
-          >
-            {isFirst ? (
-              isSaving ? (
-                <>
-                  <Sparkles className="w-4 h-4 animate-spin" />
-                  Analysiert…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Rezept analysieren
-                </>
-              )
-            ) : isSaving ? (
-              'Speichert...'
-            ) : (
-              <>
-                Weiter
-                <ChevronRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        )}
-        {isLast && (
-          <button
-            type="button"
-            onClick={handleFinish}
-            disabled={isSaving}
-            data-testid="recipe-wizard-finish"
-            className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
-          >
-            {isSaving ? 'Speichert...' : (
-              <>
-                Fertigstellen
-                <Check className="w-4 h-4" />
-              </>
-            )}
-          </button>
+        {backLocked && (
+          <p className="mt-2 text-xs text-muted-foreground" data-testid="recipe-wizard-back-locked-hint">
+            Das Rezept ist bereits angelegt. Titel und Typ änderst du direkt hier.
+          </p>
         )}
       </div>
     </div>

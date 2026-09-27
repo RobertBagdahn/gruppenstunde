@@ -213,7 +213,8 @@ export type RecipeSimilar = z.infer<typeof RecipeSimilarSchema>;
 export const RecipeDetailSchema = ContentDetailSchema.extend({
   recipe_type: z.string(),
   portions: z.number().nullable(),
-  input_servings: z.number().nullable().optional(),
+  // Servings of the original recipe; quantities stay stored per portion.
+  source_servings: z.number().nullable().optional(),
   preparation_method: z.string().default(''),
   equipment: z.array(z.object({
     id: z.number(),

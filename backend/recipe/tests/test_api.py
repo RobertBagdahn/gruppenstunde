@@ -289,6 +289,7 @@ class TestCreateRecipe:
             data=json.dumps(
                 {
                     "title": "Brot",
+                    "input_servings": 1,
                     "recipe_items": [
                         {
                             "portion_id": portion.id,
@@ -314,6 +315,7 @@ class TestCreateRecipe:
             data=json.dumps(
                 {
                     "title": "Knoblauchbrot",
+                    "input_servings": 1,
                     "recipe_items": [{"portion_id": None, "quantity": 2, "sort_order": 0}],
                     "ingredient_review_rows": [
                         {
@@ -344,6 +346,7 @@ class TestCreateRecipe:
                 {
                     "title": "Vier Personen",
                     "portions": 4,
+                    "input_servings": 1,
                     "recipe_items": [{"portion_id": portion.id, "quantity": 125, "sort_order": 0, "note": ""}],
                 }
             ),

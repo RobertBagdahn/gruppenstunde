@@ -179,7 +179,7 @@ class TestImportFromUrlEnhancedErrors:
         assert resp.status_code == 200
         assert resp.json()["recipe_draft"]["servings"] is None
 
-    def test_import_recipe_skips_existing_alias_without_integrity_error(self, admin_user):
+    def test_import_recipe_skips_existing_alias_without_integrity_error(self, admin_user, gemini_unavailable):
         from recipe.services.import_service import ImportedIngredient, ImportedRecipe
         from recipe.services.url_import_service import (
             GeminiIngredientMatch,

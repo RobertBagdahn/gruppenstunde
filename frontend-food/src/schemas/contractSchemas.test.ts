@@ -80,11 +80,11 @@ describe('food API contracts', () => {
       can_delete: false,
       recipe_type: 'warm_meal',
       portions: 1,
-      input_servings: 4,
+      source_servings: 4,
     });
 
     expect(result.portions).toBe(1);
-    expect(result.input_servings).toBe(4);
+    expect(result.source_servings).toBe(4);
   });
   it('accepts UUID tag ids from the ingredient review preview', () => {
     // Tag.id is a UUID. RecipeDraftOut.tag_ids is `list[str]`, so validating
