@@ -396,6 +396,20 @@ class Meal(models.Model):
         verbose_name=_("Referenz-Mahlzeit"),
         help_text=_("Verknüpfung zum RefMeal-Template"),
     )
+    buffet_template = models.ForeignKey(
+        "planner.BuffetTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="meals",
+        verbose_name=_("Buffet-Vorlage"),
+    )
+    buffet_role_amounts = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("Buffet-Mengen pro Rolle"),
+        help_text=_("Überschriebene Mengen pro Person je Rollen-Slug"),
+    )
     is_synced = models.BooleanField(
         default=False,
         verbose_name=_("Synchronisiert"),
@@ -526,6 +540,14 @@ class MealItem(models.Model):
     factor = models.FloatField(default=1.0, verbose_name=_("Skalierungsfaktor"))
     active_recipe_item_ids = models.JSONField(default=list, blank=True, verbose_name=_("Aktive Rezept-Zutaten"))
     variant_group_id = models.UUIDField(default=None, null=True, blank=True, verbose_name=_("Varianten-Gruppe"))
+    buffet_role = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name=_("Buffet-Rolle"),
+        help_text=_("Rollen-Slug, wenn der Eintrag vom Buffet-Builder stammt"),
+    )
 
     class Meta:
         verbose_name = _("Mahlzeit-Eintrag")

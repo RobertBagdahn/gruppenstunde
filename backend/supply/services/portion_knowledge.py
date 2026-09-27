@@ -95,7 +95,8 @@ class IngredientPortionSuggestSchema(BaseModel):
         min_length=1, description="Typische(r) Packungsgröße(n) aus dem Supermarkt, ggf. mehrere"
     )
     belag: list[PortionSuggestion] = Field(
-        default_factory=list, description="Nur befüllt bei Tag 'breakfast-topping': Belag knapp/normal/üppig"
+        default_factory=list,
+        description="Nur befüllt bei Rolle 'buffet-savory' oder 'buffet-sweet': Belag knapp/normal/üppig",
     )
     backmengen: list[PortionSuggestion] = Field(
         default_factory=list, description="Nur befüllt bei Tag 'baking-ingredient': typische Backmengen"

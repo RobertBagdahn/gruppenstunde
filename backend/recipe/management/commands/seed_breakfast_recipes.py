@@ -2,11 +2,11 @@
 
 Creates:
 - MeasuringUnits for portions: "Scheibe", "Portion", "Tasse (200ml)", "Schuss (30ml)"
-- Portions for all base (breakfast-base) and topping (breakfast-topping) ingredients
+- Portions for all bread (buffet-bread) and savory topping (buffet-savory) ingredients
 - 5 warm breakfast dishes (recipe_type=breakfast) — Rührei, Pfannkuchen, Omelett, Porridge, Gekochte Eier
 - 1 cold meal (recipe_type=cold_meal) — Müsli
 
-Warm recipes are tagged with breakfast-warm-meal.
+Warm recipes get the buffet role buffet-dish.
 Bread+topping combinations are created dynamically via the wizard using ingredients.
 
 Each recipe has RecipeItems for portion and energy calculation.
@@ -22,10 +22,10 @@ from content.models import Tag
 from recipe.models import Recipe, RecipeItem
 from supply.models import Ingredient, MeasuringUnit, Portion
 
-WARM_MEAL_TAG_SLUG = "breakfast-warm-meal"
+WARM_MEAL_TAG_SLUG = "buffet-dish"
 
-BASE_TAG_SLUG = "breakfast-base"
-TOPPING_TAG_SLUG = "breakfast-topping"
+BASE_TAG_SLUG = "buffet-bread"
+TOPPING_TAG_SLUG = "buffet-savory"
 
 # MeasuringUnits for portion-based wizard storage
 # Each is a named portion unit (weight comes from Portion.weight_g)
@@ -111,7 +111,9 @@ class Command(BaseCommand):
         created_count = 0
         skipped_count = 0
 
-        warm_tag, _ = Tag.objects.get_or_create(slug=WARM_MEAL_TAG_SLUG, defaults={"name": "breakfast-warm-meal"})
+        warm_tag, _ = Tag.objects.get_or_create(
+            slug=WARM_MEAL_TAG_SLUG, defaults={"name": "Gerichte", "group": "buffet"}
+        )
 
         # ── Step 1: Create MeasuringUnits for portion-based wizard storage ──
         gram_unit = MeasuringUnit.objects.filter(name="g").first()
@@ -134,7 +136,7 @@ class Command(BaseCommand):
                 f"  MeasuringUnits: Scheibe={scheibe_unit.id}, Portion={portion_unit.id}, Tasse={tasse_unit.id}, Schuss={schuss_unit.id}"
             )
 
-        # ── Step 2: Create Portions for base (breakfast-base) ingredients ──
+        # ── Step 2: Create Portions for bread (buffet-bread) ingredients ──
         base_tag = Tag.objects.filter(slug=BASE_TAG_SLUG).first()
         if base_tag:
             base_ings = Ingredient.objects.filter(tags=base_tag, is_standalone_food=True)
@@ -160,7 +162,7 @@ class Command(BaseCommand):
             if not dry_run and base_portions_created == 0:
                 self.stdout.write(f"  Portions for base ingredients already exist ({base_ings.count()} found)")
 
-        # ── Step 3: Create Portions for topping (breakfast-topping) ingredients ──
+        # ── Step 3: Create Portions for topping (buffet-savory) ingredients ──
         topping_tag = Tag.objects.filter(slug=TOPPING_TAG_SLUG).first()
         if topping_tag:
             topping_ings = Ingredient.objects.filter(tags=topping_tag, is_standalone_food=True)
@@ -260,7 +262,7 @@ class Command(BaseCommand):
                         sort_order=sort_order,
                     )
 
-            # Tag warm meals with breakfast-warm-meal
+            # Tag warm meals with the buffet role buffet-dish
             if recipe_type == "breakfast" and not dry_run:
                 recipe.tags.add(warm_tag)
 

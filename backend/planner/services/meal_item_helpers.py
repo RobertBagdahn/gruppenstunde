@@ -11,6 +11,10 @@ if TYPE_CHECKING:
     from supply.models import Portion
 
 
+GRAM_UNIT_NAMES = ("g", "gramm")
+MILLILITER_UNIT_NAMES = ("ml", "milliliter")
+
+
 def resolve_ingredient_energy_kcal(item: MealItem, effective_portions: float = 1.0) -> float | None:
     """Compute total energy kcal for an ingredient-based MealItem.
 
@@ -69,9 +73,9 @@ def _resolve_ingredient_weight_g(
         return 0.0
 
     name_lower = item.measuring_unit.name.lower()
-    if name_lower in ("g", "gramm"):
+    if name_lower in GRAM_UNIT_NAMES:
         return float(item.quantity)
-    if name_lower == "ml":
+    if name_lower in MILLILITER_UNIT_NAMES:
         density = getattr(item.ingredient, "physical_density", None) or 1.0
         return float(item.quantity) * density
 

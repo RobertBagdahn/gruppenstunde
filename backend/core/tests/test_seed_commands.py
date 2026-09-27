@@ -42,70 +42,67 @@ class TestSeedAllCommand:
 
 
 @pytest.mark.django_db
-class TestBreakfastSeed:
-    def _seed_breakfast(self):
+class TestBuffetCatalogSeed:
+    def _seed_catalog(self):
         MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
         MeasuringUnit.objects.get_or_create(name="ml", defaults={"quantity": 1.0, "unit": "ml"})
-        call_command("seed_breakfast_catalog")
+        call_command("seed_buffet_catalog")
 
-    def test_creates_all_tags(self):
-        self._seed_breakfast()
-        expected = {"breakfast-base", "breakfast-topping", "breakfast-drink", "breakfast-warm-meal"}
-        actual = set(Tag.objects.filter(slug__in=expected).values_list("slug", flat=True))
+    def test_uses_buffet_role_tags(self):
+        self._seed_catalog()
+        expected = {
+            "buffet-bread",
+            "buffet-fat",
+            "buffet-savory",
+            "buffet-sweet",
+            "buffet-fresh",
+            "buffet-cereal",
+            "buffet-drink",
+        }
+        actual = set(Tag.objects.filter(group="buffet", slug__in=expected).values_list("slug", flat=True))
         assert expected == actual
+        assert not Tag.objects.filter(slug__startswith="breakfast-").exists()
 
-    def test_creates_breakfast_base_ingredients(self):
-        self._seed_breakfast()
-        tag = Tag.objects.get(slug="breakfast-base")
-        count = Ingredient.objects.filter(tags=tag).count()
-        assert count == 8
+    def test_creates_bread_and_cereal_ingredients(self):
+        self._seed_catalog()
+        assert Ingredient.objects.filter(tags__slug="buffet-bread").count() == 6
+        assert set(Ingredient.objects.filter(tags__slug="buffet-cereal").values_list("slug", flat=True)) == {
+            "muesli",
+            "haferflocken",
+        }
 
-    def test_creates_breakfast_topping_ingredients(self):
-        self._seed_breakfast()
-        tag = Tag.objects.get(slug="breakfast-topping")
-        count = Ingredient.objects.filter(tags=tag).count()
-        assert count == 23
+    def test_splits_toppings_into_sweet_and_savory(self):
+        self._seed_catalog()
+        assert Ingredient.objects.filter(tags__slug="buffet-sweet").count() == 13
+        assert Ingredient.objects.filter(tags__slug="buffet-savory").count() == 10
+        assert Ingredient.objects.filter(slug="nutella", tags__slug="buffet-sweet").exists()
+        assert Ingredient.objects.filter(slug="gouda", tags__slug="buffet-savory").exists()
 
     def test_creates_six_drink_ingredients(self):
-        self._seed_breakfast()
-        tag = Tag.objects.get(slug="breakfast-drink")
-        count = Ingredient.objects.filter(tags=tag, is_standalone_food=True).count()
-        assert count == 6
+        self._seed_catalog()
+        assert Ingredient.objects.filter(tags__slug="buffet-drink", is_standalone_food=True).count() == 6
 
-    def test_creates_breakfast_drink_recipes(self):
-        self._seed_breakfast()
-        tag = Tag.objects.get(slug="breakfast-drink")
-        count = Recipe.objects.filter(tags=tag, recipe_type="drink").count()
-        assert count == 8
+    def test_creates_drink_recipes(self):
+        self._seed_catalog()
+        assert Recipe.objects.filter(tags__slug="buffet-drink", recipe_type="drink").count() == 8
 
     def test_creates_warm_meals_and_muesli(self):
-        MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
-        MeasuringUnit.objects.get_or_create(name="ml", defaults={"quantity": 1.0, "unit": "ml"})
-        call_command("seed_breakfast_catalog")
+        self._seed_catalog()
         call_command("seed_breakfast_recipes")
-        warm_tag = Tag.objects.get(slug="breakfast-warm-meal")
-        warm_count = Recipe.objects.filter(tags=warm_tag, recipe_type="breakfast").count()
-        assert warm_count == 5
-        muesli = Recipe.objects.filter(slug="muesli", recipe_type="cold_meal").first()
-        assert muesli is not None
+        assert Recipe.objects.filter(tags__slug="buffet-dish", recipe_type="breakfast").count() == 5
+        assert Recipe.objects.filter(slug="muesli", recipe_type="cold_meal").exists()
 
     def test_idempotent_on_rerun(self):
-        self._seed_breakfast()
-        tag_count_before = Tag.objects.count()
-        ing_count_before = Ingredient.objects.count()
-        recipe_count_before = Recipe.objects.count()
+        self._seed_catalog()
+        counts = (Tag.objects.count(), Ingredient.objects.count(), Recipe.objects.count())
 
-        self._seed_breakfast()
+        self._seed_catalog()
 
-        assert Tag.objects.count() == tag_count_before
-        assert Ingredient.objects.count() == ing_count_before
-        assert Recipe.objects.count() == recipe_count_before
+        assert (Tag.objects.count(), Ingredient.objects.count(), Recipe.objects.count()) == counts
 
     def test_no_legacy_drink_overlap(self):
-        """seed_breakfast_catalog creates 3 drink recipes, NOT the 8 from the old system."""
-        self._seed_breakfast()
-        drinks = Recipe.objects.filter(recipe_type="drink")
-        slugs = set(drinks.values_list("slug", flat=True))
+        self._seed_catalog()
+        slugs = set(Recipe.objects.filter(recipe_type="drink").values_list("slug", flat=True))
         assert "milch-laktosefrei" not in slugs
         assert "hafermilch" not in slugs
         assert "saft-orange" not in slugs

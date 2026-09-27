@@ -378,7 +378,9 @@ def create_ingredient(request, payload: IngredientCreateIn):
 
     # Add breakfast tags if provided
     if payload.tag_ids:
-        ingredient.tags.set(cast(list[int], payload.tag_ids))
+        from content.services.buffet_tags import without_buffet_tags_for_non_staff
+
+        ingredient.tags.set(cast(list[int], without_buffet_tags_for_non_staff(request.user, payload.tag_ids)))
 
     # Set shared groups if visibility is "shared"
     if payload.visibility == "shared" and payload.shared_group_ids:
@@ -453,6 +455,10 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     tag_ids = data.pop("nutritional_tag_ids", None)
     group_ids = data.pop("group_ids", None)
     breakfast_tag_ids = data.pop("tag_ids", None)
+    if breakfast_tag_ids is not None:
+        from content.services.buffet_tags import require_unchanged_buffet_tags
+
+        require_unchanged_buffet_tags(request.user, ingredient.tags.values_list("id", flat=True), breakfast_tag_ids)
     visibility = data.pop("visibility", None)
     shared_group_ids = data.pop("shared_group_ids", None)
     data.pop("status", None)

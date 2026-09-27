@@ -1,6 +1,8 @@
 from django.contrib import admin
 
 from .models import (
+    BuffetTemplate,
+    BuffetTemplateRole,
     Meal,
     MealItem,
     MealPlan,
@@ -66,3 +68,24 @@ class MealAdmin(admin.ModelAdmin):
     list_filter = ["meal_type"]
     inlines = [MealItemInline]
     list_per_page = 25
+
+
+class BuffetTemplateRoleInline(admin.StackedInline):
+    model = BuffetTemplateRole
+    extra = 0
+    autocomplete_fields = ["role", "default_ingredients", "default_recipes"]
+    fields = [
+        ("role", "sort_order"),
+        ("amount_per_person", "unit", "enabled_by_default"),
+        "default_ingredients",
+        "default_recipes",
+    ]
+
+
+@admin.register(BuffetTemplate)
+class BuffetTemplateAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "meal_types", "is_active", "sort_order"]
+    list_editable = ["is_active", "sort_order"]
+    prepopulated_fields = {"slug": ("name",)}
+    search_fields = ["name", "slug"]
+    inlines = [BuffetTemplateRoleInline]

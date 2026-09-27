@@ -1,7 +1,8 @@
 """Merge duplicate ingredients and find duplicate candidates.
 
-``merge_ingredient`` moves aliases, portions, recipe items and meal items from
-the source to the target, soft-deletes the source and records the merge as a
+``merge_ingredient`` moves aliases, portions, tags, recipe items and meal items
+from the source to the target, takes over the source's nutrition values when
+the target has none, soft-deletes the source and records the merge as a
 ``ContentLink`` so the pair is never proposed again.
 """
 
@@ -17,6 +18,19 @@ from django.db import models as db_models
 from django.db import transaction
 
 from content.choices import LinkType
+
+NUTRITION_FIELDS = (
+    "energy_kcal",
+    "protein_g",
+    "fat_g",
+    "fat_sat_g",
+    "carbohydrate_g",
+    "sugar_g",
+    "fibre_g",
+    "salt_g",
+    "nutri_score",
+    "nutri_class",
+)
 
 _QUALIFIER_WORDS = {"bio", "frisch", "frische", "natur", "klassisch", "classic", "original"}
 
@@ -96,7 +110,16 @@ def merge_ingredient(source: Any, target: Any, *, user: Any | None = None) -> Me
             target_portions[source_portion.name.lower()] = source_portion
             portions_moved += 1
 
+        # A meal may contain both ingredients; keep the target's entry there.
+        meals_with_target = MealItem.objects.filter(ingredient=target).values("meal_id")
+        MealItem.objects.filter(ingredient=source, meal_id__in=meals_with_target).delete()
         MealItem.objects.filter(ingredient=source).update(ingredient=target)
+        target.tags.add(*source.tags.all())
+        if not target.energy_kcal and source.energy_kcal:
+            # e.g. "Brötchen" with 0 kcal absorbing "Brötchen (ganzes)" with 265 kcal
+            for field in NUTRITION_FIELDS:
+                setattr(target, field, getattr(source, field))
+            target.save(update_fields=list(NUTRITION_FIELDS))
         UnitConversion.objects.filter(ingredient=source).delete()
         if affected:
             Ingredient.objects.filter(id=target.id).update(

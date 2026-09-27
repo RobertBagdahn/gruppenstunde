@@ -670,7 +670,9 @@ def create_recipe(request, payload: RecipeCreateIn):
         valid_ids = set(ScoutLevel.objects.filter(id__in=payload.scout_level_ids).values_list("id", flat=True))
         recipe.scout_levels.set(valid_ids)
     if payload.tag_ids:
-        recipe.tags.set(_resolve_tag_ids(payload.tag_ids))
+        from content.services.buffet_tags import without_buffet_tags_for_non_staff
+
+        recipe.tags.set(without_buffet_tags_for_non_staff(request.user, _resolve_tag_ids(payload.tag_ids)))
     if payload.equipment_ids:
         recipe.equipment.set(payload.equipment_ids)
 
@@ -911,6 +913,10 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     data.pop("portions", None)  # Always enforce portions=1
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
+    if tag_ids is not None:
+        from content.services.buffet_tags import require_unchanged_buffet_tags
+
+        require_unchanged_buffet_tags(request.user, recipe.tags.values_list("id", flat=True), _resolve_tag_ids(tag_ids))
     nutritional_tag_ids = data.pop("nutritional_tag_ids", None)
     equipment_ids = data.pop("equipment_ids", None)
     recipe_items_data = data.pop("recipe_items", None)
@@ -1199,7 +1205,9 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
         )
         fork.save()
 
-        fork.tags.set(original.tags.all())
+        from content.services.buffet_tags import without_buffet_tags_for_non_staff
+
+        fork.tags.set(without_buffet_tags_for_non_staff(request.user, original.tags.values_list("id", flat=True)))
         fork.scout_levels.set(original.scout_levels.all())
         fork.nutritional_tags.set(original.nutritional_tags.all())
         fork.authors.add(request.user)

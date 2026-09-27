@@ -330,15 +330,15 @@ gcloud run jobs execute inspi-seed --region europe-west1 --wait
 The `seed_all` command seeds:
 - Content (sessions, blogs, games, materials)
 - Recipes, events, and planner data
-- **Breakfast catalog** (via internal calls to `seed_breakfast_catalog` and `seed_breakfast_recipes`):
-  - 4 content.Tags (breakfast-base, breakfast-topping, breakfast-drink, breakfast-warm-meal)
-  - 6 base bread ingredients, 17 topping ingredients, 6 drink ingredients, 3 drink recipes
-  - 5 warm breakfast recipes + Müsli (cold_meal)
+- **Buffet catalog** (via internal calls to `seed_buffet_catalog`, `seed_breakfast_recipes` and `seed_buffet_templates`):
+  - bread, topping, fresh, cereal and drink ingredients with buffet role tags (`buffet-*`, created by a content migration)
+  - drink recipes, warm breakfast recipes + Müsli (cold_meal)
+  - buffet templates „Frühstück“, „Belegte Baguettes“, „Abendbrot“
 
-For existing prod databases where `seed_all --if-empty` already ran before seed_breakfast_catalog existed:
+For existing prod databases, never seed the catalog; migrate it instead (dry-run first, apply only after approval):
 1. Start Cloud SQL Proxy
-2. Run `uv run python manage.py seed_breakfast_catalog`
-3. Run `uv run python manage.py seed_breakfast_recipes`
+2. Run `uv run python manage.py migrate_buffet_roles --dry-run`, review the output, then without `--dry-run`
+3. Run `uv run python manage.py seed_buffet_templates`
 
 ### Phase 8: Deploy Frontend
 

@@ -55,16 +55,16 @@ class TestBreakfastWizardVisibility(TestCase):
         # Create measuring unit
         cls.gram_unit = MeasuringUnit.objects.create(name="g")
 
-        # Create breakfast tags
+        # Buffet role tags; the breakfast catalog adapts them
         cls.tag_base = Tag.objects.create(
             name="Basis",
-            slug="breakfast-base",
-            group="breakfast_wizard",
+            slug="buffet-bread",
+            group="buffet",
         )
         cls.tag_extra = Tag.objects.create(
             name="Extras",
-            slug="breakfast-extra",
-            group="breakfast_wizard",
+            slug="buffet-fresh",
+            group="buffet",
         )
 
     def test_ingredient_creation_sets_owner(self):

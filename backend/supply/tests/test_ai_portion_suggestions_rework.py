@@ -5,7 +5,7 @@ rework-ingredient-portion-ai-suggestions):
 - ai-apply endpoint: replace_all soft-deletes + mandatory "g" recreation
 - ai-apply endpoint: replace_all=False only creates new, non-duplicate portions
 - ai-apply endpoint: name collision rolls back cleanly (422, not 500)
-- breakfast-topping / baking-ingredient tags drive belag/backmengen suggestions
+- buffet-savory/buffet-sweet roles and the baking-ingredient tag drive belag/backmengen suggestions
 """
 
 import pytest
@@ -63,9 +63,10 @@ class TestPortionSuggestionNameValidator:
 
 @pytest.mark.django_db
 class TestIngredientPortionTags:
-    def test_breakfast_topping_tag_detected(self):
+    @pytest.mark.parametrize("role_slug", ["buffet-savory", "buffet-sweet"])
+    def test_topping_role_detected(self, role_slug):
         ing = make_ingredient(name="Marmelade")
-        tag, _ = Tag.objects.get_or_create(slug="breakfast-topping", defaults={"name": "breakfast-topping"})
+        tag, _ = Tag.objects.get_or_create(slug=role_slug, defaults={"name": role_slug, "group": "buffet"})
         ing.tags.add(tag)
 
         is_topping, is_baking = _ingredient_portion_tags(ing)

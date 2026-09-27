@@ -5,6 +5,8 @@ from datetime import datetime
 from ninja import Schema
 from pydantic import Field
 
+from planner.schemas.buffet import QuantityWarningOut
+
 # --- Collaborator schemas ---
 
 
@@ -244,6 +246,12 @@ class ShoppingListDetailOut(Schema):
     is_owner: bool = False
     created_at: datetime
     updated_at: datetime
+    # Only filled when the list is generated from a meal plan.
+    warnings: list[QuantityWarningOut] = []
+
+    @staticmethod
+    def resolve_warnings(obj) -> list[dict]:
+        return [warning.as_dict() for warning in getattr(obj, "quantity_warnings", [])]
 
     @staticmethod
     def resolve_owner_username(obj) -> str:

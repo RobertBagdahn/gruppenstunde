@@ -1,13 +1,9 @@
-"""Consolidated seed command for the breakfast catalog.
+"""Seed the buffet catalog for development databases.
 
- Creates:
-- 6 content.Tag instances: breakfast-base, breakfast-topping, breakfast-fat, breakfast-extra, breakfast-drink, breakfast-warm-meal
-- 6 base bread ingredients (tagged breakfast-base)
-- 16 specific topping ingredients (tagged breakfast-topping)
-- 2 fat/spread ingredients (tagged breakfast-fat) — Butter, Margarine
-- 6 drink ingredients (tagged breakfast-drink) — Milch, Säfte, Hafermilch
-- 3 drink recipes (tagged breakfast-drink) — Kaffee, Kakao, Tee
-- Optionally tags existing generic bread ingredients (Brot, Brötchen, etc.) with `breakfast-base`
+Creates bread, topping, fat, fresh, cereal and drink ingredients plus drink
+recipes and gives them their buffet roles (``content.Tag`` with
+``group="buffet"``). Production data is migrated with ``migrate_buffet_roles``
+instead.
 
 Idempotent: uses slug-based deduplication.
 """
@@ -18,14 +14,45 @@ from content.models import Tag
 from recipe.models import Recipe, RecipeItem
 from supply.models import Ingredient, MeasuringUnit, Portion
 
-BASE_TAG_SLUG = "breakfast-base"
-TOPPING_TAG_SLUG = "breakfast-topping"
-FAT_TAG_SLUG = "breakfast-fat"
-EXTRA_TAG_SLUG = "breakfast-extra"
-DRINK_TAG_SLUG = "breakfast-drink"
-WARM_MEAL_TAG_SLUG = "breakfast-warm-meal"
+BASE_TAG_SLUG = "buffet-bread"
+SAVORY_TAG_SLUG = "buffet-savory"
+SWEET_TAG_SLUG = "buffet-sweet"
+FAT_TAG_SLUG = "buffet-fat"
+EXTRA_TAG_SLUG = "buffet-fresh"
+CEREAL_TAG_SLUG = "buffet-cereal"
+DRINK_TAG_SLUG = "buffet-drink"
 
-# Existing generic bread ingredients to tag with breakfast-base when --tag-existing is used.
+ROLE_NAMES = {
+    BASE_TAG_SLUG: "Brot & Gebäck",
+    FAT_TAG_SLUG: "Streichfett",
+    SAVORY_TAG_SLUG: "Belag herzhaft",
+    SWEET_TAG_SLUG: "Belag süß",
+    EXTRA_TAG_SLUG: "Gemüse & Obst",
+    CEREAL_TAG_SLUG: "Müsli & Joghurt",
+    DRINK_TAG_SLUG: "Getränke",
+}
+
+# Base ingredients that belong to "Müsli & Joghurt" instead of bread.
+CEREAL_SLUGS = {"muesli", "haferflocken"}
+
+# Toppings that belong to "Belag süß"; all others are savory.
+SWEET_TOPPING_SLUGS = {
+    "nutella",
+    "schokocreme",
+    "kekscreme",
+    "nuss-nougat-creme",
+    "marmelade",
+    "erdbeermarmelade",
+    "aprikosenmarmelade",
+    "kirschmarmelade",
+    "johannisbeergelee",
+    "honig",
+    "erdnussbutter",
+    "marmelade-erdbeere",
+    "konfituere-himbeere",
+}
+
+# Existing generic bread ingredients to tag with buffet-bread when --tag-existing is used.
 EXISTING_BREAD_SLUGS = [
     "brot",
     "brotchen",
@@ -124,19 +151,23 @@ DRINK_RECIPES = [
 ]
 
 
-def _get_or_create_tag(slug: str, name: str) -> Tag:
-    tag, _ = Tag.objects.get_or_create(slug=slug, defaults={"name": name})
+def _get_or_create_tag(slug: str) -> Tag:
+    """Buffet role tag; normally created by the content data migration."""
+    parent, _ = Tag.objects.get_or_create(slug="buffet", defaults={"name": "Buffet", "group": "buffet"})
+    tag, _ = Tag.objects.get_or_create(
+        slug=slug, defaults={"name": ROLE_NAMES[slug], "group": "buffet", "parent": parent}
+    )
     return tag
 
 
 class Command(BaseCommand):
-    help = "Seed complete breakfast catalog: tags, base/topping/drink ingredients, drink recipes."
+    help = "Seed the buffet catalog: role-tagged bread, topping, fresh, cereal and drink ingredients, drink recipes."
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
         parser.add_argument("--skip-tags", action="store_true", help="Skip tag creation (for re-seeding data only)")
         parser.add_argument(
-            "--tag-existing", action="store_true", help="Tag existing generic bread ingredients with breakfast-base"
+            "--tag-existing", action="store_true", help="Tag existing generic bread ingredients with buffet-bread"
         )
 
     def handle(self, *args, **options):
@@ -148,22 +179,17 @@ class Command(BaseCommand):
 
         # ── Tags ───────────────────────────────────────────────────────────
         if not skip_tags:
-            tags = {
-                BASE_TAG_SLUG: _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base"),
-                TOPPING_TAG_SLUG: _get_or_create_tag(TOPPING_TAG_SLUG, "breakfast-topping"),
-                FAT_TAG_SLUG: _get_or_create_tag(FAT_TAG_SLUG, "breakfast-fat"),
-                EXTRA_TAG_SLUG: _get_or_create_tag(EXTRA_TAG_SLUG, "breakfast-extra"),
-                DRINK_TAG_SLUG: _get_or_create_tag(DRINK_TAG_SLUG, "breakfast-drink"),
-                WARM_MEAL_TAG_SLUG: _get_or_create_tag(WARM_MEAL_TAG_SLUG, "breakfast-warm-meal"),
-            }
+            tags = {slug: _get_or_create_tag(slug) for slug in ROLE_NAMES}
             for slug, tag in tags.items():
                 self.stdout.write(f"  Tag ready: {slug} (id={tag.id})")
 
-        base_tag = _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base")
-        topping_tag = _get_or_create_tag(TOPPING_TAG_SLUG, "breakfast-topping")
-        fat_tag = _get_or_create_tag(FAT_TAG_SLUG, "breakfast-fat")
-        extra_tag = _get_or_create_tag(EXTRA_TAG_SLUG, "breakfast-extra")
-        drink_tag = _get_or_create_tag(DRINK_TAG_SLUG, "breakfast-drink")
+        base_tag = _get_or_create_tag(BASE_TAG_SLUG)
+        cereal_tag = _get_or_create_tag(CEREAL_TAG_SLUG)
+        savory_tag = _get_or_create_tag(SAVORY_TAG_SLUG)
+        sweet_tag = _get_or_create_tag(SWEET_TAG_SLUG)
+        fat_tag = _get_or_create_tag(FAT_TAG_SLUG)
+        extra_tag = _get_or_create_tag(EXTRA_TAG_SLUG)
+        drink_tag = _get_or_create_tag(DRINK_TAG_SLUG)
 
         created_base = 0
         created_topping = 0
@@ -194,8 +220,9 @@ class Command(BaseCommand):
                     created_base += 1
                     self.stdout.write(f"  Created base: {ing.name}")
 
-                if not ing.tags.filter(id=base_tag.id).exists() and not dry_run:
-                    ing.tags.add(base_tag)
+                role_tag = cereal_tag if slug in CEREAL_SLUGS else base_tag
+                if not ing.tags.filter(id=role_tag.id).exists() and not dry_run:
+                    ing.tags.add(role_tag)
 
                 if not dry_run:
                     Portion.objects.get_or_create(
@@ -231,6 +258,7 @@ class Command(BaseCommand):
                     created_topping += 1
                     self.stdout.write(f"  Created topping: {ing.name}")
 
+                topping_tag = sweet_tag if slug in SWEET_TOPPING_SLUGS else savory_tag
                 if not ing.tags.filter(id=topping_tag.id).exists() and not dry_run:
                     ing.tags.add(topping_tag)
 
@@ -280,7 +308,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed topping {name}: {e}"))
 
-        # ── Fat ingredients (tagged breakfast-fat) ─────────────────────────
+        # ── Fat ingredients (buffet-fat) ───────────────────────────────────
         for name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, standard_g, package_g in FAT_INGREDIENTS:
             try:
                 ing, created = Ingredient.objects.get_or_create(
@@ -331,7 +359,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed fat {name}: {e}"))
 
-        # ── Fresh ingredients (tagged breakfast-extra) ─────────────────────
+        # ── Fresh ingredients (buffet-fresh) ───────────────────────────────
         for name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, portions, package_g in EXTRA_INGREDIENTS:
             try:
                 ing, created = Ingredient.objects.get_or_create(
@@ -355,7 +383,7 @@ class Command(BaseCommand):
                 if not ing.tags.filter(id=extra_tag.id).exists() and not dry_run:
                     ing.tags.add(extra_tag)
                 if slug == "avocado" and not dry_run:
-                    ing.tags.remove(topping_tag)
+                    ing.tags.remove(savory_tag, sweet_tag)
                 if not dry_run:
                     for rank, grams in enumerate((portions[0], portions[1], portions[2], package_g), start=1):
                         portion_name = (
@@ -371,7 +399,7 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed fresh extra {name}: {e}"))
 
-        # ── Drink ingredients (tagged breakfast-drink, standalone food) ────
+        # ── Drink ingredients (buffet-drink) ───────────────────────────────
         for name, slug, energy_kcal, protein_g, carb_g, fat_g, sugar_g in DRINK_INGREDIENTS:
             try:
                 ing, created = Ingredient.objects.get_or_create(
@@ -501,7 +529,6 @@ class Command(BaseCommand):
         # ── Tag existing bread ingredients ─────────────────────────────────
         tagged_existing = 0
         if options.get("tag_existing"):
-            base_tag = _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base")
             for slug in EXISTING_BREAD_SLUGS:
                 ing = Ingredient.objects.filter(slug=slug).first()
                 if ing is None:
@@ -514,7 +541,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  Existing bread ingredients tagged: {tagged_existing}")
 
         # ── Summary ────────────────────────────────────────────────────────
-        self.stdout.write(self.style.SUCCESS("\nBreakfast catalog seed complete"))
+        self.stdout.write(self.style.SUCCESS("\nBuffet catalog seed complete"))
         self.stdout.write(f"  Base ingredients: {created_base} created")
         self.stdout.write(f"  Topping ingredients: {created_topping} created")
         self.stdout.write(f"  Fat ingredients: {created_fat} created")

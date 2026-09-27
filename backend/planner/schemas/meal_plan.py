@@ -7,6 +7,7 @@ from typing import Literal, cast
 from ninja import Schema
 from pydantic import Field, model_validator
 
+from planner.schemas.buffet import QuantityWarningOut
 from planner.services.meal_item_helpers import (
     resolve_ingredient_cost_eur,
     resolve_ingredient_energy_kcal,
@@ -56,6 +57,13 @@ class MealItemOut(Schema):
     has_missing_weight: bool = False
     is_per_norm_person: bool = True
     recipe_portions: int | None = None
+    buffet_role: str = ""
+    # Plausibility warnings, only filled by endpoints that save the item.
+    warnings: list[QuantityWarningOut] = []
+
+    @staticmethod
+    def resolve_warnings(obj) -> list[dict]:
+        return [warning.as_dict() for warning in getattr(obj, "quantity_warnings", [])]
 
     @staticmethod
     def resolve_recipe_portions(obj) -> int | None:
@@ -286,6 +294,7 @@ class WizardItemsIn(Schema):
 class WizardItemsOut(Schema):
     meal_id: int
     items: list[MealItemOut]
+    warnings: list[QuantityWarningOut] = []
 
 
 class WizardItemsBulkIn(Schema):
@@ -296,6 +305,7 @@ class WizardItemsBulkIn(Schema):
 class WizardItemsBulkOut(Schema):
     meal_ids: list[int]
     meals_updated: int
+    warnings: list[QuantityWarningOut] = []
 
 
 class CopyItemsFromPlanIn(Schema):
@@ -317,6 +327,7 @@ class MealOut(Schema):
     is_reference: bool = False
     ref_meal_id: int | None = None
     is_synced: bool = False
+    buffet_template_id: int | None = None
     is_external: bool = False
     external_energy_kcal: float | None = None
     external_cost_per_person: float | None = None

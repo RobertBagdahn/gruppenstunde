@@ -1,6 +1,7 @@
 """Supply API package — re-exports all routers for backward compatibility."""
 
 from .breakfast_catalog import breakfast_catalog_router
+from .buffet_catalog import buffet_catalog_router
 from .data_offensive import data_offensive_router
 from .equipment import equipment_router
 from .ingredient_groups import ingredient_group_router
@@ -16,6 +17,7 @@ from .unit_conversions import unit_conversion_router
 
 __all__ = [
     "breakfast_catalog_router",
+    "buffet_catalog_router",
     "data_offensive_router",
     "equipment_router",
     "ingredient_group_router",

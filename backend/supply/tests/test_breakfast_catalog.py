@@ -56,7 +56,7 @@ class TestBreakfastCatalog:
         assert "warm_meal_recipes" in data
 
     def test_catalog_base_ingredients_tagged(self):
-        tag = _make_tag("breakfast-base")
+        tag = _make_tag("buffet-bread")
         ing = make_ingredient(name="Bauernbrot", is_standalone_food=True)
         ing.tags.add(tag)
 
@@ -74,7 +74,7 @@ class TestBreakfastCatalog:
         assert untagged.id not in ids
 
     def test_catalog_topping_includes_portions(self):
-        tag = _make_tag("breakfast-topping")
+        tag = _make_tag("buffet-sweet")
         g_unit = _g_unit()
         ing = make_ingredient(name="Nutella-Test", is_standalone_food=True, price_per_kg=8.0)
         ing.tags.add(tag)
@@ -92,7 +92,7 @@ class TestBreakfastCatalog:
         assert match["price_per_kg"] == pytest.approx(8.0)
 
     def test_catalog_includes_drink_ingredients(self):
-        tag = _make_tag("breakfast-drink")
+        tag = _make_tag("buffet-drink")
         ing = make_ingredient(name="Milch", is_standalone_food=True)
         ing.tags.add(tag)
 
@@ -103,7 +103,7 @@ class TestBreakfastCatalog:
         assert "Milch" in names
 
     def test_catalog_includes_drink_recipes(self):
-        tag = _make_tag("breakfast-drink")
+        tag = _make_tag("buffet-drink")
         coffee = baker.make(Recipe, title="Kaffee", recipe_type="drink", status="approved")
         coffee.tags.add(tag)
 
@@ -114,7 +114,7 @@ class TestBreakfastCatalog:
         assert "Kaffee" in titles
 
     def test_catalog_includes_warm_meals(self):
-        tag = _make_tag("breakfast-warm-meal")
+        tag = _make_tag("buffet-dish")
         eggs = baker.make(Recipe, title="Rührei", recipe_type="breakfast", status="approved")
         eggs.tags.add(tag)
 
@@ -138,7 +138,7 @@ class TestBreakfastCatalog:
 @pytest.mark.django_db
 class TestBreakfastDrinks:
     def test_drinks_endpoint_returns_tagged_drinks(self):
-        tag = _make_tag("breakfast-drink")
+        tag = _make_tag("buffet-drink")
         coffee = baker.make(Recipe, title="Kaffee", recipe_type="drink", status="approved")
         coffee.tags.add(tag)
         cocoa = baker.make(Recipe, title="Kakao", recipe_type="drink", status="approved")
@@ -152,7 +152,7 @@ class TestBreakfastDrinks:
         assert "Kakao" in titles
 
     def test_drinks_excludes_untagged_drinks(self):
-        tag = _make_tag("breakfast-drink")
+        tag = _make_tag("buffet-drink")
         tagged = baker.make(Recipe, title="Kaffee", recipe_type="drink", status="approved")
         tagged.tags.add(tag)
         untagged = baker.make(Recipe, title="Energy Drink", recipe_type="drink", status="approved")
@@ -164,7 +164,7 @@ class TestBreakfastDrinks:
         assert "Energy Drink" not in titles
 
     def test_drinks_excludes_non_drink_recipes(self):
-        tag = _make_tag("breakfast-drink")
+        tag = _make_tag("buffet-drink")
         drink = baker.make(Recipe, title="Kaffee", recipe_type="drink", status="approved")
         drink.tags.add(tag)
         breakfast = baker.make(Recipe, title="Porridge", recipe_type="breakfast", status="approved")
@@ -284,6 +284,7 @@ class TestBreakfastLeftovers:
         assert data["packages_needed"] is None
         assert data["leftover_g"] is None
 
+
 # ============================================================================
 # Seed Command: --tag-existing
 # ============================================================================
@@ -297,44 +298,43 @@ class TestTagExisting:
 
     def test_tags_existing_bread_ingredients(self):
         self._ensure_units()
-        Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "breakfast-base"})
+        Tag.objects.get_or_create(slug="buffet-bread", defaults={"name": "buffet-bread"})
         ing = make_ingredient(name="Brot", is_standalone_food=True)
         Ingredient.objects.filter(pk=ing.pk).update(slug="brot")
         ing.refresh_from_db()
 
-        call_command("seed_breakfast_catalog", "--tag-existing")
+        call_command("seed_buffet_catalog", "--tag-existing")
 
         ing.refresh_from_db()
         tags = list(ing.tags.values_list("slug", flat=True))
-        assert "breakfast-base" in tags
+        assert "buffet-bread" in tags
 
     def test_does_not_tag_non_bread(self):
         self._ensure_units()
-        Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "breakfast-base"})
+        Tag.objects.get_or_create(slug="buffet-bread", defaults={"name": "buffet-bread"})
         ing = make_ingredient(name="Tomate", is_standalone_food=True)
         Ingredient.objects.filter(pk=ing.pk).update(slug="tomate")
         ing.refresh_from_db()
 
-        call_command("seed_breakfast_catalog", "--tag-existing")
+        call_command("seed_buffet_catalog", "--tag-existing")
 
         ing.refresh_from_db()
         tags = list(ing.tags.values_list("slug", flat=True))
-        assert "breakfast-base" not in tags
+        assert "buffet-bread" not in tags
 
     def test_idempotent(self):
         self._ensure_units()
-        Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "breakfast-base"})
+        Tag.objects.get_or_create(slug="buffet-bread", defaults={"name": "buffet-bread"})
         ing = make_ingredient(name="Brötchen", is_standalone_food=True)
         Ingredient.objects.filter(pk=ing.pk).update(slug="brotchen")
         ing.refresh_from_db()
 
-        call_command("seed_breakfast_catalog", "--tag-existing")
-        call_command("seed_breakfast_catalog", "--tag-existing")
+        call_command("seed_buffet_catalog", "--tag-existing")
+        call_command("seed_buffet_catalog", "--tag-existing")
 
         ing.refresh_from_db()
         tags = list(ing.tags.values_list("slug", flat=True))
-        assert tags.count("breakfast-base") == 1
-
+        assert tags.count("buffet-bread") == 1
 
     def test_leftovers_multiple_toppings(self):
         g_unit = _g_unit()

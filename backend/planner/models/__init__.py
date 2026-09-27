@@ -1,5 +1,6 @@
 """Planner models package — re-exports all models for backward compatibility."""
 
+from .buffet import BUFFET_TAG_GROUP, BuffetTemplate, BuffetTemplateRole, BuffetUnitChoices
 from .meal_plan import (
     DEFAULT_MEAL_TYPES,
     MEAL_TYPE_DAY_FACTORS,
@@ -25,9 +26,13 @@ from .planner import (
 )
 
 __all__ = [
+    "BUFFET_TAG_GROUP",
     "DEFAULT_MEAL_TYPES",
     "MEAL_TYPE_DAY_FACTORS",
     "MEAL_TYPE_DEFAULT_TIMES",
+    "BuffetTemplate",
+    "BuffetTemplateRole",
+    "BuffetUnitChoices",
     "EntryStatusChoices",
     "GroupMemberGenderChoices",
     "Meal",

@@ -169,7 +169,7 @@ class Command(BaseCommand):
         self.stdout.write("\n── Step 3: Recalculating recipe caches ──")
         from recipe.services.recipe_checks import recalculate_recipe_cache
 
-        warm_tag = Tag.objects.get(slug="breakfast-warm-meal")
+        warm_tag = Tag.objects.get(slug="buffet-dish")
         recipes = Recipe.objects.filter(tags=warm_tag).order_by("title")
 
         recalc_count = 0

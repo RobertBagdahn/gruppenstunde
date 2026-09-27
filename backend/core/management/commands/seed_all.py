@@ -78,8 +78,9 @@ class Command(BaseCommand):
 
             if only in (None, "content"):
                 self._seed_content(users)
-                call_command("seed_breakfast_catalog")
+                call_command("seed_buffet_catalog")
                 call_command("seed_breakfast_recipes")
+                call_command("seed_buffet_templates")
             if only in (None, "recipes"):
                 self._seed_recipes(users)
             if only in (None, "events"):
@@ -469,7 +470,7 @@ class Command(BaseCommand):
                 "retail_section": "Nudeln & Reis & Getreide",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
-            # Butter was removed from seed_all; created by seed_breakfast_catalog
+            # Butter was removed from seed_all; created by seed_buffet_catalog
             {
                 "name": "Milch",
                 "description": "Vollmilch 3,5%",
@@ -727,7 +728,7 @@ class Command(BaseCommand):
                 "retail_section": "Obst",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
-            # Honig was removed from seed_all; created by seed_breakfast_catalog
+            # Honig was removed from seed_all; created by seed_buffet_catalog
             {
                 "name": "Joghurt (Natur)",
                 "description": "Naturjoghurt 3,5%",
@@ -1325,9 +1326,9 @@ class Command(BaseCommand):
                 "retail_section": "Alkoholfreie Getränke",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
-            # --- Breakfast-specific ingredients (created by seed_breakfast_catalog) ---
+            # --- Breakfast-specific ingredients (created by seed_buffet_catalog) ---
             # Butter, Honig, Nutella, Marmelade, Erdnussbutter, Leberwurst,
-            # Avocado, Hummus, Kaffee are now created by seed_breakfast_catalog
+            # Avocado, Hummus, Kaffee are now created by seed_buffet_catalog
             # with BE-calibrated nutritional values and proper packaging portions.
             {
                 "name": "Räucherlachs",
@@ -1413,7 +1414,7 @@ class Command(BaseCommand):
                 ("1 EL Mehl", 1.0, 10.0, "Esslöffel"),
                 ("1 Tasse Mehl", 1.0, 125.0, "Tasse"),
             ],
-            # Butter removed; portions created by seed_breakfast_catalog
+            # Butter removed; portions created by seed_buffet_catalog
             "Milch": [
                 ("1 Glas Milch", 1.0, 200.0, "Glas"),
                 ("1 Liter Milch", 1.0, 1030.0, "Liter"),
@@ -1458,7 +1459,7 @@ class Command(BaseCommand):
             "Äpfel": [
                 ("1 Apfel (mittel)", 1.0, 150.0, "Stück"),
             ],
-            # Honig removed; portions created by seed_breakfast_catalog
+            # Honig removed; portions created by seed_buffet_catalog
             "Joghurt (Natur)": [
                 ("1 Becher Joghurt", 1.0, 150.0, "Becher"),
             ],
@@ -2042,7 +2043,7 @@ class Command(BaseCommand):
         reis = Ingredient.objects.filter(name="Reis").first()
         paprika = Ingredient.objects.filter(name="Paprika").first()
         aepfel = Ingredient.objects.filter(name="Äpfel").first()
-        # honig removed; created by seed_breakfast_catalog, looked up inline
+        # honig removed; created by seed_buffet_catalog, looked up inline
         joghurt = Ingredient.objects.filter(name="Joghurt (Natur)").first()
         brot = Ingredient.objects.filter(name="Brot (Vollkorn)").first()
         moehren = Ingredient.objects.filter(name="Möhren").first()

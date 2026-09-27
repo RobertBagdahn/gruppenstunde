@@ -61,11 +61,11 @@ class Command(BaseCommand):
 
             # Determine target portion unit based on ingredient tags
             tags = list(ingredient.tags.values_list("slug", flat=True))
-            if "breakfast-base" in tags:
+            if "buffet-bread" in tags:
                 target_unit_name = "Scheibe"
-            elif "breakfast-topping" in tags:
+            elif "buffet-savory" in tags or "buffet-sweet" in tags:
                 target_unit_name = "Portion"
-            elif "breakfast-drink" in tags:
+            elif "buffet-drink" in tags:
                 target_unit_name = "Tasse (200ml)"
             else:
                 target_unit_name = mu.name  # keep current

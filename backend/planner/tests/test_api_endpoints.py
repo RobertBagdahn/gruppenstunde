@@ -138,9 +138,8 @@ class TestMealItemPatchEndpoint(TestCase):
         # Item should be found
         self.fail("Item not found in response")
 
-    def test_wizard_items_creates_portion_if_missing(self):
-        """POST /wizard-items/ should auto-create missing Portion for ingredient"""
-        # Create an ingredient without a Scheibe Portion
+    def test_wizard_items_rejects_unit_without_portion(self):
+        """POST /wizard-items/ never creates portions; an undefined unit is a 422."""
         toast = baker.make(
             Ingredient,
             name="Toastbrot (test)",
@@ -148,13 +147,8 @@ class TestMealItemPatchEndpoint(TestCase):
             standard_recipe_weight_g=30.0,
             is_standalone_food=True,
         )
-        # Verify no Scheibe portion exists
-        self.assertFalse(Portion.objects.filter(ingredient=toast, measuring_unit=self.scheibe_unit).exists())
-        # POST to wizard-items
-        plan_id = self.plan.id
-        meal_id = self.meal.id
         response = self.client.post(
-            f"/api/meal-plans/{plan_id}/meals/{meal_id}/wizard-items/",
+            f"/api/meal-plans/{self.plan.id}/meals/{self.meal.id}/wizard-items/",
             data=json.dumps(
                 {
                     "items": [
@@ -169,9 +163,10 @@ class TestMealItemPatchEndpoint(TestCase):
             ),
             content_type="application/json",
         )
-        self.assertEqual(response.status_code, 200)
-        # Portion should have been auto-created
-        self.assertTrue(Portion.objects.filter(ingredient=toast, measuring_unit=self.scheibe_unit).exists())
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("Einheit", response.json()["detail"])
+        self.assertIn("ist für Toastbrot (test) nicht definiert", response.json()["detail"])
+        self.assertFalse(Portion.objects.filter(ingredient=toast, measuring_unit=self.scheibe_unit).exists())
 
     def test_wizard_items_returns_quantity_g(self):
         """POST /wizard-items/ response should include quantity_g"""

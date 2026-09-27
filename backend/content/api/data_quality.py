@@ -571,36 +571,18 @@ def recipe_merge(request, body: MergeRequestIn):
     if body.source_id == body.target_id:
         raise HttpError(400, "Quell- und Ziel-Rezept dürfen nicht identisch sein")
 
+    from recipe.services.recipe_merge import RecipeMergeError, merge_recipe
+
     try:
         target = Recipe.objects.get(id=body.target_id)
         source = Recipe.all_objects.get(id=body.source_id)
     except Recipe.DoesNotExist:
         raise HttpError(404, "Rezept nicht gefunden")
 
-    if source.is_deleted:
-        raise HttpError(400, "Quell-Rezept wurde bereits zusammengeführt")
-
-    ct = ContentType.objects.get_for_model(Recipe)
-
-    if ContentLink.objects.filter(
-        source_content_type=ct,
-        source_object_id=source.id,
-        target_content_type=ct,
-        target_object_id=target.id,
-        link_type=LinkType.DUPLICATE_MERGED,
-    ).exists():
-        raise HttpError(400, "Dieses Rezept-Paar wurde bereits zusammengeführt")
-
-    source.soft_delete()
-
-    ContentLink.objects.create(
-        source_content_type=ct,
-        source_object_id=source.id,
-        target_content_type=ct,
-        target_object_id=target.id,
-        link_type=LinkType.DUPLICATE_MERGED,
-        created_by=request.user,
-    )
+    try:
+        merge_recipe(source, target, user=request.user)
+    except RecipeMergeError as exc:
+        raise HttpError(400, str(exc)) from exc
 
     return {"success": True}
 

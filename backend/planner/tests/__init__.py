@@ -149,3 +149,53 @@ def make_meal_item(meal: Meal | None = None, recipe=None, **kwargs) -> MealItem:
     }
     defaults.update(kwargs)
     return baker.make(MealItem, meal=meal, recipe=recipe, **defaults)
+
+
+# ---------------------------------------------------------------------------
+# Buffet
+# ---------------------------------------------------------------------------
+
+BUFFET_ROLE_NAMES = {
+    "buffet-bread": "Brot & Gebäck",
+    "buffet-fat": "Streichfett",
+    "buffet-savory": "Belag herzhaft",
+    "buffet-sweet": "Belag süß",
+    "buffet-condiment": "Soßen & Würze",
+    "buffet-fresh": "Gemüse & Obst",
+    "buffet-cereal": "Müsli & Joghurt",
+    "buffet-drink": "Getränke",
+    "buffet-dish": "Gerichte",
+}
+
+
+def make_buffet_roles() -> dict:
+    """The nine buffet role tags (migrations are disabled in tests)."""
+    from content.models import Tag
+
+    parent, _ = Tag.objects.get_or_create(slug="buffet", defaults={"name": "Buffet", "group": "buffet"})
+    roles = {}
+    for index, (slug, name) in enumerate(BUFFET_ROLE_NAMES.items(), start=1):
+        roles[slug], _ = Tag.objects.get_or_create(
+            slug=slug, defaults={"name": name, "group": "buffet", "parent": parent, "sort_order": index}
+        )
+    return roles
+
+
+def make_buffet_template(slug: str = "baguettes", roles: dict | None = None, **kwargs):
+    """Template with role configs: ``roles={"buffet-bread": (150, "g", True), ...}``."""
+    from planner.models import BuffetTemplate, BuffetTemplateRole
+
+    tags = make_buffet_roles()
+    defaults = {"name": slug.title(), "meal_types": ["lunch", "dinner"], "sort_order": 0}
+    defaults.update(kwargs)
+    template = BuffetTemplate.objects.create(slug=slug, **defaults)
+    for sort_order, (role_slug, (amount, unit, enabled)) in enumerate((roles or {}).items()):
+        BuffetTemplateRole.objects.create(
+            template=template,
+            role=tags[role_slug],
+            amount_per_person=amount,
+            unit=unit,
+            enabled_by_default=enabled,
+            sort_order=sort_order,
+        )
+    return template

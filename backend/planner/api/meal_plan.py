@@ -207,22 +207,33 @@ def _create_meal_item(**kwargs):
         )
 
 
-def _derive_portion_weight_g(ingredient, measuring_unit) -> float:
-    """Derive a sensible default weight_g for a Portion from ingredient data.
+def _require_defined_unit(ingredient, measuring_unit_id: int | None) -> None:
+    """Reject units the ingredient has no active portion for (grams/milliliters always work).
 
-    Falls back to standard_recipe_weight_g for base ingredients,
-    or 10g default if nothing available.
+    Portions are never created here: a silent fallback weight turned unit
+    mix-ups into absurd amounts.
     """
-    mu_name_lower = measuring_unit.name.lower()
-    if mu_name_lower == "scheibe" and ingredient.standard_recipe_weight_g:
-        return float(ingredient.standard_recipe_weight_g)
-    if "tasse" in mu_name_lower:
-        return 200.0
-    if "schuss" in mu_name_lower:
-        return 30.0
-    if ingredient.standard_recipe_weight_g:
-        return float(ingredient.standard_recipe_weight_g)
-    return 10.0
+    if ingredient is None or not measuring_unit_id:
+        return
+    from planner.services.meal_item_helpers import GRAM_UNIT_NAMES, MILLILITER_UNIT_NAMES
+    from supply.models import MeasuringUnit
+
+    unit = MeasuringUnit.objects.filter(id=measuring_unit_id).first()
+    if unit is None:
+        raise HttpError(422, "Einheit nicht gefunden.")
+    if unit.name.lower() in GRAM_UNIT_NAMES + MILLILITER_UNIT_NAMES:
+        return
+    if not ingredient.portions.active().filter(measuring_unit=unit).exists():
+        raise HttpError(422, f"Einheit {unit.name} ist für {ingredient.name} nicht definiert.")
+
+
+def _attach_warnings(item: MealItem) -> MealItem:
+    """Attach plausibility warnings for the response (never blocks saving)."""
+    from planner.services.quantity_plausibility import check_item
+
+    warning = check_item(item, item.meal.effective_portions) if item.ingredient_id else None
+    item.quantity_warnings = [warning] if warning else []
+    return item
 
 
 def check_duplicates_in_input(items: list) -> dict[str, list[int]]:
@@ -999,7 +1010,7 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
         display_name=payload.display_name,
         factor=payload.factor,
     )
-    return item
+    return _attach_warnings(item)
 
 
 @meal_plan_router.post("/{meal_plan_id}/meals/{meal_id}/wizard-items/", response=WizardItemsOut)
@@ -1040,26 +1051,7 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
 
                 ingredient = get_visible_ingredient_or_404(request.user, item_in.ingredient_id, allow_system_draft=True)
 
-            # Auto-create Portion if it doesn't exist for this ingredient + measuring_unit
-            if ingredient and item_in.measuring_unit_id:
-                from supply.models import MeasuringUnit, Portion
-
-                mu = MeasuringUnit.objects.filter(id=item_in.measuring_unit_id).first()
-                if (
-                    mu
-                    and mu.name.lower() not in ("g", "gramm")
-                    and not ingredient.portions.filter(measuring_unit=mu).exists()
-                ):
-                    weight_g = _derive_portion_weight_g(ingredient, mu)
-                    Portion.objects.get_or_create(
-                        ingredient=ingredient,
-                        measuring_unit=mu,
-                        defaults={
-                            "name": mu.name,
-                            "quantity": 1,
-                            "weight_g": weight_g,
-                        },
-                    )
+            _require_defined_unit(ingredient, item_in.measuring_unit_id)
 
             created_items.append(
                 _create_meal_item(
@@ -1073,9 +1065,13 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
                 )
             )
 
+    from planner.services.quantity_plausibility import check
+
+    items = list(meal.items.select_related("recipe", "ingredient", "measuring_unit").all())
     return WizardItemsOut(
         meal_id=meal.id,
-        items=cast(list[MealItemOut], list(meal.items.select_related("recipe", "ingredient", "measuring_unit").all())),
+        items=cast(list[MealItemOut], items),
+        warnings=[warning.as_dict() for warning in check(items, meal.effective_portions)],
     )
 
 
@@ -1114,6 +1110,7 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
             if item_in.ingredient_id
             else None
         )
+        _require_defined_unit(ingredient, item_in.measuring_unit_id)
         resolved_items.append((item_in, recipe, ingredient))
 
     with transaction.atomic():
@@ -1129,7 +1126,13 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
                     display_name=item_in.display_name,
                     factor=item_in.factor,
                 )
-    return {"meal_ids": payload.meal_ids, "meals_updated": len(meals)}
+    from planner.services.quantity_plausibility import check_meals
+
+    return {
+        "meal_ids": payload.meal_ids,
+        "meals_updated": len(meals),
+        "warnings": [warning.as_dict() for warning in check_meals(meals)],
+    }
 
 
 @meal_plan_router.post(
@@ -1225,7 +1228,7 @@ def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItem
     if payload.quantity is not None:
         item.quantity = payload.quantity
         item.save(update_fields=["quantity"])
-    return item
+    return _attach_warnings(item)
 
 
 # ==========================================================================

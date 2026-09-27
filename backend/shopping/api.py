@@ -804,6 +804,9 @@ def create_from_meal_plan(request, meal_plan_id: int):
     # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True
     shopping_list._is_owner = True
+    from planner.services.quantity_plausibility import check_meals
+
+    shopping_list.quantity_warnings = check_meals(meal_plan.meals.filter(is_reference=False))
     return shopping_list
 
 

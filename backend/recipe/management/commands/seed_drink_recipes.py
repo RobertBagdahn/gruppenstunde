@@ -1,9 +1,9 @@
 """Seed drink recipes for the breakfast wizard.
 
-DEPRECATED: Use seed_breakfast_catalog instead.
+DEPRECATED: Use seed_buffet_catalog instead.
 This command creates a subset of drinks (Kaffee, Kakao, Tee, Milch) with
-conflicting nutritional values compared to seed_breakfast_catalog.
-seed_breakfast_catalog creates 6 drink ingredients + 3 drink recipes
+conflicting nutritional values compared to seed_buffet_catalog.
+seed_buffet_catalog creates 6 drink ingredients + 3 drink recipes
 with consistent, BE-calibrated nutritional data.
 
 Legacy: creates 4 basic drink recipes (Kaffee, Kakao, Tee, Milch) with recipe_type="drink".

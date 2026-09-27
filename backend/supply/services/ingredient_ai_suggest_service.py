@@ -71,11 +71,12 @@ __all__ = [
 
 
 def _ingredient_portion_tags(ingredient: Ingredient) -> tuple[bool, bool]:
-    """Return (is_breakfast_topping, is_baking_ingredient) for an ingredient's tags."""
+    """Return (is_spread_topping, is_baking_ingredient) for an ingredient's tags."""
     if not ingredient.pk:
         return False, False
     tag_slugs = set(ingredient.tags.values_list("slug", flat=True))
-    return "breakfast-topping" in tag_slugs, "baking-ingredient" in tag_slugs
+    is_topping = bool(tag_slugs & {"buffet-savory", "buffet-sweet"})
+    return is_topping, "baking-ingredient" in tag_slugs
 
 
 # ---------------------------------------------------------------------------

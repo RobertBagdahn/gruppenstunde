@@ -169,93 +169,30 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     - Unauthenticated: only system items (owner=null, status=approved)
     - Authenticated: system items + own items + items shared with user's groups
     """
-    from django.db.models import Q
-
+    # Adapter onto the buffet roles; the wizard keeps its data shape.
     from supply.models import MeasuringUnit
+    from supply.services.buffet_catalog import ingredients_for_role, recipes_for_role
 
-    def _get_visible_ingredients(tag_filters: Q | None = None) -> list[dict]:
-        """Get ingredients visible to user."""
+    def _ingredients(role_slug: str) -> list[dict]:
+        return [_ingredient_to_dict(ingredient) for ingredient in ingredients_for_role(request.user, role_slug)]
 
-        from content.services.food_access import visible_ingredient_queryset
+    def _recipes(role_slug: str, recipe_type: str, filter_tag_ids: str | None = None) -> list[dict]:
+        recipes = recipes_for_role(request.user, role_slug).filter(recipe_type=recipe_type, status="approved")
+        for tag_id in [int(t) for t in (filter_tag_ids or "").split(",") if t.strip().isdigit()]:
+            recipes = recipes.filter(tags=tag_id)
+        return list(recipes.values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g"))
 
-        base_qs = visible_ingredient_queryset(request.user).select_related("owner").prefetch_related("portions")
+    toppings = {ingredient["id"]: ingredient for ingredient in _ingredients("buffet-savory")}
+    for ingredient in _ingredients("buffet-sweet"):
+        toppings.setdefault(ingredient["id"], ingredient)
 
-        if tag_filters:
-            base_qs = base_qs.filter(tag_filters)
-
-        base_qs = base_qs.filter(is_standalone_food=True).order_by("name")
-
-        result = []
-        for ing in base_qs.prefetch_related("portions"):
-            ing_dict = _ingredient_to_dict(ing)
-            result.append(ing_dict)
-        return result
-
-    base_tag = Tag.objects.filter(slug="breakfast-base").first()
-    topping_tag = Tag.objects.filter(slug="breakfast-topping").first()
-    fat_tag = Tag.objects.filter(slug="breakfast-fat").first()
-    extra_tag = Tag.objects.filter(slug="breakfast-extra").first()
-
-    base_ingredients = _get_visible_ingredients(Q(tags=base_tag)) if base_tag else []
-    topping_ingredients = _get_visible_ingredients(Q(tags=topping_tag)) if topping_tag else []
-    fat_ingredients = _get_visible_ingredients(Q(tags=fat_tag)) if fat_tag else []
-    extra_ingredients = _get_visible_ingredients(Q(tags=extra_tag)) if extra_tag else []
-
-    drink_tag = Tag.objects.filter(slug="breakfast-drink").first()
-    drink_recipes = []
-    drink_ingredients = []
-    if drink_tag:
-        # Parse optional tag_ids filter for breakfast day tags
-        parsed_tag_ids: list[int] = []
-        if tag_ids:
-            try:
-                parsed_tag_ids = [int(t) for t in tag_ids.split(",") if t.strip()]
-            except (ValueError, TypeError):
-                pass
-
-        # Drink recipes (Kaffee, Kakao, Tee) - use existing permission logic
-        from content.services.food_access import visible_recipe_queryset
-
-        drinks = visible_recipe_queryset(request.user).filter(tags=drink_tag, recipe_type="drink", status="approved")
-        # Filter by breakfast day tags if provided
-        if parsed_tag_ids:
-            for tid in parsed_tag_ids:
-                drinks = drinks.filter(tags=tid)
-
-        drinks = drinks.values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g")
-        drink_recipes = [
-            {
-                "id": d["id"],
-                "title": d["title"],
-                "recipe_type": d["recipe_type"],
-                "cached_energy_total_kcal": d["cached_energy_total_kcal"],
-                "cached_weight_g": d["cached_weight_g"],
-            }
-            for d in drinks
-        ]
-        # Drink ingredients (Milch, Säfte, Hafermilch)
-        drink_ingredients = _get_visible_ingredients(Q(tags=drink_tag))
-
-    warm_tag = Tag.objects.filter(slug="breakfast-warm-meal").first()
-    warm_meal_recipes = []
-    if warm_tag:
-        from content.services.food_access import visible_recipe_queryset
-
-        warm = (
-            visible_recipe_queryset(request.user)
-            .filter(tags=warm_tag, recipe_type="breakfast", status="approved")
-            .values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g")
-        )
-        warm_meal_recipes = [
-            {
-                "id": d["id"],
-                "title": d["title"],
-                "recipe_type": d["recipe_type"],
-                "cached_energy_total_kcal": d["cached_energy_total_kcal"],
-                "cached_weight_g": d["cached_weight_g"],
-            }
-            for d in warm
-        ]
+    base_ingredients = _ingredients("buffet-bread")
+    topping_ingredients = sorted(toppings.values(), key=lambda ingredient: ingredient["name"])
+    fat_ingredients = _ingredients("buffet-fat")
+    extra_ingredients = _ingredients("buffet-fresh")
+    drink_ingredients = _ingredients("buffet-drink")
+    drink_recipes = _recipes("buffet-drink", "drink", tag_ids)
+    warm_meal_recipes = _recipes("buffet-dish", "breakfast")
 
     gram_unit = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
     ml_unit = MeasuringUnit.objects.filter(name__iexact="Milliliter").first()
@@ -287,7 +224,7 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     auth=None,
 )
 def get_drink_recipes(request) -> list[dict]:
-    drink_tag = Tag.objects.filter(slug="breakfast-drink").first()
+    drink_tag = Tag.objects.filter(slug="buffet-drink").first()
 
     from content.services.food_access import public_recipe_queryset
 

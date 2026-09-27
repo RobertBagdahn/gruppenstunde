@@ -25,6 +25,7 @@ from game.api import router as game_router
 from packinglist.api import packing_list_router
 from planner.api import router as planner_router
 from planner.api.ai_generation import ai_apply_router, ai_suggest_router
+from planner.api.buffet import buffet_router
 from planner.api.meal_plan import meal_plan_router
 from planner.api.ref_meal import ref_meal_router
 from profiles.api import group_router, profile_router
@@ -36,6 +37,7 @@ from session.api import router as session_router
 from shopping.api import kitchen_reminder_router, shopping_router
 from supply.api import (
     breakfast_catalog_router,
+    buffet_catalog_router,
     data_offensive_router,
     equipment_router,
     ingredient_group_router,
@@ -68,6 +70,7 @@ api.add_router("/admin/data-quality/offensive/", data_offensive_router)
 api.add_router("/admin/data-quality/", dq_admin_router)
 api.add_router("/data-quality/", dq_public_router)
 api.add_router("/planner/", planner_router)
+api.add_router("/meal-plans/", buffet_router)
 api.add_router("/meal-plans/", ai_suggest_router)
 api.add_router("/meal-plans/", ai_apply_router)
 api.add_router("/meal-plans/", ref_meal_router)
@@ -101,6 +104,7 @@ api.add_router("/sessions/", session_router)
 api.add_router("/supplies/", supply_router)
 api.add_router("/norm-person/", norm_person_router)
 api.add_router("/supply/", breakfast_catalog_router)
+api.add_router("/supply/", buffet_catalog_router)
 api.add_router("/supply/", equipment_router)
 api.add_router("/blogs/", blog_router)
 api.add_router("/games/", game_router)

@@ -1,6 +1,6 @@
 """Seed command for the `baking-ingredient` Content-Tag.
 
-Idempotent (get_or_create by slug). Analog zu `seed_breakfast_catalog`.
+Idempotent (get_or_create by slug). Analog zu `seed_buffet_catalog`.
 
 Erstellt lediglich den Tag; die Zuweisung zu konkreten Zutaten (Mehl, Zucker,
 Hefe, Backpulver, ...) erfolgt manuell/über die KI-Anreicherung und ist NICHT
