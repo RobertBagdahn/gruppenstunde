@@ -152,36 +152,11 @@ _ingredient_tracked_fields = {
     "season_start",
     "season_end",
     "status",
+    "visibility",
     "retail_section_id",
     "is_standalone_food",
     "standalone_type",
 }
-
-
-@receiver(pre_save, sender=Ingredient, dispatch_uid="supply.import_gate_new_ingredient")
-def import_gate_new_ingredient(sender, instance: Ingredient, raw: bool = False, **kwargs):
-    """Import gate: every new ingredient gets the free rule-based repairs and a retail section.
-
-    Applies to all creation paths (forms, URL/Cooklang import, AI create). Fixture
-    loading (``raw``) is skipped; run ``food_data_offensive`` after seeding instead.
-    """
-    if raw or instance.pk is not None:
-        return
-    from supply.choices import RetailSectionSourceChoices
-    from supply.services.nutrition_plausibility import ingredient_nutrition_values, propose_deterministic_repair
-
-    for field_name, value in propose_deterministic_repair(
-        ingredient_nutrition_values(instance), name=instance.name or ""
-    ).items():
-        setattr(instance, field_name, value)
-
-    if instance.retail_section_id is None and instance.name:
-        from supply.services.retail_section_mapping import get_retail_section
-
-        section = get_retail_section(instance.name, instance.description or "")
-        if section is not None:
-            instance.retail_section = section
-            instance.retail_section_source = RetailSectionSourceChoices.RULE
 
 
 @receiver(pre_save, sender=Ingredient, dispatch_uid="supply.capture_ingredient_old_values")

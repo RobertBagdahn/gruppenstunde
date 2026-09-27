@@ -45,7 +45,7 @@ def ingredient_with_portion(db):
     ing = Ingredient.objects.create(
         name="Kartoffeln",
         slug="kartoffeln",
-        status="approved",
+        status="verified",
         energy_kcal=72,
         protein_g=2.0,
         fat_g=0.1,

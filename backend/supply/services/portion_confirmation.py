@@ -29,7 +29,7 @@ WEIGHT_TOLERANCE = 0.01
 
 def _next_free_rank(ingredient: Ingredient, desired_rank: int) -> int:
     taken = set(
-        ingredient.portions.filter(deleted_at__isnull=True).values_list("rank", flat=True),
+        ingredient.portions.active().values_list("rank", flat=True),
     )
     if desired_rank not in taken:
         return desired_rank
@@ -40,7 +40,7 @@ def _next_free_rank(ingredient: Ingredient, desired_rank: int) -> int:
 
 
 def _unique_name(ingredient: Ingredient, name: str, weight_g: float | None) -> str:
-    if not ingredient.portions.filter(name__iexact=name, deleted_at__isnull=True).exists():
+    if not ingredient.portions.active().filter(name__iexact=name).exists():
         return name
     if weight_g is not None and weight_g > 0:
         return f"{name} ({weight_g:g} g)"
@@ -81,7 +81,8 @@ def confirm_portion(
 
     if existing_portion_id is not None:
         portion = (
-            Portion.objects.filter(id=existing_portion_id, ingredient=ingredient, deleted_at__isnull=True)
+            Portion.objects.active()
+            .filter(id=existing_portion_id, ingredient=ingredient)
             .select_related("measuring_unit")
             .first()
         )
@@ -91,7 +92,7 @@ def confirm_portion(
         return portion
 
     normalized = normalize_portion_name(name)
-    for candidate in ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit"):
+    for candidate in ingredient.portions.active().select_related("measuring_unit"):
         if normalize_portion_name(candidate.name) != normalized:
             continue
         same_weight = candidate.weight_g is None and weight_g is None

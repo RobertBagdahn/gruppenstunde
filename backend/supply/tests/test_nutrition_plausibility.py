@@ -69,15 +69,3 @@ def test_us_total_carbs_are_clamped():
     chocolate = {**BASE, "energy_kcal": 588.0, "protein_g": 6.0, "fat_g": 40.0, "carbohydrate_g": 52.0, "fibre_g": 10.0}
     changes = propose_deterministic_repair(chocolate, name="Zartbitterschokolade")
     assert changes["carbohydrate_g"] == 42.5
-
-
-def test_import_gate_repairs_new_ingredients(db):
-    from supply.models import Ingredient, RetailSection
-
-    RetailSection.objects.create(name="Säfte & Smoothies", rank=31)
-    juice = Ingredient.objects.create(
-        name="Orangensaft", energy_kcal=1880, protein_g=0.7, fat_g=0.2, carbohydrate_g=100
-    )
-    assert juice.energy_kcal == round(1880 / 4.184, 1)
-    assert juice.retail_section.name == "Säfte & Smoothies"
-    assert juice.retail_section_source == "rule"

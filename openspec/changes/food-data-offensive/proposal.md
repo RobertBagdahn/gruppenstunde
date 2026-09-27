@@ -12,7 +12,7 @@ Die Food-Stammdaten waren in großen Teilen unbrauchbar, obwohl viele Einzelanal
 
 ## What Changes
 
-- **Warengruppen-Katalog v2**: 38 statt 22 Abteilungen im Laden-Rundgang (Obst/Gemüse getrennt, Käse, Wurst, Säfte, Joghurt & Desserts …). Dazu eine Datenmigration `0017_retail_sections_v2` und ein deterministischer Kopfwort-Klassifikator (99,5 % Abdeckung, „Orangen·saft“ → Säfte). Mit `retail_section_source` (rule/ai/manual) werden manuelle Zuordnungen nie überschrieben.
+- **Warengruppen-Katalog v2**: 38 statt 22 Abteilungen im Laden-Rundgang (Obst/Gemüse getrennt, Käse, Wurst, Säfte, Joghurt & Desserts …). Dazu eine Datenmigration `0019_retail_sections_v2` und ein deterministischer Kopfwort-Klassifikator (99,5 % Abdeckung, „Orangen·saft“ → Säfte). Mit `retail_section_source` (rule/ai/manual) werden manuelle Zuordnungen nie überschrieben.
 - **Nährwert-Regelwerk**: gemeinsame Plausibilitätsregeln für UI, Reparatur, Qualitäts-Score und KI-Prompts. Deterministische, kostenlose Reparatur: kJ → kcal, Platzhalter-Nullen → unbekannt, Salz ↔ Natrium, Atwater-Energie.
 - **Batch-KI-Review**: 15 Zutaten pro Gemini-Aufruf mit aktuellen Werten und Regelbefunden. Konservative Übernahme: plausible Werte bleiben, harte Regeln werden erzwungen, Umbenennen und Löschen erfolgt nur per Freigabe. Ergebnis in `ai_reviewed_at`/`ai_review_verdict`/`ai_review_notes`.
 - **Duplikate**: Merge-Service (aus dem Endpoint extrahiert), automatisches Zusammenführen exakter Namensduplikate, Namensvarianten-Gruppen zur manuellen Freigabe, KI-Duplikatverdacht mit Ein-Klick-Merge. Die Embedding-Suche bevorzugt meistgenutzte Zutaten.

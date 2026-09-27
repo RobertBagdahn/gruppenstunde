@@ -5,6 +5,7 @@ Designed for prod where MeasuringUnit names differ from local (Gramm vs g, etc.)
 """
 
 from django.core.management.base import BaseCommand
+from django.db import transaction
 from django.db.models import Q
 
 from content.models import Tag
@@ -20,7 +21,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
+        # Dry runs execute inside a rolled-back transaction so that side effects
+        # such as tag creation never persist.
+        with transaction.atomic():
+            self._run(dry_run)
+            if dry_run:
+                transaction.set_rollback(True)
+        if dry_run:
+            self.stdout.write(self.style.WARNING("\nDRY RUN — no changes made."))
 
+    def _run(self, dry_run: bool) -> None:
         # ── Ensure all tags exist ───────────────────────────────────────
         tags = self._ensure_tags(dry_run)
 
@@ -57,9 +67,6 @@ class Command(BaseCommand):
             if tag:
                 rec_count = Recipe.objects.filter(tags=tag).count()
                 self.stdout.write(f"  Recipes with {tag_slug}: {rec_count}")
-
-        if dry_run:
-            self.stdout.write(self.style.WARNING("\nDRY RUN — no changes made."))
 
     def _ensure_tags(self, dry_run):
         tag_defs = {

@@ -693,11 +693,7 @@ class MealPlanAiService:
                                 if unit_str:
                                     measuring_unit = MeasuringUnit.objects.filter(name__iexact=unit_str).first()
                                 if not measuring_unit:
-                                    p1 = (
-                                        ing.portions.filter(rank=1, deleted_at__isnull=True)
-                                        .select_related("measuring_unit")
-                                        .first()
-                                    )
+                                    p1 = ing.portions.active().filter(rank=1).select_related("measuring_unit").first()
                                     if p1 and p1.measuring_unit:
                                         measuring_unit = p1.measuring_unit
                                 if not measuring_unit:

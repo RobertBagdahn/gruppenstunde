@@ -9,18 +9,13 @@ import {
   useNutritionalTags,
 } from '@/api/supplies';
 import { useTags } from '@/api/tags';
-import type { NutritionalTag } from '@/schemas/supply';
+import type { IngredientStatus, NutritionalTag } from '@/schemas/supply';
+import { INGREDIENT_STATUS_OPTIONS, ingredientStatusLabel, parseIngredientStatus } from '@/lib/ingredientStatus';
 import type { Tag } from '@/schemas/content';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
 import { GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const STATUS_OPTIONS = [
-  { value: 'draft', label: 'Entwurf' },
-  { value: 'verified', label: 'Verifiziert' },
-  { value: 'user_content', label: 'Benutzer erstellt' },
-];
 
 // ---------------------------------------------------------------------------
 // Section wrapper
@@ -97,7 +92,7 @@ export default function IngredientEditPage() {
   // Form state — Stammdaten
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('draft');
+  const [status, setStatus] = useState<IngredientStatus>('draft');
   const [retailSectionId, setRetailSectionId] = useState('');
 
   // Nutritional values per 100g
@@ -280,8 +275,8 @@ export default function IngredientEditPage() {
       tag_ids: selectedContentTags,
     };
 
-    // Only include status field for staff users
-    if (user?.is_staff) {
+    // Only include the status when the API allows this user to verify
+    if (ingredient?.can_verify) {
       payload.status = status;
     }
 
@@ -369,13 +364,13 @@ export default function IngredientEditPage() {
               />
             </Field>
             <Field label="Status">
-              {user?.is_staff ? (
+              {ingredient?.can_verify ? (
                 <select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  onChange={(e) => setStatus(parseIngredientStatus(e.target.value) ?? 'draft')}
                   className={inputClass}
                 >
-                  {STATUS_OPTIONS.map((opt) => (
+                  {INGREDIENT_STATUS_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -383,7 +378,7 @@ export default function IngredientEditPage() {
                 </select>
               ) : (
                 <div className="px-3 py-2 bg-muted/30 border border-border rounded text-sm text-muted-foreground">
-                  {STATUS_OPTIONS.find((opt) => opt.value === status)?.label || status}
+                  {ingredientStatusLabel(status)}
                 </div>
               )}
             </Field>

@@ -94,7 +94,7 @@ class Command(BaseCommand):
 
         # Find ingredients without rank-1
         ingredients = Ingredient.objects.exclude(
-            id__in=Portion.objects.filter(rank=1, deleted_at__isnull=True).values("ingredient_id")
+            id__in=Portion.objects.active().filter(rank=1).values("ingredient_id")
         ).order_by("name")
 
         if limit:

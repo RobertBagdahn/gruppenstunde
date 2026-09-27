@@ -378,6 +378,7 @@ def import_recipe_from_url(
                 name=raw_name,
                 slug=slug,
                 status=IngredientStatusChoices.DRAFT,
+                created_by=user if user is not None and user.is_authenticated else None,
             )
 
             nutrition = enrich_ingredient(raw_name, user)
@@ -1123,134 +1124,6 @@ Antworte ausschließlich im angegebenen JSON-Format."""
 # ---------------------------------------------------------------------------
 
 
-def _create_new_ingredients(
-    ingredients: list[GeminiIngredientMatch],
-) -> list[dict[str, Any]]:
-    """Create new Ingredient records for unmatched items."""
-    from supply.choices import IngredientStatusChoices, PhysicalViscosityChoices
-    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Portion
-    from supply.services.generic_terms import generic_name_warning
-    from supply.services.term_normalization import normalize_term
-
-    created: list[dict[str, Any]] = []
-
-    # Normalized-name -> ingredient_id map, used as a fallback reuse path
-    # (never the sole criterion) so singular/plural variants (e.g.
-    # "Kartoffel"/"Kartoffeln") reuse the existing ingredient instead of
-    # creating a duplicate.
-    normalized_index: dict[str, int] = {}
-    for ing_id, ing_name in Ingredient.objects.values_list("id", "name"):
-        normalized_index.setdefault(normalize_term(ing_name), ing_id)
-    for alias_ing_id, alias_name in IngredientAlias.objects.values_list("ingredient_id", "name"):
-        normalized_index.setdefault(normalize_term(alias_name), alias_ing_id)
-
-    for ing in ingredients:
-        if ing.matched_ingredient_id is not None or ing.new_ingredient is None:
-            continue
-
-        data = ing.new_ingredient
-
-        # Check if ingredient with same name already exists – reuse it
-        existing = Ingredient.objects.filter(name__iexact=data.name).first()
-
-        # Normalized (stemmed) match — additional fallback path
-        if not existing:
-            normalized = normalize_term(data.name)
-            matched_id = normalized_index.get(normalized) if normalized else None
-            if matched_id:
-                existing = Ingredient.objects.filter(id=matched_id).first()
-
-        if existing:
-            ing.matched_ingredient_id = existing.id
-            created.append(
-                {
-                    "id": existing.id,
-                    "name": existing.name,
-                    "aliases": [],
-                    "nutri_class": data.nutri_class,
-                    # Warning is based on the originally requested name, not
-                    # the (possibly more specific) reused ingredient's name.
-                    "name_warning": generic_name_warning(data.name),
-                }
-            )
-            continue
-
-        # Map viscosity
-        viscosity = PhysicalViscosityChoices.SOLID
-        if data.physical_viscosity in ("liquid", "beverage"):
-            viscosity = PhysicalViscosityChoices.BEVERAGE
-
-        ingredient = Ingredient.objects.create(
-            name=data.name,
-            status=IngredientStatusChoices.DRAFT,
-            energy_kcal=data.energy_kcal,
-            protein_g=data.protein_g,
-            fat_g=data.fat_g,
-            fat_sat_g=data.fat_sat_g,
-            carbohydrate_g=data.carbohydrate_g,
-            sugar_g=data.sugar_g,
-            fibre_g=data.fibre_g,
-            salt_g=data.salt_g,
-            child_score=data.child_score,
-            scout_score=data.scout_score,
-            environmental_score=data.environmental_score,
-            nova_score=data.nova_score,
-            nutri_score=data.nutri_score,
-            nutri_class=data.nutri_class,
-            physical_density=data.physical_density,
-            physical_viscosity=viscosity,
-        )
-
-        # Create aliases
-        for alias_name in data.aliases:
-            IngredientAlias.objects.create(
-                ingredient=ingredient,
-                name=alias_name,
-            )
-
-        # Create default portion
-        from supply.services.unit_resolution import resolve_canonical_unit
-
-        unit = resolve_canonical_unit(data.portion_name)
-        if not unit:
-            unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm")
-
-        portion_name = data.portion_name.strip() if data.portion_name else unit.name
-        if not portion_name:
-            portion_name = "Stück"
-
-        weight = data.portion_weight_g if data.portion_weight_g and data.portion_weight_g > 0 else None
-
-        if weight is not None:
-            Portion.objects.get_or_create(
-                ingredient=ingredient,
-                name=portion_name,
-                measuring_unit=unit,
-                quantity=1.0,
-                defaults={"weight_g": weight},
-            )
-
-        # Store the ID on the match object for later reference
-        ing.matched_ingredient_id = ingredient.id
-
-        created.append(
-            {
-                "id": ingredient.id,
-                "name": data.name,
-                "aliases": data.aliases,
-                "nutri_class": data.nutri_class,
-                "name_warning": generic_name_warning(data.name),
-            }
-        )
-
-    return created
-
-
-# ---------------------------------------------------------------------------
-# Step 5: Build recipe items
-# ---------------------------------------------------------------------------
-
-
 def _build_recipe_items(
     ingredients: list[GeminiIngredientMatch],
     created_ingredients: list[dict[str, Any]],
@@ -1404,11 +1277,7 @@ def _build_recipe_items_v2(
             # AI weight proposal (possibly against an existing portion).
             suggested_name = build_suggested_portion_name(unit_str, note, ingredient_name)
             existing = find_matching_piece_portion(ingredient, suggested_name)
-            active_portions = list(
-                ingredient.portions.filter(deleted_at__isnull=True)
-                .select_related("measuring_unit")
-                .order_by("rank", "id")
-            )
+            active_portions = list(ingredient.portions.active().select_related("measuring_unit").order_by("rank", "id"))
             available_portions = _serialize_portions(active_portions)
             suggested_portion_name = suggested_name
             if existing is not None and existing.is_weight_trusted:
@@ -1441,9 +1310,7 @@ def _build_recipe_items_v2(
                 weight_status = portion.weight_status if portion else None
             available_portions = (
                 _serialize_portions(
-                    ingredient.portions.filter(deleted_at__isnull=True)
-                    .select_related("measuring_unit")
-                    .order_by("rank", "id")
+                    ingredient.portions.active().select_related("measuring_unit").order_by("rank", "id")
                 )
                 if needs_clarification
                 else []
@@ -1678,19 +1545,21 @@ def _resolve_portion(
 
         if (
             not is_metric_base
-            and Portion.objects.filter(
+            and Portion.objects.active()
+            .filter(
                 ingredient_id=ingredient_id,
                 name__iexact=p_name,
-                deleted_at__isnull=True,
-            ).exists()
+            )
+            .exists()
         ):
             suffix = f" ({weight:g} g)" if weight else " (Import)"
             p_name = f"{p_name}{suffix}"
 
         next_rank = 1
-        if Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True, rank=1).exists():
+        if Portion.objects.active().filter(ingredient_id=ingredient_id, rank=1).exists():
             next_rank = (
-                Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True)
+                Portion.objects.active()
+                .filter(ingredient_id=ingredient_id)
                 .order_by("-rank")
                 .values_list("rank", flat=True)
                 .first()

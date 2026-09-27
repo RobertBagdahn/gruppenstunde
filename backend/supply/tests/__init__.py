@@ -27,7 +27,7 @@ def make_measuring_unit(**kwargs) -> MeasuringUnit:
 def make_ingredient(**kwargs) -> Ingredient:
     defaults = {
         "name": "Weizenmehl",
-        "status": "approved",
+        "status": "verified",
         "energy_kcal": 339.0,
         "protein_g": 10.3,
         "fat_g": 1.0,

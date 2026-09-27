@@ -31,6 +31,19 @@ describe('useRecipeIngredientReviewStore', () => {
     expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()).toHaveLength(1);
   });
 
+  it('drops a stale AI draft once an existing ingredient portion is chosen', () => {
+    const draftPortion = { id: null, name: 'Zehe', quantity: 1, weight_g: 4, measuring_unit_id: null, measuring_unit_name: null, is_new: true };
+    const draft = { name: 'Knoblauch', description: '', status: 'draft', values: {}, portions: [draftPortion], quantity: 2 };
+    const store = useRecipeIngredientReviewStore.getState();
+    store.initialize({ ...preview, rows: [{ ...preview.rows[0], new_ingredient_draft: draft }] });
+    store.confirmRow('one');
+    expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()?.[0].temporary_ingredient).toBeNull();
+
+    store.updateRow('one', { selected_portion: draftPortion, status: 'open' });
+    store.confirmRow('one');
+    expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()?.[0].temporary_ingredient).toEqual(draft);
+  });
+
   it('bulk confirms complete rows but leaves incomplete rows open', () => {
     const store = useRecipeIngredientReviewStore.getState();
     store.initialize(preview);

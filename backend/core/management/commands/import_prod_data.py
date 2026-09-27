@@ -109,7 +109,7 @@ def _deduplicate_portions():
     from supply.models.ingredient import Portion
 
     dupes = (
-        Portion.objects.filter(deleted_at__isnull=True)
+        Portion.objects.active()
         .annotate(name_lower=Lower("name"))
         .values("name_lower", "ingredient_id")
         .annotate(cnt=Count("id"))
@@ -119,8 +119,8 @@ def _deduplicate_portions():
     total = 0
     for dupe in dupes:
         ids = (
-            Portion.objects.filter(
-                deleted_at__isnull=True,
+            Portion.objects.active()
+            .filter(
                 ingredient_id=dupe["ingredient_id"],
             )
             .annotate(name_lower=Lower("name"))
@@ -193,7 +193,8 @@ def _deduplicate_rank1_portions():
     from supply.models.ingredient import Portion
 
     dupes = (
-        Portion.objects.filter(deleted_at__isnull=True, rank=1)
+        Portion.objects.active()
+        .filter(rank=1)
         .values("ingredient_id")
         .annotate(cnt=Count("id"), min_id=Min("id"))
         .filter(cnt__gt=1)
@@ -201,7 +202,8 @@ def _deduplicate_rank1_portions():
     total = 0
     for dupe in dupes:
         ids = (
-            Portion.objects.filter(deleted_at__isnull=True, ingredient_id=dupe["ingredient_id"], rank=1)
+            Portion.objects.active()
+            .filter(ingredient_id=dupe["ingredient_id"], rank=1)
             .exclude(id=dupe["min_id"])
             .values_list("id", flat=True)
         )

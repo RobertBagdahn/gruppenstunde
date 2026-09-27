@@ -216,6 +216,7 @@ class Command(BaseCommand):
     def _import(self, deduped: dict):
         from content.choices import ContentStatus
         from recipe.models import Recipe, RecipeItem
+        from supply.choices import IngredientStatusChoices
         from supply.models import Ingredient, MeasuringUnit, Portion
 
         # Build unit map (lowercase name -> MeasuringUnit)
@@ -537,7 +538,8 @@ class Command(BaseCommand):
                         ingredient = Ingredient.objects.create(
                             name=ing_name,
                             slug=slug,
-                            status="user_content",
+                            status=IngredientStatusChoices.DRAFT,
+                            created_by=None,
                             physical_viscosity="solid",
                             physical_density=1.0,
                         )

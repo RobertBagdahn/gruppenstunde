@@ -61,34 +61,38 @@ class Command(BaseCommand):
 
     def _technical_gram_duplicates(self) -> list[dict]:
         result: list[dict] = []
-        qs = Portion.objects.filter(
-            deleted_at__isnull=True,
-            name__iexact="g",
-            quantity=1,
-            weight_g=1,
-            rank=9999,
-            measuring_unit__unit="g",
-        ).select_related("ingredient", "measuring_unit")
+        qs = (
+            Portion.objects.active()
+            .filter(
+                name__iexact="g",
+                quantity=1,
+                weight_g=1,
+                rank=9999,
+                measuring_unit__unit="g",
+            )
+            .select_related("ingredient", "measuring_unit")
+        )
         for portion in qs.iterator():
             if RecipeItem.objects.filter(portion=portion).exists():
                 continue
-            has_canonical = Portion.objects.filter(
-                ingredient=portion.ingredient,
-                deleted_at__isnull=True,
-                measuring_unit__unit="g",
-                name__iexact="100g",
-                quantity=100,
-                weight_g=100,
-            ).exists()
+            has_canonical = (
+                Portion.objects.active()
+                .filter(
+                    ingredient=portion.ingredient,
+                    measuring_unit__unit="g",
+                    name__iexact="100g",
+                    quantity=100,
+                    weight_g=100,
+                )
+                .exists()
+            )
             if has_canonical:
                 result.append({"action": "delete_technical_gram", "portion_id": portion.id})
         return result
 
     def _deterministic_missing_weights(self) -> list[dict]:
         result: list[dict] = []
-        qs = Portion.objects.filter(deleted_at__isnull=True, weight_g__isnull=True).select_related(
-            "ingredient", "measuring_unit"
-        )
+        qs = Portion.objects.active().filter(weight_g__isnull=True).select_related("ingredient", "measuring_unit")
         for portion in qs.iterator():
             if is_piece_like_name(portion.name):
                 continue

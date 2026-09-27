@@ -154,8 +154,8 @@ class TestAiApplyEndpoint(TestCase):
     def test_multi_item_breakfast_apply_creates_all_items(self):
         from supply.models import Ingredient
 
-        ing1 = baker.make(Ingredient, name="Bauernbrot", status="approved", owner=None)
-        ing2 = baker.make(Ingredient, name="Butter", status="approved", owner=None)
+        ing1 = baker.make(Ingredient, name="Bauernbrot", status="verified", owner=None)
+        ing2 = baker.make(Ingredient, name="Butter", status="verified", owner=None)
 
         payload = {
             "days": [

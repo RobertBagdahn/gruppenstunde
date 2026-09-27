@@ -55,7 +55,7 @@ def recipe_with_salz(db, auth_client, salz):
     user = auth_client._user
     recipe = Recipe.objects.create(title="Salzrezept", status=ContentStatus.DRAFT, created_by=user)
     recipe.authors.add(user)
-    portion = salz.portions.filter(deleted_at__isnull=True).first()
+    portion = salz.portions.active().first()
     item = RecipeItem.objects.create(
         recipe=recipe,
         portion=portion,

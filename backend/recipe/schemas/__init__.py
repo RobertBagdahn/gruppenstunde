@@ -20,6 +20,8 @@ from .ingredient_review import (
     TemporaryIngredientDraftOut,
 )
 from .items import (
+    AdoptCurrentPortionsIn,
+    AdoptCurrentPortionsOut,
     AiIngredientApplyIn,
     AiIngredientSuggestionOut,
     AiIngredientSuggestionsOut,
@@ -101,6 +103,8 @@ from .type_stats import (
 )
 
 __all__ = [
+    "AdoptCurrentPortionsIn",
+    "AdoptCurrentPortionsOut",
     "AiIngredientApplyIn",
     "AiIngredientSuggestionOut",
     "AiIngredientSuggestionsOut",

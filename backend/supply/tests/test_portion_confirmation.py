@@ -198,7 +198,7 @@ class TestConfirmPortionEndpoint:
 
     def test_confirm_endpoint_creates_confirmed_portion(self):
         client, user = self._client()
-        ingredient = make_ingredient(name="Brötchen", owner=user, visibility="shared")
+        ingredient = make_ingredient(name="Brötchen", owner=user, visibility="shared", status="draft")
         resp = self._post(
             client,
             ingredient.slug,
@@ -230,7 +230,7 @@ class TestConfirmPortionEndpoint:
 
     def test_confirm_endpoint_returns_existing_choice(self):
         client, user = self._client()
-        ingredient = make_ingredient(name="Brötchen", owner=user, visibility="shared")
+        ingredient = make_ingredient(name="Brötchen", owner=user, visibility="shared", status="draft")
         existing = baker.make(
             Portion,
             ingredient=ingredient,
@@ -250,6 +250,6 @@ class TestConfirmPortionEndpoint:
 
     def test_confirm_endpoint_rejects_invalid_weight(self):
         client, user = self._client()
-        ingredient = make_ingredient(name="Brötchen", owner=user, visibility="shared")
+        ingredient = make_ingredient(name="Brötchen", owner=user, visibility="shared", status="draft")
         resp = self._post(client, ingredient.slug, {"name": "kleines Brötchen", "weight_g": -5.0})
         assert resp.status_code == 422

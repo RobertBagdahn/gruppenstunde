@@ -2319,9 +2319,7 @@ def search_recipes(
             for iid, tid in through_rows:
                 nutritional_tags_only.setdefault(iid, []).append({"id": tid, "name": tags_map.get(tid, "")})
 
-            portions_only = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
-                "measuring_unit"
-            )
+            portions_only = Portion.objects.active().filter(ingredient_id__in=ing_ids).select_related("measuring_unit")
             portions_by_ing_only: dict[int, list[dict]] = {}
             for p in portions_only:
                 portions_by_ing_only.setdefault(p.ingredient_id, []).append(
@@ -2520,9 +2518,7 @@ def search_recipes(
             nutritional_tags_by_ing.setdefault(iid, []).append({"id": tid, "name": ing_tags_map.get(tid, "")})
 
         # Portions
-        portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
-            "measuring_unit"
-        )
+        portions = Portion.objects.active().filter(ingredient_id__in=ing_ids).select_related("measuring_unit")
         portions_by_ing: dict[int, list[dict]] = {}
         for p in portions:
             portions_by_ing.setdefault(p.ingredient_id, []).append(

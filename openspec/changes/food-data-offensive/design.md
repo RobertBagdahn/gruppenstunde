@@ -36,7 +36,7 @@ Deutsche Produktnamen tragen den Produkttyp im Kopf des Kompositums (Orangen**sa
 - Schnittbezeichnungen („filet“, „steak“) übergeben an Fisch bzw. Fleischersatz, falls im Token vorhanden.
 - Ganzwort- (`=ei`) und Suffix-Schlüssel (`~öl`) verhindern Fehltreffer wie „Schokoladen**te**ig“ → Ente oder „R**öl**lchen“ → Öl.
 
-Der Katalog ist in `supply/data/retail_sections.py` hinterlegt, eingefroren in Migration `0017`. Legacy-Namen bleiben über `LEGACY_SECTION_ALIASES` auflösbar.
+Der Katalog ist in `supply/data/retail_sections.py` hinterlegt, eingefroren in Migration `0019`. Legacy-Namen bleiben über `LEGACY_SECTION_ALIASES` auflösbar.
 
 `retail_section_source` (rule/ai/manual) regelt den Vorrang: manuell > KI > Regel. Eine Änderung über die UI (Zutat bearbeiten oder Cockpit) gilt als manuell.
 

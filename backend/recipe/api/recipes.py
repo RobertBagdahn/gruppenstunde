@@ -7,6 +7,7 @@ from typing import cast
 
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
@@ -116,104 +117,6 @@ def _is_transitively_visible_recipe(recipe: Recipe, request) -> bool:
     from content.services.transitive_visibility import recipe_visible_transitively
 
     return recipe_visible_transitively(recipe, request.user)
-
-
-# ==========================================================================
-# Breakfast Wizard Visibility Functions
-# ==========================================================================
-# New visibility model for breakfast wizard user-generated items
-
-
-def _can_view_recipe_breakfast(recipe: Recipe, user) -> bool:
-    """Check if user can view recipe in breakfast wizard context.
-
-    Rules:
-    - System recipes (owner=None, status=approved) are always visible
-    - User-owned recipes (owner=user) are visible to owner
-    - Recipes shared with user's groups (visibility=shared, shared_groups contains user's groups)
-    - Staff can see everything
-    """
-    if not user.is_authenticated:
-        # Unauthenticated users can only see system recipes
-        return recipe.owner_id is None and recipe.status == "approved"
-
-    # Staff can see everything
-    if user.is_staff:
-        return True
-
-    # System recipes are always visible
-    if recipe.owner_id is None:
-        return recipe.status == "approved"
-
-    # Owner can always see their own recipe
-    if recipe.owner_id == user.id:
-        return True
-
-    # Check shared groups
-    if recipe.visibility in ("group", "public"):
-        # Old visibility model (group/public) - handled by existing logic
-        if recipe.visibility == "public" and recipe.status == "approved":
-            return True
-        if recipe.visibility == "group":
-            # Group visibility - need to check if user is in recipe's group
-            # This requires additional logic
-            return False
-
-    # New shared_groups model
-    from profiles.models import UserGroup
-
-    user_groups = UserGroup.objects.filter(memberships__user=user)
-    return recipe.shared_groups.filter(id__in=user_groups).exists()
-
-
-def _get_visible_recipes_for_breakfast_qs(user, group_ids: list[int] | None = None):
-    """Get recipes visible to user for breakfast wizard.
-
-    Args:
-        user: The requesting user
-        group_ids: Optional list of group IDs to filter for
-
-    Returns:
-        Queryset of visible Recipe objects
-    """
-    from profiles.models import UserGroup
-
-    qs = Recipe.objects.select_related("owner", "forked_from").prefetch_related("shared_groups", "scout_levels", "tags")
-
-    if user.is_authenticated and user.is_staff:
-        return qs
-
-    # System recipes (owner=None, status=approved) are always visible
-    system_q = Q(owner__isnull=True, status="approved")
-
-    if not user.is_authenticated:
-        return qs.filter(system_q)
-
-    # User's own recipes
-    own_q = Q(owner=user)
-
-    # Get user's groups
-    user_groups = UserGroup.objects.filter(memberships__user=user)
-
-    # Recipes shared with user's groups
-    shared_q = Q(visibility="shared", shared_groups__in=user_groups)
-
-    # Public recipes
-    public_q = Q(visibility="public", status="approved")
-
-    # For "group" visibility, check if user is in recipe's group context
-    # This would require knowing which group the recipe belongs to
-    # For now, we only handle explicit shared_groups model
-
-    visibility_q = system_q | own_q | shared_q | public_q
-
-    if group_ids:
-        # If specific groups are requested, also include recipes shared with those groups
-        visibility_q = visibility_q | Q(
-            visibility="shared", shared_groups__in=UserGroup.objects.filter(id__in=group_ids)
-        )
-
-    return qs.filter(visibility_q).distinct()
 
 
 # ==========================================================================
@@ -560,6 +463,7 @@ def get_recipe(request, recipe_id: int):
         "recipe_items__portion__ingredient__retail_section",
         "recipe_items__portion__ingredient__portions__measuring_unit",
         "recipe_items__portion__measuring_unit",
+        "recipe_items__portion__superseded_by",
         "steps__step_ingredients__recipe_item__portion__ingredient",
         "authors__profile",
     )
@@ -599,6 +503,7 @@ def get_recipe_by_slug(request, slug: str):
             "recipe_items__portion__ingredient__retail_section",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
+            "recipe_items__portion__superseded_by",
             "steps__step_ingredients__recipe_item__portion__ingredient",
             "authors__profile",
         ),
@@ -773,9 +678,7 @@ def create_recipe(request, payload: RecipeCreateIn):
                     temporary_portion = draft.portions[0] if draft.portions else None
                     if temporary_portion is None or not temporary_portion.weight_g or temporary_portion.weight_g <= 0:
                         raise HttpError(422, f"Für {draft.name} fehlt ein gültiges Portionsgewicht")
-                    portion = existing.portions.filter(
-                        name__iexact=temporary_portion.name, deleted_at__isnull=True
-                    ).first()
+                    portion = existing.portions.active().filter(name__iexact=temporary_portion.name).first()
                     if portion is None:
                         unit, _ = MeasuringUnit.objects.get_or_create(
                             name=temporary_portion.measuring_unit_name or "Gramm"
@@ -830,11 +733,23 @@ def create_recipe(request, payload: RecipeCreateIn):
                 )
                 aliases = values.get("aliases", [])
                 if isinstance(aliases, list):
+                    # Alias names are unique (case-insensitive); skip names that
+                    # already point to another ingredient instead of failing.
+                    alias_names: dict[str, str] = {}
+                    for alias in aliases:
+                        name = str(alias).strip()
+                        if name:
+                            alias_names.setdefault(name.lower(), name)
+                    taken = set(
+                        IngredientAlias.objects.annotate(name_lower=Lower("name"))
+                        .filter(is_generic=False, name_lower__in=alias_names)
+                        .values_list("name_lower", flat=True)
+                    )
                     IngredientAlias.objects.bulk_create(
                         [
-                            IngredientAlias(ingredient=ingredient, name=str(alias).strip())
-                            for alias in aliases
-                            if str(alias).strip()
+                            IngredientAlias(ingredient=ingredient, name=name)
+                            for key, name in alias_names.items()
+                            if key not in taken
                         ]
                     )
                 temporary_portion = draft.portions[0] if draft.portions else None
@@ -1010,9 +925,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         portion_ids = {
             item_data["portion_id"] for item_data in recipe_items_data if item_data["portion_id"] is not None
         }
-        valid_portion_ids = set(
-            Portion.objects.filter(id__in=portion_ids, deleted_at__isnull=True).values_list("id", flat=True)
-        )
+        valid_portion_ids = set(Portion.objects.active().filter(id__in=portion_ids).values_list("id", flat=True))
         missing_portion_ids = portion_ids - valid_portion_ids
         if missing_portion_ids:
             raise HttpError(400, f"Portionen nicht gefunden: {missing_portion_ids}")
@@ -1020,9 +933,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
 
         unweighted_portion_ids = {
             portion.id
-            for portion in Portion.objects.filter(id__in=portion_ids, deleted_at__isnull=True).select_related(
-                "measuring_unit"
-            )
+            for portion in Portion.objects.active().filter(id__in=portion_ids).select_related("measuring_unit")
             if resolve_trusted_weight(portion) is None
         }
         if unweighted_portion_ids:

@@ -456,7 +456,7 @@ class Command(BaseCommand):
             )
             if not legit_zero:
                 return False
-        rank1 = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, rank=1).first()
+        rank1 = Portion.objects.active().filter(ingredient=ingredient, rank=1).first()
         if rank1 and (rank1.weight_g is None or rank1.weight_g <= 1.0):
             return False
         return True
@@ -612,9 +612,9 @@ class Command(BaseCommand):
             if spec and spec.portions:
                 self._replace_with_spec_portions(ingredient, spec, g_unit)
             elif not spec:
-                has_good_portions = Portion.objects.filter(
-                    ingredient=ingredient, deleted_at__isnull=True, rank__lte=3, weight_g__gt=1.0
-                ).exists()
+                has_good_portions = (
+                    Portion.objects.active().filter(ingredient=ingredient, rank__lte=3, weight_g__gt=1.0).exists()
+                )
                 if not has_good_portions:
                     self._add_default_portions(ingredient, g_unit)
 
@@ -628,34 +628,32 @@ class Command(BaseCommand):
         now = timezone.now()
 
         # Delete rank=9999 sentinels
-        sentinels = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, rank=9999)
+        sentinels = Portion.objects.active().filter(ingredient=ingredient, rank=9999)
         self.report.portions_deleted += sentinels.count()
         sentinels.update(deleted_at=now)
 
         # Delete "1 Portion" with weight_g <= 1.0 (generic placeholder)
-        garbage1 = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True, name__iexact="1 Portion", weight_g__lte=1.0
-        )
+        garbage1 = Portion.objects.active().filter(ingredient=ingredient, name__iexact="1 Portion", weight_g__lte=1.0)
         count = garbage1.update(deleted_at=now)
         self.report.portions_deleted += count
 
         # Delete "ml" name portions with weight_g <= 1.0 (useless on any ingredient)
-        garbage_ml_all = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True, name__iexact="ml", weight_g__lte=1.0, rank=1
+        garbage_ml_all = Portion.objects.active().filter(
+            ingredient=ingredient, name__iexact="ml", weight_g__lte=1.0, rank=1
         )
         count = garbage_ml_all.update(deleted_at=now)
         self.report.portions_deleted += count
 
         # Delete "* in ml" pattern portions with weight_g=1.0
-        garbage_in_ml = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True, name__icontains=" in ml", weight_g__lte=1.0
+        garbage_in_ml = Portion.objects.active().filter(
+            ingredient=ingredient, name__icontains=" in ml", weight_g__lte=1.0
         )
         count = garbage_in_ml.update(deleted_at=now)
         self.report.portions_deleted += count
 
         # Delete known garbage names
         garbage_names = {"Gramm", "evtl.", "große"}
-        garbage = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, name__in=garbage_names)
+        garbage = Portion.objects.active().filter(ingredient=ingredient, name__in=garbage_names)
         for p in garbage:
             p.deleted_at = now
             p.save(update_fields=["deleted_at"])
@@ -663,9 +661,11 @@ class Command(BaseCommand):
 
         # Delete "Stück"/"Packung"/"Becher"/"Glas" with weight_g=None or <= 1.0
         for name in ("Stück", "Packung", "Becher", "Glas"):
-            garbage_empty = Portion.objects.filter(
-                ingredient=ingredient, deleted_at__isnull=True, name__iexact=name
-            ).filter(models.Q(weight_g__isnull=True) | models.Q(weight_g__lte=1.0))
+            garbage_empty = (
+                Portion.objects.active()
+                .filter(ingredient=ingredient, name__iexact=name)
+                .filter(models.Q(weight_g__isnull=True) | models.Q(weight_g__lte=1.0))
+            )
             count = garbage_empty.update(deleted_at=now)
             self.report.portions_deleted += count
 
@@ -681,7 +681,7 @@ class Command(BaseCommand):
         # them active alongside spec portions can create multiple active
         # rank=1 portions, violating unique_rank1_portion_per_ingredient.
         now = timezone.now()
-        conflicting = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).exclude(rank=9999)
+        conflicting = Portion.objects.active().filter(ingredient=ingredient).exclude(rank=9999)
         for p in conflicting:
             if p.name.lower() not in spec_names_lower:
                 p.deleted_at = now
@@ -690,7 +690,7 @@ class Command(BaseCommand):
 
         for ps in spec.portions:
             mu = MeasuringUnit.objects.filter(name=ps.measuring_unit).first() or g_unit
-            existing = Portion.objects.filter(ingredient=ingredient, name=ps.name, deleted_at__isnull=True).first()
+            existing = Portion.objects.active().filter(ingredient=ingredient, name=ps.name).first()
             if existing:
                 existing.rank = ps.rank
                 existing.weight_g = ps.weight_g
@@ -763,7 +763,7 @@ class Command(BaseCommand):
         # Soft-delete pre-existing active rank=1 portions not covered by the
         # new defaults to avoid violating unique_rank1_portion_per_ingredient.
         now = timezone.now()
-        conflicting_rank1 = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, rank=1)
+        conflicting_rank1 = Portion.objects.active().filter(ingredient=ingredient, rank=1)
         for p in conflicting_rank1:
             if p.name.lower() not in default_names_lower:
                 p.deleted_at = now
@@ -789,7 +789,7 @@ class Command(BaseCommand):
     def _ensure_g_portions(self, ingredient, g_unit) -> None:
         from supply.models import Portion
 
-        existing_g = Portion.objects.filter(ingredient=ingredient, name="g", deleted_at__isnull=True).first()
+        existing_g = Portion.objects.active().filter(ingredient=ingredient, name="g").first()
         if not existing_g and g_unit:
             Portion.objects.create(
                 ingredient=ingredient,

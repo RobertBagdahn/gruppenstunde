@@ -381,12 +381,15 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: User 
             if not unit:
                 unit = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
             portion_name = nutrition.portion_name or unit.name or "Stück"
-            portion = Portion.objects.filter(
-                ingredient=ingredient,
-                name=portion_name,
-                measuring_unit=unit,
-                deleted_at__isnull=True,
-            ).first()
+            portion = (
+                Portion.objects.active()
+                .filter(
+                    ingredient=ingredient,
+                    name=portion_name,
+                    measuring_unit=unit,
+                )
+                .first()
+            )
             if not portion:
                 from supply.choices import PortionWeightSource, PortionWeightStatus
                 from supply.services.portion_resolution import is_piece_like_name
@@ -413,16 +416,28 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: User 
 
 
 def _match_or_create_ingredient(name: str, user: User | None) -> Ingredient:
-    """Find an existing ingredient by name/alias or create a new one."""
+    """Find an existing ingredient by name/alias or create a new one.
+
+    Only matchable candidates are considered (readable Ingredients plus system drafts),
+    never private Ingredients of other users.
+    """
+    from content.services.food_access import matchable_ingredient_queryset
+    from supply.choices import IngredientStatusChoices
     from supply.models import Ingredient, IngredientAlias
 
+    candidates = Ingredient.objects.filter(pk__in=matchable_ingredient_queryset(user).values("pk"))
+
     # Exact name match
-    ingredient = Ingredient.objects.filter(name__iexact=name).first()
+    ingredient = candidates.filter(name__iexact=name).first()
     if ingredient:
         return ingredient
 
     # Alias match
-    alias = IngredientAlias.objects.filter(name__iexact=name).select_related("ingredient").first()
+    alias = (
+        IngredientAlias.objects.filter(name__iexact=name, ingredient_id__in=candidates.values("pk"))
+        .select_related("ingredient")
+        .first()
+    )
     if alias:
         return alias.ingredient
 
@@ -437,7 +452,7 @@ def _match_or_create_ingredient(name: str, user: User | None) -> Ingredient:
     return Ingredient.objects.create(
         name=name,
         slug=slug,
-        status="user_content",
+        status=IngredientStatusChoices.DRAFT,
         created_by=user if user and user.is_authenticated else None,
     )
 
@@ -483,11 +498,14 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
     name = unit_str or (measuring_unit.name if measuring_unit else "Stück")
 
     # Exact name match is the most precise signal (unambiguous regardless of unit).
-    existing_by_name = Portion.objects.filter(
-        ingredient=ingredient,
-        name__iexact=name,
-        deleted_at__isnull=True,
-    ).first()
+    existing_by_name = (
+        Portion.objects.active()
+        .filter(
+            ingredient=ingredient,
+            name__iexact=name,
+        )
+        .first()
+    )
     if existing_by_name:
         return existing_by_name
 
@@ -496,12 +514,15 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         # (quantity == 1). Avoids matching "Packung"-style multiplier portions.
         from supply.services.portion_resolution import METRIC_UNIT_GRAMS, is_direct_metric_portion
 
-        candidates = Portion.objects.filter(
-            ingredient=ingredient,
-            measuring_unit=measuring_unit,
-            quantity=1,
-            deleted_at__isnull=True,
-        ).order_by("rank", "id")
+        candidates = (
+            Portion.objects.active()
+            .filter(
+                ingredient=ingredient,
+                measuring_unit=measuring_unit,
+                quantity=1,
+            )
+            .order_by("rank", "id")
+        )
         # For metric units only a true unit portion (weight == 1 unit) is canonical;
         # pre-weighed portions like "Dose 400g" share the Gramm unit but are counts.
         if (measuring_unit.name or "").strip().lower() in METRIC_UNIT_GRAMS:
@@ -514,7 +535,7 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         raise ValueError(f"Für '{ingredient.name}' konnte keine gewichtete Portion für '{name}' ermittelt werden.")
 
     # No measuring_unit matched → reuse any existing portion for this ingredient
-    portion = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank", "id").first()
+    portion = Portion.objects.active().filter(ingredient=ingredient).order_by("rank", "id").first()
     if portion:
         return portion
 
@@ -525,11 +546,14 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         fallback_unit = MeasuringUnit.objects.create(name="Gramm")
 
     name = unit_str or "Stück"
-    existing_by_name = Portion.objects.filter(
-        ingredient=ingredient,
-        name__iexact=name,
-        deleted_at__isnull=True,
-    ).first()
+    existing_by_name = (
+        Portion.objects.active()
+        .filter(
+            ingredient=ingredient,
+            name__iexact=name,
+        )
+        .first()
+    )
     if existing_by_name:
         return existing_by_name
 
@@ -544,7 +568,8 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         weight_status=PortionWeightStatus.UNKNOWN,
         weight_source=PortionWeightSource.AI,
         rank=(
-            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+            Portion.objects.active()
+            .filter(ingredient=ingredient)
             .order_by("-rank")
             .values_list("rank", flat=True)
             .first()

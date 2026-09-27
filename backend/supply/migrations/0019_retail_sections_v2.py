@@ -101,7 +101,7 @@ def forwards(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("supply", "0016_ingredient_data_review_fields"),
+        ("supply", "0018_ingredient_data_review_fields"),
         ("shopping", "0003_food_integrity"),
     ]
 

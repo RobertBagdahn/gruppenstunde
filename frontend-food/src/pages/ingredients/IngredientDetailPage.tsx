@@ -132,14 +132,9 @@ import { Label } from '@/components/ui/label';
 
 import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
 import RecipeCard from '@/components/recipe/RecipeCard';
+import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-
-const STATUS_OPTIONS = [
-  { value: 'draft', label: 'Entwurf' },
-  { value: 'verified', label: 'Verifiziert' },
-  { value: 'user_content', label: 'Benutzer erstellt' },
-];
 
 // ---------------------------------------------------------------------------
 // NutriScoreBadge
@@ -596,8 +591,15 @@ function PortionCard({
         },
       },
       {
-        onSuccess: () => {
-          toast.success('Portion aktualisiert');
+        onSuccess: (result) => {
+          const referencingCount = result.referencing_recipe_count ?? 0;
+          if (result.replaced_portion_id != null && referencingCount > 0) {
+            toast.success('Gespeichert', {
+              description: `${referencingCount} ${referencingCount === 1 ? 'Rezept behält' : 'Rezepte behalten'} das alte Gewicht, bis sie aktualisiert werden.`,
+            });
+          } else {
+            toast.success('Portion aktualisiert');
+          }
           setEditing(false);
         },
         onError: (err: Error) => toast.error('Fehler', { description: err.message }),
@@ -1340,9 +1342,9 @@ export default function IngredientDetailPage() {
                     ? 'bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]'
                     : 'bg-[hsl(var(--chart-5))]/10 border-[hsl(var(--chart-5))]/20 text-[hsl(var(--chart-5))]'
                 }`}>
-                  {STATUS_OPTIONS.find((s) => s.value === ingredient.status)?.label ?? ingredient.status}
+                  {ingredientStatusLabel(ingredient.status)}
                 </span>
-                {user?.is_staff && (
+                {ingredient.can_verify && (
                   <button
                     onClick={() => updateIngredient.mutate({ status: 'verified' } as Record<string, unknown>)}
                     disabled={updateIngredient.isPending}

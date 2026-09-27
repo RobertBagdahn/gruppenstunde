@@ -23,7 +23,7 @@ def gramm_unit(db):
 
 @pytest.fixture
 def ingredient_nudeln(db, gramm_unit):
-    return Ingredient.objects.create(name="Fusilli trocken", slug="fusilli-trocken", status=ContentStatus.APPROVED)
+    return Ingredient.objects.create(name="Fusilli trocken", slug="fusilli-trocken", status="verified")
 
 
 @pytest.fixture

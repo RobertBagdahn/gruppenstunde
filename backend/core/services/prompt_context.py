@@ -45,14 +45,17 @@ def _dietary_tag_names(user: Any, nutritional_tag_ids: list[int] | None) -> list
 
 
 def _pantry_summary(user: Any) -> list[str]:
-    """Return a short list of the user's own ingredient names (summary only)."""
+    """Return a short list of the user's own ingredient names (summary only).
+
+    Own ingredients are user Ingredients (``owner=user``); system drafts the user
+    merely created during imports are not part of their pantry.
+    """
     if user is None or not getattr(user, "is_authenticated", False):
         return []
     from supply.models import Ingredient
 
     return list(
-        Ingredient.objects.filter(created_by=user, deleted_at__isnull=True)
-        .exclude(status="draft")
+        Ingredient.objects.filter(owner=user, deleted_at__isnull=True)
         .order_by("-usage_count")
         .values_list("name", flat=True)[:30]
     )

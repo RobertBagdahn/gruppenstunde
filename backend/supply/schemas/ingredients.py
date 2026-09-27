@@ -10,6 +10,8 @@ from content.schemas.base import TagOut
 from .ingredient_price_proposals import IngredientPriceProposalOut
 from .reference import IngredientGroupOut, NutritionalTagOut
 
+IngredientStatus = Literal["draft", "verified"]
+
 
 class IngredientAliasOut(Schema):
     """Output schema for an ingredient alias."""
@@ -52,6 +54,7 @@ class PortionOut(Schema):
     weight_confidence: float | None = None
     is_weight_trusted: bool = False
     is_piece_like: bool = False
+    superseded_by_id: int | None = None
 
     @staticmethod
     def resolve_is_default(obj) -> bool:
@@ -102,6 +105,19 @@ class PortionUpdateIn(Schema):
     measuring_unit_id: int | None = None
     weight_g: float | None = None
     rank: int | None = None
+
+
+class PortionUpdateOut(PortionOut):
+    """Response of `PATCH .../portions/{id}/`.
+
+    When the weight change had to supersede a referenced portion instead of
+    updating it in place, `replaced_portion_id` carries the old portion's id
+    and `referencing_recipe_count` the number of recipes still using it
+    (unchanged), so the frontend can invalidate caches and show a toast.
+    """
+
+    replaced_portion_id: int | None = None
+    referencing_recipe_count: int = 0
 
 
 class PortionConfirmIn(Schema):
@@ -221,7 +237,7 @@ class IngredientListOut(Schema):
     id: int
     name: str
     slug: str
-    status: str
+    status: IngredientStatus
     energy_kcal: float | None
     protein_g: float | None
     fat_g: float | None
@@ -235,6 +251,7 @@ class IngredientListOut(Schema):
     groups: list[IngredientGroupOut] = []
     can_edit: bool = False
     can_delete: bool = False
+    can_verify: bool = False
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
@@ -254,13 +271,13 @@ class IngredientDetailOut(Schema):
     name: str
     slug: str
     description: str
-    status: str
+    status: IngredientStatus
     name_warning: str | None = None
 
     # Ownership & Visibility (for breakfast wizard user-generated items)
     owner_id: int | None = None
     owner_name: str | None = None
-    visibility: Literal["private", "shared", "public", "group"] = "private"
+    visibility: Literal["private", "shared", "public"] = "private"
     shared_groups: list[SharedGroupOut] = []
     created_by_name: str | None = None
 
@@ -336,6 +353,7 @@ class IngredientDetailOut(Schema):
     quality_score_updated_at: datetime | None = None
     can_edit: bool = False
     can_delete: bool = False
+    can_verify: bool = False
     ai_interaction_id: str | None = None
 
     @staticmethod
@@ -390,7 +408,7 @@ class IngredientDetailOut(Schema):
                 "weight_confidence": p.weight_confidence,
                 "is_weight_trusted": p.is_weight_trusted,
             }
-            for p in obj.portions.select_related("measuring_unit").filter(deleted_at__isnull=True)
+            for p in obj.portions.select_related("measuring_unit").active()
         ]
 
     @staticmethod
@@ -568,7 +586,7 @@ class IngredientUpdateIn(Schema):
     nutritional_tag_ids: list[int] | None = None
     group_ids: list[int] | None = None
     tag_ids: list[str] | None = None
-    status: str | None = None
+    status: IngredientStatus | None = None
     is_standalone_food: bool | None = None
     ingredient_ref_id: int | None = None
 
@@ -694,7 +712,7 @@ class IngredientDraftOut(Schema):
 
     name: str
     description: str | None = None
-    status: str = "draft"
+    status: IngredientStatus = "draft"
     retail_section_id: int | None = None
 
 

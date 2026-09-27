@@ -375,7 +375,7 @@ def ai_create_ingredient(
     from google.genai import types
 
     from core.services.prompt_context import build_prompt_context
-    from supply.choices import RetailSectionSourceChoices
+    from supply.choices import IngredientStatusChoices, RetailSectionSourceChoices
     from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Package, Portion, RetailSection
 
     existing = Ingredient.objects.filter(name__iexact=name.strip()).order_by("-usage_count", "id").first()
@@ -441,7 +441,7 @@ def ai_create_ingredient(
         name=data.name,
         slug=slug,
         description=data.description,
-        status="user_content",
+        status=IngredientStatusChoices.DRAFT,
         energy_kcal=data.energy_kcal,
         protein_g=data.protein_g,
         fat_g=data.fat_g,

@@ -13,13 +13,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         ingredient = Ingredient.objects.get(slug=options["slug"])
-        portions = ingredient.portions.filter(deleted_at__isnull=True).select_related("measuring_unit")
+        portions = ingredient.portions.active().select_related("measuring_unit")
         for portion in portions:
             self.stdout.write(
                 f"PORTION id={portion.id} name={portion.name!r} quantity={portion.quantity} "
                 f"weight_g={portion.weight_g} status={portion.weight_status} source={portion.weight_source} "
                 f"trusted={portion.is_weight_trusted}"
             )
-        self.stdout.write(
-            f"ACTIVE_MISSING_WEIGHT {Portion.objects.filter(deleted_at__isnull=True, weight_g__isnull=True).count()}"
-        )
+        self.stdout.write(f"ACTIVE_MISSING_WEIGHT {Portion.objects.active().filter(weight_g__isnull=True).count()}")

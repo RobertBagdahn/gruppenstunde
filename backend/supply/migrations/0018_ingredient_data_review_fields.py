@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("supply", "0015_portionrepairfinding_approved_at_and_more"),
+        ("supply", "0017_portion_superseded_versions"),
     ]
 
     operations = [

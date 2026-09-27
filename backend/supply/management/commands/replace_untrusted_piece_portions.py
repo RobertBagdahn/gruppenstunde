@@ -173,7 +173,9 @@ class Command(BaseCommand):
     def _build_plan(self) -> Plan:
         plan = Plan()
         items = (
-            RecipeItem.objects.filter(portion__isnull=False, portion__deleted_at__isnull=True)
+            RecipeItem.objects.filter(
+                portion__isnull=False, portion__deleted_at__isnull=True, portion__superseded_by__isnull=True
+            )
             .select_related("portion", "portion__ingredient", "portion__measuring_unit", "recipe")
             .order_by("portion_id", "id")
         )
@@ -208,9 +210,7 @@ class Command(BaseCommand):
     def _trusted_piece_portion(self, portion: Portion) -> Portion | None:
         candidates = [
             candidate
-            for candidate in portion.ingredient.portions.filter(deleted_at__isnull=True)
-            .exclude(pk=portion.pk)
-            .order_by("rank", "id")
+            for candidate in portion.ingredient.portions.active().exclude(pk=portion.pk).order_by("rank", "id")
             if is_piece_like_name(candidate.name) and resolve_trusted_weight(candidate) is not None
         ]
         # Prefer "1 Stück (150g)" over fractions like "1/2 Stück (75g)".

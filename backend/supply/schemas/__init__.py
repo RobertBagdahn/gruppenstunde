@@ -37,6 +37,7 @@ from .ingredients import (
     PortionReorderIn,
     PortionSuggestionOut,
     PortionUpdateIn,
+    PortionUpdateOut,
     SharedGroupOut,
     StandardMeasureOut,
 )
@@ -158,6 +159,7 @@ __all__ = [
     "PortionRepairRejectOut",
     "PortionSuggestionOut",
     "PortionUpdateIn",
+    "PortionUpdateOut",
     "RetailSectionIn",
     "RetailSectionOut",
     "RetailSectionUpdateIn",

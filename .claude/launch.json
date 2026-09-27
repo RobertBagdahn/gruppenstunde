@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd backend && uv run python manage.py runserver 8000"],
+      "port": 8000
+    },
+    {
+      "name": "frontend-food",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd frontend-food && npm run dev"],
+      "port": 5174
+    }
+  ]
+}

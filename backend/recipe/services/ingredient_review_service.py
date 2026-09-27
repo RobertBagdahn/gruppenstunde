@@ -45,9 +45,7 @@ def _portion_for_ingredient(ingredient_id: int) -> ReviewPortionOut | None:
     from supply.services.portion_resolution import resolve_trusted_weight
 
     portion = (
-        Portion.objects.filter(ingredient_id=ingredient_id, rank=1, deleted_at__isnull=True)
-        .select_related("measuring_unit")
-        .first()
+        Portion.objects.active().filter(ingredient_id=ingredient_id, rank=1).select_related("measuring_unit").first()
     )
     if portion is None:
         return None

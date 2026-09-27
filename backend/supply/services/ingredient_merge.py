@@ -79,9 +79,9 @@ def merge_ingredient(source: Any, target: Any, *, user: Any | None = None) -> Me
             aliases_added += 1
 
         portions_moved = 0
-        target_portions = {p.name.lower(): p for p in target.portions.filter(deleted_at__isnull=True)}
+        target_portions = {p.name.lower(): p for p in target.portions.active()}
         max_target_rank = target.portions.aggregate(m=db_models.Max("rank"))["m"] or 1
-        for source_portion in list(source.portions.filter(deleted_at__isnull=True)):
+        for source_portion in list(source.portions.active()):
             existing = target_portions.get(source_portion.name.lower())
             if existing is not None:
                 if RecipeItem.objects.filter(portion=source_portion).exists():

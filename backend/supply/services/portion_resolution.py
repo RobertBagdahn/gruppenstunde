@@ -407,7 +407,7 @@ def find_matching_piece_portion(ingredient, name: str):
     if not normalized:
         return None
 
-    qs = ingredient.portions.filter(deleted_at__isnull=True).order_by("rank", "id")
+    qs = ingredient.portions.active().order_by("rank", "id")
     for portion in qs:
         candidate = normalize_portion_name(portion.name)
         if not candidate:

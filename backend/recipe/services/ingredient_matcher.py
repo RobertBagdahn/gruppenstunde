@@ -23,6 +23,7 @@ from recipe.services.ingredient_parser import IngredientNameParser
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
+    from django.db.models import QuerySet
 
     from recipe.models import Recipe
 
@@ -125,14 +126,20 @@ class IngredientMatcher:
         with replacement context (`replacement_for_item_id`,
         `replacement_reason`, `replacement_confidence`).
         """
-        result = cls._match_core(raw_name)
+        result = cls._match_core(raw_name, user)
         if recipe is not None and result.ingredient_id is not None:
             return cls._apply_replacement_context(result, recipe)
         return result
 
     @classmethod
-    def _match_core(cls, raw_name: str) -> MatchResult:
-        """Core matching pipeline without recipe-specific replacement context."""
+    def _match_core(cls, raw_name: str, user: AbstractBaseUser | None = None) -> MatchResult:
+        """Core matching pipeline without recipe-specific replacement context.
+
+        Candidates are limited to Ingredients ``user`` may read plus system drafts
+        (``food_access.matchable_ingredient_queryset``); never private Ingredients
+        of other users.
+        """
+        candidate_qs = cls._candidate_queryset(user)
         parsed = IngredientNameParser.parse(raw_name)
         # Low-confidence parser matches are suggestions only. Keep the raw
         # spelling so typoed input can reach the fuzzy stage.
@@ -151,19 +158,19 @@ class IngredientMatcher:
             strip_details = {"parsed_quantity": parsed.quantity, "parsed_unit": parsed.unit}
 
         # Stage 1: Wort-Jaccard
-        result = cls._stage_jaccard(clean_name, raw_name.strip(), parsed.note)
+        result = cls._stage_jaccard(clean_name, raw_name.strip(), parsed.note, candidate_qs)
         if result is not None:
             result.technical_details.update(strip_details)
             return result
 
         # Stage 2: pg_trgm + Levenshtein
-        result = cls._stage_fuzzy(clean_name, raw_name.strip(), parsed.note)
+        result = cls._stage_fuzzy(clean_name, raw_name.strip(), parsed.note, candidate_qs)
         if result is not None:
             result.technical_details.update(strip_details)
             return result
 
         # Stage 3: Embedding
-        result = cls._stage_embedding(clean_name, parsed.note)
+        result = cls._stage_embedding(clean_name, parsed.note, candidate_qs)
         if result is not None:
             result.technical_details.update(strip_details)
             return result
@@ -225,12 +232,12 @@ class IngredientMatcher:
     # -------------------------------------------------------------------
 
     @classmethod
-    def _stage_jaccard(cls, clean_name: str, raw_name: str, note: str) -> MatchResult | None:
+    def _stage_jaccard(cls, clean_name: str, raw_name: str, note: str, candidate_qs: QuerySet) -> MatchResult | None:
         query_words = set(clean_name.lower().split())
         if not query_words:
             return None
 
-        candidates = cls._get_candidates_ordered()
+        candidates = cls._get_candidates_ordered(candidate_qs)
 
         # Decision 4: Prefer exact name or alias matches
         clean_lower = clean_name.lower()
@@ -256,14 +263,14 @@ class IngredientMatcher:
         alias = (
             IngredientAlias.objects.filter(name__iexact=clean_name)
             .select_related("ingredient")
-            .filter(ingredient__deleted_at__isnull=True)
+            .filter(ingredient__deleted_at__isnull=True, ingredient_id__in=candidate_qs.values("pk"))
             .first()
         )
         if not alias and raw_name != clean_name:
             alias = (
                 IngredientAlias.objects.filter(name__iexact=raw_name)
                 .select_related("ingredient")
-                .filter(ingredient__deleted_at__isnull=True)
+                .filter(ingredient__deleted_at__isnull=True, ingredient_id__in=candidate_qs.values("pk"))
                 .first()
             )
         if alias:
@@ -367,14 +374,12 @@ class IngredientMatcher:
     # -------------------------------------------------------------------
 
     @classmethod
-    def _stage_fuzzy(cls, clean_name: str, raw_name: str, note: str) -> MatchResult | None:
+    def _stage_fuzzy(cls, clean_name: str, raw_name: str, note: str, candidate_qs: QuerySet) -> MatchResult | None:
         from django.db import connection
-
-        from supply.models import Ingredient
 
         if connection.vendor == "sqlite":
             results: list[MatchCandidate] = []
-            for ing in cls._get_candidates_ordered():
+            for ing in cls._get_candidates_ordered(candidate_qs):
                 score = cls._normalized_levenshtein(clean_name.lower(), ing["name"].lower())
                 if score >= GREY_ZONE_MIN:
                     results.append(
@@ -385,16 +390,8 @@ class IngredientMatcher:
 
         from django.contrib.postgres.search import TrigramSimilarity
 
-        candidates = cls._get_candidates_ordered()
-        for cand in candidates:
-            trigram = TrigramSimilarity("name", clean_name)
-            # We need to compute per-candidate, so we do it through the queryset
-            # For efficiency, batch-annotate all candidates
-            break  # We'll use the query approach below
-
-        # Use annotated query for efficiency
         trigram_qs = (
-            Ingredient.objects.annotate(
+            candidate_qs.annotate(
                 similarity=TrigramSimilarity("name", clean_name),
             )
             .filter(similarity__gt=0.2)
@@ -467,7 +464,7 @@ class IngredientMatcher:
     # -------------------------------------------------------------------
 
     @classmethod
-    def _stage_embedding(cls, clean_name: str, note: str) -> MatchResult | None:
+    def _stage_embedding(cls, clean_name: str, note: str, candidate_qs: QuerySet) -> MatchResult | None:
         from django.db import connection
 
         # pgvector lookups are unsupported on SQLite — skip the stage there.
@@ -476,14 +473,12 @@ class IngredientMatcher:
 
         from pgvector.django import CosineDistance
 
-        from supply.models import Ingredient
-
         query_embedding = cls._embed_text(clean_name)
         if query_embedding is None:
             return None
 
         results = (
-            Ingredient.objects.exclude(embedding__isnull=True)
+            candidate_qs.exclude(embedding__isnull=True)
             .annotate(distance=CosineDistance("embedding", query_embedding))
             .filter(distance__lt=1.0)
             .order_by("distance")[:MAX_CANDIDATES_PER_STAGE]
@@ -578,11 +573,17 @@ class IngredientMatcher:
         return None
 
     @classmethod
-    def _get_candidates_ordered(cls) -> list[dict[str, Any]]:
-        """Return all ingredient (id, name, slug) ordered by usage_count DESC."""
+    def _candidate_queryset(cls, user: AbstractBaseUser | None) -> QuerySet:
+        """Plain Ingredient queryset restricted to matchable candidates for ``user``."""
+        from content.services.food_access import matchable_ingredient_queryset
         from supply.models import Ingredient
 
-        return [dict(row) for row in Ingredient.objects.order_by("-usage_count", "name").values("id", "name", "slug")]
+        return Ingredient.objects.filter(pk__in=matchable_ingredient_queryset(user).values("pk"))
+
+    @classmethod
+    def _get_candidates_ordered(cls, candidate_qs: QuerySet) -> list[dict[str, Any]]:
+        """Return candidate ingredients (id, name, slug) ordered by usage_count DESC."""
+        return [dict(row) for row in candidate_qs.order_by("-usage_count", "name").values("id", "name", "slug")]
 
     @classmethod
     def _normalized_levenshtein(cls, a: str, b: str) -> float:

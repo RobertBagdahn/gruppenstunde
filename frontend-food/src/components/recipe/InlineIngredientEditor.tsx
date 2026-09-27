@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api';
-import { Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Sparkles, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import {
   useUpdateRecipeItem,
   useDeleteRecipeItem,
@@ -16,6 +16,7 @@ import {
   usePatchRecipeItem,
   useCreateExchangeGroup,
   useReplaceRecipeItem,
+  useAdoptCurrentPortions,
 } from '@/api/recipes';
 import { useUpdateIngredient } from '@/api/supplies';
 import { useCurrentUser } from '@/api/auth';
@@ -54,6 +55,15 @@ export interface EditableItem {
    *  derive a stable grams-per-unit ratio for sorting, see `getItemWeightG`. */
   baseWeightG: number;
   baseQuantity: number;
+  /** Set when `portion_id` has been superseded by a corrected portion (see
+   *  openspec change `portion-superseded-versions`) — drives the "Veraltete
+   *  Portion" hint and its "Aktualisieren" action. */
+  currentPortion: { id: number; name: string; weight_g: number | null } | null;
+  /** The item's own portion when it is no longer in `ingredient_portions`
+   *  (superseded portions are excluded from that list). Lets PortionPicker
+   *  keep showing the actual selected portion instead of falling back to
+   *  "Gramm" — without offering it as a pickable option. */
+  selectedPortionFallback: { id: number; name: string; weight_g: number | null } | null;
   clientRequestId?: string;
   isNew?: boolean;
   isDeleted?: boolean;
@@ -359,6 +369,15 @@ export function normalizeItems(
       // source for sorting (see `baseWeightG` doc comment on EditableItem).
       baseWeightG: item.weight_g,
       baseQuantity: item.quantity,
+      currentPortion: item.current_portion ?? null,
+      selectedPortionFallback:
+        !currentPortion && item.portion_id != null
+          ? {
+              id: item.portion_id,
+              name: item.portion_name ?? 'Portion',
+              weight_g: portionWeightG > 0 ? portionWeightG : null,
+            }
+          : null,
       clientRequestId: item.client_request_id ?? item.idempotency_key ?? undefined,
       // Legacy recipes with non-normalized portions still need normalization.
       isDirty: s > 1 || itemsAreContextual,
@@ -432,6 +451,8 @@ interface IngredientRowProps {
   patchItem: ReturnType<typeof usePatchRecipeItem>;
   setEditItems: React.Dispatch<React.SetStateAction<EditableItem[]>>;
   user: { is_staff?: boolean } | undefined;
+  onAdoptCurrentPortion: (itemId: number) => void;
+  isAdoptingCurrentPortion: boolean;
 }
 
 function IngredientRow({
@@ -453,6 +474,8 @@ function IngredientRow({
   patchItem,
   setEditItems,
   user,
+  onAdoptCurrentPortion,
+  isAdoptingCurrentPortion,
 }: IngredientRowProps) {
   // Mutation for this ingredient's verification status update.
   // This component is only ever mounted via JSX (not called as a plain
@@ -465,8 +488,8 @@ function IngredientRow({
     <div
       data-testid={`recipe-ingredient-row-${item.id}`}
       key={item.id}
-      className={`flex items-center gap-3 p-3 border-l-4 bg-card transition-colors ${
-        isAlt ? 'border-l-amber-400 pl-9 bg-muted/20' : isSource ? 'border-l-amber-400' : 'border-l-transparent'
+      className={`flex flex-col bg-card transition-colors ${
+        isAlt ? 'border-l-4 border-l-amber-400 pl-9 bg-muted/20' : isSource ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-transparent'
       } ${
         isAlt && !isLastInGroup ? 'border border-b-0 border-t-0' : ''
       } ${
@@ -479,6 +502,7 @@ function IngredientRow({
         !isSource && !isAlt ? 'border rounded-lg border-border hover:bg-muted/30' : ''
       } ${isSource ? 'hover:bg-muted/30' : ''}`}
     >
+      <div className="flex items-center gap-3 p-3">
       <input
         type="text"
         inputMode="decimal"
@@ -499,6 +523,7 @@ function IngredientRow({
           is_weight_trusted: p.is_weight_trusted,
         }))}
         value={item.portion_id}
+        selectedFallback={item.selectedPortionFallback}
         ingredientSlug={item.ingredient_slug ?? undefined}
         onSelectPortion={(portionId) => handlePortionChange(item.id, portionId)}
         onSelectStandardMeasure={(measure) => handleSelectStandardMeasure(item.id, measure)}
@@ -632,6 +657,31 @@ function IngredientRow({
           <span className="material-symbols-outlined text-[20px]" title="Verify">verified</span>
         </button>
       )}
+      </div>
+      {item.currentPortion && (
+        <div className="flex items-center justify-between gap-2 px-3 pb-2 pl-[3.75rem] text-xs text-amber-700">
+          <span className="flex items-center gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+            Veraltete Portion
+            {(() => {
+              const oldPortion = item.ingredient_portions.find((p) => p.id === item.portion_id);
+              const oldWeight = oldPortion?.weight_g;
+              const newWeight = item.currentPortion?.weight_g;
+              return `: ${item.currentPortion.name}${oldWeight != null ? ` (${oldWeight} g)` : ''}${
+                newWeight != null ? ` → jetzt ${newWeight} g` : ''
+              }`;
+            })()}
+          </span>
+          <button
+            type="button"
+            onClick={() => onAdoptCurrentPortion(item.id)}
+            disabled={isAdoptingCurrentPortion}
+            className="shrink-0 font-medium text-amber-800 hover:text-amber-950 underline disabled:opacity-50"
+          >
+            Aktualisieren
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -688,8 +738,52 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
   const patchItem = usePatchRecipeItem(persistedRecipeId);
   const createExchangeGroup = useCreateExchangeGroup(persistedRecipeId);
   const replaceItem = useReplaceRecipeItem(persistedRecipeId);
+  const adoptCurrentPortions = useAdoptCurrentPortions(persistedRecipeId);
 
   // --- Handlers ---
+
+  // Applies fresh server data for items whose superseded portion was just
+  // adopted — re-derives the editor's display quantity/label from the
+  // updated backend weight, while other in-progress local edits on
+  // untouched rows are left alone (see openspec change
+  // `portion-superseded-versions`).
+  const applyAdoptedPortions = useCallback(
+    (updatedItems: RecipeItem[]) => {
+      const normalized = normalizeItems(updatedItems, portions, inputPortions, itemsAreContextual);
+      const byId = new Map(normalized.map((n) => [n.id, n]));
+      setEditItems((prev) => prev.map((i) => byId.get(i.id) ?? i));
+    },
+    [portions, inputPortions, itemsAreContextual],
+  );
+
+  const handleAdoptCurrentPortion = useCallback(
+    (itemId: number) => {
+      adoptCurrentPortions.mutate([itemId], {
+        onSuccess: (result) => {
+          applyAdoptedPortions(result.items);
+          toast.success('Portion aktualisiert');
+        },
+        onError: (err) => {
+          toast.error('Fehler', { description: err instanceof Error ? err.message : undefined });
+        },
+      });
+    },
+    [adoptCurrentPortions, applyAdoptedPortions],
+  );
+
+  const handleAdoptAllCurrentPortions = useCallback(() => {
+    adoptCurrentPortions.mutate(undefined, {
+      onSuccess: (result) => {
+        applyAdoptedPortions(result.items);
+        toast.success(
+          `${result.updated_count} ${result.updated_count === 1 ? 'Zutat aktualisiert' : 'Zutaten aktualisiert'}`,
+        );
+      },
+      onError: (err) => {
+        toast.error('Fehler', { description: err instanceof Error ? err.message : undefined });
+      },
+    });
+  }, [adoptCurrentPortions, applyAdoptedPortions]);
 
   // Handles raw string input — allows empty/partial values while typing.
   // The numeric quantity is only updated when the input is a valid number.
@@ -856,6 +950,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             exchange_position: null,
             baseWeightG: bestPortion.weight_g ?? 1,
             baseQuantity: 1,
+            currentPortion: null,
+            selectedPortionFallback: null,
             clientRequestId: rowKey,
             isNew: true,
             isDirty: true,
@@ -979,6 +1075,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             exchange_position: null,
             baseWeightG: totalWeightG,
             baseQuantity: quantity,
+            currentPortion: null,
+            selectedPortionFallback: null,
             clientRequestId: rowKey,
             isNew: true,
             isDirty: true,
@@ -1215,6 +1313,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             exchange_position: nextPosition,
             baseWeightG: alternativeWeightG,
             baseQuantity: 1,
+            currentPortion: null,
+            selectedPortionFallback: null,
             clientRequestId: altKey,
             isNew: true,
             isDirty: true,
@@ -1508,6 +1608,29 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         confirmLabel="Speichern"
       />
 
+      {(() => {
+        const outdatedCount = activeItems.filter((i) => i.currentPortion).length;
+        if (outdatedCount <= 1) return null;
+        return (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <span className="flex items-center gap-1.5">
+              <RefreshCw className="w-4 h-4" />
+              {outdatedCount} Zutaten mit veralteten Portionen
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAdoptAllCurrentPortions}
+              disabled={adoptCurrentPortions.isPending}
+              className="border-amber-300 text-amber-900 hover:bg-amber-100"
+            >
+              Alle aktualisieren ({outdatedCount})
+            </Button>
+          </div>
+        );
+      })()}
+
       {/* Ingredient Rows */}
       <div className="space-y-2">
         {(() => {
@@ -1544,6 +1667,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
               patchItem={patchItem}
               setEditItems={setEditItems}
               user={user ?? undefined}
+              onAdoptCurrentPortion={handleAdoptCurrentPortion}
+              isAdoptingCurrentPortion={adoptCurrentPortions.isPending}
             />
           );
 

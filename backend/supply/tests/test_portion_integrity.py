@@ -21,7 +21,7 @@ def ingredient(db, retail_section):
     return Ingredient.objects.create(
         name="Weizenmehl",
         slug="weizenmehl",
-        status="approved",
+        status="verified",
         retail_section=retail_section,
     )
 
@@ -81,7 +81,10 @@ def test_create_portion_auth_and_validation(api_client, auth_client, ingredient,
     )
     assert resp_unauth.status_code == 403
 
-    # Authenticated, missing weight -> 422
+    # Authenticated creator of a draft, missing weight -> 422
+    ingredient.created_by = auth_client._user
+    ingredient.status = "draft"
+    ingredient.save(update_fields=["created_by", "status"])
     resp_happy = auth_client.post(
         f"/api/ingredients/{ingredient.slug}/portions/",
         data=json.dumps(

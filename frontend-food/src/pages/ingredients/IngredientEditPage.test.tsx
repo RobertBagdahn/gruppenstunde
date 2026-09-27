@@ -33,7 +33,10 @@ const mockIngredient = {
   status: 'draft',
   created_by_id: 2,
   description: '',
+  can_verify: false,
 };
+
+const verifiableIngredient = { ...mockIngredient, can_verify: true };
 
 const staffUser = {
   id: 1,
@@ -65,7 +68,7 @@ describe('IngredientEditPage', () => {
     vi.clearAllMocks();
   });
 
-  it('should show status as read-only text for non-staff users', () => {
+  it('should show status as read-only text when the API denies verification', () => {
     (useCurrentUser as any).mockReturnValue({
       data: regularUser,
       isLoading: false,
@@ -96,13 +99,13 @@ describe('IngredientEditPage', () => {
     expect(screen.getByText('Entwurf')).toBeInTheDocument();
   });
 
-  it('should show status as dropdown for staff users', () => {
+  it('should show status as dropdown when the API allows verification', () => {
     (useCurrentUser as any).mockReturnValue({
-      data: staffUser,
+      data: regularUser,
       isLoading: false,
     });
     (useIngredient as any).mockReturnValue({
-      data: mockIngredient,
+      data: verifiableIngredient,
       isLoading: false,
       error: null,
     });
@@ -125,6 +128,28 @@ describe('IngredientEditPage', () => {
     // Verify all status options are available
     expect(screen.getByText('Entwurf')).toBeInTheDocument();
     expect(screen.getByText('Verifiziert')).toBeInTheDocument();
-    expect(screen.getByText('Benutzer erstellt')).toBeInTheDocument();
+    expect(screen.queryByText('Benutzer erstellt')).not.toBeInTheDocument();
+  });
+
+  it('should ignore is_staff and follow can_verify', () => {
+    (useCurrentUser as any).mockReturnValue({
+      data: staffUser,
+      isLoading: false,
+    });
+    (useIngredient as any).mockReturnValue({
+      data: mockIngredient,
+      isLoading: false,
+      error: null,
+    });
+    (useUpdateIngredient as any).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    });
+
+    renderPage();
+
+    const selects = screen.queryAllByRole('combobox');
+    const statusSelect = selects.find((s) => s.closest('div')?.textContent?.includes('Status'));
+    expect(statusSelect).toBeUndefined();
   });
 });

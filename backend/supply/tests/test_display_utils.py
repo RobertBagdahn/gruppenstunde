@@ -73,7 +73,7 @@ class TestBuildPortionDisplay:
         return baker.make(MeasuringUnit, name=name, quantity=qty, unit=unit_type)
 
     def _make_ingredient(self, name: str, slug: str = "test-ingredient") -> Ingredient:
-        return baker.make(Ingredient, name=name, slug=slug, status="approved")
+        return baker.make(Ingredient, name=name, slug=slug, status="verified")
 
     def _make_portion(self, ingredient, measuring_unit, weight_g=100.0) -> Portion:
         return baker.make(
@@ -142,7 +142,7 @@ class TestBuildPortionDisplay:
         assert "(" not in display  # no weight clause
 
     def test_missing_ingredient_name_uses_slug(self):
-        ingredient = baker.make(Ingredient, name="", slug="apfel", status="approved")
+        ingredient = baker.make(Ingredient, name="", slug="apfel", status="verified")
         unit = self._make_unit("Stück")
         portion = self._make_portion(ingredient, unit, weight_g=200.0)
         display, _ = build_portion_display(2.0, portion, ingredient)
@@ -196,7 +196,7 @@ class TestBuildPortionDisplay:
 @pytest.mark.django_db
 class TestBuildPackageDisplay:
     def _make_ingredient(self) -> Ingredient:
-        return baker.make(Ingredient, name="Quark", slug="quark", status="approved")
+        return baker.make(Ingredient, name="Quark", slug="quark", status="verified")
 
     def _make_package_portion(self, ingredient, weight_g: float, name: str = "", rank: int = 1) -> Package:
         if not name:
