@@ -29,7 +29,6 @@ INGREDIENT_FIELDS: tuple[str, ...] = (
     "nutri_score",
     "nutri_class",
     "quality_score",
-    "status",
     "retail_section_source",
     "ai_review_verdict",
     "ai_review_notes",
@@ -57,6 +56,7 @@ def build_package(*, since: dt.datetime) -> dict[str, Any]:
             continue
         entry = {name: _json_value(getattr(ingredient, name)) for name in INGREDIENT_FIELDS}
         entry["slug"] = ingredient.slug
+        entry["status"] = ingredient.status
         entry["price_per_kg"] = _json_value(ingredient.price_per_kg)
         entry["retail_section"] = ingredient.retail_section.name if ingredient.retail_section else None
         entry["ai_reviewed_at"] = _json_value(ingredient.ai_reviewed_at)
@@ -172,6 +172,19 @@ def apply_package(package: dict[str, Any], *, apply: bool) -> ApplyReport:
             ]
             for start in range(0, len(pending), BATCH_SIZE):
                 Ingredient.objects.bulk_update(pending[start : start + BATCH_SIZE], fields)
+
+        # Publish only system drafts that were published in the source environment.
+        from supply.choices import IngredientStatusChoices
+        from supply.services.ingredient_status import SYSTEM, set_ingredient_status
+
+        for ingredient in pending:
+            if (
+                by_slug[ingredient.slug].get("status") == IngredientStatusChoices.VERIFIED
+                and ingredient.status == IngredientStatusChoices.DRAFT
+                and ingredient.owner_id is None
+                and apply
+            ):
+                set_ingredient_status(ingredient, IngredientStatusChoices.VERIFIED, actor=SYSTEM)
 
         archived = Recipe.objects.filter(slug__in=package["archived_recipes"]).exclude(status=ContentStatus.ARCHIVED)
         report.recipes_archived = archived.count()
