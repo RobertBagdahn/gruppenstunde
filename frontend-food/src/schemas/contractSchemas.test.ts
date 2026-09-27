@@ -13,7 +13,7 @@ import {
   PriceApplyResponseSchema,
   PriceEvaluateResponseSchema,
 } from './dataQuality';
-import { RecipeImportUrlResponseSchema } from '../api/recipeImport';
+import { IngredientReviewPreviewSchema } from './ingredientReview';
 import { PortionMagicApplySchema, PortionMagicPreviewSchema } from './supply';
 import { PortionRepairFindingSchema } from './portionRepair';
 
@@ -86,68 +86,20 @@ describe('food API contracts', () => {
     expect(result.portions).toBe(1);
     expect(result.input_servings).toBe(4);
   });
-  it('accepts UUID tag ids from the recipe import endpoint', () => {
+  it('accepts UUID tag ids from the ingredient review preview', () => {
     // Tag.id is a UUID. RecipeDraftOut.tag_ids is `list[str]`, so validating
-    // as numbers rejected every import response that carried a tag.
-    const response = {
+    // as numbers rejected every preview response that carried a tag.
+    const parsed = IngredientReviewPreviewSchema.parse({
       recipe_draft: {
         title: 'Möhrchenpfanne',
-        description: '',
-        summary: '',
         servings: 2,
         preparation_time: null,
         execution_time: null,
         recipe_type: 'warm_meal',
-        steps: [],
-        source_url: 'https://example.com/recipe',
         tag_ids: ['058e7081-bb7d-4412-a67c-a828052c3910'],
       },
-      recipe_items: [],
-      created_ingredients: [],
-    };
-
-    const parsed = RecipeImportUrlResponseSchema.parse(response);
-    expect(parsed.recipe_draft.tag_ids).toEqual(['058e7081-bb7d-4412-a67c-a828052c3910']);
-  });
-
-  it('flags import items whose unit could not be resolved', () => {
-    const parsed = RecipeImportUrlResponseSchema.parse({
-      recipe_draft: {
-        title: 'Möhrchenpfanne',
-        description: '',
-        summary: '',
-        servings: 2,
-        preparation_time: null,
-        execution_time: null,
-        recipe_type: 'warm_meal',
-        steps: [],
-        source_url: 'https://example.com/recipe',
-      },
-      recipe_items: [
-        {
-           ingredient_id: 1,
-           ingredient_name: 'Möhre',
-           ingredient_slug: 'mohre',
-          quantity: 4,
-          measuring_unit_id: null,
-          measuring_unit_name: '',
-          note: '',
-          is_new_ingredient: false,
-          portion_id: null,
-          needs_unit_clarification: true,
-          suggested_unit_name: '',
-           suggested_portion_weight_g: 80,
-           weight_status: 'ai_proposed',
-           weight_proposal_g: 80,
-           suggested_portion_name: 'Möhre',
-           confirmation_required: true,
-        },
-      ],
-      created_ingredients: [],
     });
-
-    expect(parsed.recipe_items[0].needs_unit_clarification).toBe(true);
-    expect(parsed.recipe_items[0].suggested_portion_weight_g).toBe(80);
+    expect(parsed.recipe_draft.tag_ids).toEqual(['058e7081-bb7d-4412-a67c-a828052c3910']);
   });
 
   it('parses portion magic-wand preview and apply contracts', () => {
