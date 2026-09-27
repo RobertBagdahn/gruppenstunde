@@ -376,8 +376,9 @@ test.describe('MealPlan persistence and controls', () => {
     const afterMealDelete = await getMealPlan(api, plan.id);
     expect(recordArray(afterMealDelete.meals).some((meal) => meal.id === breakfast?.id)).toBe(false);
 
-    await foodPage.getByRole('link', { name: /Tabelle/ }).click();
-    await foodPage.waitForURL(new RegExp(`/meal-plans/${plan.id}/table$`));
+    // The view toggle is URL state (`?view=table`) on the plan tab.
+    await foodPage.getByRole('button', { name: 'Tabelle', exact: true }).click();
+    await expect.poll(() => new URL(foodPage.url()).searchParams.get('view')).toBe('table');
     await expect(foodPage.getByRole('columnheader', { name: 'Mahlzeit' })).toBeVisible();
 
     await foodPage.getByRole('link', { name: /Kochplan/ }).click();
@@ -420,8 +421,9 @@ test.describe('MealPlan persistence and controls', () => {
     await expect(foodPage.getByText('Kalorienschnitt / Tag')).toBeVisible();
     await expect(foodPage.getByText('10.0 Personen')).toBeVisible();
 
-    await foodPage.getByRole('link', { name: /Tabelle/ }).click();
-    await foodPage.waitForURL(new RegExp(`/meal-plans/${plan.id}/table$`));
+    // The view toggle is URL state (`?view=table`) on the plan tab.
+    await foodPage.getByRole('button', { name: 'Tabelle', exact: true }).click();
+    await expect.poll(() => new URL(foodPage.url()).searchParams.get('view')).toBe('table');
 
     // Check quick add buttons in meal slots
     await expect(foodPage.getByRole('button', { name: 'Rezept', exact: true }).first()).toBeVisible();

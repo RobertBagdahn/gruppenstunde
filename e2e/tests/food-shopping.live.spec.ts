@@ -363,7 +363,7 @@ test.describe('Shopping list permissions and persistence', () => {
     });
   });
 
-  test('uses URL search and pagination while sort and owner filters remain local', async ({ foodPage, api, resources, uniqueName }) => {
+  test('keeps search, sort, owner filter and pagination in the URL', async ({ foodPage, api, resources, uniqueName }) => {
     const names = [
       uniqueName('E2E Suche Alpha'),
       uniqueName('E2E Suche Beta'),
@@ -383,10 +383,11 @@ test.describe('Shopping list permissions and persistence', () => {
     await expect(search).toHaveValue('E2E Suche Alpha');
     await expect(foodPage.getByText(names[0], { exact: true })).toBeVisible();
 
+    // openspec persisted-list-filters: sort and "Meine Daten" are URL state too.
     await foodPage.getByRole('combobox').selectOption('name_asc');
-    expect(new URL(foodPage.url()).searchParams.get('sort')).toBeNull();
+    await expect.poll(() => new URL(foodPage.url()).searchParams.get('sort')).toBe('name_asc');
     await foodPage.getByRole('button', { name: 'Meine Daten' }).click();
-    expect(new URL(foodPage.url()).searchParams.get('owner')).toBeNull();
+    await expect.poll(() => new URL(foodPage.url()).searchParams.get('mine')).toBe('1');
 
     const pageResponse = foodPage.waitForResponse((response) =>
       response.url().includes('/api/shopping-lists/') && response.url().includes('page=2'),

@@ -153,7 +153,9 @@ test.describe('Food core CRUD', () => {
     await foodPage.getByRole('heading', { name }).click();
     await foodPage.getByTestId('shopping-list-name-input').fill(`${name} aktualisiert`);
     await Promise.all([
-      foodPage.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().includes(`/api/shopping-lists/${id}/`)),
+      // Match the list itself, not `/items/<id>/` PATCHes from checking an item.
+      foodPage.waitForResponse((r) => r.request().method() === 'PATCH'
+        && new URL(r.url()).pathname === `/api/shopping-lists/${id}/`),
       foodPage.getByRole('button', { name: 'OK' }).click(),
     ]);
     await foodPage.reload();
