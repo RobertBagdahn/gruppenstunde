@@ -6,6 +6,7 @@ import pytest
 from django.core.management import call_command
 
 from supply.models import Ingredient, RetailSection
+from supply.tests import make_legacy_ingredient
 
 
 @pytest.mark.django_db
@@ -23,24 +24,25 @@ class TestBackfillRetailSectionsCommand:
         self.rs_oele = RetailSection.objects.get_or_create(name="Öle & Essig", defaults={"rank": 2})[0]
         self.rs_kuehlung = RetailSection.objects.get_or_create(name="Kühlung", defaults={"rank": 3})[0]
 
-        # Create ingredients
+        # Create ingredients. Legacy rows bypass the import gate, which would
+        # otherwise assign a retail section on create.
         # 1. Ingredient without retail section that can be mapped
-        self.ing_schafskaese = Ingredient.objects.create(
-            name="Schafskäse",
+        self.ing_schafskaese = make_legacy_ingredient(
+            "Schafskäse",
             slug="schafskaese",
             description="Leckerer Schafskäse aus Kuh- oder Schafsmilch",
         )
 
         # 2. Another ingredient without retail section that can be mapped
-        self.ing_pflanzenoel = Ingredient.objects.create(
-            name="Pflanzenöl",
+        self.ing_pflanzenoel = make_legacy_ingredient(
+            "Pflanzenöl",
             slug="pflanzenoel",
             description="Pflanzenöl zum Braten",
         )
 
         # 3. Ingredient without retail section that CANNOT be mapped
-        self.ing_bionella = Ingredient.objects.create(
-            name="Bionella",
+        self.ing_bionella = make_legacy_ingredient(
+            "Bionella",
             slug="bionella",
             description="Leckerer Brotaufstrich",
         )

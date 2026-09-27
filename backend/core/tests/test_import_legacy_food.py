@@ -45,7 +45,7 @@ class TestImportLegacyFoodMasterData:
 
 @pytest.mark.django_db
 class TestImportLegacyFoodIngredients:
-    """7.3: Zwei Läufe → Ingredient-Anzahl verdoppelt sich, keine IntegrityError."""
+    """7.3: Zwei Läufe → gleichnamige System-Zutaten werden wiederverwendet, keine IntegrityError."""
 
     def test_ingredients_with_duplicates(self, fixture_dir: str) -> None:
         from supply.models import Ingredient
@@ -55,8 +55,8 @@ class TestImportLegacyFoodIngredients:
         assert count_after_first >= 2  # Testapfel, Testmehl
 
         call_command("import_legacy_food", "--data-dir", fixture_dir, "--files", "1")
-        count_after_second = Ingredient.objects.count()
-        assert count_after_second == count_after_first * 2
+        # `uniq_system_ingredient_name` forbids duplicates, so the rerun reuses them.
+        assert Ingredient.objects.count() == count_after_first
 
 
 @pytest.mark.django_db

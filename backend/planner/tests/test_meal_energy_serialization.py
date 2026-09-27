@@ -42,7 +42,14 @@ class TestMealEnergySerialization:
         meal = make_meal(meal_plan=plan)
         recipe = make_recipe(portions=4)
         ingredient = make_ingredient(
-            energy_kcal=120, protein_g=0.0, fat_g=0.0, carbohydrate_g=0.0, sugar_g=0.0, fibre_g=0.0, salt_g=0.0
+            energy_kcal=120,
+            protein_g=0.0,
+            fat_g=0.0,
+            fat_sat_g=0.0,
+            carbohydrate_g=30.0,
+            sugar_g=0.0,
+            fibre_g=0.0,
+            salt_g=0.0,
         )
         portion = make_portion(ingredient=ingredient, weight_g=200.0)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)

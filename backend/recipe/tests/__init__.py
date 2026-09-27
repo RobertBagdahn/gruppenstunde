@@ -45,8 +45,9 @@ def make_recipe_item(recipe: Recipe | None = None, **kwargs) -> RecipeItem:
 
     if portion is None and ingredient is None:
         from supply.models import Ingredient
+        from supply.tests import unique_system_ingredient_name
 
-        ingredient = baker.make(Ingredient, name="Testzutat")
+        ingredient = baker.make(Ingredient, name=unique_system_ingredient_name("Testzutat"))
 
     if portion is None and ingredient is not None:
         from supply.models import MeasuringUnit, Portion

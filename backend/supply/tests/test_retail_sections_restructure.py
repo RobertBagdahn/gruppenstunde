@@ -56,9 +56,10 @@ class TestReclassifyCommand:
         call_command("reclassify_retail_sections", **kwargs)
 
     def test_dry_run_changes_nothing(self):
-        from supply.models import Ingredient
+        from supply.tests import make_legacy_ingredient
 
-        ing = Ingredient.objects.create(name="Orangensaft")
+        # Legacy row without a section; the import gate would assign one on create.
+        ing = make_legacy_ingredient("Orangensaft")
         self._call()
         ing.refresh_from_db()
         assert ing.retail_section is None

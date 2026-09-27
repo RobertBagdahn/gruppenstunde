@@ -38,6 +38,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import Max
 from django.db.models.signals import post_delete, post_save
 from django.utils.text import slugify
 
@@ -378,6 +379,16 @@ class Command(BaseCommand):
         ingredients_to_create: list[Ingredient] = []
         legacy_pks_in_order: list[int] = []
         ingredient_ref_deferred: dict[int, int] = {}  # legacy_pk -> legacy_ref_pk
+        # System ingredient names are unique (`uniq_system_ingredient_name`), so
+        # repeated names reuse the existing or first-queued ingredient.
+        existing_by_name: dict[str, int] = {
+            ingredient_name.lower(): ingredient_pk
+            for ingredient_pk, ingredient_name in Ingredient.objects.filter(owner__isnull=True).values_list(
+                "pk", "name"
+            )
+        }
+        queued_by_name: dict[str, int] = {}  # lowercased name -> first legacy_pk in this run
+        duplicate_of: dict[int, int] = {}  # legacy_pk -> legacy_pk queued under the same name
 
         for entry in ingredient_entries:
             pk = entry["pk"]
@@ -385,6 +396,16 @@ class Command(BaseCommand):
             name = fields.get("name", "")
             if not name:
                 continue
+
+            name_key = name.lower()
+            if name_key in existing_by_name:
+                self.pk_map.add("ingredient", pk, existing_by_name[name_key])
+                self._count(f"Ingredient ({source_label})", "skipped")
+                continue
+            if name_key in queued_by_name:
+                duplicate_of[pk] = queued_by_name[name_key]
+                continue
+            queued_by_name[name_key] = pk
 
             # Get metainfo
             meta_pk = fields.get("meta_info")
@@ -465,6 +486,10 @@ class Command(BaseCommand):
                 self._count(f"Ingredient ({source_label})")
             total_created += len(created)
 
+        for legacy_pk, first_legacy_pk in duplicate_of.items():
+            self.pk_map.add("ingredient", legacy_pk, self.pk_map.get("ingredient", first_legacy_pk))
+            self._count(f"Ingredient ({source_label})", "skipped")
+
         self.stdout.write(f"    Ingredients: {total_created} erstellt")
 
         # Second pass: ingredient_ref (self-FK)
@@ -504,6 +529,14 @@ class Command(BaseCommand):
         existing_portions = {
             (p["ingredient_id"], p["name"].strip().lower(), p["measuring_unit_id"], float(p["quantity"])): p["id"]
             for p in existing_portions_qs
+        }
+        # Portion names are unique per ingredient, so a reused ingredient keeps its
+        # portion even when the unit mapping differs between runs.
+        existing_portions_by_name = {(key[0], key[1]): portion_pk for key, portion_pk in existing_portions.items()}
+        # Ingredients that already have an active rank-1 portion must not get a second one.
+        max_rank_by_ingredient: dict[int, int] = {
+            row["ingredient_id"]: row["max_rank"]
+            for row in Portion.objects.active().values("ingredient_id").annotate(max_rank=Max("rank"))
         }
 
         portions_to_create: list[Portion] = []
@@ -550,8 +583,9 @@ class Command(BaseCommand):
             # Form deduplication key
             key = (new_ing_pk, cleaned_name.lower(), new_mu_pk, float(quantity))
 
-            if key in existing_portions:
-                self.pk_map.add("portion", pk, existing_portions[key])
+            existing_portion_pk = existing_portions.get(key) or existing_portions_by_name.get(key[:2])
+            if existing_portion_pk:
+                self.pk_map.add("portion", pk, existing_portion_pk)
                 self._count(f"Portion ({source_label})")
                 continue
 
@@ -570,6 +604,9 @@ class Command(BaseCommand):
                 weight_g=weight_g,
                 rank=self._safe_int(fields.get("rank")) or 1,
             )
+            if new_ing_pk in max_rank_by_ingredient:
+                max_rank_by_ingredient[new_ing_pk] += 1
+                temp_portion.rank = max_rank_by_ingredient[new_ing_pk]
             # Use central weight_g-calculation (Task 4.1)
             temp_portion.weight_g = temp_portion.compute_weight_g(temp_portion.weight_g)
 

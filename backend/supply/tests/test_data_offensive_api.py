@@ -36,10 +36,11 @@ def complete_ingredient(db, section):
 
 @pytest.fixture
 def broken_ingredient(db):
-    from supply.models import Ingredient
+    # Legacy REWE import data; the import gate would repair it on create.
+    from supply.tests import make_legacy_ingredient
 
-    return Ingredient.objects.create(
-        name="Skyr Vanille",
+    return make_legacy_ingredient(
+        "Skyr Vanille",
         status="draft",
         energy_kcal=330,
         protein_g=8.8,
@@ -109,7 +110,10 @@ def test_repair_nutrition_endpoint(admin_client, broken_ingredient):
 def test_merge_exact_duplicates(admin_client, complete_ingredient):
     from supply.models import Ingredient
 
-    duplicate = Ingredient.objects.create(name="milch", status="draft")
+    # Case-only duplicates are blocked by `uniq_system_ingredient_name`; legacy
+    # data can still differ by surrounding whitespace.
+    duplicate = Ingredient.objects.create(name="Milch Duplikat", status="draft")
+    Ingredient.objects.filter(pk=duplicate.pk).update(name="milch ")
     data = admin_client.post(f"{BASE}/merge-exact-duplicates/").json()
     assert data["changed"] == 1
     duplicate.refresh_from_db()

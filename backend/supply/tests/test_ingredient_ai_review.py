@@ -122,9 +122,10 @@ def test_review_ingredients_persists_and_ignores_unknown_ids(sections):
 
 @pytest.mark.django_db
 def test_prompt_contains_rules_values_and_catalog():
-    from supply.models import Ingredient
+    from supply.tests import make_legacy_ingredient
 
-    ing = Ingredient.objects.create(name="Orangensaft", energy_kcal=0, protein_g=0, fat_g=0, carbohydrate_g=0)
+    # Legacy all-zero placeholder; the import gate would clear it on create.
+    ing = make_legacy_ingredient("Orangensaft", energy_kcal=0, protein_g=0, fat_g=0, carbohydrate_g=0)
     prompt = build_review_prompt([ing])
     assert f"id={ing.id}" in prompt
     assert "sugar_g <= carbohydrate_g" in prompt

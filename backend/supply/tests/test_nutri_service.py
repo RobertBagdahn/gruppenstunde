@@ -13,7 +13,10 @@ class TestNutriScoreService:
         # 500 kcal = 2092 kJ -> falls into > 2010 kJ bucket (6 negative points)
         ing = Ingredient.objects.create(
             name="Test Schokolade",
+            # Plausible macros (Atwater ≈ 494 kcal), so the import gate keeps the energy.
             energy_kcal=500.0,
+            fat_g=30.0,
+            carbohydrate_g=50.0,
             sugar_g=50.0,
             fat_sat_g=15.0,
             sodium_mg=50.0,
@@ -30,7 +33,10 @@ class TestNutriScoreService:
         # 30 kcal = 125.5 kJ -> falls into > 120 kJ bucket (5 negative points)
         ing = Ingredient.objects.create(
             name="Test Softdrink",
+            # Plausible macros (Atwater = 30 kcal), so the import gate keeps the energy.
             energy_kcal=30.0,
+            fat_g=0.0,
+            carbohydrate_g=7.5,
             sugar_g=7.5,
             fat_sat_g=0.0,
             sodium_mg=0.0,
