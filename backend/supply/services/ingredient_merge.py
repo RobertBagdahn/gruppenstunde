@@ -112,7 +112,13 @@ def merge_ingredient(source: Any, target: Any, *, user: Any | None = None) -> Me
 
         # A meal may contain both ingredients; keep the target's entry there.
         meals_with_target = MealItem.objects.filter(ingredient=target).values("meal_id")
-        MealItem.objects.filter(ingredient=source, meal_id__in=meals_with_target).delete()
+        # .only(): this runs from a migration (0018_unique_system_ingredient_name)
+        # that may execute before later migrations add newer MealItem columns
+        # (e.g. buffet_role); a full-row SELECT would then fail on the missing
+        # column. Include recipe_id explicitly — the post_delete signal that
+        # updates Recipe.usage_count reads it, and a lazy re-fetch of a
+        # deferred field could pull in the same not-yet-existing columns.
+        MealItem.objects.filter(ingredient=source, meal_id__in=meals_with_target).only("pk", "recipe_id").delete()
         MealItem.objects.filter(ingredient=source).update(ingredient=target)
         target.tags.add(*source.tags.all())
         if not target.energy_kcal and source.energy_kcal:
