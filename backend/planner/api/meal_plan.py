@@ -60,7 +60,6 @@ from planner.schemas import (
     MealUpdateIn,
     NutritionalTagScanOut,
     NutritionSummaryOut,
-    PlanCheckAlertOut,
     PlanCheckResponseOut,
     PopularRecipesResponseOut,
     RecentlyUsedRecipesResponseOut,
@@ -1407,118 +1406,14 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
 
 @meal_plan_router.get("/{meal_plan_id}/plan-check/", response=PlanCheckResponseOut)
 def plan_check(request, meal_plan_id: int):
-    """Analyze meal plan for empty slots, budget excess, and allergen/nutritional issues."""
+    """Analyze meal plan for empty/mismatched slots, budget, allergens, and integrity issues."""
+    from planner.services.plan_check import build_plan_check_alerts
+
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _require_access(meal_plan, request.user)
+    role = _require_access(meal_plan, request.user)
 
-    alerts: list[PlanCheckAlertOut] = []
-
-    meals = (
-        Meal.objects.filter(meal_plan=meal_plan, is_reference=False)
-        .prefetch_related(
-            "items__recipe__nutritional_tags",
-            "items__ingredient__nutritional_tags",
-            "items__recipe__recipe_items__portion__ingredient",
-            "items__ingredient__portions",
-            "items__measuring_unit",
-            "items__overrides",
-        )
-        .order_by("start_datetime")
-    )
-
-    # 1. Check for empty scheduled meal slots
-    for meal in meals:
-        if not meal.start_datetime:
-            continue
-        if not meal.is_external and meal.items.count() == 0:
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
-            alerts.append(
-                PlanCheckAlertOut(
-                    id=f"empty-slot-{meal.id}",
-                    type="empty_slot",
-                    severity="warning",
-                    title=f"{meal.get_meal_type_display()} ist noch leer",
-                    description=f"Am {meal.start_datetime.strftime('%d.%m.')} ist noch kein Gericht für {meal.get_meal_type_display()} hinterlegt.",
-                    date=date_str,
-                    meal_id=meal.id,
-                    meal_type=meal.meal_type,
-                    action_label="Gericht vorschlagen",
-                    action_type="suggest_recipe",
-                    action_payload={
-                        "meal_id": meal.id,
-                        "meal_type": meal.meal_type,
-                        "date": date_str,
-                    },
-                )
-            )
-
-    # 2. Check for daily budget exceedance
-    if meal_plan.budget_per_person_per_day and meal_plan.budget_per_person_per_day > 0:
-        budget_limit = meal_plan.budget_per_person_per_day
-        day_totals: dict[str, float] = {}
-        for meal in meals:
-            if not meal.start_datetime:
-                continue
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
-            eff = meal.effective_portions or 1.0
-            cost_eur = MealOut.resolve_total_cost_eur(meal)
-            cost_p = (cost_eur / eff) if eff > 0 else 0.0
-            day_totals[date_str] = day_totals.get(date_str, 0.0) + cost_p
-
-        for date_str, day_cost in sorted(day_totals.items()):
-            if day_cost > float(budget_limit):
-                excess = day_cost - float(budget_limit)
-                alerts.append(
-                    PlanCheckAlertOut(
-                        id=f"budget-excess-{date_str}",
-                        type="budget_excess",
-                        severity="warning",
-                        title=f"Budget am {date_str} überschritten",
-                        description=f"Geplant sind {day_cost:.2f} € / Person ({excess:.2f} € über dem Budget von {budget_limit:.2f} €).",
-                        date=date_str,
-                        meal_id=None,
-                        meal_type=None,
-                        action_label="Budget ansehen",
-                        action_type="open_budget",
-                        action_payload={"date": date_str},
-                    )
-                )
-
-    # 3. Check for nutritional tag conflicts
-    plan_tag_ids = {tag.id for tag in meal_plan.nutritional_tags.all()}
-    if plan_tag_ids:
-        for meal in meals:
-            if not meal.start_datetime:
-                continue
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
-            for item in meal.items.all():
-                item_tags = set()
-                if item.recipe:
-                    for tag in item.recipe.nutritional_tags.all():
-                        item_tags.add(tag)
-                if item.ingredient:
-                    for tag in item.ingredient.nutritional_tags.all():
-                        item_tags.add(tag)
-
-                for tag in item_tags:
-                    if tag.id in plan_tag_ids:
-                        alerts.append(
-                            PlanCheckAlertOut(
-                                id=f"tag-conflict-{meal.id}-{item.id}-{tag.id}",
-                                type="allergen_conflict",
-                                severity="error",
-                                title=f"Einschränkung verletzt bei {meal.get_meal_type_display()}",
-                                description=f"«{item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else 'Unbekannt')}» enthält «{tag.name}».",
-                                date=date_str,
-                                meal_id=meal.id,
-                                meal_type=meal.meal_type,
-                                action_label="Gericht ansehen",
-                                action_type="open_slot",
-                                action_payload={"meal_id": meal.id},
-                            )
-                        )
-
+    alerts = build_plan_check_alerts(meal_plan, role)
     return PlanCheckResponseOut(total_issues=len(alerts), alerts=alerts)
 
 

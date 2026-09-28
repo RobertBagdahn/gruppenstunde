@@ -15,10 +15,10 @@
 
 ## 3. Backend: Plan-Check
 
-- [ ] 3.1 `planner/services/plan_check.py`: bestehende Regeln aus dem Endpunkt extrahieren
-- [ ] 3.2 Neue Regeln `recipe_type_mismatch` (`PLAUSIBLE_RECIPE_TYPES_BY_MEAL`, leere Typen und `recipe_part` ausgenommen), `missing_quantity`, `meal_outside_range`, `empty_day`
-- [ ] 3.3 `PlanCheckAlertOut.type` als `Literal` aller Typen
-- [ ] 3.4 Tests je Regel inkl. Viewer (Hinweise ohne Aktionen) und anonym (403)
+- [x] 3.1 `planner/services/plan_check.py`: bestehende Regeln aus dem Endpunkt extrahieren
+- [x] 3.2 Neue Regeln `recipe_type_mismatch` (`PLAUSIBLE_RECIPE_TYPES_BY_MEAL`, leere Typen und `recipe_part` ausgenommen), `missing_quantity`, `meal_outside_range`, `empty_day`
+- [x] 3.3 `PlanCheckAlertOut.type` als `Literal` aller Typen
+- [x] 3.4 Tests je Regel inkl. Viewer (Hinweise ohne Aktionen) und anonym (403)
 
 ## 4. Backend: Formatierung und strukturierte Anzeigefelder
 

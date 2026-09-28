@@ -284,7 +284,16 @@ class MealReorderIn(Schema):
 
 class PlanCheckAlertOut(Schema):
     id: str
-    type: Literal["empty_slot", "budget_excess", "allergen_conflict", "info"]
+    type: Literal[
+        "empty_slot",
+        "budget_excess",
+        "allergen_conflict",
+        "recipe_type_mismatch",
+        "missing_quantity",
+        "meal_outside_range",
+        "empty_day",
+        "info",
+    ]
     severity: Literal["error", "warning", "info"]
     title: str
     description: str
