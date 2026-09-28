@@ -1,10 +1,10 @@
 ## 1. Backend: Mahlzeiten-Integrität (Model und Migration)
 
-- [ ] 1.1 `backend/planner/models/meal_plan.py`: CheckConstraint `meal_reference_without_datetime` und UniqueConstraint `unique_regular_meal_per_day_and_type` (TruncDate, Bedingung ohne Referenz/Snack)
-- [ ] 1.2 `Meal.clean()`: Bereichsprüfung gegen Plan-Start/-Ende nur bei Neuanlage oder geändertem `start_datetime` (Originalwert in `__init__` merken)
-- [ ] 1.3 Migration: `RunPython` (Referenzmahlzeiten → Datum/Uhrzeit `NULL`; Vorabprüfung auf doppelte reguläre Mahlzeiten mit Abbruchliste) → `AddConstraint` ×2
-- [ ] 1.4 Management-Befehl `check_meal_integrity` (nur Bericht): Dubletten, Referenzmahlzeiten mit Datum, Mahlzeiten außerhalb des Zeitraums, Zutaten-Einträge ohne Menge
-- [ ] 1.5 Tests: Constraints greifen; Migration leert Datum der Referenzmahlzeit ohne Datenverlust; bestehende Mahlzeit außerhalb bleibt bearbeitbar; neue außerhalb → `ValidationError`
+- [x] 1.1 `backend/planner/models/meal_plan.py`: CheckConstraint `meal_reference_without_datetime` und UniqueConstraint `unique_regular_meal_per_day_and_type` (TruncDate, Bedingung ohne Referenz/Snack)
+- [x] 1.2 `Meal.clean()`: Bereichsprüfung gegen Plan-Start/-Ende nur bei Neuanlage oder geändertem `start_datetime` (Originalwert in `__init__` merken)
+- [x] 1.3 Migration: `RunPython` (Referenzmahlzeiten → Datum/Uhrzeit `NULL`; Vorabprüfung auf doppelte reguläre Mahlzeiten mit Abbruchliste) → `AddConstraint` ×2
+- [x] 1.4 Management-Befehl `check_meal_integrity` (nur Bericht): Dubletten, Referenzmahlzeiten mit Datum, Mahlzeiten außerhalb des Zeitraums, Zutaten-Einträge ohne Menge
+- [x] 1.5 Tests: Constraints greifen; Migration leert Datum der Referenzmahlzeit ohne Datenverlust; bestehende Mahlzeit außerhalb bleibt bearbeitbar; neue außerhalb → `ValidationError`
 
 ## 2. Backend: API und Schemas (Pydantic)
 
