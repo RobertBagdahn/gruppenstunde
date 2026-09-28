@@ -56,4 +56,35 @@ describe('ShoppingListItemRow', () => {
     expect(screen.getByText('64 × TL (à 5 g)')).toBeInTheDocument();
     expect(screen.getByText('21,3 × EL (à 15 g)')).toBeInTheDocument();
   });
+
+  it('shows the package need after the amount and a reserve line', () => {
+    renderRow(
+      item({
+        quantity_g: 700,
+        piece_equivalent: null,
+        package_options: [{ count: 3, package_name: 'Packung', weight_g: 250 }],
+        package_surplus_g: 50,
+      }),
+    );
+    expect(screen.getByText('700 g · 3 × 250-g-Packung')).toBeInTheDocument();
+    expect(screen.getByText('+ 50 g Reserve')).toBeInTheDocument();
+  });
+
+  it('shows no reserve line when rounded down within the tolerance', () => {
+    renderRow(
+      item({
+        quantity_g: 1020,
+        piece_equivalent: null,
+        package_options: [{ count: 2, package_name: 'Packung', weight_g: 500 }],
+        package_surplus_g: -20,
+      }),
+    );
+    expect(screen.getByText('1,0 kg · 2 × 500-g-Packung')).toBeInTheDocument();
+    expect(screen.queryByText(/Reserve/)).toBeNull();
+  });
+
+  it('shows liquids in litres from the display quantity', () => {
+    renderRow(item({ name: 'Milch', quantity_g: 9400, quantity: 9126, unit: 'ml', piece_equivalent: null }));
+    expect(screen.getByText('9,1 l')).toBeInTheDocument();
+  });
 });

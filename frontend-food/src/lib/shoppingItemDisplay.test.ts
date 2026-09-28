@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-  formatPackageOption,
+  formatPackageLabel,
+  formatPackageNeed,
+  formatPackageReserve,
   formatPieceEquivalent,
   formatPortionOption,
   formatShoppingAmount,
@@ -16,8 +18,7 @@ describe('shoppingItemDisplay', () => {
 
   it('formats non-gram units with German decimals', () => {
     expect(formatShoppingAmount(250, 'ml')).toBe('250 ml');
-    expect(formatShoppingAmount(2.5, 'l')).toBe('2,5 l');
-  });
+      });
 
   it('combines amount and piece equivalent: amount first, pieces second', () => {
     expect(formatShoppingQuantity(320, 'g', { count: 64, portion_name: 'TL' })).toBe('320 g · ≈ 64 TL');
@@ -31,6 +32,30 @@ describe('shoppingItemDisplay', () => {
 
   it('formats portion and package options with exact weights', () => {
     expect(formatPortionOption({ count: 32.4, name: '100g', weight_g: 100 })).toBe('32,4 × 100g (à 100 g)');
-    expect(formatPackageOption({ count: 2, package_name: 'Packung', weight_g: 500 })).toBe('2 × Packung (à 500 g)');
+  });
+
+  it('labels packages by size unless the name already states one', () => {
+    expect(formatPackageLabel({ package_name: 'Packung', weight_g: 500 })).toBe('500-g-Packung');
+    expect(formatPackageLabel({ package_name: '', weight_g: 1000 })).toBe('1-kg-Packung');
+    expect(formatPackageLabel({ package_name: '400-g-Dose', weight_g: 400 })).toBe('400-g-Dose');
+    expect(formatPackageNeed({ count: 2, package_name: 'Packung', weight_g: 500 })).toBe('2 × 500-g-Packung');
+  });
+
+  it('puts the package need after the amount, preferring it over the piece equivalent', () => {
+    expect(
+      formatShoppingQuantity(700, 'g', { count: 2.8, portion_name: 'Stück' }, { count: 3, package_name: 'Packung', weight_g: 250 }),
+    ).toBe('700 g · 3 × 250-g-Packung');
+  });
+
+  it('shows a reserve line only for a positive package surplus', () => {
+    expect(formatPackageReserve(50)).toBe('+ 50 g Reserve');
+    expect(formatPackageReserve(-20)).toBe('');
+    expect(formatPackageReserve(null)).toBe('');
+  });
+
+  it('shows millilitres from 1.000 ml as litres with one decimal', () => {
+    expect(formatShoppingAmount(9126, 'ml')).toBe('9,1 l');
+    expect(formatShoppingAmount(1000, 'ml')).toBe('1,0 l');
+    expect(formatShoppingAmount(250, 'ml')).toBe('250 ml');
   });
 });

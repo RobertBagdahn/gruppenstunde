@@ -11,11 +11,17 @@ import {
   JunkRecipeSchema,
   OffensiveIngredientSchema,
   OffensiveSummarySchema,
+  PackageSuggestionSchema,
+  PackageSuggestRunSchema,
   PaginatedDuplicateGroupSchema,
   PaginatedOffensiveIngredientSchema,
+  PaginatedPackageSuggestionSchema,
   RetailSectionOptionSchema,
   type OffensiveFilters,
   type OffensiveIngredientPatch,
+  type PackageSuggestionDecision,
+  type PackageSuggestionFilters,
+  type PackageSuggestionPatch,
   type SuggestionField,
 } from '@/schemas/dataOffensive';
 
@@ -47,7 +53,7 @@ function post<T>(path: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>, body
   return request(`${BASE}${path}`, schema, { method: 'POST', body: JSON.stringify(body) });
 }
 
-function filterParams(filters: OffensiveFilters): URLSearchParams {
+function filterParams(filters: OffensiveFilters | PackageSuggestionFilters): URLSearchParams {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '' || value === false) return;
@@ -63,6 +69,9 @@ export const offensiveKeys = {
   duplicates: (page: number) => ['data-offensive', 'duplicates', page] as const,
   sections: ['data-offensive', 'sections'] as const,
   junkRecipes: ['data-offensive', 'junk-recipes'] as const,
+  packages: ['data-offensive', 'packages'] as const,
+  packageList: (filters: PackageSuggestionFilters) => ['data-offensive', 'packages', 'list', filters] as const,
+  packageEstimate: ['data-offensive', 'packages', 'estimate'] as const,
 };
 
 /** Invalidate every cockpit query plus the regular ingredient caches. */
@@ -175,6 +184,56 @@ export function useMergeGroup() {
     mutationFn: ({ targetId, sourceIds }: { targetId: number; sourceIds: number[] }) =>
       post('/merge-group/', BulkActionSchema, { target_id: targetId, source_ids: sourceIds }),
     onSuccess: invalidate,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Package suggestions
+// ---------------------------------------------------------------------------
+
+/** Cost estimate for the AI package run (dry run, no AI call). */
+export function usePackageSuggestEstimate() {
+  return useQuery({
+    queryKey: offensiveKeys.packageEstimate,
+    queryFn: () => post('/packages/suggest/', PackageSuggestRunSchema, { dry_run: true }),
+  });
+}
+
+/** One chunk of the AI package run. */
+export function runPackageSuggestChunk(limit = 45) {
+  return post('/packages/suggest/', PackageSuggestRunSchema, { limit });
+}
+
+export function usePackageSuggestions(filters: PackageSuggestionFilters) {
+  return useQuery({
+    queryKey: offensiveKeys.packageList(filters),
+    queryFn: () => request(`${BASE}/packages/?${filterParams(filters)}`, PaginatedPackageSuggestionSchema),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function usePatchPackageSuggestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: PackageSuggestionPatch }) =>
+      request(`${BASE}/packages/${id}/`, PackageSuggestionSchema, { method: 'PATCH', body: JSON.stringify(patch) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: offensiveKeys.packages }),
+  });
+}
+
+/** Accept or reject package suggestions; accepting changes shopping lists and ingredient data. */
+export function useDecidePackageSuggestions(action: 'accept' | 'reject') {
+  const invalidate = useInvalidateOffensive();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (decision: PackageSuggestionDecision) => post(`/packages/${action}/`, BulkActionSchema, decision),
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ['shopping-list'] });
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'meal-plan' && query.queryKey[2] === 'shopping-list',
+      });
+    },
   });
 }
 

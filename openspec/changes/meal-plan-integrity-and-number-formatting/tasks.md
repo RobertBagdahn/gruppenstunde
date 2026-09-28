@@ -64,18 +64,18 @@
 
 ## 9. Backend: Packungsvorschläge per KI
 
-- [ ] 9.1 Model `IngredientPackageSuggestion` + Migration
-- [ ] 9.2 Service im Batch-Runner (`supply/services/data_offensive.py`): Auswahl genutzter Zutaten ohne Standardpackung, Prompt mit JSON-Schema, Kostenschätzung, Trockenlauf
-- [ ] 9.3 API `/api/admin/data-quality/offensive/packages/`: suggest, list (paginiert, Filter Konfidenz/Warengruppe/Status), accept/reject einzeln und Bulk (ab Konfidenz-Schwelle); nur Staff
-- [ ] 9.4 Übernahme: `Package(rank=1)` anlegen, Viskosität/Dichte nur ohne manuelle Herkunft setzen
-- [ ] 9.5 Tests mit gemocktem Gemini: Auswahl, Kostenschätzung, Staff/Nicht-Staff/anonym, keine Überschreibung manueller Werte, Idempotenz
+- [x] 9.1 Model `IngredientPackageSuggestion` + Migration
+- [x] 9.2 Service im Batch-Runner (`supply/services/data_offensive.py`): Auswahl genutzter Zutaten ohne Standardpackung, Prompt mit JSON-Schema, Kostenschätzung, Trockenlauf
+- [x] 9.3 API `/api/admin/data-quality/offensive/packages/`: suggest, list (paginiert, Filter Konfidenz/Warengruppe/Status), accept/reject einzeln und Bulk (ab Konfidenz-Schwelle); nur Staff
+- [x] 9.4 Übernahme: `Package(rank=1)` anlegen, Viskosität/Dichte nur ohne manuelle Herkunft setzen
+- [x] 9.5 Tests mit gemocktem Gemini: Auswahl, Kostenschätzung, Staff/Nicht-Staff/anonym, keine Überschreibung manueller Werte, Idempotenz
 
 ## 10. Frontend: Einkauf und Packungs-Cockpit
 
-- [ ] 10.1 Zod: Einkaufsfelder (`package_options`, `package_surplus_g`, `unit`), `IngredientPackageSuggestion`-Schema
-- [ ] 10.2 Einkaufszeile: „1.020 g · 2 × 500-g-Packung“, Reserve-Zeile, Liter-Anzeige ab 1.000 ml
-- [ ] 10.3 Cockpit-Tab „Packungen“ (`pages/admin/DataOffensivePage.tsx`): Kostenanzeige, Lauf starten, Liste mit Filtern im URL-State, Einzel-/Bulk-Freigabe, Bearbeiten
-- [ ] 10.4 Vitest: Einkaufszeile, Freigabe-Flow
+- [x] 10.1 Zod: Einkaufsfelder (`package_options`, `package_surplus_g`, `unit`), `IngredientPackageSuggestion`-Schema
+- [x] 10.2 Einkaufszeile: „1.020 g · 2 × 500-g-Packung“, Reserve-Zeile, Liter-Anzeige ab 1.000 ml
+- [x] 10.3 Cockpit-Tab „Packungen“ (`pages/admin/DataOffensivePage.tsx`): Kostenanzeige, Lauf starten, Liste mit Filtern im URL-State, Einzel-/Bulk-Freigabe, Bearbeiten
+- [x] 10.4 Vitest: Einkaufszeile, Freigabe-Flow
 
 ## 11. Frontend: Design-Tokens
 

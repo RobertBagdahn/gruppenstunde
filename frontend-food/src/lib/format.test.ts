@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatNumber, formatCount, formatEuro, formatWeight, formatExactWeight, plural } from './format';
+import { formatNumber, formatCount, formatEuro, formatWeight, formatExactWeight, formatVolume, plural } from './format';
 // Shared fixture with the backend (backend/supply/tests/test_format_weight_fixture.py
 // runs the same file), so both implementations are provably identical.
 import cases from '../../../backend/supply/tests/fixtures/format_weight_cases.json';
@@ -57,4 +57,21 @@ describe('formatExactWeight (shared fixture with the backend)', () => {
       expect(formatExactWeight(grams)).toBe(expected);
     });
   }
+});
+
+describe('formatVolume', () => {
+  it('shows whole millilitres below one litre', () => {
+    expect(formatVolume(250)).toBe('250 ml');
+    expect(formatVolume(999.4)).toBe('999 ml');
+  });
+
+  it('shows litres with exactly one decimal from 1.000 ml', () => {
+    expect(formatVolume(1000)).toBe('1,0 l');
+    expect(formatVolume(9126)).toBe('9,1 l');
+    expect(formatVolume(1250)).toBe('1,3 l');
+  });
+
+  it('handles empty volumes', () => {
+    expect(formatVolume(0)).toBe('0 ml');
+  });
 });

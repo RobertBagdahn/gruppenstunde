@@ -103,6 +103,21 @@ export function formatExactWeight(grams: number): string {
   return grams === Math.trunc(grams) ? `${grams} g` : `${grams.toFixed(1).replace('.', ',')} g`;
 }
 
+const literFormatter = new Intl.NumberFormat('de-DE', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+/**
+ * Format a volume in millilitres: below 1.000 ml as whole millilitres
+ * ("250 ml"), from 1.000 ml as litres with exactly one decimal ("9,1 l").
+ */
+export function formatVolume(ml: number): string {
+  if (ml <= 0) return '0 ml';
+  if (ml < 1000) return `${formatCount(ml)} ml`;
+  return `${literFormatter.format(roundHalfUp(ml / 1000, 0.1))} l`;
+}
+
 /**
  * Build a "{count} {word}" string with the correct German plural.
  * `formatCount` handles the number; callers supply both word forms

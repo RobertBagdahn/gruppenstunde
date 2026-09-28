@@ -9,7 +9,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
 import { formatEuro, formatWeight } from '@/lib/format';
-import { formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
+import { formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 type TransientShoppingItem = ShoppingListItem;
 
@@ -65,10 +65,20 @@ function ShoppingItemWithSources({
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
           <span>
-            {formatShoppingQuantity(item.total_quantity_g || 0, item.unit, item.piece_equivalent)}
+            {formatShoppingQuantity(
+              item.quantity || item.total_quantity_g || 0,
+              item.unit,
+              item.piece_equivalent,
+              item.package_options[0],
+            )}
             {showReserve && (item.reserve_quantity_g || 0) > 0 && (
               <span className="text-xs text-muted-foreground/70">
                 {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
+              </span>
+            )}
+            {formatPackageReserve(item.package_surplus_g) && (
+              <span className="block text-xs text-muted-foreground/70 text-right">
+                {formatPackageReserve(item.package_surplus_g)}
               </span>
             )}
           </span>

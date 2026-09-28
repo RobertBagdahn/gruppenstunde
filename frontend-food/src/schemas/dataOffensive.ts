@@ -149,3 +149,82 @@ export interface OffensiveFilters {
   page?: number;
   page_size?: number;
 }
+
+// ---------------------------------------------------------------------------
+// Package suggestions (backend: PackageSuggest*/PackageSuggestion* schemas)
+// ---------------------------------------------------------------------------
+
+export const PackageSuggestionStatusSchema = z.enum(['pending', 'accepted', 'rejected']);
+export type PackageSuggestionStatus = z.infer<typeof PackageSuggestionStatusSchema>;
+
+export const PhysicalViscositySchema = z.enum(['solid', 'liquid', 'beverage']);
+export type PhysicalViscosity = z.infer<typeof PhysicalViscositySchema>;
+
+export const PackageSuggestRunSchema = z.object({
+  dry_run: z.boolean(),
+  candidates: z.number(),
+  estimated_calls: z.number(),
+  estimated_cost_eur: z.number(),
+  suggested: z.number().default(0),
+  skipped: z.number().default(0),
+  calls: z.number().default(0),
+  remaining: z.number(),
+  errors: z.array(z.string()).default([]),
+});
+export type PackageSuggestRun = z.infer<typeof PackageSuggestRunSchema>;
+
+export const PackageSuggestionSchema = z.object({
+  id: z.number(),
+  ingredient_id: z.number(),
+  ingredient_name: z.string(),
+  ingredient_slug: z.string(),
+  retail_section_id: z.number().nullable().default(null),
+  retail_section_name: z.string().nullable().default(null),
+  package_name: z.string(),
+  weight_g: z.number(),
+  volume_ml: z.number().nullable().default(null),
+  physical_viscosity: PhysicalViscositySchema,
+  physical_density: z.number().nullable().default(null),
+  confidence: z.number(),
+  reason: z.string(),
+  status: PackageSuggestionStatusSchema,
+  viscosity_is_manual: z.boolean(),
+  created_at: z.string(),
+  can_edit: z.boolean().default(true),
+  can_delete: z.boolean().default(false),
+});
+export type PackageSuggestion = z.infer<typeof PackageSuggestionSchema>;
+
+export const PaginatedPackageSuggestionSchema = z.object({
+  items: z.array(PackageSuggestionSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedPackageSuggestion = z.infer<typeof PaginatedPackageSuggestionSchema>;
+
+export const PackageSuggestionPatchSchema = z.object({
+  package_name: z.string().min(1).max(255).optional(),
+  weight_g: z.number().positive().max(50_000).optional(),
+  volume_ml: z.number().positive().nullable().optional(),
+  physical_viscosity: PhysicalViscositySchema.optional(),
+  physical_density: z.number().min(0.3).max(2.5).nullable().optional(),
+});
+export type PackageSuggestionPatch = z.infer<typeof PackageSuggestionPatchSchema>;
+
+/** Decide the given ids, or (bulk) all pending suggestions matching min_confidence/section_id. */
+export interface PackageSuggestionDecision {
+  ids?: number[];
+  min_confidence?: number;
+  section_id?: number;
+}
+
+export interface PackageSuggestionFilters {
+  status?: PackageSuggestionStatus | '';
+  min_confidence?: number;
+  section_id?: number;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}

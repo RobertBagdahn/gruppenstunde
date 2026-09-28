@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { Check, ChevronRight, ChevronDown } from 'lucide-react';
 import { formatEuro, formatWeight } from '@/lib/format';
-import { formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
+import { formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -41,7 +41,14 @@ export default function ShoppingListItemRow({
     setShowChecker(false);
   }, [recentChecker]);
 
-  const quantityLabel = formatShoppingQuantity(item.quantity_g, item.unit, item.piece_equivalent);
+  // `quantity` is in the display unit (ml for beverages/liquids); fall back to grams.
+  const quantityLabel = formatShoppingQuantity(
+    item.quantity || item.quantity_g,
+    item.unit,
+    item.piece_equivalent,
+    item.package_options[0],
+  );
+  const reserveLabel = formatPackageReserve(item.package_surplus_g);
 
   return (
     <div className="font-sans" data-testid={`shopping-item-${item.id}`}>
@@ -110,6 +117,7 @@ export default function ShoppingListItemRow({
               </span>
             )}
           </div>
+          {reserveLabel && <p className="text-xs text-muted-foreground mt-0.5">{reserveLabel}</p>}
           {/* Portion options toggle & price */}
           <div className="flex items-center gap-2 mt-0.5">
             {hasPortionOptions && (
