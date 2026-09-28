@@ -1,5 +1,6 @@
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealPlanWizardState } from '@/schemas/mealPlan';
+import { formatNumber } from '@/lib/format';
 
 interface ExtendedSettingsSectionProps {
   state: MealPlanWizardState;
@@ -115,7 +116,7 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
         <p className="text-xs text-muted-foreground mt-2 font-medium">
           Summe:{' '}
           <span className={Math.abs(factorsSum - 1.0) < 0.001 ? 'text-primary font-bold' : 'text-accent font-bold'}>
-            {factorsSum.toFixed(2)}
+            {formatNumber(factorsSum, { maxDecimals: 2 })}
           </span>
           {' '}(Sollte idealerweise 1,00 ergeben)
         </p>

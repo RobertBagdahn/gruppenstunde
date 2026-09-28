@@ -7,6 +7,7 @@ import { parseRecipeSteps } from '@/lib/parseRecipeSteps';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { Button } from '@/components/ui/button';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { roundToDecimals } from '@/lib/format';
 
 interface RecipeCookingModeProps {
   recipe: RecipeDetail;
@@ -182,7 +183,7 @@ export default function RecipeCookingMode({
                 />
                 <div className={`flex-1 min-w-0 ${isChecked ? 'opacity-50 line-through' : ''}`}>
                   <div className="font-medium text-sm">
-                    {scaledQty % 1 === 0 ? scaledQty : parseFloat(scaledQty.toFixed(2))} {item.measuring_unit_name}
+                    {scaledQty % 1 === 0 ? scaledQty : roundToDecimals(scaledQty, 2)} {item.measuring_unit_name}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {item.ingredient_name}

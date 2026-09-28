@@ -8,6 +8,7 @@ import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL, getDayCovera
 import type { Meal } from '@/schemas/mealPlan';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
+import { formatNumber } from '@/lib/format';
 
 export function DayPlanView({
   mealPlanId,
@@ -152,7 +153,7 @@ export function DayPlanView({
                     {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
                       <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
                         <span className="material-symbols-outlined text-[16px]">payments</span>
-                        <span>Preis: Soll {dayTargetCost.toFixed(2)} € / Ist {dayActualCost.toFixed(2)} €</span>
+                        <span>Preis: Soll {formatNumber(dayTargetCost, { maxDecimals: 2 })} € / Ist {formatNumber(dayActualCost, { maxDecimals: 2 })} €</span>
                       </span>
                     )}
                   </div>

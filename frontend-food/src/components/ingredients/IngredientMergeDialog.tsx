@@ -25,6 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Loader2, GitMerge, ArrowRight, ArrowLeftRight, ArrowLeft, AlertTriangle, Search, XCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatNumber } from '@/lib/format';
 
 interface InlineIngredient {
   id: number;
@@ -194,7 +195,7 @@ export default function IngredientMergeDialog({
                       >
                         <span className="font-medium">{s.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {s.similarity_pct.toFixed(0)}%
+                          {formatNumber(s.similarity_pct, { maxDecimals: 0 })}%
                         </span>
                       </button>
                     ))}

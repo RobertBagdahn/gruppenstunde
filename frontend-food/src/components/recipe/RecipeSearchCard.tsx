@@ -2,6 +2,7 @@ import { BookOpen, Apple } from 'lucide-react';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
 import RecipeBadge from './RecipeBadge';
 import { RECIPE_TYPE_LABELS } from './CategoryPills';
+import { formatNumber } from '@/lib/format';
 
 interface SearchResultCardProps {
   result: RecipeSearchResult | IngredientSearchResult;
@@ -15,7 +16,7 @@ export default function SearchResultCard({ result, onClick }: SearchResultCardPr
     const recipe = result as RecipeSearchResult;
     const badge = recipe.recipe_badge ?? 'community';
     const price = recipe.price_per_serving != null
-      ? `${recipe.price_per_serving.toFixed(2).replace('.', ',')} €/P.`
+      ? `${formatNumber(recipe.price_per_serving, { maxDecimals: 2 }).replace('.', ',')} €/P.`
       : '—';
     const dietTags = (recipe.nutritional_tags ?? []).slice(0, 3);
 
@@ -55,7 +56,7 @@ export default function SearchResultCard({ result, onClick }: SearchResultCardPr
   const ingredient = result as IngredientSearchResult;
   const badge: 'verified' | 'draft' = ingredient.status === 'verified' ? 'verified' : 'draft';
   const price = ingredient.price_per_kg != null
-    ? `${ingredient.price_per_kg.toFixed(2).replace('.', ',')} €/kg`
+    ? `${formatNumber(ingredient.price_per_kg, { maxDecimals: 2 }).replace('.', ',')} €/kg`
     : '—';
   const dietTags = (ingredient.nutritional_tags ?? []).slice(0, 3);
 

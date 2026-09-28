@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { MealPlan } from '@/schemas/mealPlan';
 import { getPlanBadge, formatDateRange, getDaysCount } from '@/schemas/mealPlan';
+import { formatNumber } from '@/lib/format';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   verified: {
@@ -143,7 +144,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground mb-3">
         <span className="inline-flex items-center gap-1">
           <Users className="w-3.5 h-3.5" />
-          {plan.norm_portions.toFixed(1)} Portionen
+          {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
           {reservePercent > 0 && (
             <span className="text-[10px] text-muted-foreground/70">(+{reservePercent}% Reserve)</span>
           )}
@@ -151,7 +152,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
         {plan.budget_per_person_per_day != null && (
           <span className="inline-flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">euro</span>
-            {Number(plan.budget_per_person_per_day).toFixed(2).replace('.', ',')} €/Person/Tag
+            {formatNumber(Number(plan.budget_per_person_per_day), { maxDecimals: 2 }).replace('.', ',')} €/Person/Tag
           </span>
         )}
       </div>
@@ -184,7 +185,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
         {plan.budget_per_person_per_day != null && (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <ShoppingCart className="w-3.5 h-3.5" />
-            Budget {Number(plan.budget_per_person_per_day).toFixed(2).replace('.', ',')} €/Tag
+            Budget {formatNumber(Number(plan.budget_per_person_per_day), { maxDecimals: 2 }).replace('.', ',')} €/Tag
           </span>
         )}
       </div>

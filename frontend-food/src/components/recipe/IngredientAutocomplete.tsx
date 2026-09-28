@@ -12,11 +12,12 @@ import { cn } from '@/lib/utils';
 import { useRetailSections } from '@/api/supplies';
 import { UnknownIngredientDialog } from './UnknownIngredientDialog';
 import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
+import { roundToDecimals } from '@/lib/format';
 
 const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 function formatNum(v: number | null | undefined): string {
-  return v != null ? parseFloat(v.toFixed(1)) + 'g' : '';
+  return v != null ? roundToDecimals(v, 1) + 'g' : '';
 }
 
 function isMobileTouchViewport(): boolean {

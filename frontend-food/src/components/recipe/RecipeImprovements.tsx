@@ -12,6 +12,7 @@ import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { useRecipeImprovements } from '@/api/recipes';
 import type { Improvement, RecipeItemNutrition } from '@/schemas/recipe';
 import HintDetailModal from './HintDetailModal';
+import { formatNumber } from '@/lib/format';
 
 interface RecipeImprovementsProps {
   recipeId: number;
@@ -26,7 +27,7 @@ const DIRECTION_META: Record<string, { label: string; icon: string; color: strin
 };
 
 function formatValue(value: number, unit: string): string {
-  const rounded = value >= 100 ? value.toFixed(0) : value.toFixed(1);
+  const rounded = value >= 100 ? formatNumber(value, { maxDecimals: 0 }) : formatNumber(value, { maxDecimals: 1 });
   return `${rounded} ${unit}`.trim();
 }
 
@@ -164,7 +165,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
                     <div key={ing.id} className="flex items-center gap-2 text-xs">
                       <span className="flex-1 truncate">{ing.name}</span>
                       <span className="text-muted-foreground">
-                        {ing.contribution_g.toFixed(0)}{ing.unit}
+                        {formatNumber(ing.contribution_g, { maxDecimals: 0 })}{ing.unit}
                       </span>
                     </div>
                   ))}

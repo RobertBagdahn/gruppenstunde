@@ -1,5 +1,6 @@
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import type { RecipeStep } from '@/schemas/recipeStep';
+import { formatNumber } from '@/lib/format';
 
 interface RecipeStepsReadOnlyProps {
   steps: RecipeStep[];
@@ -11,7 +12,7 @@ function formatQuantity(value: number): string {
   if (Number.isInteger(rounded)) {
     return String(rounded);
   }
-  return rounded.toFixed(1).replace('.', ',');
+  return formatNumber(rounded, { maxDecimals: 1 }).replace('.', ',');
 }
 
 export default function RecipeStepsReadOnly({ steps, scale = 1 }: RecipeStepsReadOnlyProps) {

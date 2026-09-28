@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBuffetTemplates, useBuffetCatalog, useBuffetState, useBuffetPreview, useSaveBuffet } from '@/api/buffet';
 import type { BuffetCatalogItem, BuffetCatalogRole } from '@/schemas/buffet';
+import { formatNumber } from '@/lib/format';
 
 interface BuffetBuilderProps {
   open: boolean;
@@ -282,7 +283,7 @@ export function BuffetBuilder({
                     {kcalPercent != null && ` (${kcalPercent}%)`}
                   </span>
                   <span className="inline-flex items-center gap-1 font-bold text-primary">
-                    {previewResult.cost_per_person.toFixed(2)} €/P. ({previewResult.cost_total.toFixed(2)} €)
+                    {formatNumber(previewResult.cost_per_person, { maxDecimals: 2 })} €/P. ({formatNumber(previewResult.cost_total, { maxDecimals: 2 })} €)
                   </span>
                 </>
               ) : (

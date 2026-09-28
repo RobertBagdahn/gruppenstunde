@@ -3,6 +3,7 @@ import { Wallet, Flame, Users, CheckCircle2, AlertTriangle, ArrowRight } from 'l
 import type { Meal } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL, effectivePortions } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 interface MealPlanBudgetCockpitProps {
   normPortions: number;
@@ -142,10 +143,10 @@ export function MealPlanBudgetCockpit({
 
           <div className="flex items-baseline justify-between gap-2">
             <div className="text-base sm:text-lg font-bold text-foreground font-display">
-              {actualCostPerPersonPerDay.toFixed(2).replace('.', ',')} €
+              {formatNumber(actualCostPerPersonPerDay, { maxDecimals: 2 }).replace('.', ',')} €
               {hasBudget && (
                 <span className="text-xs font-normal text-muted-foreground ml-1">
-                  / {budget?.toFixed(2).replace('.', ',')} €
+                  / {formatNumber(budget, { maxDecimals: 2 }).replace('.', ',')} €
                 </span>
               )}
             </div>
@@ -157,7 +158,7 @@ export function MealPlanBudgetCockpit({
                 )}
               >
                 {diffPerPersonPerDay >= 0 ? '+' : ''}
-                {diffPerPersonPerDay.toFixed(2).replace('.', ',')} € Rest
+                {formatNumber(diffPerPersonPerDay, { maxDecimals: 2 }).replace('.', ',')} € Rest
               </span>
             )}
           </div>
@@ -226,7 +227,7 @@ export function MealPlanBudgetCockpit({
             </div>
             <div>
               <div className="text-xs font-bold text-foreground">
-                {normPortions.toFixed(1)} Personen
+                {formatNumber(normPortions, { maxDecimals: 1 })} Personen
               </div>
               <div className="text-[11px] text-muted-foreground font-medium">
                 +{Math.round((reserveFactor - 1) * 100)}% Einkaufsreserve

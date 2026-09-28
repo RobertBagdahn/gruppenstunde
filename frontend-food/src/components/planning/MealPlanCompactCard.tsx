@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, Sparkles, Copy } from 'lucide-react';
 import type { MealPlan } from '@/schemas/mealPlan';
 import { getPlanBadge, formatDateRange } from '@/schemas/mealPlan';
+import { formatNumber } from '@/lib/format';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   verified: {
@@ -80,7 +81,7 @@ export default function MealPlanCompactCard({
         )}
         <span className="inline-flex items-center gap-1">
           <Users className="w-3 h-3" />
-          {plan.norm_portions.toFixed(1)} Portionen
+          {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
         </span>
         {plan.event_name && (
           <span className="inline-flex items-center gap-1">

@@ -60,6 +60,7 @@ import MealPlanCollaboratorManager from '@/components/planner/MealPlanCollaborat
 import { GroupMemberPanel } from '@/components/groupMembers/GroupMemberPanel';
 import CookingScheduleTab from './CookingScheduleTab';
 import { MealPlanBudgetCockpit } from '@/components/planning/MealPlanBudgetCockpit';
+import { formatNumber } from '@/lib/format';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -407,7 +408,7 @@ export default function MealPlanDetailPage() {
           <div className="flex flex-wrap gap-3 mt-1.5 text-xs font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              {plan.norm_portions.toFixed(1)} Portionen
+              {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
             </span>
             <span className="inline-flex items-center gap-1" title="Reservefaktor – betrifft nur die Einkaufsmengen, nicht die kcal-Bilanz">
               <ShoppingCart className="w-3.5 h-3.5 text-muted-foreground" />

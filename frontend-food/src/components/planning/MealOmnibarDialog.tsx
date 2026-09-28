@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRecipeSearch } from '@/api/mealPlans';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 type FilterPill = 'all' | 'recipes' | 'ingredients' | 'bundles';
 
@@ -20,7 +21,7 @@ function recipeTypeLabel(type: string): string {
   return RECIPE_TYPE_LABELS[type] ?? 'Rezept';
 }
 
-function formatNumber(value: number | null | undefined, suffix: string): string | null {
+function formatOptionalBadge(value: number | null | undefined, suffix: string): string | null {
   return value == null ? null : `${Math.round(value)} ${suffix}`;
 }
 
@@ -345,7 +346,7 @@ export function MealOmnibarDialog({
                         <>
                           <span>{recipeTypeLabel(item.data.recipe_type)}</span>
                           {item.data.portions != null && <span>{item.data.portions} Portionen</span>}
-                          {item.data.price_per_serving != null && <span>{item.data.price_per_serving.toFixed(2)} €/P.</span>}
+                          {item.data.price_per_serving != null && <span>{formatNumber(item.data.price_per_serving, { maxDecimals: 2 })} €/P.</span>}
                         </>
                       )}
                       {item.type === 'ingredient' && <span>Einzelzutat</span>}
@@ -384,7 +385,7 @@ export function MealOmnibarDialog({
                         {activeItem.data.price_per_serving != null && (
                           <span className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
                             <Euro className="w-3.5 h-3.5 text-emerald-600" />
-                            {(activeItem.data.price_per_serving * normPortions).toFixed(2)} € gesamt
+                            {formatNumber((activeItem.data.price_per_serving * normPortions), { maxDecimals: 2 })} € gesamt
                           </span>
                         )}
                       </div>
@@ -404,8 +405,8 @@ export function MealOmnibarDialog({
                       <div className="rounded-xl border border-border bg-card p-3 space-y-2">
                         <div className="flex items-center gap-2 text-xs font-semibold text-foreground"><Flame className="w-3.5 h-3.5 text-primary" />Nährwerte und Hinweise</div>
                         <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                          {formatNumber(activeItem.data.cached_energy_kcal, 'kcal') && <span>{formatNumber(activeItem.data.cached_energy_kcal, 'kcal')}</span>}
-                          {formatNumber(activeItem.data.cached_protein_g, 'g Protein') && <span>{formatNumber(activeItem.data.cached_protein_g, 'g Protein')}</span>}
+                          {formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal') && <span>{formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal')}</span>}
+                          {formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein') && <span>{formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein')}</span>}
                           {activeItem.data.nutritional_tags?.map((tag) => <span key={tag.id} className="rounded-full bg-primary/10 px-2 py-1 text-primary">{tag.name}</span>)}
                         </div>
                       </div>

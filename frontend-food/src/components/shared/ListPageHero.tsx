@@ -2,6 +2,12 @@
  * Shared ListPageHero — consistent gradient hero section for list pages.
  * Renders full-bleed with gradient, icon, title, description, optional mascot and count badge.
  */
+import { formatCount } from '@/lib/format';
+
+interface CountLabel {
+  one: string;
+  other: string;
+}
 
 interface ListPageHeroProps {
   title: string;
@@ -11,9 +17,11 @@ interface ListPageHeroProps {
   mascotSrc?: string;
   mascotAlt?: string;
   totalCount?: number;
-  countLabel?: string;
+  countLabel?: CountLabel;
   countIcon?: string;
 }
+
+const DEFAULT_COUNT_LABEL: CountLabel = { one: 'Ergebnis', other: 'Ergebnisse' };
 
 export default function ListPageHero({
   title,
@@ -61,7 +69,7 @@ export default function ListPageHero({
               <span className="material-symbols-outlined text-[18px]">
                 {countIcon ?? icon}
               </span>
-              {totalCount} {countLabel ?? 'Ergebnis'}{totalCount !== 1 ? (countLabel ? '' : 'se') : ''}
+              {formatCount(totalCount)} {totalCount === 1 ? (countLabel ?? DEFAULT_COUNT_LABEL).one : (countLabel ?? DEFAULT_COUNT_LABEL).other}
             </span>
           )}
         </div>

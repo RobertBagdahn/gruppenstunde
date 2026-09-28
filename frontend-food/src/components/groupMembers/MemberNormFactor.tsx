@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useNormPersonCalculation } from '@/api/normPerson';
+import { formatNumber } from '@/lib/format';
 
 interface Props {
   age: number;
@@ -20,7 +21,7 @@ export function MemberNormFactor({ age, gender, pal }: Props) {
       {isLoading ? (
         <span className="text-muted-foreground">…</span>
       ) : data ? (
-        <>{data.norm_factor.toFixed(1)} N.P.</>
+        <>{formatNumber(data.norm_factor, { maxDecimals: 1 })} N.P.</>
       ) : (
         <span className="text-muted-foreground">—</span>
       )}

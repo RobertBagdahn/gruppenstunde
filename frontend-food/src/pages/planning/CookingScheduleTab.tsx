@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { API_BASE_URL } from '@/lib/api';
+import { formatNumber } from '@/lib/format';
 
 function formatTime(isoString: string): string {
   try {
@@ -340,7 +341,7 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
           {plan && (
             <>
               <span className="inline-flex items-center gap-1.5">
-                <Users className="w-4 h-4" /> {plan.norm_portions.toFixed(1)} Personen
+                <Users className="w-4 h-4" /> {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Personen
               </span>
               {totalCost > 0 && (
                 <span className="inline-flex items-center gap-1.5">

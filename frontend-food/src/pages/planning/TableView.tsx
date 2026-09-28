@@ -24,6 +24,7 @@ import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
 import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
+import { formatNumber } from '@/lib/format';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -508,7 +509,7 @@ export default function TableView({
                                                 <div className="flex items-center gap-1 font-medium min-w-0 truncate">
                                                   {kcal != null && <span>{kcal} kcal</span>}
                                                   {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
-                                                  {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
+                                                  {cost != null && <span>{formatNumber(cost, { maxDecimals: 2 }).replace('.', ',')} €</span>}
                                                 </div>
 
                                                 <div className="flex items-center gap-1 shrink-0">
@@ -521,7 +522,7 @@ export default function TableView({
                                                   ) : (
                                                     item.factor !== 1.0 && (
                                                       <span className="text-[10px] font-bold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
-                                                        &times;{item.factor.toFixed(1).replace('.', ',')}
+                                                        &times;{formatNumber(item.factor, { maxDecimals: 1 }).replace('.', ',')}
                                                       </span>
                                                     )
                                                   )}
@@ -570,7 +571,7 @@ export default function TableView({
 
                                               <div className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
                                                 <span>{summary.totalKcalPerPerson} kcal</span>
-                                                <span>{summary.totalCostPerPerson.toFixed(2).replace('.', ',')} € / P.</span>
+                                                <span>{formatNumber(summary.totalCostPerPerson, { maxDecimals: 2 }).replace('.', ',')} € / P.</span>
                                               </div>
 
                                               {summary.previewNames.length > 0 && (
@@ -645,7 +646,7 @@ export default function TableView({
                                                           />
                                                         ) : (
                                                           <span className="text-[10px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
-                                                            &times;{v.factor.toFixed(2).replace('.', ',')}
+                                                            &times;{formatNumber(v.factor, { maxDecimals: 2 }).replace('.', ',')}
                                                           </span>
                                                         )}
                                                         {canEdit && !meal.is_synced && (
@@ -842,15 +843,15 @@ export default function TableView({
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
                             <span>Kosten</span>
-                            <span className="font-semibold text-foreground">{costPerPerson.toFixed(2).replace('.', ',')} € / {dailyTotal.targetCost.toFixed(2).replace('.', ',')} €</span>
+                            <span className="font-semibold text-foreground">{formatNumber(costPerPerson, { maxDecimals: 2 }).replace('.', ',')} € / {formatNumber(dailyTotal.targetCost, { maxDecimals: 2 }).replace('.', ',')} €</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                             <div className={cn("h-full rounded-full transition-all", barColor(budgetStatus))} style={{ width: `${costPercent}%` }} />
                           </div>
                           <div className={cn("text-xs font-semibold", diff >= 0 ? "text-primary" : "text-destructive")}>
                             {diff >= 0
-                              ? `noch ${diff.toFixed(2).replace('.', ',')} €`
-                              : `${Math.abs(diff).toFixed(2).replace('.', ',')} € über Budget`
+                              ? `noch ${formatNumber(diff, { maxDecimals: 2 }).replace('.', ',')} €`
+                              : `${formatNumber(Math.abs(diff), { maxDecimals: 2 }).replace('.', ',')} € über Budget`
                             }
                           </div>
                         </div>

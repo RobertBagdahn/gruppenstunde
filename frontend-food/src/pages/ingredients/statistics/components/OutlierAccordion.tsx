@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { FieldOutliers } from '@/schemas/supply';
 import { ChevronDown, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 interface OutlierAccordionProps {
   fields: FieldOutliers[];
@@ -69,7 +70,7 @@ export default function OutlierAccordion({ fields, summary }: OutlierAccordionPr
                               {item.name}
                             </Link>
                           </td>
-                          <td className="py-2 px-4 text-right font-mono text-xs">{item.value.toFixed(1)}</td>
+                          <td className="py-2 px-4 text-right font-mono text-xs">{formatNumber(item.value, { maxDecimals: 1 })}</td>
                           <td className="py-2 px-4 text-center">
                             <span className={cn(
                               'inline-flex px-2 py-0.5 rounded-full text-xs font-medium',
@@ -81,7 +82,7 @@ export default function OutlierAccordion({ fields, summary }: OutlierAccordionPr
                             </span>
                           </td>
                           <td className="py-2 px-4 text-right font-mono text-xs hidden sm:table-cell text-muted-foreground">
-                            {item.deviation.toFixed(1)}× Median
+                            {formatNumber(item.deviation, { maxDecimals: 1 })}× Median
                           </td>
                         </tr>
                       ))}

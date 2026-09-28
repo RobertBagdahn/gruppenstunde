@@ -20,6 +20,7 @@ import {
 import type { IngredientPriceProposal } from '@/schemas/supply';
 import { toast } from 'sonner';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import { formatNumber } from '@/lib/format';
 
 interface PriceProposalCardProps {
   ingredient: {
@@ -39,7 +40,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function formatPrice(price: number | null | undefined): string {
   if (price == null) return '–';
-  return `${price.toFixed(2).replace('.', ',')} €/kg`;
+  return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} €/kg`;
 }
 
 export default function PriceProposalCard({ ingredient }: PriceProposalCardProps) {

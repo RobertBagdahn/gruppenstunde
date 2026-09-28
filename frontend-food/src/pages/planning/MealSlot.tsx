@@ -35,6 +35,7 @@ import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
 import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
+import { formatNumber } from '@/lib/format';
 
 export function MealSlot({
   meal,
@@ -176,7 +177,7 @@ export function MealSlot({
       return `${item.portion_display}${item.is_per_norm_person ? ' / Person' : ''}`;
     }
     if (isPortionUnit(item.measuring_unit_name) && item.quantity != null) {
-      return `×${item.quantity.toFixed(2).replace('.', ',')} ${item.measuring_unit_name}`;
+      return `×${formatNumber(item.quantity, { maxDecimals: 2 }).replace('.', ',')} ${item.measuring_unit_name}`;
     }
     if (item.quantity_g != null) return `${Math.round(item.quantity_g)}g`;
     return 'Menge nicht angegeben';
@@ -207,7 +208,7 @@ export function MealSlot({
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                 {it.energy_kcal != null && <span>{Math.round(it.energy_kcal / effPortions)} kcal</span>}
-                {it.cost_eur != null && <span>{(it.cost_eur / effPortions).toFixed(2)} €</span>}
+                {it.cost_eur != null && <span>{formatNumber((it.cost_eur / effPortions), { maxDecimals: 2 })} €</span>}
                 {isIng && !meal.is_synced && isPortionUnit(it.measuring_unit_name) ? (
                   // NEW format: portion-based, editable
                   <>
@@ -229,7 +230,7 @@ export function MealSlot({
                  ) : isIng ? (
                    // Raw unit, read-only fallback
                     <span className="text-xs">{formatPortion(it)}</span>
-                 ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{it.factor.toFixed(2).replace('.', ',')}</span>)}
+                 ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{formatNumber(it.factor, { maxDecimals: 2 }).replace('.', ',')}</span>)}
               </div>
             </div>
             {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(it.id)} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"><X className="w-4 h-4" /></button>}
@@ -376,7 +377,7 @@ export function MealSlot({
                 {effPortions} P.
               </span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
-                {mealActualCost.toFixed(2)} €/P. ({meal.total_cost_eur.toFixed(2)} €)
+                {formatNumber(mealActualCost, { maxDecimals: 2 })} €/P. ({formatNumber(meal.total_cost_eur, { maxDecimals: 2 })} €)
               </span>
               {meal.price_coverage != null && meal.price_coverage.missing_ingredients > 0 && (
                 <span
@@ -403,7 +404,7 @@ export function MealSlot({
               {mealIsTooExpensive && (
                 <span
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/20 bg-destructive/10 text-destructive text-[11px] font-bold"
-                  title={`Ist ${mealActualCost.toFixed(2)} € pro Person, Soll ${mealTargetCost.toFixed(2)} € pro Person`}
+                  title={`Ist ${formatNumber(mealActualCost, { maxDecimals: 2 })} € pro Person, Soll ${formatNumber(mealTargetCost, { maxDecimals: 2 })} € pro Person`}
                 >
                   <AlertTriangle className="w-3 h-3" />
                   Zu teuer
@@ -478,7 +479,7 @@ export function MealSlot({
             {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
               <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-lg border border-border/40">
                 <span className="material-symbols-outlined text-[14px]">payments</span>
-                <span>Preis: Soll {mealTargetCost.toFixed(2)} € / Ist {mealActualCost.toFixed(2)} €</span>
+                <span>Preis: Soll {formatNumber(mealTargetCost, { maxDecimals: 2 })} € / Ist {formatNumber(mealActualCost, { maxDecimals: 2 })} €</span>
               </span>
             )}
           </div>
@@ -523,7 +524,7 @@ export function MealSlot({
                           <span className="text-sm text-muted-foreground flex-1">{v.display_name || v.recipe_title}</span>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             {v.energy_kcal != null && <span>{Math.round(v.energy_kcal / effPortions)} kcal</span>}
-                            {canEdit && !meal.is_synced ? <FactorInput value={v.factor} onChange={(f) => onUpdateItemFactor(v.id, f)} /> : <span className="text-xs">&times;{v.factor.toFixed(2).replace('.', ',')}</span>}
+                            {canEdit && !meal.is_synced ? <FactorInput value={v.factor} onChange={(f) => onUpdateItemFactor(v.id, f)} /> : <span className="text-xs">&times;{formatNumber(v.factor, { maxDecimals: 2 }).replace('.', ',')}</span>}
                           </div>
                           {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(v.id)} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"><X className="w-3.5 h-3.5" /></button>}
                         </div>
@@ -654,7 +655,7 @@ export function MealSlot({
                   <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium">
                     <span>{buffetRoleName(role)} gesamt</span>
                     <span className="text-muted-foreground">
-                      {quantitySum != null && `\u00d7${quantitySum.toFixed(2).replace('.', ',')} ${quantityUnit} \u00b7 `}
+                      {quantitySum != null && `\u00d7${formatNumber(quantitySum, { maxDecimals: 2 }).replace('.', ',')} ${quantityUnit} \u00b7 `}
                       {Math.round(kcalSum)} kcal
                     </span>
                   </div>

@@ -133,6 +133,7 @@ import { Label } from '@/components/ui/label';
 import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
+import { formatExactWeight, formatNumber, roundToDecimals } from '@/lib/format';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -189,7 +190,7 @@ function NutritionRow({
     <div className="flex justify-between py-1.5 border-b border-border/30 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="text-sm font-medium">
-        {value !== null ? `${parseFloat(value.toFixed(1))} ${unit}` : '\u2014'}
+        {value !== null ? `${roundToDecimals(value, 1)} ${unit}` : '\u2014'}
       </span>
     </div>
   );
@@ -294,7 +295,7 @@ function PackageRow({
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium text-foreground">{pkg.name}</span>
         {pkg.weight_g && (
-          <span className="text-xs text-muted-foreground ml-2">{pkg.weight_g}g</span>
+          <span className="text-xs text-muted-foreground ml-2">{formatExactWeight(pkg.weight_g)}</span>
         )}
       </div>
       {canEdit && (
@@ -627,12 +628,12 @@ function PortionCard({
             )}
             {portion.weight_g && portion.is_weight_trusted ? (
               <span className="text-xs text-muted-foreground">
-                ≈ {portion.weight_g}g
+                ≈ {formatExactWeight(portion.weight_g)}
               </span>
             ) : portion.weight_status === 'ai_proposed' ? (
               <span className="inline-flex items-center gap-1 text-[11px] bg-amber-50 text-amber-800 font-medium px-1.5 py-0.5 rounded border border-amber-200">
                 <Sparkles className="h-3 w-3" />
-                Vorschlag: {portion.weight_g ?? 'unbekannt'}g bestätigen
+                Vorschlag: {portion.weight_g != null ? formatExactWeight(portion.weight_g) : 'unbekannt'} bestätigen
               </span>
             ) : (
               <span
@@ -1307,7 +1308,7 @@ export default function IngredientDetailPage() {
 
   const formatPrice = (price: number | null) => {
     if (price === null) return '\u2014';
-    return `${price.toFixed(2).replace('.', ',')} EUR`;
+    return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} EUR`;
   };
 
   const nutriColors = ingredient.nutri_class

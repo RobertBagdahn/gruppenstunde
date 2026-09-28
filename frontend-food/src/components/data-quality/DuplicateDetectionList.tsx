@@ -24,6 +24,7 @@ import {
 import { Loader2, GitMerge, EyeOff, AlertTriangle, ArrowRight, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
+import { formatNumber, roundToDecimals } from '@/lib/format';
 
 interface DuplicateDetectionListProps {
   type: 'ingredient' | 'recipe';
@@ -141,7 +142,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
                       </a>
                     </div>
                     <span className={cn('text-sm font-semibold', similarityColor(pair.similarity))}>
-                      {(pair.similarity * 100).toFixed(1)}%
+                      {formatNumber((pair.similarity * 100), { maxDecimals: 1 })}%
                     </span>
                   </div>
 
@@ -292,12 +293,12 @@ function IngredientMergePreview({ preview }: { preview: MergePreview }) {
           <div>
             <span className="text-muted-foreground">{preview.source_name}</span>
             <div>Energie: {preview.nutrition_comparison.source.energy_kcal != null ? `${Math.round(preview.nutrition_comparison.source.energy_kcal)}` : '–'} kcal</div>
-            <div>Protein: {preview.nutrition_comparison.source.protein_g != null ? `${parseFloat(preview.nutrition_comparison.source.protein_g.toFixed(1))}` : '–'} g</div>
+            <div>Protein: {preview.nutrition_comparison.source.protein_g != null ? `${roundToDecimals(preview.nutrition_comparison.source.protein_g, 1)}` : '–'} g</div>
           </div>
           <div>
             <span className="text-muted-foreground">{preview.target_name}</span>
             <div>Energie: {preview.nutrition_comparison.target.energy_kcal != null ? `${Math.round(preview.nutrition_comparison.target.energy_kcal)}` : '–'} kcal</div>
-            <div>Protein: {preview.nutrition_comparison.target.protein_g != null ? `${parseFloat(preview.nutrition_comparison.target.protein_g.toFixed(1))}` : '–'} g</div>
+            <div>Protein: {preview.nutrition_comparison.target.protein_g != null ? `${roundToDecimals(preview.nutrition_comparison.target.protein_g, 1)}` : '–'} g</div>
           </div>
         </div>
       </div>

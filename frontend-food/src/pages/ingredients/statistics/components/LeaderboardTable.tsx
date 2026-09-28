@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import type { RankingItem } from '@/schemas/supply';
+import { formatNumber } from '@/lib/format';
 
 interface LeaderboardTableProps {
   top: RankingItem[];
@@ -64,7 +65,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
             <XAxis type="number" tick={{ fontSize: 12 }} />
             <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
             <Tooltip
-              formatter={((value: unknown) => [`${Number(value).toFixed(1)} ${unit}`, label]) as never}
+              formatter={((value: unknown) => [`${formatNumber(Number(value), { maxDecimals: 1 })} ${unit}`, label]) as never}
               labelFormatter={((label: unknown) => `Zutat: ${label}`) as never}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -100,7 +101,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
                     {item.name}
                   </Link>
                 </td>
-                <td className="py-2 px-3 text-right font-mono text-xs">{item.value.toFixed(1)}</td>
+                <td className="py-2 px-3 text-right font-mono text-xs">{formatNumber(item.value, { maxDecimals: 1 })}</td>
                 <td className="py-2 px-3 text-center hidden sm:table-cell">
                   {item.nutri_class ? (
                     <span

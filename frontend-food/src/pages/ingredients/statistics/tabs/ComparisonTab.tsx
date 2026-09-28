@@ -3,6 +3,7 @@ import { useNutritionalTags } from '@/api/supplies';
 import { useIngredientComparison } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
 import DistributionChart from '../components/DistributionChart';
+import { formatNumber } from '@/lib/format';
 
 const METRICS = [
   { value: 'energy_kcal', label: 'Energie', unit: 'kcal' },
@@ -89,13 +90,13 @@ export default function ComparisonTab() {
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
                   <p className="text-xs text-muted-foreground">Mittelwert</p>
                   <p className="text-lg font-bold font-display">
-                    {data.group.mean !== null ? `${data.group.mean.toFixed(1)} ${data.metric_unit}` : '–'}
+                    {data.group.mean !== null ? `${formatNumber(data.group.mean, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
                   <p className="text-xs text-muted-foreground">Median</p>
                   <p className="text-lg font-bold font-display">
-                    {data.group.median !== null ? `${data.group.median.toFixed(1)} ${data.metric_unit}` : '–'}
+                    {data.group.median !== null ? `${formatNumber(data.group.median, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
               </div>
@@ -116,13 +117,13 @@ export default function ComparisonTab() {
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
                   <p className="text-xs text-muted-foreground">Mittelwert</p>
                   <p className="text-lg font-bold font-display">
-                    {data.rest.mean !== null ? `${data.rest.mean.toFixed(1)} ${data.metric_unit}` : '–'}
+                    {data.rest.mean !== null ? `${formatNumber(data.rest.mean, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
                   <p className="text-xs text-muted-foreground">Median</p>
                   <p className="text-lg font-bold font-display">
-                    {data.rest.median !== null ? `${data.rest.median.toFixed(1)} ${data.metric_unit}` : '–'}
+                    {data.rest.median !== null ? `${formatNumber(data.rest.median, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
               </div>

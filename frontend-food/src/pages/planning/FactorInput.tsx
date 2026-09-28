@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
+import { formatNumber } from '@/lib/format';
 
 export function FactorInput({ value, onChange }: { value: number; onChange: (factor: number) => void }) {
-  const formatFactor = (v: number) => v.toFixed(2).replace('.', ',');
+  const formatFactor = (v: number) => formatNumber(v, { maxDecimals: 2 }).replace('.', ',');
   const [localValue, setLocalValue] = useState(formatFactor(value));
   const lastSaved = useRef(value);
 

@@ -1,7 +1,7 @@
 import { EntityLink } from '@/components/shared/EntityLink';
 import { RecipeCategoryBenchmark } from '@/components/recipe/RecipeCategoryBenchmark';
 import { useRecipeTypeStats } from '@/api/recipes';
-import { formatWeight } from '@/utils/formatWeight';
+import { formatWeight, formatNumber } from '@/lib/format';
 import type { RecipeNutritionBreakdown } from '@/schemas/recipe';
 
 interface Props {
@@ -58,7 +58,7 @@ export function WeightTab({
               />
             </div>
             <span className="text-xs text-muted-foreground w-20 text-right">
-              {formatWeight(item.weight_g)} ({item.weight_pct.toFixed(0)}%)
+              {formatWeight(item.weight_g)} ({formatNumber(item.weight_pct, { maxDecimals: 0 })}%)
             </span>
           </div>
         ))}

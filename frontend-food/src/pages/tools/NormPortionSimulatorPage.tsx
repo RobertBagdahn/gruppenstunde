@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DgeReferencePoint } from '@/schemas/normPerson';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -82,7 +83,7 @@ function ChartTooltip({ active, payload, label, unit = '' }: CustomTooltipProps)
       </p>
       {payload.map((item) => (
         <p key={item.dataKey} className="text-sm" style={{ color: item.color }}>
-          {item.name}: {typeof item.value === 'number' ? item.value.toFixed(1) : item.value} {unit}
+          {item.name}: {typeof item.value === 'number' ? formatNumber(item.value, { maxDecimals: 1 }) : item.value} {unit}
         </p>
       ))}
     </div>
@@ -446,16 +447,16 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <ResultCard
               label="Normfaktor"
-              value={data.norm_factor.toFixed(2)}
+              value={formatNumber(data.norm_factor, { maxDecimals: 2 })}
               highlight
             />
             <ResultCard
               label="Grundumsatz"
-              value={`${data.bmr.toFixed(0)} kcal`}
+              value={`${formatNumber(data.bmr, { maxDecimals: 0 })} kcal`}
             />
             <ResultCard
               label="Tagesbedarf"
-              value={`${data.tdee.toFixed(0)} kcal`}
+              value={`${formatNumber(data.tdee, { maxDecimals: 0 })} kcal`}
             />
             <ResultCard
               label="Referenzgewicht"

@@ -15,6 +15,7 @@ import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { useLlmSuggestions } from '@/api/recipes';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import type { Improvement, LlmSuggestion, RecipeItemNutrition } from '@/schemas/recipe';
+import { formatNumber } from '@/lib/format';
 
 interface HintDetailModalProps {
   open: boolean;
@@ -192,7 +193,7 @@ export default function HintDetailModal({
                     />
                   </div>
                   <span className="text-xs text-muted-foreground w-12 text-right">
-                    {c.pct.toFixed(1)}%
+                    {formatNumber(c.pct, { maxDecimals: 1 })}%
                   </span>
                 </div>
               ))}

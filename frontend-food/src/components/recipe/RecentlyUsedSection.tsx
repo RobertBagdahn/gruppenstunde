@@ -1,6 +1,7 @@
 import { BookOpen } from 'lucide-react';
 import { useRecentlyUsedRecipes } from '@/api/mealPlans';
 import RecipeBadge from './RecipeBadge';
+import { formatNumber } from '@/lib/format';
 
 interface RecentlyUsedSectionProps {
   onSelect: (recipeId: number, recipeTitle?: string) => void;
@@ -20,7 +21,7 @@ export default function RecentlyUsedSection({ onSelect }: RecentlyUsedSectionPro
       <div className="flex flex-wrap gap-1.5">
         {recipes.map((r) => {
           const price = r.price_per_serving != null
-            ? `${r.price_per_serving.toFixed(2).replace('.', ',')} €`
+            ? `${formatNumber(r.price_per_serving, { maxDecimals: 2 }).replace('.', ',')} €`
             : '—';
           return (
             <button

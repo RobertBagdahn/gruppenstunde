@@ -16,6 +16,7 @@ import {
 import type { Meal } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { formatNumber } from '@/lib/format';
 
 interface CopyFromPlanDialogProps {
   open: boolean;
@@ -355,7 +356,7 @@ export function CopyFromPlanDialog({
                                   {item.recipe_title || item.ingredient_name || item.display_name}
                                 </span>
                                 <span className="flex-shrink-0">
-                                  {item.factor !== 1.0 && <>×{item.factor.toFixed(1).replace('.', ',')} · </>}
+                                  {item.factor !== 1.0 && <>×{formatNumber(item.factor, { maxDecimals: 1 }).replace('.', ',')} · </>}
                                   {item.energy_kcal != null && <>{Math.round(item.energy_kcal / (sourcePlanDetail?.norm_portions ?? 1))} kcal</>}
                                 </span>
                               </div>

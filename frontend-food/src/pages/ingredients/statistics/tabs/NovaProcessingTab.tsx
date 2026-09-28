@@ -1,6 +1,7 @@
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIngredientScores } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
+import { formatNumber } from '@/lib/format';
 
 const NOVA_COLORS: Record<number, string> = {
   1: 'bg-green-600',
@@ -54,7 +55,7 @@ export default function NovaProcessingTab() {
                   <Link key={item.id} to={`/ingredients/${item.slug}`}
                     className="rounded-lg border border-border bg-card p-3 hover:bg-muted/30 transition-colors">
                     <p className="text-sm font-medium text-primary">{item.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.value?.toFixed(0) ?? '–'} kcal</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formatNumber(item.value, { maxDecimals: 0 }) ?? '–'} kcal</p>
                   </Link>
                 ))}
               </div>

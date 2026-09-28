@@ -21,6 +21,7 @@ import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
 import { BackButton } from '@/components/shared/BackButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefMealSyncConfirmDialog } from '@/components/planning/RefMealSyncConfirmDialog';
+import { formatNumber } from '@/lib/format';
 
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
@@ -240,7 +241,7 @@ export default function RefMealEditorPage() {
     setLocalItems((prev) =>
       prev.map((item) => ({ ...item, factor: Math.round((item.factor || 1) * ratio * 100) / 100 }))
     );
-    toast.success(`Faktoren normalisiert (×${ratio.toFixed(2)})`);
+    toast.success(`Faktoren normalisiert (×${formatNumber(ratio, { maxDecimals: 2 })})`);
   };
 
   if (isLoading) {

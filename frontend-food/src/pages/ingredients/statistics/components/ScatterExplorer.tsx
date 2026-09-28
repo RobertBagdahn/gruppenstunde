@@ -10,6 +10,7 @@ import {
   Cell,
 } from 'recharts';
 import type { ScatterOut } from '@/schemas/supply';
+import { formatNumber } from '@/lib/format';
 
 interface ScatterExplorerProps {
   data: ScatterOut;
@@ -39,7 +40,7 @@ export default function ScatterExplorer({ data, xLabel, yLabel, xUnit, yUnit }: 
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Pearson-Korrelation:</span>
           <span className={`font-bold ${Math.abs(data.pearson_r) > 0.5 ? 'text-primary' : 'text-foreground'}`}>
-            {data.pearson_r.toFixed(4)}
+            {formatNumber(data.pearson_r, { maxDecimals: 4 })}
           </span>
           <span className="text-muted-foreground">
             ({Math.abs(data.pearson_r) > 0.7 ? 'stark' : Math.abs(data.pearson_r) > 0.5 ? 'mittel' : 'schwach'}
@@ -68,7 +69,7 @@ export default function ScatterExplorer({ data, xLabel, yLabel, xUnit, yUnit }: 
             />
             <Tooltip
               formatter={((value: unknown, name: string) => [
-                Number(value).toFixed(2),
+                formatNumber(Number(value), { maxDecimals: 2 }),
                 name === 'x' ? xLabel : yLabel,
               ]) as never}
               labelFormatter={(l: unknown) => `Zutat: ${(l as { name: string }).name}`}

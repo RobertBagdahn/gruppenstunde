@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { IngredientListItem } from '@/schemas/supply';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
+import { formatNumber, roundToDecimals } from '@/lib/format';
 
 interface IngredientCardProps {
   ingredient: IngredientListItem;
@@ -14,7 +15,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
 
   const formatPrice = (price: number | null) => {
     if (price === null) return null;
-    return `${price.toFixed(2).replace('.', ',')} \u20AC/kg`;
+    return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} \u20AC/kg`;
   };
 
   return (
@@ -51,7 +52,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
         )}
         {ingredient.protein_g !== null && (
           <span className="inline-flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
-            {parseFloat(ingredient.protein_g.toFixed(1))}g Protein
+            {roundToDecimals(ingredient.protein_g, 1)}g Protein
           </span>
         )}
         {formatPrice(ingredient.price_per_kg) && (

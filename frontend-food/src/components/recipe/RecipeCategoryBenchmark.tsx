@@ -1,4 +1,5 @@
 import { RECIPE_TYPE_OPTIONS, type RecipeTypeStats } from '@/schemas/recipe';
+import { formatNumber } from '@/lib/format';
 
 interface MetricConfig {
   label: string;
@@ -70,7 +71,7 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
     : 50;
 
   const formatVal = (v: number) =>
-    metric === 'price' ? `${v.toFixed(2)} ${cfg.unit}` : `${Math.round(v)} ${cfg.unit}`;
+    metric === 'price' ? `${formatNumber(v, { maxDecimals: 2 })} ${cfg.unit}` : `${Math.round(v)} ${cfg.unit}`;
 
   const typeLabel = getTypeLabel(stats.recipe_type);
   const isBelowAvg = currentValue <= avg;

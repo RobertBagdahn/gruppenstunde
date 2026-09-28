@@ -1,5 +1,6 @@
 import { Calendar, Users, Sparkles, Copy, FileText, DollarSign, Tag } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@/schemas/mealPlan';
+import { formatNumber } from '@/lib/format';
 
 interface StepCockpitProps {
   state: MealPlanWizardState;
@@ -99,7 +100,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
               </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Budget</p>
-                <p className="text-sm font-semibold text-foreground">{state.budget_per_person_per_day.toFixed(2)} €/Person/Tag</p>
+                <p className="text-sm font-semibold text-foreground">{formatNumber(state.budget_per_person_per_day, { maxDecimals: 2 })} €/Person/Tag</p>
               </div>
             </div>
           )}

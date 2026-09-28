@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { formatNumber, roundToDecimals } from '@/lib/format';
 
 interface SollIstBarProps {
   current: number;
@@ -25,7 +26,7 @@ export default function SollIstBar({
   if (min_green === null && max_green === null && target_mid === null) {
     return (
       <div className={cn("text-xs text-muted-foreground", className)}>
-        <span>Ist: <strong>{current.toFixed(1)} {unit}</strong></span>
+        <span>Ist: <strong>{formatNumber(current, { maxDecimals: 1 })} {unit}</strong></span>
       </div>
     );
   }
@@ -72,9 +73,9 @@ export default function SollIstBar({
   // Formatting helper for currency/value
   const formatVal = (val: number) => {
     if (unit === '€' || unit === 'EUR') {
-      return `${val.toFixed(2)} €`;
+      return `${formatNumber(val, { maxDecimals: 2 })} €`;
     }
-    return `${unit === 'kcal' ? Math.round(val) : parseFloat(val.toFixed(1))} ${unit}`;
+    return `${unit === 'kcal' ? Math.round(val) : roundToDecimals(val, 1)} ${unit}`;
   };
 
   return (

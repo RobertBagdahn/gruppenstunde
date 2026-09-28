@@ -1,6 +1,7 @@
 /**
  * Shared portion-label formatting for the recipe ingredient editors.
  */
+import { formatExactWeight } from '@/lib/format';
 
 /** Structural shape needed for label formatting (Portion, EditablePortion, …). */
 export interface PortionLabelInput {
@@ -50,15 +51,6 @@ export function isDirectMetricPortion(
   return !(unitGrams != null && weightG != null && weightG > 0 && Math.abs(weightG - unitGrams) > 1e-6);
 }
 
-/** Formats a gram value compactly, e.g. "125g" or "1,3kg". */
-export function formatGramsShort(grams: number): string {
-  if (!Number.isFinite(grams) || grams <= 0) return '0g';
-  if (grams >= 1000) {
-    return `${(grams / 1000).toFixed(1).replace('.', ',')}kg`;
-  }
-  return `${Math.round(grams * 10) / 10}g`;
-}
-
 /**
  * Keep portion choices distinct and make missing piece weights actionable.
  * Count portions (composite, pre-weighed like "100g Reis") show their own
@@ -70,7 +62,7 @@ export function formatPortionOptionLabel(portion: PortionLabelInput): string {
   const portionName = isCount ? portion.name : unitName;
   const weight =
     portion.weight_g && portion.weight_g > 0
-      ? ` (${formatGramsShort(portion.weight_g)})`
+      ? ` (${formatExactWeight(portion.weight_g)})`
       : ' (Gewicht fehlt)';
   return `${portionName}${weight}`;
 }

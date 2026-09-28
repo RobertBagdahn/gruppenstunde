@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { Check, ChevronRight, ChevronDown } from 'lucide-react';
+import { formatNumber } from '@/lib/format';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -47,7 +48,7 @@ export default function ShoppingListItemRow({
     }
     if (g >= 1000) {
       const kg = g / 1000;
-      return kg === Math.floor(kg) ? `${kg} kg` : `${kg.toFixed(1)} kg`;
+      return kg === Math.floor(kg) ? `${kg} kg` : `${formatNumber(kg, { maxDecimals: 1 })} kg`;
     }
     return `${Math.round(g)} g`;
   };

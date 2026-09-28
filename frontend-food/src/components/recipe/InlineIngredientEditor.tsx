@@ -143,11 +143,9 @@ export interface InlineIngredientEditorHandle {
  *  - Add ingredient flows (handleAddIngredient, handleAddFromDialog, handleSelectAlternative)
  */
 
-/** Formats a gram value compactly for inline display next to a portion unit,
- *  e.g. "125g" or "1,3kg". Used in the AI-Mengenschätzung preview table so the
- *  gram equivalent is always visible regardless of the portion unit shown. */
-import { formatGramsShort, formatPortionOptionLabel, isDirectMetricPortion } from '@/lib/portionLabels';
-export { formatGramsShort, formatPortionOptionLabel };
+import { formatPortionOptionLabel, isDirectMetricPortion } from '@/lib/portionLabels';
+import { formatWeight } from '@/lib/format';
+export { formatPortionOptionLabel };
 
 export { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
 import { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
@@ -1786,12 +1784,12 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                       ? ` (${currentItem.quantity} ${currentItem.measuring_unit_name})`
                       : '';
                   const altValue = currentItem && currentItemGrams > 0
-                    ? `${formatGramsShort(currentItemGrams)}${altPortionContext}`
+                    ? `${formatWeight(currentItemGrams)}${altPortionContext}`
                     : '—';
                   const newPortionContext = est.unit && est.unit !== 'g' && est.unit !== 'Gramm'
                     ? ` (${est.quantity_per_portion} ${est.unit})`
                     : '';
-                  const newValue = `${formatGramsShort(est.grams_total)}${newPortionContext}`;
+                  const newValue = `${formatWeight(est.grams_total)}${newPortionContext}`;
                   const hasChange = !currentItem || Math.abs(currentItemGrams - est.grams_total) > 0.05;
                   return (
                     <tr

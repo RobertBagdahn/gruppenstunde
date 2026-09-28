@@ -9,6 +9,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import SollIstBar from '@/components/shared/SollIstBar';
 import SuggestionCard from '@/components/suggestions/SuggestionCard';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
@@ -428,8 +429,8 @@ export default function SuggestionsView({
                       : null;
 
                     const displayVal = showPerPortion
-                      ? `${row.perPortionValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`
-                      : `${row.totalValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`;
+                      ? `${formatNumber(row.perPortionValue, { maxDecimals: row.unit === 'kcal' ? 0 : 1 })} ${row.unit}`
+                      : `${formatNumber(row.totalValue, { maxDecimals: row.unit === 'kcal' ? 0 : 1 })} ${row.unit}`;
 
                     return (
                       <div key={row.label} className="px-4 py-3 flex flex-col gap-2">
@@ -513,8 +514,8 @@ export default function SuggestionsView({
                   : null;
 
                 const displayVal = showPerPortion
-                  ? `${row.perPortionValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`
-                  : `${row.totalValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`;
+                  ? `${formatNumber(row.perPortionValue, { maxDecimals: row.unit === 'kcal' ? 0 : 1 })} ${row.unit}`
+                  : `${formatNumber(row.totalValue, { maxDecimals: row.unit === 'kcal' ? 0 : 1 })} ${row.unit}`;
 
                 const scopeLabel = numDays === 1 ? '1 Tag' : `Ø ${numDays} Tage`;
 

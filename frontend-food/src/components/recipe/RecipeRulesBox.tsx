@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { useRecipeRules } from '@/api/recipes';
+import { formatNumber } from '@/lib/format';
 
 interface RecipeRulesBoxProps {
   recipeId: number;
@@ -109,7 +110,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
 
                 const displayVal = item.display_value !== null && item.display_value !== undefined
                   ? item.display_value
-                  : `${item.value_per_serving.toFixed(1)} ${item.unit}`.trim();
+                  : `${formatNumber(item.value_per_serving, { maxDecimals: 1 })} ${item.unit}`.trim();
 
                 const directionSymbol = item.threshold_direction === 'min' ? '≥' : '≤';
                 const thresholdText = item.threshold !== null && item.threshold !== undefined

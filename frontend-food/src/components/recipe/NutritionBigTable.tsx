@@ -4,6 +4,7 @@
  */
 
 import type { RecipeDetail } from '@/schemas/recipe';
+import { formatNumber, roundToDecimals } from '@/lib/format';
 
 interface NutritionBigTableProps {
   recipe: RecipeDetail;
@@ -41,14 +42,14 @@ export default function NutritionBigTable({ recipe, portions }: NutritionBigTabl
             <div key={nut.key} className="grid grid-cols-5 gap-4 p-4 text-sm">
               <div className="font-medium">{nut.label}</div>
               <div className="text-right text-muted-foreground">
-                {nut.unit === 'kcal' ? Math.round(per100g) : parseFloat(per100g.toFixed(1))} {nut.unit}
+                {nut.unit === 'kcal' ? Math.round(per100g) : roundToDecimals(per100g, 1)} {nut.unit}
               </div>
-              <div className="text-right">{nut.unit === 'kcal' ? Math.round(perPortion) : parseFloat(perPortion.toFixed(1))} {nut.unit}</div>
-              <div className="text-right font-semibold">{nut.unit === 'kcal' ? Math.round(total) : parseFloat(total.toFixed(1))} {nut.unit}</div>
+              <div className="text-right">{nut.unit === 'kcal' ? Math.round(perPortion) : roundToDecimals(perPortion, 1)} {nut.unit}</div>
+              <div className="text-right font-semibold">{nut.unit === 'kcal' ? Math.round(total) : roundToDecimals(total, 1)} {nut.unit}</div>
               <div className="text-right">
                 {dgePct > 0 && (
                   <span className={dgePct > 100 ? 'text-orange-600' : 'text-green-600'}>
-                    {dgePct.toFixed(0)}%
+                    {formatNumber(dgePct, { maxDecimals: 0 })}%
                   </span>
                 )}
               </div>

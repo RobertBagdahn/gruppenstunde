@@ -8,6 +8,7 @@ import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
+import { formatNumber } from '@/lib/format';
 
 interface PortionOption {
   name: string;
@@ -111,7 +112,7 @@ function ShoppingItemWithSources({
           )}
           {item.estimated_price_eur !== null ? (
             <span className="text-foreground font-medium">
-              {item.estimated_price_eur.toFixed(2)} EUR
+              {formatNumber(item.estimated_price_eur, { maxDecimals: 2 })} EUR
             </span>
           ) : (
             <span className="text-red-400 text-xs">kein Preis</span>
@@ -257,7 +258,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       {totalPrice > 0 && (
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center justify-between">
           <span className="font-semibold">Geschätzter Gesamtpreis</span>
-          <span className="font-bold text-lg">{totalPrice.toFixed(2)} EUR</span>
+          <span className="font-bold text-lg">{formatNumber(totalPrice, { maxDecimals: 2 })} EUR</span>
         </div>
       )}
     </div>

@@ -32,12 +32,12 @@
 
 ## 5. Frontend (frontend-food): Formatierungsmodul
 
-- [ ] 5.1 `src/lib/format.ts` mit `formatNumber`, `formatEuro`, `formatWeight`, `formatExactWeight`, `formatCount`, `plural`; `utils/formatWeight.ts` entfernen und Importe umstellen
-- [ ] 5.2 Vitest für `format.ts`, liest dieselbe Testtabelle `format_weight_cases.json`
-- [ ] 5.3 ESLint `no-restricted-syntax` gegen `toFixed` in `**/*.tsx` (Tests ausgenommen)
-- [ ] 5.4 Alle 141 `toFixed`-Stellen und die lokalen `formatPrice`/`formatNumber`-Kopien ersetzen
-- [ ] 5.5 `ListPageHero`: `countLabel: {one, other}`; Aufrufer (Rezepte, Zutaten, Pläne, Listen, Meine Rezepte) anpassen
-- [ ] 5.6 Definierte Portionsgewichte mit `formatExactWeight` (Rezept-Zutatenliste, Portionsauswahl, Zutatendetail)
+- [x] 5.1 `src/lib/format.ts` mit `formatNumber`, `formatEuro`, `formatWeight`, `formatExactWeight`, `formatCount`, `plural`; `utils/formatWeight.ts` entfernen und Importe umstellen
+- [x] 5.2 Vitest für `format.ts`, liest dieselbe Testtabelle `format_weight_cases.json`
+- [x] 5.3 ESLint `no-restricted-syntax` gegen `toFixed` in `**/*.tsx` (Tests ausgenommen)
+- [x] 5.4 Alle 141 `toFixed`-Stellen und die lokalen `formatPrice`/`formatNumber`-Kopien ersetzen
+- [x] 5.5 `ListPageHero`: `countLabel: {one, other}`; Aufrufer (Rezepte, Zutaten, Pläne, Listen, Meine Rezepte) anpassen
+- [x] 5.6 Definierte Portionsgewichte mit `formatExactWeight` (Rezept-Zutatenliste, Portionsauswahl, Zutatendetail)
 
 ## 6. Frontend (frontend-food): Schemas (Zod)
 

@@ -215,7 +215,7 @@ export default function ShoppingListPage() {
         icon="shopping_cart"
         gradientClasses="gradient-primary"
         totalCount={data?.total}
-        countLabel="Liste"
+        countLabel={{ one: 'Liste', other: 'Listen' }}
         countIcon="shopping_cart"
       />
 

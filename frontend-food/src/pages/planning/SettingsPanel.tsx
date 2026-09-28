@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api';
 import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/lib/mealPlanDateTime';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
+import { formatNumber } from '@/lib/format';
 
 interface SettingsPanelProps {
   planId: number;
@@ -155,7 +156,7 @@ export default function SettingsPanel({
                 />
               ) : (
                 <div className="rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-sm font-semibold">
-                  {plan.norm_portions.toFixed(1)} Normportionen
+                  {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Normportionen
                 </div>
               )}
               {manualNormPortions && !hasValidManualNormPortions ? (
@@ -269,7 +270,7 @@ export default function SettingsPanel({
         <p className="text-xs text-muted-foreground mt-3 font-medium">
           Summe der Faktoren:{' '}
           <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-primary font-bold" : "text-accent font-bold"}>
-            {Object.values(factors).reduce((a, b) => a + b, 0).toFixed(2)}
+            {formatNumber(Object.values(factors).reduce((a, b) => a + b, 0), { maxDecimals: 2 })}
           </span> (Sollte idealerweise 1,00 ergeben).
         </p>
       </div>

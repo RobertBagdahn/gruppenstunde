@@ -125,7 +125,7 @@ export default function RecipeListPage() {
         icon="menu_book"
         gradientClasses="gradient-primary"
         totalCount={data?.total}
-        countLabel="Rezept"
+        countLabel={{ one: 'Rezept', other: 'Rezepte' }}
         countIcon="restaurant"
       />
 

@@ -92,7 +92,7 @@ export default function MyRecipesPage() {
         icon="menu_book"
         gradientClasses="gradient-primary"
         totalCount={data?.total}
-        countLabel="persönliches Rezept"
+        countLabel={{ one: 'persönliches Rezept', other: 'persönliche Rezepte' }}
         countIcon="menu_book"
       />
 

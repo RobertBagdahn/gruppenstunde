@@ -14,6 +14,7 @@ import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/ap
 import type { Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
 import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
+import { roundToDecimals } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Nutriscore Badge
@@ -97,7 +98,7 @@ interface IngredientRowProps {
 }
 
 function formatNum(v: number | null): string {
-  return v != null ? parseFloat(v.toFixed(1)) + 'g' : '–';
+  return v != null ? roundToDecimals(v, 1) + 'g' : '–';
 }
 
 function IngredientRow({

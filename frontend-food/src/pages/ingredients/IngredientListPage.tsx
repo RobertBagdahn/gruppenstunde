@@ -85,7 +85,7 @@ export default function IngredientListPage() {
         icon="egg_alt"
         gradientClasses="gradient-primary"
         totalCount={data?.total}
-        countLabel="Zutat"
+        countLabel={{ one: 'Zutat', other: 'Zutaten' }}
         countIcon="egg_alt"
       />
 

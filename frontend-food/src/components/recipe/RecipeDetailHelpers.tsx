@@ -3,6 +3,7 @@ import { EntityLink } from '@/components/shared/EntityLink';
 import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
+import { formatNumber, roundToDecimals } from '@/lib/format';
 
 export { NUTRI_SCORE_COLORS_BY_LETTER as NUTRI_SCORE_COLORS } from '@/schemas/supply';
 
@@ -71,17 +72,17 @@ export function MacroBar({
       <div className="flex justify-between text-xs">
         <span className="font-medium">{label}</span>
         <span className="text-muted-foreground">
-        {unit === 'kcal' ? Math.round(value) : parseFloat(value.toFixed(1))} {unit}
+        {unit === 'kcal' ? Math.round(value) : roundToDecimals(value, 1)} {unit}
           {dgeRef != null && dgeRef > 0 && (
             <span className="ml-2 text-[10px] text-muted-foreground">
-              Referenz: {dgeRef.toFixed(1)} {unit}
+              Referenz: {formatNumber(dgeRef, { maxDecimals: 1 })} {unit}
             </span>
           )}
           {dgeCoverage != null && (
             <span className={`ml-1.5 text-[10px] font-semibold ${
               dgeCoverage >= 80 ? 'text-green-600' : dgeCoverage >= 40 ? 'text-amber-600' : 'text-red-600'
             }`}>
-              {dgeCoverage.toFixed(0)}%
+              {formatNumber(dgeCoverage, { maxDecimals: 0 })}%
             </span>
           )}
         </span>
@@ -150,10 +151,10 @@ export function MicronutrientSection({
                 <div className="flex justify-between text-xs">
                   <span className="font-medium">{n.label}</span>
                   <span className="text-muted-foreground">
-                    {displayValue < 0.1 ? displayValue.toFixed(3) : displayValue.toFixed(1)} {unitLabel}
+                    {displayValue < 0.1 ? formatNumber(displayValue, { maxDecimals: 3 }) : formatNumber(displayValue, { maxDecimals: 1 })} {unitLabel}
                     {coverage != null && (
                       <span className={`ml-2 font-semibold ${coverage >= 80 ? 'text-green-600' : coverage >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                        {coverage.toFixed(0)}% DGE
+                        {formatNumber(coverage, { maxDecimals: 0 })}% DGE
                       </span>
                     )}
                   </span>
@@ -247,7 +248,7 @@ export function NutrientCard({
     <div className={`text-center p-4 rounded-xl border ${bgColor}`}>
       <span className={`material-symbols-outlined text-2xl ${color}`}>{icon}</span>
       <p className="text-xl font-extrabold mt-1">
-        {value.toFixed(unit === 'kcal' ? 0 : 1)}
+        {formatNumber(value, { maxDecimals: unit === 'kcal' ? 0 : 1 })}
       </p>
       <p className="text-xs text-muted-foreground">
         {label} ({unit})
@@ -302,7 +303,7 @@ export function HealthIndicator({
         <span className="material-symbols-outlined text-[16px]">{statusIcons[status]}</span>
       </div>
       <p className="text-lg font-bold">
-        {value.toFixed(1)} {unit}
+        {formatNumber(value, { maxDecimals: 1 })} {unit}
       </p>
       <p className="text-[10px] opacity-75">{dgePct}% der DGE-Referenz</p>
       <div className="h-1.5 bg-white/50 rounded-full mt-1 overflow-hidden">
@@ -346,7 +347,7 @@ export function PriceRow({
         />
       </div>
       <span className="text-xs font-semibold text-yellow-700 w-16 text-right">
-        {item.price_eur?.toFixed(2)} EUR
+        {formatNumber(item.price_eur, { maxDecimals: 2 })} EUR
       </span>
     </div>
   );

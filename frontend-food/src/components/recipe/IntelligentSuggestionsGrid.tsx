@@ -4,6 +4,7 @@ import type { IntelligentSuggestion } from '@/schemas/mealPlan';
 import RecipeBadge from './RecipeBadge';
 import RecipeThumbnail from './RecipeThumbnail';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
+import { formatNumber } from '@/lib/format';
 
 interface IntelligentSuggestionsGridProps {
   planId: number;
@@ -65,7 +66,7 @@ function SuggestionCard({
         )}
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-auto pt-1">
           {suggestion.price_per_serving != null && (
-            <span>{suggestion.price_per_serving.toFixed(2).replace('.', ',')} €/P.</span>
+            <span>{formatNumber(suggestion.price_per_serving, { maxDecimals: 2 }).replace('.', ',')} €/P.</span>
           )}
           <span>{suggestion.usage_count}×</span>
         </div>

@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import type { RecipeItemNutrition } from "@/schemas/recipe";
+import { roundToDecimals } from '@/lib/format';
 
 /** German labels for contribution parameters, reusable across components. */
 export const PARAMETER_LABELS: Record<string, string> = {
@@ -70,7 +71,7 @@ export function NutritionContributionPanel({
             />
           </div>
           <span className="text-sm tabular-nums whitespace-nowrap shrink-0">
-            {unit === 'kcal' ? Math.round(c.absolute) : parseFloat(c.absolute.toFixed(1))} {unit} &middot; {parseFloat(c.percent.toFixed(1))}%
+            {unit === 'kcal' ? Math.round(c.absolute) : roundToDecimals(c.absolute, 1)} {unit} &middot; {roundToDecimals(c.percent, 1)}%
           </span>
         </div>
       ))}

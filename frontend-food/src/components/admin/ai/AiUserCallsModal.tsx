@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { AiInteractionItem } from '@/schemas/aiInteraction';
 import { AiContextChoices } from '@/lib/aiContextLabels';
+import { formatNumber } from '@/lib/format';
 
 function formatEur(value: number | null): string {
   if (value === null || value === 0) return '—';
@@ -19,7 +20,7 @@ function formatEur(value: number | null): string {
 function formatDuration(ms: number | null): string {
   if (ms === null) return '—';
   if (ms >= 1_000) {
-    return `${(ms / 1_000).toFixed(1).replace('.', ',')} s`;
+    return `${formatNumber((ms / 1_000), { maxDecimals: 1 }).replace('.', ',')} s`;
   }
   return `${new Intl.NumberFormat('de-DE').format(ms)} ms`;
 }

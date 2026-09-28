@@ -6,6 +6,7 @@ import Pagination from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, TrendingDown, HelpCircle, Sparkles, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatNumber } from '@/lib/format';
 
 const ANOMALY_TYPE_OPTIONS = [
   { value: '', label: 'Alle Typen' },
@@ -48,7 +49,7 @@ function formatPrice(val: string | null | undefined): string {
   if (val == null) return '–';
   const num = parseFloat(val);
   if (isNaN(num)) return '–';
-  return num.toFixed(2) + ' €/kg';
+  return formatNumber(num, { maxDecimals: 2 }) + ' €/kg';
 }
 
 export default function PriceAnalysisTable() {
@@ -320,7 +321,7 @@ export default function PriceAnalysisTable() {
                       <td className="px-4 py-2.5">{formatPrice(item.price_per_kg)}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{item.retail_section ?? '–'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-xs">
-                        {item.z_score != null ? item.z_score.toFixed(2) : '–'}
+                        {item.z_score != null ? formatNumber(item.z_score, { maxDecimals: 2 }) : '–'}
                       </td>
                       <td className="px-4 py-2.5">{anomalyBadge(item.anomaly_type)}</td>
                       <td className="px-4 py-2.5 text-right">

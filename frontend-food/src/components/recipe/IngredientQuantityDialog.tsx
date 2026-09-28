@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
 import type { Portion } from '@/schemas/supply';
+import { formatExactWeight, formatWeight } from '@/lib/format';
 
 interface IngredientQuantityDialogProps {
   ingredient: { id: number; name: string; slug: string; portions: Portion[] };
@@ -119,7 +120,7 @@ export default function IngredientQuantityDialog({
 
           {totalWeightG && selectedPortion?.weight_g && (
             <p className="text-xs text-muted-foreground">
-              {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
+              {quantity} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
             </p>
           )}
 

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
+import { formatNumber } from '@/lib/format';
 
 export function QuantityInput({ value, onChange }: { value: number; onChange: (quantity: number) => void }) {
-  const formatQuantity = (v: number) => v.toFixed(2).replace('.', ',');
+  const formatQuantity = (v: number) => formatNumber(v, { maxDecimals: 2 }).replace('.', ',');
   const [localValue, setLocalValue] = useState(formatQuantity(value));
   const lastSaved = useRef(value);
 

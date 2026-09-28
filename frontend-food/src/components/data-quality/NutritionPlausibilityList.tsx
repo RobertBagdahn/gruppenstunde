@@ -16,6 +16,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatNumber } from '@/lib/format';
 
 // Codes MUST match backend/supply/services/nutrition_plausibility.py ISSUE_LABELS.
 const ANOMALY_OPTIONS = [
@@ -285,18 +286,18 @@ export default function NutritionPlausibilityList() {
                     <span className="font-mono">
                       {item.energy_kcal != null ? `${Math.round(item.energy_kcal)} kcal` : '– kcal'}
                     </span>
-                    <span>P: {item.protein_g != null ? `${item.protein_g.toFixed(1)}g` : '–'}</span>
-                    <span>F: {item.fat_g != null ? `${item.fat_g.toFixed(1)}g` : '–'}</span>
-                    <span>KH: {item.carbohydrate_g != null ? `${item.carbohydrate_g.toFixed(1)}g` : '–'}</span>
+                    <span>P: {item.protein_g != null ? `${formatNumber(item.protein_g, { maxDecimals: 1 })}g` : '–'}</span>
+                    <span>F: {item.fat_g != null ? `${formatNumber(item.fat_g, { maxDecimals: 1 })}g` : '–'}</span>
+                    <span>KH: {item.carbohydrate_g != null ? `${formatNumber(item.carbohydrate_g, { maxDecimals: 1 })}g` : '–'}</span>
                     {item.sugar_g != null && (
-                      <span className="text-muted-foreground/80">(Zucker: {item.sugar_g.toFixed(1)}g)</span>
+                      <span className="text-muted-foreground/80">(Zucker: {formatNumber(item.sugar_g, { maxDecimals: 1 })}g)</span>
                     )}
                     {item.fat_sat_g != null && (
-                      <span className="text-muted-foreground/80">(ges. Fett: {item.fat_sat_g.toFixed(1)}g)</span>
+                      <span className="text-muted-foreground/80">(ges. Fett: {formatNumber(item.fat_sat_g, { maxDecimals: 1 })}g)</span>
                     )}
                     {item.macro_sum != null && item.macro_sum > 100 && (
                       <span className="text-red-600 font-semibold">
-                        Summe: {item.macro_sum.toFixed(1)}g
+                        Summe: {formatNumber(item.macro_sum, { maxDecimals: 1 })}g
                       </span>
                     )}
                   </div>

@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { MealPlan } from '@/schemas/mealPlan';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
+import { formatNumber } from '@/lib/format';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   verified: {
@@ -305,7 +306,7 @@ function MealPlanListPageInner() {
               </span>
               <span className="inline-flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                {plan.norm_portions.toFixed(1)} Portionen
+                {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
               </span>
               {plan.event_name && (
                 <span className="inline-flex items-center gap-1">
@@ -396,7 +397,7 @@ function MealPlanListPageInner() {
         icon="restaurant_menu"
         gradientClasses="gradient-primary"
         totalCount={totalCount}
-        countLabel="Plan"
+        countLabel={{ one: 'Plan', other: 'Pläne' }}
         countIcon="restaurant_menu"
       />
 

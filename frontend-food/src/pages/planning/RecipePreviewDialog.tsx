@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import type { RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
+import { formatNumber } from '@/lib/format';
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -55,7 +56,7 @@ export default function RecipePreviewDialog({
     ? Math.round(recipe.cached_carbohydrate_g * 10) / 10
     : null;
   const pricePerServing = recipe.price_per_serving
-    ? recipe.price_per_serving.toFixed(2)
+    ? formatNumber(recipe.price_per_serving, { maxDecimals: 2 })
     : null;
   const nutriScore = recipe.cached_nutri_class
     ? NUTRI_SCORE_LABELS[recipe.cached_nutri_class]

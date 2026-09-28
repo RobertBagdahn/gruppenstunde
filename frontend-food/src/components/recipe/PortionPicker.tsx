@@ -14,7 +14,8 @@
 import { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { useStandardMeasures } from '@/api/supplies';
-import { formatGramsShort, type PortionLabelInput } from '@/lib/portionLabels';
+import { type PortionLabelInput } from '@/lib/portionLabels';
+import { formatExactWeight } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export interface PortionPickerPortion extends PortionLabelInput {
@@ -81,7 +82,7 @@ export default function PortionPicker({
       : 'Gramm';
   const triggerWeightG = selectedPortion?.weight_g ?? (isFallbackSelected ? selectedFallback!.weight_g : null);
   const triggerWeight = triggerWeightG && triggerWeightG > 0
-    ? formatGramsShort(triggerWeightG)
+    ? formatExactWeight(triggerWeightG)
     : ((selectedPortion || isFallbackSelected) ? 'Gewicht fehlt' : null);
 
   const sortedPortions = [...portions].sort((a, b) => a.rank - b.rank);
@@ -132,7 +133,7 @@ export default function PortionPicker({
                   <span className="truncate">{portionDisplayName(portion)}</span>
                   {hasWeight ? (
                     <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                      {formatGramsShort(portion.weight_g ?? 0)}
+                      {formatExactWeight(portion.weight_g ?? 0)}
                     </span>
                   ) : (
                     <span className="text-xs text-amber-600 shrink-0">Gewicht fehlt</span>
@@ -161,7 +162,7 @@ export default function PortionPicker({
                   >
                     <span className="truncate">{measure.name}</span>
                     <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                      {formatGramsShort(measure.grams)} g{measure.is_approx ? ' (ca.)' : ''}
+                      {formatExactWeight(measure.grams)}{measure.is_approx ? ' (ca.)' : ''}
                     </span>
                   </button>
                 ))}

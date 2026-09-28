@@ -14,6 +14,7 @@ import {
   isIngredientReviewRowComplete,
   useRecipeIngredientReviewStore,
 } from '@/store/useRecipeIngredientReviewStore';
+import { formatExactWeight, formatWeight } from '@/lib/format';
 
 interface RecipeIngredientReviewStepProps {
   onAddIngredient?: () => void;
@@ -176,7 +177,7 @@ function NewIngredientDialog({
 
           {draft.portions[0]?.weight_g && draft.quantity && (
             <p className="text-xs text-muted-foreground">
-              {draft.quantity} × {draft.portions[0].weight_g} g = {Math.round(draft.quantity * draft.portions[0].weight_g)} g
+              {draft.quantity} × {formatExactWeight(draft.portions[0].weight_g)} = {formatWeight(draft.quantity * draft.portions[0].weight_g)}
             </p>
           )}
 

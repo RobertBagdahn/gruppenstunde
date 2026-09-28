@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { useIngredientDistributions } from '@/api/supplies';
 import type { DistributionBucket, DistributionStats } from '@/schemas/supply';
+import { formatNumber } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Konfiguration der angezeigten Felder
@@ -36,7 +37,7 @@ const BENCHMARK_FIELDS: FieldConfig[] = [
     label: 'Preis',
     unit: '€/kg',
     field: 'price_per_kg',
-    formatValue: (v) => `${v.toFixed(2)} €`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 2 })} €`,
   },
   {
     label: 'Energie',
@@ -48,25 +49,25 @@ const BENCHMARK_FIELDS: FieldConfig[] = [
     label: 'Protein',
     unit: 'g/100g',
     field: 'protein_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
   {
     label: 'Kohlenhydrate',
     unit: 'g/100g',
     field: 'carbohydrate_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
   {
     label: 'Zucker',
     unit: 'g/100g',
     field: 'sugar_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
   {
     label: 'Fett',
     unit: 'g/100g',
     field: 'fat_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
 ];
 
@@ -123,9 +124,9 @@ function IngredientHistogram({
       </p>
       {stats.mean != null && (
         <p className="text-xs text-muted-foreground mb-2">
-          Ø {`${stats.mean.toFixed(2)} ${unit.split('/')[0]}`}
+          Ø {`${formatNumber(stats.mean, { maxDecimals: 2 })} ${unit.split('/')[0]}`}
           {stats.median != null && (
-            <> · Median {`${stats.median.toFixed(2)} ${unit.split('/')[0]}`}</>
+            <> · Median {`${formatNumber(stats.median, { maxDecimals: 2 })} ${unit.split('/')[0]}`}</>
           )}
         </p>
       )}

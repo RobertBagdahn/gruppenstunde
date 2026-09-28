@@ -30,6 +30,22 @@ export default tseslint.config(
     },
   },
   {
+    // Number formatting must go through src/lib/format.ts (the single source
+    // of truth, kept in lockstep with the backend via a shared fixture) —
+    // .toFixed() bypasses German-locale formatting and commercial rounding.
+    files: ['**/*.tsx'],
+    ignores: ['**/*.test.tsx', 'src/__tests__/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.property.name='toFixed']",
+          message: 'Use formatNumber/formatEuro/formatWeight from @/lib/format instead of toFixed().',
+        },
+      ],
+    },
+  },
+  {
     files: [
       'src/components/ingredients/IngredientMergeDialog.tsx',
       'src/components/meal/VariantSliderDialog.tsx',
