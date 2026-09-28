@@ -55,7 +55,7 @@ class TestAddMealItemUniqueness:
 
         resp = client.post(
             f"/api/meal-plans/{plan.id}/meals/{meal.id}/items/",
-            data=json.dumps({"ingredient_id": ingredient.id, "factor": 1.0}),
+            data=json.dumps({"ingredient_id": ingredient.id, "quantity": 100, "factor": 1.0}),
             content_type="application/json",
         )
         assert resp.status_code == 422, resp.content
@@ -79,7 +79,7 @@ class TestAddMealItemUniqueness:
 
         resp = client.post(
             f"/api/meal-plans/{plan.id}/meals/{meal.id}/items/",
-            data=json.dumps({"ingredient_id": ingredient.id, "factor": 1.0}),
+            data=json.dumps({"ingredient_id": ingredient.id, "quantity": 100, "factor": 1.0}),
             content_type="application/json",
         )
         assert resp.status_code == 200

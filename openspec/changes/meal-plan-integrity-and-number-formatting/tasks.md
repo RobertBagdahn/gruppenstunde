@@ -8,10 +8,10 @@
 
 ## 2. Backend: API und Schemas (Pydantic)
 
-- [ ] 2.1 Helper `_save_meal_or_400` und Nutzung in `add_meal`, Duplizieren, Referenz-/Assistenten-/Buffet-/KI-Pfaden (HTTP 400 mit deutscher Meldung)
-- [ ] 2.2 `planner/schemas/meal_plan.py`: `model_validator` Pflichtmenge für Zutaten in `MealItemCreateIn`, `RefMealItemIn`, Assistenten- und Buffet-Eingaben
-- [ ] 2.3 `MealPlanDetailOut`: `meals` nur regulär, neues Feld `ref_meals`
-- [ ] 2.4 Tests: 400 bei zweitem Frühstück und außerhalb des Zeitraums, 422 bei Zutat ohne Menge, 403 anonym, Detail-API ohne Referenzmahlzeit in `meals`
+- [x] 2.1 Helper `_save_meal_or_400` und Nutzung in `add_meal`, Duplizieren, Referenz-/Assistenten-/Buffet-/KI-Pfaden (HTTP 400 mit deutscher Meldung)
+- [x] 2.2 `planner/schemas/meal_plan.py`: `model_validator` Pflichtmenge für Zutaten in `MealItemCreateIn`, `RefMealItemIn`, Assistenten- und Buffet-Eingaben
+- [x] 2.3 `MealPlanDetailOut`: `meals` nur regulär, neues Feld `ref_meals`
+- [x] 2.4 Tests: 400 bei zweitem Frühstück und außerhalb des Zeitraums, 422 bei Zutat ohne Menge, 403 anonym, Detail-API ohne Referenzmahlzeit in `meals`
 
 ## 3. Backend: Plan-Check
 

@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -640,16 +641,30 @@ class MealPlanAiService:
                         start_dt = timezone.make_aware(dt.datetime.combine(day_date, mt_start))
                         end_dt = timezone.make_aware(dt.datetime.combine(day_date, mt_end))
                         factor = (meal_plan.day_part_factors or {}).get(meal_type, 0.25)
-                        meal, _ = Meal.objects.get_or_create(
-                            meal_plan=meal_plan,
-                            start_datetime__date=day_date,
-                            meal_type=meal_type,
-                            defaults={
-                                "start_datetime": start_dt,
-                                "end_datetime": end_dt,
-                                "day_part_factor": factor,
-                            },
-                        )
+                        try:
+                            meal, _ = Meal.objects.get_or_create(
+                                meal_plan=meal_plan,
+                                start_datetime__date=day_date,
+                                meal_type=meal_type,
+                                defaults={
+                                    "start_datetime": start_dt,
+                                    "end_datetime": end_dt,
+                                    "day_part_factor": factor,
+                                },
+                            )
+                        except DjangoValidationError as exc:
+                            # day_date should always be inside the plan's own range
+                            # (it comes from iterating the plan's own days), but skip
+                            # gracefully instead of failing the whole AI generation.
+                            skipped_items.append(
+                                SkippedItem(
+                                    day=day_date,
+                                    meal_type=meal_type,
+                                    recipe_id=recipe_id,
+                                    reason="; ".join(exc.messages),
+                                )
+                            )
+                            continue
 
                     # Multi-item breakfast or meal
                     if items_payload:

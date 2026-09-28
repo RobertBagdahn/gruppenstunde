@@ -253,11 +253,25 @@ class MealItemCreateIn(Schema):
     display_name: str | None = None
     factor: float = 1.0
 
+    @model_validator(mode="after")
+    def validate_ingredient_quantity(self):
+        if self.ingredient_id is not None and not (self.quantity and self.quantity > 0):
+            raise ValueError("Für eine Einzelzutat wird eine Menge größer 0 benötigt")
+        return self
+
 
 class MealItemUpdateIn(Schema):
     factor: float | None = None
     quantity: float | None = None
     servings: float | None = None
+
+    @model_validator(mode="after")
+    def validate_quantity_not_cleared(self):
+        # Updates never carry ingredient_id (see add/update split in the API), so
+        # only guard against explicitly clearing quantity to zero/negative here.
+        if "quantity" in self.model_fields_set and self.quantity is not None and self.quantity <= 0:
+            raise ValueError("Die Menge muss größer 0 sein")
+        return self
 
 
 class MealReorderIn(Schema):
@@ -659,6 +673,7 @@ class MealPlanDetailOut(Schema):
     day_part_factors: dict[str, float]
     meal_default_times: dict[str, list[str]]
     meals: list[MealOut] = []
+    ref_meals: list["RefMealOut"] = []
     can_edit: bool = False
     can_delete: bool = False
     is_owner: bool = False
@@ -673,6 +688,16 @@ class MealPlanDetailOut(Schema):
     meals_copied: int = 0
     items_copied: int = 0
     overrides_copied: int = 0
+
+    @staticmethod
+    def resolve_meals(obj):
+        # `meals` is the prefetched related manager (includes reference meals);
+        # filter in Python to reuse the prefetch cache instead of re-querying.
+        return [m for m in obj.meals.all() if not m.is_reference]
+
+    @staticmethod
+    def resolve_ref_meals(obj):
+        return [m for m in obj.meals.all() if m.is_reference]
 
     @staticmethod
     def resolve_event_id(obj) -> int | None:
@@ -880,6 +905,12 @@ class RefMealItemIn(Schema):
     measuring_unit_id: int | None = None
     display_name: str | None = None
     factor: float = 1.0
+
+    @model_validator(mode="after")
+    def validate_ingredient_quantity(self):
+        if self.ingredient_id is not None and not (self.quantity and self.quantity > 0):
+            raise ValueError("Für eine Einzelzutat wird eine Menge größer 0 benötigt")
+        return self
 
 
 class RefMealCreateIn(Schema):
