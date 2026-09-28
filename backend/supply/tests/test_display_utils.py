@@ -13,38 +13,38 @@ from supply.utils import build_package_display, build_portion_display, format_we
 
 class TestFormatWeight:
     def test_zero_returns_zero(self):
-        assert format_weight(0) == "0g"
+        assert format_weight(0) == "0 g"
 
     def test_negative_returns_zero(self):
-        assert format_weight(-5) == "0g"
+        assert format_weight(-5) == "0 g"
 
     def test_under_1g_returns_mg(self):
-        assert format_weight(0.3) == "300mg"
+        assert format_weight(0.3) == "300 mg"
 
     def test_under_1g_small_value(self):
-        assert format_weight(0.05) == "50mg"
+        assert format_weight(0.05) == "50 mg"
 
     def test_exactly_1g(self):
-        assert format_weight(1.0) == "1g"
+        assert format_weight(1.0) == "1 g"
 
     def test_1_to_9g_rounds_to_nearest(self):
-        assert format_weight(3.7) == "4g"
-        assert format_weight(1.1) == "1g"
-        assert format_weight(8.9) == "9g"
+        assert format_weight(3.7) == "4 g"
+        assert format_weight(1.1) == "1 g"
+        assert format_weight(8.9) == "9 g"
 
     def test_under_50g_rounds_to_1g(self):
-        assert format_weight(47.0) == "47g"
-        assert format_weight(10.0) == "10g"
-        assert format_weight(12.0) == "12g"
+        assert format_weight(47.0) == "47 g"
+        assert format_weight(10.0) == "10 g"
+        assert format_weight(12.0) == "12 g"
 
     def test_50_to_99g_rounds_to_5g(self):
-        assert format_weight(53.0) == "55g"
-        assert format_weight(67.0) == "65g"
+        assert format_weight(53.0) == "55 g"
+        assert format_weight(67.0) == "65 g"
 
     def test_100_to_999g_rounds_to_10g(self):
-        assert format_weight(145.0) == "150g"
-        assert format_weight(964.0) == "960g"
-        assert format_weight(100.0) == "100g"
+        assert format_weight(145.0) == "150 g"
+        assert format_weight(964.0) == "960 g"
+        assert format_weight(100.0) == "100 g"
 
     def test_exactly_1000g_returns_kg(self):
         result = format_weight(1000.0)
@@ -92,7 +92,7 @@ class TestBuildPortionDisplay:
         assert "0,5" in display
         assert "EL" in display
         assert "Olivenöl" in display
-        assert "7g" in display or "8g" in display  # 0.5 × 14g = 7g (rounded to 5g step)
+        assert "7 g" in display or "8 g" in display  # 0.5 × 14g = 7g (rounded to 5g step)
         assert missing is False
 
     def test_pre_weighed_gram_portion_uses_portion_name(self):
@@ -102,7 +102,7 @@ class TestBuildPortionDisplay:
             Portion, ingredient=ingredient, measuring_unit=unit, name="100g Reis", quantity=1.0, weight_g=100.0
         )
         display, _ = build_portion_display(1.5, portion, ingredient)
-        assert display == "1,5 100g Reis (150g)"
+        assert display == "1,5 100g Reis (150 g)"
 
     def test_gram_unit_portion_keeps_unit_label(self):
         ingredient = self._make_ingredient("Langkornreis")
@@ -127,7 +127,7 @@ class TestBuildPortionDisplay:
         unit = self._make_unit("Prise")
         portion = self._make_portion(ingredient, unit, weight_g=0.3)
         display, _ = build_portion_display(1.0, portion, ingredient)
-        assert "300mg" in display
+        assert "300 mg" in display
         assert "Prise" in display
         assert "Salz" in display
 
@@ -185,7 +185,7 @@ class TestBuildPortionDisplay:
         assert "Gramm" not in display
         assert missing is False
         # 2.24 × 125g = 280g
-        assert "280g" in display
+        assert "280 g" in display
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +218,7 @@ class TestBuildPackageDisplay:
         ingredient = self._make_ingredient()
         self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
         result = build_package_display(750.0, ingredient)
-        assert "3×250g" in result
+        assert "3×250 g" in result
 
     def test_multiple_package_sizes(self):
         # build_package_display uses the smallest available package portion.
@@ -228,7 +228,7 @@ class TestBuildPackageDisplay:
         self._make_package_portion(ingredient, weight_g=500.0, name="500g Packung", rank=2)
         result = build_package_display(750.0, ingredient)
         # Smallest package portion wins: 3×250g
-        assert "250g" in result
+        assert "250 g" in result
         assert result != ""
 
     def test_rounds_up_when_not_exact(self):
@@ -236,14 +236,14 @@ class TestBuildPackageDisplay:
         self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
         # 600 / 250 = 2.4 → always ceil = 3
         result = build_package_display(600.0, ingredient)
-        assert "3×250g" in result
+        assert "3×250 g" in result
 
     def test_exact_fit_no_rounding(self):
         ingredient = self._make_ingredient()
         self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
         # 750 / 250 = 3.0 → exactly 3
         result = build_package_display(750.0, ingredient)
-        assert "3×250g" in result
+        assert "3×250 g" in result
 
     def test_ceil_when_floor_would_be_insufficient(self):
         ingredient = self._make_ingredient()
@@ -253,7 +253,7 @@ class TestBuildPackageDisplay:
         # The floor shortcut only applies when floor > 0 AND surplus < 10%.
         # But floor=1 leaves 495g uncovered, so ceil=2 is correct.
         result = build_package_display(995.0, ingredient)
-        assert "2×500g" in result
+        assert "2×500 g" in result
 
     def test_zero_quantity_returns_empty(self):
         ingredient = self._make_ingredient()

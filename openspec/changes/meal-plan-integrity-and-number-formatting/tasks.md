@@ -22,13 +22,13 @@
 
 ## 4. Backend: Formatierung und strukturierte Anzeigefelder
 
-- [ ] 4.1 `supply/utils.py` `format_weight`: kaufmännisches Runden in allen Stufen, Leerzeichen vor der Einheit; `format_exact_weight` ergänzen
-- [ ] 4.2 Gemeinsame Testtabelle `backend/supply/tests/fixtures/format_weight_cases.json` + pytest
-- [ ] 4.3 `supply/services/shopping_service.py`: `compute_portion_options` liefert `count`/`name`/`weight_g`, kein `display`; `_format_natural_portion` nur noch für PDF
-- [ ] 4.4 `shopping/schemas.py`: `display_quantity`/`natural_portions` → `quantity_g`, `unit`, `piece_equivalent`, `package_options`
-- [ ] 4.5 `planner/schemas/meal_plan.py`: `portion_display` → `portion_name`, `portion_count`, `quantity_g` (MealItem und Einkaufsansicht des Plans)
-- [ ] 4.6 `planner/services/pdf_export.py` auf die neue Backend-Formatierung umstellen
-- [ ] 4.7 Tests: API liefert Zahlen statt Texte; PDF enthält „≈ 2,5 Stück“ mit Komma
+- [x] 4.1 `supply/utils.py` `format_weight`: kaufmännisches Runden in allen Stufen, Leerzeichen vor der Einheit; `format_exact_weight` ergänzen
+- [x] 4.2 Gemeinsame Testtabelle `backend/supply/tests/fixtures/format_weight_cases.json` + pytest
+- [x] 4.3 `supply/services/shopping_service.py`: `compute_portion_options` liefert `count`/`name`/`weight_g`, kein `display`; `_format_natural_portion` nur noch für PDF
+- [x] 4.4 `shopping/schemas.py`: `display_quantity`/`natural_portions` → `quantity_g`, `unit`, `piece_equivalent`, `package_options`
+- [x] 4.5 `planner/schemas/meal_plan.py`: `portion_display` → `portion_name`, `portion_count`, `quantity_g` (MealItem und Einkaufsansicht des Plans)
+- [x] 4.6 `planner/services/pdf_export.py` auf die neue Backend-Formatierung umstellen
+- [x] 4.7 Tests: API liefert Zahlen statt Texte; PDF enthält „≈ 2,5 Stück“ mit Komma
 
 ## 5. Frontend (frontend-food): Formatierungsmodul
 

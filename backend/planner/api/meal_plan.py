@@ -69,6 +69,8 @@ from planner.schemas import (
     ShoppingItemPortionOptionOut,
     ShoppingItemSourceOut,
     ShoppingListItemOut,
+    ShoppingPackageOptionOut,
+    ShoppingPieceEquivalentOut,
     WizardItemsBulkIn,
     WizardItemsBulkOut,
     WizardItemsIn,
@@ -1796,9 +1798,9 @@ def shopping_list(request, meal_plan_id: int):
             unit=item.unit,
             retail_section=item.retail_section,
             estimated_price_eur=item.estimated_price_eur,
-            display_quantity=item.display_quantity,
-            natural_portions=item.natural_portions,
+            piece_equivalent=ShoppingPieceEquivalentOut(**item.piece_equivalent) if item.piece_equivalent else None,
             portion_options=[ShoppingItemPortionOptionOut(**po) for po in (item.portion_options or [])],
+            package_options=[ShoppingPackageOptionOut(**pk) for pk in (item.package_options or [])],
             sources=[ShoppingItemSourceOut.model_validate(s) for s in (item.sources or [])],
         )
         for item in items

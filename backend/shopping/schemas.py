@@ -47,10 +47,26 @@ class ShoppingItemPortionOptionOut(Schema):
     """Output schema for a single portion option in the shopping list."""
 
     name: str
-    display: str
     is_default: bool
     weight_g: float = 0.0
     count: float = 0.0
+
+
+class ShoppingPieceEquivalentOut(Schema):
+    """The single best-matching natural portion for a quantity (e.g. "≈ 3
+    Scheiben"). Structured so the frontend formats the count and word."""
+
+    count: float
+    portion_name: str
+
+
+class ShoppingPackageOptionOut(Schema):
+    """A shop-bought package count for a quantity (e.g. "2 × 500 g Packung").
+    Only present when the ingredient has a rank=1 Package."""
+
+    count: int
+    package_name: str
+    weight_g: float
 
 
 class ShoppingListItemOut(Schema):
@@ -75,9 +91,9 @@ class ShoppingListItemOut(Schema):
     ingredient_id: int | None = None
     ingredient_slug: str | None = None
     estimated_price_eur: float | None = None
-    display_quantity: str = ""
-    natural_portions: str = ""
+    piece_equivalent: ShoppingPieceEquivalentOut | None = None
     portion_options: list[ShoppingItemPortionOptionOut] = []
+    package_options: list[ShoppingPackageOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
 
     @staticmethod
@@ -112,49 +128,18 @@ class ShoppingListItemOut(Schema):
         return round(float(price), 2) if price is not None else None
 
     @staticmethod
-    def resolve_display_quantity(obj) -> str:
-        if not obj.quantity_g or obj.quantity_g <= 0:
-            return ""
-        if obj.unit != "g":
-            qty = round(obj.quantity_g, 2)
-            if qty == int(qty):
-                qty = int(qty)
-            return f"{qty} {obj.unit}"
-
-        # Prefer named portions (e.g., "Scheibe") if available
-        if obj.ingredient:
-            portions = list(obj.ingredient.portions.order_by("rank", "name"))
-            if portions:
-                from supply.services.shopping_service import compute_portion_options
-
-                best_display, _ = compute_portion_options(obj.quantity_g, portions)
-                if best_display:
-                    base = _format_weight(obj.quantity_g)
-                    return f"{base} · ≈ {best_display}"
-
-        base = _format_weight(obj.quantity_g)
-
-        # Append package options when the ingredient has package portions
-        if obj.ingredient:
-            from supply.utils import build_package_display
-
-            pkg = build_package_display(obj.quantity_g, obj.ingredient)
-            if pkg:
-                return f"{base} · {pkg}"
-
-        return base
-
-    @staticmethod
-    def resolve_natural_portions(obj) -> str:
-        if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0:
-            return ""
+    def resolve_piece_equivalent(obj) -> dict | None:
+        if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0 or obj.unit != "g":
+            return None
         portions = list(obj.ingredient.portions.order_by("rank", "name"))
         if not portions:
-            return ""
+            return None
         from supply.services.shopping_service import compute_portion_options
 
-        best_display, _ = compute_portion_options(obj.quantity_g, portions)
-        return best_display
+        best, _ = compute_portion_options(obj.quantity_g, portions)
+        if not best:
+            return None
+        return {"count": best["count"], "portion_name": best["name"]}
 
     @staticmethod
     def resolve_portion_options(obj) -> list[dict]:
@@ -167,6 +152,22 @@ class ShoppingListItemOut(Schema):
 
         _, options = compute_portion_options(obj.quantity_g, portions)
         return options
+
+    @staticmethod
+    def resolve_package_options(obj) -> list[dict]:
+        if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0 or obj.unit != "g":
+            return []
+        from supply.utils import get_shopping_portion
+
+        package = get_shopping_portion(obj.ingredient)
+        if not package or not package.weight_g or package.weight_g <= 0:
+            return []
+        import math
+
+        count = math.ceil(obj.quantity_g / package.weight_g)
+        if count <= 0:
+            return []
+        return [{"count": count, "package_name": package.name, "weight_g": package.weight_g}]
 
 
 class ShoppingListItemCreateIn(Schema):
@@ -276,13 +277,6 @@ class ShoppingListDetailOut(Schema):
     @staticmethod
     def resolve_is_owner(obj) -> bool:
         return getattr(obj, "_is_owner", False)
-
-
-def _format_weight(weight_g: float) -> str:
-    """Thin wrapper — delegates to supply.utils.format_weight for consistency."""
-    from supply.utils import format_weight as _fw
-
-    return _fw(weight_g)
 
 
 class ShoppingListCreateIn(Schema):

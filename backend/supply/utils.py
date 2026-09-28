@@ -9,33 +9,57 @@ if TYPE_CHECKING:
     from supply.models.ingredient import Ingredient, Package, Portion
 
 
-def format_weight(grams: float) -> str:
-    """Format a weight value (in grams) for German-locale display.
+def _round_half_up(value: float, step: float = 1) -> float:
+    """Commercial rounding (0.5 rounds up), unlike Python's banker's round()."""
+    return math.floor(value / step + 0.5) * step
 
-    Tiers:
-        < 1g    → mg  (e.g. 300mg)
-        1–49g   → 1g steps (e.g. 12g)
-        50–99g  → 5g steps (e.g. 55g)
-        100–999g → 10g steps (e.g. 150g)
-        ≥ 1000g → kg with 1 decimal, comma separator (e.g. 1,5 kg)
+
+def format_weight(grams: float) -> str:
+    """Format a *computed* weight value (in grams) for German-locale display.
+
+    Rounds — never use this for a portion's own defined weight (see
+    ``format_exact_weight``). Tiers, all with a space before the unit:
+        < 1g    → mg  (e.g. "300 mg")
+        1–49g   → 1g steps (e.g. "12 g")
+        50–99g  → 5g steps (e.g. "55 g")
+        100–999g → 10g steps (e.g. "150 g")
+        ≥ 1000g → kg with 1 decimal, comma separator (e.g. "1,5 kg")
     """
     if grams <= 0:
-        return "0g"
+        return "0 g"
     if grams < 1:
-        mg = round(grams * 1000)
-        return f"{mg}mg"
+        mg = _round_half_up(grams * 1000)
+        return f"{int(mg)} mg"
     if grams >= 1000:
         kg = grams / 1000
         # Always 1 decimal, German locale: dot → comma
         return f"{kg:.1f} kg".replace(".", ",")
     if grams >= 100:
-        # Use conventional rounding (0.5 rounds up), not Python's banker's rounding
-        rounded = math.floor(grams / 10 + 0.5) * 10
-        return f"{int(rounded)}g"
+        rounded = _round_half_up(grams, 10)
+        return f"{int(rounded)} g"
     if grams >= 50:
-        rounded = math.floor(grams / 5 + 0.5) * 5
-        return f"{int(rounded)}g"
-    return f"{round(grams)}g"
+        rounded = _round_half_up(grams, 5)
+        return f"{int(rounded)} g"
+    return f"{int(_round_half_up(grams))} g"
+
+
+def format_exact_weight(grams: float) -> str:
+    """Format a portion's *defined* weight (e.g. "à 125 g") without rounding.
+
+    Only the display representation is rounded (at most one decimal, German
+    comma); the underlying value is never altered. Use this wherever a
+    weight is a fact about the portion, not a computed total.
+    """
+    if grams <= 0:
+        return "0 g"
+    if grams < 1:
+        return f"{grams * 1000:.0f} mg"
+    if grams >= 1000:
+        kg = grams / 1000
+        return f"{kg:.1f} kg".replace(".", ",") if kg != int(kg) else f"{int(kg)} kg"
+    if grams == int(grams):
+        return f"{int(grams)} g"
+    return f"{grams:.1f} g".replace(".", ",")
 
 
 def _format_quantity(quantity: float) -> str:
@@ -170,5 +194,6 @@ def build_package_display(quantity_g: float, ingredient: Ingredient) -> str:
     if count <= 0:
         return ""
 
-    pkg_label = format_weight(package.weight_g)
+    # The package's own weight is a defined fact, not a computed total — never round it.
+    pkg_label = format_exact_weight(package.weight_g)
     return f"{count}×{pkg_label}"

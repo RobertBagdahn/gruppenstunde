@@ -675,7 +675,8 @@ def _aggregate_shopping_list(meal_plan: MealPlan) -> dict:
     section grouping, weight-based unit formatting, natural portion options,
     and portion-option resolution — replacing the former fragile regex parsing.
     """
-    from supply.services.shopping_service import generate_shopping_list
+    from supply.services.shopping_service import _format_natural_portion, generate_shopping_list
+    from supply.utils import format_weight
 
     items = generate_shopping_list(meal_plan)
 
@@ -685,7 +686,13 @@ def _aggregate_shopping_list(meal_plan: MealPlan) -> dict:
 
     for item in items:
         section_name = item.retail_section or "Sonstiges"
-        amount = item.natural_portions or item.display_text or item.display_quantity or "0 g"
+        # The PDF is rendered server-side, so — unlike the JSON API — it needs
+        # an actual formatted string; prefer the natural-portion equivalent
+        # (e.g. "≈ 3 Scheiben") over the raw gram amount.
+        if item.piece_equivalent:
+            amount = _format_natural_portion(item.piece_equivalent["count"], item.piece_equivalent["portion_name"])
+        else:
+            amount = format_weight(item.total_quantity_g) if item.total_quantity_g else "0 g"
         total_by_section[section_name].append(
             {
                 "name": item.ingredient_name,

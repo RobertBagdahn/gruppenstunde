@@ -136,7 +136,7 @@ class TestCrossConsumerConsistency:
         assert "Scheibe aktiv" in option_names
         assert "Scheibe alt" not in option_names
 
-    def test_portion_display_is_per_person(self):
+    def test_quantity_g_is_per_person(self):
         plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.0)
         meal = make_meal(meal_plan=plan)
         ing = make_ingredient(name="Haferflocken")
@@ -148,9 +148,8 @@ class TestCrossConsumerConsistency:
 
         from planner.schemas.meal_plan import MealItemOut
 
-        display = MealItemOut.resolve_portion_display(item)
-        # 180g per person, not divided by norm_portions
-        assert display == "180 g Haferflocken (180g)"
+        # 180g per person, not divided/multiplied by norm_portions
+        assert MealItemOut.resolve_quantity_g(item) == 180.0
 
     def test_shopping_list_reserve_zero_falls_back(self):
         from supply.services.shopping_service import generate_shopping_list

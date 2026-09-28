@@ -137,6 +137,15 @@ Ist-Zustand auf `main` (Abgleich 27.09.2026):
 - [Tailwind-Standardgrößen werden überschrieben] → shadcn-Basiskomponenten (`components/ui/*`) im selben Schritt anpassen; die Lint-Regel findet Reste.
 - [Change wird groß] → Umsetzung in der Task-Reihenfolge; jede Gruppe ist einzeln lauffähig und getestet (Integrität → Format → Einkauf → Tokens → Icons).
 
+## Implementation Deviations
+
+- **4.5** `MealItemOut.portion_display` was removed without adding replacement
+  `portion_name`/`portion_count` fields: `measuring_unit_name`, `quantity`, and
+  `quantity_g` already existed on the schema and carry the same information
+  without duplicating it. Adding parallel fields would have been redundant.
+  The frontend (group 7) composes the display string from these existing
+  fields, replicating the old "Stück" unit-name suppression client-side.
+
 ## Migration Plan
 
 0. Supply-Migrationen: Viskosität `liquid`, Model `IngredientPackageSuggestion`, Feld `viscosity_source`.
