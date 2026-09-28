@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, Info, Sparkles } from 'lucide-react';
 import { usePlanCheck } from '@/api/mealPlans';
 import type { PlanCheckAlert } from '@/schemas/mealPlan';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -7,39 +7,77 @@ import { cn } from '@/lib/utils';
 
 interface PlanCheckFlyoutProps {
   mealPlanId: number;
+  /** Viewers see all alerts but no action buttons. */
+  canEdit?: boolean;
   onOpenOmnibar?: (mealId?: number) => void;
   onNavigateToCosts?: () => void;
   onScrollToMeal?: (mealId: number) => void;
+  /** Create meals for an empty day (`empty_day`). */
+  onCreateDayMeals?: (date: string) => void;
+  /** Open the plan settings, e.g. to adjust the plan period (`meal_outside_range`). */
+  onOpenSettings?: () => void;
 }
+
+const SEVERITY_ORDER: Record<PlanCheckAlert['severity'], number> = { error: 0, warning: 1, info: 2 };
+
+/** Alerts sorted by severity: errors, then warnings, then hints (stable within a severity). */
+export function sortPlanCheckAlerts(alerts: PlanCheckAlert[]): PlanCheckAlert[] {
+  return [...alerts].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+}
+
+/** Alert types whose primary action opens the recipe search for the meal (swap/suggest). */
+const OMNIBAR_ALERT_TYPES = new Set<PlanCheckAlert['type']>(['empty_slot', 'recipe_type_mismatch']);
+
+const SEVERITY_STYLES: Record<PlanCheckAlert['severity'], { box: string; icon: typeof AlertCircle; iconClass: string }> = {
+  error: { box: 'border-destructive/30 bg-destructive/5', icon: AlertCircle, iconClass: 'text-destructive' },
+  warning: { box: 'border-amber-500/30 bg-amber-500/5', icon: AlertTriangle, iconClass: 'text-amber-500' },
+  info: { box: 'border-border bg-muted/30', icon: Info, iconClass: 'text-muted-foreground' },
+};
+
+const SECTION_LABELS: Record<PlanCheckAlert['severity'], string> = {
+  error: 'Fehler',
+  warning: 'Warnungen',
+  info: 'Hinweise',
+};
 
 export function PlanCheckFlyout({
   mealPlanId,
+  canEdit = true,
   onOpenOmnibar,
   onNavigateToCosts,
   onScrollToMeal,
+  onCreateDayMeals,
+  onOpenSettings,
 }: PlanCheckFlyoutProps) {
   const [open, setOpen] = useState(false);
   const { data, isLoading } = usePlanCheck(mealPlanId);
 
   const totalIssues = data?.total_issues || 0;
-  const alerts = data?.alerts || [];
+  const alerts = sortPlanCheckAlerts(data?.alerts || []);
+  const severities = (['error', 'warning', 'info'] as const).filter((s) => alerts.some((a) => a.severity === s));
 
   const handleAction = (alert: PlanCheckAlert) => {
     setOpen(false);
-    if (alert.action_type === 'suggest_recipe') {
-      if (alert.meal_id && onScrollToMeal) {
-        onScrollToMeal(alert.meal_id);
-      }
-      if (alert.meal_id && onOpenOmnibar) {
-        onOpenOmnibar(alert.meal_id);
-      }
-    } else if (alert.action_type === 'open_slot') {
-      if (alert.meal_id && onScrollToMeal) {
-        onScrollToMeal(alert.meal_id);
-      }
-    } else if (alert.action_type === 'open_budget') {
-      onNavigateToCosts?.();
+    switch (alert.action_type) {
+      case 'suggest_recipe':
+      case 'open_slot':
+        if (alert.meal_id) {
+          onScrollToMeal?.(alert.meal_id);
+          if (OMNIBAR_ALERT_TYPES.has(alert.type)) onOpenOmnibar?.(alert.meal_id);
+        }
+        break;
+      case 'open_budget':
+        onNavigateToCosts?.();
+        break;
+      case 'open_day':
+        if (alert.date) onCreateDayMeals?.(alert.date);
+        break;
     }
+  };
+
+  const handleOpenSettings = () => {
+    setOpen(false);
+    onOpenSettings?.();
   };
 
   return (
@@ -79,8 +117,8 @@ export function PlanCheckFlyout({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
-            {isLoading && <p className="text-xs text-muted-foreground py-4 text-center">Analysiere Essensplan...</p>}
+          <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
+            {isLoading && <p className="text-xs text-muted-foreground py-4 text-center">Analysiere Essensplan …</p>}
 
             {!isLoading && alerts.length === 0 && (
               <div className="py-8 text-center text-xs text-muted-foreground space-y-1.5">
@@ -90,43 +128,61 @@ export function PlanCheckFlyout({
               </div>
             )}
 
-            {alerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={cn(
-                  'p-3 rounded-xl border text-xs space-y-2 transition-colors',
-                  alert.severity === 'error'
-                    ? 'border-destructive/30 bg-destructive/5'
-                    : 'border-amber-500/30 bg-amber-500/5'
-                )}
-              >
-                <div className="flex items-start gap-2.5">
-                  {alert.severity === 'error' ? (
-                    <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-foreground text-sm leading-tight">{alert.title}</div>
-                    <div className="text-muted-foreground text-xs mt-1 leading-normal">
-                      {alert.description}
-                    </div>
-                  </div>
-                </div>
+            {severities.map((severity) => (
+              <section key={severity} className="space-y-2" aria-label={SECTION_LABELS[severity]}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {SECTION_LABELS[severity]}
+                </h3>
+                {alerts
+                  .filter((alert) => alert.severity === severity)
+                  .map((alert) => {
+                    const style = SEVERITY_STYLES[alert.severity];
+                    const Icon = style.icon;
+                    const showPrimary = canEdit && !!alert.action_label;
+                    const showSettings = canEdit && alert.type === 'meal_outside_range' && !!onOpenSettings;
+                    return (
+                      <div
+                        key={alert.id}
+                        data-testid="plan-check-alert"
+                        className={cn('p-3 rounded-xl border text-xs space-y-2 transition-colors', style.box)}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <Icon className={cn('w-4 h-4 shrink-0 mt-0.5', style.iconClass)} />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-foreground text-sm leading-tight">{alert.title}</div>
+                            <div className="text-muted-foreground text-xs mt-1 leading-normal">
+                              {alert.description}
+                            </div>
+                          </div>
+                        </div>
 
-                {alert.action_label && (
-                  <div className="pt-1 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => handleAction(alert)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
-                    >
-                      <span>{alert.action_label}</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-              </div>
+                        {(showPrimary || showSettings) && (
+                          <div className="pt-1 flex flex-wrap justify-end gap-2">
+                            {showSettings && (
+                              <button
+                                type="button"
+                                onClick={handleOpenSettings}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-card hover:bg-muted/50 transition-all"
+                              >
+                                Zeitraum anpassen
+                              </button>
+                            )}
+                            {showPrimary && (
+                              <button
+                                type="button"
+                                onClick={() => handleAction(alert)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                              >
+                                <span>{alert.action_label}</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </section>
             ))}
           </div>
         </DialogContent>

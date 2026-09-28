@@ -3,7 +3,7 @@ import { Wallet, Flame, Users, CheckCircle2, AlertTriangle, ArrowRight } from 'l
 import type { Meal } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL, effectivePortions } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
-import { formatNumber } from '@/lib/format';
+import { formatCount, formatNumber } from '@/lib/format';
 
 interface MealPlanBudgetCockpitProps {
   normPortions: number;
@@ -198,13 +198,13 @@ export function MealPlanBudgetCockpit({
 
           <div className="flex items-baseline justify-between gap-2">
             <div className="text-base sm:text-lg font-bold text-foreground font-display">
-              {actualKcalPerPersonPerDay}{' '}
+              {formatCount(actualKcalPerPersonPerDay)}{' '}
               <span className="text-xs font-normal text-muted-foreground">
-                / {NORM_PERSON_DAILY_KCAL} kcal
+                / {formatCount(NORM_PERSON_DAILY_KCAL)} kcal
               </span>
             </div>
             <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-              Ziel: 2.000 <ArrowRight className="w-3 h-3" />
+              Ziel: {formatCount(NORM_PERSON_DAILY_KCAL)} <ArrowRight className="w-3 h-3" />
             </span>
           </div>
 

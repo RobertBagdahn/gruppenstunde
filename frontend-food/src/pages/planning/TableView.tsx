@@ -14,8 +14,9 @@ import {
   Plus,
   ChevronDown,
 } from 'lucide-react';
-import type { Meal } from '@/schemas/mealPlan';
-import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes, effectivePortions, formatMealTime } from '@/schemas/mealPlan';
+import type { Meal, RefMeal } from '@/schemas/mealPlan';
+import { RefMealChips } from '@/components/planning/RefMealChips';
+import { compareMealsByTime, MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes, effectivePortions, formatMealTime } from '@/schemas/mealPlan';
 import { useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: s
 
 interface TableViewProps {
   meals: Meal[];
+  refMeals?: RefMeal[];
   normPortions: number;
   budgetPerPersonPerDay?: number | null;
   canEdit?: boolean;
@@ -79,6 +81,7 @@ interface TableViewProps {
 
 export default function TableView({
   meals,
+  refMeals = [],
   normPortions,
   budgetPerPersonPerDay,
   canEdit = false,
@@ -153,6 +156,13 @@ export default function TableView({
       }
       grid[meal.meal_type][date].push(meal);
     }
+    // Multiple meals of the same type on the same day (e.g. several snacks)
+    // are sorted by time of day.
+    for (const type of MEAL_TYPE_ORDER) {
+      for (const date of dates) {
+        grid[type][date]?.sort(compareMealsByTime);
+      }
+    }
 
     return { dates, grid };
   }, [meals]);
@@ -217,6 +227,7 @@ export default function TableView({
 
   return (
     <div className="space-y-4 font-sans">
+      <RefMealChips mealPlanId={mealPlanId} refMeals={refMeals} canEdit={canEdit} />
       <div className="w-full overflow-x-auto rounded-xl border border-border shadow-soft bg-card">
         <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>

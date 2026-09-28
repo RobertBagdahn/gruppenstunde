@@ -48,12 +48,12 @@
 
 ## 7. Frontend (frontend-food): Essensplan-UI
 
-- [ ] 7.1 `MealPlanBudgetCockpit.tsx`: Ziel aus `NORM_PERSON_DAILY_KCAL`, Zahlen über `format.ts`
-- [ ] 7.2 `getCoverageBadge()` mit den neuen Labels; `MealSlot.tsx` „Zu wenig Energie (x %)“
-- [ ] 7.3 `DayPlanView.tsx`/`TableView.tsx`: Sortierung nach Uhrzeit, Referenz-Chips aus `ref_meals`
-- [ ] 7.4 `PlanCheckFlyout.tsx`: neue Typen mit Aktionen (Deep-Links), Warnungen vor Hinweisen, Viewer ohne Aktionen
-- [ ] 7.5 `ShoppingView.tsx`, `pages/shopping/ShoppingListDetailPage.tsx`: Anzeige aus strukturierten Feldern („320 g · ≈ 64 TL“)
-- [ ] 7.6 Vitest: Labels, Sortierung, Cockpit-Ziel, Plan-Check-Rendering, Einkaufsanzeige
+- [x] 7.1 `MealPlanBudgetCockpit.tsx`: Ziel aus `NORM_PERSON_DAILY_KCAL`, Zahlen über `format.ts`
+- [x] 7.2 `getCoverageBadge()` mit den neuen Labels; `MealSlot.tsx` „Zu wenig Energie (x %)“
+- [x] 7.3 `DayPlanView.tsx`/`TableView.tsx`: Sortierung nach Uhrzeit, Referenz-Chips aus `ref_meals`
+- [x] 7.4 `PlanCheckFlyout.tsx`: neue Typen mit Aktionen (Deep-Links), Warnungen vor Hinweisen, Viewer ohne Aktionen
+- [x] 7.5 `ShoppingView.tsx`, `pages/shopping/ShoppingListDetailPage.tsx`: Anzeige aus strukturierten Feldern („320 g · ≈ 64 TL“)
+- [x] 7.6 Vitest: Labels, Sortierung, Cockpit-Ziel, Plan-Check-Rendering, Einkaufsanzeige
 
 ## 8. Backend: Einkauf in Packungen und Litern
 

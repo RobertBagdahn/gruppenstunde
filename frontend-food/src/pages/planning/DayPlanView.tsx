@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Trash2, Link2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useReorderMeals } from '@/api/mealPlans';
 import { toast } from 'sonner';
 import { MealSlot } from './MealSlot';
 import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getCoverageBadge, effectivePortions } from '@/schemas/mealPlan';
-import type { Meal } from '@/schemas/mealPlan';
+import type { Meal, RefMeal } from '@/schemas/mealPlan';
+import { RefMealChips } from '@/components/planning/RefMealChips';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
-import { formatNumber } from '@/lib/format';
+import { formatCount, formatNumber } from '@/lib/format';
 
 export function DayPlanView({
   mealPlanId,
+  refMeals = [],
   dayGroups,
   canEdit,
   hasTimeframe,
@@ -36,6 +37,7 @@ export function DayPlanView({
   nutritionalTagNames,
 }: {
   mealPlanId: number;
+  refMeals?: RefMeal[];
   dayGroups: { date: string; meals: Meal[] }[];
   canEdit: boolean;
   hasTimeframe: boolean;
@@ -79,20 +81,7 @@ export function DayPlanView({
   return (
     <div className="space-y-6">
       {/* RefMeal Links */}
-      {canEdit && (
-        <div className="flex flex-wrap gap-2 px-1">
-          {['breakfast', 'snack'].map((mt) => (
-            <Link
-              key={mt}
-              to={`/meal-plans/${mealPlanId}/ref-meals/${mt}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm hover:bg-accent transition-colors"
-            >
-              <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
-              Referenz: {MEAL_TYPE_LABELS[mt] || mt}
-            </Link>
-          ))}
-        </div>
-      )}
+      <RefMealChips mealPlanId={mealPlanId} refMeals={refMeals} canEdit={canEdit} />
 
       {/* Add Day Before */}
       {canEdit && hasTimeframe && (
@@ -148,7 +137,7 @@ export function DayPlanView({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
                       <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
-                      <span>Kcal: Soll {dayTargetKcal} / {dayActualKcal} kcal</span>
+                      <span>Kcal: Soll {formatCount(dayTargetKcal)} / {formatCount(dayActualKcal)} kcal</span>
                     </span>
                     {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
                       <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">

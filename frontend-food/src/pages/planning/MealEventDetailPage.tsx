@@ -43,7 +43,7 @@ import {
   useUpdateMeal,
   useScaleMealToTarget,
 } from '@/api/mealPlans';
-import { MEAL_TYPE_ORDER, minutesToHHMM, getMealDefaultTimes, effectivePortions } from '@/schemas/mealPlan';
+import { groupMealsByDate, minutesToHHMM, getMealDefaultTimes, effectivePortions } from '@/schemas/mealPlan';
 import type { Meal, MealItem } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -61,31 +61,6 @@ import { GroupMemberPanel } from '@/components/groupMembers/GroupMemberPanel';
 import CookingScheduleTab from './CookingScheduleTab';
 import { MealPlanBudgetCockpit } from '@/components/planning/MealPlanBudgetCockpit';
 import { formatNumber } from '@/lib/format';
-
-/** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
-function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
-  const groups: Record<string, Meal[]> = {};
-  for (const meal of meals) {
-    if (!meal.start_datetime) continue; // Skip reference meals
-    const date = meal.start_datetime.slice(0, 10); // "YYYY-MM-DD"
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(meal);
-  }
-  return Object.entries(groups)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, meals]) => ({
-      date,
-      meals: meals.sort((a, b) => {
-        const getOrder = (mt: string) => {
-          const idx = MEAL_TYPE_ORDER.indexOf(mt as typeof MEAL_TYPE_ORDER[number]);
-          return idx === -1 ? 999 : idx;
-        };
-        return getOrder(a.meal_type) - getOrder(b.meal_type);
-      }),
-    }));
-}
 
 const MEAL_PLAN_DETAIL_DEFAULTS = { view: 'cards' } as const;
 
@@ -437,6 +412,13 @@ export default function MealPlanDetailPage() {
         <div className="flex items-center gap-2 self-start">
           <PlanCheckFlyout
             mealPlanId={mealPlanId}
+            canEdit={plan.can_edit}
+            onOpenSettings={() => setShowSettingsDialog(true)}
+            onCreateDayMeals={(date) => {
+              handleAddMealType(date, 'breakfast')
+                .then(() => navigate(`/meal-plans/${mealPlanId}/plan#day-${date}`))
+                .catch(() => undefined);
+            }}
             onNavigateToCosts={() => navigate(`/meal-plans/${mealPlanId}/shopping?sub=costs`)}
             onScrollToMeal={(mId) => {
               navigate(`/meal-plans/${mealPlanId}/plan#meal-${mId}`);
@@ -605,6 +587,7 @@ export default function MealPlanDetailPage() {
 
           {planView === 'cards' ? (
             <DayPlanView
+              refMeals={plan.ref_meals}
               mealPlanId={mealPlanId}
               dayGroups={dayGroups}
               canEdit={plan.can_edit}
@@ -632,6 +615,7 @@ export default function MealPlanDetailPage() {
           ) : (
             <TableView
               meals={plan.meals}
+              refMeals={plan.ref_meals}
               normPortions={plan.norm_portions}
               budgetPerPersonPerDay={plan.budget_per_person_per_day}
               canEdit={plan.can_edit}

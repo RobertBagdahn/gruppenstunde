@@ -31,7 +31,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart } from 'lucide-react';
-import { formatNumber } from '@/lib/format';
+import { formatEuro } from '@/lib/format';
 
 export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -301,9 +301,7 @@ export default function ShoppingListDetailPage() {
             Geschätzter Gesamtpreis
           </span>
           <span className="text-lg font-bold text-foreground">
-            {formatNumber(items
-              .reduce((sum, i) => sum + (i.estimated_price_eur ?? 0), 0), { maxDecimals: 2 })}{' '}
-            €
+            {formatEuro(items.reduce((sum, i) => sum + (i.estimated_price_eur ?? 0), 0))}
           </span>
         </div>
       )}

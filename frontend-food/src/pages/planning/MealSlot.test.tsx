@@ -182,3 +182,21 @@ describe('MealSlot buffet grouping', () => {
     expect(screen.getByTitle(/bitte Menge und Einheit prüfen/)).toBeInTheDocument();
   });
 });
+
+describe('MealSlot energy status', () => {
+  // lunch: day_part_factor 0.35 → target 817 kcal per person; normPortions = 4
+  const targetTotalKcal = 2335 * 0.35 * 4;
+
+  it('shows "Zu wenig Energie (x %)" when the meal reaches less than 80 %', () => {
+    renderMealSlot(makeMeal([makeItem({ energy_kcal: targetTotalKcal * 0.6 })]));
+    expect(screen.getByText('Zu wenig Energie (60 %)')).toBeInTheDocument();
+    expect(screen.queryByText('Essen reicht nicht')).toBeNull();
+  });
+
+  it('shows no energy warning when the meal covers its target', () => {
+    renderMealSlot(makeMeal([makeItem({ energy_kcal: targetTotalKcal })]));
+    expect(screen.queryByText(/Zu wenig Energie/)).toBeNull();
+    openDetails();
+    expect(screen.getByTitle('Energie ok')).toBeInTheDocument();
+  });
+});

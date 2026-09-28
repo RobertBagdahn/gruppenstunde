@@ -8,8 +8,8 @@ import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
-import { formatNumber, formatWeight } from '@/lib/format';
-import { formatPieceEquivalent, formatPortionOption } from '@/lib/shoppingItemDisplay';
+import { formatEuro, formatWeight } from '@/lib/format';
+import { formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 type TransientShoppingItem = ShoppingListItem;
 
@@ -65,35 +65,30 @@ function ShoppingItemWithSources({
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
           <span>
-            {item.unit === 'g' ? formatWeight(item.total_quantity_g || 0) : `${formatNumber(item.total_quantity_g || 0, { maxDecimals: 1 })} ${item.unit}`}
+            {formatShoppingQuantity(item.total_quantity_g || 0, item.unit, item.piece_equivalent)}
             {showReserve && (item.reserve_quantity_g || 0) > 0 && (
               <span className="text-xs text-muted-foreground/70">
                 {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
               </span>
             )}
           </span>
-          {item.piece_equivalent && (
+          {hasPortionOptions && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (hasPortionOptions) {
-                  setPortionsExpanded(!portionsExpanded);
-                }
+                setPortionsExpanded(!portionsExpanded);
               }}
-              className={`inline-flex items-center gap-1 text-xs transition-colors ${
-                hasPortionOptions ? 'cursor-pointer hover:text-muted-foreground' : ''
-              }`}
+              aria-expanded={portionsExpanded}
+              aria-label="Portionsgrößen anzeigen"
+              className="inline-flex items-center gap-1 text-xs transition-colors cursor-pointer hover:text-muted-foreground"
             >
-              {hasPortionOptions && (
-                <ChevronDown className={`w-3 h-3 transition-transform ${portionsExpanded ? 'rotate-180' : ''}`} />
-              )}
-              {formatPieceEquivalent(item.piece_equivalent)}
+              <ChevronDown className={`w-3 h-3 transition-transform ${portionsExpanded ? 'rotate-180' : ''}`} />
             </button>
           )}
           {item.estimated_price_eur !== null ? (
             <span className="text-foreground font-medium">
-              {formatNumber(item.estimated_price_eur, { maxDecimals: 2 })} EUR
+              {formatEuro(item.estimated_price_eur)}
             </span>
           ) : (
             <span className="text-red-400 text-xs">kein Preis</span>
@@ -139,7 +134,7 @@ function ShoppingItemWithSources({
                   <span className="text-muted-foreground/60">({source.meal_label})</span>
                 )}
               </div>
-              <span>{Math.round(source.quantity_g || 0)} g</span>
+              <span>{formatWeight(source.quantity_g || 0)}</span>
             </div>
           ))}
         </div>
@@ -239,7 +234,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       {totalPrice > 0 && (
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center justify-between">
           <span className="font-semibold">Geschätzter Gesamtpreis</span>
-          <span className="font-bold text-lg">{formatNumber(totalPrice, { maxDecimals: 2 })} EUR</span>
+          <span className="font-bold text-lg">{formatEuro(totalPrice)}</span>
         </div>
       )}
     </div>

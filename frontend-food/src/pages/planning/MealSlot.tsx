@@ -35,7 +35,7 @@ import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
 import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
-import { formatNumber } from '@/lib/format';
+import { formatCount, formatNumber } from '@/lib/format';
 
 export function MealSlot({
   meal,
@@ -387,10 +387,10 @@ export function MealSlot({
                       ? 'bg-destructive/10 text-destructive border-destructive/20'
                       : 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20'
                   }`}
-                  title={`Nur ${coverage.percent}% der erwarteten Energiemenge (${mealActualKcal} von ${mealTargetKcal} kcal)`}
+                  title={`Nur ${coverage.percent}% der erwarteten Energiemenge (${formatCount(mealActualKcal)} von ${formatCount(mealTargetKcal)} kcal)`}
                 >
                   <AlertCircle className="w-3 h-3" />
-                  Essen reicht nicht
+                  Zu wenig Energie ({coverage.percent} %)
                 </span>
               )}
               {mealIsTooExpensive && (
@@ -463,9 +463,12 @@ export function MealSlot({
           {/* Meal Soll/Ist stats */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {meal.meal_type !== 'drinks' && (
-              <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-lg border border-border/40">
+              <span
+                className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-lg border border-border/40"
+                title={!mealIsTooLittle ? 'Energie ok' : undefined}
+              >
                 <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
-                <span>Kcal: Soll {mealTargetKcal} / <span className={`${coverageColorClass} font-medium`}>Ist {mealActualKcal} kcal</span> ({fulfillmentPercent}%)</span>
+                <span>Kcal: Soll {formatCount(mealTargetKcal)} / <span className={`${coverageColorClass} font-medium`}>Ist {formatCount(mealActualKcal)} kcal</span> ({fulfillmentPercent}%)</span>
               </span>
             )}
             {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (

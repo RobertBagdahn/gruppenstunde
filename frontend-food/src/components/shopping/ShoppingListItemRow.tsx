@@ -7,8 +7,8 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { Check, ChevronRight, ChevronDown } from 'lucide-react';
-import { formatNumber } from '@/lib/format';
-import { formatPieceEquivalent, formatPortionOption } from '@/lib/shoppingItemDisplay';
+import { formatEuro, formatWeight } from '@/lib/format';
+import { formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -41,18 +41,7 @@ export default function ShoppingListItemRow({
     setShowChecker(false);
   }, [recentChecker]);
 
-  const formatQuantity = (g: number, unit: string): string => {
-    if (g === 0) return '';
-    if (unit !== 'g') {
-      const rounded = Math.round(g * 100) / 100;
-      return `${rounded} ${unit}`;
-    }
-    if (g >= 1000) {
-      const kg = g / 1000;
-      return kg === Math.floor(kg) ? `${kg} kg` : `${formatNumber(kg, { maxDecimals: 1 })} kg`;
-    }
-    return `${Math.round(g)} g`;
-  };
+  const quantityLabel = formatShoppingQuantity(item.quantity_g, item.unit, item.piece_equivalent);
 
   return (
     <div className="font-sans" data-testid={`shopping-item-${item.id}`}>
@@ -115,35 +104,34 @@ export default function ShoppingListItemRow({
                 {item.name}
               </span>
             )}
-            {item.quantity_g > 0 && (
+            {quantityLabel && (
               <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
-                {formatQuantity(item.quantity_g, item.unit)}
+                {quantityLabel}
               </span>
             )}
           </div>
-          {/* Natural portions & price */}
+          {/* Portion options toggle & price */}
           <div className="flex items-center gap-2 mt-0.5">
-            {item.piece_equivalent && (
+            {hasPortionOptions && (
               <button
                 type="button"
-                onClick={() => hasPortionOptions && setPortionsExpanded(!portionsExpanded)}
-                className={cn(
-                  'inline-flex items-center gap-1 text-xs transition-colors',
-                  hasPortionOptions ? 'text-muted-foreground/70 hover:text-muted-foreground cursor-pointer' : 'text-muted-foreground/70',
-                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPortionsExpanded(!portionsExpanded);
+                }}
+                aria-expanded={portionsExpanded}
+                className="inline-flex items-center gap-1 text-xs transition-colors text-muted-foreground/70 hover:text-muted-foreground cursor-pointer"
               >
-                {hasPortionOptions && (
-                  <ChevronDown className={cn(
-                    'w-3 h-3 transition-transform duration-200',
-                    portionsExpanded && 'rotate-180',
-                  )} />
-                )}
-                {formatPieceEquivalent(item.piece_equivalent)}
+                <ChevronDown className={cn(
+                  'w-3 h-3 transition-transform duration-200',
+                  portionsExpanded && 'rotate-180',
+                )} />
+                Portionsgrößen
               </button>
             )}
             {item.estimated_price_eur !== null && item.estimated_price_eur !== undefined && (
               <span className="text-xs font-semibold text-foreground">
-                {item.estimated_price_eur.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                {formatEuro(item.estimated_price_eur)}
               </span>
             )}
             {item.estimated_price_eur === null && item.ingredient_id && (
@@ -210,7 +198,7 @@ export default function ShoppingListItemRow({
                   <span className="text-muted-foreground/60 font-normal">({source.meal_label})</span>
                 )}
               </div>
-              <span className="font-semibold">{Math.round(source.quantity_g)} g</span>
+              <span className="font-semibold">{formatWeight(source.quantity_g)}</span>
             </div>
           ))}
         </div>

@@ -480,6 +480,36 @@ export type UnifiedSearchResponse = z.infer<typeof UnifiedSearchResponseSchema>;
 
 export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'] as const;
 
+function mealTypeIndex(mealType: string): number {
+  const idx = MEAL_TYPE_ORDER.indexOf(mealType as (typeof MEAL_TYPE_ORDER)[number]);
+  return idx === -1 ? MEAL_TYPE_ORDER.length : idx;
+}
+
+/**
+ * Compare meals by start time (ascending); meals at the same time follow
+ * MEAL_TYPE_ORDER (Frühstück, Mittagessen, Abendessen, Snack, Getränke).
+ */
+export function compareMealsByTime(
+  a: Pick<Meal, 'start_datetime' | 'meal_type'>,
+  b: Pick<Meal, 'start_datetime' | 'meal_type'>,
+): number {
+  const byTime = (a.start_datetime ?? '').localeCompare(b.start_datetime ?? '');
+  return byTime || mealTypeIndex(a.meal_type) - mealTypeIndex(b.meal_type);
+}
+
+/** Group meals by date (from `start_datetime`), each day sorted by time of day. Meals without date are skipped. */
+export function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
+  const groups: Record<string, Meal[]> = {};
+  for (const meal of meals) {
+    if (!meal.start_datetime) continue;
+    const date = meal.start_datetime.slice(0, 10);
+    (groups[date] ??= []).push(meal);
+  }
+  return Object.entries(groups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, dayMeals]) => ({ date, meals: [...dayMeals].sort(compareMealsByTime) }));
+}
+
 // ==========================================================================
 // AI Meal Plan Generation
 // ==========================================================================
@@ -739,10 +769,10 @@ export function getEffectiveCoverage(coverage: number): number {
 export function getCoverageBadge(coverage: number): { label: string; status: 'green' | 'yellow' | 'red' | 'overplanned'; effectiveCoverage: number } {
   const effectiveCoverage = getEffectiveCoverage(coverage);
   const pct = Math.round(coverage * 100);
-  if (coverage > 1.0) return { label: `Überplant ${pct} %`, status: 'overplanned', effectiveCoverage };
-  if (coverage >= 0.8) return { label: 'Vollständig', status: 'green', effectiveCoverage };
-  if (coverage >= 0.35) return { label: `Teilweise ${pct} %`, status: 'yellow', effectiveCoverage };
-  return { label: `Teilweise ${pct} %`, status: 'red', effectiveCoverage };
+  if (coverage > 1.0) return { label: `Überplant (${pct} %)`, status: 'overplanned', effectiveCoverage };
+  if (coverage >= 0.8) return { label: 'Alle Mahlzeiten geplant', status: 'green', effectiveCoverage };
+  if (coverage >= 0.35) return { label: `Teilweise geplant (${pct} %)`, status: 'yellow', effectiveCoverage };
+  return { label: `Teilweise geplant (${pct} %)`, status: 'red', effectiveCoverage };
 }
 
 /** Read meal_default_times from plan data with fallback to hardcoded defaults. */
