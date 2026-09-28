@@ -811,12 +811,16 @@ class ShoppingListItemOut(Schema):
     total_quantity_g: float
     net_quantity_g: float = 0.0
     reserve_quantity_g: float = 0.0
-    unit: str = "g"
+    # Display quantity in `unit`: grams, or millilitres for beverages/liquids.
+    quantity: float = 0.0
+    unit: Literal["g", "ml"] = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
     piece_equivalent: ShoppingPieceEquivalentOut | None = None
     portion_options: list[ShoppingItemPortionOptionOut] = []
     package_options: list[ShoppingPackageOptionOut] = []
+    # count × package weight − quantity_g; negative when rounded down within tolerance.
+    package_surplus_g: float | None = None
     sources: list[ShoppingItemSourceOut] = []
 
 

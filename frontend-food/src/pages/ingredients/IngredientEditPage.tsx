@@ -9,7 +9,7 @@ import {
   useNutritionalTags,
 } from '@/api/supplies';
 import { useTags } from '@/api/tags';
-import type { IngredientStatus, NutritionalTag } from '@/schemas/supply';
+import { PHYSICAL_VISCOSITY_LABELS, type IngredientStatus, type NutritionalTag } from '@/schemas/supply';
 import { INGREDIENT_STATUS_OPTIONS, ingredientStatusLabel, parseIngredientStatus } from '@/lib/ingredientStatus';
 import type { Tag } from '@/schemas/content';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -462,9 +462,9 @@ export default function IngredientEditPage() {
                 onChange={(e) => setPhysicalViscosity(e.target.value)}
                 className={inputClass}
               >
-                <option value="solid">Fest</option>
-                <option value="beverage">Flüssig</option>
-                <option value="powder">Pulver/Schüttgut</option>
+                {Object.entries(PHYSICAL_VISCOSITY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </Field>
             <Field label="Haltbarkeit (Tage)">

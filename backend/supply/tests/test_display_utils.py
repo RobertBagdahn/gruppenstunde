@@ -3,8 +3,8 @@
 import pytest
 from model_bakery import baker
 
-from supply.models import Ingredient, MeasuringUnit, Package, Portion
-from supply.utils import build_package_display, build_portion_display, format_weight
+from supply.models import Ingredient, MeasuringUnit, Portion
+from supply.utils import build_portion_display, compute_package_need, format_weight, shopping_quantity
 
 # ---------------------------------------------------------------------------
 # format_weight
@@ -189,74 +189,50 @@ class TestBuildPortionDisplay:
 
 
 # ---------------------------------------------------------------------------
-# build_package_display
+# compute_package_need / shopping_quantity
 # ---------------------------------------------------------------------------
 
 
+class TestComputePackageNeed:
+    def test_just_over_package_boundary_rounds_down(self):
+        # 1020 / 500 = 2.04 → within 5 % tolerance → 2 packages, 20 g short (covered by reserve)
+        assert compute_package_need(1020, 500) == (2, -20.0)
+
+    def test_clearly_over_boundary_rounds_up(self):
+        # 700 / 250 = 2.8 → 3 packages, 50 g surplus
+        assert compute_package_need(700, 250) == (3, 50.0)
+
+    def test_tolerance_boundary_is_inclusive(self):
+        # 1025 / 500 = 2.05 → exactly 5 % → round down
+        assert compute_package_need(1025, 500) == (2, -25.0)
+        assert compute_package_need(1026, 500) == (3, 474.0)
+
+    def test_tiny_quantity_needs_at_least_one_package(self):
+        assert compute_package_need(30, 500) == (1, 470.0)
+        # below 5 % of a single package still means one package
+        assert compute_package_need(10, 500) == (1, 490.0)
+
+    def test_exact_fit(self):
+        assert compute_package_need(750, 250) == (3, 0.0)
+
+    def test_invalid_inputs(self):
+        assert compute_package_need(0, 500) is None
+        assert compute_package_need(100, 0) is None
+
+
 @pytest.mark.django_db
-class TestBuildPackageDisplay:
-    def _make_ingredient(self) -> Ingredient:
-        return baker.make(Ingredient, name="Quark", slug="quark", status="verified")
+class TestShoppingQuantity:
+    def test_beverage_is_converted_to_ml(self):
+        milk = baker.make(Ingredient, name="Milch", physical_viscosity="beverage", physical_density=1.03)
+        assert shopping_quantity(9400, milk) == (9126.0, "ml")
 
-    def _make_package_portion(self, ingredient, weight_g: float, name: str = "", rank: int = 1) -> Package:
-        if not name:
-            name = f"{int(weight_g)}g Packung"
-        return baker.make(
-            Package,
-            ingredient=ingredient,
-            name=name,
-            weight_g=weight_g,
-            rank=rank,
-        )
+    def test_liquid_is_converted_to_ml(self):
+        oil = baker.make(Ingredient, name="Rapsöl", physical_viscosity="liquid", physical_density=0.92)
+        assert shopping_quantity(920, oil) == (1000.0, "ml")
 
-    def test_no_package_portions_returns_empty(self):
-        ingredient = self._make_ingredient()
-        result = build_package_display(750.0, ingredient)
-        assert result == ""
+    def test_solid_stays_in_grams(self):
+        flour = baker.make(Ingredient, name="Mehl", physical_viscosity="solid", physical_density=0.6)
+        assert shopping_quantity(1500, flour) == (1500, "g")
 
-    def test_single_package_exact_fit(self):
-        ingredient = self._make_ingredient()
-        self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
-        result = build_package_display(750.0, ingredient)
-        assert "3×250 g" in result
-
-    def test_multiple_package_sizes(self):
-        # build_package_display uses the smallest available package portion.
-        # With 250g and 500g packages, 750g → 3×250g (smallest fits better).
-        ingredient = self._make_ingredient()
-        self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
-        self._make_package_portion(ingredient, weight_g=500.0, name="500g Packung", rank=2)
-        result = build_package_display(750.0, ingredient)
-        # Smallest package portion wins: 3×250g
-        assert "250 g" in result
-        assert result != ""
-
-    def test_rounds_up_when_not_exact(self):
-        ingredient = self._make_ingredient()
-        self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
-        # 600 / 250 = 2.4 → always ceil = 3
-        result = build_package_display(600.0, ingredient)
-        assert "3×250 g" in result
-
-    def test_exact_fit_no_rounding(self):
-        ingredient = self._make_ingredient()
-        self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
-        # 750 / 250 = 3.0 → exactly 3
-        result = build_package_display(750.0, ingredient)
-        assert "3×250 g" in result
-
-    def test_ceil_when_floor_would_be_insufficient(self):
-        ingredient = self._make_ingredient()
-        self._make_package_portion(ingredient, weight_g=500.0, name="500g Packung")
-        # 995 / 500 = 1.99 → ceil = 2, surplus = 5g = 0.5% < 10%
-        # floor=1 would mean 500g for 995g — a shortage, so ceil=2 is used.
-        # The floor shortcut only applies when floor > 0 AND surplus < 10%.
-        # But floor=1 leaves 495g uncovered, so ceil=2 is correct.
-        result = build_package_display(995.0, ingredient)
-        assert "2×500 g" in result
-
-    def test_zero_quantity_returns_empty(self):
-        ingredient = self._make_ingredient()
-        self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
-        result = build_package_display(0.0, ingredient)
-        assert result == ""
+    def test_without_ingredient_stays_in_grams(self):
+        assert shopping_quantity(300, None) == (300, "g")

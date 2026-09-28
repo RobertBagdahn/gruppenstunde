@@ -1795,12 +1795,14 @@ def shopping_list(request, meal_plan_id: int):
             total_quantity_g=item.total_quantity_g,
             net_quantity_g=item.net_quantity_g,
             reserve_quantity_g=item.reserve_quantity_g,
+            quantity=item.quantity,
             unit=item.unit,
             retail_section=item.retail_section,
             estimated_price_eur=item.estimated_price_eur,
             piece_equivalent=ShoppingPieceEquivalentOut(**item.piece_equivalent) if item.piece_equivalent else None,
             portion_options=[ShoppingItemPortionOptionOut(**po) for po in (item.portion_options or [])],
             package_options=[ShoppingPackageOptionOut(**pk) for pk in (item.package_options or [])],
+            package_surplus_g=item.package_surplus_g,
             sources=[ShoppingItemSourceOut.model_validate(s) for s in (item.sources or [])],
         )
         for item in items

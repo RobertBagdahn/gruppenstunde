@@ -170,30 +170,42 @@ def get_shopping_portion(ingredient: Ingredient) -> Package | None:
         return None
 
 
-def build_package_display(quantity_g: float, ingredient: Ingredient) -> str:
-    """Build the package options string for a shopping list item.
+# A package count may be rounded *down* when the remainder is at most this
+# share of a package — the shopping reserve factor covers the small gap.
+PACKAGE_ROUND_DOWN_TOLERANCE = 0.05
 
-    Uses the ingredient's rank=1 package to calculate how many units are needed.
 
-    Rounding rule:
-        - Compute exact count = quantity_g / package.weight_g
-        - Always round up — better to buy slightly more than run short
+def compute_package_need(quantity_g: float, package_weight_g: float | None) -> tuple[int, float] | None:
+    """How many packages of ``package_weight_g`` cover ``quantity_g``.
 
-    Returns empty string when no suitable package exists.
+    ``quantity_g`` already includes the plan's reserve factor, so no further
+    surcharge is applied. If the fractional part is at most 5 % of a package,
+    round down (the shortfall is within the reserve), otherwise round up;
+    always at least one package.
+
+    Returns ``(count, surplus_g)`` where ``surplus_g`` is ``count × weight −
+    quantity`` (negative when rounded down), or ``None`` without valid inputs.
     """
-    if not quantity_g or quantity_g <= 0:
-        return ""
+    if not quantity_g or quantity_g <= 0 or not package_weight_g or package_weight_g <= 0:
+        return None
+    exact = quantity_g / package_weight_g
+    whole = math.floor(exact)
+    count = whole if exact - whole <= PACKAGE_ROUND_DOWN_TOLERANCE + 1e-9 else whole + 1
+    count = max(1, count)
+    surplus_g = round(count * package_weight_g - quantity_g, 1)
+    return count, surplus_g
 
-    package = get_shopping_portion(ingredient)
-    if not package or not package.weight_g or package.weight_g <= 0:
-        return ""
 
-    exact = quantity_g / package.weight_g
-    count = math.ceil(exact)
+def shopping_quantity(quantity_g: float, ingredient: Ingredient | None) -> tuple[float, str]:
+    """Shopping quantity in its display unit.
 
-    if count <= 0:
-        return ""
+    Beverages and liquids are converted to millilitres via ``physical_density``
+    (g/ml); everything else stays in grams.
+    """
+    from supply.choices import LIQUID_VISCOSITIES
 
-    # The package's own weight is a defined fact, not a computed total — never round it.
-    pkg_label = format_exact_weight(package.weight_g)
-    return f"{count}×{pkg_label}"
+    if ingredient is not None and ingredient.physical_viscosity in LIQUID_VISCOSITIES:
+        density = ingredient.physical_density or 0
+        if density > 0:
+            return float(round(quantity_g / density)), "ml"
+    return quantity_g, "g"

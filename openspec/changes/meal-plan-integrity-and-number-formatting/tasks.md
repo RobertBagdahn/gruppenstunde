@@ -57,10 +57,10 @@
 
 ## 8. Backend: Einkauf in Packungen und Litern
 
-- [ ] 8.1 `supply/choices.py`: `PhysicalViscosityChoices.LIQUID`; Feld `viscosity_source` am Ingredient; Migration
-- [ ] 8.2 `supply/utils.py`: `compute_package_need()` (5 %-Toleranz, min. 1), `build_package_display` entfernen
-- [ ] 8.3 Einkaufsposten: `package_options`, `package_surplus_g`, `quantity`/`unit` (ml für `beverage`/`liquid` über `physical_density`) in `shopping/schemas.py` und der Essensplan-Einkaufsansicht
-- [ ] 8.4 Tests: 1.020 g/500 g → 2, 700 g/250 g → 3 (+50 g), 30 g → 1; Milch 9.400 g → 9.126 ml; feste Zutat bleibt g
+- [x] 8.1 `supply/choices.py`: `PhysicalViscosityChoices.LIQUID`; Feld `viscosity_source` am Ingredient; Migration
+- [x] 8.2 `supply/utils.py`: `compute_package_need()` (5 %-Toleranz, min. 1), `build_package_display` entfernen
+- [x] 8.3 Einkaufsposten: `package_options`, `package_surplus_g`, `quantity`/`unit` (ml für `beverage`/`liquid` über `physical_density`) in `shopping/schemas.py` und der Essensplan-Einkaufsansicht
+- [x] 8.4 Tests: 1.020 g/500 g → 2, 700 g/250 g → 3 (+50 g), 30 g → 1; Milch 9.400 g → 9.126 ml; feste Zutat bleibt g
 
 ## 9. Backend: Packungsvorschläge per KI
 

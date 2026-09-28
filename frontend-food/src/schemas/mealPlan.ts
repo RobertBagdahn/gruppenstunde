@@ -337,12 +337,16 @@ export const ShoppingListItemSchema = z.object({
   total_quantity_g: z.number(),
   net_quantity_g: z.number().default(0),
   reserve_quantity_g: z.number().default(0),
-  unit: z.string(),
+  /** Display quantity in `unit` (grams, or millilitres for beverages/liquids). */
+  quantity: z.number().default(0),
+  unit: z.enum(['g', 'ml']).default('g'),
   retail_section: z.string(),
   estimated_price_eur: z.number().nullable(),
   piece_equivalent: ShoppingPieceEquivalentSchema.nullable().optional(),
   portion_options: z.array(PortionOptionSchema).default([]),
   package_options: z.array(ShoppingPackageOptionSchema).default([]),
+  /** count × package weight − total_quantity_g; negative when rounded down within tolerance. */
+  package_surplus_g: z.number().nullable().default(null),
   sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;

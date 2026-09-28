@@ -67,6 +67,8 @@ export const ShoppingListItemSchema = z.object({
   id: z.number(),
   name: z.string(),
   quantity_g: z.number(),
+  /** Display quantity in `unit` (grams, or millilitres for beverages/liquids). */
+  quantity: z.number().default(0),
   unit: z.string().default('g'),
   retail_section_id: z.number().nullable().optional(),
   retail_section_name: z.string().default(''),
@@ -81,6 +83,8 @@ export const ShoppingListItemSchema = z.object({
   piece_equivalent: ShoppingPieceEquivalentSchema.nullable().optional(),
   portion_options: z.array(PortionOptionSchema).default([]),
   package_options: z.array(ShoppingPackageOptionSchema).default([]),
+  /** count × package weight − quantity_g; negative when rounded down within tolerance. */
+  package_surplus_g: z.number().nullable().default(null),
   sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 

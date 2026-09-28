@@ -13,7 +13,7 @@ from ninja.errors import HttpError
 
 from content.services.search_service import log_search, log_search_structured
 from recipe.schemas import PaginatedRecipeOut
-from supply.choices import PortionWeightSource, PortionWeightStatus
+from supply.choices import PhysicalPropertiesSourceChoices, PortionWeightSource, PortionWeightStatus
 from supply.models import (
     Ingredient,
     IngredientAlias,
@@ -471,6 +471,9 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     # A retail section chosen by a person must not be overwritten by rules or AI.
     if "retail_section_id" in data:
         ingredient.retail_section_source = "manual" if data["retail_section_id"] else ""
+    # Viscosity/density edited by a person must not be overwritten by AI package suggestions.
+    if "physical_viscosity" in data or "physical_density" in data:
+        ingredient.viscosity_source = PhysicalPropertiesSourceChoices.MANUAL
 
     # Handle visibility changes
     if visibility is not None:

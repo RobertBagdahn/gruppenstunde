@@ -44,7 +44,7 @@ import {
   usePreviewPortionMagicWand,
   useApplyPortionMagicWand,
 } from '@/api/supplies';
-import { NUTRI_SCORE_COLORS, type PortionMagicOperation } from '@/schemas/supply';
+import { NUTRI_SCORE_COLORS, PHYSICAL_VISCOSITY_LABELS, type PortionMagicOperation } from '@/schemas/supply';
 import type { Package, Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
 import { formatMeasuringUnitLabel } from '@/lib/units';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
@@ -1609,7 +1609,7 @@ export default function IngredientDetailPage() {
               </div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
                 <span className="text-sm text-muted-foreground">Viskosität</span>
-                <span className="text-sm font-medium">{ingredient.physical_viscosity ? ({ solid: 'Fest', beverage: 'Flüssig', powder: 'Pulver' }[ingredient.physical_viscosity] ?? ingredient.physical_viscosity) : '\u2014'}</span>
+                <span className="text-sm font-medium">{ingredient.physical_viscosity ? (PHYSICAL_VISCOSITY_LABELS[ingredient.physical_viscosity] ?? ingredient.physical_viscosity) : '\u2014'}</span>
               </div>
               <NutritionRow label="Haltbarkeit" value={ingredient.durability_in_days} unit="Tage" />
               <NutritionRow label="Max. Lagertemperatur" value={ingredient.max_storage_temperature} unit="°C" />

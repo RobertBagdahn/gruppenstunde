@@ -188,3 +188,49 @@ class TestResolvePortionOptions:
         )
         names = [o["name"] for o in ShoppingListItemOut.resolve_portion_options(item)]
         assert "Portion" not in names
+
+
+@pytest.mark.django_db
+class TestResolvePackagesAndLiquids:
+    """Persistent shopping-list items: package need and ml display for liquids."""
+
+    def _item(self, shopping_list, ingredient, quantity_g: float, unit: str = "g") -> ShoppingListItem:
+        return ShoppingListItem.objects.create(
+            shopping_list=shopping_list, name=ingredient.name, quantity_g=quantity_g, unit=unit, ingredient=ingredient
+        )
+
+    def test_package_need_with_tolerance(self, shopping_list):
+        from supply.models import Package
+
+        ing = make_ingredient(name="Spaghetti")
+        Package.objects.create(ingredient=ing, name="Packung", weight_g=500, rank=1)
+        item = self._item(shopping_list, ing, 1020)
+        assert ShoppingListItemOut.resolve_package_options(item) == [
+            {"count": 2, "package_name": "Packung", "weight_g": 500}
+        ]
+        assert ShoppingListItemOut.resolve_package_surplus_g(item) == -20.0
+
+    def test_package_surplus(self, shopping_list):
+        from supply.models import Package
+
+        ing = make_ingredient(name="Butter")
+        Package.objects.create(ingredient=ing, name="Stück", weight_g=250, rank=1)
+        item = self._item(shopping_list, ing, 700)
+        assert ShoppingListItemOut.resolve_package_options(item)[0]["count"] == 3
+        assert ShoppingListItemOut.resolve_package_surplus_g(item) == 50.0
+
+    def test_without_package(self, shopping_list):
+        ing = make_ingredient(name="Salz")
+        item = self._item(shopping_list, ing, 3)
+        assert ShoppingListItemOut.resolve_package_options(item) == []
+        assert ShoppingListItemOut.resolve_package_surplus_g(item) is None
+
+    def test_milk_in_ml(self, shopping_list):
+        milk = make_ingredient(name="Milch", physical_viscosity="beverage", physical_density=1.03)
+        out = ShoppingListItemOut.from_orm(self._item(shopping_list, milk, 9400))
+        assert (out.quantity, out.unit, out.quantity_g) == (9126, "ml", 9400)
+
+    def test_solid_stays_in_grams(self, shopping_list):
+        flour = make_ingredient(name="Mehl")
+        out = ShoppingListItemOut.from_orm(self._item(shopping_list, flour, 1500))
+        assert (out.quantity, out.unit) == (1500, "g")

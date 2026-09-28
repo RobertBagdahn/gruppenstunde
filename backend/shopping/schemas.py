@@ -38,9 +38,31 @@ class ShoppingItemSourceOut(Schema):
     meal_label: str = ""
     quantity_g: float = 0.0
 
+    # Display quantity in `unit`: grams, or millilitres for beverages/liquids
+    # (converted via the ingredient's physical_density).
+    quantity: float = 0.0
+    package_surplus_g: float | None = None
+
     @staticmethod
     def resolve_quantity_g(obj) -> float:
         return float(round(obj.quantity_g, 2))
+
+    @staticmethod
+    def _display_quantity(obj) -> tuple[float, str]:
+        if obj.unit != "g":
+            return float(obj.quantity_g or 0), obj.unit
+        from supply.utils import shopping_quantity
+
+        quantity, unit = shopping_quantity(float(obj.quantity_g or 0), obj.ingredient)
+        return float(round(quantity, 2)), unit
+
+    @staticmethod
+    def resolve_quantity(obj) -> float:
+        return ShoppingListItemOut._display_quantity(obj)[0]
+
+    @staticmethod
+    def resolve_unit(obj) -> str:
+        return ShoppingListItemOut._display_quantity(obj)[1]
 
 
 class ShoppingItemPortionOptionOut(Schema):
@@ -77,9 +99,31 @@ class ShoppingListItemOut(Schema):
     quantity_g: float
     unit: str
 
+    # Display quantity in `unit`: grams, or millilitres for beverages/liquids
+    # (converted via the ingredient's physical_density).
+    quantity: float = 0.0
+    package_surplus_g: float | None = None
+
     @staticmethod
     def resolve_quantity_g(obj) -> float:
         return float(round(obj.quantity_g, 2))
+
+    @staticmethod
+    def _display_quantity(obj) -> tuple[float, str]:
+        if obj.unit != "g":
+            return float(obj.quantity_g or 0), obj.unit
+        from supply.utils import shopping_quantity
+
+        quantity, unit = shopping_quantity(float(obj.quantity_g or 0), obj.ingredient)
+        return float(round(quantity, 2)), unit
+
+    @staticmethod
+    def resolve_quantity(obj) -> float:
+        return ShoppingListItemOut._display_quantity(obj)[0]
+
+    @staticmethod
+    def resolve_unit(obj) -> str:
+        return ShoppingListItemOut._display_quantity(obj)[1]
 
     retail_section_id: int | None = None
     retail_section_name: str = ""
@@ -154,20 +198,27 @@ class ShoppingListItemOut(Schema):
         return options
 
     @staticmethod
-    def resolve_package_options(obj) -> list[dict]:
+    def _package_need(obj):
         if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0 or obj.unit != "g":
-            return []
-        from supply.utils import get_shopping_portion
+            return None, None
+        from supply.utils import compute_package_need, get_shopping_portion
 
         package = get_shopping_portion(obj.ingredient)
-        if not package or not package.weight_g or package.weight_g <= 0:
-            return []
-        import math
+        if not package:
+            return None, None
+        return package, compute_package_need(obj.quantity_g, package.weight_g)
 
-        count = math.ceil(obj.quantity_g / package.weight_g)
-        if count <= 0:
+    @staticmethod
+    def resolve_package_options(obj) -> list[dict]:
+        package, need = ShoppingListItemOut._package_need(obj)
+        if not package or not need:
             return []
-        return [{"count": count, "package_name": package.name, "weight_g": package.weight_g}]
+        return [{"count": need[0], "package_name": package.name, "weight_g": package.weight_g}]
+
+    @staticmethod
+    def resolve_package_surplus_g(obj) -> float | None:
+        _, need = ShoppingListItemOut._package_need(obj)
+        return need[1] if need else None
 
 
 class ShoppingListItemCreateIn(Schema):

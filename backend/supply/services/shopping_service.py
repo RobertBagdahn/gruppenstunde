@@ -54,12 +54,15 @@ class ShoppingListItem:
     total_quantity_g: float = 0.0
     net_quantity_g: float = 0.0
     reserve_quantity_g: float = 0.0
+    # Display quantity in `unit` ("g", or "ml" for beverages/liquids).
+    quantity: float = 0.0
     unit: str = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
     piece_equivalent: dict | None = None
     portion_options: list[dict] | None = None
     package_options: list[dict] | None = None
+    package_surplus_g: float | None = None
     sources: list[ShoppingItemSource] | None = None
 
 
@@ -465,7 +468,7 @@ def _enrich_display_fields(
     """Add piece_equivalent, portion_options, and package_options (structured
     data — the frontend formats) to shopping list items."""
     from supply.models import Ingredient
-    from supply.utils import get_shopping_portion
+    from supply.utils import compute_package_need, get_shopping_portion, shopping_quantity
 
     if raw_quantities is None:
         raw_quantities = {}
@@ -475,6 +478,7 @@ def _enrich_display_fields(
 
     for ing_id, item in aggregated.items():
         ing = ingredients.get(ing_id)
+        item.quantity = item.total_quantity_g
 
         # If this item has no gram weight (weight_g=0), use the raw quantity +
         # portion name captured while aggregating (e.g. a Stück-only ingredient).
@@ -500,13 +504,14 @@ def _enrich_display_fields(
                 item.piece_equivalent = {"count": best["count"], "portion_name": best["name"]}
             item.portion_options = options
 
-        package = get_shopping_portion(ing)
-        if package and package.weight_g and package.weight_g > 0:
-            import math
+        item.quantity, item.unit = shopping_quantity(item.total_quantity_g, ing)
 
-            count = math.ceil(item.total_quantity_g / package.weight_g)
-            if count > 0:
-                item.package_options = [{"count": count, "package_name": package.name, "weight_g": package.weight_g}]
+        package = get_shopping_portion(ing)
+        need = compute_package_need(item.total_quantity_g, package.weight_g) if package else None
+        if package and need:
+            count, surplus_g = need
+            item.package_options = [{"count": count, "package_name": package.name, "weight_g": package.weight_g}]
+            item.package_surplus_g = surplus_g
 
 
 def get_total_estimated_price(items: list[ShoppingListItem]) -> float | None:

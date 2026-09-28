@@ -23,6 +23,11 @@ class MaterialCategory(models.TextChoices):
 class PhysicalViscosityChoices(models.TextChoices):
     SOLID = "solid", _("Essen")
     BEVERAGE = "beverage", _("Getränk")
+    LIQUID = "liquid", _("Flüssig")
+
+
+# Viscosities whose shopping quantities are shown as a volume (ml/l).
+LIQUID_VISCOSITIES = frozenset({PhysicalViscosityChoices.BEVERAGE, PhysicalViscosityChoices.LIQUID})
 
 
 class MeasuringUnitType(models.TextChoices):
@@ -145,6 +150,14 @@ class RetailSectionSourceChoices(models.TextChoices):
     """Where an ingredient's retail section assignment came from."""
 
     RULE = "rule", _("Regel")
+    AI = "ai", _("KI")
+    MANUAL = "manual", _("Manuell")
+
+
+class PhysicalPropertiesSourceChoices(models.TextChoices):
+    """Where an ingredient's viscosity/density came from. Manual values are
+    never overwritten by AI package suggestions."""
+
     AI = "ai", _("KI")
     MANUAL = "manual", _("Manuell")
 
