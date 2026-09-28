@@ -12,38 +12,12 @@ export function formatQuantityNumber(value: number): string {
 }
 
 /**
- * Generates a clean portion label for an ingredient or meal item.
- * Strips the repeated ingredient name from `portion_display` to prevent
- * squashing and duplication in item cards.
+ * Generates a clean portion label for an ingredient or meal item from its
+ * structured quantity fields (recipe items have no per-portion quantity and
+ * fall through to the empty string).
  */
 export function formatItemPortion(item: MealItem): string {
   const perPersonSuffix = item.is_per_norm_person ? ' / P.' : '';
-
-  if (item.portion_display) {
-    let clean = item.portion_display;
-
-    // Remove the ingredient name if it's contained inside the portion display
-    if (item.ingredient_name) {
-      // Escape regex special chars in ingredient name
-      const escaped = item.ingredient_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\s*${escaped}\\s*`, 'gi');
-      clean = clean.replace(regex, ' ').trim();
-    }
-
-    // Simplify "Gramm (Xg)" or "g (Xg)"
-    clean = clean.replace(/\bGramm\b/gi, 'g');
-    clean = clean.replace(/\s+/g, ' ').trim();
-
-    // If clean is empty or just parentheses, fall back to weight
-    if (!clean || clean === '()' || clean === '(g)') {
-      if (item.quantity_g != null) {
-        return `${Math.round(item.quantity_g)} g${perPersonSuffix}`;
-      }
-      return perPersonSuffix.trim();
-    }
-
-    return `${clean}${perPersonSuffix}`;
-  }
 
   if (item.quantity != null && item.quantity > 0) {
     const qtyStr = formatQuantityNumber(item.quantity);

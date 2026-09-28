@@ -43,7 +43,6 @@ describe('refMealItemsToWizardState', () => {
       cost_eur: null,
       quantity_g: null,
       overrides: [],
-      portion_display: '',
       has_missing_weight: false,
       is_per_norm_person: true,
       buffet_role: '',

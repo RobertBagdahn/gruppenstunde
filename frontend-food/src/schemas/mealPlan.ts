@@ -70,7 +70,6 @@ export const MealItemSchema = z.object({
   recipe_type: z.string(),
   nutri_class: z.number().nullable().optional(),
   overrides: z.array(MealItemOverrideSchema),
-  portion_display: z.string().default(''),
   has_missing_weight: z.boolean().default(false),
   is_per_norm_person: z.boolean().default(true),
   recipe_portions: z.number().nullable().optional(),
@@ -249,6 +248,7 @@ export const MealPlanDetailSchema = z.object({
   day_part_factors: z.record(z.string(), z.number()),
   meal_default_times: z.record(z.string(), z.array(z.string())),
   meals: z.array(MealSchema),
+  ref_meals: z.array(z.lazy(() => RefMealSchema)).default([]),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
   is_owner: z.boolean().default(false),
@@ -303,6 +303,7 @@ export type NutritionSummary = z.infer<typeof NutritionSummarySchema>;
 export const ShoppingItemSourceSchema = z.object({
   recipe_id: z.number().nullable().default(null),
   ingredient_id: z.number().nullable().default(null),
+  meal_id: z.number().nullable().optional(),
   recipe_name: z.string().default(''),
   recipe_slug: z.string().default(''),
   meal_label: z.string().default(''),
@@ -311,11 +312,23 @@ export const ShoppingItemSourceSchema = z.object({
 
 export const PortionOptionSchema = z.object({
   name: z.string(),
-  display: z.string(),
   is_default: z.boolean(),
   weight_g: z.number().default(0),
   count: z.number().default(0),
 });
+
+export const ShoppingPieceEquivalentSchema = z.object({
+  count: z.number(),
+  portion_name: z.string(),
+});
+export type ShoppingPieceEquivalent = z.infer<typeof ShoppingPieceEquivalentSchema>;
+
+export const ShoppingPackageOptionSchema = z.object({
+  count: z.number(),
+  package_name: z.string(),
+  weight_g: z.number(),
+});
+export type ShoppingPackageOption = z.infer<typeof ShoppingPackageOptionSchema>;
 
 export const ShoppingListItemSchema = z.object({
   ingredient_id: z.number().nullable(),
@@ -327,10 +340,9 @@ export const ShoppingListItemSchema = z.object({
   unit: z.string(),
   retail_section: z.string(),
   estimated_price_eur: z.number().nullable(),
-  display_quantity: z.string().default(''),
-  display_text: z.string().default(''),
-  natural_portions: z.string().default(''),
+  piece_equivalent: ShoppingPieceEquivalentSchema.nullable().optional(),
   portion_options: z.array(PortionOptionSchema).default([]),
+  package_options: z.array(ShoppingPackageOptionSchema).default([]),
   sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;
@@ -1157,7 +1169,16 @@ export type MealReorderInput = z.infer<typeof MealReorderSchema>;
 
 export const PlanCheckAlertSchema = z.object({
   id: z.string(),
-  type: z.enum(['empty_slot', 'budget_excess', 'allergen_conflict', 'info']),
+  type: z.enum([
+    'empty_slot',
+    'budget_excess',
+    'allergen_conflict',
+    'recipe_type_mismatch',
+    'missing_quantity',
+    'meal_outside_range',
+    'empty_day',
+    'info',
+  ]),
   severity: z.enum(['error', 'warning', 'info']),
   title: z.string(),
   description: z.string(),

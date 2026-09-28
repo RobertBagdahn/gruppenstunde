@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { Check, ChevronRight, ChevronDown } from 'lucide-react';
 import { formatNumber } from '@/lib/format';
+import { formatPieceEquivalent, formatPortionOption } from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -116,13 +117,13 @@ export default function ShoppingListItemRow({
             )}
             {item.quantity_g > 0 && (
               <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
-                {item.display_quantity || formatQuantity(item.quantity_g, item.unit)}
+                {formatQuantity(item.quantity_g, item.unit)}
               </span>
             )}
           </div>
           {/* Natural portions & price */}
           <div className="flex items-center gap-2 mt-0.5">
-            {item.natural_portions && (
+            {item.piece_equivalent && (
               <button
                 type="button"
                 onClick={() => hasPortionOptions && setPortionsExpanded(!portionsExpanded)}
@@ -137,7 +138,7 @@ export default function ShoppingListItemRow({
                     portionsExpanded && 'rotate-180',
                   )} />
                 )}
-                {item.natural_portions}
+                {formatPieceEquivalent(item.piece_equivalent)}
               </button>
             )}
             {item.estimated_price_eur !== null && item.estimated_price_eur !== undefined && (
@@ -164,7 +165,7 @@ export default function ShoppingListItemRow({
                   )}
                 >
                   <span className="text-muted-foreground/40">&#8226;</span>
-                  <span>{opt.display}</span>
+                  <span>{formatPortionOption(opt)}</span>
                   {opt.is_default && (
                     <span className="text-[10px] text-muted-foreground/40 font-normal">(Standard)</span>
                   )}

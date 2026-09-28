@@ -173,9 +173,6 @@ export function MealSlot({
 
   const isPortionUnit = (name: string) => !['g', 'ml'].includes(name.toLowerCase());
   const formatPortion = (item: Meal['items'][number]): string => {
-    if (item.portion_display) {
-      return `${item.portion_display}${item.is_per_norm_person ? ' / Person' : ''}`;
-    }
     if (isPortionUnit(item.measuring_unit_name) && item.quantity != null) {
       return `×${formatNumber(item.quantity, { maxDecimals: 2 }).replace('.', ',')} ${item.measuring_unit_name}`;
     }
@@ -219,12 +216,7 @@ export function MealSlot({
                   <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {formatPortion(it)}
                   </span>
-                ) : isIng && it.portion_display ? (
-                   // portion_display from backend (read-only)
-                    <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      {formatPortion(it)}
-                   </span>
-                 ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
+                ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
                    // Portion-based, read-only fallback
                     <span>{formatPortion(it)}</span>
                  ) : isIng ? (

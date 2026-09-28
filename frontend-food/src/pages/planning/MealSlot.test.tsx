@@ -44,7 +44,6 @@ function makeItem(overrides: Partial<MealItem> = {}): MealItem {
     ingredient_tags: [],
     recipe_type: '',
     overrides: [],
-    portion_display: '',
     has_missing_weight: false,
     is_per_norm_person: true,
     buffet_role: '',

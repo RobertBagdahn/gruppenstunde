@@ -2,35 +2,16 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store } from 'lucide-react';
 import { useShoppingList, useIngredientScan } from '@/api/mealPlans';
-import type { NutritionalTagViolation } from '@/schemas/mealPlan';
+import type { NutritionalTagViolation, ShoppingListItem } from '@/schemas/mealPlan';
 import { useCurrentUser } from '@/api/auth';
 import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, formatWeight } from '@/lib/format';
+import { formatPieceEquivalent, formatPortionOption } from '@/lib/shoppingItemDisplay';
 
-interface PortionOption {
-  name: string;
-  display: string;
-  is_default: boolean;
-}
-
-interface TransientShoppingItem {
-  ingredient_name: string;
-  ingredient_slug?: string;
-  total_quantity_g: number;
-  net_quantity_g?: number;
-  reserve_quantity_g?: number;
-  unit: string;
-  retail_section: string;
-  estimated_price_eur: number | null;
-  display_quantity?: string;
-  display_text?: string;
-  natural_portions?: string;
-  portion_options?: PortionOption[];
-  sources?: Array<{ recipe_id?: number | null; ingredient_id?: number | null; meal_id?: number | null; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
-}
+type TransientShoppingItem = ShoppingListItem;
 
 function ShoppingItemWithSources({
   item,
@@ -84,14 +65,14 @@ function ShoppingItemWithSources({
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
           <span>
-            {item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g || 0)} ${item.unit}`}
+            {item.unit === 'g' ? formatWeight(item.total_quantity_g || 0) : `${formatNumber(item.total_quantity_g || 0, { maxDecimals: 1 })} ${item.unit}`}
             {showReserve && (item.reserve_quantity_g || 0) > 0 && (
               <span className="text-xs text-muted-foreground/70">
-                {' '}(inkl. Reserve {Math.round(item.reserve_quantity_g || 0)} {item.unit})
+                {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
               </span>
             )}
           </span>
-          {item.natural_portions && (
+          {item.piece_equivalent && (
             <button
               type="button"
               onClick={(e) => {
@@ -107,7 +88,7 @@ function ShoppingItemWithSources({
               {hasPortionOptions && (
                 <ChevronDown className={`w-3 h-3 transition-transform ${portionsExpanded ? 'rotate-180' : ''}`} />
               )}
-              {item.natural_portions}
+              {formatPieceEquivalent(item.piece_equivalent)}
             </button>
           )}
           {item.estimated_price_eur !== null ? (
@@ -130,7 +111,7 @@ function ShoppingItemWithSources({
               }`}
             >
               <span className="text-muted-foreground/40">&#8226;</span>
-              <span>{opt.display}</span>
+              <span>{formatPortionOption(opt)}</span>
               {opt.is_default && (
                 <span className="text-[10px] text-muted-foreground/40 font-normal">(Standard)</span>
               )}

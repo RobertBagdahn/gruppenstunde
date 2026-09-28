@@ -20,13 +20,31 @@ export type ShoppingListCollaborator = z.output<typeof ShoppingListCollaboratorS
 
 export const PortionOptionSchema = z.object({
   name: z.string(),
-  display: z.string(),
   is_default: z.boolean(),
   weight_g: z.number().default(0),
   count: z.number().default(0),
 });
 
 export type PortionOption = z.output<typeof PortionOptionSchema>;
+
+// --- Piece Equivalent (single best-matching natural portion) ---
+
+export const ShoppingPieceEquivalentSchema = z.object({
+  count: z.number(),
+  portion_name: z.string(),
+});
+
+export type ShoppingPieceEquivalent = z.output<typeof ShoppingPieceEquivalentSchema>;
+
+// --- Package Option (shop-bought package count) ---
+
+export const ShoppingPackageOptionSchema = z.object({
+  count: z.number(),
+  package_name: z.string(),
+  weight_g: z.number(),
+});
+
+export type ShoppingPackageOption = z.output<typeof ShoppingPackageOptionSchema>;
 
 // --- Item Source (provenance) ---
 
@@ -60,9 +78,9 @@ export const ShoppingListItemSchema = z.object({
   ingredient_id: z.number().nullable().optional(),
   ingredient_slug: z.string().nullable().optional(),
   estimated_price_eur: z.number().nullable().optional(),
-  display_quantity: z.string().default(''),
-  natural_portions: z.string().default(''),
+  piece_equivalent: ShoppingPieceEquivalentSchema.nullable().optional(),
   portion_options: z.array(PortionOptionSchema).default([]),
+  package_options: z.array(ShoppingPackageOptionSchema).default([]),
   sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 

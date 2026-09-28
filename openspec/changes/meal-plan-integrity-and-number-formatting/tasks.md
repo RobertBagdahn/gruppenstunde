@@ -41,10 +41,10 @@
 
 ## 6. Frontend (frontend-food): Schemas (Zod)
 
-- [ ] 6.1 `src/schemas/shoppingList.ts`: neue strukturierte Felder, alte Textfelder entfernen
-- [ ] 6.2 `src/schemas/mealPlan.ts`: `ref_meals`, strukturierte MealItem-Felder, `PlanCheckAlertType` als `z.enum`
-- [ ] 6.3 Portions-Options-Schema in `src/schemas/supply.ts` ohne `display`
-- [ ] 6.4 Contract-Tests in `src/schemas/contractSchemas.test.ts` ergänzen
+- [x] 6.1 `src/schemas/shoppingList.ts`: neue strukturierte Felder, alte Textfelder entfernen
+- [x] 6.2 `src/schemas/mealPlan.ts`: `ref_meals`, strukturierte MealItem-Felder, `PlanCheckAlertType` als `z.enum`
+- [x] 6.3 Portions-Options-Schema in `src/schemas/supply.ts` ohne `display`
+- [x] 6.4 Contract-Tests in `src/schemas/contractSchemas.test.ts` ergänzen
 
 ## 7. Frontend (frontend-food): Essensplan-UI
 
