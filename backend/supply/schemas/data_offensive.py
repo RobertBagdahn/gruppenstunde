@@ -158,3 +158,75 @@ class JunkRecipeOut(Schema):
     status: str
     recipe_type: str
     reason: str
+
+
+# ---------------------------------------------------------------------------
+# Package suggestions
+# ---------------------------------------------------------------------------
+
+PackageSuggestionStatus = Literal["pending", "accepted", "rejected"]
+PhysicalViscosity = Literal["solid", "liquid", "beverage"]
+
+
+class PackageSuggestRunIn(Schema):
+    """One chunk of the AI run. ``dry_run`` only returns the cost estimate."""
+
+    limit: int = Field(default=45, ge=1, le=150)
+    dry_run: bool = False
+
+
+class PackageSuggestRunOut(Schema):
+    dry_run: bool
+    candidates: int
+    estimated_calls: int
+    estimated_cost_eur: float
+    suggested: int = 0
+    skipped: int = 0
+    calls: int = 0
+    remaining: int
+    errors: list[str] = []
+
+
+class PackageSuggestionOut(Schema):
+    id: int
+    ingredient_id: int
+    ingredient_name: str
+    ingredient_slug: str
+    retail_section_id: int | None = None
+    retail_section_name: str | None = None
+    package_name: str
+    weight_g: float
+    volume_ml: float | None = None
+    physical_viscosity: PhysicalViscosity
+    physical_density: float | None = None
+    confidence: float
+    reason: str
+    status: PackageSuggestionStatus
+    viscosity_is_manual: bool
+    created_at: datetime
+    can_edit: bool = True
+    can_delete: bool = False
+
+
+class PaginatedPackageSuggestionOut(Schema):
+    items: list[PackageSuggestionOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class PackageSuggestionPatchIn(Schema):
+    package_name: str | None = Field(default=None, min_length=1, max_length=255)
+    weight_g: float | None = Field(default=None, gt=0, le=50_000)
+    volume_ml: float | None = Field(default=None, gt=0)
+    physical_viscosity: PhysicalViscosity | None = None
+    physical_density: float | None = Field(default=None, ge=0.3, le=2.5)
+
+
+class PackageSuggestionDecisionIn(Schema):
+    """Decide the given ids, or (bulk) every pending suggestion matching the filters."""
+
+    ids: list[int] = []
+    min_confidence: float | None = Field(default=None, ge=0, le=1)
+    section_id: int | None = None

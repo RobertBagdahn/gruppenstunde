@@ -6,6 +6,7 @@ from .ingredient_price_proposal import IngredientPriceProposal
 from .ingredient_replacement import IngredientReplacementMapping
 from .ingredient_season import IngredientSeason
 from .material import ContentMaterialItem, Material, Supply
+from .package_suggestion import IngredientPackageSuggestion
 from .portion_repair import PortionRepairFinding
 from .reference import MeasuringUnit, NutritionalTag, RetailSection
 from .unit_conversion import UnitConversion
@@ -16,6 +17,7 @@ __all__ = [
     "Ingredient",
     "IngredientAlias",
     "IngredientGroup",
+    "IngredientPackageSuggestion",
     "IngredientPriceProposal",
     "IngredientReplacementMapping",
     "IngredientSeason",
