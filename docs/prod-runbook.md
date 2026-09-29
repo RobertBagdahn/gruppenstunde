@@ -12,7 +12,7 @@ Branch gegen die Prod-Datenbank über den Cloud SQL Auth Proxy. Beim Deploy füh
 ## 0. Vorbereitung
 
 - [x] DB-Snapshot der Prod-Datenbank anlegen und Namen hier notieren: Backup `1790661019101` (`inspi-db-west1`, 29.09.2026)
-- [x] Freigabe durch Robert für diesen Termin (29.09.2026, nur Abschnitte 1, 2)
+- [x] Freigabe durch Robert für diesen Termin (29.09.2026, Abschnitte 1–4)
 
 ## 1. meal-plan-integrity-and-number-formatting — vor dem Deploy
 
@@ -43,17 +43,22 @@ Lokaler Referenzlauf (28.09.2026): 0 Dubletten, 0 Referenzmahlzeiten mit Datum,
 
 ## 3. ingredient-status-visibility-unification — nach dem Deploy
 
-- [ ] Trockenlauf: `uv run python manage.py verify_ingredients_in_approved_recipes`
+- [x] Trockenlauf: `uv run python manage.py verify_ingredients_in_approved_recipes`
       (optional `--csv <datei>` für die Lückenliste) — Ausgabe Robert zeigen
-- [ ] Erst nach OK: `uv run python manage.py verify_ingredients_in_approved_recipes --apply`
-- [ ] Stichprobe: anonym eine verifizierte Zutat aufrufen (HTTP 200, Status `verified`)
+      (29.09.2026: nur noch 1 Zutat offen, „Tomate“ #7586, Daten vollständig)
+- [x] Erst nach OK: `uv run python manage.py verify_ingredients_in_approved_recipes --apply`
+      (29.09.2026: 1 verifiziert, danach 0 offen)
+- [x] Stichprobe: „Tomate“ #7586 hat Status `verified`
 
 ## 4. buffet-module — nach dem Deploy
 
-- [ ] `uv run python manage.py seed_buffet_templates`
-- [ ] Trockenlauf: `uv run python manage.py migrate_buffet_roles --dry-run` — „manuell prüfen“-Liste
-      muss leer sein (lokal: 0 Einträge)
-- [ ] Echtlauf: `uv run python manage.py migrate_buffet_roles`
+- [x] `uv run python manage.py seed_buffet_templates` (nicht nötig: Vorlagen `breakfast`, `baguettes`, `supper` existieren auf Prod bereits)
+- [x] Trockenlauf: `uv run python manage.py migrate_buffet_roles --dry-run` — „manuell prüfen“-Liste
+      muss leer sein (Prod 29.09.2026: 0 Änderungen, „manuell prüfen“ leer nach Verifizierung der Tomate)
+- [x] Echtlauf: `uv run python manage.py migrate_buffet_roles` (nicht nötig: Trockenlauf zeigt 0 Änderungen, Migration war bereits gelaufen)
+- [ ] Optional von Hand: alte Rollen-Tags an drei Einträgen umstellen — breakfast-base an „Erdnussmus fein“ (#663),
+      breakfast-topping an „Edamer“ (#7616), breakfast-drink an Rezept „Tschai einfach/günstig“ (#155).
+      8 übersprungene Fälle betreffen gelöschte/zusammengeführte Einträge (kein Handlungsbedarf).
 - [ ] Peter bitten, die Baguette-Planung für den Bundesrat mit der Vorlage „Belegte Baguettes“
       zu testen
 
