@@ -106,9 +106,9 @@ test.describe('Shopping list permissions and persistence', () => {
     await addShoppingItem(api, list.id, uniqueName('E2E Rollen Eintrag'));
     const users = await getUsers(api);
     const roleCredentials = [
-      { username: 'user', role: 'admin', email: 'user@user.de', password: 'user' },
-      { username: 'author1', role: 'editor', email: 'author1@author1.de', password: 'author1' },
-      { username: 'seed_user', role: 'viewer', email: 'seed@example.com', password: 'seed_user' },
+      { username: 'user', role: 'admin', email: 'user@user.de' },
+      { username: 'author1', role: 'editor', email: 'author1@author1.de' },
+      { username: 'seed_user', role: 'viewer', email: 'seed@example.com' },
     ] as const;
     for (const credentials of roleCredentials) {
       expect(users.find((user) => user.username === credentials.username)).toBeTruthy();
@@ -142,7 +142,6 @@ test.describe('Shopping list permissions and persistence', () => {
         const rolePage = await context.newPage();
         await loginFoodPage(rolePage, {
           email: credentials.email,
-          password: credentials.password,
         });
         await rolePage.goto(`/shopping-lists/${list.id}`);
         await expect(rolePage.getByRole('heading', { name: list.name })).toBeVisible();

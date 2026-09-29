@@ -1,21 +1,14 @@
+import { devLogin } from '../fixtures/auth';
 import { test, expect } from '@playwright/test';
 
 const MAIN_URL = 'http://localhost:5173';
 const FOOD_URL = 'http://localhost:5174';
 
-const SEED_USER = {
-  email: 'admin@admin.de',
-  password: 'admin',
-};
+const SEED_USER = { email: 'admin@admin.de' };
 
 test.describe('Authenticated Pages', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(`${FOOD_URL}/login`);
-    await page.waitForLoadState('networkidle');
-    await page.fill('input[type="email"]', SEED_USER.email);
-    await page.fill('input[type="password"]', SEED_USER.password);
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/', { timeout: 10000 });
+    await devLogin(page, SEED_USER.email, FOOD_URL);
   });
 
   test('My dashboard loads', async ({ page }) => {

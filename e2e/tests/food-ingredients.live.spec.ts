@@ -80,7 +80,7 @@ test.describe('Ingredient permissions and integrity', () => {
     const context = await browser.newContext({ baseURL: new URL(foodPage.url()).origin });
     try {
       const otherPage = await context.newPage();
-      await loginFoodPage(otherPage, { email: 'user@user.de', password: 'user' });
+      await loginFoodPage(otherPage, { email: 'user@user.de' });
       await otherPage.goto(`/ingredients/${ingredient.slug}`);
       await expect(otherPage.getByTestId('ingredient-edit-button')).toHaveCount(0);
       await expect(otherPage.getByTestId('ingredient-delete-button')).toHaveCount(0);

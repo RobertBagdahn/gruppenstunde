@@ -1,3 +1,4 @@
+import { devLogin } from './auth';
 import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
 
 type ResourceKind = 'shopping-list' | 'meal-plan' | 'recipe' | 'ingredient' | 'event' | 'content-collaborator';
@@ -73,23 +74,21 @@ export interface FoodFixtures {
 
 export interface FoodCredentials {
   email: string;
-  password: string;
 }
 
 export const defaultFoodCredentials: FoodCredentials = {
   email: process.env.FOOD_E2E_EMAIL ?? 'admin@admin.de',
-  password: process.env.FOOD_E2E_PASSWORD ?? 'admin',
 };
 
+const FOOD_BASE_URL = process.env.FOOD_E2E_BASE_URL ?? 'http://localhost:5174';
+
+/** Social login only: E2E uses the dev login endpoint (local/test settings). */
 export async function loginFoodPage(
   page: Page,
   credentials: FoodCredentials = defaultFoodCredentials,
 ): Promise<void> {
-  await page.goto('/login');
-  await page.getByLabel('E-Mail-Adresse').fill(credentials.email);
-  await page.getByLabel('Passwort').fill(credentials.password);
-  await page.getByRole('button', { name: /anmelden/i }).click();
-  await page.waitForURL('**/');
+  await devLogin(page, credentials.email, FOOD_BASE_URL);
+  await page.goto('/');
   await page.evaluate(() => localStorage.clear());
 }
 
