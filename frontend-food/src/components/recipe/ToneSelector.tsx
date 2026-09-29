@@ -82,26 +82,26 @@ export default function ToneSelector({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div
-        className="bg-card text-card-foreground rounded-lg shadow-lg p-6 max-w-md w-full mx-4"
+        className="bg-card text-card-foreground rounded-xl shadow-lg p-6 max-w-md w-full mx-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tone-selector-title"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 id="tone-selector-title" className="text-lg font-semibold text-foreground">
+          <h3 id="tone-selector-title" className="text-section font-semibold text-foreground">
             Anweisung umschreiben
           </h3>
           <button
             onClick={onClose}
             disabled={isImproving}
-            className="p-1 hover:bg-muted rounded disabled:opacity-50"
+            className="p-1 hover:bg-muted rounded-lg disabled:opacity-50"
             aria-label="Schließen"
           >
             <X size={20} />
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-body text-muted-foreground mb-4">
           Wähle einen Ton, in dem die Anweisung umgeschrieben werden soll:
         </p>
 
@@ -111,12 +111,12 @@ export default function ToneSelector({
               key={tone.id}
               onClick={() => handleToneSelect(tone.id)}
               disabled={isImproving}
-              className="w-full text-left p-3 rounded border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-foreground">{tone.label}</p>
-                  <p className="text-sm text-muted-foreground">{tone.description}</p>
+                  <p className="text-body text-muted-foreground">{tone.description}</p>
                 </div>
                 {isImproving && (
                   <Loader size={16} className="animate-spin text-primary" />
@@ -126,15 +126,15 @@ export default function ToneSelector({
           ))}
         </div>
 
-        <div className="bg-muted rounded p-3 mb-4">
-          <p className="text-xs font-semibold text-muted-foreground mb-1">Original:</p>
-          <p className="text-sm text-foreground line-clamp-2">{instruction}</p>
+        <div className="bg-muted rounded-lg p-3 mb-4">
+          <p className="text-caption font-semibold text-muted-foreground mb-1">Original:</p>
+          <p className="text-body text-foreground line-clamp-2">{instruction}</p>
         </div>
 
         <button
           onClick={onClose}
           disabled={isImproving}
-          className="w-full px-4 py-2 text-foreground bg-secondary hover:bg-secondary/80 rounded transition-colors disabled:opacity-50"
+          className="w-full px-4 py-2 text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50"
         >
           Abbrechen
         </button>

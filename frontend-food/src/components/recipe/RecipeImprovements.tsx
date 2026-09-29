@@ -22,8 +22,8 @@ interface RecipeImprovementsProps {
 }
 
 const DIRECTION_META: Record<string, { label: string; icon: string; color: string }> = {
-  reduce: { label: 'Reduzieren', icon: 'arrow_downward', color: 'text-red-600' },
-  increase: { label: 'Erhöhen', icon: 'arrow_upward', color: 'text-green-600' },
+  reduce: { label: 'Reduzieren', icon: 'arrow_downward', color: 'text-danger' },
+  increase: { label: 'Erhöhen', icon: 'arrow_upward', color: 'text-success' },
 };
 
 function formatValue(value: number, unit: string): string {
@@ -54,13 +54,13 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
       <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-start gap-3">
         <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Verbesserungsvorschläge konnten nicht geladen werden.
           </p>
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 h-7 px-2 text-xs"
+            className="mt-2 h-7 px-2 text-caption"
             onClick={() => refetch()}
           >
             <RefreshCw className="h-3 w-3 mr-1" />
@@ -73,13 +73,13 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
 
   if (data.all_good) {
     return (
-      <div className="rounded-xl border bg-emerald-50 border-emerald-200 p-4 flex items-start gap-3">
-        <span className="material-symbols-outlined text-emerald-600 mt-0.5">check_circle</span>
+      <div className="rounded-xl border bg-success-soft border-success-border p-4 flex items-start gap-3">
+        <span className="material-symbols-outlined text-success mt-0.5">check_circle</span>
         <div>
-          <p className="text-sm font-medium text-emerald-800">
+          <p className="text-body font-medium text-success">
             {data.message || 'Dieses Rezept sieht gut aus.'}
           </p>
-          <p className="text-xs text-emerald-700 mt-0.5">
+          <p className="text-caption text-success mt-0.5">
             Keine Verbesserungsvorschläge – alle Nährwerte liegen im grünen Bereich.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
     return (
       <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-start gap-3">
         <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-body text-muted-foreground leading-relaxed">
           {data.message || 'Keine Verbesserungsvorschläge verfügbar.'}
         </p>
       </div>
@@ -129,16 +129,16 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
                     <span className={`material-symbols-outlined text-base ${dir.color}`}>
                       {dir.icon}
                     </span>
-                    <span className="text-sm font-semibold">{imp.parameter_label}</span>
-                    <span className={`text-xs font-medium ${dir.color}`}>{dir.label}</span>
+                    <span className="text-body font-semibold">{imp.parameter_label}</span>
+                    <span className={`text-caption font-medium ${dir.color}`}>{dir.label}</span>
                     <NutritionBaseBadge base="per_portion" />
                     {imp.source === 'merged' && (
-                      <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
+                      <span className="inline-flex items-center rounded-full bg-info-soft px-2 py-0.5 text-caption font-medium text-info">
                         Doppel-Treffer
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-caption text-muted-foreground mt-1">
                     Aktuell: <span className="font-medium text-foreground">{formatValue(displayCurrent, imp.unit)}</span>
                     {' '} → Ziel: <span className="font-medium text-foreground">{formatValue(displayThreshold, imp.unit)}</span>
                     {' '} (Δ {formatValue(displayDelta, imp.unit)})
@@ -149,20 +149,20 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
               {/* Progress bar toward threshold */}
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${imp.direction === 'reduce' ? 'bg-red-400' : 'bg-green-400'}`}
+                  className={`h-full rounded-full ${imp.direction === 'reduce' ? 'bg-danger' : 'bg-success'}`}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
 
               {imp.recommendation_text && (
-                <p className="text-xs text-muted-foreground">{imp.recommendation_text}</p>
+                <p className="text-caption text-muted-foreground">{imp.recommendation_text}</p>
               )}
 
               {imp.suggested_ingredients.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">Hauptverursacher:</p>
+                  <p className="text-caption font-medium text-muted-foreground">Hauptverursacher:</p>
                   {imp.suggested_ingredients.slice(0, 3).map((ing) => (
-                    <div key={ing.id} className="flex items-center gap-2 text-xs">
+                    <div key={ing.id} className="flex items-center gap-2 text-caption">
                       <span className="flex-1 truncate">{ing.name}</span>
                       <span className="text-muted-foreground">
                         {formatNumber(ing.contribution_g, { maxDecimals: 0 })}{ing.unit}

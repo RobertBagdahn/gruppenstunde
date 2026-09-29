@@ -10,7 +10,7 @@ export default function ChildVsNutriTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Die Heatmap zeigt die Dichte der Zutaten nach Child-Score und Nutri-Score.
       </p>
       <TabFilters showRetailSection />

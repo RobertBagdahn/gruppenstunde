@@ -105,7 +105,7 @@ function PortionPill({
     <span
       title={title}
       className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm text-foreground',
+        'inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-0.5 text-body text-foreground',
         tone === 'selected' ? 'border-primary/25 bg-primary/[0.06]' : 'border-border bg-background',
       )}
     >
@@ -116,7 +116,7 @@ function PortionPill({
       )}
       <span className="sr-only">{title}:</span>
       <span className="min-w-0 break-words font-medium">{amount}</span>
-      {perUnit && <span className="shrink-0 text-xs text-muted-foreground">à {perUnit}</span>}
+      {perUnit && <span className="shrink-0 text-caption text-muted-foreground">à {perUnit}</span>}
     </span>
   );
 }
@@ -138,7 +138,7 @@ function NutriBadge({ nutriClass, className }: { nutriClass: number | null | und
       className={cn(
         colors.bg,
         colors.text,
-        'h-5 w-5 shrink-0 items-center justify-center rounded text-[11px] font-extrabold leading-none',
+        'h-5 w-5 shrink-0 items-center justify-center rounded-lg text-caption font-extrabold leading-none',
         className,
       )}
       title={`Nutri-Score ${colors.label}`}
@@ -336,20 +336,20 @@ export default function IngredientList({
           {item.ingredient_slug ? (
             <Link
               to={`/ingredients/${item.ingredient_slug}`}
-              className="font-semibold text-foreground text-base hyphens-auto hover:text-primary hover:underline transition-colors"
+              className="font-semibold text-foreground text-emphasis hyphens-auto hover:text-primary hover:underline transition-colors"
               title={`${displayName} – Details anzeigen`}
             >
               {displayName}
             </Link>
           ) : (
-            <span className="font-semibold text-foreground text-base hyphens-auto">{displayName}</span>
+            <span className="font-semibold text-foreground text-emphasis hyphens-auto">{displayName}</span>
           )}
           {alternatives.length > 0 && (
-            <span className="ml-1.5 text-sm text-muted-foreground">
+            <span className="ml-1.5 text-body text-muted-foreground">
               oder {alternatives.map((m) => m.ingredient_name).join(' / ')}
             </span>
           )}
-          {note && <span className="ml-1.5 inline-block text-sm text-muted-foreground italic">({note})</span>}
+          {note && <span className="ml-1.5 inline-block text-body text-muted-foreground italic">({note})</span>}
           <NutriBadge
             nutriClass={item.ingredient_nutri_class}
             className="ml-1.5 inline-flex -translate-y-px align-middle sm:hidden"
@@ -361,7 +361,7 @@ export default function IngredientList({
           </span>
           <span
             className={cn(
-              'whitespace-nowrap text-right text-sm font-semibold tabular-nums',
+              'whitespace-nowrap text-right text-body font-semibold tabular-nums',
               priceEur != null ? 'text-foreground' : 'text-muted-foreground/60',
             )}
           >
@@ -383,9 +383,9 @@ export default function IngredientList({
 
         {/* Row 3: badges and facts, each with a quiet icon */}
         {hasFactsRow && (
-          <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
             {item.is_optional && (
-              <span className="rounded border border-dashed border-foreground/25 px-1.5 font-medium leading-5 text-foreground/70">
+              <span className="rounded-lg border border-dashed border-foreground/25 px-1.5 font-medium leading-5 text-foreground/70">
                 optional
               </span>
             )}
@@ -400,7 +400,7 @@ export default function IngredientList({
             {pricePerKg != null && <Fact icon={Coins}>{formatPrice(pricePerKg)}/kg</Fact>}
             {priceShare && (
               isCostDriver ? (
-                <Fact icon={TrendingUp} className="rounded bg-accent/15 px-1.5 font-medium leading-5 text-foreground">
+                <Fact icon={TrendingUp} className="rounded-lg bg-accent/15 px-1.5 font-medium leading-5 text-foreground">
                   Kostentreiber · {priceShare} der Kosten
                 </Fact>
               ) : (
@@ -426,7 +426,7 @@ export default function IngredientList({
         {isExpanded && furtherPortions.length > 0 && (
           <div className="col-span-2 col-start-2 flex flex-wrap gap-1.5">
             {furtherPortions.map((np) => (
-              <span key={np.name} className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs text-foreground/80">
+              <span key={np.name} className="inline-flex rounded-lg bg-muted px-2 py-0.5 text-caption text-foreground/80">
                 {np.display}
               </span>
             ))}
@@ -447,12 +447,12 @@ export default function IngredientList({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Zutat suchen..."
-              className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Sortieren nach</span>
+          <span className="text-caption text-muted-foreground">Sortieren nach</span>
           <div role="radiogroup" aria-label="Zutaten sortieren" className="inline-flex rounded-lg border bg-muted p-0.5">
             {SORT_OPTIONS.map((option) => (
               <button
@@ -462,7 +462,7 @@ export default function IngredientList({
                 aria-checked={sortMode === option.value}
                 onClick={() => setSortMode(option.value)}
                 className={cn(
-                  'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  'rounded-lg px-2.5 py-1 text-caption font-medium transition-colors',
                   sortMode === option.value
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground',
@@ -478,14 +478,14 @@ export default function IngredientList({
       {/* On phones the list bleeds to the edges of the surrounding section card (p-6) to gain width. */}
       <div className="-mx-6 overflow-hidden border-y bg-card sm:mx-0 sm:rounded-xl sm:border">
         {filteredItems.length === 0 ? (
-          <p className="px-4 py-6 text-center text-muted-foreground text-sm">Keine Zutaten gefunden</p>
+          <p className="px-4 py-6 text-center text-muted-foreground text-body">Keine Zutaten gefunden</p>
         ) : (
           // One shared grid: amount and price columns size to the widest entry of the whole list.
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 sm:gap-x-4">
             {groups.map((group) => (
               <section key={group.name ?? 'all'} className="col-span-3 grid grid-cols-subgrid border-b last:border-b-0">
                 {group.name && (
-                  <h3 className="col-span-3 flex items-baseline gap-1.5 border-b bg-muted/60 px-6 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:px-4">
+                  <h3 className="col-span-3 flex items-baseline gap-1.5 border-b bg-muted/60 px-6 py-1.5 text-caption font-semibold uppercase tracking-wide text-muted-foreground sm:px-4">
                     {group.name}
                     <span className="font-normal normal-case tracking-normal">({group.items.length})</span>
                   </h3>
@@ -499,14 +499,14 @@ export default function IngredientList({
         )}
 
         {/* Summary */}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t bg-muted/40 px-6 py-2.5 text-sm sm:px-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t bg-muted/40 px-6 py-2.5 text-body sm:px-4">
           <span className="text-muted-foreground">
             {`${sortedItems.length} ${sortedItems.length === 1 ? 'Zutat' : 'Zutaten'} · ${formatQuantity(totalWeightG, null, null).display}`}
           </span>
           <span className="font-semibold tabular-nums text-foreground">
             {totalPriceEur > 0 ? `Gesamt ${formatPrice(totalPriceEur)}` : '–'}
             {unpricedCount > 0 && (
-              <span className="ml-1.5 text-xs font-normal text-muted-foreground">({unpricedCount} ohne Preis)</span>
+              <span className="ml-1.5 text-caption font-normal text-muted-foreground">({unpricedCount} ohne Preis)</span>
             )}
           </span>
         </div>

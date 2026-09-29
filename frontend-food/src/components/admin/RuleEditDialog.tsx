@@ -121,7 +121,7 @@ export default function RuleEditDialog({
     });
   };
 
-  const selectCls = 'w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+  const selectCls = 'w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-body ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -156,32 +156,32 @@ export default function RuleEditDialog({
           </div>
 
           {scope === 'recipe' ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs text-foreground/85 leading-relaxed">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-caption text-foreground/85 leading-relaxed">
               Rezeptregeln gelten nur für Kalte und Warme Mahlzeit. Für Frühstück, Snacks, Nachtisch und Getränke werden diese Regeln im Planer auf die gesamte Mahlzeit angewandt.
             </div>
           ) : (
-            <div className="rounded-lg border border-border bg-muted/40 p-3.5 text-xs text-muted-foreground leading-relaxed">
+            <div className="rounded-lg border border-border bg-muted/40 p-3.5 text-caption text-muted-foreground leading-relaxed">
               Planer-Regeln werden aggregiert auf alle Mahlzeittypen angewandt.
             </div>
           )}
 
           <div className="space-y-3">
-            <Label className="block text-sm font-medium">Schwellwerte ({unit})</Label>
+            <Label className="block text-body font-medium">Schwellwerte ({unit})</Label>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="min-yellow" className="text-xs text-muted-foreground">Min Gelb (rot darunter)</Label>
+                <Label htmlFor="min-yellow" className="text-caption text-muted-foreground">Min Gelb (rot darunter)</Label>
                 <Input id="min-yellow" type="number" value={minYellow} onChange={(e) => setMinYellow(e.target.value)} placeholder="—" />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="min-green" className="text-xs text-muted-foreground">Min Grün</Label>
+                <Label htmlFor="min-green" className="text-caption text-muted-foreground">Min Grün</Label>
                 <Input id="min-green" type="number" value={minGreen} onChange={(e) => setMinGreen(e.target.value)} placeholder="—" />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="max-green" className="text-xs text-muted-foreground">Max Grün</Label>
+                <Label htmlFor="max-green" className="text-caption text-muted-foreground">Max Grün</Label>
                 <Input id="max-green" type="number" value={maxGreen} onChange={(e) => setMaxGreen(e.target.value)} placeholder="—" />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="max-yellow" className="text-xs text-muted-foreground">Max Gelb (rot darüber)</Label>
+                <Label htmlFor="max-yellow" className="text-caption text-muted-foreground">Max Gelb (rot darüber)</Label>
                 <Input id="max-yellow" type="number" value={maxYellow} onChange={(e) => setMaxYellow(e.target.value)} placeholder="—" />
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function RuleEditDialog({
                 id="rule-is-active"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                className="rounded-lg border-border text-primary focus:ring-primary h-4 w-4"
               />
               Aktiv
             </Label>

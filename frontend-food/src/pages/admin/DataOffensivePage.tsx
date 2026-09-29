@@ -107,7 +107,7 @@ export default function DataOffensivePage() {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Analysiere alle Zutaten …</p>
+        <p className="text-body text-muted-foreground">Analysiere alle Zutaten …</p>
       </div>
     );
   }
@@ -116,7 +116,7 @@ export default function DataOffensivePage() {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-destructive space-y-2">
         <p className="font-semibold">Cockpit konnte nicht geladen werden</p>
-        <p className="text-sm">{error?.message}</p>
+        <p className="text-body">{error?.message}</p>
         <Button size="sm" variant="outline" onClick={() => refetch()}>
           Erneut versuchen
         </Button>

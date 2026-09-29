@@ -73,10 +73,10 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
                     : 'border-border bg-card hover:border-border/80 hover:bg-muted/30'
                 }`}
               >
-                <span className="text-3xl">{stufe.emoji}</span>
-                <span className="text-sm font-medium text-foreground">{stufe.label}</span>
+                <span className="text-title">{stufe.emoji}</span>
+                <span className="text-body font-medium text-foreground">{stufe.label}</span>
                 {selectedStufe === stufe.key && (
-                  <span className="text-xs text-primary font-semibold">↓ Anzahl wählen</span>
+                  <span className="text-caption text-primary font-semibold">↓ Anzahl wählen</span>
                 )}
               </button>
             ))}
@@ -86,21 +86,21 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
             <div className="p-4 border border-primary/30 rounded-xl bg-primary/5 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-body font-medium text-foreground">
                     {selectedStufeData.label} ({selectedStufeData.defaultAge} Jahre)
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-caption text-muted-foreground mt-0.5">
                     Standardalter für diese Stufe
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-foreground">Anzahl:</label>
+                <label className="text-body font-medium text-foreground">Anzahl:</label>
                 <button
                   type="button"
                   onClick={() => setCount(Math.max(1, count - 1))}
-                  className="px-3 py-1 rounded border border-border hover:bg-muted text-sm"
+                  className="px-3 py-1 rounded-lg border border-border hover:bg-muted text-body"
                 >
                   −
                 </button>
@@ -110,12 +110,12 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
                   onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
                   min={1}
                   max={50}
-                  className="w-20 rounded-lg border border-border px-3 py-2 text-sm text-center font-semibold"
+                  className="w-20 rounded-lg border border-border px-3 py-2 text-body text-center font-semibold"
                 />
                 <button
                   type="button"
                   onClick={() => setCount(Math.min(50, count + 1))}
-                  className="px-3 py-1 rounded border border-border hover:bg-muted text-sm"
+                  className="px-3 py-1 rounded-lg border border-border hover:bg-muted text-body"
                 >
                   +
                 </button>
@@ -129,7 +129,7 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={isPending}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted/50 disabled:opacity-50"
+            className="rounded-lg border border-border px-4 py-2 text-body font-medium hover:bg-muted/50 disabled:opacity-50"
           >
             Abbrechen
           </button>
@@ -137,7 +137,7 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
             type="button"
             onClick={handleConfirm}
             disabled={isPending || !selectedStufe || count < 1}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-body font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <Users className="w-4 h-4" />
             {count}× {selectedStufeData?.label} hinzufügen

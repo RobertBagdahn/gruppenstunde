@@ -191,7 +191,7 @@ export function CopyFromPlanDialog({
             {step !== 'plan' && (
               <button
                 onClick={handleBack}
-                className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
+                className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
                 title="Zurück"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -213,7 +213,7 @@ export function CopyFromPlanDialog({
                   placeholder="Pläne durchsuchen..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm"
+                  className="w-full pl-9 pr-3 py-2 border rounded-lg text-body"
                 />
               </div>
 
@@ -224,21 +224,21 @@ export function CopyFromPlanDialog({
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                  className="flex-1 px-3 py-2 border rounded-lg text-body"
                   title="Von"
                 />
-                <span className="text-muted-foreground text-sm">–</span>
+                <span className="text-muted-foreground text-body">–</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                  className="flex-1 px-3 py-2 border rounded-lg text-body"
                   title="Bis"
                 />
               </div>
 
               {/* Plan list */}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Wähle einen Essensplan als Quelle:
               </p>
               {plansLoading ? (
@@ -246,7 +246,7 @@ export function CopyFromPlanDialog({
                   <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
               ) : !plans || plans.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic py-4 text-center">
+                <p className="text-body text-muted-foreground italic py-4 text-center">
                   Keine Essenspläne gefunden.
                 </p>
               ) : (
@@ -263,8 +263,8 @@ export function CopyFromPlanDialog({
                         className="w-full text-left px-3 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                       >
                         <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">{plan.name}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
+                          <div className="font-medium text-body truncate">{plan.name}</div>
+                          <div className="text-caption text-muted-foreground mt-0.5 space-x-2">
                             {plan.start_datetime && plan.end_datetime && (
                               <span>
                                 {formatDateShort(plan.start_datetime)} – {formatDateShort(plan.end_datetime)}
@@ -274,7 +274,7 @@ export function CopyFromPlanDialog({
                             <span>· {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}</span>
                           </div>
                           {plan.event_name && (
-                            <div className="text-xs text-muted-foreground mt-0.5">
+                            <div className="text-caption text-muted-foreground mt-0.5">
                               {plan.event_name}
                             </div>
                           )}
@@ -290,11 +290,11 @@ export function CopyFromPlanDialog({
           {/* Step 2: Day selection */}
           {step === 'day' && (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Wähle einen Tag aus <span className="font-medium text-foreground">{selectedPlan?.name}</span>:
               </p>
               {days.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic py-4 text-center">
+                <p className="text-body text-muted-foreground italic py-4 text-center">
                   Keine Tage mit Mahlzeiten vorhanden.
                 </p>
               ) : (
@@ -305,7 +305,7 @@ export function CopyFromPlanDialog({
                       onClick={() => handleSelectDay(date)}
                       className="w-full text-left px-3 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                     >
-                      <span className="font-medium text-sm">{formatDate(date)}</span>
+                      <span className="font-medium text-body">{formatDate(date)}</span>
                     </button>
                   ))}
                 </div>
@@ -316,11 +316,11 @@ export function CopyFromPlanDialog({
           {/* Step 3: Meal selection with preview */}
           {step === 'meal' && (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Wähle eine Mahlzeit aus <span className="font-medium text-foreground">{selectedDate ? formatDate(selectedDate) : ''}</span>:
               </p>
               {dayMeals.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic py-4 text-center">
+                <p className="text-body text-muted-foreground italic py-4 text-center">
                   Keine Mahlzeiten an diesem Tag.
                 </p>
               ) : (
@@ -340,10 +340,10 @@ export function CopyFromPlanDialog({
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-sm">
+                          <span className="font-medium text-body">
                             {MEAL_TYPE_LABELS[m.meal_type] || m.meal_type}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-caption text-muted-foreground">
                             {m.items.length} {m.items.length === 1 ? 'Eintrag' : 'Einträge'} · {kcalSum} kcal
                           </span>
                         </div>
@@ -351,7 +351,7 @@ export function CopyFromPlanDialog({
                         {isSelected && m.items.length > 0 && (
                           <div className="mt-2 pt-2 border-t border-border space-y-1">
                             {m.items.map((item) => (
-                              <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                              <div key={item.id} className="flex items-center justify-between text-caption text-muted-foreground">
                                 <span className="truncate mr-2">
                                   {item.recipe_title || item.ingredient_name || item.display_name}
                                 </span>
@@ -361,7 +361,7 @@ export function CopyFromPlanDialog({
                                 </span>
                               </div>
                             ))}
-                            <div className="flex items-center justify-between text-xs font-medium text-foreground pt-1 border-t border-border">
+                            <div className="flex items-center justify-between text-caption font-medium text-foreground pt-1 border-t border-border">
                               <span>Summe</span>
                               <span>{kcalSum} kcal</span>
                             </div>

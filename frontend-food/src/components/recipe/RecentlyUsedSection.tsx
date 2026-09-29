@@ -15,7 +15,7 @@ export default function RecentlyUsedSection({ onSelect }: RecentlyUsedSectionPro
 
   return (
     <div className="rounded-lg border p-3">
-      <p className="text-xs font-semibold text-muted-foreground mb-2">
+      <p className="text-caption font-semibold text-muted-foreground mb-2">
         Kürzlich verwendet
       </p>
       <div className="flex flex-wrap gap-1.5">
@@ -27,12 +27,12 @@ export default function RecentlyUsedSection({ onSelect }: RecentlyUsedSectionPro
             <button
               key={r.id}
               onClick={() => onSelect(r.id, r.title)}
-              className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
+              className="px-2.5 py-1.5 text-body rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
             >
               <RecipeBadge badge={r.recipe_badge ?? 'community'} />
               <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
               <span>{r.title}</span>
-              <span className="text-xs text-muted-foreground">{price}</span>
+              <span className="text-caption text-muted-foreground">{price}</span>
             </button>
           );
         })}

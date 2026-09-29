@@ -54,16 +54,16 @@ function ShoppingItemWithSources({
           {item.ingredient_slug ? (
             <Link
               to={`/ingredients/${item.ingredient_slug}`}
-              className="text-sm hover:text-primary transition-colors"
+              className="text-body hover:text-primary transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               {item.ingredient_name}
             </Link>
           ) : (
-            <span className="text-sm">{item.ingredient_name}</span>
+            <span className="text-body">{item.ingredient_name}</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
+        <div className="flex items-center gap-3 text-body text-muted-foreground shrink-0">
           <span>
             {formatShoppingQuantity(
               item.quantity || item.total_quantity_g || 0,
@@ -72,12 +72,12 @@ function ShoppingItemWithSources({
               item.package_options[0],
             )}
             {showReserve && (item.reserve_quantity_g || 0) > 0 && (
-              <span className="text-xs text-muted-foreground/70">
+              <span className="text-caption text-muted-foreground/70">
                 {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
               </span>
             )}
             {formatPackageReserve(item.package_surplus_g) && (
-              <span className="block text-xs text-muted-foreground/70 text-right">
+              <span className="block text-caption text-muted-foreground/70 text-right">
                 {formatPackageReserve(item.package_surplus_g)}
               </span>
             )}
@@ -91,7 +91,7 @@ function ShoppingItemWithSources({
               }}
               aria-expanded={portionsExpanded}
               aria-label="Portionsgrößen anzeigen"
-              className="inline-flex items-center gap-1 text-xs transition-colors cursor-pointer hover:text-muted-foreground"
+              className="inline-flex items-center gap-1 text-caption transition-colors cursor-pointer hover:text-muted-foreground"
             >
               <ChevronDown className={`w-3 h-3 transition-transform ${portionsExpanded ? 'rotate-180' : ''}`} />
             </button>
@@ -101,7 +101,7 @@ function ShoppingItemWithSources({
               {formatEuro(item.estimated_price_eur)}
             </span>
           ) : (
-            <span className="text-red-400 text-xs">kein Preis</span>
+            <span className="text-danger text-caption">kein Preis</span>
           )}
         </div>
       </div>
@@ -118,7 +118,7 @@ function ShoppingItemWithSources({
               <span className="text-muted-foreground/40">&#8226;</span>
               <span>{formatPortionOption(opt)}</span>
               {opt.is_default && (
-                <span className="text-[10px] text-muted-foreground/40 font-normal">(Standard)</span>
+                <span className="text-caption text-muted-foreground/40 font-normal">(Standard)</span>
               )}
             </div>
           ))}
@@ -127,7 +127,7 @@ function ShoppingItemWithSources({
       {expanded && hasSources && (
         <div className="pl-10 pr-4 pb-2 space-y-1">
           {item.sources!.map((source, idx) => (
-            <div key={idx} className="flex items-center justify-between text-xs text-muted-foreground">
+            <div key={idx} className="flex items-center justify-between text-caption text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="text-muted-foreground/60">&#8226;</span>
                 {source.recipe_slug ? (
@@ -190,7 +190,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
         <button
           type="button"
           onClick={() => setShowReserve(!showReserve)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+          className="text-caption text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
         >
           {showReserve ? 'Reserve-Anteil ausblenden' : 'Reserve-Anteil anzeigen'}
         </button>
@@ -211,7 +211,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
                 toast.error('Fehler', { description: err.message }),
             });
           }}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50 font-semibold"
+          className="flex items-center gap-2 px-4 py-2.5 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50 font-semibold"
         >
           {createFromMealPlan.isPending ? (
             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -227,7 +227,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       {Object.entries(grouped).map(([section, items]) => (
         <div key={section} className="rounded-xl border bg-card overflow-hidden">
           <div className="px-4 py-2.5 bg-muted/50 border-b">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
+            <h3 className="font-semibold text-body flex items-center gap-2">
               <Store className="w-4 h-4 text-muted-foreground" />
               {section}
             </h3>
@@ -244,7 +244,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       {totalPrice > 0 && (
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center justify-between">
           <span className="font-semibold">Geschätzter Gesamtpreis</span>
-          <span className="font-bold text-lg">{formatEuro(totalPrice)}</span>
+          <span className="font-bold text-section">{formatEuro(totalPrice)}</span>
         </div>
       )}
     </div>

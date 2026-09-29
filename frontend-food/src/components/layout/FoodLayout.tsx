@@ -55,7 +55,7 @@ export default function FoodLayout() {
               alt="Inspi Food"
               className="h-9 w-auto transition-transform group-hover:scale-110 group-hover:rotate-3"
             />
-            <span className="text-xl font-extrabold tracking-tight text-foreground">
+            <span className="text-section font-extrabold tracking-tight text-foreground">
               Inspi <span className="text-primary">Food</span>
             </span>
           </Link>
@@ -67,7 +67,7 @@ export default function FoodLayout() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  'flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all',
+                  'flex items-center gap-2 px-3.5 py-2 rounded-xl text-body font-semibold transition-all',
                   isActive(item.to)
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -90,7 +90,7 @@ export default function FoodLayout() {
               <>
                 <button
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-body font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                 >
                   <span className="material-symbols-outlined text-[20px]">person</span>
                   <span className="hidden md:inline">{user.first_name || 'Profil'}</span>
@@ -98,11 +98,11 @@ export default function FoodLayout() {
                 {profileMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-border/60 rounded-2xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-border/60 rounded-xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                       <Link
                         to="/profile"
                         onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
+                        className="flex items-center gap-3 px-4 py-2.5 text-body text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
                       >
                         <span className="material-symbols-outlined text-[20px]">person</span>
                         Profil
@@ -111,7 +111,7 @@ export default function FoodLayout() {
                         <Link
                           to="/admin"
                           onClick={() => setProfileMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
+                          className="flex items-center gap-3 px-4 py-2.5 text-body text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
                         >
                           <span className="material-symbols-outlined text-[20px]">settings</span>
                           Stammdaten
@@ -119,7 +119,7 @@ export default function FoodLayout() {
                       )}
                       <button
                         onClick={() => { logout.mutate(); setProfileMenuOpen(false); }}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
+                        className="flex items-center gap-3 px-4 py-2.5 text-body text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
                       >
                         <span className="material-symbols-outlined text-[20px]">logout</span>
                         Abmelden
@@ -131,7 +131,7 @@ export default function FoodLayout() {
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-primary hover:bg-primary/10 transition-all"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-body font-semibold text-primary hover:bg-primary/10 transition-all"
               >
                 <span className="material-symbols-outlined text-[20px]">login</span>
                 Anmelden
@@ -171,7 +171,7 @@ export default function FoodLayout() {
               >
                 {isActive(item.to, item.to === '/') && item.filledIcon ? item.filledIcon : item.icon}
               </span>
-              <span className={cn('text-[10px] font-medium leading-none', isActive(item.to, item.to === '/') && 'font-bold')}>
+              <span className={cn('text-caption font-medium leading-none', isActive(item.to, item.to === '/') && 'font-bold')}>
                 {item.label}
               </span>
             </Link>

@@ -52,12 +52,12 @@ function StepIndicator({ steps, activeIndex }: { steps: WizardStepDef[]; activeI
               >
                 {isCompleted ? <Check className="w-3.5 h-3.5" /> : i + 1}
               </div>
-              <span className="hidden sm:block ml-1.5 text-xs font-medium text-muted-foreground truncate max-w-[70px]">
+              <span className="hidden sm:block ml-1.5 text-caption font-medium text-muted-foreground truncate max-w-[70px]">
                 {step.label}
               </span>
               {i < steps.length - 1 && (
                 <div
-                  className={`hidden sm:block w-6 h-0.5 mx-1 rounded transition-colors ${i < activeIndex ? 'bg-primary' : 'bg-muted-foreground/20'}`}
+                  className={`hidden sm:block w-6 h-0.5 mx-1 rounded-lg transition-colors ${i < activeIndex ? 'bg-primary' : 'bg-muted-foreground/20'}`}
                 />
               )}
             </li>
@@ -65,7 +65,7 @@ function StepIndicator({ steps, activeIndex }: { steps: WizardStepDef[]; activeI
         })}
       </ol>
       {active && (
-        <p className="mt-3 text-center text-xs text-muted-foreground" data-testid="recipe-wizard-step-help">
+        <p className="mt-3 text-center text-caption text-muted-foreground" data-testid="recipe-wizard-step-help">
           <span className="font-medium text-foreground">
             Schritt {activeIndex + 1} von {steps.length}: {active.label}
           </span>
@@ -404,14 +404,14 @@ export default function RecipeWizard() {
   if (draftNotFound) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4" data-testid="recipe-wizard-draft-not-found">
-        <h2 className="text-xl font-display font-bold">Entwurf nicht gefunden</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-section font-display font-bold">Entwurf nicht gefunden</h2>
+        <p className="text-body text-muted-foreground">
           Dieser Rezept-Entwurf existiert nicht oder gehört nicht zu deinem Konto.
         </p>
         <button
           type="button"
           onClick={handleRestart}
-          className="inline-flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+          className="inline-flex items-center gap-1.5 px-5 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
         >
           Neu beginnen
         </button>
@@ -504,7 +504,7 @@ export default function RecipeWizard() {
                 disabled={isSaving || backLocked}
                 title={backLocked ? 'Das Rezept ist bereits angelegt.' : undefined}
                 data-testid="recipe-wizard-back"
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-4 py-2 text-body font-medium border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Zurück
@@ -517,7 +517,7 @@ export default function RecipeWizard() {
               onClick={handleNext}
               disabled={isSaving}
               data-testid="recipe-wizard-next"
-              className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
+              className="flex items-center gap-1.5 px-5 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
             >
               {isFirst ? (
                 isSaving ? (
@@ -547,7 +547,7 @@ export default function RecipeWizard() {
               onClick={handleNext}
               disabled={isSaving}
               data-testid="recipe-wizard-finish"
-              className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
+              className="flex items-center gap-1.5 px-5 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
             >
               {isSaving ? 'Speichert...' : (
                 <>
@@ -559,7 +559,7 @@ export default function RecipeWizard() {
           )}
         </div>
         {backLocked && (
-          <p className="mt-2 text-xs text-muted-foreground" data-testid="recipe-wizard-back-locked-hint">
+          <p className="mt-2 text-caption text-muted-foreground" data-testid="recipe-wizard-back-locked-hint">
             Das Rezept ist bereits angelegt. Titel und Typ änderst du direkt hier.
           </p>
         )}

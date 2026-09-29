@@ -675,8 +675,8 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
   breakfast: { text: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', dot: 'bg-primary' },
   lunch: { text: 'text-accent-foreground', bg: 'bg-accent/30', border: 'border-accent', dot: 'bg-accent-foreground' },
   dinner: { text: 'text-secondary-foreground', bg: 'bg-secondary', border: 'border-secondary-foreground/30', dot: 'bg-secondary-foreground' },
-  snack: { text: 'text-chart-4', bg: 'bg-chart-4/10', border: 'border-chart-4/30', dot: 'bg-chart-4' },
-  drinks: { text: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200', dot: 'bg-sky-500' },
+  snack: { text: 'text-warning', bg: 'bg-warning-soft', border: 'border-warning-border', dot: 'bg-warning' },
+  drinks: { text: 'text-info', bg: 'bg-info-soft', border: 'border-info-border', dot: 'bg-info' },
 };
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';

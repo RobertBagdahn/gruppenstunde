@@ -158,7 +158,7 @@ export function MealSlot({
   const isEmpty = meal.items.length === 0;
   const effPortions = effectivePortions(meal, normPortions);
   const coverage = getCoverageStatus(meal.total_energy_kcal / effPortions, meal.day_part_factor);
-  const coverageColorClass = coverage.status === 'good' ? 'text-primary font-semibold' : coverage.status === 'warning' ? 'text-chart-4 font-semibold' : 'text-destructive font-bold';
+  const coverageColorClass = coverage.status === 'good' ? 'text-primary font-semibold' : coverage.status === 'warning' ? 'text-warning font-semibold' : 'text-destructive font-bold';
 
   const mealTargetKcal = Math.round(NORM_PERSON_DAILY_KCAL * meal.day_part_factor);
   const mealActualKcal = Math.round(meal.total_energy_kcal / effPortions);
@@ -189,13 +189,13 @@ export function MealSlot({
       <div key={it.id} className="pl-7 py-1">
         <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
           <div className="flex items-start gap-3">
-            {it.recipe_id && <RecipeThumbnail imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded" className="rounded" />}
+            {it.recipe_id && <RecipeThumbnail imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                {it.recipe_id && it.recipe_slug ? <Link to={`/recipes/${it.recipe_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
-                  : it.ingredient_id ? <Link to={`/ingredients/${it.ingredient_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
-                  : <span className="text-base truncate block font-medium">{dName}</span>}
-                {isIng && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">Zutat</span>}
+                {it.recipe_id && it.recipe_slug ? <Link to={`/recipes/${it.recipe_slug}`} className="text-emphasis hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
+                  : it.ingredient_id ? <Link to={`/ingredients/${it.ingredient_slug}`} className="text-emphasis hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
+                  : <span className="text-emphasis truncate block font-medium">{dName}</span>}
+                {isIng && <span className="text-caption px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">Zutat</span>}
                 <NutriTagBadge allergenTags={allTags} />
                 {it.warnings.length > 0 && (
                   <span title={it.warnings.map((w) => w.message).join(' ')} className="inline-flex shrink-0">
@@ -203,17 +203,17 @@ export function MealSlot({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+              <div className="flex items-center gap-2 text-body text-muted-foreground flex-wrap">
                 {it.energy_kcal != null && <span>{Math.round(it.energy_kcal / effPortions)} kcal</span>}
                 {it.cost_eur != null && <span>{formatNumber((it.cost_eur / effPortions), { maxDecimals: 2 })} €</span>}
                 {isIng && !meal.is_synced && isPortionUnit(it.measuring_unit_name) ? (
                   // NEW format: portion-based, editable
                   <>
                     {onUpdateItemQuantity ? <QuantityInput value={it.quantity ?? 0} onChange={(q) => onUpdateItemQuantity(it.id, q)} /> : <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} />}
-                    <span className="text-xs text-muted-foreground">{it.measuring_unit_name}{it.quantity_g != null ? <span className="text-muted-foreground/60 ml-0.5">({Math.round(it.quantity_g)}g)</span> : ''}</span>
+                    <span className="text-caption text-muted-foreground">{it.measuring_unit_name}{it.quantity_g != null ? <span className="text-muted-foreground/60 ml-0.5">({Math.round(it.quantity_g)}g)</span> : ''}</span>
                   </>
                 ) : isIng && !meal.is_synced ? (
-                  <span className={`text-xs ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  <span className={`text-caption ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {formatPortion(it)}
                   </span>
                 ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
@@ -221,11 +221,11 @@ export function MealSlot({
                     <span>{formatPortion(it)}</span>
                  ) : isIng ? (
                    // Raw unit, read-only fallback
-                    <span className="text-xs">{formatPortion(it)}</span>
+                    <span className="text-caption">{formatPortion(it)}</span>
                  ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{formatNumber(it.factor, { maxDecimals: 2 }).replace('.', ',')}</span>)}
               </div>
             </div>
-            {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(it.id)} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"><X className="w-4 h-4" /></button>}
+            {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(it.id)} className="p-1 rounded-lg text-muted-foreground hover:text-destructive transition-colors"><X className="w-4 h-4" /></button>}
           </div>
         </div>
       </div>
@@ -240,10 +240,10 @@ export function MealSlot({
             <span className={`material-symbols-outlined text-[20px] ${mealColors.text}`}>
               {MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'}
             </span>
-            <span className="font-bold text-sm text-foreground">
+            <span className="font-bold text-body text-foreground">
               {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
             </span>
-            {mealTime && <span className="text-xs text-muted-foreground">· {mealTime}</span>}
+            {mealTime && <span className="text-caption text-muted-foreground">· {mealTime}</span>}
           </div>
           {canEdit && (
             <MealActionsMenu
@@ -261,8 +261,8 @@ export function MealSlot({
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-          <p className="text-xs text-muted-foreground italic flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4 text-amber-500/80 shrink-0" />
+          <p className="text-caption text-muted-foreground italic flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 text-warning/80 shrink-0" />
             Noch kein Gericht geplant
           </p>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -271,7 +271,7 @@ export function MealSlot({
                 <button
                   type="button"
                   onClick={() => setDialogOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Gericht hinzufügen
@@ -280,7 +280,7 @@ export function MealSlot({
                   <button
                     type="button"
                     onClick={handleOpenWizard}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-chart-4/30 bg-chart-4/10 text-chart-4 hover:bg-chart-4/20 transition-all"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border bg-warning-soft text-warning hover:bg-warning-soft transition-all"
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
                     Buffet zusammenstellen
@@ -290,7 +290,7 @@ export function MealSlot({
                   type="button"
                   onClick={handleRandomSuggest}
                   disabled={randomQuery.isFetching}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-border bg-card hover:bg-muted/60 transition-all disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-caption font-semibold border border-border bg-card hover:bg-muted/60 transition-all disabled:opacity-50"
                   title="Schneller KI-Vorschlag"
                 >
                   <Shuffle className="w-3.5 h-3.5 text-primary" />
@@ -347,23 +347,23 @@ export function MealSlot({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
                 {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
               </span>
-              {mealTime && <span className="text-xs text-muted-foreground">· {mealTime}</span>}
+              {mealTime && <span className="text-caption text-muted-foreground">· {mealTime}</span>}
               {meal.is_synced && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                <span className="inline-flex items-center gap-1 text-caption font-semibold text-primary">
                   <RefreshCw className="w-3 h-3 animate-spin-slow" />
                   Referenz
                 </span>
               )}
             </div>
-            <h4 className="text-base font-display font-bold text-foreground truncate mt-0.5">
+            <h4 className="text-emphasis font-display font-bold text-foreground truncate mt-0.5">
               {primaryTitle || 'Mahlzeit'}
             </h4>
 
             {/* Quick Metrics & Tags */}
-            <div className="flex items-center gap-2 mt-2 flex-wrap text-xs">
+            <div className="flex items-center gap-2 mt-2 flex-wrap text-caption">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted font-semibold text-muted-foreground">
                 <Users className="w-3 h-3" />
                 {effPortions} P.
@@ -373,7 +373,7 @@ export function MealSlot({
               </span>
               {meal.price_coverage != null && meal.price_coverage.missing_ingredients > 0 && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[hsl(var(--chart-4))]/30 bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] text-[11px] font-bold"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-warning-border bg-warning-soft text-warning text-caption font-bold"
                   title={`${meal.price_coverage.priced_ingredients} von ${meal.price_coverage.total_ingredients} Zutaten haben einen bestätigten Preis${meal.price_coverage.affected_items.length ? `; betroffen: ${meal.price_coverage.affected_items.map((item) => String(item.ingredient_name ?? '')).filter(Boolean).join(', ')}` : ''}`}
                 >
                   <AlertTriangle className="w-3 h-3" />
@@ -385,7 +385,7 @@ export function MealSlot({
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold ${
                     coverage.status === 'critical'
                       ? 'bg-destructive/10 text-destructive border-destructive/20'
-                      : 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20'
+                      : 'bg-warning-soft text-warning border-warning-border'
                   }`}
                   title={`Nur ${coverage.percent}% der erwarteten Energiemenge (${formatCount(mealActualKcal)} von ${formatCount(mealTargetKcal)} kcal)`}
                 >
@@ -395,7 +395,7 @@ export function MealSlot({
               )}
               {mealIsTooExpensive && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/20 bg-destructive/10 text-destructive text-[11px] font-bold"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/20 bg-destructive/10 text-destructive text-caption font-bold"
                   title={`Ist ${formatNumber(mealActualCost, { maxDecimals: 2 })} € pro Person, Soll ${formatNumber(mealTargetCost, { maxDecimals: 2 })} € pro Person`}
                 >
                   <AlertTriangle className="w-3 h-3" />
@@ -404,7 +404,7 @@ export function MealSlot({
               )}
               {mealIsUnhealthy && (
                 <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/20 bg-destructive/10 text-destructive text-[11px] font-bold"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/20 bg-destructive/10 text-destructive text-caption font-bold"
                   title="Diese Mahlzeit enthält ein Rezept oder eine Zutat mit Nutri-Score D oder E"
                 >
                   <AlertTriangle className="w-3 h-3" />
@@ -414,7 +414,7 @@ export function MealSlot({
               {prominentIngredientTags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground text-[11px]"
+                  className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground text-caption"
                 >
                   {tag}
                 </span>
@@ -454,17 +454,17 @@ export function MealSlot({
         <div className="border-t border-border/60 p-4 space-y-4 bg-muted/10 animate-in fade-in-50 duration-200">
           {/* Meal Note */}
           {meal.note && (
-            <div className="text-xs text-muted-foreground italic flex items-center gap-1 bg-card p-2 rounded-lg border border-border/40">
+            <div className="text-caption text-muted-foreground italic flex items-center gap-1 bg-card p-2 rounded-xl border border-border/40">
               <FileText className="w-3.5 h-3.5 shrink-0" />
               <span>{meal.note}</span>
             </div>
           )}
 
           {/* Meal Soll/Ist stats */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
             {meal.meal_type !== 'drinks' && (
               <span
-                className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-lg border border-border/40"
+                className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border border-border/40"
                 title={!mealIsTooLittle ? 'Energie ok' : undefined}
               >
                 <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
@@ -472,7 +472,7 @@ export function MealSlot({
               </span>
             )}
             {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
-              <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-lg border border-border/40">
+              <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border border-border/40">
                 <span className="material-symbols-outlined text-[14px]">payments</span>
                 <span>Preis: Soll {formatNumber(mealTargetCost, { maxDecimals: 2 })} € / Ist {formatNumber(mealActualCost, { maxDecimals: 2 })} €</span>
               </span>
@@ -510,18 +510,18 @@ export function MealSlot({
                 <div key={first.variant_group_id} className="pl-7 py-1">
                   <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30`}>
                     <div className="flex items-center gap-2 mb-1">
-                      {first.recipe_id && <RecipeThumbnail imageUrl={first.image_url} title={first.recipe_title} size="xs" imgClassName="rounded" className="rounded" />}
-                      <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 flex-wrap">{first.recipe_id && first.recipe_slug ? <Link to={`/recipes/${first.recipe_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{first.recipe_title}</Link> : <span className="text-base truncate block font-medium">{first.recipe_title}</span>}<NutriTagBadge allergenTags={allTags} /></div></div>
+                      {first.recipe_id && <RecipeThumbnail imageUrl={first.image_url} title={first.recipe_title} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
+                      <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 flex-wrap">{first.recipe_id && first.recipe_slug ? <Link to={`/recipes/${first.recipe_slug}`} className="text-emphasis hover:text-primary transition-colors truncate block font-medium">{first.recipe_title}</Link> : <span className="text-emphasis truncate block font-medium">{first.recipe_title}</span>}<NutriTagBadge allergenTags={allTags} /></div></div>
                     </div>
                     <div className="space-y-1">
                       {variants.map((v) => (
                         <div key={v.id} className="flex items-center gap-2 ml-6 py-0.5 group">
-                          <span className="text-sm text-muted-foreground flex-1">{v.display_name || v.recipe_title}</span>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="text-body text-muted-foreground flex-1">{v.display_name || v.recipe_title}</span>
+                          <div className="flex items-center gap-2 text-body text-muted-foreground">
                             {v.energy_kcal != null && <span>{Math.round(v.energy_kcal / effPortions)} kcal</span>}
-                            {canEdit && !meal.is_synced ? <FactorInput value={v.factor} onChange={(f) => onUpdateItemFactor(v.id, f)} /> : <span className="text-xs">&times;{formatNumber(v.factor, { maxDecimals: 2 }).replace('.', ',')}</span>}
+                            {canEdit && !meal.is_synced ? <FactorInput value={v.factor} onChange={(f) => onUpdateItemFactor(v.id, f)} /> : <span className="text-caption">&times;{formatNumber(v.factor, { maxDecimals: 2 }).replace('.', ',')}</span>}
                           </div>
-                          {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(v.id)} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"><X className="w-3.5 h-3.5" /></button>}
+                          {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(v.id)} className="p-1 rounded-lg text-muted-foreground hover:text-destructive transition-colors"><X className="w-3.5 h-3.5" /></button>}
                         </div>
                       ))}
                     </div>
@@ -562,8 +562,8 @@ export function MealSlot({
 
             rendered.push(
               <div key={role} className="pl-7 py-1" data-testid={`buffet-role-group-${role}`}>
-                <div className="rounded-lg border bg-card overflow-hidden">
-                  <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider ${mealColors.bg} ${mealColors.text} border-b`}>
+                <div className="rounded-xl border bg-card overflow-hidden">
+                  <div className={`px-3 py-1.5 text-caption font-semibold uppercase tracking-wider ${mealColors.bg} ${mealColors.text} border-b`}>
                     {buffetRoleName(role)}
                   </div>
                   {items.map((item) => {
@@ -580,15 +580,15 @@ export function MealSlot({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {item.recipe_id && item.recipe_slug ? (
-                                <Link to={`/recipes/${item.recipe_slug}`} className="text-sm hover:text-primary transition-colors truncate block font-medium">
+                                <Link to={`/recipes/${item.recipe_slug}`} className="text-body hover:text-primary transition-colors truncate block font-medium">
                                   {displayName}
                                 </Link>
                               ) : item.ingredient_id ? (
-                                <Link to={`/ingredients/${item.ingredient_slug}`} className="text-sm hover:text-primary transition-colors truncate block font-medium">
+                                <Link to={`/ingredients/${item.ingredient_slug}`} className="text-body hover:text-primary transition-colors truncate block font-medium">
                                   {displayName}
                                 </Link>
                               ) : (
-                                <span className="text-sm truncate block font-medium">{displayName}</span>
+                                <span className="text-body truncate block font-medium">{displayName}</span>
                               )}
                               <NutriTagBadge allergenTags={itemAllergenTags} />
                               {item.warnings.length > 0 && (
@@ -598,7 +598,7 @@ export function MealSlot({
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+                          <div className="flex items-center gap-2 text-caption text-muted-foreground shrink-0">
                             {item.energy_kcal != null && (
                               <span>{Math.round(item.energy_kcal / effPortions)} kcal</span>
                             )}
@@ -615,11 +615,11 @@ export function MealSlot({
                                 </span>
                               </>
                             ) : isIngredient && !meal.is_synced ? (
-                              <span className="text-xs">{Math.round(item.quantity_g ?? 0)}g</span>
+                              <span className="text-caption">{Math.round(item.quantity_g ?? 0)}g</span>
                             ) : isIngredient && isPortionUnit(item.measuring_unit_name) ? (
                                <span>{formatPortion(item)}</span>
                             ) : isIngredient ? (
-                               <span className="text-xs">{formatPortion(item)}</span>
+                               <span className="text-caption">{formatPortion(item)}</span>
                             ) : (
                               <>
                                 {canEdit && !meal.is_synced ? (
@@ -630,7 +630,7 @@ export function MealSlot({
                                   />
                                 ) : (
                                   item.factor !== 1.0 && (
-                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-muted">
+                                    <span className="text-caption font-semibold px-2 py-0.5 rounded-lg bg-muted">
                                       {Math.round(item.factor * (item.recipe_portions || 4))} P.
                                     </span>
                                   )
@@ -639,7 +639,7 @@ export function MealSlot({
                             )}
                           </div>
                           {canEdit && !meal.is_synced && (
-                            <button onClick={() => onDeleteItem(item.id)} className="p-0.5 rounded text-muted-foreground hover:text-destructive transition-colors shrink-0" title="Entfernen">
+                            <button onClick={() => onDeleteItem(item.id)} className="p-0.5 rounded-lg text-muted-foreground hover:text-destructive transition-colors shrink-0" title="Entfernen">
                               <X className="w-3.5 h-3.5" />
                             </button>
                           )}
@@ -647,7 +647,7 @@ export function MealSlot({
                       </div>
                     );
                   })}
-                  <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium">
+                  <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-caption font-medium">
                     <span>{buffetRoleName(role)} gesamt</span>
                     <span className="text-muted-foreground">
                       {quantitySum != null && `\u00d7${formatNumber(quantitySum, { maxDecimals: 2 }).replace('.', ',')} ${quantityUnit} \u00b7 `}
@@ -673,7 +673,7 @@ export function MealSlot({
               <button
                 type="button"
                 onClick={() => setDialogOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 Weiteres Gericht oder Zutat hinzufügen
@@ -682,7 +682,7 @@ export function MealSlot({
                 <button
                   type="button"
                   onClick={handleOpenWizard}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-chart-4/30 text-chart-4 hover:bg-chart-4/5 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border text-warning hover:bg-warning-soft transition-colors"
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
                   Im Buffet-Builder bearbeiten

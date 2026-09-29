@@ -25,7 +25,7 @@ export function RefMealChips({ mealPlanId, refMeals, canEdit }: RefMealChipsProp
   if (refMeals.length === 0 && missingTypes.length === 0) return null;
 
   const chipClass =
-    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm transition-colors';
+    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-body transition-colors';
 
   return (
     <div className="flex flex-wrap gap-2 px-1" aria-label="Referenzmahlzeiten">
@@ -36,7 +36,7 @@ export function RefMealChips({ mealPlanId, refMeals, canEdit }: RefMealChipsProp
           <>
             <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Referenz: {label}</span>
-            <span className="text-xs text-muted-foreground">{details}</span>
+            <span className="text-caption text-muted-foreground">{details}</span>
           </>
         );
         return canEdit ? (

@@ -23,7 +23,7 @@ export default function DataQualityRecipesPage() {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              'px-3 py-1.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
+              'px-3 py-1.5 text-body font-medium whitespace-nowrap border-b-2 transition-colors',
               activeTab === tab.key
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'

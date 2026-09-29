@@ -125,14 +125,14 @@ function UrlImportModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-2xl border shadow-xl w-full max-w-md p-6 space-y-4">
+      <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
             <Link className="w-5 h-5 text-primary" />
           </div>
-          <h2 className="text-lg font-semibold">URL importieren</h2>
+          <h2 className="text-section font-semibold">URL importieren</h2>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Füge eine Produktseite, Open Food Facts oder USDA FoodData URL ein.
           Die KI erkennt die Quelle und extrahiert automatisch die Zutatendaten.
         </p>
@@ -143,17 +143,17 @@ function UrlImportModal({
           onKeyDown={(e) => e.key === 'Enter' && !isPending && handleSubmit()}
           placeholder="https://www.rewe.de/produkte/..."
           disabled={isPending}
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         {error && (
-          <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
+          <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-body">{error}</div>
         )}
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleSubmit}
             disabled={isPending || !url.trim()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50"
           >
             {isPending ? (
               <>
@@ -168,7 +168,7 @@ function UrlImportModal({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="px-4 py-2 rounded-lg border text-sm"
+            className="px-4 py-2 rounded-lg border text-body"
           >
             Abbrechen
           </button>
@@ -342,7 +342,7 @@ export default function CreateIngredientPage() {
   // -------------------------------------------------------------------------
   if (userLoading) {
     return (
-      <div className="container py-16 max-w-3xl text-center text-muted-foreground text-sm">
+      <div className="container py-16 max-w-3xl text-center text-muted-foreground text-body">
         Wird geladen...
       </div>
     );
@@ -370,12 +370,12 @@ export default function CreateIngredientPage() {
     <div className="container py-8 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-success to-success text-white">
           <span className="material-symbols-outlined text-[24px]">nutrition</span>
         </div>
         <div>
-          <h1 className="text-2xl font-bold font-display">Zutat erstellen</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-title font-bold font-display">Zutat erstellen</h1>
+          <p className="text-body text-muted-foreground">
             Schritt {step + 1} von {STEPS.length}
           </p>
         </div>
@@ -400,7 +400,7 @@ export default function CreateIngredientPage() {
       {/* ================================================================ */}
       {step === 0 && (
         <div className="bg-card rounded-xl border p-6">
-          <h2 className="text-lg font-semibold mb-4">Wie möchtest du starten?</h2>
+          <h2 className="text-section font-semibold mb-4">Wie möchtest du starten?</h2>
 
           {aiMode === 'choose' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -410,11 +410,11 @@ export default function CreateIngredientPage() {
                 onClick={() => setAiMode('ai')}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10">
+                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10">
                   <span className="material-symbols-outlined text-[32px] text-primary">auto_awesome</span>
                 </div>
                 <span className="font-semibold">Mit KI-Hilfe</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                   Name eingeben — KI füllt alle Felder automatisch aus
                 </span>
               </button>
@@ -425,11 +425,11 @@ export default function CreateIngredientPage() {
                 onClick={() => setStep(1)}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted">
+                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted">
                   <span className="material-symbols-outlined text-[32px] text-muted-foreground">edit_note</span>
                 </div>
                 <span className="font-semibold">Manuell</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                   Fülle das Formular direkt selbst aus
                 </span>
               </button>
@@ -440,11 +440,11 @@ export default function CreateIngredientPage() {
                 onClick={() => setShowUrlModal(true)}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted">
+                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted">
                   <Link className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <span className="font-semibold">Mit Link</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                   Produktseite, Open Food Facts oder USDA FDC URL einfügen
                 </span>
               </button>
@@ -453,7 +453,7 @@ export default function CreateIngredientPage() {
 
           {aiMode === 'ai' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Gib den Namen der Zutat ein. Die KI recherchiert Nährwerte, Portionen und
                 weitere Details automatisch per Google Search.
               </p>
@@ -464,12 +464,12 @@ export default function CreateIngredientPage() {
                 onKeyDown={(e) => e.key === 'Enter' && !aiCreate.isPending && handleAiCreate()}
                 placeholder="z.B. Haferflocken, Parmesan, Kichererbsen..."
                 autoFocus
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <div className="flex gap-2">
                 {aiCreate.isPending ? (
                   <>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-body text-muted-foreground">
                       <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                       KI erstellt Zutat...
                     </div>
@@ -480,7 +480,7 @@ export default function CreateIngredientPage() {
                       type="button"
                       onClick={handleAiCreate}
                       disabled={!aiName.trim()}
-                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                       Mit KI erstellen
@@ -488,7 +488,7 @@ export default function CreateIngredientPage() {
                     <button
                       type="button"
                       onClick={() => setAiMode('choose')}
-                      className="px-4 py-2 rounded-lg border text-sm"
+                      className="px-4 py-2 rounded-lg border text-body"
                     >
                       Zurück
                     </button>
@@ -501,13 +501,13 @@ export default function CreateIngredientPage() {
           {aiMode === 'cancelled' && (
             <div className="space-y-4">
               {aiError && (
-                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{aiError}</div>
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-body">{aiError}</div>
               )}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setAiMode('ai'); setAiError(null); }}
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                   Erneut versuchen
@@ -515,7 +515,7 @@ export default function CreateIngredientPage() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded-lg border text-sm"
+                  className="px-4 py-2 rounded-lg border text-body"
                 >
                   Manuell weitermachen
                 </button>
@@ -531,14 +531,14 @@ export default function CreateIngredientPage() {
       {step === 1 && (
         <div className="space-y-6">
           {createdIngredient && (
-           <div className="p-3 rounded-lg bg-primary/10 text-primary text-sm flex items-center gap-2">
+           <div className="p-3 rounded-lg bg-primary/10 text-primary text-body flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
               KI hat die Zutat bereits mit allen Nährwerten angelegt. Hier kannst du die
               Stammdaten noch anpassen.
             </div>
           )}
           {createdIngredient?.ai_interaction_id && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-caption text-muted-foreground">
               <span>War die KI-Hilfe hilfreich?</span>
               <AiVoteButtons interactionId={createdIngredient.ai_interaction_id} />
             </div>
@@ -546,7 +546,7 @@ export default function CreateIngredientPage() {
 
           {/* Name */}
           <div className="bg-card rounded-xl border p-6">
-            <label className="block text-sm font-medium mb-1.5">
+            <label className="block text-body font-medium mb-1.5">
               Name <span className="text-destructive">*</span>
             </label>
             <input
@@ -554,10 +554,10 @@ export default function CreateIngredientPage() {
               value={formData.name}
               onChange={(e) => updateForm({ name: e.target.value })}
               placeholder="Name der Zutat"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             {isNameTooGeneric && (
-              <p className="mt-2 text-xs text-amber-600 flex items-start gap-1">
+              <p className="mt-2 text-caption text-warning flex items-start gap-1">
                 <span className="material-symbols-outlined text-[16px]">warning</span>
                 „{formData.name.trim()}“ ist zu generisch — bitte konkretisieren, z.B. mit einer
                 Zustandsform („Fusilli trocken“, „Jodsalz“).
@@ -567,28 +567,28 @@ export default function CreateIngredientPage() {
 
           {/* Beschreibung */}
           <div className="bg-card rounded-xl border p-6">
-            <label className="block text-sm font-medium mb-1.5">Beschreibung</label>
+            <label className="block text-body font-medium mb-1.5">Beschreibung</label>
             <textarea
               value={formData.description}
               onChange={(e) => updateForm({ description: e.target.value })}
               rows={3}
               placeholder="Kurze Beschreibung (optional)"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
           {/* Status + Warengruppe */}
           <div className="bg-card rounded-xl border p-6">
-            <h3 className="text-sm font-medium mb-4">Klassifikation</h3>
+            <h3 className="text-body font-medium mb-4">Klassifikation</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <span className="block text-xs text-muted-foreground mb-1">Status</span>
-                <p className="rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                <span className="block text-caption text-muted-foreground mb-1">Status</span>
+                <p className="rounded-lg border border-input bg-muted/30 px-3 py-2 text-body text-muted-foreground">
                   {ingredientStatusLabel(formData.status)} – neue Zutaten werden vom Team geprüft
                 </p>
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Warengruppe</label>
+                <label className="block text-caption text-muted-foreground mb-1">Warengruppe</label>
                 <select
                   value={formData.retail_section_id ?? ''}
                   onChange={(e) =>
@@ -596,7 +596,7 @@ export default function CreateIngredientPage() {
                       retail_section_id: e.target.value ? Number(e.target.value) : null,
                     })
                   }
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body"
                 >
                   <option value="">— Keine —</option>
                   {retailSections?.map((rs) => (
@@ -614,7 +614,7 @@ export default function CreateIngredientPage() {
             <button
               type="button"
               onClick={() => setStep(0)}
-              className="px-4 py-2 rounded-lg border text-sm"
+              className="px-4 py-2 rounded-lg border text-body"
             >
               Zurück
             </button>
@@ -627,7 +627,7 @@ export default function CreateIngredientPage() {
                 }
                 setStep(2);
               }}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50"
             >
               Vorschau
             </button>
@@ -641,27 +641,27 @@ export default function CreateIngredientPage() {
       {step === 2 && (
         <div className="space-y-6">
           <div className="bg-card rounded-xl border overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
-              <h2 className="text-white text-xl font-bold">{formData.name || 'Ohne Namen'}</h2>
+            <div className="bg-gradient-to-r from-success to-success px-6 py-4">
+              <h2 className="text-white text-section font-bold">{formData.name || 'Ohne Namen'}</h2>
               {formData.description && (
-                <p className="text-white/80 text-sm mt-1">{formData.description}</p>
+                <p className="text-white/80 text-body mt-1">{formData.description}</p>
               )}
             </div>
             <div className="p-6 space-y-3">
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
                   <span className="material-symbols-outlined text-[14px]">label</span>
                   {ingredientStatusLabel(formData.status)}
                 </span>
                 {formData.retail_section_id && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
                     <span className="material-symbols-outlined text-[14px]">store</span>
                     {retailSections?.find((rs) => rs.id === formData.retail_section_id)?.name ?? ''}
                   </span>
                 )}
               </div>
               {createdIngredient && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Nährwerte und weitere Details wurden von der KI befüllt und können auf der
                   Detailseite weiter bearbeitet werden.
                 </p>
@@ -673,7 +673,7 @@ export default function CreateIngredientPage() {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-lg border text-sm"
+              className="px-4 py-2 rounded-lg border text-body"
             >
               Zurück zum Bearbeiten
             </button>
@@ -681,7 +681,7 @@ export default function CreateIngredientPage() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
             >
               {isSaving ? (
                 <>

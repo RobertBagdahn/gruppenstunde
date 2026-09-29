@@ -173,7 +173,7 @@ export function MealActionsMenu({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
+            className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
             title="Aktionen"
           >
             <MoreVertical className="w-4.5 h-4.5" />
@@ -365,13 +365,13 @@ export function MealActionsMenu({
             </div>
 
             {timeInvalid && (
-              <p className="text-xs font-medium text-destructive flex items-center gap-1">
+              <p className="text-caption font-medium text-destructive flex items-center gap-1">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Die Endzeit muss nach der Startzeit liegen.
               </p>
             )}
             {!timeInvalid && hasOverlap && (
-              <p className="text-xs font-medium text-chart-4 flex items-center gap-1">
+              <p className="text-caption font-medium text-warning flex items-center gap-1">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Überschneidet sich mit einer anderen Mahlzeit an diesem Tag.
               </p>
@@ -412,7 +412,7 @@ export function MealActionsMenu({
                 id="target_type"
                 value={targetMealType}
                 onChange={(e) => setTargetMealType(e.target.value)}
-                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+                className="w-full px-3 py-2 text-body border rounded-lg bg-background"
               >
                 <option value="breakfast">Frühstück</option>
                 <option value="lunch">Mittagessen</option>
@@ -427,7 +427,7 @@ export function MealActionsMenu({
                 id="move_mode"
                 value={moveMode}
                 onChange={(e) => setMoveMode(e.target.value as 'move' | 'swap')}
-                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+                className="w-full px-3 py-2 text-body border rounded-lg bg-background"
               >
                 <option value="move">Verschieben (in leeren Slot)</option>
                 <option value="swap">Tauschen (mit vorhandenem Gericht)</option>

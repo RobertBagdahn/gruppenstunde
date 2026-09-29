@@ -106,10 +106,10 @@ function NewIngredientDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-display">
+          <DialogTitle className="flex items-center gap-2 text-section font-display">
             <Sparkles className="w-5 h-5 text-primary" />
             <span className="flex-1">Neue Zutat prüfen</span>
-            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-caption font-medium text-primary">
               KI-Entwurf
             </span>
           </DialogTitle>
@@ -117,52 +117,52 @@ function NewIngredientDialog({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-body font-medium mb-1">
               Name <span className="text-destructive">*</span>
             </label>
             <input
               value={draft.name}
               onChange={(event) => updateDraft({ name: event.target.value })}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {DRAFT_NUMERIC_FIELDS.map(({ field, label }) => (
-              <label key={field} className="block text-xs font-medium text-muted-foreground">
+              <label key={field} className="block text-caption font-medium text-muted-foreground">
                 {label}
                 <input
                   type="number"
                   min="0"
                   value={String(draft.values[field] ?? '')}
                   onChange={(event) => updateValue(field, event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </label>
             ))}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <label className="block text-xs font-medium text-muted-foreground">
+            <label className="block text-caption font-medium text-muted-foreground">
               Portion
               <input
                 value={draft.portions[0]?.name ?? ''}
                 onChange={(event) => updatePortion({ name: event.target.value })}
                 placeholder="z. B. Stück"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
-            <label className="block text-xs font-medium text-muted-foreground">
+            <label className="block text-caption font-medium text-muted-foreground">
               Portionsgewicht (g)
               <input
                 type="number"
                 min="0.01"
                 value={String(draft.portions[0]?.weight_g ?? '')}
                 onChange={(event) => updatePortion({ weight_g: Number(event.target.value) || null })}
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
-            <label className="block text-xs font-medium text-muted-foreground">
+            <label className="block text-caption font-medium text-muted-foreground">
               Menge (Anzahl Portionen)
               <input
                 type="number"
@@ -170,13 +170,13 @@ function NewIngredientDialog({
                 step="0.1"
                 value={String(draft.quantity ?? 1)}
                 onChange={(event) => updateDraft({ quantity: Number(event.target.value) || null })}
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
           </div>
 
           {draft.portions[0]?.weight_g && draft.quantity && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               {draft.quantity} × {formatExactWeight(draft.portions[0].weight_g)} = {formatWeight(draft.quantity * draft.portions[0].weight_g)}
             </p>
           )}
@@ -185,14 +185,14 @@ function NewIngredientDialog({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+              className="px-4 py-2 text-body rounded-lg border hover:bg-muted transition-colors"
             >
               Abbrechen
             </button>
             <button
               type="button"
               onClick={handleConfirm}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <Check className="h-4 w-4" />
               Zutat und Menge übernehmen
@@ -296,24 +296,24 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
     <article className="rounded-xl border bg-card p-4 space-y-3" data-testid={`ingredient-review-row-${row.key}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Originalangabe</p>
-          <p className="text-sm font-medium break-words">{row.source_text}</p>
+          <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">Originalangabe</p>
+          <p className="text-body font-medium break-words">{row.source_text}</p>
           <div className="flex flex-wrap gap-1.5">
             {row.sources.map((source) => (
-              <span key={`${source.type}-${source.value}`} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              <span key={`${source.type}-${source.value}`} className="rounded-full bg-muted px-2 py-0.5 text-caption text-muted-foreground">
                 {source.label}
               </span>
             ))}
           </div>
         </div>
-        <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${row.status === 'confirmed' ? 'bg-primary/10 text-primary' : row.status === 'unresolved' ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/10 text-amber-700'}`}>
+        <span className={`shrink-0 rounded-full px-2 py-1 text-caption font-medium ${row.status === 'confirmed' ? 'bg-primary/10 text-primary' : row.status === 'unresolved' ? 'bg-destructive/10 text-destructive' : 'bg-warning-soft text-warning'}`}>
           {row.status === 'confirmed' ? 'Bestätigt' : row.status === 'unresolved' ? 'Offen' : 'Zu prüfen'}
         </span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Vorgeschlagene Zutat</p>
+          <p className="text-caption font-medium text-muted-foreground">Vorgeschlagene Zutat</p>
           <IngredientAutocomplete
             value={row.selected_ingredient_name || row.suggested_ingredient_name}
             onChange={(value) => updateRow(row.key, { selected_ingredient_name: value })}
@@ -326,7 +326,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
             })}
             placeholder="Zutat suchen..."
           />
-          <p className="text-xs text-muted-foreground mt-1">{row.reason || 'Manuelle Zuordnung erforderlich'}</p>
+          <p className="text-caption text-muted-foreground mt-1">{row.reason || 'Manuelle Zuordnung erforderlich'}</p>
 
           {/* Candidate alternatives */}
           {alternativeCandidates.length > 0 && (
@@ -334,7 +334,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
               <button
                 type="button"
                 onClick={() => setAlternativesOpen((open) => !open)}
-                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-caption font-medium text-muted-foreground hover:bg-muted"
               >
                 <Search className="h-3.5 w-3.5" />
                 Alternativen anzeigen ({alternativeCandidates.length})
@@ -347,10 +347,10 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
                       key={candidate.id}
                       type="button"
                       onClick={() => selectCandidate(candidate.id, candidate.name, candidate.slug)}
-                      className="flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted"
+                      className="flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-body hover:bg-muted"
                     >
                       <span className="truncate">{candidate.name}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
+                      <span className="shrink-0 text-caption text-muted-foreground">
                         {Math.round(candidate.confidence * 100)} %
                       </span>
                     </button>
@@ -361,7 +361,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
           )}
 
           {(row.status === 'changed' || row.selected_ingredient_name !== row.suggested_ingredient_name) && (
-            <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2 text-xs">
+            <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2 text-caption">
               <p className="font-medium text-muted-foreground">AI-Vorschlag</p>
               <p>{row.suggested_ingredient_name || 'Keine Zuordnung'}</p>
               <p className="mt-1 font-medium text-muted-foreground">Aktuelle Auswahl</p>
@@ -370,16 +370,16 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
           )}
 
           {showDraftFields && draft && (
-            <div className="mt-3 grid gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 sm:grid-cols-2">
-              <p className="sm:col-span-2 text-xs font-semibold text-amber-950">Neue Zutat prüfen</p>
-              <label className="text-xs text-amber-950">Name<input value={draft.name} onChange={(event) => updateDraft('name', event.target.value)} className="mt-1 w-full rounded border bg-white px-2 py-1.5 text-sm" /></label>
+            <div className="mt-3 grid gap-2 rounded-lg border border-warning-border bg-warning-soft p-3 sm:grid-cols-2">
+              <p className="sm:col-span-2 text-caption font-semibold text-warning">Neue Zutat prüfen</p>
+              <label className="text-caption text-warning">Name<input value={draft.name} onChange={(event) => updateDraft('name', event.target.value)} className="mt-1 w-full rounded-lg border bg-white px-2 py-1.5 text-body" /></label>
               {DRAFT_NUMERIC_FIELDS.map(({ field, label }) => (
-                <label key={field} className="text-xs text-amber-950">{label}<input type="number" min="0" value={String(draft.values[field] ?? '')} onChange={(event) => updateDraft(field, event.target.value)} className="mt-1 w-full rounded border bg-white px-2 py-1.5 text-sm" /></label>
+                <label key={field} className="text-caption text-warning">{label}<input type="number" min="0" value={String(draft.values[field] ?? '')} onChange={(event) => updateDraft(field, event.target.value)} className="mt-1 w-full rounded-lg border bg-white px-2 py-1.5 text-body" /></label>
               ))}
               <button
                 type="button"
                 onClick={() => setNewIngredientOpen(true)}
-                className="sm:col-span-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
+                className="sm:col-span-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-body text-primary-foreground"
               >
                 <Sparkles className="h-4 w-4" />
                 Portion & Menge festlegen
@@ -392,7 +392,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
               <button
                 type="button"
                 onClick={() => setNewIngredientOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm text-primary"
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body text-primary"
               >
                 <Sparkles className="h-4 w-4" />
                 Neue Zutat prüfen
@@ -400,11 +400,11 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
             </div>
           )}
         </div>
-        <div className="text-sm sm:text-right">
-          <p className="text-xs font-medium text-muted-foreground">Menge und Portion</p>
+        <div className="text-body sm:text-right">
+          <p className="text-caption font-medium text-muted-foreground">Menge und Portion</p>
           <p>{row.quantity ?? '—'} {row.selected_portion?.name ?? '—'}</p>
           {row.suggested_quantity !== row.quantity && row.suggested_quantity !== null && (
-            <p className="text-xs text-muted-foreground">AI-Menge: {row.suggested_quantity}</p>
+            <p className="text-caption text-muted-foreground">AI-Menge: {row.suggested_quantity}</p>
           )}
           {row.selected_ingredient_id !== null && (
             <button
@@ -413,7 +413,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
                 if (row.selected_ingredient_id === null) return;
                 openQuantityDialogFor(row.selected_ingredient_id, row.selected_ingredient_name || '', row.selected_ingredient_slug);
               }}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm hover:bg-muted"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted"
             >
               <Scale className="h-4 w-4" />
               Menge und Portion
@@ -423,14 +423,14 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       </div>
 
       {row.conflicts.length > 0 && (
-        <div className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-800">
+        <div className="rounded-lg bg-warning-soft p-3 text-body text-warning">
           <p className="font-medium">Widersprüchliche Quellen</p>
           {row.conflicts.map((conflict) => <p key={conflict}>{conflict}</p>)}
         </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm hover:bg-muted">
+        <button type="button" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Search className="h-4 w-4" />
           Zutat ändern
         </button>
@@ -438,18 +438,18 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
           type="button"
           onClick={() => confirmRow(row.key)}
           disabled={!complete || row.status === 'confirmed'}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-body text-primary-foreground disabled:opacity-50"
         >
           <Check className="h-4 w-4" />
           {row.status === 'confirmed' ? 'Bestätigt' : 'Vorschlag bestätigen'}
         </button>
-        <button type="button" onClick={() => setDetailsOpen((open) => !open)} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-muted">
+        <button type="button" onClick={() => setDetailsOpen((open) => !open)} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-body text-muted-foreground hover:bg-muted">
           Details <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
         </button>
       </div>
 
       {detailsOpen && (
-        <div className="border-t pt-3 text-sm text-muted-foreground space-y-1">
+        <div className="border-t pt-3 text-body text-muted-foreground space-y-1">
           <p>Match-Methode: {row.technical_details?.method ?? '—'}</p>
           <p>Konfidenz: {row.technical_details ? `${Math.round(row.technical_details.confidence * 100)} %` : '—'}</p>
           {row.technical_details?.candidates.map((candidate) => (
@@ -487,20 +487,20 @@ export default function RecipeIngredientReviewStep({ onAddIngredient }: RecipeIn
   return (
     <section className="space-y-5" aria-labelledby="ingredient-review-title">
       <div>
-        <h2 id="ingredient-review-title" className="text-2xl font-bold">Zutaten prüfen</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Die KI macht Vorschläge. Du entscheidest, welche Zutaten und Portionen ins Rezept kommen.</p>
+        <h2 id="ingredient-review-title" className="text-title font-bold">Zutaten prüfen</h2>
+        <p className="mt-1 text-body text-muted-foreground">Die KI macht Vorschläge. Du entscheidest, welche Zutaten und Portionen ins Rezept kommen.</p>
       </div>
-      {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+      {error && <div className="rounded-lg bg-destructive/10 p-3 text-body text-destructive">{error}</div>}
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={confirmCompleteRows} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm hover:bg-muted">
+        <button type="button" onClick={confirmCompleteRows} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Check className="h-4 w-4" /> Alle Vorschläge übernehmen
         </button>
-        <button type="button" onClick={onAddIngredient} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm hover:bg-muted">
+        <button type="button" onClick={onAddIngredient} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Plus className="h-4 w-4" /> Zutat hinzufügen
         </button>
       </div>
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">Noch keine Zutaten zur Prüfung vorhanden.</div>
+        <div className="rounded-xl border border-dashed p-6 text-center text-body text-muted-foreground">Noch keine Zutaten zur Prüfung vorhanden.</div>
       ) : (
         <div className="space-y-3">
           {rows.map((row) => <ReviewRow key={row.key} row={row} />)}

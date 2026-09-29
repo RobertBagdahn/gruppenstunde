@@ -36,7 +36,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           {count} verifizierte Zutaten mit Werten &gt; 0
         </p>
         <div className="flex rounded-xl border border-border overflow-hidden">
@@ -82,7 +82,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <thead>
             <tr className="border-b border-border text-muted-foreground">
               <th className="text-left py-2 px-3 font-medium">#</th>
@@ -101,11 +101,11 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
                     {item.name}
                   </Link>
                 </td>
-                <td className="py-2 px-3 text-right font-mono text-xs">{formatNumber(item.value, { maxDecimals: 1 })}</td>
+                <td className="py-2 px-3 text-right font-mono text-caption">{formatNumber(item.value, { maxDecimals: 1 })}</td>
                 <td className="py-2 px-3 text-center hidden sm:table-cell">
                   {item.nutri_class ? (
                     <span
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white"
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-full text-caption font-bold text-white"
                       style={{ backgroundColor: NUTRI_CLASS_COLORS[item.nutri_class] || '#94a3b8' }}
                     >
                       {['', 'A', 'B', 'C', 'D', 'E'][item.nutri_class]}

@@ -79,13 +79,13 @@
 
 ## 11. Frontend: Design-Tokens
 
-- [ ] 11.1 `src/index.css`: AA-Werte für Primär/Danger/Warning; `--success`, `--warning`, `--info`, `--danger` mit `-soft`, `-border`, `-foreground`; `--destructive` als Alias
-- [ ] 11.2 `tailwind.config.ts`: Status-Farben, `fontSize` = `caption`/`body`/`emphasis`/`section`/`title`, `borderRadius` = `lg`/`xl`/`full`
-- [ ] 11.3 `src/lib/contrast.test.ts`: WCAG-Kontrast aller Token-Paare
-- [ ] 11.4 Codemod `frontend-food/scripts/migrate-tokens.mjs` (Palette → Token, Schriftgrößen → Skala, Radien → 3 Stufen) ausführen, Reste manuell
-- [ ] 11.5 `components/ui/*` (shadcn) an Skala und Radien anpassen
-- [ ] 11.6 `chart-*`-Nutzungen außerhalb von Diagrammen auf Status-Tokens umstellen
-- [ ] 11.7 Styleguide-Seite aktualisieren (Farben mit Kontrastwerten, Skala, Radien, Icons)
+- [x] 11.1 `src/index.css`: AA-Werte für Primär/Danger/Warning; `--success`, `--warning`, `--info`, `--danger` mit `-soft`, `-border`, `-foreground`; `--destructive` als Alias
+- [x] 11.2 `tailwind.config.ts`: Status-Farben, `fontSize` = `caption`/`body`/`emphasis`/`section`/`title`, `borderRadius` = `lg`/`xl`/`full`
+- [x] 11.3 `src/lib/contrast.test.ts`: WCAG-Kontrast aller Token-Paare
+- [x] 11.4 Codemod `frontend-food/scripts/migrate-tokens.mjs` (Palette → Token, Schriftgrößen → Skala, Radien → 3 Stufen) ausführen, Reste manuell
+- [x] 11.5 `components/ui/*` (shadcn) an Skala und Radien anpassen
+- [x] 11.6 `chart-*`-Nutzungen außerhalb von Diagrammen auf Status-Tokens umstellen
+- [x] 11.7 Styleguide-Seite aktualisieren (Farben mit Kontrastwerten, Skala, Radien, Icons)
 
 ## 12. Frontend: Icons
 

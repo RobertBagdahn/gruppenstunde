@@ -102,13 +102,13 @@ export function getSuggestionMealType(suggestion: Suggestion): string | null {
 }
 
 export const SUGGESTION_STATUS_COLORS = {
-  green: "text-green-600",
-  yellow: "text-yellow-500",
-  red: "text-red-600",
+  green: "text-success",
+  yellow: "text-warning",
+  red: "text-danger",
 } as const;
 
 export const SUGGESTION_STATUS_BG = {
-  green: "bg-green-100",
-  yellow: "bg-yellow-100",
-  red: "bg-red-100",
+  green: "bg-success-soft",
+  yellow: "bg-warning-soft",
+  red: "bg-danger-soft",
 } as const;

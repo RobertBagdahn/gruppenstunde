@@ -17,8 +17,8 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
   return (
     <section className="space-y-3">
       <div className="space-y-1">
-        <h2 className="font-display text-lg font-bold">Rezepte aufräumen</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="font-display text-section font-bold">Rezepte aufräumen</h2>
+        <p className="text-body text-muted-foreground">
           Testdaten und leere Entwürfe werden archiviert (umkehrbar). Die Kategorie-Prüfung ordnet Rezepte per KI
           Frühstück, warmen/kalten Mahlzeiten, Desserts, Snacks, Getränken oder Rezeptteilen zu.
         </p>
@@ -27,7 +27,7 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border bg-card p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">{junk.length} unsinnige Rezepte</p>
+            <p className="text-body font-semibold">{junk.length} unsinnige Rezepte</p>
             <Button
               size="sm"
               variant="outline"
@@ -49,20 +49,20 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
           ) : error ? (
-            <p className="text-sm text-destructive">
+            <p className="text-body text-destructive">
               {error.message}{' '}
               <button type="button" className="underline" onClick={() => refetch()}>
                 Erneut versuchen
               </button>
             </p>
           ) : (
-            <ul className="max-h-60 overflow-y-auto divide-y text-sm">
+            <ul className="max-h-60 overflow-y-auto divide-y text-body">
               {junk.map((recipe) => (
                 <li key={recipe.id} className="flex items-center justify-between gap-2 py-1.5">
                   <Link to={`/recipes/${recipe.slug}`} target="_blank" className="truncate hover:text-primary">
                     {recipe.title}
                   </Link>
-                  <span className="shrink-0 text-[11px] text-muted-foreground">{recipe.reason}</span>
+                  <span className="shrink-0 text-caption text-muted-foreground">{recipe.reason}</span>
                 </li>
               ))}
             </ul>
@@ -71,7 +71,7 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
 
         <div className="rounded-xl border bg-card p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">Rezeptkategorien prüfen</p>
+            <p className="text-body font-semibold">Rezeptkategorien prüfen</p>
             <Button
               size="sm"
               variant="outline"
@@ -90,11 +90,11 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
               Mit KI prüfen
             </Button>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Nur eindeutige Änderungen (Sicherheit ≥ 75 %) werden übernommen. ≈ 1 Cent pro 25 Rezepte.
           </p>
           {changes.length > 0 && (
-            <ul className="max-h-60 overflow-y-auto space-y-1 text-xs">
+            <ul className="max-h-60 overflow-y-auto space-y-1 text-caption">
               {changes.map((message) => (
                 <li key={message}>{message}</li>
               ))}

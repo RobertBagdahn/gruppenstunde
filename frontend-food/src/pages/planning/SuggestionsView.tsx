@@ -166,9 +166,9 @@ export default function SuggestionsView({
   return (
     <div className="space-y-4">
       {scanData && scanData.violations.length > 0 && (
-        <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-sm flex items-center justify-between gap-4 shadow-soft">
+        <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-body flex items-center justify-between gap-4 shadow-soft">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-base shrink-0">⚠️</span>
+            <span className="text-emphasis shrink-0">⚠️</span>
             <p className="font-semibold text-destructive truncate">
               Ernährungseinschränkungen erkannt: {Array.from(new Set(scanData.violations.map(v => v.nutritional_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
             </p>
@@ -176,7 +176,7 @@ export default function SuggestionsView({
           {onSelectTab && (
             <button
               onClick={() => onSelectTab('ingredient-scan')}
-              className="text-xs font-bold underline shrink-0 text-destructive hover:text-destructive/80 transition-colors"
+              className="text-caption font-bold underline shrink-0 text-destructive hover:text-destructive/80 transition-colors"
             >
               Zum Scanner
             </button>
@@ -192,15 +192,15 @@ export default function SuggestionsView({
               className={cn(
                 "inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0",
                 overallStatus === 'green' && 'bg-primary/10 text-primary',
-                overallStatus === 'yellow' && 'bg-[hsl(var(--chart-2))]/10 text-[hsl(var(--chart-2))]',
+                overallStatus === 'yellow' && 'bg-warning-soft text-warning',
                 overallStatus === 'red' && 'bg-destructive/10 text-destructive'
               )}
             >
               {overallStatus === 'green' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
             </span>
             <div>
-              <h3 className="font-display font-bold text-sm">Vorschläge &amp; Nährwerte</h3>
-              <p className="text-xs text-muted-foreground">
+              <h3 className="font-display font-bold text-body">Vorschläge &amp; Nährwerte</h3>
+              <p className="text-caption text-muted-foreground">
                 {selectedDayNum ? `Tag ${selectedDayNum} (${formatDate(selectedDate!)})` : `Gesamter Plan (${numDays} ${numDays === 1 ? 'Tag' : 'Tage'})`}
               </p>
             </div>
@@ -212,7 +212,7 @@ export default function SuggestionsView({
               type="button"
               onClick={() => setStatusFilter('all')}
               className={cn(
-                "text-xs px-3 py-1.5 rounded-lg border font-semibold whitespace-nowrap transition-colors",
+                "text-caption px-3 py-1.5 rounded-lg border font-semibold whitespace-nowrap transition-colors",
                 statusFilter === 'all'
                   ? "border-foreground/30 bg-foreground/5 text-foreground"
                   : "border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -225,7 +225,7 @@ export default function SuggestionsView({
               onClick={() => setStatusFilter('red')}
               disabled={redCount === 0}
               className={cn(
-                "text-xs px-3 py-1.5 rounded-lg border font-semibold whitespace-nowrap transition-colors inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed",
+                "text-caption px-3 py-1.5 rounded-lg border font-semibold whitespace-nowrap transition-colors inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed",
                 statusFilter === 'red'
                   ? "border-destructive bg-destructive text-destructive-foreground shadow-sm"
                   : "border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10"
@@ -239,10 +239,10 @@ export default function SuggestionsView({
               onClick={() => setStatusFilter('yellow')}
               disabled={yellowCount === 0}
               className={cn(
-                "text-xs px-3 py-1.5 rounded-lg border font-semibold whitespace-nowrap transition-colors inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed",
+                "text-caption px-3 py-1.5 rounded-lg border font-semibold whitespace-nowrap transition-colors inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed",
                 statusFilter === 'yellow'
-                  ? "border-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2))] text-white shadow-sm"
-                  : "border-[hsl(var(--chart-2))]/30 bg-[hsl(var(--chart-2))]/5 text-[hsl(var(--chart-2))] hover:bg-[hsl(var(--chart-2))]/10"
+                  ? "border-warning bg-warning text-white shadow-sm"
+                  : "border-warning-border bg-warning-soft text-warning hover:bg-warning-soft"
               )}
             >
               <span className="inline-block w-2 h-2 rounded-full bg-current" />
@@ -254,16 +254,16 @@ export default function SuggestionsView({
         {/* KPI stat strip */}
         <div className="px-4 py-3 border-b grid grid-cols-3 gap-3">
           <div className="rounded-lg bg-destructive/5 border border-destructive/15 px-3 py-2 text-center">
-            <div className="text-lg font-display font-bold text-destructive">{redCount}</div>
-            <div className="text-[10px] font-semibold text-destructive/80 uppercase tracking-wide">Kritisch</div>
+            <div className="text-section font-display font-bold text-destructive">{redCount}</div>
+            <div className="text-caption font-semibold text-destructive/80 uppercase tracking-wide">Kritisch</div>
           </div>
-          <div className="rounded-lg bg-[hsl(var(--chart-2))]/5 border border-[hsl(var(--chart-2))]/15 px-3 py-2 text-center">
-            <div className="text-lg font-display font-bold text-[hsl(var(--chart-2))]">{yellowCount}</div>
-            <div className="text-[10px] font-semibold text-[hsl(var(--chart-2))]/80 uppercase tracking-wide">Warnung</div>
+          <div className="rounded-lg bg-warning-soft border border-warning-border px-3 py-2 text-center">
+            <div className="text-section font-display font-bold text-warning">{yellowCount}</div>
+            <div className="text-caption font-semibold text-warning/80 uppercase tracking-wide">Warnung</div>
           </div>
           <div className="rounded-lg bg-primary/5 border border-primary/15 px-3 py-2 text-center">
-            <div className="text-lg font-display font-bold text-primary">{greenCount}</div>
-            <div className="text-[10px] font-semibold text-primary/80 uppercase tracking-wide">OK</div>
+            <div className="text-section font-display font-bold text-primary">{greenCount}</div>
+            <div className="text-caption font-semibold text-primary/80 uppercase tracking-wide">OK</div>
           </div>
         </div>
 
@@ -274,7 +274,7 @@ export default function SuggestionsView({
               type="button"
               onClick={() => setSelectedDate(null)}
               className={cn(
-                "text-xs px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors",
+                "text-caption px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors",
                 selectedDate === null
                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -282,7 +282,7 @@ export default function SuggestionsView({
             >
               <span>Gesamter Plan ({numDays} Tage)</span>
               {avgCoverage < 1 && (
-                <span className="block text-[9px] opacity-70 font-normal">
+                <span className="block text-caption opacity-70 font-normal">
                   Ø {Math.round(avgCoverage * 100)} % Abdeckung
                 </span>
               )}
@@ -296,7 +296,7 @@ export default function SuggestionsView({
                   type="button"
                   onClick={() => setSelectedDate(date)}
                   className={cn(
-                    "text-xs px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors flex flex-col items-center gap-0.5",
+                    "text-caption px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors flex flex-col items-center gap-0.5",
                     selectedDate === date
                       ? "border-primary bg-primary text-primary-foreground shadow-sm"
                       : "border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -305,7 +305,7 @@ export default function SuggestionsView({
                   <span>{formatDate(date)}</span>
                   {dayCoverage !== 1 && (
                     <span className={cn(
-                      "text-[9px] font-bold px-1 rounded",
+                      "text-caption font-bold px-1 rounded-lg",
                       selectedDate === date ? "text-primary-foreground/80" : "text-muted-foreground/60"
                     )}>
                       {badge.label}
@@ -322,23 +322,23 @@ export default function SuggestionsView({
           {suggestionsLoading && (
             <div className="text-center py-8 text-muted-foreground flex flex-col items-center justify-center">
               <Loader2 className="w-6 h-6 animate-spin text-primary mb-2" />
-              <p className="text-xs font-medium">Vorschläge werden geladen…</p>
+              <p className="text-caption font-medium">Vorschläge werden geladen…</p>
             </div>
           )}
           {suggestionError && !suggestionsLoading && (
             <div className="text-center py-8 text-destructive flex flex-col items-center justify-center">
               <AlertTriangle className="w-6 h-6 mb-2" />
-              <p className="text-xs font-semibold font-display">Fehler beim Laden der Vorschläge</p>
-              <button onClick={() => refetchSuggestions()} className="text-xs underline mt-1">Erneut versuchen</button>
+              <p className="text-caption font-semibold font-display">Fehler beim Laden der Vorschläge</p>
+              <button onClick={() => refetchSuggestions()} className="text-caption underline mt-1">Erneut versuchen</button>
             </div>
           )}
           {!suggestionsLoading && !suggestionError && statusFilteredSuggestions.length === 0 && (
-            <div className="text-center py-8 text-primary flex flex-col items-center justify-center bg-primary/[0.02] border border-primary/10 rounded-2xl p-6">
+            <div className="text-center py-8 text-primary flex flex-col items-center justify-center bg-primary/[0.02] border border-primary/10 rounded-xl p-6">
               <ThumbsUp className="w-7 h-7 mb-2 text-primary opacity-80" />
-              <p className="font-bold font-display text-sm tracking-tight">
+              <p className="font-bold font-display text-body tracking-tight">
                 {statusFilter === 'all' ? 'Alles gut!' : 'Keine Treffer für diesen Filter'}
               </p>
-              <p className="text-xs text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
+              <p className="text-caption text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
                 {statusFilter === 'all'
                   ? selectedDayNum
                     ? `Keine Verbesserungsvorschläge für Tag ${selectedDayNum}.`
@@ -372,7 +372,7 @@ export default function SuggestionsView({
           <button
             type="button"
             onClick={() => setShowPerPortion(!showPerPortion)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium"
+            className="text-caption px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium"
           >
             {showPerPortion ? 'Gesamt anzeigen' : `Pro Portion (${data.norm_portions})`}
           </button>
@@ -384,7 +384,7 @@ export default function SuggestionsView({
             <div className="px-4 py-3 bg-muted/50 border-b border-t">
               <div className="flex items-center gap-2">
                 <Scale className="w-4 h-4 text-primary" />
-                <h4 className="text-sm font-semibold">Nährwerte {selectedDayNum ? `— Tag ${selectedDayNum}` : '— pro Tag'}</h4>
+                <h4 className="text-body font-semibold">Nährwerte {selectedDayNum ? `— Tag ${selectedDayNum}` : '— pro Tag'}</h4>
               </div>
             </div>
             {/* In all-days mode, show notice that selecting a day reveals its individual daily totals */}
@@ -435,13 +435,13 @@ export default function SuggestionsView({
                     return (
                       <div key={row.label} className="px-4 py-3 flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-2 text-sm font-medium">
+                          <span className="flex items-center gap-2 text-body font-medium">
                             <span className="material-symbols-outlined text-[16px] text-muted-foreground">
                               {row.icon}
                             </span>
                             {row.label}
                           </span>
-                          <span className="text-sm font-semibold">{displayVal}</span>
+                          <span className="text-body font-semibold">{displayVal}</span>
                         </div>
 
                         {hasSollIst && activeRule && (
@@ -456,7 +456,7 @@ export default function SuggestionsView({
                               scopeLabel={scopeLabel}
                             />
                             {effCoverage < 1 && (
-                              <div className="text-[10px] text-muted-foreground italic mt-0.5">
+                              <div className="text-caption text-muted-foreground italic mt-0.5">
                                 Skaliert auf {Math.round(effCoverage * 100)} % Tagesabdeckung
                               </div>
                             )}
@@ -476,8 +476,8 @@ export default function SuggestionsView({
           <>
             <div className="px-4 py-3 bg-muted/50 border-b">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[hsl(var(--chart-2))]" />
-                <h4 className="text-sm font-semibold">Durchschnitt pro Tag (Ø Plan)</h4>
+                <TrendingUp className="w-4 h-4 text-warning" />
+                <h4 className="text-body font-semibold">Durchschnitt pro Tag (Ø Plan)</h4>
               </div>
             </div>
             <div className="divide-y">
@@ -522,13 +522,13 @@ export default function SuggestionsView({
                 return (
                   <div key={row.label} className="px-4 py-3 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-sm font-medium">
+                      <span className="flex items-center gap-2 text-body font-medium">
                         <span className="material-symbols-outlined text-[16px] text-muted-foreground">
                           {row.icon}
                         </span>
                         {row.label}
                       </span>
-                      <span className="text-sm font-semibold">{displayVal}</span>
+                      <span className="text-body font-semibold">{displayVal}</span>
                     </div>
 
                     {hasSollIst && activeRule && (
@@ -543,7 +543,7 @@ export default function SuggestionsView({
                           scopeLabel={scopeLabel}
                         />
                         {effCoverage < 1 && (
-                          <div className="text-[10px] text-muted-foreground italic mt-0.5">
+                          <div className="text-caption text-muted-foreground italic mt-0.5">
                             Skaliert auf {Math.round(effCoverage * 100)} % Tagesabdeckung
                           </div>
                         )}
@@ -559,7 +559,7 @@ export default function SuggestionsView({
         {/* Nutrient Balance Chart */}
         {(data.protein_g > 0 || data.fat_g > 0 || data.carbohydrate_g > 0) && (
           <div className="px-4 py-4 border-t">
-            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+            <h4 className="text-body font-semibold mb-2 flex items-center gap-2">
               <Scale className="w-4 h-4 text-primary" />
               Nährstoff-Verteilung {showPerPortion ? '(pro Portion)' : '(gesamt)'}
             </h4>

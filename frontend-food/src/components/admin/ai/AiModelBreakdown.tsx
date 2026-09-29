@@ -24,7 +24,7 @@ export default function AiModelBreakdown({ models }: { models: AiModelStats[] })
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-body">
             <thead>
               <tr className="border-b text-left text-muted-foreground">
                 <th className="pb-2 pr-4">Modell</th>

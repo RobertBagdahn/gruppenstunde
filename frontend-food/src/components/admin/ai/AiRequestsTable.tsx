@@ -57,7 +57,7 @@ function RequestRow({
   const { data: detail, isLoading } = useAiInteractionDetail(expanded ? item.id : null);
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="rounded-xl border bg-card">
       <button
         type="button"
         onClick={onToggle}
@@ -72,14 +72,14 @@ function RequestRow({
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="font-medium">{AiContextChoices[item.context] ?? item.context}</span>
-              <span className="text-xs text-muted-foreground">{item.model}</span>
+              <span className="text-caption text-muted-foreground">{item.model}</span>
               {item.is_background && (
-                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
                   System
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted-foreground">
               <span>{formatDate(item.created_at)}</span>
               <span>{item.user_name ?? 'System'}</span>
               <span>{item.total_tokens?.toLocaleString('de-DE') ?? '–'} Tokens</span>
@@ -87,7 +87,7 @@ function RequestRow({
               {item.vote === 'up' && <span className="text-primary">Daumen hoch</span>}
               {item.vote === 'down' && <span className="text-destructive">Daumen runter</span>}
             </div>
-            {item.error_code && <p className="text-xs text-destructive">{item.error_code}</p>}
+            {item.error_code && <p className="text-caption text-destructive">{item.error_code}</p>}
           </div>
           {expanded ? (
             <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -98,7 +98,7 @@ function RequestRow({
       </button>
 
       {expanded && (
-        <div className="space-y-3 border-t bg-muted/20 p-3 text-xs">
+        <div className="space-y-3 border-t bg-muted/20 p-3 text-caption">
           {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           {detail && (
             <>
@@ -110,13 +110,13 @@ function RequestRow({
               </div>
               <div>
                 <p className="mb-1 font-medium text-muted-foreground">Anfrage</p>
-                <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-background p-2">
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-background p-2">
                   {formatPrompt(detail.prompt)}
                 </pre>
               </div>
               <div>
                 <p className="mb-1 font-medium text-muted-foreground">Antwort</p>
-                <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-background p-2">
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg bg-background p-2">
                   {detail.response || '–'}
                 </pre>
               </div>
@@ -167,17 +167,17 @@ export default function AiRequestsTable() {
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <CardTitle>Alle Anfragen</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-body text-muted-foreground">
               Jeder KI-Aufruf mit Status, Kosten und vollständigen Anfrage-Details.
             </p>
           </div>
-          {data && <span className="text-sm text-muted-foreground">{data.total.toLocaleString('de-DE')} Einträge</span>}
+          {data && <span className="text-body text-muted-foreground">{data.total.toLocaleString('de-DE')} Einträge</span>}
         </div>
         <div className="flex flex-wrap gap-2">
           <select
             value={searchParams.get(CONTEXT_PARAM) ?? ''}
             onChange={(event) => updateFilter(CONTEXT_PARAM, event.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-lg border border-input bg-background px-3 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Alle Kontexte</option>
             {CONTEXT_OPTIONS.map(([value, label]) => (
@@ -187,7 +187,7 @@ export default function AiRequestsTable() {
           <select
             value={searchParams.get(SUCCESS_PARAM) ?? ''}
             onChange={(event) => updateFilter(SUCCESS_PARAM, event.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-lg border border-input bg-background px-3 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Alle Ergebnisse</option>
             <option value="true">Erfolgreich</option>
@@ -196,7 +196,7 @@ export default function AiRequestsTable() {
           <select
             value={searchParams.get(BACKGROUND_PARAM) ?? ''}
             onChange={(event) => updateFilter(BACKGROUND_PARAM, event.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-lg border border-input bg-background px-3 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Alle Aufrufer</option>
             <option value="false">Nur Nutzer</option>
@@ -205,7 +205,7 @@ export default function AiRequestsTable() {
           <select
             value={searchParams.get(VOTE_PARAM) ?? ''}
             onChange={(event) => updateFilter(VOTE_PARAM, event.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-lg border border-input bg-background px-3 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Alle Bewertungen</option>
             <option value="true">Nur bewertet</option>

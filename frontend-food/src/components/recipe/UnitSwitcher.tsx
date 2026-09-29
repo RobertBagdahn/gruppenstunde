@@ -69,7 +69,7 @@ export default function UnitSwitcher({
 
   if (scaledConversions.length === 0) {
     return (
-      <span className={cn('font-semibold text-foreground text-base', className)}>
+      <span className={cn('font-semibold text-foreground text-emphasis', className)}>
         {originalDisplay}
       </span>
     );
@@ -85,16 +85,16 @@ export default function UnitSwitcher({
         <button
           type="button"
           className={cn(
-            'font-semibold text-foreground text-base inline-flex items-center gap-0.5',
-            'hover:text-rose-600 transition-colors cursor-pointer',
-            'border-b border-dashed border-muted-foreground/40 hover:border-rose-400',
+            'font-semibold text-foreground text-emphasis inline-flex items-center gap-0.5',
+            'hover:text-danger transition-colors cursor-pointer',
+            'border-b border-dashed border-muted-foreground/40 hover:border-danger',
             className,
           )}
           title="Einheit umschalten"
         >
           {currentDisplay}
           {showApprox && (
-            <span className="text-xs text-muted-foreground font-normal ml-0.5">(ca.)</span>
+            <span className="text-caption text-muted-foreground font-normal ml-0.5">(ca.)</span>
           )}
           <span className="material-symbols-outlined text-[14px] text-muted-foreground ml-0.5">
             swap_vert
@@ -105,7 +105,7 @@ export default function UnitSwitcher({
         {selected && (
           <DropdownMenuItem onClick={() => setSelectedId(null)}>
             <span className="font-medium">{originalDisplay}</span>
-            <span className="text-xs text-muted-foreground ml-auto">Original</span>
+            <span className="text-caption text-muted-foreground ml-auto">Original</span>
           </DropdownMenuItem>
         )}
         {scaledConversions.map((conv) => {
@@ -121,7 +121,7 @@ export default function UnitSwitcher({
                 {conv.display}
               </span>
               {!conv.is_ingredient_specific && (
-                <span className="text-xs text-muted-foreground ml-auto">(ca.)</span>
+                <span className="text-caption text-muted-foreground ml-auto">(ca.)</span>
               )}
             </DropdownMenuItem>
           );

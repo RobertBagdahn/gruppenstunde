@@ -64,12 +64,12 @@ export default function WizardStepIngredients({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-display font-bold">Titel, Typ & Zutaten</h2>
-        <p className="text-sm text-muted-foreground mt-2">
+        <h2 className="text-section font-display font-bold">Titel, Typ & Zutaten</h2>
+        <p className="text-body text-muted-foreground mt-2">
           Gib deinem Rezept einen Namen, wähle den Typ und füge Zutaten hinzu.
         </p>
         {recipe.source_servings && (
-          <p className="text-xs text-muted-foreground mt-1" data-testid="recipe-source-servings">
+          <p className="text-caption text-muted-foreground mt-1" data-testid="recipe-source-servings">
             Originalrezept für {recipe.source_servings} {recipe.source_servings === 1 ? 'Person' : 'Personen'}
           </p>
         )}
@@ -77,18 +77,18 @@ export default function WizardStepIngredients({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="recipe-ingredients-title" className="block text-sm font-medium mb-1.5">Titel *</label>
+          <label htmlFor="recipe-ingredients-title" className="block text-body font-medium mb-1.5">Titel *</label>
           <input
             id="recipe-ingredients-title"
             type="text"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
             placeholder="z.B. Nudelauflauf mit Hackfleisch"
-            className="w-full px-3 py-2 border rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full px-3 py-2 border rounded-lg text-emphasis focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
         <div>
-          <span className="block text-sm font-medium mb-1.5">Rezept-Typ *</span>
+          <span className="block text-body font-medium mb-1.5">Rezept-Typ *</span>
           <div className="grid grid-cols-2 gap-1.5">
             {RECIPE_TYPE_OPTIONS.map((option) => {
               const isSelected = recipeType === option.value;
@@ -114,7 +114,7 @@ export default function WizardStepIngredients({
       </div>
 
       <div>
-        <span className="block text-sm font-medium mb-1.5">Zutaten *</span>
+        <span className="block text-body font-medium mb-1.5">Zutaten *</span>
         <div className="bg-card rounded-xl border">
           <InlineIngredientEditor
             ref={editorRef}

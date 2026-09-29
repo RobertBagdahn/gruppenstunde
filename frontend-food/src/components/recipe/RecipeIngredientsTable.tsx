@@ -1,7 +1,7 @@
 /**
  * RecipeIngredientsTable — Displays recipe ingredients as a formatted table
  * with quantity, unit, portion, name, and ingredient status.
- * 
+ *
  * Shows whether each ingredient exists in the database (✓ or ⚠️).
  */
 
@@ -39,7 +39,7 @@ export default function RecipeIngredientsTable({ items, portions: _portions = 1 
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
+      <table className="w-full text-body border-collapse">
         <thead>
           <tr className="border-b">
             <th className="text-left py-2 px-3 font-semibold text-muted-foreground w-20">Menge</th>
@@ -50,9 +50,9 @@ export default function RecipeIngredientsTable({ items, portions: _portions = 1 
         </thead>
         <tbody>
           {items.map((item) => {
-            const quantity = item.quantity ? Number(item.quantity).toLocaleString('de-DE', { 
-              minimumFractionDigits: 0, 
-              maximumFractionDigits: 2 
+            const quantity = item.quantity ? Number(item.quantity).toLocaleString('de-DE', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 2
             }) : '—';
             const unitName = item.measuring_unit_name ?? 'Gramm';
             const unitShort = UNIT_SHORT[unitName] ?? unitName;
@@ -90,13 +90,13 @@ export default function RecipeIngredientsTable({ items, portions: _portions = 1 
                         </span>
                       )}
                       {item.is_optional && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-caption">
                           optional
                         </Badge>
                       )}
                     </div>
                     {item.ingredient_retail_section_name && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         📍 {item.ingredient_retail_section_name}
                       </p>
                     )}
@@ -107,12 +107,12 @@ export default function RecipeIngredientsTable({ items, portions: _portions = 1 
                 <td className="py-3 px-3">
                   <div className="flex justify-center">
                     {ingredientExists ? (
-                      <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded whitespace-nowrap">
+                      <div className="flex items-center gap-1 text-caption text-success bg-success-soft border border-success-border px-2 py-1 rounded-lg whitespace-nowrap">
                         <Check className="w-3 h-3" />
                         <span>vorhanden</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 border border-orange-200 px-2 py-1 rounded whitespace-nowrap">
+                      <div className="flex items-center gap-1 text-caption text-warning bg-warning-soft border border-warning-border px-2 py-1 rounded-lg whitespace-nowrap">
                         <AlertCircle className="w-3 h-3" />
                         <span>neu</span>
                       </div>
@@ -126,13 +126,13 @@ export default function RecipeIngredientsTable({ items, portions: _portions = 1 
       </table>
 
       {/* Summary */}
-      <div className="mt-3 flex gap-4 text-sm text-muted-foreground">
+      <div className="mt-3 flex gap-4 text-body text-muted-foreground">
         <div className="flex items-center gap-2">
-          <Check className="w-4 h-4 text-green-600" />
+          <Check className="w-4 h-4 text-success" />
           <span>{items.filter(i => i.ingredient_id).length} vorhanden</span>
         </div>
         <div className="flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-orange-600" />
+          <AlertCircle className="w-4 h-4 text-warning" />
           <span>{items.filter(i => !i.ingredient_id).length} neu</span>
         </div>
       </div>

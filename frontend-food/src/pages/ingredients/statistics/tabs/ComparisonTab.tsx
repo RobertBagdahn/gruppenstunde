@@ -38,7 +38,7 @@ export default function ComparisonTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Vergleiche die Nährwerte von Zutaten mit einem bestimmten Tag ({groupBy}) gegen den Rest der Datenbank.
       </p>
       <TabFilters
@@ -48,7 +48,7 @@ export default function ComparisonTab() {
             <select
               value={groupBy}
               onChange={(e) => updateParam('group_by', e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-border text-sm bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+              className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
             >
               {tags?.map((tag) => (
                 <option key={tag.id} value={tag.name}>{tag.name}</option>
@@ -57,7 +57,7 @@ export default function ComparisonTab() {
             <select
               value={metric}
               onChange={(e) => updateParam('metric', e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-border text-sm bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+              className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
             >
               {METRICS.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -72,10 +72,10 @@ export default function ComparisonTab() {
         <div className="space-y-6">
           {data.mean_difference_pct !== null && (
             <div className="rounded-xl border border-border bg-card p-4 text-center">
-              <p className="text-xs text-muted-foreground mb-1">
+              <p className="text-caption text-muted-foreground mb-1">
                 Mittlere Abweichung ({data.group_label} vs. Rest)
               </p>
-              <p className={`text-2xl font-bold font-display ${data.mean_difference_pct > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <p className={`text-title font-bold font-display ${data.mean_difference_pct > 0 ? 'text-danger' : 'text-success'}`}>
                 {data.mean_difference_pct > 0 ? '+' : ''}{data.mean_difference_pct}%
               </p>
             </div>
@@ -83,19 +83,19 @@ export default function ComparisonTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground">
+              <h3 className="text-body font-semibold text-foreground">
                 {data.group.label} ({data.group.count} Zutaten)
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Mittelwert</p>
-                  <p className="text-lg font-bold font-display">
+                  <p className="text-caption text-muted-foreground">Mittelwert</p>
+                  <p className="text-section font-bold font-display">
                     {data.group.mean !== null ? `${formatNumber(data.group.mean, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Median</p>
-                  <p className="text-lg font-bold font-display">
+                  <p className="text-caption text-muted-foreground">Median</p>
+                  <p className="text-section font-bold font-display">
                     {data.group.median !== null ? `${formatNumber(data.group.median, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
@@ -110,19 +110,19 @@ export default function ComparisonTab() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground">
+              <h3 className="text-body font-semibold text-foreground">
                 Rest ({data.rest.count} Zutaten)
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Mittelwert</p>
-                  <p className="text-lg font-bold font-display">
+                  <p className="text-caption text-muted-foreground">Mittelwert</p>
+                  <p className="text-section font-bold font-display">
                     {data.rest.mean !== null ? `${formatNumber(data.rest.mean, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Median</p>
-                  <p className="text-lg font-bold font-display">
+                  <p className="text-caption text-muted-foreground">Median</p>
+                  <p className="text-section font-bold font-display">
                     {data.rest.median !== null ? `${formatNumber(data.rest.median, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>

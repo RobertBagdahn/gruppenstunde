@@ -122,14 +122,14 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
     <div className="space-y-6">
       <section className="rounded-xl border bg-card p-4 md:p-5 space-y-3">
         <div className="space-y-1">
-          <h2 className="font-display text-lg font-bold">Packungen per KI vorschlagen</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="font-display text-section font-bold">Packungen per KI vorschlagen</h2>
+          <p className="text-body text-muted-foreground">
             Für genutzte Zutaten ohne Standardpackung schlägt die KI die übliche Handelspackung sowie Aggregatzustand
             und Dichte vor. Die Vorschläge werden nur gespeichert; erst deine Freigabe legt die Packung an.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm" data-testid="package-estimate">
+          <p className="text-body" data-testid="package-estimate">
             {estimate ? (
               <>
                 <span className="font-semibold">{formatCount(estimate.candidates)} Zutaten</span> ohne Standardpackung ·{' '}
@@ -152,7 +152,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
         {(runner.running || runner.processed > 0) && (
           <div className="space-y-1">
             <Progress value={runner.progress} className="h-2" />
-            <p className="text-xs text-muted-foreground text-right">
+            <p className="text-caption text-muted-foreground text-right">
               {formatCount(runner.processed)} Vorschläge
               {runner.remaining !== null && ` · ${formatCount(runner.remaining)} offen`}
               {runner.errors.length > 0 && ` · ${runner.errors.length} Fehler`}
@@ -163,8 +163,8 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-lg font-bold">Vorschläge</h2>
-          <p className="text-xs text-muted-foreground">
+          <h2 className="font-display text-section font-bold">Vorschläge</h2>
+          <p className="text-caption text-muted-foreground">
             {data ? `${formatCount(data.total)} Treffer` : ' '}
             {isFetching && !isLoading && ' · aktualisiere …'}
           </p>
@@ -186,7 +186,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
             onChange={(event) =>
               onFiltersChange({ ...filters, status: event.target.value as PackageSuggestionStatus, page: 1 })
             }
-            className="h-9 rounded-md border bg-background px-2 text-sm"
+            className="h-9 rounded-lg border bg-background px-2 text-body"
             aria-label="Status filtern"
           >
             {STATUS_OPTIONS.map((option) => (
@@ -204,7 +204,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
                 page: 1,
               })
             }
-            className="h-9 rounded-md border bg-background px-2 text-sm"
+            className="h-9 rounded-lg border bg-background px-2 text-body"
             aria-label="Konfidenz filtern"
           >
             {CONFIDENCE_OPTIONS.map((option) => (
@@ -222,7 +222,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
                 page: 1,
               })
             }
-            className="h-9 rounded-md border bg-background px-2 text-sm"
+            className="h-9 rounded-lg border bg-background px-2 text-body"
             aria-label="Warengruppe filtern"
           >
             <option value="">Alle Warengruppen</option>
@@ -236,7 +236,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
 
         {(filters.status ?? 'pending') === 'pending' && (
           <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 backdrop-blur">
-            <label className="flex items-center gap-2 px-1 text-xs font-medium">
+            <label className="flex items-center gap-2 px-1 text-caption font-medium">
               <input
                 type="checkbox"
                 checked={allPageSelected}
@@ -254,7 +254,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
             </label>
             {selected.size > 0 ? (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">{formatCount(selected.size)} ausgewählt</span>
+                <span className="text-caption text-muted-foreground">{formatCount(selected.size)} ausgewählt</span>
                 <Button
                   size="sm"
                   variant="outline"
@@ -288,11 +288,11 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
         )}
 
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 py-12 text-body text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin text-primary" /> Lade Vorschläge …
           </div>
         ) : error ? (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive space-y-2">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-body text-destructive space-y-2">
             <p className="font-semibold">Vorschläge konnten nicht geladen werden</p>
             <p>{error.message}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>

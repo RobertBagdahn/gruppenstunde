@@ -12,7 +12,7 @@ export function BackButton({ to, onClick, className }: BackButtonProps) {
   const navigate = useNavigate();
 
   const classes = cn(
-    'inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground transition-colors',
+    'inline-flex items-center gap-0.5 text-body text-muted-foreground hover:text-foreground transition-colors',
     className
   );
 

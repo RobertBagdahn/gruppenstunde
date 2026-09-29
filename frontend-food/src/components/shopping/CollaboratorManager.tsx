@@ -94,7 +94,7 @@ export default function CollaboratorManager({
                     person
                   </span>
                 </div>
-                <span className="text-sm font-medium truncate">
+                <span className="text-body font-medium truncate">
                   {collab.username}
                 </span>
               </div>
@@ -113,7 +113,7 @@ export default function CollaboratorManager({
                         },
                       )
                     }
-                    className="text-xs border rounded px-2 py-1 bg-background"
+                    className="text-caption border rounded-lg px-2 py-1 bg-background"
                   >
                     {Object.entries(COLLABORATOR_ROLE_LABELS).map(
                       ([value, label]) => (
@@ -124,7 +124,7 @@ export default function CollaboratorManager({
                     )}
                   </select>
                 ) : (
-                  <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+                  <span className="text-caption text-muted-foreground px-2 py-1 bg-muted rounded-lg">
                     {COLLABORATOR_ROLE_LABELS[collab.role] ?? collab.role}
                   </span>
                 )}
@@ -133,7 +133,7 @@ export default function CollaboratorManager({
                   <button
                     type="button"
                     onClick={() => setRemoveTarget(collab.id)}
-                    className="text-destructive hover:bg-destructive/10 rounded p-1 transition-colors"
+                    className="text-destructive hover:bg-destructive/10 rounded-lg p-1 transition-colors"
                     title="Entfernen"
                   >
                     <span className="material-symbols-outlined text-[18px]">
@@ -146,7 +146,7 @@ export default function CollaboratorManager({
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted-foreground italic">
+        <p className="text-body text-muted-foreground italic">
           Noch keine Mitglieder eingeladen
         </p>
       )}
@@ -157,13 +157,13 @@ export default function CollaboratorManager({
           {showInvite ? (
             <div className="flex items-end gap-2 p-3 bg-muted/30 rounded-lg border">
               <div className="flex-1">
-                <label className="text-xs text-muted-foreground mb-1 block">
+                <label className="text-caption text-muted-foreground mb-1 block">
                   Nutzer
                 </label>
                 <select
                   value={inviteUserId}
                   onChange={(e) => setInviteUserId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+                  className="w-full px-3 py-2 text-body border rounded-lg bg-background"
                 >
                   <option value="">Nutzer wählen…</option>
                   {users.map((u) => (
@@ -174,13 +174,13 @@ export default function CollaboratorManager({
                 </select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">
+                <label className="text-caption text-muted-foreground mb-1 block">
                   Rolle
                 </label>
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value)}
-                  className="px-3 py-2 text-sm border rounded-lg bg-background"
+                  className="px-3 py-2 text-body border rounded-lg bg-background"
                 >
                   {Object.entries(COLLABORATOR_ROLE_LABELS).map(
                     ([value, label]) => (
@@ -195,14 +195,14 @@ export default function CollaboratorManager({
                 type="button"
                 onClick={handleInvite}
                 disabled={addCollaborator.isPending}
-                className="px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="px-3 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 Einladen
               </button>
               <button
                 type="button"
                 onClick={() => setShowInvite(false)}
-                className="px-3 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+                className="px-3 py-2 text-body border rounded-lg hover:bg-muted transition-colors"
               >
                 Abbrechen
               </button>
@@ -211,7 +211,7 @@ export default function CollaboratorManager({
             <button
               type="button"
               onClick={() => setShowInvite(true)}
-              className="flex items-center gap-1.5 text-sm text-primary font-medium hover:underline"
+              className="flex items-center gap-1.5 text-body text-primary font-medium hover:underline"
             >
               <span className="material-symbols-outlined text-[18px]">
                 person_add

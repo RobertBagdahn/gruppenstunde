@@ -21,9 +21,9 @@ export function RecipeNutriScoreDistribution({ stats, currentNutriClass }: Props
 
   return (
     <div className="bg-card rounded-xl border p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-muted-foreground">
+      <h3 className="text-body font-semibold text-muted-foreground">
         Nutri-Score Verteilung
-        <span className="font-normal ml-1.5 text-xs text-muted-foreground">
+        <span className="font-normal ml-1.5 text-caption text-muted-foreground">
           ({stats.recipe_type}, {total} Rezepte)
         </span>
       </h3>
@@ -52,7 +52,7 @@ export function RecipeNutriScoreDistribution({ stats, currentNutriClass }: Props
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <span className="text-xs text-muted-foreground w-10 text-right shrink-0">
+              <span className="text-caption text-muted-foreground w-10 text-right shrink-0">
                 {count}
               </span>
             </div>
@@ -61,7 +61,7 @@ export function RecipeNutriScoreDistribution({ stats, currentNutriClass }: Props
       </div>
 
       {currentNutriClass != null && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-caption text-muted-foreground text-center">
           Dieses Rezept: <span className="font-semibold text-foreground">Nutri-Score {currentLabel}</span>
         </p>
       )}

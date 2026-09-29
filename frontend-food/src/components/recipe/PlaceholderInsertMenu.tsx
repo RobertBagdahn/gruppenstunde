@@ -75,7 +75,7 @@ export default function PlaceholderInsertMenu({
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors border border-primary/20"
+        className="flex items-center gap-1 px-3 py-1.5 text-body bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors border border-primary/20"
         title="Platzhalter einfügen"
       >
         <span className="font-medium">🔗</span>
@@ -98,11 +98,11 @@ export default function PlaceholderInsertMenu({
           {/* Menu */}
           <div
             ref={menuRef}
-            className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-40 min-w-80"
+            className="absolute top-full left-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-40 min-w-80"
           >
             <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
               {/* Header */}
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 py-1">
+              <div className="text-caption font-semibold text-muted-foreground uppercase tracking-wide px-2 py-1">
                 Verfügbare Platzhalter
               </div>
 
@@ -111,12 +111,12 @@ export default function PlaceholderInsertMenu({
                 <button
                   key={idx}
                   onClick={() => handleInsert(option.value)}
-                  className="w-full flex items-start gap-3 p-2 rounded hover:bg-primary/10 text-left transition-colors"
+                  className="w-full flex items-start gap-3 p-2 rounded-lg hover:bg-primary/10 text-left transition-colors"
                 >
                   {/* Value (copyable) */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
-                      <code className="text-sm font-mono bg-muted px-2 py-1 rounded text-foreground">
+                      <code className="text-body font-mono bg-muted px-2 py-1 rounded-lg text-foreground">
                         {option.value}
                       </code>
                       <Copy
@@ -124,7 +124,7 @@ export default function PlaceholderInsertMenu({
                         className="text-muted-foreground hover:text-foreground"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
+                    <p className="text-caption text-muted-foreground mt-1">{option.description}</p>
                   </div>
 
                   {/* Insert Button */}
@@ -133,7 +133,7 @@ export default function PlaceholderInsertMenu({
                       e.stopPropagation();
                       handleInsert(option.value);
                     }}
-                    className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90 whitespace-nowrap"
+                    className="px-2 py-1 text-caption bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 whitespace-nowrap"
                   >
                     Einfügen
                   </button>
@@ -141,13 +141,13 @@ export default function PlaceholderInsertMenu({
               ))}
 
               {allPlaceholders.length === 0 && (
-                <div className="text-sm text-muted-foreground italic px-2 py-3">
+                <div className="text-body text-muted-foreground italic px-2 py-3">
                   Füge zunächst Zutaten hinzu, um Platzhalter zu verwenden
                 </div>
               )}
 
               {/* Info Box */}
-              <div className="border-t border-border mt-2 pt-2 text-xs text-muted-foreground">
+              <div className="border-t border-border mt-2 pt-2 text-caption text-muted-foreground">
                 <p className="font-medium mb-1">Tipps:</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Mehrere Platzhalter können kombiniert werden</li>

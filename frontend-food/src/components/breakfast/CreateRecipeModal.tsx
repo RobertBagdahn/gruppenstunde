@@ -55,10 +55,10 @@ export function CreateRecipeModal({
       });
 
       toast.success('Rezept erstellt ✓');
-      
+
       // Invalidate catalog so new recipe appears
       queryClient.invalidateQueries({ queryKey: ['breakfast-catalog'] });
-      
+
       setTitle('');
       setDescription('');
       onClose();
@@ -80,7 +80,7 @@ export function CreateRecipeModal({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Name *</label>
+            <label className="text-body font-medium">Name *</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -90,7 +90,7 @@ export function CreateRecipeModal({
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Beschreibung</label>
+            <label className="text-body font-medium">Beschreibung</label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}

@@ -19,7 +19,7 @@ interface Props {
 export function GroupMemberList({ members, onDelete, isDeleting, activityFactor }: Props) {
   if (members.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground text-center py-4">
+      <div className="text-body text-muted-foreground text-center py-4">
         Noch keine Personen in der Gruppe.
       </div>
     );
@@ -31,13 +31,13 @@ export function GroupMemberList({ members, onDelete, isDeleting, activityFactor 
         <DataCardRow key={member.id}>
           <div className="flex items-center justify-between w-full gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="font-medium text-sm truncate">
+              <span className="font-medium text-body truncate">
                 {member.name || <span className="italic text-muted-foreground">Ohne Namen</span>}
               </span>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
+              <span className="text-caption text-muted-foreground whitespace-nowrap">
                 {member.age} J.
               </span>
-              <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+              <span className="text-caption px-1.5 py-0.5 rounded-lg bg-muted text-muted-foreground font-medium">
                 {GENDER_LABELS[member.gender] || 'k.A.'}
               </span>
               <MemberNormFactor age={member.age} gender={member.gender} pal={activityFactor} />
@@ -46,13 +46,13 @@ export function GroupMemberList({ members, onDelete, isDeleting, activityFactor 
               {member.nutritional_tags.length > 0 ? (
                 <div className="hidden sm:flex gap-1">
                   {member.nutritional_tags.map((tag) => (
-                    <span key={tag.id} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">
+                    <span key={tag.id} className="px-1.5 py-0.5 rounded-lg bg-primary/10 text-primary text-caption font-semibold">
                       {tag.name}
                     </span>
                   ))}
                 </div>
               ) : (
-                <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-medium">
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded-lg bg-muted text-muted-foreground text-caption font-medium">
                   Allesesser
                 </span>
               )}
@@ -70,13 +70,13 @@ export function GroupMemberList({ members, onDelete, isDeleting, activityFactor 
           {member.nutritional_tags.length > 0 ? (
             <div className="sm:hidden flex gap-1 mt-1 flex-wrap">
               {member.nutritional_tags.map((tag) => (
-                <span key={tag.id} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">
+                <span key={tag.id} className="px-1.5 py-0.5 rounded-lg bg-primary/10 text-primary text-caption font-semibold">
                   {tag.name}
                 </span>
               ))}
             </div>
           ) : (
-            <span className="sm:hidden inline-flex mt-1 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-medium">
+            <span className="sm:hidden inline-flex mt-1 px-1.5 py-0.5 rounded-lg bg-muted text-muted-foreground text-caption font-medium">
               Allesesser
             </span>
           )}

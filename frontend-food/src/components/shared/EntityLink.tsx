@@ -41,11 +41,11 @@ export interface EntityLinkProps {
 
 const VARIANT_CLASSES: Record<EntityLinkVariant, string> = {
   default:
-    'text-primary underline-offset-4 hover:underline focus-visible:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    'text-primary underline-offset-4 hover:underline focus-visible:underline rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
   muted:
-    'text-muted-foreground hover:text-foreground hover:underline underline-offset-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    'text-muted-foreground hover:text-foreground hover:underline underline-offset-4 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
   chip:
-    'inline-flex items-center rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    'inline-flex items-center rounded-full border border-border bg-muted/60 px-2.5 py-0.5 text-caption font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 };
 
 export const EntityLink = forwardRef<HTMLAnchorElement, EntityLinkProps>(function EntityLink(

@@ -33,7 +33,7 @@ export function FactorInput({ value, onChange }: { value: number; onChange: (fac
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-        className="w-14 px-1 py-0.5 text-sm border rounded bg-background text-center"
+        className="w-14 px-1 py-0.5 text-body border rounded-lg bg-background text-center"
       />
     </span>
   );

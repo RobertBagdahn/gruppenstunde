@@ -89,7 +89,7 @@ export function DayPlanView({
           <button
             onClick={onAddDayBefore}
             disabled={addDayBeforePending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-sm text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-body text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             Tag davor
@@ -112,29 +112,29 @@ export function DayPlanView({
           const dayTargetCost = budgetPerPersonPerDay ? group.meals.reduce((sum, m) => sum + budgetPerPersonPerDay * m.day_part_factor, 0) : 0;
 
           return (
-            <div key={group.date} id={`day-${group.date}`} className="rounded-2xl border bg-card overflow-hidden shadow-sm scroll-mt-24">
+            <div key={group.date} id={`day-${group.date}`} className="rounded-xl border bg-card overflow-hidden shadow-sm scroll-mt-24">
               {/* Day Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 bg-primary/5 border-b gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-display font-bold text-lg sm:text-xl">{formatDate(group.date)}</h3>
+                    <h3 className="font-display font-bold text-section sm:text-section">{formatDate(group.date)}</h3>
                     {(() => {
                       const coverage = getDayCoverage(group.meals);
                       const badge = getCoverageBadge(coverage);
                       const colorClasses = {
                         green: 'bg-primary/10 text-primary border-primary/20',
-                        yellow: 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20',
+                        yellow: 'bg-warning-soft text-warning border-warning-border',
                         red: 'bg-destructive/10 text-destructive border-destructive/20',
                         overplanned: 'bg-destructive/10 text-destructive border-destructive/20',
                       };
                       return (
-                        <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full border ${colorClasses[badge.status]}`}>
+                        <span className={`inline-block px-2.5 py-1 text-caption font-bold rounded-full border ${colorClasses[badge.status]}`}>
                           {badge.label}
                         </span>
                       );
                     })()}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
                       <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
                       <span>Kcal: Soll {formatCount(dayTargetKcal)} / {formatCount(dayActualKcal)} kcal</span>
@@ -251,7 +251,7 @@ export function DayPlanView({
                             const newMeal = await onAddMealType(group.date, mt);
                             if (newMeal) setSearchDialogMeal(newMeal);
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-body font-medium text-primary hover:bg-primary/10 transition-colors"
                         >
                           <Plus className="w-4 h-4 text-primary" />
                           {MEAL_TYPE_LABELS[mt] || mt}
@@ -263,7 +263,7 @@ export function DayPlanView({
                         const newMeal = await onAddMealType(group.date, 'snack');
                         if (newMeal) setSearchDialogMeal(newMeal);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-body font-medium text-primary hover:bg-primary/10 transition-colors"
                     >
                       <Plus className="w-4 h-4 text-primary" />
                       {MEAL_TYPE_LABELS.snack}
@@ -282,7 +282,7 @@ export function DayPlanView({
           <button
             onClick={onAddDayAfter}
             disabled={addDayAfterPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-sm text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-body text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             Tag danach

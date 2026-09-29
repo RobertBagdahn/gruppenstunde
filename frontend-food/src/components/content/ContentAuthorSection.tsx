@@ -30,7 +30,7 @@ export default function ContentAuthorSection({
 
   return (
     <section className={`bg-card rounded-xl border p-5 ${className}`}>
-      <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+      <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-3">
         <span className="material-symbols-outlined text-[18px]">person</span>
         {authors.length === 1 ? 'Autor' : 'Autoren'}
       </h2>
@@ -52,7 +52,7 @@ export default function ContentAuthorSection({
                 </div>
               )}
               <div>
-                <span className="text-sm font-medium">
+                <span className="text-body font-medium">
                   {author.display_name}
                   {author.scout_name && author.scout_name !== author.display_name ? ` (${author.scout_name})` : ''}
                 </span>
@@ -83,7 +83,7 @@ export default function ContentAuthorSection({
       </div>
 
       {createdAt && (
-        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/50 text-sm text-muted-foreground">
+        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/50 text-body text-muted-foreground">
           <span className="material-symbols-outlined text-[16px]">calendar_today</span>
           <time dateTime={createdAt}>
             {new Date(createdAt).toLocaleDateString('de-DE', {

@@ -30,7 +30,7 @@ const OMNIBAR_ALERT_TYPES = new Set<PlanCheckAlert['type']>(['empty_slot', 'reci
 
 const SEVERITY_STYLES: Record<PlanCheckAlert['severity'], { box: string; icon: typeof AlertCircle; iconClass: string }> = {
   error: { box: 'border-destructive/30 bg-destructive/5', icon: AlertCircle, iconClass: 'text-destructive' },
-  warning: { box: 'border-amber-500/30 bg-amber-500/5', icon: AlertTriangle, iconClass: 'text-amber-500' },
+  warning: { box: 'border-warning-border bg-warning-soft', icon: AlertTriangle, iconClass: 'text-warning' },
   info: { box: 'border-border bg-muted/30', icon: Info, iconClass: 'text-muted-foreground' },
 };
 
@@ -87,20 +87,20 @@ export function PlanCheckFlyout({
         onClick={() => setOpen(true)}
         aria-label="Plan-Check öffnen"
         className={cn(
-          'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all shadow-soft',
+          'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-caption font-bold transition-all shadow-soft',
           totalIssues > 0
-            ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'
+            ? 'border-warning-border bg-warning-soft text-warning hover:bg-warning-soft'
             : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
         )}
       >
         {totalIssues > 0 ? (
           <>
-            <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />
+            <AlertTriangle className="w-4 h-4 text-warning animate-pulse" />
             <span>Plan-Check ({totalIssues})</span>
           </>
         ) : (
           <>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <CheckCircle2 className="w-4 h-4 text-success" />
             <span>Plan-Check (0)</span>
           </>
         )}
@@ -118,19 +118,19 @@ export function PlanCheckFlyout({
           </DialogHeader>
 
           <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
-            {isLoading && <p className="text-xs text-muted-foreground py-4 text-center">Analysiere Essensplan …</p>}
+            {isLoading && <p className="text-caption text-muted-foreground py-4 text-center">Analysiere Essensplan …</p>}
 
             {!isLoading && alerts.length === 0 && (
-              <div className="py-8 text-center text-xs text-muted-foreground space-y-1.5">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                <p className="font-semibold text-sm text-foreground">Alles bestens!</p>
+              <div className="py-8 text-center text-caption text-muted-foreground space-y-1.5">
+                <CheckCircle2 className="w-10 h-10 text-success mx-auto mb-2" />
+                <p className="font-semibold text-body text-foreground">Alles bestens!</p>
                 <p>Keine Lücken, Budgetüberschreitungen oder Konflikte gefunden.</p>
               </div>
             )}
 
             {severities.map((severity) => (
               <section key={severity} className="space-y-2" aria-label={SECTION_LABELS[severity]}>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <h3 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                   {SECTION_LABELS[severity]}
                 </h3>
                 {alerts
@@ -144,13 +144,13 @@ export function PlanCheckFlyout({
                       <div
                         key={alert.id}
                         data-testid="plan-check-alert"
-                        className={cn('p-3 rounded-xl border text-xs space-y-2 transition-colors', style.box)}
+                        className={cn('p-3 rounded-xl border text-caption space-y-2 transition-colors', style.box)}
                       >
                         <div className="flex items-start gap-2.5">
                           <Icon className={cn('w-4 h-4 shrink-0 mt-0.5', style.iconClass)} />
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-foreground text-sm leading-tight">{alert.title}</div>
-                            <div className="text-muted-foreground text-xs mt-1 leading-normal">
+                            <div className="font-bold text-foreground text-body leading-tight">{alert.title}</div>
+                            <div className="text-muted-foreground text-caption mt-1 leading-normal">
                               {alert.description}
                             </div>
                           </div>
@@ -162,7 +162,7 @@ export function PlanCheckFlyout({
                               <button
                                 type="button"
                                 onClick={handleOpenSettings}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-card hover:bg-muted/50 transition-all"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-caption font-semibold border border-border bg-card hover:bg-muted/50 transition-all"
                               >
                                 Zeitraum anpassen
                               </button>
@@ -171,7 +171,7 @@ export function PlanCheckFlyout({
                               <button
                                 type="button"
                                 onClick={() => handleAction(alert)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
                               >
                                 <span>{alert.action_label}</span>
                                 <ChevronRight className="w-3.5 h-3.5" />

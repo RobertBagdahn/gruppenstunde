@@ -94,7 +94,7 @@ function RelatedCard({ link, currentType, currentId }: {
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+        <h4 className="text-body font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
           {info.title}
         </h4>
       </div>
@@ -131,7 +131,7 @@ export function ContentLinkSection({ contentType, objectId }: ContentLinkSection
 
         return (
           <div key={typeKey}>
-            <h3 className="flex items-center gap-2 text-lg font-bold text-foreground mb-3">
+            <h3 className="flex items-center gap-2 text-section font-bold text-foreground mb-3">
               <span className="material-symbols-outlined text-primary">{sectionIcon}</span>
               {sectionTitle}
             </h3>

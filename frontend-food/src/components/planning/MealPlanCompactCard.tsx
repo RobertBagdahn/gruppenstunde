@@ -12,13 +12,13 @@ const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> 
   },
   community: {
     label: 'Community',
-    bg: 'bg-[hsl(var(--chart-3))]/10 border border-[hsl(var(--chart-3))]/20',
-    text: 'text-[hsl(var(--chart-3))]',
+    bg: 'bg-info-soft border border-info-border',
+    text: 'text-info',
   },
   personal: {
     label: 'Mein Plan',
-    bg: 'bg-[hsl(var(--chart-2))]/10 border border-[hsl(var(--chart-2))]/20',
-    text: 'text-[hsl(var(--chart-2))]',
+    bg: 'bg-warning-soft border border-warning-border',
+    text: 'text-warning',
   },
 };
 
@@ -41,7 +41,7 @@ export default function MealPlanCompactCard({
   const badge = getPlanBadge(plan, userId);
   const badgeConfig = badge ? BADGE_CONFIG[badge] : null;
   const dateRange = formatDateRange(plan.start_datetime, plan.end_datetime);
-  const borderColor = isReference ? 'border-l-[hsl(var(--chart-3))]' : 'border-l-primary';
+  const borderColor = isReference ? 'border-l-info' : 'border-l-primary';
 
   return (
     <div
@@ -52,11 +52,11 @@ export default function MealPlanCompactCard({
       <div className="flex items-start gap-2 mb-1">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <h3 className="font-display font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+            <h3 className="font-display font-bold text-body text-foreground truncate group-hover:text-primary transition-colors">
               {plan.name}
             </h3>
             {badgeConfig && (
-              <span className={`shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+              <span className={`shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
                 {badgeConfig.label}
               </span>
             )}
@@ -66,13 +66,13 @@ export default function MealPlanCompactCard({
 
       {/* Date range */}
       {dateRange && (
-        <p className="text-[11px] text-muted-foreground font-medium mb-1.5 ml-5">
+        <p className="text-caption text-muted-foreground font-medium mb-1.5 ml-5">
           {dateRange}
         </p>
       )}
 
       {/* Stats row */}
-      <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-muted-foreground ml-5 mb-2">
+      <div className="flex flex-wrap gap-2 text-caption font-semibold text-muted-foreground ml-5 mb-2">
         {plan.meals_count > 0 && (
           <span className="inline-flex items-center gap-1">
             <Calendar className="w-3 h-3" />
@@ -98,7 +98,7 @@ export default function MealPlanCompactCard({
             e.stopPropagation();
             onUseAsTemplate(plan);
           }}
-          className="ml-5 inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="ml-5 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-caption font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Copy className="w-3 h-3" />
           Als Vorlage

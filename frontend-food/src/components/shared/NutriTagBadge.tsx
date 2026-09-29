@@ -23,7 +23,7 @@ export function NutriTagBadge({ allergenTags = [] }: NutriTagBadgeProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex items-center justify-center text-red-600 hover:text-red-700 cursor-pointer">
+          <span className="inline-flex items-center justify-center text-danger hover:text-danger cursor-pointer">
             <AlertCircle className="w-4 h-4" />
           </span>
         </TooltipTrigger>

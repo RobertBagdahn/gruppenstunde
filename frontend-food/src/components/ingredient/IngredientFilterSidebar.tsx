@@ -37,12 +37,12 @@ export default function IngredientFilterSidebar({
       {/* Mobile toggle */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-sm"
+        className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-body"
       >
         <span className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
           Filter {activeFilterCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-xs px-1.5">
+            <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-caption px-1.5">
               {activeFilterCount}
             </span>
           )}
@@ -57,11 +57,11 @@ export default function IngredientFilterSidebar({
         {hasActiveFilters && (
           <div className="bg-card rounded-xl border p-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-caption font-semibold uppercase text-muted-foreground">
                 <span className="material-symbols-outlined text-[16px]">filter_list</span>
                 Aktive Filter
               </span>
-              <button onClick={onReset} className="flex items-center gap-1 text-xs text-destructive hover:underline">
+              <button onClick={onReset} className="flex items-center gap-1 text-caption text-destructive hover:underline">
                 <span className="material-symbols-outlined text-[14px]">close</span>
                 Alle loeschen
               </button>
@@ -72,7 +72,7 @@ export default function IngredientFilterSidebar({
                 return rs ? (
                   <button
                     onClick={() => onFilterChange('retail_section', undefined)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {rs.name}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -84,7 +84,7 @@ export default function IngredientFilterSidebar({
                 return opt ? (
                   <button
                     onClick={() => onFilterChange('status', undefined)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -94,7 +94,7 @@ export default function IngredientFilterSidebar({
               {filters.origin && filters.origin !== 'all' && (
                 <button
                   onClick={() => onFilterChange('origin', undefined)}
-                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                 >
                   Meine Zutaten
                   <span className="material-symbols-outlined text-[14px]">close</span>
@@ -106,12 +106,12 @@ export default function IngredientFilterSidebar({
 
         {/* Retail Section */}
         <div className="bg-card rounded-xl border p-4">
-          <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-3">
+          <h3 className="flex items-center gap-2 text-body font-display font-bold text-foreground mb-3">
             <span className="material-symbols-outlined text-muted-foreground text-[18px]">store</span>
             Abteilung
           </h3>
           <div className="space-y-1">
-            <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary">
+            <label className="flex items-center gap-2 py-1 cursor-pointer text-body hover:text-primary">
               <input
                 type="radio"
                 name="retail_section"
@@ -124,7 +124,7 @@ export default function IngredientFilterSidebar({
             {retailSections?.map((rs) => (
               <label
                 key={rs.id}
-                className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary"
+                className="flex items-center gap-2 py-1 cursor-pointer text-body hover:text-primary"
               >
                 <input
                   type="radio"
@@ -141,7 +141,7 @@ export default function IngredientFilterSidebar({
 
         {/* Status */}
         <div className="bg-card rounded-xl border p-4">
-          <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-3">
+          <h3 className="flex items-center gap-2 text-body font-display font-bold text-foreground mb-3">
             <span className="material-symbols-outlined text-muted-foreground text-[18px]">verified</span>
             Status
           </h3>
@@ -149,7 +149,7 @@ export default function IngredientFilterSidebar({
             {STATUS_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary"
+                className="flex items-center gap-2 py-1 cursor-pointer text-body hover:text-primary"
               >
                 <input
                   type="radio"
@@ -167,12 +167,12 @@ export default function IngredientFilterSidebar({
 
         {/* Herkunft */}
         <div className="bg-card rounded-xl border p-4">
-          <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-3">
+          <h3 className="flex items-center gap-2 text-body font-display font-bold text-foreground mb-3">
             <span className="material-symbols-outlined text-muted-foreground text-[18px]">person</span>
             Herkunft
           </h3>
           <div className="space-y-1">
-            <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary">
+            <label className="flex items-center gap-2 py-1 cursor-pointer text-body hover:text-primary">
               <input
                 type="radio"
                 name="origin"
@@ -183,7 +183,7 @@ export default function IngredientFilterSidebar({
               <span className="material-symbols-outlined text-[16px]">public</span>
               Alle
             </label>
-            <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary">
+            <label className="flex items-center gap-2 py-1 cursor-pointer text-body hover:text-primary">
               <input
                 type="radio"
                 name="origin"

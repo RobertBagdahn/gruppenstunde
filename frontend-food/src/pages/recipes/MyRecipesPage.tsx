@@ -29,7 +29,7 @@ export default function MyRecipesPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="animate-pulse space-y-4 max-w-4xl mx-auto">
-          <div className="h-8 bg-muted rounded w-48" />
+          <div className="h-8 bg-muted rounded-lg w-48" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }, (_, i) => (
               <div key={i} className="aspect-square bg-muted rounded-xl" />
@@ -47,13 +47,13 @@ export default function MyRecipesPage() {
           <div className="flex justify-center">
             <Lock className="w-12 h-12 text-muted-foreground" />
           </div>
-          <h1 className="text-xl font-bold">Anmeldung erforderlich</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-section font-bold">Anmeldung erforderlich</h1>
+          <p className="text-body text-muted-foreground">
             Melde dich an, um deine persönlichen Rezepte zu sehen.
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-body font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
           >
             Anmelden
           </Link>
@@ -78,7 +78,7 @@ export default function MyRecipesPage() {
       <div className="mb-4">
         <Link
           to="/recipes"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+          className="inline-flex items-center gap-1.5 text-body font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
           Alle Rezepte
@@ -97,17 +97,17 @@ export default function MyRecipesPage() {
       />
 
       {recipes.length === 0 ? (
-        <div className="text-center py-16 space-y-4 bg-card rounded-2xl border border-border p-8">
+        <div className="text-center py-16 space-y-4 bg-card rounded-xl border border-border p-8">
           <div className="flex justify-center">
             <BookOpen className="w-12 h-12 text-muted-foreground" />
           </div>
-          <p className="text-lg font-semibold">Noch keine persönlichen Rezepte</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-section font-semibold">Noch keine persönlichen Rezepte</p>
+          <p className="text-body text-muted-foreground">
             Speichere ein Rezept als persönliches Rezept, um es hier zu sehen.
           </p>
           <Link
             to="/recipes"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-body font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
           >
             Rezepte durchstöbern
           </Link>
@@ -132,19 +132,19 @@ export default function MyRecipesPage() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setSearchParams({ page: String(page - 1) })}
-                className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+                className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-body font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Zurück
               </button>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-body text-muted-foreground">
                 Seite {page} von {totalPages}
               </span>
               <button
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => setSearchParams({ page: String(page + 1) })}
-                className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
+                className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-body font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
               >
                 Weiter
                 <ChevronRight className="w-4 h-4" />

@@ -31,7 +31,7 @@ function FormSection({
 }) {
   return (
     <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-      <h2 className="text-sm font-display font-bold text-foreground mb-4 flex items-center gap-2">
+      <h2 className="text-body font-display font-bold text-foreground mb-4 flex items-center gap-2">
         <span className="material-symbols-outlined text-primary text-lg">{icon}</span>
         {title}
       </h2>
@@ -54,7 +54,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
+      <label className="text-caption text-muted-foreground mb-1 block">{label}</label>
       {children}
     </div>
   );
@@ -311,20 +311,20 @@ export default function IngredientEditPage() {
     return <div className="animate-pulse h-64 bg-muted rounded-lg max-w-3xl mx-auto mt-6" />;
   }
 
-  const inputClass = 'w-full px-3 py-2 rounded-md border text-sm bg-background';
+  const inputClass = 'w-full px-3 py-2 rounded-lg border text-body bg-background';
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Back link */}
       <button
         onClick={() => navigate(`/ingredients/${slug}`)}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition"
+        className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground mb-4 transition"
       >
         <span className="material-symbols-outlined text-lg">arrow_back</span>
         Zurück zur Zutat
       </button>
 
-      <h1 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center gap-3">
+      <h1 className="text-title font-display font-bold text-foreground mb-6 flex items-center gap-3">
         <span className="material-symbols-outlined text-primary text-2xl">egg_alt</span>
         Zutat bearbeiten
         {user?.is_staff && ingredient && (
@@ -377,7 +377,7 @@ export default function IngredientEditPage() {
                   ))}
                 </select>
               ) : (
-                <div className="px-3 py-2 bg-muted/30 border border-border rounded text-sm text-muted-foreground">
+                <div className="px-3 py-2 bg-muted/30 border border-border rounded-lg text-body text-muted-foreground">
                   {ingredientStatusLabel(status)}
                 </div>
               )}
@@ -402,7 +402,7 @@ export default function IngredientEditPage() {
             <Field label="Roh verzehrbar">
               <label className="flex items-center gap-2 pt-2 cursor-pointer">
                 <input type="checkbox" checked={isStandaloneFood} onChange={(e) => setIsStandaloneFood(e.target.checked)} className="h-4 w-4" />
-                <span className="text-sm text-muted-foreground">Kann roh/direkt gegessen werden</span>
+                <span className="text-body text-muted-foreground">Kann roh/direkt gegessen werden</span>
               </label>
             </Field>
           </div>
@@ -494,7 +494,7 @@ export default function IngredientEditPage() {
             <Field label="Camp-geeignet">
               <label className="flex items-center gap-2 pt-2 cursor-pointer">
                 <input type="checkbox" checked={campSuitable} onChange={(e) => setCampSuitable(e.target.checked)} className="h-4 w-4" />
-                <span className="text-sm text-muted-foreground">Ja, fürs Zeltlager geeignet</span>
+                <span className="text-body text-muted-foreground">Ja, fürs Zeltlager geeignet</span>
               </label>
             </Field>
             <Field label="Zubereitungsdauer (Min.)">
@@ -637,14 +637,14 @@ export default function IngredientEditPage() {
           <button
             type="button"
             onClick={() => navigate(`/ingredients/${slug}`)}
-            className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
+            className="px-4 py-2 border rounded-lg text-body hover:bg-muted transition"
           >
             Abbrechen
           </button>
           <button
             type="submit"
             disabled={!name.trim() || updateIngredient.isPending}
-            className="flex items-center gap-1.5 px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90 transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-6 py-2 bg-primary text-primary-foreground rounded-lg text-body hover:opacity-90 transition disabled:opacity-50"
           >
             {updateIngredient.isPending && (
               <span className="material-symbols-outlined text-lg animate-spin">

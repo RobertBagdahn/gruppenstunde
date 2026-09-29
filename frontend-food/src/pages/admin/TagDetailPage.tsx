@@ -25,16 +25,16 @@ export default function TagDetailPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
       <button
         onClick={() => navigate('/admin/tags')}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Zurück zu Tags
       </button>
 
       <div className="bg-card rounded-xl border p-6 space-y-4">
-        <h1 className="text-2xl font-bold font-display">{tag.name}</h1>
+        <h1 className="text-title font-bold font-display">{tag.name}</h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-body">
           <div>
             <span className="text-muted-foreground">Slug:</span>{' '}
             <span className="font-medium">{tag.slug}</span>
@@ -63,15 +63,15 @@ export default function TagDetailPage() {
 
         {tag.description && (
           <div>
-            <span className="text-muted-foreground text-sm">Beschreibung:</span>
-            <p className="text-sm mt-1">{tag.description}</p>
+            <span className="text-muted-foreground text-body">Beschreibung:</span>
+            <p className="text-body mt-1">{tag.description}</p>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-card rounded-xl border p-5 space-y-3">
-          <h2 className="font-display font-semibold text-lg">
+          <h2 className="font-display font-semibold text-section">
             Rezepte ({recipes.length})
           </h2>
           {recipes.length > 0 ? (
@@ -82,19 +82,19 @@ export default function TagDetailPage() {
                   href={`/recipes/${r.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block py-2 text-sm text-primary hover:underline"
+                  className="block py-2 text-body text-primary hover:underline"
                 >
                   {r.title}
                 </a>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Keine Einträge gefunden</p>
+            <p className="text-body text-muted-foreground">Keine Einträge gefunden</p>
           )}
         </div>
 
         <div className="bg-card rounded-xl border p-5 space-y-3">
-          <h2 className="font-display font-semibold text-lg">
+          <h2 className="font-display font-semibold text-section">
             Zutaten ({ingredients.length})
           </h2>
           {ingredients.length > 0 ? (
@@ -105,14 +105,14 @@ export default function TagDetailPage() {
                   href={`/ingredients/${i.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block py-2 text-sm text-primary hover:underline"
+                  className="block py-2 text-body text-primary hover:underline"
                 >
                   {i.name}
                 </a>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Keine Einträge gefunden</p>
+            <p className="text-body text-muted-foreground">Keine Einträge gefunden</p>
           )}
         </div>
       </div>

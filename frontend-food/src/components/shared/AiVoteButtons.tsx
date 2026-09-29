@@ -34,9 +34,9 @@ export function AiVoteButtons({ interactionId }: AiVoteButtonsProps) {
         onClick={() => handleVote('up')}
         disabled={isPending}
         className={cn(
-          'inline-flex items-center justify-center rounded-md p-1.5 text-sm transition-colors',
+          'inline-flex items-center justify-center rounded-lg p-1.5 text-body transition-colors',
           voted === 'up'
-            ? 'bg-green-100 text-green-700'
+            ? 'bg-success-soft text-success'
             : 'text-muted-foreground hover:bg-muted',
         )}
         aria-label="Gefällt mir"
@@ -62,9 +62,9 @@ export function AiVoteButtons({ interactionId }: AiVoteButtonsProps) {
         onClick={() => handleVote('down')}
         disabled={isPending}
         className={cn(
-          'inline-flex items-center justify-center rounded-md p-1.5 text-sm transition-colors',
+          'inline-flex items-center justify-center rounded-lg p-1.5 text-body transition-colors',
           voted === 'down'
-            ? 'bg-red-100 text-red-700'
+            ? 'bg-danger-soft text-danger'
             : 'text-muted-foreground hover:bg-muted',
         )}
         aria-label="Nicht hilfreich"

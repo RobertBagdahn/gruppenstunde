@@ -37,7 +37,7 @@ export default function ScatterExplorer({ data, xLabel, yLabel, xUnit, yUnit }: 
   return (
     <div className="space-y-4">
       {data.pearson_r !== null && (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-body">
           <span className="text-muted-foreground">Pearson-Korrelation:</span>
           <span className={`font-bold ${Math.abs(data.pearson_r) > 0.5 ? 'text-primary' : 'text-foreground'}`}>
             {formatNumber(data.pearson_r, { maxDecimals: 4 })}
@@ -49,7 +49,7 @@ export default function ScatterExplorer({ data, xLabel, yLabel, xUnit, yUnit }: 
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">{data.count} Datenpunkte</p>
+      <p className="text-caption text-muted-foreground">{data.count} Datenpunkte</p>
 
       <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">

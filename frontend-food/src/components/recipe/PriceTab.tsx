@@ -26,31 +26,31 @@ export function PriceTab({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-          <p className="text-2xl font-extrabold text-yellow-700">
+        <div className="text-center p-4 bg-warning-soft rounded-xl border border-warning-border">
+          <p className="text-title font-extrabold text-warning">
             {displayedPriceTotal.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
           </p>
-          <p className="text-xs text-muted-foreground mt-1">Gesamtpreis</p>
+          <p className="text-caption text-muted-foreground mt-1">Gesamtpreis</p>
         </div>
         {displayedPricePerPortion !== null && (
-          <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-            <p className="text-2xl font-extrabold text-emerald-700">
+          <div className="text-center p-4 bg-success-soft rounded-xl border border-success-border">
+            <p className="text-title font-extrabold text-success">
               {displayedPricePerPortion.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
             </p>
-            <p className="text-xs text-muted-foreground mt-1">pro Portion</p>
+            <p className="text-caption text-muted-foreground mt-1">pro Portion</p>
           </div>
         )}
-        <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
-          <p className="text-2xl font-extrabold text-blue-700">
+        <div className="text-center p-4 bg-info-soft rounded-xl border border-info-border">
+          <p className="text-title font-extrabold text-info">
             {nb.items.filter((i) => i.price_eur !== null).length} / {nb.items.length}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">Zutaten mit Preis</p>
+          <p className="text-caption text-muted-foreground mt-1">Zutaten mit Preis</p>
         </div>
       </div>
 
       {topIngredientsByPrice.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold mb-3">Kosten nach Zutat</h3>
+          <h3 className="text-body font-semibold mb-3">Kosten nach Zutat</h3>
           <div className="space-y-2">
             {topIngredientsByPrice.map((item) => (
               <PriceRow

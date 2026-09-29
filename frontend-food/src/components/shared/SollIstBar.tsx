@@ -25,7 +25,7 @@ export default function SollIstBar({
   // If there are no target bounds or thresholds, we cannot display a Soll-Ist comparison
   if (min_green === null && max_green === null && target_mid === null) {
     return (
-      <div className={cn("text-xs text-muted-foreground", className)}>
+      <div className={cn("text-caption text-muted-foreground", className)}>
         <span>Ist: <strong>{formatNumber(current, { maxDecimals: 1 })} {unit}</strong></span>
       </div>
     );
@@ -55,10 +55,10 @@ export default function SollIstBar({
       border: 'border-primary/20',
     },
     yellow: {
-      bar: 'bg-[hsl(var(--chart-2))]',
-      text: 'text-[hsl(var(--chart-2))]',
-      bg: 'bg-[hsl(var(--chart-2))]/10',
-      border: 'border-[hsl(var(--chart-2))]/20',
+      bar: 'bg-warning',
+      text: 'text-warning',
+      bg: 'bg-warning-soft',
+      border: 'border-warning-border',
     },
     red: {
       bar: 'bg-destructive',
@@ -81,15 +81,15 @@ export default function SollIstBar({
   return (
     <div className={cn("space-y-1.5 py-1 w-full", className)}>
       {scopeLabel && (
-        <div className="text-xs text-muted-foreground font-medium mb-0.5">
+        <div className="text-caption text-muted-foreground font-medium mb-0.5">
           {scopeLabel}
         </div>
       )}
-      <div className="flex items-center justify-between text-xs">
+      <div className="flex items-center justify-between text-caption">
         <span className="font-medium text-foreground">
           Ist: <strong className={activeColor.text}>{formatVal(current)}</strong>
         </span>
-        <span className="text-muted-foreground text-[11px]">
+        <span className="text-muted-foreground text-caption">
           {min_green !== null && max_green !== null ? (
             <span>Soll: {formatVal(min_green)} – {formatVal(max_green)}</span>
           ) : max_green !== null ? (

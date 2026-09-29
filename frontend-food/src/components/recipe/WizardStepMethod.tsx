@@ -49,17 +49,17 @@ export default function WizardStepMethod({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Sparkles className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-display font-bold">Rezept mit KI vorbereiten</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <h2 className="text-section font-display font-bold">Rezept mit KI vorbereiten</h2>
+        <p className="mt-2 text-body text-muted-foreground">
           Füge einen Link ein, kopiere einen Rezepttext oder beschreibe deine Idee. Die KI strukturiert alles für dich.
         </p>
       </div>
 
       <div className="space-y-3 rounded-xl border bg-card p-4 sm:p-5">
-        <label htmlFor="recipe-smart-input" className="block text-sm font-medium">
+        <label htmlFor="recipe-smart-input" className="block text-body font-medium">
           Link, Rezepttext oder Idee
         </label>
         <textarea
@@ -71,7 +71,7 @@ export default function WizardStepMethod({
           }}
           placeholder="z. B. https://www.chefkoch.de/... oder „Kartoffelsuppe für 4 Personen“"
           rows={7}
-          className="w-full resize-y rounded-lg border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full resize-y rounded-lg border bg-background px-3 py-2.5 text-body focus:outline-none focus:ring-2 focus:ring-primary/30"
           data-testid="recipe-smart-input"
         />
         <div className="flex flex-wrap gap-2">
@@ -85,7 +85,7 @@ export default function WizardStepMethod({
               setInput('');
               hasResultRef.current = false;
             }}
-            className="rounded-lg border px-3 py-2 text-sm hover:bg-muted"
+            className="rounded-lg border px-3 py-2 text-body hover:bg-muted"
           >
             Quelle hinzufügen
           </button>
@@ -97,18 +97,18 @@ export default function WizardStepMethod({
                 setSources((current) => current.filter((_, sourceIndex) => sourceIndex !== index));
                 hasResultRef.current = false;
               }}
-              className="max-w-full truncate rounded-full bg-muted px-3 py-1.5 text-xs text-muted-foreground"
+              className="max-w-full truncate rounded-full bg-muted px-3 py-1.5 text-caption text-muted-foreground"
               title="Quelle entfernen"
             >
               {source.type === 'url' ? source.value : 'Eingefügter Text'} ×
             </button>
           ))}
         </div>
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-caption leading-relaxed text-muted-foreground">
           Bei blockierten Webseiten versucht die KI, das Rezept über die Websuche zu rekonstruieren. Prüfe die Angaben danach trotzdem.
         </p>
         {aiInteractionId && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-caption text-muted-foreground">
             <span>War die KI-Analyse hilfreich?</span>
             <AiVoteButtons interactionId={aiInteractionId} />
           </div>
@@ -120,7 +120,7 @@ export default function WizardStepMethod({
           type="button"
           onClick={onManualStart}
           data-testid="recipe-manual-start"
-          className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          className="text-body text-muted-foreground underline underline-offset-4 hover:text-foreground"
         >
           Ohne KI manuell beginnen
         </button>

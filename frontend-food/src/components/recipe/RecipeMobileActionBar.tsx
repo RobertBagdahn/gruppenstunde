@@ -89,7 +89,7 @@ export default function RecipeMobileActionBar({
         type="button"
         onClick={onOpenShoppingList}
         aria-label="Einkaufsliste erstellen"
-        className="flex-1 flex items-center justify-center gap-2 h-10 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        className="flex-1 flex items-center justify-center gap-2 h-10 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
       >
         <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
         Einkaufsliste
@@ -98,7 +98,7 @@ export default function RecipeMobileActionBar({
         type="button"
         onClick={onOpenPortions}
         aria-label="Portionen skalieren"
-        className="flex-1 flex items-center justify-center gap-2 h-10 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
+        className="flex-1 flex items-center justify-center gap-2 h-10 text-body font-medium border rounded-lg hover:bg-muted transition-colors"
       >
         <span className="material-symbols-outlined text-[18px]">restaurant</span>
         Portionen
@@ -120,7 +120,7 @@ export default function RecipeMobileActionBar({
             <button
               type="button"
               onClick={() => { handleStartCooking(); setMenuOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">skillet</span>
               Kochen starten
@@ -128,7 +128,7 @@ export default function RecipeMobileActionBar({
             <button
               type="button"
               onClick={() => { setPdfDialogOpen(true); setMenuOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">print</span>
               Als PDF öffnen
@@ -136,7 +136,7 @@ export default function RecipeMobileActionBar({
             <button
               type="button"
               onClick={handleShare}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">share</span>
               Teilen

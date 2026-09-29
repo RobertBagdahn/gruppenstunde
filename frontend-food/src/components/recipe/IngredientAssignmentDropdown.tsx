@@ -93,7 +93,7 @@ export default function IngredientAssignmentDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-3 py-2 border border-input rounded-lg hover:bg-muted focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
       >
-        <span className="text-sm text-foreground">{selectedDisplay}</span>
+        <span className="text-body text-foreground">{selectedDisplay}</span>
         <ChevronDown
           size={16}
           className={`text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -110,18 +110,18 @@ export default function IngredientAssignmentDropdown({
           />
 
           {/* Menu */}
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-40 max-h-64 flex flex-col">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-40 max-h-64 flex flex-col">
             {/* Search Input */}
             {showSearch && (
               <div className="p-2 border-b border-border">
-                <div className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded">
+                <div className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-lg">
                   <Search size={14} className="text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Suchen..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 bg-transparent text-sm focus:outline-none"
+                    className="flex-1 bg-transparent text-body focus:outline-none"
                     autoFocus
                   />
                 </div>
@@ -131,7 +131,7 @@ export default function IngredientAssignmentDropdown({
             {/* Items List */}
             <div className="overflow-y-auto">
               {filteredItems.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                <div className="px-4 py-3 text-body text-muted-foreground text-center">
                   Keine Zutaten gefunden
                 </div>
               ) : (
@@ -147,7 +147,7 @@ export default function IngredientAssignmentDropdown({
                   >
                     <div className="font-medium">{getItemDisplayName(item)}</div>
                     {item.portion?.measuring_unit?.name && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div className="text-caption text-muted-foreground mt-0.5">
                         {item.portion.measuring_unit.name}
                       </div>
                     )}

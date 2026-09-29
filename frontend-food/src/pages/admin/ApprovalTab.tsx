@@ -40,7 +40,7 @@ export default function ApprovalTab() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-body text-destructive">
         Fehler beim Laden: {error.message}
       </div>
     );
@@ -48,7 +48,7 @@ export default function ApprovalTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+      <div className="flex items-center justify-center py-12 text-body text-muted-foreground">
         Lade Freigaben...
       </div>
     );
@@ -60,7 +60,7 @@ export default function ApprovalTab() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Rezepte, die auf Freigabe warten ({recipeItems.length} offen).
         </p>
       </div>
@@ -68,8 +68,8 @@ export default function ApprovalTab() {
       {recipeItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-border bg-card text-center text-muted-foreground">
           <Inbox className="h-8 w-8 mb-2 text-muted-foreground/60" />
-          <p className="text-sm font-medium">Keine Rezepte zur Freigabe</p>
-          <p className="text-xs text-muted-foreground mt-1">Es liegen aktuell keine neuen Freigabeanfragen vor.</p>
+          <p className="text-body font-medium">Keine Rezepte zur Freigabe</p>
+          <p className="text-caption text-muted-foreground mt-1">Es liegen aktuell keine neuen Freigabeanfragen vor.</p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -80,15 +80,15 @@ export default function ApprovalTab() {
             >
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-base font-display text-foreground leading-snug line-clamp-1">
+                  <h3 className="font-semibold text-emphasis font-display text-foreground leading-snug line-clamp-1">
                     {item.title}
                   </h3>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   von <span className="font-medium text-foreground">{item.author ?? 'Unbekannt'}</span> &middot; {new Date(item.submitted_at).toLocaleDateString('de-DE')}
                 </p>
                 {item.summary && (
-                  <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                  <p className="text-body text-muted-foreground line-clamp-3 leading-relaxed">
                     {item.summary}
                   </p>
                 )}
@@ -133,7 +133,7 @@ export default function ApprovalTab() {
             <ChevronLeft className="h-4 w-4" />
             Zurück
           </Button>
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="text-caption text-muted-foreground font-medium">
             Seite {page} von {data.total_pages}
           </span>
           <Button
@@ -156,7 +156,7 @@ export default function ApprovalTab() {
             <DialogTitle className="font-display">Rezept ablehnen</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-body text-muted-foreground leading-relaxed">
               „<span className="font-medium text-foreground">{rejectItem?.title}</span>“ wird abgelehnt. Bitte gib einen Grund für die Ablehnung an.
             </p>
             <Textarea

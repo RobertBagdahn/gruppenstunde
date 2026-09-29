@@ -41,14 +41,14 @@ export function RefMealSyncConfirmDialog({
         <DialogFooter>
           <button
             onClick={onCancel}
-            className="px-4 py-2 border rounded-md hover:bg-accent text-sm"
+            className="px-4 py-2 border rounded-lg hover:bg-accent text-body"
             data-testid="ref-meal-sync-confirm-cancel"
           >
             Abbrechen
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-body"
             data-testid="ref-meal-sync-confirm-save"
           >
             Speichern &amp; synchronisieren

@@ -150,8 +150,8 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
                 <DataCardRow key={item.id}>
                   <div className="flex flex-col md:flex-row md:items-center gap-3 min-w-0 flex-1">
                     <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{item.material_name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{item.material_category}</p>
+                      <p className="font-medium text-body truncate">{item.material_name}</p>
+                      <p className="text-caption text-muted-foreground truncate">{item.material_category}</p>
                     </div>
                     <Input
                       className="max-w-[240px]"
@@ -208,7 +208,7 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
 
           {/* Add form */}
           <div className="bg-card rounded-xl border p-4 space-y-3">
-            <p className="text-sm font-medium">Material hinzufügen</p>
+            <p className="text-body font-medium">Material hinzufügen</p>
             <div className="flex flex-col gap-2">
               <Input
                 aria-label="Material suchen"
@@ -227,7 +227,7 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
                     <li key={material.id}>
                       <button
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                        className="w-full text-left px-3 py-2 text-body hover:bg-muted transition-colors"
                         onClick={() => handleSelectMaterial(material.id, material.name)}
                       >
                         {material.name}

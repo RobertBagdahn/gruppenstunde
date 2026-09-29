@@ -15,7 +15,7 @@ export function MemberNormFactor({ age, gender, pal }: Props) {
   return (
     <Link
       to={`/tools/norm-portion-simulator?pal=${pal}&age=${age}&gender=${gender === 'no_answer' ? 'male' : gender}`}
-      className="text-xs font-medium text-primary hover:underline whitespace-nowrap"
+      className="text-caption font-medium text-primary hover:underline whitespace-nowrap"
       title="Normportion-Simulator öffnen"
     >
       {isLoading ? (

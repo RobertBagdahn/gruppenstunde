@@ -109,9 +109,9 @@ export default function StepActionsBar({
       )}
 
       {/* Status Indicator */}
-      <div className="ml-auto text-sm text-muted-foreground">
-        {hasChanges && <span className="text-orange-600 font-medium">● Ungespeichert</span>}
-        {!hasChanges && <span className="text-green-600">✓ Gespeichert</span>}
+      <div className="ml-auto text-body text-muted-foreground">
+        {hasChanges && <span className="text-warning font-medium">● Ungespeichert</span>}
+        {!hasChanges && <span className="text-success">✓ Gespeichert</span>}
       </div>
     </div>
   );

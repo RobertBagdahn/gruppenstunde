@@ -77,7 +77,7 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
         onClick={handleGenerate}
         disabled={createToken.isPending}
         className={cn(
-          'inline-flex items-center gap-1.5 text-sm text-primary font-bold hover:underline py-2',
+          'inline-flex items-center gap-1.5 text-body text-primary font-bold hover:underline py-2',
           createToken.isPending && 'opacity-50 cursor-wait',
         )}
       >
@@ -90,22 +90,22 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
       {showDialog && createToken.data && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
-            <h2 className="text-lg font-display font-bold text-foreground mb-4">
+            <h2 className="text-section font-display font-bold text-foreground mb-4">
               REWE-Warenkorb-Export
             </h2>
 
             {/* Bookmarklet link */}
             <div className="mb-4">
-              <p className="text-sm font-semibold text-foreground mb-2">
+              <p className="text-body font-semibold text-foreground mb-2">
                 1. Bookmarklet speichern
               </p>
-              <p className="text-xs text-muted-foreground mb-2">
+              <p className="text-caption text-muted-foreground mb-2">
                 Ziehe diesen Link in deine Lesezeichenleiste oder klicke mit
                 der rechten Maustaste &rarr; &bdquo;Lesezeichen hinzuf&uuml;gen&ldquo;:
               </p>
               <a
                 href={bookmarkletLink}
-                className="block w-full text-center px-4 py-2.5 bg-primary text-primary-foreground font-bold text-sm rounded-xl hover:bg-primary/90 transition-all shadow-soft mb-2"
+                className="block w-full text-center px-4 py-2.5 bg-primary text-primary-foreground font-bold text-body rounded-xl hover:bg-primary/90 transition-all shadow-soft mb-2"
                 onClick={(e) => {
                   e.preventDefault();
                   toast.info('Ziehe diesen Link in deine Lesezeichenleiste');
@@ -116,7 +116,7 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
               <button
                 type="button"
                 onClick={handleCopy}
-                className="w-full flex items-center justify-center gap-1.5 px-4 py-2 border border-border rounded-xl text-xs font-semibold hover:bg-muted transition-all"
+                className="w-full flex items-center justify-center gap-1.5 px-4 py-2 border border-border rounded-xl text-caption font-semibold hover:bg-muted transition-all"
               >
                 {copied ? (
                   <>
@@ -134,16 +134,16 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
 
             {/* Instructions */}
             <div className="mb-4 p-3 bg-muted/50 rounded-xl border border-border/60">
-              <p className="text-xs font-bold text-foreground mb-1">
+              <p className="text-caption font-bold text-foreground mb-1">
                 2. So funktioniert&apos;s:
               </p>
-              <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
+              <ol className="text-caption text-muted-foreground space-y-0.5 list-decimal list-inside">
                 <li>&Ouml;ffne <strong>shop.rewe.de</strong> in einem neuen Tab</li>
                 <li>Melde dich bei REWE an</li>
                 <li>Klicke das gespeicherte Bookmarklet in der Lesezeichenleiste</li>
                 <li>Die Artikel werden automatisch in deinen Warenkorb &uuml;bertragen</li>
               </ol>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-caption text-muted-foreground mt-2">
                 Der Token l&auml;uft in 5 Minuten ab &mdash; starte den Export
                 am besten direkt nach dem Erstellen.
               </p>
@@ -151,14 +151,14 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
 
             {/* Item status overview */}
             <div className="mb-4">
-              <p className="text-sm font-semibold text-foreground mb-2">
+              <p className="text-body font-semibold text-foreground mb-2">
                 Artikel-Status
               </p>
-              <div className="space-y-1 text-xs">
+              <div className="space-y-1 text-caption">
                 {items.map((item) => {
                   let status: { label: string; className: string } = {
                     label: 'Offen',
-                    className: 'text-yellow-600',
+                    className: 'text-warning',
                   };
                   if (item.is_checked) {
                     status = {
@@ -168,7 +168,7 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
                   } else if (!item.ingredient_id) {
                     status = {
                       label: 'Nicht gematcht',
-                      className: 'text-red-600',
+                      className: 'text-danger',
                     };
                   }
                   return (
@@ -187,14 +187,14 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
                 })}
               </div>
               {!hasMatchedItems && (
-                <p className="text-xs text-muted-foreground mt-2 italic">
+                <p className="text-caption text-muted-foreground mt-2 italic">
                   Keine Artikel mit REWE-Verkn&uuml;pfung gefunden.
                 </p>
               )}
             </div>
 
             {/* Token expiry info */}
-            <p className="text-xs text-muted-foreground mb-4">
+            <p className="text-caption text-muted-foreground mb-4">
               Token g&uuml;ltig bis:{' '}
               {new Date(createToken.data.expires_at).toLocaleTimeString('de-DE')}
             </p>
@@ -202,7 +202,7 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
             <button
               type="button"
               onClick={() => setShowDialog(false)}
-              className="w-full px-4 py-2.5 border border-border rounded-xl text-sm font-semibold hover:bg-muted transition-all"
+              className="w-full px-4 py-2.5 border border-border rounded-xl text-body font-semibold hover:bg-muted transition-all"
             >
               Schlie&szlig;en
             </button>

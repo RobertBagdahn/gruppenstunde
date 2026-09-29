@@ -10,7 +10,7 @@ export default function ProteinLandscapeTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Wie verteilt sich der Proteingehalt über alle verifizierten Zutaten?
       </p>
       <TabFilters showRetailSection />

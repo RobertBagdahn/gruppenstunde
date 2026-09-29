@@ -45,7 +45,7 @@ export default function ContentEmotions({
               }
             `}
           >
-            <span className="text-base">{icon}</span>
+            <span className="text-emphasis">{icon}</span>
             {count > 0 && <span className="tabular-nums">{count}</span>}
           </button>
         );

@@ -27,7 +27,7 @@ export default function AiFilterBar({
       <select
         value={dateRange}
         onChange={(e) => onDateRangeChange(e.target.value as DateRange)}
-        className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="h-9 rounded-lg border border-input bg-background px-3 py-1 text-body shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         {DATE_RANGE_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -36,14 +36,14 @@ export default function AiFilterBar({
         ))}
       </select>
       <label className={cn(
-        'flex items-center gap-2 text-sm cursor-pointer select-none',
+        'flex items-center gap-2 text-body cursor-pointer select-none',
         'text-muted-foreground hover:text-foreground transition-colors',
       )}>
         <input
           type="checkbox"
           checked={includeEmbeddings}
           onChange={(e) => onIncludeEmbeddingsChange(e.target.checked)}
-          className="h-4 w-4 rounded border-border"
+          className="h-4 w-4 rounded-lg border-border"
         />
         inkl. Embeddings
       </label>

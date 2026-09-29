@@ -10,7 +10,7 @@ export default function FibreDesertTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Ballaststoffgehalt in der Zutatendatenbank – wie viele Zutaten liefern Ballaststoffe?
       </p>
       <TabFilters showRetailSection />

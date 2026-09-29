@@ -116,14 +116,14 @@ export default function IngredientListPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate('/ingredients/statistics')}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-foreground text-sm font-medium hover:bg-muted transition-all"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-foreground text-body font-medium hover:bg-muted transition-all"
               >
                 <span className="material-symbols-outlined text-[16px]">analytics</span>
                 Statistiken
               </button>
               <button
                 onClick={() => navigate('/ingredients/new')}
-                className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all shadow-soft"
+                className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-primary/90 transition-all shadow-soft"
               >
                 <span className="material-symbols-outlined text-[16px]">add_circle</span>
                 Neue Zutat
@@ -134,7 +134,7 @@ export default function IngredientListPage() {
               <select
                 value={sort}
                 onChange={(e) => patch({ sort: SORT_OPTIONS.find((opt) => opt.value === e.target.value)?.value, page: undefined })}
-                className="px-3 py-1.5 rounded-xl border border-border text-sm bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium shadow-sm transition-all"
+                className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium shadow-sm transition-all"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -152,7 +152,7 @@ export default function IngredientListPage() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl border border-border bg-muted/40 animate-pulse h-40"
+                  className="rounded-xl border border-border bg-muted/40 animate-pulse h-40"
                 />
               ))}
             </div>

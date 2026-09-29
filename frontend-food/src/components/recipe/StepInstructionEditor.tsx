@@ -120,11 +120,11 @@ export default function StepInstructionEditor({
     <div className="space-y-3">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-foreground">Anweisung</label>
+          <label className="block text-body font-medium text-foreground">Anweisung</label>
           <PlaceholderInsertMenu
             onInsert={handleInsertPlaceholder}
             ingredientCount={stepIngredientCount}
-            className="text-xs"
+            className="text-caption"
           />
         </div>
         <textarea
@@ -136,9 +136,9 @@ export default function StepInstructionEditor({
           onDragOver={handlePlaceholderDragOver}
           onDrop={handlePlaceholderDrop}
           placeholder="z. B. 'Mehl und {ingredient_name} vermischen bis glatt...'"
-          className="w-full p-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent resize-vertical min-h-24 font-mono text-sm"
+          className="w-full p-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent resize-vertical min-h-24 font-mono text-body"
         />
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-caption text-muted-foreground mt-1">
           Verwende das Platzhalter-Menü, tippe manuell Platzhalter ein (z.B. {'{ingredient_name}'}) oder ziehe eine Zutat aus der Liste unten hierher
         </p>
       </div>
@@ -151,7 +151,7 @@ export default function StepInstructionEditor({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Dauer (Min.)</label>
+          <label className="block text-body font-medium text-foreground mb-2">Dauer (Min.)</label>
           <input
             type="number"
             min="0"
@@ -165,7 +165,7 @@ export default function StepInstructionEditor({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Sektion</label>
+          <label className="block text-body font-medium text-foreground mb-2">Sektion</label>
           <input
             type="text"
             value={localSection}

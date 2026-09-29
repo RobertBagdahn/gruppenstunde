@@ -258,10 +258,10 @@ export default function VariantSliderDialog({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6 text-center space-y-4">
           <span className="material-symbols-outlined text-4xl text-muted-foreground">info</span>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Keine gültige Portionsanzahl für dieses Gericht. Bitte zuerst Portionen festlegen.
           </p>
-          <button onClick={onClose} className="px-4 py-2 text-sm border rounded-lg hover:bg-muted">
+          <button onClick={onClose} className="px-4 py-2 text-body border rounded-lg hover:bg-muted">
             Schließen
           </button>
         </div>
@@ -326,8 +326,8 @@ export default function VariantSliderDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-card rounded-xl border shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
         <div className="p-6">
-          <h2 className="text-lg font-semibold font-display mb-1">Varianten konfigurieren</h2>
-          <p className="text-sm text-muted-foreground mb-5">
+          <h2 className="text-section font-semibold font-display mb-1">Varianten konfigurieren</h2>
+          <p className="text-body text-muted-foreground mb-5">
             Dieses Rezept hat Austausch-Gruppen oder optionale Zutaten.
             Verteile die {effectivePortions} Portionen auf die Varianten.
           </p>
@@ -342,13 +342,13 @@ export default function VariantSliderDialog({
 
               return (
                 <div key={group.groupId}>
-                  <div className="text-sm font-medium text-muted-foreground mb-2">
+                  <div className="text-body font-medium text-muted-foreground mb-2">
                     Austausch-Gruppe
                   </div>
                   <div className="space-y-2">
                     {group.members.map((m) => (
                       <div key={m.recipeItemId} className="flex items-center gap-3">
-                        <span className="flex-1 text-sm">{m.name}</span>
+                        <span className="flex-1 text-body">{m.name}</span>
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
@@ -362,15 +362,15 @@ export default function VariantSliderDialog({
                                 parseInt(e.target.value) || 0,
                               )
                             }
-                            className="w-16 px-2 py-1 text-sm text-right border rounded-md"
+                            className="w-16 px-2 py-1 text-body text-right border rounded-lg"
                           />
-                          <span className="text-xs text-muted-foreground">Port.</span>
+                          <span className="text-caption text-muted-foreground">Port.</span>
                         </div>
                       </div>
                     ))}
                   </div>
                   <div
-                    className={`text-xs mt-1 ${isValid ? 'text-muted-foreground' : 'text-destructive font-medium'}`}
+                    className={`text-caption mt-1 ${isValid ? 'text-muted-foreground' : 'text-destructive font-medium'}`}
                   >
                     Σ {sum} / {effectivePortions} Portionen
                     {!isValid && ' — Summe muss stimmen'}
@@ -381,11 +381,11 @@ export default function VariantSliderDialog({
 
             {displayOptionals.map((opt) => (
               <div key={opt.recipeItemId}>
-                <div className="text-sm font-medium text-muted-foreground mb-2">
+                <div className="text-body font-medium text-muted-foreground mb-2">
                   Optional: {opt.name}
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="flex-1 text-sm">mit {opt.name}</span>
+                  <span className="flex-1 text-body">mit {opt.name}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
@@ -398,12 +398,12 @@ export default function VariantSliderDialog({
                           parseInt(e.target.value) || 0,
                         )
                       }
-                      className="w-16 px-2 py-1 text-sm text-right border rounded-md"
+                      className="w-16 px-2 py-1 text-body text-right border rounded-lg"
                     />
-                    <span className="text-xs text-muted-foreground">Port.</span>
+                    <span className="text-caption text-muted-foreground">Port.</span>
                   </div>
                 </div>
-                <div className="text-xs mt-1 text-muted-foreground">
+                <div className="text-caption mt-1 text-muted-foreground">
                   ohne {opt.name}: {effectivePortions - opt.portionsWith} Portionen
                 </div>
               </div>
@@ -415,14 +415,14 @@ export default function VariantSliderDialog({
               type="button"
               onClick={handleSave}
               disabled={!allGroupsValid || batchCreate.isPending}
-              className="flex-1 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="flex-1 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {batchCreate.isPending ? 'Erstellt...' : `${generateVariants(displayGroups, displayOptionals, effectivePortions).length} Varianten erstellen`}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
+              className="flex-1 py-2 text-body font-medium border rounded-lg hover:bg-muted transition-colors"
             >
               Überspringen
             </button>

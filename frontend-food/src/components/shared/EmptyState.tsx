@@ -42,12 +42,12 @@ export default function EmptyState({
           </span>
         </div>
       ) : null}
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-      <p className="text-sm text-muted-foreground mt-1 max-w-md">{description}</p>
+      <h2 className="text-section font-semibold text-foreground">{title}</h2>
+      <p className="text-body text-muted-foreground mt-1 max-w-md">{description}</p>
       {ctaLabel && ctaHref && (
         <Link
           to={ctaHref}
-          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-body font-medium hover:bg-primary/90 transition-colors"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           {ctaLabel}
@@ -57,7 +57,7 @@ export default function EmptyState({
         <button
           type="button"
           onClick={onCtaClick}
-          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-body font-medium hover:bg-primary/90 transition-colors"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           {ctaLabel}

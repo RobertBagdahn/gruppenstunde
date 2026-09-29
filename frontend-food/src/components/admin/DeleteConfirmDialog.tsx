@@ -23,7 +23,7 @@ export default function DeleteConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-display">
+          <DialogTitle className="flex items-center gap-2 text-section font-display">
             <Trash2 className="h-5 w-5 text-destructive" />
             {title}
           </DialogTitle>

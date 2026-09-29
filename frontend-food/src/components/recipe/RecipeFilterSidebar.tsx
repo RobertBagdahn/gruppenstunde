@@ -115,12 +115,12 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     <aside className="w-full md:w-64 shrink-0 md:sticky md:top-20 md:max-h-[calc(100vh-5rem)] md:overflow-y-auto">
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-sm"
+        className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-body"
       >
         <span className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
           Filter {activeFilterCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-xs px-1.5">
+            <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-caption px-1.5">
               {activeFilterCount}
             </span>
           )}
@@ -133,7 +133,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
       <div className={`space-y-4 ${mobileOpen ? 'block' : 'hidden md:block'}`}>
         <button
           onClick={onReset}
-          className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-card hover:bg-muted text-sm font-semibold transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-border bg-card hover:bg-muted text-body font-semibold transition-colors"
         >
           <span className="material-symbols-outlined text-[16px]">restart_alt</span>
           Zurücksetzen
@@ -142,11 +142,11 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         {hasActiveFilters && (
           <div className="bg-card rounded-xl border p-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-caption font-semibold uppercase text-muted-foreground">
                 <span className="material-symbols-outlined text-[16px]">filter_list</span>
                 Aktive Filter
               </span>
-              <button onClick={onReset} className="flex items-center gap-1 text-xs text-destructive hover:underline">
+              <button onClick={onReset} className="flex items-center gap-1 text-caption text-destructive hover:underline">
                 <span className="material-symbols-outlined text-[14px]">close</span>
                 Alle löschen
               </button>
@@ -158,7 +158,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                   <button
                     key={val}
                     onClick={() => toggleMulti('recipe_type', selectedRecipeType, val)}
-                    className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--chart-2))]/10 text-[hsl(var(--chart-2))] border border-[hsl(var(--chart-2))]/20 px-2.5 py-1 text-xs font-medium hover:bg-[hsl(var(--chart-2))]/20 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-warning-soft text-warning border border-warning-border px-2.5 py-1 text-caption font-medium hover:bg-warning-soft transition-colors"
                   >
                     {opt.label}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -171,7 +171,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                   <button
                     key={val}
                     onClick={() => toggleMulti('origin', selectedOrigin, val)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -184,7 +184,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                   <button
                     key={slug}
                     onClick={() => toggleTag(slug)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {tag.name}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -195,7 +195,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           </div>
         )}
 
-        <FilterGroup title="Typ" icon="restaurant" color="var(--chart-2)">
+        <FilterGroup title="Typ" icon="restaurant" color="hsl(var(--primary))">
           {RECIPE_TYPE_OPTIONS.filter((opt) => opt.value !== 'recipe_part' && opt.value !== 'ingredient').map((opt) => (
             <FilterCheckbox
               key={opt.value}
@@ -220,7 +220,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           ))}
         </FilterGroup>
 
-        <FilterGroup title="Schwierigkeit" icon="signal_cellular_alt" color="var(--chart-2)">
+        <FilterGroup title="Schwierigkeit" icon="signal_cellular_alt" color="hsl(var(--primary))">
           {RECIPE_DIFFICULTY_OPTIONS.map((opt) => (
             <FilterCheckbox
               key={opt.value}
@@ -231,7 +231,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           ))}
         </FilterGroup>
 
-        <FilterGroup title="Dauer" icon="schedule" color="var(--chart-1)">
+        <FilterGroup title="Dauer" icon="schedule" color="hsl(var(--primary))">
           {RECIPE_EXECUTION_TIME_OPTIONS.map((opt) => (
             <FilterCheckbox
               key={opt.value}
@@ -242,7 +242,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           ))}
         </FilterGroup>
 
-        <FilterGroup title="Zubereitungsart" icon="cooking" color="var(--chart-2)">
+        <FilterGroup title="Zubereitungsart" icon="cooking" color="hsl(var(--primary))">
           {RECIPE_PREPARATION_METHOD_OPTIONS.map((opt) => (
             <FilterCheckbox
               key={opt.value}
@@ -253,7 +253,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           ))}
         </FilterGroup>
 
-        <FilterGroup title="Kosten" icon="payments" color="var(--chart-4)">
+        <FilterGroup title="Kosten" icon="payments" color="hsl(var(--primary))">
           {COST_RANGE_OPTIONS.map((opt) => (
             <FilterCheckbox
               key={opt.value}
@@ -281,7 +281,7 @@ function FilterGroup({
 }) {
   return (
     <div className="bg-card rounded-xl border p-4 shadow-sm">
-      <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
+      <h3 className="flex items-center gap-1.5 text-body font-semibold mb-3">
         <span className="material-symbols-outlined text-[18px]" style={{ color }}>{icon}</span>
         <span style={{ color }}>{title}</span>
       </h3>
@@ -302,12 +302,12 @@ function FilterCheckbox({
   label: string;
 }) {
   return (
-    <label className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
+    <label className="flex items-center gap-2 py-1.5 cursor-pointer text-body hover:text-primary transition-colors">
       <input
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="rounded border-muted-foreground accent-primary"
+        className="rounded-lg border-muted-foreground accent-primary"
       />
       {icon && <span className="material-symbols-outlined text-[16px]">{icon}</span>}
       {label}

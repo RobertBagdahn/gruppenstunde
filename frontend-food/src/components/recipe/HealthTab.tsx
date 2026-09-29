@@ -29,8 +29,8 @@ export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeT
                   key={grade}
                   className={`flex items-center justify-center font-bold rounded-lg transition-all ${
                     isActive
-                      ? `${colors.bg} ${colors.text} w-14 h-14 text-2xl shadow-lg scale-110`
-                      : `${colors.bg}/20 text-muted-foreground w-10 h-10 text-sm opacity-30`
+                      ? `${colors.bg} ${colors.text} w-14 h-14 text-title shadow-lg scale-110`
+                      : `${colors.bg}/20 text-muted-foreground w-10 h-10 text-body opacity-30`
                   }`}
                 >
                   {grade}
@@ -38,30 +38,30 @@ export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeT
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Gesamtpunkte: {nutriScore.total_points}
           </p>
         </div>
         <div className="flex-1 space-y-3">
-          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+          <div className="p-3 bg-danger-soft rounded-lg border border-danger-border">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-red-700">Negative Punkte</span>
-              <span className="text-lg font-bold text-red-700">
+              <span className="text-body font-medium text-danger">Negative Punkte</span>
+              <span className="text-section font-bold text-danger">
                 {nutriScore.negative_points}
               </span>
             </div>
-            <p className="text-xs text-red-600 mt-1">
+            <p className="text-caption text-danger mt-1">
               Energie, Zucker, gesättigte Fettsäuren, Natrium
             </p>
           </div>
-          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+          <div className="p-3 bg-success-soft rounded-lg border border-success-border">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-green-700">Positive Punkte</span>
-              <span className="text-lg font-bold text-green-700">
+              <span className="text-body font-medium text-success">Positive Punkte</span>
+              <span className="text-section font-bold text-success">
                 {nutriScore.positive_points}
               </span>
             </div>
-            <p className="text-xs text-green-600 mt-1">
+            <p className="text-caption text-success mt-1">
               Ballaststoffe, Protein, Obst/Gemüse-Anteil
             </p>
           </div>
@@ -69,7 +69,7 @@ export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeT
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold mb-3">Gesundheitsindikatoren (pro 100g)</h3>
+        <h3 className="text-body font-semibold mb-3">Gesundheitsindikatoren (pro 100g)</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <HealthIndicator
             label="Zucker"
@@ -125,7 +125,7 @@ export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeT
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold mb-3">Verbesserungsvorschläge</h3>
+        <h3 className="text-body font-semibold mb-3">Verbesserungsvorschläge</h3>
         <RecipeImprovements
           recipeId={recipeId}
           breakdownItems={nb?.items ?? []}

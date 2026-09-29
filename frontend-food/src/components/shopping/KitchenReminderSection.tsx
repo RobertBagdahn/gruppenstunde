@@ -53,7 +53,7 @@ export default function KitchenReminderSection() {
 
   return (
     <div className="mt-8 border-t pt-6">
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+      <h3 className="text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
         Küchenbedarf – Erinnerung
       </h3>
 
@@ -65,7 +65,7 @@ export default function KitchenReminderSection() {
               <button
                 type="button"
                 onClick={() => toggleCollapse(cat.id)}
-                className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-primary w-full text-left"
+                className="flex items-center gap-1 text-body font-medium text-foreground hover:text-primary w-full text-left"
               >
                 {isCollapsed ? (
                   <ChevronRight className="h-4 w-4" />
@@ -73,7 +73,7 @@ export default function KitchenReminderSection() {
                   <ChevronDown className="h-4 w-4" />
                 )}
                 {cat.name}
-                <span className="text-xs text-muted-foreground ml-1">
+                <span className="text-caption text-muted-foreground ml-1">
                   ({cat.reminders.length})
                 </span>
               </button>
@@ -89,7 +89,7 @@ export default function KitchenReminderSection() {
                         className={cn(
                           'flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border-2 transition-all',
                           checked.has(reminder.id)
-                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            ? 'bg-success border-success text-white'
                             : 'border-muted-foreground/30 hover:border-primary',
                         )}
                         aria-label={checked.has(reminder.id) ? 'Als unerledigt markieren' : 'Als erledigt markieren'}
@@ -102,7 +102,7 @@ export default function KitchenReminderSection() {
                       {/* Label */}
                       <span
                         className={cn(
-                          'flex-1 text-sm font-medium',
+                          'flex-1 text-body font-medium',
                           checked.has(reminder.id) && 'line-through text-muted-foreground',
                           available.has(reminder.id) && 'text-muted-foreground',
                           reminder.is_own_suggestion && !reminder.is_published && 'italic text-muted-foreground'
@@ -110,10 +110,10 @@ export default function KitchenReminderSection() {
                       >
                         {reminder.name}
                         {reminder.is_own_suggestion && !reminder.is_published && (
-                          <span className="ml-1 text-xs">(Dein Vorschlag)</span>
+                          <span className="ml-1 text-caption">(Dein Vorschlag)</span>
                         )}
                         {available.has(reminder.id) && (
-                          <span className="ml-2 text-xs text-emerald-600 font-medium">✓ vorhanden</span>
+                          <span className="ml-2 text-caption text-success font-medium">✓ vorhanden</span>
                         )}
                       </span>
 
@@ -122,9 +122,9 @@ export default function KitchenReminderSection() {
                         type="button"
                         onClick={() => toggleAvailable(reminder.id)}
                         className={cn(
-                          'shrink-0 text-xs px-2 py-1 rounded transition-colors',
+                          'shrink-0 text-caption px-2 py-1 rounded-lg transition-colors',
                           available.has(reminder.id)
-                            ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                            ? 'text-success bg-success-soft hover:bg-success-soft'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted',
                         )}
                       >
@@ -147,13 +147,13 @@ export default function KitchenReminderSection() {
           onChange={(e) => setSuggestionInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSuggest()}
           placeholder="Eigenen Vorschlag hinzufügen..."
-          className="flex-1 text-sm border rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+          className="flex-1 text-body border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <button
           type="button"
           onClick={handleSuggest}
           disabled={!suggestionInput.trim() || suggestMutation.isPending}
-          className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 disabled:opacity-50"
+          className="inline-flex items-center gap-1 text-body text-primary hover:text-primary/80 disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           Vorschlagen

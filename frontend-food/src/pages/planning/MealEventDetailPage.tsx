@@ -379,8 +379,8 @@ export default function MealPlanDetailPage() {
       <div className="flex flex-wrap items-center gap-3">
         <BackButton to="/meal-plans/app" />
         <div className="border-l border-border pl-3 flex-1 min-w-[10rem]">
-          <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground truncate">{plan.name}</h1>
-          <div className="flex flex-wrap gap-3 mt-1.5 text-xs font-semibold text-muted-foreground">
+          <h1 className="text-section sm:text-title font-display font-bold text-foreground truncate">{plan.name}</h1>
+          <div className="flex flex-wrap gap-3 mt-1.5 text-caption font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
               {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
@@ -400,7 +400,7 @@ export default function MealPlanDetailPage() {
                 {plan.tags.map((tag: { id: number; name: string }) => (
                   <span
                     key={tag.id}
-                    className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold"
+                    className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-caption font-semibold"
                   >
                     {tag.name}
                   </span>
@@ -560,7 +560,7 @@ export default function MealPlanDetailPage() {
                 type="button"
                 onClick={() => patchDetailState({ view: 'cards' }, { replace: true })}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
                   planView === 'cards'
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -573,7 +573,7 @@ export default function MealPlanDetailPage() {
                 type="button"
                 onClick={() => patchDetailState({ view: 'table' }, { replace: true })}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
                   planView === 'table'
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -648,7 +648,7 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
                 shoppingSub === 'list'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/60 text-muted-foreground hover:text-foreground'
@@ -665,7 +665,7 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
                 shoppingSub === 'costs'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/60 text-muted-foreground hover:text-foreground'
@@ -706,7 +706,7 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
                 cookingSub === 'schedule'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/60 text-muted-foreground hover:text-foreground'
@@ -723,7 +723,7 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
                 cookingSub === 'helpers'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/60 text-muted-foreground hover:text-foreground'

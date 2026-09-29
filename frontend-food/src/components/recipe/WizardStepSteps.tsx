@@ -18,8 +18,8 @@ export default function WizardStepSteps({ recipeSlug }: WizardStepStepsProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-display font-bold">Zubereitungsschritte</h2>
-        <p className="text-sm text-muted-foreground mt-2">
+        <h2 className="text-section font-display font-bold">Zubereitungsschritte</h2>
+        <p className="text-body text-muted-foreground mt-2">
           Definiere die Zubereitungsschritte deines Rezepts.
         </p>
       </div>

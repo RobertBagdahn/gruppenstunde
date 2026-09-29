@@ -97,11 +97,11 @@ export default function ShareDialog({
         onClick={onClose}
       >
         <div
-          className="w-full max-w-md bg-card rounded-2xl shadow-lg border border-border p-6"
+          className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border p-6"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">Freigaben</h2>
+            <h2 className="text-section font-bold">Freigaben</h2>
             <button
               onClick={onClose}
               className="rounded-full p-1 hover:bg-muted transition-colors"
@@ -112,13 +112,13 @@ export default function ShareDialog({
 
           {/* Existing collaborators */}
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+            <h3 className="text-body font-semibold text-muted-foreground mb-2">
               Freigegeben für ({collaborators.length})
             </h3>
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Lädt...</p>
+              <p className="text-body text-muted-foreground">Lädt...</p>
             ) : collaborators.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Noch keine Freigaben</p>
+              <p className="text-body text-muted-foreground">Noch keine Freigaben</p>
             ) : (
               <ul className="space-y-2">
                 {collaborators.map((collab) => (
@@ -127,10 +127,10 @@ export default function ShareDialog({
                     className="flex items-center justify-between gap-2 rounded-lg border border-border p-2"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
+                      <p className="text-body font-medium truncate">
                         {collab.user_display_name || collab.group_name || 'Unbekannt'}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         {collab.user_id ? 'Nutzer' : 'Gruppe'}
                       </p>
                     </div>
@@ -143,7 +143,7 @@ export default function ShareDialog({
                       />
                       <button
                         onClick={() => setRemoveTarget({ id: collab.id, name: collab.user_display_name || collab.group_name || 'Unbekannt' })}
-                        className="rounded p-1 text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        className="rounded-lg p-1 text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
                         title="Entfernen"
                       >
                         <span className="material-symbols-outlined text-[18px]">person_remove</span>
@@ -157,7 +157,7 @@ export default function ShareDialog({
 
           {/* Add collaborator */}
           <div className="border-t border-border pt-4">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+            <h3 className="text-body font-semibold text-muted-foreground mb-3">
               Freigabe hinzufügen
             </h3>
 
@@ -195,12 +195,12 @@ export default function ShareDialog({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearchUsers()}
-                    className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-body focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                   <button
                     onClick={handleSearchUsers}
                     disabled={isSearching}
-                    className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                    className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-body font-medium hover:opacity-90 disabled:opacity-50"
                   >
                     Suchen
                   </button>
@@ -229,7 +229,7 @@ export default function ShareDialog({
 
             {/* Group selector - simplified: show user's groups */}
             {addMode === 'group' && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Gruppenfreigabe wird später implementiert.
               </p>
             )}
@@ -240,7 +240,7 @@ export default function ShareDialog({
                 <button
                   onClick={handleAddCollaborator}
                   disabled={addCollaborator.isPending}
-                  className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                  className="rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-body font-medium hover:opacity-90 disabled:opacity-50"
                 >
                   {addCollaborator.isPending ? 'Füge hinzu...' : 'Hinzufügen'}
                 </button>

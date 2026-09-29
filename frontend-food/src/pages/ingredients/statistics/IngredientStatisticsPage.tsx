@@ -92,10 +92,10 @@ export default function IngredientStatisticsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-      <h1 className="font-display font-bold text-2xl md:text-3xl text-foreground mb-2">
+      <h1 className="font-display font-bold text-title md:text-title text-foreground mb-2">
         Zutaten-Statistiken
       </h1>
-      <p className="text-muted-foreground text-sm mb-4">
+      <p className="text-muted-foreground text-body mb-4">
         Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank
       </p>
 
@@ -124,7 +124,7 @@ export default function IngredientStatisticsPage() {
 
       {/* Category badge */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="px-2 py-0.5 rounded-md bg-muted text-xs text-muted-foreground">
+        <span className="px-2 py-0.5 rounded-lg bg-muted text-caption text-muted-foreground">
           {activeTab.category === 'leaderboard' && 'Bestenliste'}
           {activeTab.category === 'distribution' && 'Verteilung'}
           {activeTab.category === 'correlation' && 'Korrelation'}
@@ -136,7 +136,7 @@ export default function IngredientStatisticsPage() {
       </div>
 
       {/* Active tab content */}
-      <div className="rounded-2xl border border-border bg-card p-4 md:p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-sm">
         <ActiveComponent />
       </div>
     </div>

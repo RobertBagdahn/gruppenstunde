@@ -71,20 +71,20 @@ export default function PackageSuggestionRow({
         )}
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Link to={`/ingredients/${suggestion.ingredient_slug}`} className="font-semibold text-sm hover:text-primary">
+            <Link to={`/ingredients/${suggestion.ingredient_slug}`} className="font-semibold text-body hover:text-primary">
               {suggestion.ingredient_name}
             </Link>
             {suggestion.retail_section_name && (
-              <span className="text-xs text-muted-foreground">{suggestion.retail_section_name}</span>
+              <span className="text-caption text-muted-foreground">{suggestion.retail_section_name}</span>
             )}
             <span
-              className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', confidenceClass(suggestion.confidence))}
+              className={cn('rounded-full border px-2 py-0.5 text-caption font-semibold', confidenceClass(suggestion.confidence))}
               title="Konfidenz der KI"
             >
               {formatNumber(suggestion.confidence * 100, { maxDecimals: 0 })} %
             </span>
             {!pending && (
-              <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+              <span className="rounded-full border px-2 py-0.5 text-caption text-muted-foreground">
                 {STATUS_LABELS[suggestion.status]}
               </span>
             )}
@@ -105,10 +105,10 @@ export default function PackageSuggestionRow({
                 className="h-8 w-24"
                 aria-label="Gewicht in Gramm"
               />
-              <span className="text-xs text-muted-foreground">g</span>
+              <span className="text-caption text-muted-foreground">g</span>
             </div>
           ) : (
-            <p className="text-sm">
+            <p className="text-body">
               <span className="font-medium">{formatPackageLabel(suggestion)}</span>
               <span className="text-muted-foreground"> · {formatExactWeight(suggestion.weight_g)}</span>
               {suggestion.volume_ml && (
@@ -117,12 +117,12 @@ export default function PackageSuggestionRow({
             </p>
           )}
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {viscosityLabel}
             {suggestion.physical_density && ` · Dichte ${formatNumber(suggestion.physical_density, { maxDecimals: 2 })} g/ml`}
             {suggestion.viscosity_is_manual && ' · Aggregatzustand manuell gepflegt, wird nicht überschrieben'}
           </p>
-          {suggestion.reason && <p className="text-xs text-muted-foreground italic">{suggestion.reason}</p>}
+          {suggestion.reason && <p className="text-caption text-muted-foreground italic">{suggestion.reason}</p>}
         </div>
       </div>
 

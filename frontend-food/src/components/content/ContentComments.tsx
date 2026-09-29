@@ -30,22 +30,22 @@ function CommentItem({
   return (
     <div className={depth > 0 ? 'ml-6 border-l-2 border-border/40 pl-4' : ''}>
       <div className="py-3">
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-body">
           <span className="font-bold text-foreground">
             {comment.user_display_name || comment.author_name || 'Anonym'}
           </span>
-          <span className="text-muted-foreground text-xs">{timeAgo}</span>
+          <span className="text-muted-foreground text-caption">{timeAgo}</span>
           {comment.status === 'pending' && (
-            <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-semibold">
+            <span className="text-caption bg-warning-soft text-warning border border-warning-border rounded-full px-2 py-0.5 font-semibold">
               Ausstehend
             </span>
           )}
         </div>
-        <p className="text-sm text-foreground mt-1">{comment.text}</p>
+        <p className="text-body text-foreground mt-1">{comment.text}</p>
         <button
           type="button"
           onClick={() => onReply(comment.id)}
-          className="text-xs text-muted-foreground hover:text-primary mt-1 font-semibold"
+          className="text-caption text-muted-foreground hover:text-primary mt-1 font-semibold"
         >
           Antworten
         </button>
@@ -107,7 +107,7 @@ export default function ContentComments({
 
   return (
     <div>
-      <h3 className="text-lg font-bold mb-4">
+      <h3 className="text-section font-bold mb-4">
         Kommentare
         {comments.length > 0 && (
           <span className="text-muted-foreground font-normal ml-2">({comments.length})</span>
@@ -127,14 +127,14 @@ export default function ContentComments({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground mb-6">
+        <p className="text-body text-muted-foreground mb-6">
           Noch keine Kommentare. Schreibe den ersten!
         </p>
       )}
 
       {/* Reply indicator */}
       {replyTo !== null && (
-        <div className="flex items-center gap-2 mb-2 text-sm text-primary">
+        <div className="flex items-center gap-2 mb-2 text-body text-primary">
           <span className="material-symbols-outlined text-[16px]">reply</span>
           <span>Antwort auf Kommentar</span>
           <button
@@ -155,7 +155,7 @@ export default function ContentComments({
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
             placeholder="Dein Name (optional)"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         )}
         <textarea
@@ -163,10 +163,10 @@ export default function ContentComments({
           onChange={(e) => setText(e.target.value)}
           placeholder="Schreibe einen Kommentar..."
           rows={3}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-body resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {isAuthenticated
                ? 'Dein Kommentar wird sofort veröffentlicht.'
                : 'Anonyme Kommentare werden nach Prüfung freigeschaltet.'}
@@ -174,7 +174,7 @@ export default function ContentComments({
           <button
             type="submit"
             disabled={isPending || !text.trim()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
               <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>

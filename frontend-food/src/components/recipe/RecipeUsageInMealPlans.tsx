@@ -12,7 +12,7 @@ export default function RecipeUsageInMealPlans({ count }: RecipeUsageInMealPlans
       <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
         <CalendarDays className="w-4 h-4 text-primary" />
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         In{' '}
         <span className="font-semibold text-foreground">
           {count} {count === 1 ? 'Essensplan' : 'Essensplänen'}

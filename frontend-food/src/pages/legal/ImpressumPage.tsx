@@ -16,14 +16,14 @@ export default function ImpressumPage() {
             alt="Inspi Teacher"
             className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-lg"
           />
-          <h1 className="text-3xl md:text-5xl font-display font-bold">Impressum</h1>
+          <h1 className="text-title md:text-title font-display font-bold">Impressum</h1>
         </div>
       </section>
 
       <section className="container py-12 md:py-16">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">Angaben gemäß § 5 TMG</h3>
+            <h3 className="text-section font-display font-bold text-foreground">Angaben gemäß § 5 TMG</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Robert Bagdahn<br />
               Rautenstrauchstr. 93<br />
@@ -32,7 +32,7 @@ export default function ImpressumPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">Kontakt</h3>
+            <h3 className="text-section font-display font-bold text-foreground">Kontakt</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               <a
                 href={emailHref}
@@ -44,7 +44,7 @@ export default function ImpressumPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">
+            <h3 className="text-section font-display font-bold text-foreground">
               Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV
             </h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
@@ -55,7 +55,7 @@ export default function ImpressumPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">Haftung für Inhalte</h3>
+            <h3 className="text-section font-display font-bold text-foreground">Haftung für Inhalte</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten
               nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als
@@ -70,7 +70,7 @@ export default function ImpressumPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">Haftung für Links</h3>
+            <h3 className="text-section font-display font-bold text-foreground">Haftung für Links</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen
               Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen.
@@ -84,7 +84,7 @@ export default function ImpressumPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">Urheberrecht</h3>
+            <h3 className="text-section font-display font-bold text-foreground">Urheberrecht</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen
               dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art

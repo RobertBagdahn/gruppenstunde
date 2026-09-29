@@ -92,7 +92,7 @@ export default function TitleImageEditor({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-border bg-muted/30 hover:bg-muted/60 text-sm font-medium text-muted-foreground hover:text-foreground transition disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-border bg-muted/30 hover:bg-muted/60 text-body font-medium text-muted-foreground hover:text-foreground transition disabled:opacity-50"
             >
               {isUploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -105,7 +105,7 @@ export default function TitleImageEditor({
               type="button"
               onClick={() => setShowAiModal(true)}
               disabled={isUploading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-sm font-medium text-primary transition disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-body font-medium text-primary transition disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
               KI-Bild generieren
@@ -145,7 +145,7 @@ export default function TitleImageEditor({
 
   // Bild vorhanden: vollständiger Hero-Container mit Edit-Overlay
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-muted/10 mb-8 shadow-lg max-w-lg mx-auto aspect-square">
+    <div className="relative rounded-xl overflow-hidden bg-muted/10 mb-8 shadow-lg max-w-lg mx-auto aspect-square">
       <img
         src={imageUrl}
         alt={title}
@@ -185,7 +185,7 @@ export default function TitleImageEditor({
               <div className="absolute right-0 top-12 z-20 min-w-[200px] rounded-xl border bg-card shadow-lg py-1">
                 <button
                   type="button"
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted transition"
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-body text-left hover:bg-muted transition"
                   onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }}
                 >
                   <Upload className="w-4 h-4" />
@@ -193,7 +193,7 @@ export default function TitleImageEditor({
                 </button>
                 <button
                   type="button"
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted transition"
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-body text-left hover:bg-muted transition"
                   onClick={() => { setShowAiModal(true); setShowMenu(false); }}
                 >
                   <Sparkles className="w-4 h-4" />
@@ -201,7 +201,7 @@ export default function TitleImageEditor({
                 </button>
                 <button
                   type="button"
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted text-destructive transition"
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-body text-left hover:bg-muted text-destructive transition"
                   onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
                 >
                   <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -339,28 +339,28 @@ function AiImageModal({
 
         <div className="space-y-4">
           {/* Already included data */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm space-y-2">
-            <p className="font-medium text-blue-900">Bereits eingehende Informationen:</p>
-            <ul className="space-y-1 text-blue-800">
+          <div className="bg-info-soft border border-info-border rounded-lg p-3 text-body space-y-2">
+            <p className="font-medium text-info">Bereits eingehende Informationen:</p>
+            <ul className="space-y-1 text-info">
               {title && <li>• <strong>Titel:</strong> {title}</li>}
               {summary && <li>• <strong>Zusammenfassung:</strong> {summary}</li>}
             </ul>
-            <p className="text-blue-700 text-xs mt-2">
+            <p className="text-info text-caption mt-2">
               Sie können optional eine weitere Bildbeschreibung hinzufügen oder direkt auf „Generieren" klicken.
             </p>
           </div>
 
           {/* Prompt input - optional */}
           <div>
-            <label htmlFor="ai-image-prompt" className="text-sm font-medium mb-1.5 block">
-              Bildbeschreibung <span className="text-xs text-muted-foreground">(optional)</span>
+            <label htmlFor="ai-image-prompt" className="text-body font-medium mb-1.5 block">
+              Bildbeschreibung <span className="text-caption text-muted-foreground">(optional)</span>
             </label>
             <textarea
               id="ai-image-prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={2}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="w-full rounded-lg border bg-background px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               placeholder="z.B. Mit frischen Kräutern garniert, natürliches Licht..."
             />
           </div>
@@ -373,14 +373,14 @@ function AiImageModal({
           {/* Generated images grid */}
           {generatedUrls.length > 0 && (
             <div>
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-body text-muted-foreground mb-2">
                 ✓ Bild wird übernommen...
               </p>
               <div className="max-w-xs mx-auto">
                 {generatedUrls.slice(0, 1).map((url) => (
                   <div
                     key={url}
-                    className="relative aspect-square w-full rounded-lg overflow-hidden border-2 border-green-400"
+                    className="relative aspect-square w-full rounded-lg overflow-hidden border-2 border-success"
                   >
                     <img
                       src={url}
@@ -400,7 +400,7 @@ function AiImageModal({
 
           {/* Error state */}
           {generateImage.isError && (
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-body text-destructive">
               {generateImage.error.message}
             </div>
           )}
@@ -410,7 +410,7 @@ function AiImageModal({
             type="button"
             onClick={handleGenerate}
             disabled={generateImage.isPending}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition disabled:opacity-50 disabled:bg-green-600"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-success hover:bg-success text-white text-body font-medium transition disabled:opacity-50 disabled:bg-success"
           >
             {generateImage.isPending ? (
               <>

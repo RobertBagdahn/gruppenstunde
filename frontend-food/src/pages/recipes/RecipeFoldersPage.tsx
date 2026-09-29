@@ -54,41 +54,41 @@ export default function RecipeFoldersPage() {
       <div className="mb-4">
         <Link
           to="/recipes/my-recipes"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+          className="inline-flex items-center gap-1.5 text-body font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
           Meine Rezepte
         </Link>
       </div>
 
-      <h1 className="font-display font-bold text-2xl md:text-3xl text-foreground mb-2">
+      <h1 className="font-display font-bold text-title md:text-title text-foreground mb-2">
         Ordner verwalten
       </h1>
-      <p className="text-muted-foreground text-sm mb-6">
+      <p className="text-muted-foreground text-body mb-6">
         Organisiere deine persönlichen Rezepte in Ordnern
       </p>
 
       {/* Create form */}
-      <div className="rounded-2xl border border-border bg-card p-4 mb-6 shadow-sm">
-        <h2 className="font-display font-semibold text-base mb-3">Neuen Ordner erstellen</h2>
+      <div className="rounded-xl border border-border bg-card p-4 mb-6 shadow-sm">
+        <h2 className="font-display font-semibold text-emphasis mb-3">Neuen Ordner erstellen</h2>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs text-muted-foreground mb-1">Name</label>
+            <label className="block text-caption text-muted-foreground mb-1">Name</label>
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Ordnername"
-              className="w-full px-3 py-1.5 rounded-xl border border-border text-sm bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+              className="w-full px-3 py-1.5 rounded-xl border border-border text-body bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             />
           </div>
           {rootFolders.length > 0 && (
             <div className="min-w-[160px]">
-              <label className="block text-xs text-muted-foreground mb-1">Überordner (optional)</label>
+              <label className="block text-caption text-muted-foreground mb-1">Überordner (optional)</label>
               <select
                 value={newParentId ?? ''}
                 onChange={(e) => setNewParentId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full px-3 py-1.5 rounded-xl border border-border text-sm bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+                className="w-full px-3 py-1.5 rounded-xl border border-border text-body bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
               >
                 <option value="">Kein Überordner</option>
                 {rootFolders.map((f) => (
@@ -100,7 +100,7 @@ export default function RecipeFoldersPage() {
           <button
             onClick={handleCreate}
             disabled={!newName.trim() || createFolder.isPending}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-1.5 text-body font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             Erstellen
@@ -116,10 +116,10 @@ export default function RecipeFoldersPage() {
           ))}
         </div>
       ) : !folders?.length ? (
-        <div className="text-center py-16 space-y-4 bg-card rounded-2xl border border-border p-8">
+        <div className="text-center py-16 space-y-4 bg-card rounded-xl border border-border p-8">
           <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto" />
-          <p className="text-lg font-semibold">Noch keine Ordner</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-section font-semibold">Noch keine Ordner</p>
+          <p className="text-body text-muted-foreground">
             Erstelle deinen ersten Ordner, um Rezepte zu organisieren.
           </p>
         </div>
@@ -185,7 +185,7 @@ function FolderCard({
               <input
                 value={editName}
                 onChange={(e) => onEditNameChange(e.target.value)}
-                className="flex-1 px-2 py-1 rounded-lg border border-border text-sm bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+                className="flex-1 px-2 py-1 rounded-lg border border-border text-body bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') onSaveEdit(folder.id);
@@ -194,21 +194,21 @@ function FolderCard({
               />
               <button
                 onClick={() => onSaveEdit(folder.id)}
-                className="text-xs font-semibold text-primary hover:underline"
+                className="text-caption font-semibold text-primary hover:underline"
               >
                 Speichern
               </button>
               <button
                 onClick={onCancelEdit}
-                className="text-xs text-muted-foreground hover:underline"
+                className="text-caption text-muted-foreground hover:underline"
               >
                 Abbrechen
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2 min-w-0">
-              <span className="font-medium text-sm truncate">{folder.name}</span>
-              <span className="text-xs text-muted-foreground shrink-0">
+              <span className="font-medium text-body truncate">{folder.name}</span>
+              <span className="text-caption text-muted-foreground shrink-0">
                 {folder.recipe_count} Rezept{folder.recipe_count === 1 ? '' : 'e'}
               </span>
             </div>
@@ -242,8 +242,8 @@ function FolderCard({
             <div key={child.id} className="flex items-center justify-between py-1.5 pl-6">
               <div className="flex items-center gap-2 min-w-0">
                 <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span className="text-sm truncate">{child.name}</span>
-                <span className="text-xs text-muted-foreground shrink-0">
+                <span className="text-body truncate">{child.name}</span>
+                <span className="text-caption text-muted-foreground shrink-0">
                   {child.recipe_count}
                 </span>
               </div>

@@ -34,7 +34,7 @@ function PipelineStep({ index, title, description, metric, done, cost, children 
       <div className="flex items-start gap-3 flex-1 min-w-0">
         <span
           className={cn(
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-caption font-bold',
             done ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
           )}
           aria-hidden
@@ -42,9 +42,9 @@ function PipelineStep({ index, title, description, metric, done, cost, children 
           {done ? <CheckCircle2 className="h-4 w-4" /> : index}
         </span>
         <div className="min-w-0 space-y-0.5">
-          <p className="font-semibold text-sm leading-tight">{title}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-          <p className="text-xs">
+          <p className="font-semibold text-body leading-tight">{title}</p>
+          <p className="text-caption text-muted-foreground">{description}</p>
+          <p className="text-caption">
             <span className={cn('font-semibold', done ? 'text-primary' : 'text-foreground')}>{metric}</span>
             {cost && <span className="text-muted-foreground"> · {cost}</span>}
           </p>
@@ -98,8 +98,8 @@ export default function OffensivePipeline({ summary, onNotify }: OffensivePipeli
   return (
     <section className="rounded-xl border bg-card p-4 md:p-5 space-y-1">
       <div className="space-y-1">
-        <h2 className="font-display text-lg font-bold">Datenoffensive in 7 Schritten</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="font-display text-section font-bold">Datenoffensive in 7 Schritten</h2>
+        <p className="text-body text-muted-foreground">
           Von oben nach unten ausführen. Schritte 1–3, 5 und 7 kosten nichts, Schritt 4 nutzt Gemini 3.5 Flash-Lite
           nur für Zutaten, die Regeln nicht selbst reparieren können.
         </p>
@@ -167,7 +167,7 @@ export default function OffensivePipeline({ summary, onNotify }: OffensivePipeli
           {(review.running || review.processed > 0) && (
             <div className="w-full space-y-1">
               <Progress value={review.progress} className="h-2" />
-              <p className="text-[11px] text-muted-foreground text-right">
+              <p className="text-caption text-muted-foreground text-right">
                 {review.processed} geprüft{review.remaining !== null ? ` · ${review.remaining} offen` : ''}
                 {review.errors.length > 0 && ` · ${review.errors.length} Fehler`}
               </p>
@@ -219,7 +219,7 @@ export default function OffensivePipeline({ summary, onNotify }: OffensivePipeli
           {(embeddings.running || embeddings.processed > 0) && (
             <div className="w-full space-y-1">
               <Progress value={embeddings.progress} className="h-2" />
-              <p className="text-[11px] text-muted-foreground text-right">
+              <p className="text-caption text-muted-foreground text-right">
                 {embeddings.processed} berechnet{embeddings.remaining !== null ? ` · ${embeddings.remaining} offen` : ''}
               </p>
             </div>

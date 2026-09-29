@@ -19,22 +19,22 @@ export default function LoginPage() {
 
   return (
     <div className="container max-w-md mx-auto px-4 py-16 flex flex-col justify-center min-h-[calc(100vh-4rem)]">
-      <div className="bg-card rounded-2xl border border-border/80 shadow-md p-8 md:p-10">
+      <div className="bg-card rounded-xl border border-border/80 shadow-md p-8 md:p-10">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-xl bg-primary/10 text-primary">
             <LogIn className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-bold font-display tracking-tight text-foreground">
+          <h1 className="text-title font-bold font-display tracking-tight text-foreground">
             Willkommen zurück
           </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">
+          <p className="text-body text-muted-foreground mt-1.5">
             Melde dich an, um fortzufahren
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label htmlFor="email" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <label htmlFor="email" className="flex items-center gap-1.5 text-caption font-semibold text-muted-foreground uppercase tracking-wider">
               <Mail className="w-3.5 h-3.5" />
               E-Mail-Adresse
             </label>
@@ -45,14 +45,14 @@ export default function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-colors placeholder:text-muted-foreground/60"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-body text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-colors placeholder:text-muted-foreground/60"
               placeholder="name@beispiel.de"
             />
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label htmlFor="password" className="flex items-center gap-1.5 text-caption font-semibold text-muted-foreground uppercase tracking-wider">
                 <Lock className="w-3.5 h-3.5" />
                 Passwort
               </label>
@@ -64,13 +64,13 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-colors placeholder:text-muted-foreground/60"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-body text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary transition-colors placeholder:text-muted-foreground/60"
               placeholder="••••••••"
             />
           </div>
 
           {login.error && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-destructive text-xs leading-relaxed">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/5 border border-destructive/20 text-destructive text-caption leading-relaxed">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{login.error.message}</span>
             </div>
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={login.isPending}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl font-medium hover:shadow-md disabled:opacity-50 transition-all text-sm mt-2"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary/90 text-white rounded-xl font-medium hover:shadow-md disabled:opacity-50 transition-all text-body mt-2"
           >
             {login.isPending ? (
               <>
@@ -95,7 +95,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">
+        <p className="mt-8 text-center text-caption text-muted-foreground">
           Noch kein Konto?{' '}
           <Link to="/register" className="text-primary font-semibold hover:underline">
             Jetzt registrieren

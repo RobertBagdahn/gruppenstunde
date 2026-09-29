@@ -110,8 +110,8 @@ export default function NutritionPlausibilityList() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="animate-spin text-3xl text-primary" />
-        <p className="text-sm text-muted-foreground">Prüfe Datenqualität und Plausibilität...</p>
+        <Loader2 className="animate-spin text-title text-primary" />
+        <p className="text-body text-muted-foreground">Prüfe Datenqualität und Plausibilität...</p>
       </div>
     );
   }
@@ -120,7 +120,7 @@ export default function NutritionPlausibilityList() {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive space-y-2">
         <p className="font-semibold">Fehler beim Laden der Datenqualität</p>
-        <p className="text-sm">{error.message}</p>
+        <p className="text-body">{error.message}</p>
       </div>
     );
   }
@@ -143,7 +143,7 @@ export default function NutritionPlausibilityList() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="pl-9 h-9 text-sm"
+              className="pl-9 h-9 text-body"
             />
           </div>
 
@@ -153,7 +153,7 @@ export default function NutritionPlausibilityList() {
               setAnomalyType(e.target.value);
               setPage(1);
             }}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-lg border border-input bg-background px-3 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {ANOMALY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -169,7 +169,7 @@ export default function NutritionPlausibilityList() {
           disabled={fillBatchMutation.isPending || !data?.items?.length}
           variant="outline"
           size="sm"
-          className="shrink-0 gap-1.5 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+          className="shrink-0 gap-1.5 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors text-caption font-medium"
           title="Füllt fehlende Stammdaten mit KI auf. Bestehende Daten werden niemals überschrieben."
         >
           {fillBatchMutation.isPending ? (
@@ -186,7 +186,7 @@ export default function NutritionPlausibilityList() {
       </div>
 
       {/* Summary Header */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+      <div className="flex items-center justify-between text-caption text-muted-foreground px-1">
         <div>
           {data?.total ?? 0} {data?.total === 1 ? 'Auffälligkeit' : 'Auffälligkeiten'} gefunden
           {anomalyType && ' (gefiltert)'}
@@ -209,9 +209,9 @@ export default function NutritionPlausibilityList() {
       {/* Empty State */}
       {!data?.items?.length && (
         <div className="rounded-xl border border-dashed border-border p-8 text-center space-y-2">
-          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+          <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
           <p className="font-medium text-foreground">Keine Datenfehler gefunden</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {search || anomalyType
               ? 'Für die gewählten Filter wurden keine Auffälligkeiten gefunden.'
               : 'Alle Nährwerte und Stammdaten der geprüften Zutaten sind plausibel erfasst.'}
@@ -232,8 +232,8 @@ export default function NutritionPlausibilityList() {
                 isSelected
                   ? 'border-primary/50 bg-primary/5'
                   : item.severity === 'error'
-                  ? 'border-red-200 bg-red-50/30 dark:border-red-900/40 dark:bg-red-950/15'
-                  : 'border-amber-200 bg-amber-50/30 dark:border-amber-900/40 dark:bg-amber-950/15'
+                  ? 'border-danger-border bg-danger-soft/30'
+                  : 'border-warning-border bg-warning-soft/30'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -257,19 +257,19 @@ export default function NutritionPlausibilityList() {
                       href={`/ingredients/${item.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-medium hover:text-primary transition-colors inline-flex items-center gap-1 group text-sm"
+                      className="font-medium hover:text-primary transition-colors inline-flex items-center gap-1 group text-body"
                     >
                       <span>{item.name}</span>
                       <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity" />
                     </a>
 
                     {item.severity === 'error' ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-caption font-medium text-danger bg-danger-soft px-1.5 py-0.5 rounded-lg">
                         <XCircle className="h-3 w-3" />
                         Fehler
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-caption font-medium text-warning bg-warning-soft px-1.5 py-0.5 rounded-lg">
                         <AlertTriangle className="h-3 w-3" />
                         Warnung
                       </span>
@@ -277,12 +277,12 @@ export default function NutritionPlausibilityList() {
                   </div>
 
                   {/* Primary Issue description */}
-                  <div className="text-xs font-semibold text-red-700 dark:text-red-300">
+                  <div className="text-caption font-semibold text-danger">
                     {item.issue}
                   </div>
 
                   {/* Nutritional values snippet */}
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-caption text-muted-foreground">
                     <span className="font-mono">
                       {item.energy_kcal != null ? `${Math.round(item.energy_kcal)} kcal` : '– kcal'}
                     </span>
@@ -296,7 +296,7 @@ export default function NutritionPlausibilityList() {
                       <span className="text-muted-foreground/80">(ges. Fett: {formatNumber(item.fat_sat_g, { maxDecimals: 1 })}g)</span>
                     )}
                     {item.macro_sum != null && item.macro_sum > 100 && (
-                      <span className="text-red-600 font-semibold">
+                      <span className="text-danger font-semibold">
                         Summe: {formatNumber(item.macro_sum, { maxDecimals: 1 })}g
                       </span>
                     )}
@@ -311,7 +311,7 @@ export default function NutritionPlausibilityList() {
                     disabled={isFilling || fillBatchMutation.isPending}
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 text-xs gap-1.5 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    className="h-8 px-2.5 text-caption gap-1.5 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
                     title="Fehlende Stammdaten mit KI ergänzen (bestehende Daten bleiben unverändert)"
                   >
                     {isFilling ? (

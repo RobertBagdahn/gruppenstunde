@@ -11,7 +11,7 @@ export default function EnvironmentVsPriceTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Sind umweltfreundlichere Zutaten teurer? Die Heatmap zeigt die Dichte der Datenpunkte.
       </p>
       <TabFilters showRetailSection />

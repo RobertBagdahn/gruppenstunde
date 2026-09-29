@@ -40,7 +40,7 @@ export default function ListPageSearchBar({
             placeholder={placeholder}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-background text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+            className="w-full pl-11 pr-4 py-2.5 rounded-lg bg-background text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-body"
           />
         </div>
         <button
@@ -56,7 +56,7 @@ export default function ListPageSearchBar({
             className="shrink-0 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-primary/95 hover:shadow-sm active:bg-primary/90 transition-all hidden sm:flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            <span className="text-sm">{createLabel}</span>
+            <span className="text-body">{createLabel}</span>
           </Link>
         )}
         {createLabel && onCreateClick && !createHref && (
@@ -66,7 +66,7 @@ export default function ListPageSearchBar({
             className="shrink-0 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-primary/95 hover:shadow-sm active:bg-primary/90 transition-all hidden sm:flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            <span className="text-sm">{createLabel}</span>
+            <span className="text-body">{createLabel}</span>
           </button>
         )}
       </form>

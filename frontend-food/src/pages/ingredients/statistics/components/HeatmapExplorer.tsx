@@ -118,7 +118,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-4 text-sm flex-wrap">
+      <div className="flex items-center gap-4 text-body flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">Pearson r:</span>
           <span className={`font-bold ${data.pearson_r !== null && Math.abs(data.pearson_r) > 0.5 ? 'text-primary' : 'text-foreground'}`}>
@@ -133,7 +133,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Fit:</span>
-              <span className="font-mono text-xs">
+              <span className="font-mono text-caption">
                 y = {formatNumber(data.linear_fit.slope, { maxDecimals: 4 })}x + {formatNumber(data.linear_fit.intercept, { maxDecimals: 2 })}
               </span>
             </div>
@@ -239,7 +239,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
 
         {tooltip && (
           <div
-            className="absolute pointer-events-none bg-popover text-popover-foreground rounded-lg border shadow-md px-3 py-2 text-xs space-y-1 z-50"
+            className="absolute pointer-events-none bg-popover text-popover-foreground rounded-lg border shadow-md px-3 py-2 text-caption space-y-1 z-50"
             style={{
               left: Math.min(tooltip.x / width * 100, 75) + '%',
               top: Math.max(tooltip.y / height * 100 - 10, 0) + '%',

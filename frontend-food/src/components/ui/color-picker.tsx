@@ -55,7 +55,7 @@ function ColorPicker({ value, onChange, id, disabled, className }: ColorPickerPr
         value={HEX_REGEX.test(value) ? value : '#000000'}
         onChange={handleColorInput}
         disabled={disabled}
-        className="w-10 h-10 rounded-md border border-input cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 p-0.5"
+        className="w-10 h-10 rounded-lg border border-input cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 p-0.5"
         aria-label="Farbe wählen"
       />
       <Input
@@ -68,8 +68,8 @@ function ColorPicker({ value, onChange, id, disabled, className }: ColorPickerPr
         placeholder="#4a3a6b"
         maxLength={7}
         className={cn(
-          'w-28 font-mono text-sm',
-          !isValid && textValue !== '' && 'border-red-400 focus-visible:ring-red-400',
+          'w-28 font-mono text-body',
+          !isValid && textValue !== '' && 'border-danger focus-visible:ring-danger',
         )}
       />
       <div

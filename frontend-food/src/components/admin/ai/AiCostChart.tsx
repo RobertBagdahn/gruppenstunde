@@ -89,9 +89,9 @@ export default function AiCostChart({ timeline, includeEmbeddings = false }: Pro
             )}
           </LineChart>
         </ResponsiveContainer>
-        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-4 mt-2 text-caption text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-primary rounded-sm" /> Kosten (€)
+            <span className="w-3 h-3 bg-primary rounded-lg" /> Kosten (€)
           </span>
           {includeEmbeddings && (
             <span className="flex items-center gap-1">

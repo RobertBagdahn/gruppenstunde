@@ -29,7 +29,7 @@ export default function RecipeHistogram({
 }: RecipeHistogramProps) {
   if (!buckets || buckets.length === 0) {
     return (
-      <div className="text-xs text-muted-foreground p-4 text-center">
+      <div className="text-caption text-muted-foreground p-4 text-center">
         Nicht genug Rezepte für Vergleich
       </div>
     );
@@ -57,10 +57,10 @@ export default function RecipeHistogram({
   return (
     <div className={className}>
       <div className="mb-3">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+        <h4 className="text-caption font-semibold text-muted-foreground uppercase tracking-wide mb-1">
           {label}
         </h4>
-        <p className="text-sm font-bold text-foreground">
+        <p className="text-body font-bold text-foreground">
           {Number(formatNumber(recipeValue, { maxDecimals: 1 }))} {unit}
         </p>
       </div>

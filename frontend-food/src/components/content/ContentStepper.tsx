@@ -45,7 +45,7 @@ export interface ContentStepperProps {
   typeLabel: string;
   /** Material Symbols icon name */
   typeIcon: string;
-  /** Gradient class for the header badge, e.g. "from-sky-500 to-cyan-600" */
+  /** Gradient class for the header badge, e.g. "from-info to-info" */
   typeGradient: string;
 
   /** Additional fields rendered in step 1 (Edit) below the common fields */
@@ -265,8 +265,8 @@ export default function ContentStepper({
           <span className="material-symbols-outlined text-[24px]">{typeIcon}</span>
         </div>
         <div>
-          <h1 className="text-2xl font-bold">{typeLabel} erstellen</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-title font-bold">{typeLabel} erstellen</h1>
+          <p className="text-body text-muted-foreground">
             Schritt {step + 1} von {STEPS.length}
           </p>
         </div>
@@ -343,7 +343,7 @@ export default function ContentStepper({
       {/* ================================================================ */}
       {step === 0 && (
         <div className="bg-card rounded-xl border p-6">
-          <h2 className="text-lg font-semibold mb-4">Wie möchtest du starten?</h2>
+          <h2 className="text-section font-semibold mb-4">Wie möchtest du starten?</h2>
 
           {step0Mode === 'choose' && (
             <div className={`grid grid-cols-1 ${renderExtraStep0Cards ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
@@ -352,11 +352,11 @@ export default function ContentStepper({
                 onClick={() => setStep0Mode('ai')}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10">
+                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10">
                   <span className="material-symbols-outlined text-[32px] text-primary">auto_awesome</span>
                 </div>
                 <span className="font-semibold">Mit KI-Hilfe</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                   Beschreibe deine Idee in eigenen Worten — die KI strukturiert alles für dich
                 </span>
               </button>
@@ -366,11 +366,11 @@ export default function ContentStepper({
                 onClick={() => setStep(1)}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted">
+                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted">
                   <span className="material-symbols-outlined text-[32px] text-muted-foreground">edit_note</span>
                 </div>
                 <span className="font-semibold">Manuell</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                   Fülle das Formular direkt selbst aus
                 </span>
               </button>
@@ -380,7 +380,7 @@ export default function ContentStepper({
 
           {step0Mode === 'ai' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Beschreibe deine {typeLabel.toLowerCase()} in eigenen Worten. Die KI erstellt daraus
                 einen strukturierten Entwurf, den du anschliessend überarbeiten kannst.
               </p>
@@ -389,14 +389,14 @@ export default function ContentStepper({
                 onChange={(e) => setRawText(e.target.value)}
                 rows={6}
                 placeholder={`Beschreibe deine ${typeLabel.toLowerCase()} hier...`}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <div className="flex gap-2">
                 {refurbish.isPending ? (
                   <button
                     type="button"
                     onClick={handleAbortAi}
-                    className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium"
+                    className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-body font-medium"
                   >
                     Abbrechen
                   </button>
@@ -406,7 +406,7 @@ export default function ContentStepper({
                       type="button"
                       onClick={handleAiRefurbish}
                       disabled={!rawText.trim()}
-                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                       KI-Entwurf erstellen
@@ -414,7 +414,7 @@ export default function ContentStepper({
                     <button
                       type="button"
                       onClick={() => setStep0Mode('choose')}
-                      className="px-4 py-2 rounded-lg border text-sm"
+                      className="px-4 py-2 rounded-lg border text-body"
                     >
                       Zurück
                     </button>
@@ -423,7 +423,7 @@ export default function ContentStepper({
               </div>
 
               {refurbish.isPending && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-body text-muted-foreground">
                   <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   KI arbeitet...
                 </div>
@@ -434,7 +434,7 @@ export default function ContentStepper({
           {step0Mode === 'cancelled' && (
             <div className="space-y-4">
               {aiErrorMessage && (
-                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-body">
                   {aiErrorMessage}
                 </div>
               )}
@@ -445,7 +445,7 @@ export default function ContentStepper({
                     setStep0Mode('ai');
                     setAiErrorMessage(null);
                   }}
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                   Erneut versuchen
@@ -453,7 +453,7 @@ export default function ContentStepper({
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded-lg border text-sm"
+                  className="px-4 py-2 rounded-lg border text-body"
                 >
                   Manuell weitermachen
                 </button>
@@ -470,7 +470,7 @@ export default function ContentStepper({
         <div className="space-y-6">
           {/* Title */}
           <div className="bg-card rounded-xl border p-6">
-            <label className="block text-sm font-medium mb-1.5">
+            <label className="block text-body font-medium mb-1.5">
               Titel <span className="text-destructive">*</span>
             </label>
             <div className="flex gap-2">
@@ -479,7 +479,7 @@ export default function ContentStepper({
                 value={formData.title}
                 onChange={(e) => setFormData({ title: e.target.value })}
                 placeholder="Titel eingeben"
-                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-body ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <button
                 type="button"
@@ -499,14 +499,14 @@ export default function ContentStepper({
 
           {/* Summary */}
           <div className="bg-card rounded-xl border p-6">
-            <label className="block text-sm font-medium mb-1.5">Kurzbeschreibung</label>
+            <label className="block text-body font-medium mb-1.5">Kurzbeschreibung</label>
             <div className="flex gap-2">
               <textarea
                 value={formData.summary}
                 onChange={(e) => setFormData({ summary: e.target.value })}
                 rows={2}
                 placeholder="Worum geht es? (1-2 Sätze)"
-                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-body ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <button
                 type="button"
@@ -527,7 +527,7 @@ export default function ContentStepper({
           {/* Description */}
           <div className="bg-card rounded-xl border p-6">
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-sm font-medium">Beschreibung</label>
+              <label className="text-body font-medium">Beschreibung</label>
               <button
                 type="button"
                 onClick={() =>
@@ -536,7 +536,7 @@ export default function ContentStepper({
                   )
                 }
                 disabled={!formData.description.trim() || improveText.isPending}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-xs"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-caption"
               >
                 <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
                 KI verbessern
@@ -551,14 +551,14 @@ export default function ContentStepper({
 
           {/* Meta fields */}
           <div className="bg-card rounded-xl border p-6">
-            <h3 className="text-sm font-medium mb-4">Eigenschaften</h3>
+            <h3 className="text-body font-medium mb-4">Eigenschaften</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Schwierigkeit</label>
+                <label className="block text-caption text-muted-foreground mb-1">Schwierigkeit</label>
                 <select
                   value={formData.difficulty}
                   onChange={(e) => setFormData({ difficulty: e.target.value })}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body"
                 >
                   <option value="">— Wählen —</option>
                   {DIFFICULTY_OPTIONS.map((o) => (
@@ -570,11 +570,11 @@ export default function ContentStepper({
               </div>
 
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Durchführungszeit</label>
+                <label className="block text-caption text-muted-foreground mb-1">Durchführungszeit</label>
                 <select
                   value={formData.executionTime}
                   onChange={(e) => setFormData({ executionTime: e.target.value })}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body"
                 >
                   <option value="">— Wählen —</option>
                   {EXECUTION_TIME_OPTIONS.map((o) => (
@@ -587,11 +587,11 @@ export default function ContentStepper({
 
               {!hidePreparationTime && (
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Vorbereitungszeit</label>
+                  <label className="block text-caption text-muted-foreground mb-1">Vorbereitungszeit</label>
                   <select
                     value={formData.preparationTime}
                     onChange={(e) => setFormData({ preparationTime: e.target.value })}
-                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body"
                   >
                     <option value="">— Wählen —</option>
                     {PREPARATION_TIME_OPTIONS.map((o) => (
@@ -611,12 +611,12 @@ export default function ContentStepper({
           {/* Tags */}
           <div className="bg-card rounded-xl border p-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium">Tags</h3>
+              <h3 className="text-body font-medium">Tags</h3>
               <button
                 type="button"
                 onClick={handleSuggestTags}
                 disabled={(!formData.title && !formData.description) || suggestTags.isPending}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-xs"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-caption"
               >
                 <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
                 {suggestTags.isPending ? 'Wird geladen...' : 'KI-Vorschläge'}
@@ -651,7 +651,7 @@ export default function ContentStepper({
 
           {/* Scout levels */}
           <div className="bg-card rounded-xl border p-6">
-            <h3 className="text-sm font-medium mb-3">Altersstufen</h3>
+            <h3 className="text-body font-medium mb-3">Altersstufen</h3>
             <div className="flex flex-wrap gap-2">
               {scoutLevels?.map((level) => {
                 const selected = formData.selectedScoutIds.includes(level.id);
@@ -684,7 +684,7 @@ export default function ContentStepper({
             <button
               type="button"
               onClick={() => setStep(0)}
-              className="px-4 py-2 rounded-lg border text-sm"
+              className="px-4 py-2 rounded-lg border text-body"
             >
               Zurück
             </button>
@@ -692,7 +692,7 @@ export default function ContentStepper({
               type="button"
               onClick={() => setStep(2)}
               disabled={!formData.title.trim()}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50"
             >
               Vorschau
             </button>
@@ -709,9 +709,9 @@ export default function ContentStepper({
           <div className="bg-card rounded-xl border overflow-hidden">
             {/* Preview header */}
             <div className={`bg-gradient-to-r ${typeGradient} px-6 py-4`}>
-              <h2 className="text-white text-xl font-bold">{formData.title || 'Ohne Titel'}</h2>
+              <h2 className="text-white text-section font-bold">{formData.title || 'Ohne Titel'}</h2>
               {formData.summary && (
-                <p className="text-white/80 text-sm mt-1">{formData.summary}</p>
+                <p className="text-white/80 text-body mt-1">{formData.summary}</p>
               )}
             </div>
 
@@ -721,19 +721,19 @@ export default function ContentStepper({
                   {/* Meta KPIs */}
                   <div className="flex flex-wrap gap-3">
                     {formData.difficulty && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
                         <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
                         {getOptionLabel(DIFFICULTY_OPTIONS, formData.difficulty)}
                       </span>
                     )}
                     {formData.executionTime && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
                         <span className="material-symbols-outlined text-[14px]">schedule</span>
                         {getOptionLabel(EXECUTION_TIME_OPTIONS, formData.executionTime)}
                       </span>
                     )}
                     {formData.preparationTime && !hidePreparationTime && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
                         <span className="material-symbols-outlined text-[14px]">timer</span>
                         {getOptionLabel(PREPARATION_TIME_OPTIONS, formData.preparationTime)}
                       </span>
@@ -744,7 +744,7 @@ export default function ContentStepper({
                   {formData.selectedTagIds.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {formData.selectedTagIds.map((id) => (
-                        <span key={id} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                        <span key={id} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-caption font-medium">
                           {getTagName(id)}
                         </span>
                       ))}
@@ -755,7 +755,7 @@ export default function ContentStepper({
                   {formData.selectedScoutIds.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {formData.selectedScoutIds.map((id) => (
-                        <span key={id} className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-xs font-medium">
+                        <span key={id} className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-caption font-medium">
                           {getScoutLevelName(id)}
                         </span>
                       ))}
@@ -781,7 +781,7 @@ export default function ContentStepper({
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-lg border text-sm"
+              className="px-4 py-2 rounded-lg border text-body"
             >
               Zurück zum Bearbeiten
             </button>
@@ -789,7 +789,7 @@ export default function ContentStepper({
               type="button"
               onClick={handleSave}
               disabled={isSaving || !formData.title.trim()}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
             >
               {isSaving ? (
                 <>

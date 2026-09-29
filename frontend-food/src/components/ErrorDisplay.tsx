@@ -95,13 +95,13 @@ export default function ErrorDisplay({
           {displayIcon}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-destructive">{displayTitle}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{displayDescription}</p>
+          <p className="text-body font-medium text-destructive">{displayTitle}</p>
+          <p className="text-caption text-muted-foreground mt-0.5">{displayDescription}</p>
         </div>
         {onRetry && (
           <button
             onClick={onRetry}
-            className="shrink-0 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md hover:opacity-90 transition"
+            className="shrink-0 px-3 py-1.5 text-caption bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition"
           >
             Erneut versuchen
           </button>
@@ -115,15 +115,15 @@ export default function ErrorDisplay({
       <span className="material-symbols-outlined text-5xl text-muted-foreground mb-4 block">
         {displayIcon}
       </span>
-      <h2 className="text-xl font-bold mb-2">{displayTitle}</h2>
-      <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
+      <h2 className="text-section font-bold mb-2">{displayTitle}</h2>
+      <p className="text-muted-foreground text-body mb-6 max-w-md mx-auto">
         {displayDescription}
       </p>
       <div className="flex items-center justify-center gap-3">
         {onRetry && (
           <button
             onClick={onRetry}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90 transition flex items-center gap-1.5"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-body hover:opacity-90 transition flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-lg">refresh</span>
             Erneut versuchen
@@ -132,7 +132,7 @@ export default function ErrorDisplay({
         {onBack && (
           <button
             onClick={onBack}
-            className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
+            className="px-4 py-2 border rounded-lg text-body hover:bg-muted transition"
           >
             {backLabel}
           </button>

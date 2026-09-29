@@ -10,7 +10,7 @@ export default function PriceBySectionTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Preisverteilung pro Kilogramm – wo liegen die meisten Zutaten preislich?
       </p>
       <TabFilters showRetailSection />

@@ -37,7 +37,7 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
-      <h1 className="text-2xl font-bold font-display">Stammdaten</h1>
+      <h1 className="text-title font-bold font-display">Stammdaten</h1>
 
       {/* Tab Navigation */}
       <div className="flex gap-1 border-b overflow-x-auto">
@@ -46,7 +46,7 @@ export default function AdminPage() {
             key={tab.key}
             onClick={() => navigate('href' in tab ? tab.href! : `/admin/${tab.key}`)}
             className={cn(
-              'px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
+              'px-4 py-2 text-body font-medium whitespace-nowrap border-b-2 transition-colors',
               activeTab === tab.key || (tab.key === 'data-quality' && section === 'data-quality')
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'

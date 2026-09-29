@@ -82,7 +82,7 @@ export default function NutritionalTagTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{tags?.length ?? 0} Einträge</p>
+        <p className="text-body text-muted-foreground">{tags?.length ?? 0} Einträge</p>
         <Button onClick={openCreate} className="gap-1.5" size="sm">
           <Plus className="h-4 w-4" />
           Neu
@@ -91,9 +91,9 @@ export default function NutritionalTagTab() {
 
       <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-body">
             <thead>
-              <tr className="bg-muted/50 border-b border-border text-muted-foreground font-medium text-xs uppercase tracking-wider">
+              <tr className="bg-muted/50 border-b border-border text-muted-foreground font-medium text-caption uppercase tracking-wider">
                 <th className="text-left px-5 py-3 font-semibold">Name</th>
                 <th className="text-left px-5 py-3 font-semibold hidden sm:table-cell">Gegenname</th>
                 <th className="text-left px-5 py-3 font-semibold w-24">Rang</th>
@@ -109,12 +109,12 @@ export default function NutritionalTagTab() {
                   <td className="px-5 py-3.5 text-muted-foreground">{t.rank}</td>
                   <td className="px-5 py-3.5">
                     {t.is_dangerous ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/25">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-caption font-medium bg-destructive/10 text-destructive border border-destructive/25">
                         <AlertTriangle className="h-3 w-3" />
                         Allergen
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground/60">—</span>
+                      <span className="text-caption text-muted-foreground/60">—</span>
                     )}
                   </td>
                   <td className="px-5 py-3.5 text-right">
@@ -164,7 +164,7 @@ export default function NutritionalTagTab() {
               <Label htmlFor="name">Name</Label>
               <Input id="name" {...form.register('name')} placeholder="z.B. Fleisch, Nüsse" />
               {form.formState.errors.name && (
-                <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
+                <p className="text-caption text-destructive">{form.formState.errors.name.message}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -186,7 +186,7 @@ export default function NutritionalTagTab() {
                     type="checkbox"
                     id="is_dangerous"
                     {...form.register('is_dangerous')}
-                    className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                    className="rounded-lg border-border text-primary focus:ring-primary h-4 w-4"
                   />
                   Gefährlich (Allergen)
                 </Label>

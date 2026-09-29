@@ -12,7 +12,7 @@ export default function StaffGuard({ children }: StaffGuardProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="animate-spin text-4xl text-muted-foreground" />
+        <Loader2 className="animate-spin text-title text-muted-foreground" />
       </div>
     );
   }

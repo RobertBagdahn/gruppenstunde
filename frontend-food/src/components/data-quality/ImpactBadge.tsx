@@ -12,7 +12,7 @@ export default function ImpactBadge({ slug }: ImpactBadgeProps) {
   if (isLoading || !impact) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+    <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
       {impact.recipe_count > 0 ? (
         <Link
           to={`/recipes?ingredient_slug=${slug}`}

@@ -65,8 +65,8 @@ export default function WizardStepBasis({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-display font-bold">Basis & Portionen</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <h2 className="text-section font-display font-bold">Basis & Portionen</h2>
+        <p className="mt-2 text-body text-muted-foreground">
           {isManual
             ? 'Lege Titel, Rezeptart und die Personenzahl fest. Zutaten ergänzt du im nächsten Schritt.'
             : 'Prüfe Titel, Rezeptart und die Originalportionen. Inspi normiert die Mengen beim Speichern intern auf eine Portion.'}
@@ -74,25 +74,25 @@ export default function WizardStepBasis({
       </div>
 
       {isReconstructed && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+        <div className="rounded-lg border border-warning-border bg-warning-soft p-3 text-body text-warning">
           Die Quelle hat den automatischen Abruf blockiert — die Daten wurden über die Websuche rekonstruiert. Bitte prüfe alle Angaben sorgfältig.
         </div>
       )}
 
       <div className="space-y-4 rounded-xl border bg-card p-4 sm:p-5">
         <div>
-          <label htmlFor="recipe-basis-title" className="mb-1.5 block text-sm font-medium">Titel *</label>
+          <label htmlFor="recipe-basis-title" className="mb-1.5 block text-body font-medium">Titel *</label>
           <input
             id="recipe-basis-title"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="z. B. Nudelauflauf mit Hackfleisch"
             data-testid="recipe-basis-title"
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            className="w-full rounded-lg border bg-background px-3 py-2 text-body"
           />
         </div>
         <div>
-          <span className="mb-2 block text-sm font-medium">Rezept-Typ *</span>
+          <span className="mb-2 block text-body font-medium">Rezept-Typ *</span>
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
             {RECIPE_TYPE_OPTIONS.map((option) => (
               <button
@@ -100,7 +100,7 @@ export default function WizardStepBasis({
                 type="button"
                 onClick={() => setRecipeType(option.value)}
                 aria-pressed={recipeType === option.value}
-                className={`rounded-md border px-2 py-1.5 text-xs font-medium ${recipeType === option.value ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted'}`}
+                className={`rounded-lg border px-2 py-1.5 text-caption font-medium ${recipeType === option.value ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted'}`}
               >
                 {option.label}
               </button>

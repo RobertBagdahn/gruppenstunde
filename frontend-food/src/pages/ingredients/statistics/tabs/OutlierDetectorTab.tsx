@@ -10,7 +10,7 @@ export default function OutlierDetectorTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         IQR-basierte Ausreißererkennung – welche Zutaten weichen extrem von der Norm ab?
       </p>
       <TabFilters showRetailSection />

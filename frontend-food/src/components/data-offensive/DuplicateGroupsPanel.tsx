@@ -24,7 +24,7 @@ function GroupCard({ group, onNotify }: { group: DuplicateGroup; onNotify: Dupli
     <div className="rounded-xl border bg-card p-3 space-y-2">
       <ul className="space-y-1">
         {group.items.map((item) => (
-          <li key={item.id} className="flex items-center gap-2 text-sm">
+          <li key={item.id} className="flex items-center gap-2 text-body">
             <input
               type="radio"
               name={`target-${group.key}`}
@@ -53,14 +53,14 @@ function GroupCard({ group, onNotify }: { group: DuplicateGroup; onNotify: Dupli
             >
               {item.name}
             </Link>
-            <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+            <span className="ml-auto shrink-0 text-caption text-muted-foreground">
               {STATUS_LABELS[item.status] ?? item.status} · {item.usage_count}×
             </span>
           </li>
         ))}
       </ul>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] text-muted-foreground">Punkt = behalten, Haken = hineinmergen</p>
+        <p className="text-caption text-muted-foreground">Punkt = behalten, Haken = hineinmergen</p>
         <Button
           size="sm"
           variant="outline"
@@ -92,8 +92,8 @@ export default function DuplicateGroupsPanel({ onNotify }: DuplicateGroupsPanelP
   return (
     <section className="space-y-3">
       <div className="space-y-1">
-        <h2 className="font-display text-lg font-bold">Ähnliche Namen</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="font-display text-section font-bold">Ähnliche Namen</h2>
+        <p className="text-body text-muted-foreground">
           Namensvarianten wie „Tomate“/„Tomaten“ oder „Brokkoli (Röschen)“. Meistgenutzte Gruppen zuerst.
           {data && ` ${data.total} Gruppen.`}
         </p>
@@ -103,7 +103,7 @@ export default function DuplicateGroupsPanel({ onNotify }: DuplicateGroupsPanelP
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-body text-destructive">
           {error.message}{' '}
           <button type="button" className="underline" onClick={() => refetch()}>
             Erneut versuchen
@@ -121,7 +121,7 @@ export default function DuplicateGroupsPanel({ onNotify }: DuplicateGroupsPanelP
           )}
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">Keine ähnlichen Namen gefunden.</p>
+        <p className="text-body text-muted-foreground">Keine ähnlichen Namen gefunden.</p>
       )}
     </section>
   );

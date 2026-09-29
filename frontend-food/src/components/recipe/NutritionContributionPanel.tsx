@@ -48,7 +48,7 @@ export function NutritionContributionPanel({
 
   if (contributors.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Keine Zutat trägt {paramLabel} bei.
       </p>
     );
@@ -61,16 +61,16 @@ export function NutritionContributionPanel({
     <div className="space-y-2">
       {visible.map((c) => (
         <div key={c.name} className="flex items-center gap-2">
-          <span className="text-sm w-28 truncate shrink-0" title={c.name}>
+          <span className="text-body w-28 truncate shrink-0" title={c.name}>
             {c.name}
           </span>
-          <div className="flex-1 h-2 bg-muted rounded">
+          <div className="flex-1 h-2 bg-muted rounded-lg">
             <div
               style={{ width: `${Math.min(c.percent, 100)}%` }}
-              className="h-full bg-primary/60 rounded"
+              className="h-full bg-primary/60 rounded-lg"
             />
           </div>
-          <span className="text-sm tabular-nums whitespace-nowrap shrink-0">
+          <span className="text-body tabular-nums whitespace-nowrap shrink-0">
             {unit === 'kcal' ? Math.round(c.absolute) : roundToDecimals(c.absolute, 1)} {unit} &middot; {roundToDecimals(c.percent, 1)}%
           </span>
         </div>
@@ -79,7 +79,7 @@ export function NutritionContributionPanel({
         <button
           type="button"
           onClick={() => setShowAll(true)}
-          className="text-sm text-primary hover:underline"
+          className="text-body text-primary hover:underline"
         >
           +{hiddenCount} weitere anzeigen
         </button>
@@ -88,7 +88,7 @@ export function NutritionContributionPanel({
         <button
           type="button"
           onClick={() => setShowAll(false)}
-          className="text-sm text-primary hover:underline"
+          className="text-body text-primary hover:underline"
         >
           Weniger anzeigen
         </button>

@@ -28,13 +28,13 @@ export default function ShareSlider({
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{label}</p>
+          <p className="text-body font-medium truncate">{label}</p>
           {detail && (
-            <p className="text-xs text-muted-foreground">{detail}</p>
+            <p className="text-caption text-muted-foreground">{detail}</p>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-sm font-mono w-8 text-right">{Math.round(value)}%</span>
+          <span className="text-body font-mono w-8 text-right">{Math.round(value)}%</span>
           <button
             type="button"
             onClick={onToggleLock}

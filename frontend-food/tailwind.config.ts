@@ -16,6 +16,21 @@ export default {
         "2xl": "1400px",
       },
     },
+    // Exactly five font sizes (design tokens); Tailwind's default scale is replaced.
+    fontSize: {
+      caption: ["12px", { lineHeight: "16px" }],
+      body: ["14px", { lineHeight: "20px" }],
+      emphasis: ["16px", { lineHeight: "24px" }],
+      section: ["20px", { lineHeight: "28px" }],
+      title: ["28px", { lineHeight: "36px" }],
+    },
+    // Exactly three radii: 8 px controls, 12 px cards/dialogs, full for pills.
+    borderRadius: {
+      none: "0",
+      lg: "8px",
+      xl: "12px",
+      full: "9999px",
+    },
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
@@ -38,6 +53,30 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+          soft: "hsl(var(--success-soft))",
+          border: "hsl(var(--success-border))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+          soft: "hsl(var(--warning-soft))",
+          border: "hsl(var(--warning-border))",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--danger))",
+          foreground: "hsl(var(--danger-foreground))",
+          soft: "hsl(var(--danger-soft))",
+          border: "hsl(var(--danger-border))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+          soft: "hsl(var(--info-soft))",
+          border: "hsl(var(--info-border))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -70,17 +109,6 @@ export default {
           e: "hsl(var(--nutri-e))",
           "dark-text": "hsl(var(--nutri-dark-text))",
         },
-        inspi: {
-          green: "#16a34a",
-          yellow: "#f59e0b",
-          orange: "#ea580c",
-          teal: "#0d9488",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
         soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",

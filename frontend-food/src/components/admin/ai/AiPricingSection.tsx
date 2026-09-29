@@ -15,7 +15,7 @@ export default function AiPricingSection() {
         <CardTitle>
           <Button
             variant="ghost"
-            className="p-0 h-auto font-bold font-display text-base hover:bg-transparent"
+            className="p-0 h-auto font-bold font-display text-emphasis hover:bg-transparent"
             onClick={() => setOpen(!open)}
           >
             {open ? (
@@ -35,7 +35,7 @@ export default function AiPricingSection() {
           {data && (
             <div className="space-y-3">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-body">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
                       <th className="pb-2 pr-4">Modell</th>
@@ -68,7 +68,7 @@ export default function AiPricingSection() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Umrechnungskurs: 1 USD = {formatNumber(data.usd_to_eur, { maxDecimals: 4 })} EUR
               </p>
             </div>
