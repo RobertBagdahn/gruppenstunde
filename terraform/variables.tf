@@ -77,3 +77,34 @@ variable "db_tier" {
   type        = string
   default     = "db-f1-micro"
 }
+
+# -----------------------------------------------
+# Social login (OAuth). Providers without client id are not offered.
+# Redirect URIs to register per provider and domain:
+#   https://<domain>/api/accounts/<provider>/login/callback/
+# -----------------------------------------------
+
+variable "oauth_client_ids" {
+  description = "Public OAuth client ids per provider (google, microsoft, apple, facebook); empty = disabled"
+  type        = map(string)
+  default     = {}
+}
+
+variable "oauth_client_secrets" {
+  description = "OAuth client secrets per provider (apple: private key PEM)"
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}
+
+variable "apple_oauth_key_id" {
+  description = "Apple Sign in key id (only needed when apple is enabled)"
+  type        = string
+  default     = ""
+}
+
+variable "apple_oauth_team_id" {
+  description = "Apple developer team id (only needed when apple is enabled)"
+  type        = string
+  default     = ""
+}

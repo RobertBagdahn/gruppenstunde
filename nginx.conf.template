@@ -30,6 +30,8 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Django builds OAuth callback URLs and redirects from the visitor's domain.
+        proxy_set_header X-Forwarded-Host $host;
 
         resolver 8.8.8.8 valid=300s;
         resolver_timeout 5s;

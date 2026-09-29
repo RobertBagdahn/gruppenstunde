@@ -181,6 +181,19 @@ make frontend-typecheck   # TypeScript prüfen
 | Session-Auth statt JWT | Einfacher, sicherer für Web-Apps mit Same-Origin |
 | uv statt pip | Schnelleres Dependency Management |
 
+## Anmeldung (Social Login)
+
+Die Anmeldung läuft ausschließlich über OAuth-Anbieter (django-allauth): Google, Microsoft, Apple, Facebook.
+Ein Anbieter erscheint nur, wenn seine Zugangsdaten gesetzt sind (siehe `.env.example`).
+
+- **OAuth-Clients anlegen:** Redirect-URI pro Anbieter und Domain eintragen:
+  `https://<domain>/api/accounts/<provider>/login/callback/` (auch `http://localhost:5173` und `:5174` lokal).
+- **Produktion:** Client-IDs über `oauth_client_ids`, Secrets über `oauth_client_secrets` in Terraform.
+- **Lokal/E2E ohne Anbieter:** Dev-Login (`AUTH_DEV_LOGIN_ENABLED=true`, nur `local`/`test`-Settings) –
+  im Login-Dialog erscheint dann ein E-Mail-Feld. In Produktion startet Django mit aktivem Dev-Login nicht.
+- **Notfallzugang:** `/admin/` behält den Passwort-Login für Staff/Superuser.
+- **KI-Budgets:** anonym 0,05 €/h gesamt, Nutzer 0,30 €/Tag, Staff 3,00 €/Tag (`AI_BUDGET_*`).
+
 ## Deployment
 
 Die Infrastruktur läuft auf **Google Cloud Platform** und wird mit Terraform verwaltet:

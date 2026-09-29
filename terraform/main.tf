@@ -120,6 +120,40 @@ resource "google_secret_manager_secret" "db_password" {
   depends_on = [google_project_service.apis["secretmanager.googleapis.com"]]
 }
 
+locals {
+  oauth_providers = toset([for provider, id in var.oauth_client_ids : provider if id != ""])
+  oauth_secret_env = {
+    google    = "GOOGLE_OAUTH_CLIENT_SECRET"
+    microsoft = "MICROSOFT_OAUTH_CLIENT_SECRET"
+    facebook  = "FACEBOOK_OAUTH_CLIENT_SECRET"
+    apple     = "APPLE_OAUTH_PRIVATE_KEY"
+  }
+}
+
+resource "google_secret_manager_secret" "oauth" {
+  for_each  = local.oauth_providers
+  secret_id = "${var.environment}_oauth_${each.key}"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.apis["secretmanager.googleapis.com"]]
+}
+
+resource "google_secret_manager_secret_version" "oauth" {
+  for_each    = local.oauth_providers
+  secret      = google_secret_manager_secret.oauth[each.key].id
+  secret_data = lookup(var.oauth_client_secrets, each.key, "")
+}
+
+resource "google_secret_manager_secret_iam_member" "oauth_accessor" {
+  for_each  = local.oauth_providers
+  secret_id = google_secret_manager_secret.oauth[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+}
+
 resource "google_secret_manager_secret_version" "db_password" {
   secret      = google_secret_manager_secret.db_password.id
   secret_data = var.db_password
@@ -227,6 +261,33 @@ resource "google_cloud_run_v2_service" "backend" {
             version = "latest"
           }
         }
+      }
+      dynamic "env" {
+        for_each = local.oauth_providers
+        content {
+          name  = "${upper(env.value)}_OAUTH_CLIENT_ID"
+          value = var.oauth_client_ids[env.value]
+        }
+      }
+      dynamic "env" {
+        for_each = local.oauth_providers
+        content {
+          name = local.oauth_secret_env[env.value]
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.oauth[env.value].secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+      env {
+        name  = "APPLE_OAUTH_KEY_ID"
+        value = var.apple_oauth_key_id
+      }
+      env {
+        name  = "APPLE_OAUTH_TEAM_ID"
+        value = var.apple_oauth_team_id
       }
 
       resources {
