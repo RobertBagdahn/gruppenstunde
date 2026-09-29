@@ -15,7 +15,7 @@ Das Food Frontend SHALL alle Farben, Schatten, Radien, Schriftgrößen und Schri
 - **WHEN** eine Komponente Nutri-Score-Farben benötigt
 - **THEN** importiert sie `NUTRI_SCORE_COLORS` aus `@/schemas/supply` ohne lokale Neudefinition
 
-#### Scenario: Keine Palettenfarben im Codebase
+#### Scenario: Keine hartcodierten Status-Farben im Codebase
 - **WHEN** `npm run lint` läuft
 - **THEN** meldet ESLint jede Tailwind-Palettenfarbe in `className` als Fehler
 

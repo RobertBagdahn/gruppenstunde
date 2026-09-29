@@ -8,7 +8,7 @@ Wenn die Summe der `day_part_factor` aller Mahlzeiten eines Tages 100 % übersch
 - **WHEN** ein Tag Mahlzeiten mit zusammen 110 % Tagesanteil hat (z. B. zwei zusätzliche Snacks)
 - **THEN** die Tages-Badge SHALL „Überplant (110 %)“ in Warnfarbe anzeigen
 
-#### Scenario: Normaler Tag
+#### Scenario: Normaler Tag bleibt unverändert
 - **WHEN** ein Tag Mahlzeiten mit zusammen 90 % Tagesanteil hat
 - **THEN** die Badge SHALL „Alle Mahlzeiten geplant“ anzeigen
 

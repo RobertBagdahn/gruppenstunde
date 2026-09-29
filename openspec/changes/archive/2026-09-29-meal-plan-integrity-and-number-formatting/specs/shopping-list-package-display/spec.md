@@ -1,6 +1,18 @@
-## MODIFIED Requirements
+## REMOVED Requirements
 
 ### Requirement: Packungsoptionen in Einkaufslisten-Zeile
+**Reason**: Packungen werden nicht mehr aus Portionen abgeleitet (kleinste Packung, benannte Portion, 10 %-Abrundungsschwelle); Portions-Ableitungen wie „Glas Milch 200 g“ erzeugten Rauschen. Quelle ist ausschließlich die freigegebene Standardpackung.
+
+**Migration**: Ersetzt durch „Packungsbedarf aus der Standardpackung“ (strukturierte Felder `package_options`, `package_surplus_g`; 5 %-Toleranz).
+
+### Requirement: Packungsanzeige nur bei vorhandenen Daten
+**Reason**: Die Bedingung bezog sich auf geeignete Portionen; sie gilt jetzt für die Standardpackung.
+
+**Migration**: Ersetzt durch „Packungsanzeige nur mit Standardpackung“.
+
+## ADDED Requirements
+
+### Requirement: Packungsbedarf aus der Standardpackung
 
 Das Backend SHALL für jeden `ShoppingListItem` mit verknüpftem `Ingredient` die benötigte Anzahl der Standardpackung (`Package` mit `rank=1`, nicht gelöscht) berechnen und als strukturierte Werte liefern: `package_options: [{count, package_name, weight_g}]` sowie den Überschuss `package_surplus_g`. Die UI SHALL die Konvention „Gramm zuerst, Packung dahinter“ anwenden: „1.020 g · 2 × 500-g-Packung“. Der Überschuss SHALL klein darunter als „+ … g Reserve“ erscheinen, sofern er > 0 ist.
 
@@ -22,7 +34,7 @@ Rundungsregel: `exact = quantity_g / package.weight_g`. Liegt der Anteil über d
 - **WHEN** `ShoppingListItem.quantity_g` bereits den skalierten Wert inkl. `reserve_factor` enthält
 - **THEN** MUST die Packungsberechnung direkt auf diesem Wert arbeiten, ohne weiteren Aufschlag
 
-### Requirement: Packungsanzeige nur bei vorhandenen Daten
+### Requirement: Packungsanzeige nur mit Standardpackung
 
 Packungsoptionen SHALL nur erscheinen, wenn die Zutat eine freigegebene Standardpackung (`Package`, `rank=1`) hat. Das System SHALL keine Packungen aus Portionen ableiten oder schätzen; ohne Packung zeigt die Zeile die Menge und gegebenenfalls das Stück-Äquivalent.
 
@@ -30,7 +42,6 @@ Packungsoptionen SHALL nur erscheinen, wenn die Zutat eine freigegebene Standard
 - **WHEN** die Zutat keine `Package`-Zeile hat
 - **THEN** ist `package_options` leer und die UI zeigt nur „3 g“
 
-## ADDED Requirements
 
 ### Requirement: Flüssigkeiten in Litern
 Für Zutaten mit `physical_viscosity` in (`beverage`, `liquid`) MUST die Einkaufsliste die Menge über `physical_density` in Milliliter umrechnen und mit `unit="ml"` liefern. Die UI zeigt ab 1.000 ml Liter mit einer Nachkommastelle („9,1 l“). `PhysicalViscosityChoices` erhält den Wert `liquid` („Flüssig“, z. B. Öl, Essig, Sahne); `beverage` bleibt für Getränke.
