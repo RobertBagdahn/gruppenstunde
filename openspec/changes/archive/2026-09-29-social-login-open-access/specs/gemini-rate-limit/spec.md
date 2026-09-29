@@ -1,8 +1,5 @@
-# gemini-rate-limit Specification
+## MODIFIED Requirements
 
-## Purpose
-Defines the global rate limit, authentication requirements, and centralized error handling for all Gemini API calls.
-## Requirements
 ### Requirement: Global Gemini call rate limit
 The system SHALL keep a cache-based burst guard of 500 Gemini text/image calls per 15-minute window per backend instance, protecting against runaway loops. This guard SHALL NOT be relied upon for cost control; cost control across instances SHALL be enforced by the database-backed budgets defined in `ai-budget`. When the burst guard is exceeded, the system SHALL reject further calls with HTTP 429 and `code: "ai_rate_limited"`.
 
@@ -32,32 +29,6 @@ The system SHALL require an authenticated user for every Gemini API call, except
 #### Scenario: Unauthenticated user calls an allowlisted feature
 - **WHEN** an unauthenticated user triggers "Rezept erkennen" and the anonymous budget allows it
 - **THEN** the Gemini call proceeds and is recorded with `tier="anonymous"` and an `anon_key`
-
-### Requirement: Centralized Gemini client
-The system SHALL provide a single `gemini_call()` function that all services MUST use for Gemini text generation. Direct instantiation of `genai.Client` outside the central module is not permitted.
-
-#### Scenario: Service makes a Gemini call
-- **WHEN** any service needs to call Gemini for text generation
-- **THEN** it uses `core.services.gemini.gemini_call()` with user, model, contents, and optional config
-
-#### Scenario: Image generation call
-- **WHEN** a service needs Gemini image generation
-- **THEN** it uses `core.services.gemini.gemini_image_call()` with the same signature pattern
-
-### Requirement: Centralized error handling
-The system SHALL handle Gemini API errors centrally. Google 429 responses, invalid responses, and connection errors MUST be translated to appropriate HTTP errors.
-
-#### Scenario: Google returns 429
-- **WHEN** the Gemini API returns a 429 rate limit error
-- **THEN** the system raises HTTP 429 with message "KI ist gerade überlastet. Bitte versuche es in einer Minute erneut."
-
-#### Scenario: Gemini returns empty/invalid response
-- **WHEN** the Gemini API returns an empty or unparseable response
-- **THEN** the system raises HTTP 502 with message "KI-Antwort ungültig. Bitte versuche es erneut."
-
-#### Scenario: Connection error to Gemini
-- **WHEN** the connection to Gemini API fails
-- **THEN** the system raises HTTP 503 with message "KI nicht erreichbar. Bitte versuche es später erneut."
 
 ### Requirement: Management command bypass
 The system SHALL allow management commands and internal background jobs to bypass rate limiting, budgets and authentication by passing `bypass_limits=True`. Such calls SHALL be recorded with `tier="system"` and SHALL NOT count against any user or anonymous budget.

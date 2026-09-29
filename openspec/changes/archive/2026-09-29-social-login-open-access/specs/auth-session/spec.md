@@ -1,9 +1,5 @@
-# auth-session Specification
+## MODIFIED Requirements
 
-## Purpose
-
-Session-basierte Authentifizierung mit HTTP-only Cookies, iOS-kompatiblen Cookie-Einstellungen und CSRF-Schutz.
-## Requirements
 ### Requirement: Session-basierte Authentifizierung
 
 Das System MUST Django-Session-Authentifizierung mit HTTP-only Cookies verwenden. JWT-Token SHALL NOT verwendet werden. Eine Session SHALL ausschließlich durch einen erfolgreichen Social Login (siehe `social-login`) oder – nur außerhalb der Produktion – durch den Dev-Login entstehen. Eine Anmeldung mit E-Mail und Passwort über die API SHALL NOT möglich sein. Sitzungen SHALL eine Laufzeit von 30 Tagen haben (`SESSION_COOKIE_AGE`), und jede Anfrage SHALL die Laufzeit verlängern (`SESSION_SAVE_EVERY_REQUEST`), damit Nutzer praktisch angemeldet bleiben.
@@ -26,17 +22,6 @@ Das System MUST Django-Session-Authentifizierung mit HTTP-only Cookies verwenden
 
 - **WHEN** ein Client `POST /api/auth/login/` mit E-Mail und Passwort sendet
 - **THEN** antwortet das System mit HTTP 404 und es wird keine Session erzeugt
-
-### Requirement: iOS-Kompatibilität
-
-Session-Cookies SHALL mit SameSite=Lax gesetzt werden, damit iOS WebKit (Chrome/Safari) die Cookies akzeptiert. iOS blockiert Third-Party-Cookies — die Session darf nicht auf Cross-Origin-Cookies angewiesen sein.
-
-#### Scenario: Login auf iOS
-
-- **GIVEN** ein User auf iOS (Chrome oder Safari)
-- **WHEN** der User sich auf `essensplan.app` oder `gruppenstunde.de` anmeldet
-- **THEN** wird die Session-Cookie vom Browser akzeptiert (nicht als Third-Party blockiert)
-- **AND** Folgerequests sind authentifiziert
 
 ### Requirement: CSRF-Cookie mit SameSite=Lax
 
