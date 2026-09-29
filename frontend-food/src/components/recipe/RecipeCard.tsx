@@ -9,6 +9,7 @@ import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
 import RecipeThumbnail from './RecipeThumbnail';
+import { Icon } from '@/components/ui/icon';
 
 const TAG_COLORS = [
   'bg-primary/10 text-primary border border-primary/20',
@@ -66,13 +67,13 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-warning-soft" />
         {/* Like badge */}
         <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-caption font-extrabold text-danger shadow-md">
-          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+          <Icon name="favorite" size={16} />
           {recipe.like_score}
         </div>
         {/* Type badge */}
         {typeOpt && (
           <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-caption font-extrabold text-warning shadow-md">
-            <span className="material-symbols-outlined text-[12px]">{typeOpt.icon}</span>
+            <Icon name={typeOpt.icon} size={16} />
             {typeOpt.label}
           </div>
         )}
@@ -100,7 +101,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
                 className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-foreground shadow-md hover:bg-white transition-colors"
                 title="Bearbeiten"
               >
-                <span className="material-symbols-outlined text-[14px]">edit</span>
+                <Icon name="edit" size={16} />
               </button>
             )}
             {canDelete && onDelete && (
@@ -113,7 +114,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
                 className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-destructive shadow-md hover:bg-white transition-colors"
                 title="Löschen"
               >
-                <span className="material-symbols-outlined text-[14px]">delete</span>
+                <Icon name="delete" size={16} />
               </button>
             )}
             {onClone && (
@@ -126,7 +127,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
                 className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-primary shadow-md hover:bg-white transition-colors"
                 title="Rezept clonen"
               >
-                <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                <Icon name="content_copy" size={16} />
               </button>
             )}
           </div>
@@ -152,7 +153,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
                 key={tag.id}
                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-bold ${TAG_COLORS[index % TAG_COLORS.length]}`}
               >
-                {tag.icon && <span className="material-symbols-outlined text-[11px] mr-0.5">{tag.icon}</span>}
+                {tag.icon && <Icon name={tag.icon} size={16} className="mr-0.5" />}
                 {tag.name}
               </span>
             ))}
@@ -167,16 +168,16 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
         {/* Meta info */}
         <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-border text-caption font-semibold text-muted-foreground">
           <span className="flex items-center gap-1 bg-info-soft rounded-full px-2 py-0.5">
-            <span className="material-symbols-outlined text-[13px] text-info" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+            <Icon name="schedule" size={16} className="text-info" />
             {timeLabel}
           </span>
           <span className="flex items-center gap-1 bg-primary/10 rounded-full px-2 py-0.5">
-            <span className="material-symbols-outlined text-[13px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>signal_cellular_alt</span>
+            <Icon name="signal_cellular_alt" size={16} className="text-primary" />
             {difficultyLabel}
           </span>
           {costsLabel && (
             <span className="flex items-center gap-1 bg-warning-soft rounded-full px-2 py-0.5">
-              <span className="material-symbols-outlined text-[13px] text-warning" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+              <Icon name="payments" size={16} className="text-warning" />
               {costsLabel}
             </span>
           )}

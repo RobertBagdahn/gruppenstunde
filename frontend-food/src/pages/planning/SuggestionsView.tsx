@@ -10,6 +10,7 @@ import SollIstBar from '@/components/shared/SollIstBar';
 import SuggestionCard from '@/components/suggestions/SuggestionCard';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
@@ -436,9 +437,7 @@ export default function SuggestionsView({
                       <div key={row.label} className="px-4 py-3 flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-2 text-body font-medium">
-                            <span className="material-symbols-outlined text-[16px] text-muted-foreground">
-                              {row.icon}
-                            </span>
+                            <Icon name={row.icon} size={16} className="text-muted-foreground" />
                             {row.label}
                           </span>
                           <span className="text-body font-semibold">{displayVal}</span>
@@ -523,9 +522,7 @@ export default function SuggestionsView({
                   <div key={row.label} className="px-4 py-3 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2 text-body font-medium">
-                        <span className="material-symbols-outlined text-[16px] text-muted-foreground">
-                          {row.icon}
-                        </span>
+                        <Icon name={row.icon} size={16} className="text-muted-foreground" />
                         {row.label}
                       </span>
                       <span className="text-body font-semibold">{displayVal}</span>

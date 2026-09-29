@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useBuffetTemplates, useBuffetCatalog, useBuffetState, useBuffetPreview, useSaveBuffet } from '@/api/buffet';
 import type { BuffetCatalogItem, BuffetCatalogRole } from '@/schemas/buffet';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface BuffetBuilderProps {
   open: boolean;
@@ -276,9 +277,7 @@ export function BuffetBuilder({
                       kcalPercent != null && kcalPercent < 80 ? 'text-destructive' : 'text-foreground'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[16px] text-warning">
-                      local_fire_department
-                    </span>
+                    <Icon name="local_fire_department" size={16} className="text-warning" />
                     {Math.round(previewResult.energy_kcal_per_person)} / {Math.round(previewResult.target_kcal_per_person)} kcal / Person
                     {kcalPercent != null && ` (${kcalPercent}%)`}
                   </span>
@@ -369,9 +368,7 @@ function RoleSection({
               {role.unit}/P.
             </label>
           )}
-          <span className="material-symbols-outlined text-[18px] text-muted-foreground">
-            {expanded ? 'expand_less' : 'expand_more'}
-          </span>
+          <Icon name={expanded ? 'expand_less' : 'expand_more'} size={20} className="text-muted-foreground" />
         </div>
       </button>
 

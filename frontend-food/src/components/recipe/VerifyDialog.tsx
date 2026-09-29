@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import type { VerifyStatus } from '@/schemas/recipe';
+import { Icon } from '@/components/ui/icon';
 
 interface VerifyDialogProps {
   open: boolean;
@@ -17,7 +18,7 @@ export default function VerifyDialog({ open, onOpenChange, status, isVerifying, 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-emphasis">
-            <span className="material-symbols-outlined text-primary">verified</span>
+            <Icon name="verified" size={24} className="text-primary" />
             Rezept verifizieren
           </DialogTitle>
           <DialogDescription className="text-body text-muted-foreground">
@@ -69,7 +70,7 @@ export default function VerifyDialog({ open, onOpenChange, status, isVerifying, 
           >
             {isVerifying ? (
               <>
-                <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                <Icon name="progress_activity" size={20} className="animate-spin" />
                 Wird verifiziert...
               </>
             ) : status.warnings.length > 0 ? (

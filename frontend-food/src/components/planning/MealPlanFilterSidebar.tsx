@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   MEALPLAN_ORIGIN_OPTIONS,
 } from '@/schemas/mealPlan';
+import { Icon } from '@/components/ui/icon';
 
 interface MealPlanFilterSidebarProps {
   origin: string;
@@ -22,7 +23,7 @@ export default function MealPlanFilterSidebar({ origin, onOriginChange, onReset 
         className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-body"
       >
         <span className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
+          <Icon name="tune" size={20} className="text-primary" />
           Filter
           {hasActiveFilter && (
             <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-caption px-1.5">
@@ -30,9 +31,7 @@ export default function MealPlanFilterSidebar({ origin, onOriginChange, onReset 
             </span>
           )}
         </span>
-        <span className={`material-symbols-outlined text-[20px] transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>
-          expand_more
-        </span>
+        <Icon name="expand_more" size={20} className={`transition-transform ${mobileOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <div className={`space-y-4 ${mobileOpen ? 'block' : 'hidden md:block'}`}>
@@ -41,11 +40,11 @@ export default function MealPlanFilterSidebar({ origin, onOriginChange, onReset 
           <div className="bg-card rounded-xl border p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-1.5 text-caption font-semibold uppercase text-muted-foreground">
-                <span className="material-symbols-outlined text-[16px]">filter_list</span>
+                <Icon name="filter_list" size={16} />
                 Aktive Filter
               </span>
               <button onClick={onReset} className="flex items-center gap-1 text-caption text-destructive hover:underline">
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <Icon name="close" size={16} />
                 Alle löschen
               </button>
             </div>
@@ -58,7 +57,7 @@ export default function MealPlanFilterSidebar({ origin, onOriginChange, onReset 
                     className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 ) : null;
               })()}
@@ -69,7 +68,7 @@ export default function MealPlanFilterSidebar({ origin, onOriginChange, onReset 
         {/* Origin / Herkunft */}
         <div className="bg-card rounded-xl border-l-4 border-l-primary border p-4 shadow-sm">
           <h3 className="flex items-center gap-1.5 text-body font-semibold mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">verified</span>
+            <Icon name="verified" size={20} className="text-primary" />
             <span className="text-primary">Herkunft</span>
           </h3>
           {MEALPLAN_ORIGIN_OPTIONS.map((opt) => (
@@ -81,7 +80,7 @@ export default function MealPlanFilterSidebar({ origin, onOriginChange, onReset 
                 onChange={() => onOriginChange(opt.value === 'all' ? 'all' : opt.value)}
                 className="border-muted-foreground accent-primary"
               />
-              <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
+              <Icon name={opt.icon} size={16} />
               {opt.label}
             </label>
           ))}

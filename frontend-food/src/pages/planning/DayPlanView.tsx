@@ -9,6 +9,7 @@ import { RefMealChips } from '@/components/planning/RefMealChips';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { formatCount, formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 export function DayPlanView({
   mealPlanId,
@@ -136,12 +137,12 @@ export function DayPlanView({
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
-                      <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
+                      <Icon name="local_fire_department" size={16} />
                       <span>Kcal: Soll {formatCount(dayTargetKcal)} / {formatCount(dayActualKcal)} kcal</span>
                     </span>
                     {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
                       <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
-                        <span className="material-symbols-outlined text-[16px]">payments</span>
+                        <Icon name="payments" size={16} />
                         <span>Preis: Soll {formatNumber(dayTargetCost, { maxDecimals: 2 })} € / Ist {formatNumber(dayActualCost, { maxDecimals: 2 })} €</span>
                       </span>
                     )}

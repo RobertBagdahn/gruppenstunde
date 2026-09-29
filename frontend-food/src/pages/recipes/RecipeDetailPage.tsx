@@ -68,6 +68,7 @@ import { PriceTab } from '@/components/recipe/PriceTab';
 import { NutritionTab } from '@/components/recipe/NutritionTab';
 import { HealthTab } from '@/components/recipe/HealthTab';
 import { WeightTab } from '@/components/recipe/WeightTab';
+import { Icon } from '@/components/ui/icon';
 
 // --- Collapsible Section Component ---
 function AnalysisSection({
@@ -93,16 +94,12 @@ function AnalysisSection({
         className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
       >
         <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
-          <span className={`material-symbols-outlined text-[18px] ${accentColor}`}>{icon}</span>
+          <Icon name={icon} size={20} className={accentColor} />
           {title}
         </h2>
         <div className="flex items-center gap-3">
           {preview && <div className="shrink-0">{preview}</div>}
-          <span
-            className={`material-symbols-outlined text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          >
-            expand_more
-          </span>
+          <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
       {open && <div className="px-5 pb-5 pt-0">{children}</div>}
@@ -475,7 +472,7 @@ export default function RecipeDetailPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-body text-muted-foreground hover:text-primary transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]">link</span>
+            <Icon name="link" size={16} />
             Originalrezept
           </a>
         </div>
@@ -520,7 +517,7 @@ export default function RecipeDetailPage() {
         <div className="mt-4 rounded-xl border-2 border-warning bg-warning-soft p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-warning">edit_note</span>
+              <Icon name="edit_note" size={24} className="text-warning" />
               <span className="text-body font-medium text-warning">Rezept modifiziert</span>
             </div>
             <button
@@ -575,7 +572,7 @@ export default function RecipeDetailPage() {
                 }}
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-warning px-4 py-2.5 text-body font-medium text-white hover:bg-warning transition-colors disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                <Icon name="content_copy" size={20} />
                 {forkAndSaveRecipe.isPending ? 'Wird gespeichert...' : 'Als neue Version speichern'}
               </button>
             )}
@@ -624,7 +621,7 @@ export default function RecipeDetailPage() {
                 }}
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-body font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[18px]">save</span>
+                <Icon name="save" size={20} />
                 {updateRecipe.isPending ? 'Wird gespeichert...' : 'Rezept aktualisieren'}
               </button>
             )}
@@ -636,7 +633,7 @@ export default function RecipeDetailPage() {
               onClick={() => setScaleDialogOpen(true)}
               className="flex items-center gap-1.5 text-caption font-medium text-warning hover:text-warning transition-colors"
             >
-              <span className="material-symbols-outlined text-[16px]">scale</span>
+              <Icon name="scale" size={16} />
               Zutaten skalieren
             </button>
           </div>
@@ -669,7 +666,7 @@ export default function RecipeDetailPage() {
           return (
             <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-soft p-4">
               <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-warning mt-0.5">warning</span>
+                <Icon name="warning" size={24} className="text-warning mt-0.5" />
                 <div>
                   <p className="text-body font-medium text-warning">
                     Diese Portion ist größer als eine Normportion
@@ -706,7 +703,7 @@ export default function RecipeDetailPage() {
       {topicTags.length > 0 && (
         <section className="mt-6 bg-card rounded-xl border p-6">
           <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">label</span>
+            <Icon name="label" size={20} />
             Themen
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -844,7 +841,7 @@ export default function RecipeDetailPage() {
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-                <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                <Icon name="inventory_2" size={20} />
               </span>
               <div className="min-w-0">
                 <h2 className="flex items-center gap-2 text-section font-semibold leading-tight">
@@ -891,7 +888,7 @@ export default function RecipeDetailPage() {
       {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
         <section className="mt-6 bg-card rounded-xl border p-6">
           <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">nutrition</span>
+            <Icon name="nutrition" size={20} />
             Ernährungstags
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -912,7 +909,7 @@ export default function RecipeDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl" data-testid="recipe-shopping-export-dialog">
             <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">shopping_cart</span>
+              <Icon name="shopping_cart" size={24} className="text-primary" />
               Einkaufsliste erstellen
             </h3>
             <label className="block text-body text-muted-foreground mb-1">
@@ -924,7 +921,7 @@ export default function RecipeDetailPage() {
                 onClick={() => setExportPortions(Math.max(1, exportPortions - 1))}
                 className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
               >
-                <span className="material-symbols-outlined text-[20px]">remove</span>
+                <Icon name="remove" size={20} />
               </button>
               <input
                 type="number"
@@ -940,7 +937,7 @@ export default function RecipeDetailPage() {
                 onClick={() => setExportPortions(exportPortions + 1)}
                 className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
               >
-                <span className="material-symbols-outlined text-[20px]">add</span>
+                <Icon name="add" size={20} />
               </button>
             </div>
             <div className="flex gap-2">
@@ -983,7 +980,7 @@ export default function RecipeDetailPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emphasis">
-              <span className="material-symbols-outlined text-primary">content_copy</span>
+              <Icon name="content_copy" size={24} className="text-primary" />
               Rezept clonen
             </DialogTitle>
             <DialogDescription className="text-body text-muted-foreground">
@@ -1031,7 +1028,7 @@ export default function RecipeDetailPage() {
             >
               {forkRecipe.isPending ? (
                 <>
-                  <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                  <Icon name="progress_activity" size={20} className="animate-spin" />
                   Wird geklont...
                 </>
               ) : (
@@ -1046,7 +1043,7 @@ export default function RecipeDetailPage() {
       {recipe.is_owner && recipe.visibility && (
         <div className="mt-6 bg-card rounded-xl border p-5">
           <h3 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            <span className="material-symbols-outlined text-[18px]">visibility</span>
+            <Icon name="visibility" size={20} />
             Sichtbarkeit
           </h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">

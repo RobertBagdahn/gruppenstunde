@@ -17,6 +17,7 @@ import {
 import type { MealPlan } from '@/schemas/mealPlan';
 import { getPlanBadge, formatDateRange, getDaysCount } from '@/schemas/mealPlan';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   verified: {
@@ -151,7 +152,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
         </span>
         {plan.budget_per_person_per_day != null && (
           <span className="inline-flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">euro</span>
+            <Icon name="euro" size={16} />
             {formatNumber(Number(plan.budget_per_person_per_day), { maxDecimals: 2 }).replace('.', ',')} €/Person/Tag
           </span>
         )}

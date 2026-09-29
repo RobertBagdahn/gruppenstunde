@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ToolConfig } from '@/lib/toolColors';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -81,12 +82,7 @@ export default function ToolLandingPage({
           )}
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm">
-              <span
-                className="material-symbols-outlined text-[32px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                {tool.icon}
-              </span>
+              <Icon name={tool.icon} size={24} />
             </div>
             <h1 className="text-title md:text-title lg:text-title font-extrabold tracking-tight font-display">
               {tool.label}
@@ -100,7 +96,7 @@ export default function ToolLandingPage({
               to={ctaRoute}
               className="flex items-center gap-2 px-6 py-3 bg-white text-foreground rounded-full text-body font-bold hover:bg-white/90 hover:scale-105 transition-all shadow-lg"
             >
-              <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
+              <Icon name="rocket_launch" size={20} />
               {ctaLabel}
             </Link>
             {sandbox && (
@@ -108,7 +104,7 @@ export default function ToolLandingPage({
                 href="#sandbox"
                 className="flex items-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-body font-bold hover:bg-white/25 hover:scale-105 transition-all"
               >
-                <span className="material-symbols-outlined text-[20px]">play_circle</span>
+                <Icon name="play_circle" size={20} />
                 Ausprobieren
               </a>
             )}
@@ -116,7 +112,7 @@ export default function ToolLandingPage({
               href="#features"
               className="flex items-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-body font-bold hover:bg-white/25 hover:scale-105 transition-all"
             >
-              <span className="material-symbols-outlined text-[20px]">info</span>
+              <Icon name="info" size={20} />
               Mehr erfahren
             </a>
           </div>
@@ -144,12 +140,7 @@ export default function ToolLandingPage({
         <div className="container">
           <div className="text-center mb-10">
             <h2 className="text-title md:text-title font-extrabold flex items-center justify-center gap-2 font-display">
-              <span
-                className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                stars
-              </span>
+              <Icon name="stars" size={24} className={cn(tool.textColor)} />
               Features & Funktionen
             </h2>
             <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -166,12 +157,7 @@ export default function ToolLandingPage({
                   'flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br text-white shadow-md shrink-0',
                   tool.gradient,
                 )}>
-                  <span
-                    className="material-symbols-outlined text-[22px]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    {feat.icon}
-                  </span>
+                  <Icon name={feat.icon} size={24} />
                 </div>
                 <div>
                   <h3 className="font-extrabold text-emphasis mb-1 font-display">{feat.title}</h3>
@@ -189,12 +175,7 @@ export default function ToolLandingPage({
       <section className="container py-12 md:py-16">
         <div className="text-center mb-10">
           <h2 className="text-title md:text-title font-extrabold flex items-center justify-center gap-2 font-display">
-            <span
-              className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              apps
-            </span>
+            <Icon name="apps" size={24} className={cn(tool.textColor)} />
             Anwendungsbeispiele
           </h2>
           <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -216,12 +197,7 @@ export default function ToolLandingPage({
                   'flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br text-white shadow-lg mb-4',
                   tool.gradient,
                 )}>
-                  <span
-                    className="material-symbols-outlined text-[24px]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    {ex.icon}
-                  </span>
+                  <Icon name={ex.icon} size={24} />
                 </div>
                 <h3 className="text-section font-extrabold mb-2 font-display">{ex.title}</h3>
                 <p className="text-muted-foreground text-body">{ex.description}</p>
@@ -239,12 +215,7 @@ export default function ToolLandingPage({
           <div className="container">
             <div className="text-center mb-10">
               <h2 className="text-title md:text-title font-extrabold flex items-center justify-center gap-2 font-display">
-                <span
-                  className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  play_circle
-                </span>
+                <Icon name="play_circle" size={24} className={cn(tool.textColor)} />
                 Jetzt ausprobieren
               </h2>
               <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
@@ -267,12 +238,7 @@ export default function ToolLandingPage({
       <section className="container py-12 md:py-16">
         <div className="text-center mb-10">
           <h2 className="text-title md:text-title font-extrabold flex items-center justify-center gap-2 font-display">
-            <span
-              className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              help
-            </span>
+            <Icon name="help" size={24} className={cn(tool.textColor)} />
             Häufig gestellte Fragen
           </h2>
         </div>
@@ -284,9 +250,7 @@ export default function ToolLandingPage({
             >
               <summary className="flex items-center justify-between cursor-pointer font-bold text-emphasis font-display">
                 {item.question}
-                <span className="material-symbols-outlined text-[20px] text-muted-foreground group-open:rotate-180 transition-transform">
-                  expand_more
-                </span>
+                <Icon name="expand_more" size={20} className="text-muted-foreground group-open:rotate-180 transition-transform" />
               </summary>
               <p className="mt-3 text-muted-foreground text-body leading-relaxed">
                 {item.answer}
@@ -313,14 +277,14 @@ export default function ToolLandingPage({
               to={ctaRoute}
               className="flex items-center gap-2 px-8 py-3 bg-white text-foreground rounded-full text-body font-bold hover:bg-white/90 hover:scale-105 transition-all shadow-lg"
             >
-              <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
+              <Icon name="rocket_launch" size={20} />
               {ctaLabel}
             </Link>
             <Link
               to="/register"
               className="flex items-center gap-2 px-8 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-body font-bold hover:bg-white/25 hover:scale-105 transition-all"
             >
-              <span className="material-symbols-outlined text-[20px]">person_add</span>
+              <Icon name="person_add" size={20} />
               Kostenlos registrieren
             </Link>
           </div>

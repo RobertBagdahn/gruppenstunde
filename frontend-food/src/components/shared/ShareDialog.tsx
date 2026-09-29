@@ -12,6 +12,7 @@ import {
 } from '@/api/collaborators';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RoleSelect from './RoleSelect';
+import { Icon } from '@/components/ui/icon';
 
 interface ShareDialogProps {
   open: boolean;
@@ -106,7 +107,7 @@ export default function ShareDialog({
               onClick={onClose}
               className="rounded-full p-1 hover:bg-muted transition-colors"
             >
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <Icon name="close" size={20} />
             </button>
           </div>
 
@@ -146,7 +147,7 @@ export default function ShareDialog({
                         className="rounded-lg p-1 text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
                         title="Entfernen"
                       >
-                        <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                        <Icon name="person_remove" size={20} />
                       </button>
                     </div>
                   </li>

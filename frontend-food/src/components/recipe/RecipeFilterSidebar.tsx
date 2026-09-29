@@ -9,6 +9,7 @@ import {
   type RecipeFilter,
 } from '@/schemas/recipe';
 import TagMultiSelect from './TagMultiSelect';
+import { Icon } from '@/components/ui/icon';
 
 const COST_RANGE_OPTIONS = [
   { value: 'lt2', label: '< 2€' },
@@ -118,16 +119,14 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-body"
       >
         <span className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
+          <Icon name="tune" size={20} className="text-primary" />
           Filter {activeFilterCount > 0 && (
             <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-caption px-1.5">
               {activeFilterCount}
             </span>
           )}
         </span>
-        <span className={`material-symbols-outlined text-[20px] transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>
-          expand_more
-        </span>
+        <Icon name="expand_more" size={20} className={`transition-transform ${mobileOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <div className={`space-y-4 ${mobileOpen ? 'block' : 'hidden md:block'}`}>
@@ -135,7 +134,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           onClick={onReset}
           className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-border bg-card hover:bg-muted text-body font-semibold transition-colors"
         >
-          <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+          <Icon name="restart_alt" size={16} />
           Zurücksetzen
         </button>
 
@@ -143,11 +142,11 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           <div className="bg-card rounded-xl border p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-1.5 text-caption font-semibold uppercase text-muted-foreground">
-                <span className="material-symbols-outlined text-[16px]">filter_list</span>
+                <Icon name="filter_list" size={16} />
                 Aktive Filter
               </span>
               <button onClick={onReset} className="flex items-center gap-1 text-caption text-destructive hover:underline">
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <Icon name="close" size={16} />
                 Alle löschen
               </button>
             </div>
@@ -161,7 +160,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                     className="inline-flex items-center gap-1 rounded-full bg-warning-soft text-warning border border-warning-border px-2.5 py-1 text-caption font-medium hover:bg-warning-soft transition-colors"
                   >
                     {opt.label}
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 ) : null;
               })}
@@ -174,7 +173,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                     className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 ) : null;
               })}
@@ -187,7 +186,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                     className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {tag.name}
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 ) : null;
               })}
@@ -282,7 +281,7 @@ function FilterGroup({
   return (
     <div className="bg-card rounded-xl border p-4 shadow-sm">
       <h3 className="flex items-center gap-1.5 text-body font-semibold mb-3">
-        <span className="material-symbols-outlined text-[18px]" style={{ color }}>{icon}</span>
+        <Icon name={icon} size={20} style={{ color }} />
         <span style={{ color }}>{title}</span>
       </h3>
       <div className="space-y-1">{children}</div>
@@ -309,7 +308,7 @@ function FilterCheckbox({
         onChange={onChange}
         className="rounded-lg border-muted-foreground accent-primary"
       />
-      {icon && <span className="material-symbols-outlined text-[16px]">{icon}</span>}
+      {icon && <Icon name={icon} size={16} />}
       {label}
     </label>
   );

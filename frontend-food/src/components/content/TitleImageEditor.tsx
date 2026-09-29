@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 const MAX_FILE_SIZE = 500 * 1024; // 500KB
 
@@ -204,7 +205,7 @@ export default function TitleImageEditor({
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-body text-left hover:bg-muted text-destructive transition"
                   onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
                 >
-                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                  <Icon name="delete" size={20} />
                   Bild entfernen
                 </button>
               </div>
@@ -388,9 +389,7 @@ function AiImageModal({
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/0 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-white text-4xl drop-shadow-lg">
-                        check_circle
-                      </span>
+                      <Icon name="check_circle" size={24} className="text-white drop-shadow-lg" />
                     </div>
                   </div>
                 ))}
@@ -414,14 +413,12 @@ function AiImageModal({
           >
             {generateImage.isPending ? (
               <>
-                <span className="material-symbols-outlined text-lg animate-spin">
-                  progress_activity
-                </span>
+                <Icon name="progress_activity" size={20} className="animate-spin" />
                 Generiere...
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                <Icon name="auto_awesome" size={20} />
                 Generieren
               </>
             )}

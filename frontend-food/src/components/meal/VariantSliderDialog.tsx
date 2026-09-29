@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { RecipeItem } from '@/schemas/recipe';
 import { useBatchCreateMealItems } from '@/api/mealPlans';
 import type { MealItemVariantIn } from '@/schemas/mealPlan';
+import { Icon } from '@/components/ui/icon';
 
 interface VariantSliderDialogProps {
   mealPlanId: number;
@@ -257,7 +258,7 @@ export default function VariantSliderDialog({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6 text-center space-y-4">
-          <span className="material-symbols-outlined text-4xl text-muted-foreground">info</span>
+          <Icon name="info" size={24} className="text-muted-foreground" />
           <p className="text-body text-muted-foreground">
             Keine gültige Portionsanzahl für dieses Gericht. Bitte zuerst Portionen festlegen.
           </p>

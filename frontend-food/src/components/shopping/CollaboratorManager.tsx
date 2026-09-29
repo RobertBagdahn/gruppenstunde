@@ -14,6 +14,7 @@ import {
 } from '@/schemas/shoppingList';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { Icon } from '@/components/ui/icon';
 
 interface CollaboratorManagerProps {
   listId: number;
@@ -90,9 +91,7 @@ export default function CollaboratorManager({
             >
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-primary text-[16px]">
-                    person
-                  </span>
+                  <Icon name="person" size={16} className="text-primary" />
                 </div>
                 <span className="text-body font-medium truncate">
                   {collab.username}
@@ -136,9 +135,7 @@ export default function CollaboratorManager({
                     className="text-destructive hover:bg-destructive/10 rounded-lg p-1 transition-colors"
                     title="Entfernen"
                   >
-                    <span className="material-symbols-outlined text-[18px]">
-                      close
-                    </span>
+                    <Icon name="close" size={20} />
                   </button>
                 )}
               </div>
@@ -213,9 +210,7 @@ export default function CollaboratorManager({
               onClick={() => setShowInvite(true)}
               className="flex items-center gap-1.5 text-body text-primary font-medium hover:underline"
             >
-              <span className="material-symbols-outlined text-[18px]">
-                person_add
-              </span>
+              <Icon name="person_add" size={20} />
               Nutzer einladen
             </button>
           )}

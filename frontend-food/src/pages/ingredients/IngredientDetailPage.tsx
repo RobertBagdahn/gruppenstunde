@@ -134,6 +134,7 @@ import { SortablePortionItem } from '@/components/ingredients/SortablePortionIte
 import RecipeCard from '@/components/recipe/RecipeCard';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 import { formatExactWeight, formatNumber, roundToDecimals } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -218,14 +219,10 @@ function CollapsibleNutritionGroup({
         className="w-full flex items-center justify-between gap-2 p-2.5 text-left hover:bg-muted/50 transition-colors"
       >
         <span className="flex items-center gap-1.5 text-body font-semibold">
-          <span className={`material-symbols-outlined text-base ${iconColor}`}>{icon}</span>
+          <Icon name={icon} size={16} className={iconColor} />
           {title}
         </span>
-        <span
-          className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          expand_more
-        </span>
+        <Icon name="expand_more" size={16} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && <div className="px-3 pb-2">{children}</div>}
     </div>
@@ -305,14 +302,14 @@ function PackageRow({
             className="p-1 text-muted-foreground hover:text-foreground"
             aria-label={`Packung bearbeiten: ${pkg.name}`}
           >
-            <span className="material-symbols-outlined text-sm">edit</span>
+            <Icon name="edit" size={16} />
           </button>
           <button
             onClick={() => setConfirmDelete(true)}
             className="p-1 text-muted-foreground hover:text-destructive"
             aria-label={`Packung löschen: ${pkg.name}`}
           >
-            <span className="material-symbols-outlined text-sm">delete</span>
+            <Icon name="delete" size={16} />
           </button>
         </div>
       )}
@@ -613,9 +610,7 @@ function PortionCard({
   return (
     <div className={`border rounded-xl overflow-hidden shadow-soft ${isDefault ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'}`}>
       <div className={`flex items-center gap-2 px-4 py-3 border-b ${isDefault ? 'bg-primary/10 border-primary/20' : 'bg-muted/20 border-border/80'}`}>
-        <span className={`material-symbols-outlined text-lg shrink-0 ${isDefault ? 'text-primary' : 'text-primary'}`}>
-          scale
-        </span>
+        <Icon name="scale" size={20} className={`shrink-0 ${isDefault ? 'text-primary' : 'text-primary'}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-body">
@@ -640,7 +635,7 @@ function PortionCard({
                 className="inline-flex items-center gap-1 text-caption bg-warning-soft text-warning font-medium px-1.5 py-0.5 rounded-lg border border-warning-border"
                 title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
               >
-                <span className="material-symbols-outlined text-[12px]">warning</span>
+                <Icon name="warning" size={16} />
                 Kein Gewicht
               </span>
             )}
@@ -885,7 +880,7 @@ function PortionsSection({
     <div className="mb-8">
       {showPackungWarning && (
         <div className="mb-4 p-3 bg-warning-soft border border-warning-border rounded-lg flex items-start gap-3">
-          <span className="material-symbols-outlined text-warning text-lg shrink-0 mt-0.5">warning</span>
+          <Icon name="warning" size={20} className="text-warning shrink-0 mt-0.5" />
           <div className="text-body text-warning">
             <strong>Packungsgewicht fehlt:</strong> Die Packung-Portion hat kein Gewicht. Bitte manuell eintragen, damit die Einkaufsliste korrekt berechnet wird.
           </div>
@@ -895,7 +890,7 @@ function PortionsSection({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">scale</span>
+            <Icon name="scale" size={24} className="text-primary" />
             Portionen
           </h2>
           <p className="text-caption text-muted-foreground mt-1 ml-7">
@@ -1322,7 +1317,7 @@ export default function IngredientDetailPage() {
         onClick={() => navigate('/ingredients')}
         className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground mb-4 transition"
       >
-        <span className="material-symbols-outlined text-lg">arrow_back</span>
+        <Icon name="arrow_back" size={20} />
         Alle Zutaten
       </button>
 
@@ -1364,25 +1359,25 @@ export default function IngredientDetailPage() {
             <NutriScoreBadge nutriClass={ingredient.nutri_class} />
             {ingredient.camp_suitable && (
               <span className="flex items-center gap-1 text-caption text-foreground bg-warning-soft px-2 py-1 rounded-lg">
-                <span className="material-symbols-outlined text-sm">camping</span>
+                <Icon name="camping" size={16} />
                 Camp-geeignet
               </span>
             )}
             {ingredient.retail_section_name && (
               <span className="flex items-center gap-1 text-caption text-muted-foreground bg-muted px-2 py-1 rounded-lg">
-                <span className="material-symbols-outlined text-sm">store</span>
+                <Icon name="store" size={16} />
                 {ingredient.retail_section_name}
               </span>
             )}
             {ingredient.price_per_kg !== null && (
               <span className="flex items-center gap-1 text-caption text-muted-foreground bg-muted px-2 py-1 rounded-lg">
-                <span className="material-symbols-outlined text-sm">payments</span>
+                <Icon name="payments" size={16} />
                 {formatPrice(ingredient.price_per_kg)}/kg
               </span>
             )}
             {ingredient.is_standalone_food && (
               <span className="flex items-center gap-1 text-caption text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg font-medium">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
+                <Icon name="check_circle" size={16} />
                 Roh verzehrbar
               </span>
             )}
@@ -1415,7 +1410,7 @@ export default function IngredientDetailPage() {
                   className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground"
                   title="Alle KI-Vorschläge prüfen & vergleichen"
                 >
-                  <span className="material-symbols-outlined text-lg">auto_fix_high</span>
+                  <Icon name="auto_fix_high" size={20} />
                 </button>
               </>
             )}
@@ -1427,7 +1422,7 @@ export default function IngredientDetailPage() {
                   className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground"
                   title="Bearbeiten"
                 >
-                  <span className="material-symbols-outlined text-lg">edit</span>
+                  <Icon name="edit" size={20} />
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
@@ -1435,7 +1430,7 @@ export default function IngredientDetailPage() {
                   className="p-2 rounded-lg hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
                   title="Zutat löschen"
                 >
-                  <span className="material-symbols-outlined text-lg">delete</span>
+                  <Icon name="delete" size={20} />
                 </button>
               </>
             )}
@@ -1544,7 +1539,7 @@ export default function IngredientDetailPage() {
         {/* Nutritional Values */}
         <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
           <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-lg">nutrition</span>
+            <Icon name="nutrition" size={20} className="text-primary" />
             Nährwerte pro 100g
           </h2>
           <div>
@@ -1574,7 +1569,7 @@ export default function IngredientDetailPage() {
           {/* Scores */}
           <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
             <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">health_and_safety</span>
+              <Icon name="health_and_safety" size={20} className="text-primary" />
               Bewertungen
             </h2>
             <div>
@@ -1599,7 +1594,7 @@ export default function IngredientDetailPage() {
           {/* Physical Properties */}
           <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
             <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">science</span>
+              <Icon name="science" size={20} className="text-primary" />
               Physikalische Eigenschaften
             </h2>
             <div>
@@ -1620,7 +1615,7 @@ export default function IngredientDetailPage() {
           {(ingredient.storage_type != null || ingredient.cooking_factor != null || ingredient.preparation_time_min != null || ingredient.season_start != null) && (
             <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
               <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-lg">backpack</span>
+                <Icon name="backpack" size={20} className="text-primary" />
                 Lager & Pfadfinder
               </h2>
               <div>
@@ -1675,7 +1670,7 @@ export default function IngredientDetailPage() {
           {(ingredient.fdc_id || ingredient.nan_art_id_rewe || ingredient.ean) && (
             <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
               <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-lg">link</span>
+                <Icon name="link" size={20} className="text-primary" />
                 Referenzen
               </h2>
               <div>
@@ -1871,7 +1866,7 @@ export default function IngredientDetailPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">inventory_2</span>
+            <Icon name="inventory_2" size={24} className="text-primary" />
             Packungen
           </h2>
           {canEdit && (
@@ -1879,7 +1874,7 @@ export default function IngredientDetailPage() {
               onClick={() => setShowAddPackage(!showAddPackage)}
               className="flex items-center gap-1 text-body text-primary hover:underline"
             >
-              <span className="material-symbols-outlined text-lg">add</span>
+              <Icon name="add" size={20} />
               Packung hinzufügen
             </button>
           )}
@@ -1946,7 +1941,7 @@ export default function IngredientDetailPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">label</span>
+            <Icon name="label" size={24} className="text-primary" />
             Aliase
           </h2>
           {canEdit && (
@@ -1954,7 +1949,7 @@ export default function IngredientDetailPage() {
               onClick={() => setShowAddAlias(!showAddAlias)}
               className="flex items-center gap-1 text-body text-primary hover:underline"
             >
-              <span className="material-symbols-outlined text-lg">add</span>
+              <Icon name="add" size={20} />
               Alias hinzufügen
             </button>
           )}
@@ -2010,7 +2005,7 @@ export default function IngredientDetailPage() {
                     onClick={() => setDeleteAliasId(alias.id)}
                     className="text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition"
                   >
-                    <span className="material-symbols-outlined text-sm">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 )}
               </span>

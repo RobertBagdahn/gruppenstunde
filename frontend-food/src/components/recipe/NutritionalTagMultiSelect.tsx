@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNutritionalTags } from '@/api/supplies';
+import { Icon } from '@/components/ui/icon';
 
 const TAG_COLOR_MAP: Record<string, string> = {
   'Tierbestandteile (nicht Vegetarisch)': 'bg-danger-soft text-danger border-danger-border',
@@ -117,9 +118,7 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
             {selectedTagIds.length}
           </span>
         )}
-        <span className={`material-symbols-outlined text-[14px] transition-transform ${open ? 'rotate-180' : ''}`}>
-          expand_more
-        </span>
+        <Icon name="expand_more" size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-card border border-border rounded-xl shadow-lg p-2 max-h-80 overflow-hidden flex flex-col">
@@ -170,7 +169,7 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
               className={`inline-flex items-center gap-1 px-2 py-0.5 text-caption rounded-full border font-medium transition-colors ${getTagColorClass(tag.name)}`}
             >
               {tag.name}
-              <span className="material-symbols-outlined text-[12px]">close</span>
+              <Icon name="close" size={16} />
             </button>
           ))}
         </div>

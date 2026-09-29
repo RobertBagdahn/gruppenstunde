@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { IngredientListItem } from '@/schemas/supply';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import { formatNumber, roundToDecimals } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface IngredientCardProps {
   ingredient: IngredientListItem;
@@ -38,7 +39,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
 
       {ingredient.retail_section_name && (
         <div className="flex items-center gap-1 text-caption text-muted-foreground mb-2">
-          <span className="material-symbols-outlined text-[14px]">store</span>
+          <Icon name="store" size={16} />
           {ingredient.retail_section_name}
         </div>
       )}
@@ -46,7 +47,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
       <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
         {ingredient.energy_kcal !== null && (
           <span className="inline-flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-lg">
-            <span className="material-symbols-outlined text-[12px]">local_fire_department</span>
+            <Icon name="local_fire_department" size={16} />
             {Math.round(ingredient.energy_kcal)} kcal
           </span>
         )}
@@ -57,7 +58,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
         )}
         {formatPrice(ingredient.price_per_kg) && (
           <span className="inline-flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-lg">
-            <span className="material-symbols-outlined text-[12px]">payments</span>
+            <Icon name="payments" size={16} />
             {formatPrice(ingredient.price_per_kg)}
           </span>
         )}
@@ -80,7 +81,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
           title="Zutat löschen"
           aria-label={`Zutat löschen: ${ingredient.name}`}
         >
-          <span className="material-symbols-outlined text-lg">delete</span>
+          <Icon name="delete" size={20} />
         </button>
       )}
     </Link>

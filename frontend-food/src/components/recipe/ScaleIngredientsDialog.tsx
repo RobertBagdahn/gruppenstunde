@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 interface ScaleIngredientsDialogProps {
   open: boolean;
@@ -65,7 +66,7 @@ export default function ScaleIngredientsDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-emphasis">
-            <span className="material-symbols-outlined text-danger">scale</span>
+            <Icon name="scale" size={24} className="text-danger" />
             Zutaten skalieren
           </DialogTitle>
           <DialogDescription>

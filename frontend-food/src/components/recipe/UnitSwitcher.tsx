@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 interface UnitSwitcherProps {
   /** The original formatted display string (e.g. "200 g") */
@@ -96,9 +97,7 @@ export default function UnitSwitcher({
           {showApprox && (
             <span className="text-caption text-muted-foreground font-normal ml-0.5">(ca.)</span>
           )}
-          <span className="material-symbols-outlined text-[14px] text-muted-foreground ml-0.5">
-            swap_vert
-          </span>
+          <Icon name="swap_vert" size={16} className="text-muted-foreground ml-0.5" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[140px]">

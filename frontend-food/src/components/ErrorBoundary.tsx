@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Icon } from '@/components/ui/icon';
 
 interface Props {
   children: ReactNode;
@@ -28,7 +29,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <div className="bg-card rounded-xl border p-6 max-w-md w-full text-center space-y-4">
-            <span className="material-symbols-outlined text-4xl text-destructive">error</span>
+            <Icon name="error" size={24} className="text-destructive" />
             <h1 className="text-section font-semibold">Ein Fehler ist aufgetreten</h1>
             <p className="text-body text-muted-foreground">
               Die Anwendung konnte nicht geladen werden. Bitte lade die Seite neu.

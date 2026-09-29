@@ -20,6 +20,7 @@ import {
 import { useIngredientDistributions } from '@/api/supplies';
 import type { DistributionBucket, DistributionStats } from '@/schemas/supply';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Konfiguration der angezeigten Felder
@@ -371,7 +372,7 @@ export function IngredientBenchmarkSection({ values }: IngredientBenchmarkSectio
   return (
     <section className="mb-8">
       <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2 mb-4">
-        <span className="material-symbols-outlined text-primary">bar_chart</span>
+        <Icon name="bar_chart" size={24} className="text-primary" />
         Einordnung im Vergleich
       </h2>
       <p className="text-body text-muted-foreground mb-4">

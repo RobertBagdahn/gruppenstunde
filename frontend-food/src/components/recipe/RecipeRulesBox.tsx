@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { useRecipeRules } from '@/api/recipes';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface RecipeRulesBoxProps {
   recipeId: number;
@@ -32,7 +33,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
     return (
       <section className="mt-6 rounded-xl border bg-muted/30 p-5">
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-[20px] text-info mt-0.5">info</span>
+          <Icon name="info" size={20} className="text-info mt-0.5" />
           <div className="space-y-1">
             <h2 className="text-body font-semibold text-foreground">Keine Nährwert-Bewertung für diesen Rezepttyp</h2>
             <p className="text-body text-muted-foreground leading-relaxed">
@@ -51,7 +52,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
         className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
       >
         <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
-          <span className="material-symbols-outlined text-[18px] text-info">task_alt</span>
+          <Icon name="task_alt" size={20} className="text-info" />
           Rezeptregeln
           <NutritionBaseBadge base="per_portion" />
         </h2>
@@ -73,11 +74,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
               {data.red_count}
             </span>
           </div>
-          <span
-            className={`material-symbols-outlined text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          >
-            expand_more
-          </span>
+          <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -121,9 +118,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
                   <div key={item.rule_id} className="py-4 first:pt-2 last:pb-2 space-y-1">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`material-symbols-outlined text-[18px] shrink-0 ${statusMeta.text}`}>
-                          {statusMeta.icon}
-                        </span>
+                        <Icon name={statusMeta.icon} size={20} className={`shrink-0 ${statusMeta.text}`} />
                         <span className="text-body font-medium truncate">{item.name}</span>
                       </div>
                       <div className="text-body shrink-0 flex items-center gap-1.5">

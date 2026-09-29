@@ -3,6 +3,7 @@
  * Supports numbered page buttons with ellipsis, prev/next arrows, and mobile-compact mode.
  */
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 interface PaginationProps {
   currentPage: number;
@@ -72,7 +73,7 @@ export default function Pagination({
         className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-body font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Vorherige Seite"
       >
-        <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+        <Icon name="chevron_left" size={20} />
       </button>
 
       {/* Page numbers — hidden on mobile, shown on sm+ */}
@@ -118,7 +119,7 @@ export default function Pagination({
         className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-body font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Naechste Seite"
       >
-        <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+        <Icon name="chevron_right" size={20} />
       </button>
     </div>
   );

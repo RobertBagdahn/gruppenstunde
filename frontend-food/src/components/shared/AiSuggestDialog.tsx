@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -165,7 +166,7 @@ export function AiSuggestDialog({
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-emphasis">
-            <span className="material-symbols-outlined text-primary">auto_awesome</span>
+            <Icon name="auto_awesome" size={24} className="text-primary" />
             {title}
           </DialogTitle>
           <DialogDescription>

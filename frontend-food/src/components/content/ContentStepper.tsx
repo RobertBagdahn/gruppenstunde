@@ -24,6 +24,7 @@ import {
   EXECUTION_TIME_OPTIONS,
 } from '@/schemas/content';
 import { toast } from 'sonner';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -262,7 +263,7 @@ export default function ContentStepper({
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${typeGradient} text-white`}>
-          <span className="material-symbols-outlined text-[24px]">{typeIcon}</span>
+          <Icon name={typeIcon} size={24} />
         </div>
         <div>
           <h1 className="text-title font-bold">{typeLabel} erstellen</h1>
@@ -353,7 +354,7 @@ export default function ContentStepper({
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
                 <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10">
-                  <span className="material-symbols-outlined text-[32px] text-primary">auto_awesome</span>
+                  <Icon name="auto_awesome" size={24} className="text-primary" />
                 </div>
                 <span className="font-semibold">Mit KI-Hilfe</span>
                 <span className="text-caption text-muted-foreground">
@@ -367,7 +368,7 @@ export default function ContentStepper({
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
                 <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted">
-                  <span className="material-symbols-outlined text-[32px] text-muted-foreground">edit_note</span>
+                  <Icon name="edit_note" size={24} className="text-muted-foreground" />
                 </div>
                 <span className="font-semibold">Manuell</span>
                 <span className="text-caption text-muted-foreground">
@@ -408,7 +409,7 @@ export default function ContentStepper({
                       disabled={!rawText.trim()}
                       className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                      <Icon name="auto_awesome" size={16} />
                       KI-Entwurf erstellen
                     </button>
                     <button
@@ -447,7 +448,7 @@ export default function ContentStepper({
                   }}
                   className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium flex items-center gap-1.5"
                 >
-                  <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                  <Icon name="auto_awesome" size={16} />
                   Erneut versuchen
                 </button>
                 <button
@@ -492,7 +493,7 @@ export default function ContentStepper({
                 className="px-2 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
                 title="KI-Verbesserung"
               >
-                <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                <Icon name="auto_awesome" size={20} />
               </button>
             </div>
           </div>
@@ -519,7 +520,7 @@ export default function ContentStepper({
                 className="px-2 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 self-start"
                 title="KI-Verbesserung"
               >
-                <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                <Icon name="auto_awesome" size={20} />
               </button>
             </div>
           </div>
@@ -538,7 +539,7 @@ export default function ContentStepper({
                 disabled={!formData.description.trim() || improveText.isPending}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-caption"
               >
-                <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                <Icon name="auto_awesome" size={16} />
                 KI verbessern
               </button>
             </div>
@@ -618,7 +619,7 @@ export default function ContentStepper({
                 disabled={(!formData.title && !formData.description) || suggestTags.isPending}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-caption"
               >
-                <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                <Icon name="auto_awesome" size={16} />
                 {suggestTags.isPending ? 'Wird geladen...' : 'KI-Vorschläge'}
               </button>
             </div>
@@ -722,19 +723,19 @@ export default function ContentStepper({
                   <div className="flex flex-wrap gap-3">
                     {formData.difficulty && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
-                        <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
+                        <Icon name="signal_cellular_alt" size={16} />
                         {getOptionLabel(DIFFICULTY_OPTIONS, formData.difficulty)}
                       </span>
                     )}
                     {formData.executionTime && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
-                        <span className="material-symbols-outlined text-[14px]">schedule</span>
+                        <Icon name="schedule" size={16} />
                         {getOptionLabel(EXECUTION_TIME_OPTIONS, formData.executionTime)}
                       </span>
                     )}
                     {formData.preparationTime && !hidePreparationTime && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
-                        <span className="material-symbols-outlined text-[14px]">timer</span>
+                        <Icon name="timer" size={16} />
                         {getOptionLabel(PREPARATION_TIME_OPTIONS, formData.preparationTime)}
                       </span>
                     )}
@@ -798,7 +799,7 @@ export default function ContentStepper({
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[16px]">save</span>
+                  <Icon name="save" size={16} />
                   Speichern
                 </>
               )}

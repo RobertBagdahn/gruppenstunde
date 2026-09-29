@@ -6,6 +6,7 @@
  * custom secondary CTA can replace the "Kostenlos registrieren" link.
  */
 import { Link, useLocation } from 'react-router-dom';
+import { Icon } from '@/components/ui/icon';
 
 interface UnauthGateProps {
   title: string;
@@ -29,7 +30,7 @@ export default function UnauthGate({
     <div className="flex items-center justify-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-md rounded-xl border bg-card p-6 sm:p-8 text-center shadow-sm">
         <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-          <span className="material-symbols-outlined text-3xl text-primary">lock</span>
+          <Icon name="lock" size={24} className="text-primary" />
         </div>
         <h2 className="text-section font-semibold text-foreground">{title}</h2>
         <p className="mt-2 text-body text-muted-foreground">{description}</p>
@@ -38,7 +39,7 @@ export default function UnauthGate({
             to={loginHref}
             className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-body font-medium hover:bg-primary/90 transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">login</span>
+            <Icon name="login" size={20} />
             Anmelden
           </Link>
           <Link

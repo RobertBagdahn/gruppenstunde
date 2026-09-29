@@ -36,6 +36,7 @@ import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { formatCount, formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 export function MealSlot({
   meal,
@@ -237,9 +238,7 @@ export function MealSlot({
       <div className={`p-4 rounded-xl border-2 border-dashed ${mealColors.border}/40 bg-card/60 hover:bg-muted/30 transition-all space-y-3`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`material-symbols-outlined text-[20px] ${mealColors.text}`}>
-              {MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'}
-            </span>
+            <Icon name={MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'} size={20} className={mealColors.text} />
             <span className="font-bold text-body text-foreground">
               {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
             </span>
@@ -341,9 +340,7 @@ export function MealSlot({
       >
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <div className="p-2 rounded-lg bg-muted/60 shrink-0 mt-0.5">
-            <span className={`material-symbols-outlined text-[20px] ${mealColors.text}`}>
-              {MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'}
-            </span>
+            <Icon name={MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'} size={20} className={mealColors.text} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
@@ -467,13 +464,13 @@ export function MealSlot({
                 className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border border-border/40"
                 title={!mealIsTooLittle ? 'Energie ok' : undefined}
               >
-                <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
+                <Icon name="local_fire_department" size={16} />
                 <span>Kcal: Soll {formatCount(mealTargetKcal)} / <span className={`${coverageColorClass} font-medium`}>Ist {formatCount(mealActualKcal)} kcal</span> ({fulfillmentPercent}%)</span>
               </span>
             )}
             {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
               <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border border-border/40">
-                <span className="material-symbols-outlined text-[14px]">payments</span>
+                <Icon name="payments" size={16} />
                 <span>Preis: Soll {formatNumber(mealTargetCost, { maxDecimals: 2 })} € / Ist {formatNumber(mealActualCost, { maxDecimals: 2 })} €</span>
               </span>
             )}

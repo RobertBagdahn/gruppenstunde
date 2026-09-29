@@ -25,6 +25,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { Icon } from '@/components/ui/icon';
 
 type RecipeListState = z.infer<typeof RecipeListStateSchema>;
 type ViewMode = 'grid' | 'table';
@@ -153,12 +154,12 @@ export default function RecipeListPage() {
               to="/recipes/new"
               className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-body font-semibold transition-all"
             >
-              <span className="material-symbols-outlined text-[16px]">add_circle</span>
+              <Icon name="add_circle" size={16} />
               Neues Rezept
             </Link>
             <div className="flex items-center gap-2 ml-auto">
               <div className="flex items-center gap-2 bg-secondary border border-border px-3 py-1.5 rounded-lg">
-                <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
+                <Icon name="sort" size={20} className="text-primary" />
                 <select
                   value={filters.sort ?? 'use_count'}
                   onChange={(e) => handleFilterChange('sort', e.target.value)}
@@ -177,14 +178,14 @@ export default function RecipeListPage() {
                   className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Kacheln"
                 >
-                  <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                  <Icon name="grid_view" size={20} />
                 </button>
                 <button
                   onClick={() => toggleView('table')}
                   className={`p-1.5 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Tabelle"
                 >
-                  <span className="material-symbols-outlined text-[18px]">view_list</span>
+                  <Icon name="view_list" size={20} />
                 </button>
               </div>
             </div>
@@ -257,7 +258,7 @@ export default function RecipeListPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emphasis">
-              <span className="material-symbols-outlined text-primary">content_copy</span>
+              <Icon name="content_copy" size={24} className="text-primary" />
               Rezept clonen
             </DialogTitle>
             <DialogDescription className="text-body text-muted-foreground">
@@ -306,7 +307,7 @@ export default function RecipeListPage() {
             >
               {forkRecipe.isPending ? (
                 <>
-                  <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                  <Icon name="progress_activity" size={20} className="animate-spin" />
                   Wird geklont...
                 </>
               ) : (

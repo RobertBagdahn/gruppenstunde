@@ -9,6 +9,7 @@ import {
   TOOL_MEAL_PLAN,
   TOOL_SHOPPING_LISTS,
 } from '@/lib/toolColors';
+import { Icon } from '@/components/ui/icon';
 
 const navItems = [
   { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label },
@@ -18,10 +19,10 @@ const navItems = [
 ];
 
 const bottomNavItems = [
-  { to: '/', icon: 'home', filledIcon: 'home', label: 'Start' },
-  { to: '/recipes', icon: 'menu_book', filledIcon: 'menu_book', label: 'Rezepte' },
-  { to: '/meal-plans/app', icon: 'restaurant_menu', filledIcon: 'restaurant_menu', label: 'Essensplan' },
-  { to: '/shopping-lists', icon: 'shopping_cart', filledIcon: 'shopping_cart', label: 'Einkaufen' },
+  { to: '/', icon: 'home', label: 'Start' },
+  { to: '/recipes', icon: 'menu_book', label: 'Rezepte' },
+  { to: '/meal-plans/app', icon: 'restaurant_menu', label: 'Essensplan' },
+  { to: '/shopping-lists', icon: 'shopping_cart', label: 'Einkaufen' },
 ];
 
 export default function FoodLayout() {
@@ -73,12 +74,7 @@ export default function FoodLayout() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
               >
-                <span
-                  className="material-symbols-outlined text-[20px]"
-                  style={isActive(item.to) ? { fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" } : undefined}
-                >
-                  {item.icon}
-                </span>
+                <Icon name={item.icon} size={20} />
                 {item.label}
               </Link>
             ))}
@@ -92,7 +88,7 @@ export default function FoodLayout() {
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                   className="flex items-center gap-2 px-3 py-2 rounded-xl text-body font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                 >
-                  <span className="material-symbols-outlined text-[20px]">person</span>
+                  <Icon name="person" size={20} />
                   <span className="hidden md:inline">{user.first_name || 'Profil'}</span>
                 </button>
                 {profileMenuOpen && (
@@ -104,7 +100,7 @@ export default function FoodLayout() {
                         onClick={() => setProfileMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-body text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
                       >
-                        <span className="material-symbols-outlined text-[20px]">person</span>
+                        <Icon name="person" size={20} />
                         Profil
                       </Link>
                       {user.is_staff && (
@@ -113,7 +109,7 @@ export default function FoodLayout() {
                           onClick={() => setProfileMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-body text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
                         >
-                          <span className="material-symbols-outlined text-[20px]">settings</span>
+                          <Icon name="settings" size={20} />
                           Stammdaten
                         </Link>
                       )}
@@ -121,7 +117,7 @@ export default function FoodLayout() {
                         onClick={() => { logout.mutate(); setProfileMenuOpen(false); }}
                         className="flex items-center gap-3 px-4 py-2.5 text-body text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
                       >
-                        <span className="material-symbols-outlined text-[20px]">logout</span>
+                        <Icon name="logout" size={20} />
                         Abmelden
                       </button>
                     </div>
@@ -133,7 +129,7 @@ export default function FoodLayout() {
                 to="/login"
                 className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-body font-semibold text-primary hover:bg-primary/10 transition-all"
               >
-                <span className="material-symbols-outlined text-[20px]">login</span>
+                <Icon name="login" size={20} />
                 Anmelden
               </Link>
             )}
@@ -165,12 +161,7 @@ export default function FoodLayout() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <span
-                className="material-symbols-outlined text-[24px]"
-                style={isActive(item.to, item.to === '/') ? { fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" } : undefined}
-              >
-                {isActive(item.to, item.to === '/') && item.filledIcon ? item.filledIcon : item.icon}
-              </span>
+              <Icon name={item.icon} size={24} />
               <span className={cn('text-caption font-medium leading-none', isActive(item.to, item.to === '/') && 'font-bold')}>
                 {item.label}
               </span>

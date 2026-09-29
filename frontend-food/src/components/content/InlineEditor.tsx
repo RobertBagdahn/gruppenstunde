@@ -14,6 +14,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useImproveText } from '@/api/ai';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { toast } from 'sonner';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,7 +115,7 @@ export default function InlineEditor(props: InlineEditorProps) {
           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary"
           title={`${label} bearbeiten`}
         >
-          <span className="material-symbols-outlined text-[18px]">edit</span>
+          <Icon name="edit" size={20} />
         </button>
       )}
 
@@ -133,7 +134,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                 onClick={() => setIsOpen(false)}
                 className="p-1 rounded-lg hover:bg-muted"
               >
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <Icon name="close" size={20} />
               </button>
             </div>
 
@@ -189,7 +190,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                     disabled={!editValue.trim() || improveText.isPending}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-body"
                   >
-                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                    <Icon name="auto_awesome" size={16} />
                     {improveText.isPending ? 'Verbessert...' : 'KI-Vorschlag'}
                   </button>
                 )}
@@ -216,7 +217,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      <Icon name="save" size={16} />
                       Speichern
                     </>
                   )}

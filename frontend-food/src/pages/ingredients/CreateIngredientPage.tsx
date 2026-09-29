@@ -26,6 +26,7 @@ import UnauthGate from '@/components/shared/UnauthGate';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import type { IngredientStatus } from '@/schemas/supply';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
+import { Icon } from '@/components/ui/icon';
 
 
 // ---------------------------------------------------------------------------
@@ -371,7 +372,7 @@ export default function CreateIngredientPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-success to-success text-white">
-          <span className="material-symbols-outlined text-[24px]">nutrition</span>
+          <Icon name="nutrition" size={24} />
         </div>
         <div>
           <h1 className="text-title font-bold font-display">Zutat erstellen</h1>
@@ -411,7 +412,7 @@ export default function CreateIngredientPage() {
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
                 <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10">
-                  <span className="material-symbols-outlined text-[32px] text-primary">auto_awesome</span>
+                  <Icon name="auto_awesome" size={24} className="text-primary" />
                 </div>
                 <span className="font-semibold">Mit KI-Hilfe</span>
                 <span className="text-caption text-muted-foreground">
@@ -426,7 +427,7 @@ export default function CreateIngredientPage() {
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
               >
                 <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted">
-                  <span className="material-symbols-outlined text-[32px] text-muted-foreground">edit_note</span>
+                  <Icon name="edit_note" size={24} className="text-muted-foreground" />
                 </div>
                 <span className="font-semibold">Manuell</span>
                 <span className="text-caption text-muted-foreground">
@@ -482,7 +483,7 @@ export default function CreateIngredientPage() {
                       disabled={!aiName.trim()}
                       className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                      <Icon name="auto_awesome" size={16} />
                       Mit KI erstellen
                     </button>
                     <button
@@ -509,7 +510,7 @@ export default function CreateIngredientPage() {
                   onClick={() => { setAiMode('ai'); setAiError(null); }}
                   className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium flex items-center gap-1.5"
                 >
-                  <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                  <Icon name="auto_awesome" size={16} />
                   Erneut versuchen
                 </button>
                 <button
@@ -532,7 +533,7 @@ export default function CreateIngredientPage() {
         <div className="space-y-6">
           {createdIngredient && (
            <div className="p-3 rounded-lg bg-primary/10 text-primary text-body flex items-center gap-2">
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+              <Icon name="check_circle" size={16} />
               KI hat die Zutat bereits mit allen Nährwerten angelegt. Hier kannst du die
               Stammdaten noch anpassen.
             </div>
@@ -558,7 +559,7 @@ export default function CreateIngredientPage() {
             />
             {isNameTooGeneric && (
               <p className="mt-2 text-caption text-warning flex items-start gap-1">
-                <span className="material-symbols-outlined text-[16px]">warning</span>
+                <Icon name="warning" size={16} />
                 „{formData.name.trim()}“ ist zu generisch — bitte konkretisieren, z.B. mit einer
                 Zustandsform („Fusilli trocken“, „Jodsalz“).
               </p>
@@ -650,12 +651,12 @@ export default function CreateIngredientPage() {
             <div className="p-6 space-y-3">
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
-                  <span className="material-symbols-outlined text-[14px]">label</span>
+                  <Icon name="label" size={16} />
                   {ingredientStatusLabel(formData.status)}
                 </span>
                 {formData.retail_section_id && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
-                    <span className="material-symbols-outlined text-[14px]">store</span>
+                    <Icon name="store" size={16} />
                     {retailSections?.find((rs) => rs.id === formData.retail_section_id)?.name ?? ''}
                   </span>
                 )}
@@ -690,7 +691,7 @@ export default function CreateIngredientPage() {
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[16px]">save</span>
+                  <Icon name="save" size={16} />
                   Speichern
                 </>
               )}

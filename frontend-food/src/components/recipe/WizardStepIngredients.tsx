@@ -6,6 +6,7 @@ import { normalizeServingContext } from '@/lib/cookingQuantityScale';
 import InlineIngredientEditor from './InlineIngredientEditor';
 import type { InlineIngredientEditorHandle } from './InlineIngredientEditor';
 import { useWizardStep } from './wizardContext';
+import { Icon } from '@/components/ui/icon';
 
 interface WizardStepIngredientsProps {
   recipeId: number;
@@ -104,7 +105,7 @@ export default function WizardStepIngredients({
                       : 'hover:bg-muted'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[16px]">{option.icon}</span>
+                  <Icon name={option.icon} size={16} />
                   {option.label}
                 </button>
               );

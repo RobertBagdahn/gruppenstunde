@@ -16,6 +16,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
 import { GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Section wrapper
@@ -32,7 +33,7 @@ function FormSection({
   return (
     <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
       <h2 className="text-body font-display font-bold text-foreground mb-4 flex items-center gap-2">
-        <span className="material-symbols-outlined text-primary text-lg">{icon}</span>
+        <Icon name={icon} size={20} className="text-primary" />
         {title}
       </h2>
       {children}
@@ -320,12 +321,12 @@ export default function IngredientEditPage() {
         onClick={() => navigate(`/ingredients/${slug}`)}
         className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground mb-4 transition"
       >
-        <span className="material-symbols-outlined text-lg">arrow_back</span>
+        <Icon name="arrow_back" size={20} />
         Zurück zur Zutat
       </button>
 
       <h1 className="text-title font-display font-bold text-foreground mb-6 flex items-center gap-3">
-        <span className="material-symbols-outlined text-primary text-2xl">egg_alt</span>
+        <Icon name="egg_alt" size={24} className="text-primary" />
         Zutat bearbeiten
         {user?.is_staff && ingredient && (
           <Button
@@ -594,7 +595,7 @@ export default function IngredientEditPage() {
                   >
                     {tag.name}
                     {selected && (
-                      <span className="ml-1 material-symbols-outlined text-xs align-middle">check</span>
+                      <Icon name="check" size={16} className="ml-1 align-middle" />
                     )}
                   </button>
                 );
@@ -623,7 +624,7 @@ export default function IngredientEditPage() {
                     {tag.icon && <span className="mr-1">{tag.icon}</span>}
                     {tag.name}
                     {selected && (
-                      <span className="ml-1 material-symbols-outlined text-xs align-middle">check</span>
+                      <Icon name="check" size={16} className="ml-1 align-middle" />
                     )}
                   </button>
                 );
@@ -647,9 +648,7 @@ export default function IngredientEditPage() {
             className="flex items-center gap-1.5 px-6 py-2 bg-primary text-primary-foreground rounded-lg text-body hover:opacity-90 transition disabled:opacity-50"
           >
             {updateIngredient.isPending && (
-              <span className="material-symbols-outlined text-lg animate-spin">
-                progress_activity
-              </span>
+              <Icon name="progress_activity" size={20} className="animate-spin" />
             )}
             Zutat speichern
           </button>

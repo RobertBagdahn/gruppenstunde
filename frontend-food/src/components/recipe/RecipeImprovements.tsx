@@ -13,6 +13,7 @@ import { useRecipeImprovements } from '@/api/recipes';
 import type { Improvement, RecipeItemNutrition } from '@/schemas/recipe';
 import HintDetailModal from './HintDetailModal';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface RecipeImprovementsProps {
   recipeId: number;
@@ -74,7 +75,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
   if (data.all_good) {
     return (
       <div className="rounded-xl border bg-success-soft border-success-border p-4 flex items-start gap-3">
-        <span className="material-symbols-outlined text-success mt-0.5">check_circle</span>
+        <Icon name="check_circle" size={24} className="text-success mt-0.5" />
         <div>
           <p className="text-body font-medium text-success">
             {data.message || 'Dieses Rezept sieht gut aus.'}
@@ -126,9 +127,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`material-symbols-outlined text-base ${dir.color}`}>
-                      {dir.icon}
-                    </span>
+                    <Icon name={dir.icon} size={16} className={dir.color} />
                     <span className="text-body font-semibold">{imp.parameter_label}</span>
                     <span className={`text-caption font-medium ${dir.color}`}>{dir.label}</span>
                     <NutritionBaseBadge base="per_portion" />
@@ -179,7 +178,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
                   className="w-full"
                   onClick={() => setSelected(imp)}
                 >
-                  <span className="material-symbols-outlined text-sm mr-1">info</span>
+                  <Icon name="info" size={16} className="mr-1" />
                   Details anzeigen
                 </Button>
               )}

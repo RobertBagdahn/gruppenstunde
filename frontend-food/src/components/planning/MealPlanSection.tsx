@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import MealPlanHeroCard from '@/components/planning/MealPlanHeroCard';
 import MealPlanCompactCard from '@/components/planning/MealPlanCompactCard';
 import type { MealPlan } from '@/schemas/mealPlan';
+import { Icon } from '@/components/ui/icon';
 
 interface MealPlanSectionProps {
   title: string;
@@ -45,7 +46,7 @@ export default function MealPlanSection({
           <ChevronRight className="w-4 h-4" />
         )}
         {icon && (
-          <span className="material-symbols-outlined text-[18px]">{icon}</span>
+          <Icon name={icon} size={20} />
         )}
         {title}
         <span className="text-caption font-semibold text-muted-foreground">({plans.length})</span>

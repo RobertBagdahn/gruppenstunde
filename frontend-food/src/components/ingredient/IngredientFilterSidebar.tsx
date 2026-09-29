@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRetailSections } from '@/api/supplies';
 import { INGREDIENT_STATUS_OPTIONS } from '@/lib/ingredientStatus';
+import { Icon } from '@/components/ui/icon';
 
 interface IngredientFilters {
   retail_section?: number;
@@ -40,16 +41,14 @@ export default function IngredientFilterSidebar({
         className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-body"
       >
         <span className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
+          <Icon name="tune" size={20} className="text-primary" />
           Filter {activeFilterCount > 0 && (
             <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-caption px-1.5">
               {activeFilterCount}
             </span>
           )}
         </span>
-        <span className={`material-symbols-outlined text-[20px] transition-transform ${mobileOpen ? 'rotate-180' : ''}`}>
-          expand_more
-        </span>
+        <Icon name="expand_more" size={20} className={`transition-transform ${mobileOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <div className={`space-y-4 ${mobileOpen ? 'block' : 'hidden md:block'}`}>
@@ -58,11 +57,11 @@ export default function IngredientFilterSidebar({
           <div className="bg-card rounded-xl border p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="flex items-center gap-1.5 text-caption font-semibold uppercase text-muted-foreground">
-                <span className="material-symbols-outlined text-[16px]">filter_list</span>
+                <Icon name="filter_list" size={16} />
                 Aktive Filter
               </span>
               <button onClick={onReset} className="flex items-center gap-1 text-caption text-destructive hover:underline">
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <Icon name="close" size={16} />
                 Alle loeschen
               </button>
             </div>
@@ -75,7 +74,7 @@ export default function IngredientFilterSidebar({
                     className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {rs.name}
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 ) : null;
               })()}
@@ -87,7 +86,7 @@ export default function IngredientFilterSidebar({
                     className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 ) : null;
               })()}
@@ -97,7 +96,7 @@ export default function IngredientFilterSidebar({
                   className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                 >
                   Meine Zutaten
-                  <span className="material-symbols-outlined text-[14px]">close</span>
+                  <Icon name="close" size={16} />
                 </button>
               )}
             </div>
@@ -107,7 +106,7 @@ export default function IngredientFilterSidebar({
         {/* Retail Section */}
         <div className="bg-card rounded-xl border p-4">
           <h3 className="flex items-center gap-2 text-body font-display font-bold text-foreground mb-3">
-            <span className="material-symbols-outlined text-muted-foreground text-[18px]">store</span>
+            <Icon name="store" size={20} className="text-muted-foreground" />
             Abteilung
           </h3>
           <div className="space-y-1">
@@ -142,7 +141,7 @@ export default function IngredientFilterSidebar({
         {/* Status */}
         <div className="bg-card rounded-xl border p-4">
           <h3 className="flex items-center gap-2 text-body font-display font-bold text-foreground mb-3">
-            <span className="material-symbols-outlined text-muted-foreground text-[18px]">verified</span>
+            <Icon name="verified" size={20} className="text-muted-foreground" />
             Status
           </h3>
           <div className="space-y-1">
@@ -158,7 +157,7 @@ export default function IngredientFilterSidebar({
                   onChange={() => onFilterChange('status', opt.value || undefined)}
                   className="accent-primary"
                 />
-                <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
+                <Icon name={opt.icon} size={16} />
                 {opt.label}
               </label>
             ))}
@@ -168,7 +167,7 @@ export default function IngredientFilterSidebar({
         {/* Herkunft */}
         <div className="bg-card rounded-xl border p-4">
           <h3 className="flex items-center gap-2 text-body font-display font-bold text-foreground mb-3">
-            <span className="material-symbols-outlined text-muted-foreground text-[18px]">person</span>
+            <Icon name="person" size={20} className="text-muted-foreground" />
             Herkunft
           </h3>
           <div className="space-y-1">
@@ -180,7 +179,7 @@ export default function IngredientFilterSidebar({
                 onChange={() => onFilterChange('origin', undefined)}
                 className="accent-primary"
               />
-              <span className="material-symbols-outlined text-[16px]">public</span>
+              <Icon name="public" size={16} />
               Alle
             </label>
             <label className="flex items-center gap-2 py-1 cursor-pointer text-body hover:text-primary">
@@ -191,7 +190,7 @@ export default function IngredientFilterSidebar({
                 onChange={() => onFilterChange('origin', 'mine')}
                 className="accent-primary"
               />
-              <span className="material-symbols-outlined text-[16px]">person</span>
+              <Icon name="person" size={16} />
               Meine Zutaten
             </label>
           </div>

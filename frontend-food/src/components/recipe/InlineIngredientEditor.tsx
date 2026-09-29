@@ -149,6 +149,7 @@ export { formatPortionOptionLabel };
 
 export { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
 import { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
+import { Icon } from '@/components/ui/icon';
 
 type EditablePortion = EditableItem['ingredient_portions'][number];
 
@@ -538,7 +539,7 @@ function IngredientRow({
                 className="inline-flex items-center gap-0.5 text-warning"
                 title="Das Portionsgewicht muss bestätigt werden."
               >
-                <span className="material-symbols-outlined text-[14px]">warning_amber</span>
+                <Icon name="warning_amber" size={16} />
                 Gewicht unbekannt
               </span>
             );
@@ -562,7 +563,7 @@ function IngredientRow({
           className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
           title="Notiz hinzufügen"
         >
-          <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
+          <Icon name="sticky_note_2" size={20} />
         </button>
       )}
       {/* Optional toggle (task 9.3) — disabled when in exchange group or unsaved */}
@@ -589,9 +590,7 @@ function IngredientRow({
         }}
         className={`p-1.5 transition-colors rounded-lg ${item.is_optional ? 'text-warning hover:text-warning' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
       >
-        <span className="material-symbols-outlined text-[20px]">
-          {item.is_optional ? 'toggle_on' : 'toggle_off'}
-        </span>
+        <Icon name={item.is_optional ? 'toggle_on' : 'toggle_off'} size={20} />
       </button>
       {/* Alternative hinzufügen (tasks 9.1, 9.2) — only when not optional */}
       <button
@@ -601,7 +600,7 @@ function IngredientRow({
         onClick={() => setAlternativeTargetId(item.id)}
         className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
+        <Icon name="swap_horiz" size={20} />
       </button>
       <button
         type="button"
@@ -627,7 +626,7 @@ function IngredientRow({
         title="Entfernen"
         data-testid="recipe-ingredient-delete"
       >
-        <span className="material-symbols-outlined text-[20px]">close</span>
+        <Icon name="close" size={20} />
       </button>
       {/* Verify button (staff only) */}
       {user?.is_staff && (
@@ -652,7 +651,7 @@ function IngredientRow({
           }}
           className="p-1.5 text-success/70 hover:text-success transition-colors rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <span className="material-symbols-outlined text-[20px]" title="Verify">verified</span>
+          <Icon name="verified" size={20} label="Verify" />
         </button>
       )}
       </div>
@@ -1558,7 +1557,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 border border-border rounded-lg">
         <div className="flex items-center gap-2 text-body font-medium text-foreground">
-          <span className="material-symbols-outlined text-[18px]">edit</span>
+          <Icon name="edit" size={20} />
           Bearbeitungsmodus
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1583,11 +1582,11 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
             data-testid="ai-estimate-trigger"
           >
-            <span className="material-symbols-outlined text-[16px] mr-1.5">auto_fix_high</span>
+            <Icon name="auto_fix_high" size={16} className="mr-1.5" />
             {estimateQuantities.isPending ? 'Schätze...' : 'Mengen schätzen'}
           </Button>
           <Button type="button" size="sm" onClick={handleSave} disabled={isSaving} data-testid="ingredient-editor-save">
-            <span className="material-symbols-outlined text-[16px] mr-1.5">save</span>
+            <Icon name="save" size={16} className="mr-1.5" />
             {isSaving ? 'Speichert...' : 'Speichern'}
           </Button>
       <Button type="button" variant="outline" size="sm" onClick={onClose}>
@@ -1742,7 +1741,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">auto_fix_high</span>
+              <Icon name="auto_fix_high" size={24} className="text-primary" />
               AI-Mengenschätzung
             </h3>
             <p className="text-body text-muted-foreground mb-4">

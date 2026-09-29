@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 interface PortionScalerProps {
   /** Current portion count (controlled) */
@@ -50,9 +51,7 @@ export default function PortionScaler({
         className,
       )}
     >
-      <span className={cn('material-symbols-outlined text-warning', compact ? 'text-lg' : 'text-xl')}>
-        restaurant
-      </span>
+      <Icon name="restaurant" size={20} className={cn('text-warning', compact ? '' : '')} />
       <span className={cn('font-medium text-warning whitespace-nowrap', compact ? 'text-caption' : 'text-body')}>
         Portionen
       </span>
@@ -71,7 +70,7 @@ export default function PortionScaler({
           )}
           aria-label="Portion verringern"
         >
-          <span className={cn('material-symbols-outlined', compact ? 'text-base' : 'text-lg')}>remove</span>
+          <Icon name="remove" size={16} className={cn(compact ? '' : '')} />
         </button>
 
         <input
@@ -106,7 +105,7 @@ export default function PortionScaler({
           )}
            aria-label="Portion erhöhen"
         >
-          <span className={cn('material-symbols-outlined', compact ? 'text-base' : 'text-lg')}>add</span>
+          <Icon name="add" size={16} className={cn(compact ? '' : '')} />
         </button>
       </div>
 

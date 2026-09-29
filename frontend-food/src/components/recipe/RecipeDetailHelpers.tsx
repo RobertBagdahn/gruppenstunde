@@ -4,6 +4,7 @@ import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
 import { formatNumber, roundToDecimals } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 export { NUTRI_SCORE_COLORS_BY_LETTER as NUTRI_SCORE_COLORS } from '@/schemas/supply';
 
@@ -31,16 +32,12 @@ export function AnalysisSection({
         className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-muted/50 transition-colors"
       >
         <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
-          <span className={`material-symbols-outlined text-[18px] ${accentColor}`}>{icon}</span>
+          <Icon name={icon} size={20} className={accentColor} />
           {title}
         </h2>
         <div className="flex items-center gap-3">
           {preview && <div className="shrink-0">{preview}</div>}
-          <span
-            className={`material-symbols-outlined text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          >
-            expand_more
-          </span>
+          <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
       {open && <div className="px-5 pb-5 pt-0">{children}</div>}
@@ -130,14 +127,10 @@ export function MicronutrientSection({
         className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
       >
         <span className="flex items-center gap-2 text-body font-semibold">
-          <span className={`material-symbols-outlined text-base ${accentColor}`}>{icon}</span>
+          <Icon name={icon} size={16} className={accentColor} />
           {title}
         </span>
-        <span
-          className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          expand_more
-        </span>
+        <Icon name="expand_more" size={16} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="px-3 pb-3 space-y-2">
@@ -206,11 +199,7 @@ export function CollapsibleContributions({ items }: { items: RecipeItemNutrition
                 className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
               >
                 <span className="text-body font-medium">{PARAMETER_LABELS[param] ?? param}</span>
-                <span
-                  className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                >
-                  expand_more
-                </span>
+                <Icon name="expand_more" size={16} className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
               {isOpen && (
                 <div className="px-3 pb-3">
@@ -246,7 +235,7 @@ export function NutrientCard({
 }) {
   return (
     <div className={`text-center p-4 rounded-xl border ${bgColor}`}>
-      <span className={`material-symbols-outlined text-2xl ${color}`}>{icon}</span>
+      <Icon name={icon} size={24} className={color} />
       <p className="text-section font-extrabold mt-1">
         {formatNumber(value, { maxDecimals: unit === 'kcal' ? 0 : 1 })}
       </p>
@@ -300,7 +289,7 @@ export function HealthIndicator({
     <div className={`p-3 rounded-xl border ${statusColors[status]}`}>
       <div className="flex items-center justify-between mb-1">
         <span className="text-caption font-medium">{label}</span>
-        <span className="material-symbols-outlined text-[16px]">{statusIcons[status]}</span>
+        <Icon name={statusIcons[status]} size={16} />
       </div>
       <p className="text-section font-bold">
         {formatNumber(value, { maxDecimals: 1 })} {unit}

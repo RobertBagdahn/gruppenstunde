@@ -2,21 +2,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import EmptyState from '@/components/shared/EmptyState';
-import {
-  Search,
-  Check,
-  Plus,
-  Trash2,
-  ChevronRight,
-  Calendar,
-  Clock,
-  ShoppingBag,
-  Settings,
-  AlertTriangle
-} from 'lucide-react';
+import { ChevronRight, Calendar, Clock, ShoppingBag, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { contrastRatio, parseHsl, type Hsl } from '@/lib/contrast';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface SwatchProps {
   token: string;
@@ -52,6 +42,15 @@ const FONT_SCALE = [
   { token: 'text-section', px: 20, usage: 'Abschnitts- und Kartenüberschrift', display: true },
   { token: 'text-title', px: 28, usage: 'Seitentitel', display: true },
 ];
+
+const ICON_SIZES = [
+  { size: 16, usage: 'Fließtext, kleine Buttons, Chips' },
+  { size: 20, usage: 'Buttons und Navigation' },
+  { size: 24, usage: 'Kopfzeilen' },
+  { size: 48, usage: 'Nur Leerzustände' },
+] as const;
+
+const ICON_EXAMPLES = ['search', 'add', 'delete', 'settings', 'shopping_cart', 'schedule'];
 
 const RADII = [
   { token: 'rounded-lg', size: '8 px', usage: 'Bedienelemente: Buttons, Inputs, Selects, Chips' },
@@ -335,66 +334,34 @@ export default function StyleguidePage() {
       {/* Icon-Regel */}
       <section className="space-y-4">
         <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          7. Icon-Bibliotheken (Verbindliche Regel)
+          7. Icons (Verbindliche Regel)
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-emphasis flex items-center gap-2">
-                <Check className="w-5 h-5 text-primary" /> Lucide (Standard)
-              </CardTitle>
-              <CardDescription>
-                Wird standardmäßig für alle interaktiven UI-Elemente, Schaltflächen, inline und standardisierte Aktionen genutzt.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <Search className="w-5 h-5" />
-                <span className="text-caption font-mono">Search</span>
+        <p className="text-body text-muted-foreground">
+          Nur Lucide, Strichstärke 2, über <code>{'<Icon name="…" size={…} />'}</code> aus{' '}
+          <code>@/components/ui/icon</code> oder direkt als Lucide-Komponente. Keine Material Symbols, keine
+          Icon-Schrift.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {ICON_SIZES.map((entry) => (
+            <div
+              key={entry.size}
+              className="border border-border rounded-xl p-4 bg-card shadow-sm flex flex-col items-center gap-3 text-center"
+            >
+              <div className="flex h-12 items-center justify-center text-primary">
+                <Icon name="restaurant" size={entry.size} />
               </div>
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <Plus className="w-5 h-5" />
-                <span className="text-caption font-mono">Plus</span>
-              </div>
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <Trash2 className="w-5 h-5" />
-                <span className="text-caption font-mono">Trash2</span>
-              </div>
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <Settings className="w-5 h-5" />
-                <span className="text-caption font-mono">Settings</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-emphasis flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">award_star</span> Material Symbols
-              </CardTitle>
-              <CardDescription>
-                Ausschließlich reserviert für große, illustrative Übersichten oder Sektionssymbole (z.B. im Hero-Bereich).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <span className="material-symbols-outlined">skillet</span>
-                <span className="text-caption font-mono">skillet</span>
-              </div>
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <span className="material-symbols-outlined">restaurant</span>
-                <span className="text-caption font-mono">restaurant</span>
-              </div>
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <span className="material-symbols-outlined">nutrition</span>
-                <span className="text-caption font-mono">nutrition</span>
-              </div>
-              <div className="p-3 bg-secondary rounded-xl flex flex-col items-center gap-2">
-                <span className="material-symbols-outlined">local_shipping</span>
-                <span className="text-caption font-mono">shipping</span>
-              </div>
-            </CardContent>
-          </Card>
+              <div className="text-body font-semibold text-foreground">{entry.size} px</div>
+              <p className="text-caption text-muted-foreground">{entry.usage}</p>
+            </div>
+          ))}
+        </div>
+        <div className="border border-border rounded-xl p-4 bg-card shadow-sm grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {ICON_EXAMPLES.map((name) => (
+            <div key={name} className="flex flex-col items-center gap-1.5 rounded-lg bg-muted p-3">
+              <Icon name={name} size={20} />
+              <code className="text-caption text-muted-foreground">{name}</code>
+            </div>
+          ))}
         </div>
       </section>
 

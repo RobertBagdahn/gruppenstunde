@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Icon } from '@/components/ui/icon';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -57,7 +58,7 @@ export default function ConfirmDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-emphasis">
-            <span className={`material-symbols-outlined ${iconColor}`}>{iconName}</span>
+            <Icon name={iconName} size={24} className={iconColor} />
             {title}
           </DialogTitle>
           <DialogDescription className="text-body text-muted-foreground">
@@ -80,9 +81,7 @@ export default function ConfirmDialog({
             className={`px-4 py-2 rounded-lg text-body transition disabled:opacity-50 flex items-center gap-1.5 ${confirmButtonClass}`}
           >
             {loading && (
-              <span className="material-symbols-outlined text-lg animate-spin">
-                progress_activity
-              </span>
+              <Icon name="progress_activity" size={20} className="animate-spin" />
             )}
             {confirmLabel}
           </button>

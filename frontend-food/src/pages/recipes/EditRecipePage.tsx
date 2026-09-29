@@ -15,6 +15,7 @@ import {
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 import { toast } from 'sonner';
+import { Icon } from '@/components/ui/icon';
 
 export default function EditRecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -154,7 +155,7 @@ export default function EditRecipePage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-          <span className="material-symbols-outlined text-[24px]">edit</span>
+          <Icon name="edit" size={24} />
         </div>
         <div>
           <h1 className="text-title font-bold">Rezept bearbeiten</h1>
@@ -168,7 +169,7 @@ export default function EditRecipePage() {
         {/* Recipe Type */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">restaurant</span>
+            <Icon name="restaurant" size={20} className="text-primary" />
             Rezeptart
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -183,13 +184,9 @@ export default function EditRecipePage() {
                     : 'border-border hover:border-primary/30 hover:bg-primary/5'
                 }`}
               >
-                <span
-                  className={`material-symbols-outlined text-[24px] ${
+                <Icon name={opt.icon} size={24} className={`${
                     recipeType === opt.value ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {opt.icon}
-                </span>
+                  }`} />
                 <span
                   className={`font-medium text-xs ${
                     recipeType === opt.value ? 'text-primary' : 'text-foreground'
@@ -205,7 +202,7 @@ export default function EditRecipePage() {
         {/* Preparation Method */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">cooking</span>
+            <Icon name="cooking" size={20} className="text-primary" />
             Zubereitungsart
           </label>
           <div className="flex flex-wrap gap-2">
@@ -238,7 +235,7 @@ export default function EditRecipePage() {
         {equipment && equipment.length > 0 && (
           <div className="bg-card rounded-xl border p-5">
             <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-              <span className="material-symbols-outlined text-primary text-[18px]">skillet</span>
+              <Icon name="skillet" size={20} className="text-primary" />
               Equipment
             </label>
             <div className="flex flex-wrap gap-2">
@@ -272,7 +269,7 @@ export default function EditRecipePage() {
         {/* Materials */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">inventory_2</span>
+            <Icon name="inventory_2" size={20} className="text-primary" />
             Materialien
           </label>
           <RecipeMaterialsEditor
@@ -289,7 +286,7 @@ export default function EditRecipePage() {
         {/* Title */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">title</span>
+            <Icon name="title" size={20} className="text-primary" />
             Titel *
           </label>
           <input
@@ -305,7 +302,7 @@ export default function EditRecipePage() {
         {/* Summary */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">short_text</span>
+            <Icon name="short_text" size={20} className="text-primary" />
             Zusammenfassung
           </label>
           <textarea
@@ -320,7 +317,7 @@ export default function EditRecipePage() {
         {/* Description */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">description</span>
+            <Icon name="description" size={20} className="text-primary" />
             Beschreibung
           </label>
           <MarkdownEditor
@@ -333,7 +330,7 @@ export default function EditRecipePage() {
         {/* Servings + Meta */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">tune</span>
+            <Icon name="tune" size={20} className="text-primary" />
             Details
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -388,7 +385,7 @@ export default function EditRecipePage() {
         {/* Tags */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">label</span>
+            <Icon name="label" size={20} className="text-primary" />
             Tags
           </label>
           <div className="flex flex-wrap gap-2">
@@ -404,7 +401,7 @@ export default function EditRecipePage() {
                 }`}
               >
                 {tag.icon && (
-                  <span className="material-symbols-outlined text-[14px] mr-1">{tag.icon}</span>
+                  <Icon name={tag.icon} size={16} className="mr-1" />
                 )}
                 {tag.name}
               </button>
@@ -416,7 +413,7 @@ export default function EditRecipePage() {
         {scoutLevels && (
           <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <span className="material-symbols-outlined text-info text-[18px]">groups</span>
+            <Icon name="groups" size={20} className="text-info" />
             Stufen
           </label>
           <div className="flex flex-wrap gap-2">
@@ -442,7 +439,7 @@ export default function EditRecipePage() {
         {user?.is_staff && (
           <div className="bg-card rounded-xl border-2 border-warning-border bg-warning-soft p-5 shadow-sm">
             <label className="flex items-center gap-1.5 text-body font-medium mb-3 text-warning">
-              <span className="material-symbols-outlined text-warning text-[18px]">admin_panel_settings</span>
+              <Icon name="admin_panel_settings" size={20} className="text-warning" />
               Admin-Kontrollen
             </label>
             <div className="space-y-4">

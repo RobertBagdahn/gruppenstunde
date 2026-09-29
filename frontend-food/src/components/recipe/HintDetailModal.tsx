@@ -16,6 +16,7 @@ import { useLlmSuggestions } from '@/api/recipes';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import type { Improvement, LlmSuggestion, RecipeItemNutrition } from '@/schemas/recipe';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface HintDetailModalProps {
   open: boolean;
@@ -88,13 +89,13 @@ function SuggestionCard({
           onClick={() => onApply(suggestion)}
           className="shrink-0"
         >
-          <span className="material-symbols-outlined text-sm mr-1">add</span>
+          <Icon name="add" size={16} className="mr-1" />
           Hinzufügen
         </Button>
       </div>
       <p className="text-caption text-muted-foreground">{suggestion.reasoning}</p>
       <p className="text-caption text-success">
-        <span className="material-symbols-outlined text-xs align-middle mr-0.5">trending_up</span>
+        <Icon name="trending_up" size={16} className="align-middle mr-0.5" />
         {suggestion.expected_improvement}
       </p>
     </div>
@@ -153,9 +154,7 @@ export default function HintDetailModal({
       <SheetContent side="right" className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-warning">
-              lightbulb
-            </span>
+            <Icon name="lightbulb" size={24} className="text-warning" />
             {improvement.parameter_label}
           </SheetTitle>
           <SheetDescription>
@@ -167,9 +166,7 @@ export default function HintDetailModal({
         {improvement.recommendation_text && (
           <div className="mt-4 p-3 rounded-lg bg-success-soft border border-success-border text-body text-success whitespace-pre-line">
             <div className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-base text-success mt-0.5">
-                tips_and_updates
-              </span>
+              <Icon name="tips_and_updates" size={16} className="text-success mt-0.5" />
               <p>{improvement.recommendation_text}</p>
             </div>
           </div>
@@ -179,7 +176,7 @@ export default function HintDetailModal({
         {contributors.length > 0 && (
           <div className="mt-6">
             <h3 className="text-body font-semibold mb-3 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base">analytics</span>
+              <Icon name="analytics" size={16} />
               Zutat-Beiträge ({parameter.replace('_', ' ')})
             </h3>
             <div className="space-y-2">
@@ -204,7 +201,7 @@ export default function HintDetailModal({
         {/* LLM Suggestions section */}
         <div className="mt-6 border-t pt-4">
           <h3 className="text-body font-semibold mb-3 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-base">auto_awesome</span>
+            <Icon name="auto_awesome" size={16} />
             KI-Vorschläge
           </h3>
 
@@ -214,14 +211,14 @@ export default function HintDetailModal({
               className="w-full"
               onClick={handleRequestSuggestions}
             >
-              <span className="material-symbols-outlined text-sm mr-1.5">auto_awesome</span>
+              <Icon name="auto_awesome" size={16} className="mr-1.5" />
               KI-Vorschläge anfordern
             </Button>
           )}
 
           {llmMutation.isPending && (
             <div className="flex items-center justify-center gap-2 p-6 text-muted-foreground">
-              <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+              <Icon name="progress_activity" size={20} className="animate-spin" />
               <span className="text-body">KI analysiert Rezept...</span>
             </div>
           )}

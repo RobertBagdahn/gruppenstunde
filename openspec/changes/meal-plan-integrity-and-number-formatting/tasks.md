@@ -89,10 +89,10 @@
 
 ## 12. Frontend: Icons
 
-- [ ] 12.1 `components/ui/icon.tsx` (Größen 16/20/24/48, `strokeWidth=2`)
-- [ ] 12.2 Mapping-Tabelle der 80 Material-Symbols-Namen auf Lucide; Codemod über die 60 Dateien
-- [ ] 12.3 Icon-Schrift aus `index.html` entfernen; grep auf `material-symbols` = 0
-- [ ] 12.4 `frontend-food/AGENTS.md` und Styleguide: Regel „nur Lucide, 16/20/24/48 px“
+- [x] 12.1 `components/ui/icon.tsx` (Größen 16/20/24/48, `strokeWidth=2`)
+- [x] 12.2 Mapping-Tabelle der 80 Material-Symbols-Namen auf Lucide; Codemod über die 60 Dateien
+- [x] 12.3 Icon-Schrift aus `index.html` entfernen; grep auf `material-symbols` = 0
+- [x] 12.4 `frontend-food/AGENTS.md` und Styleguide: Regel „nur Lucide, 16/20/24/48 px“
 
 ## 13. Frontend: ESLint-Durchsetzung
 

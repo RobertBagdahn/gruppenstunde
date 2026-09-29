@@ -16,6 +16,7 @@ import UnauthGate from '@/components/shared/UnauthGate';
 import { IngredientListStateSchema, type INGREDIENT_SORT_VALUES } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import { parseIngredientStatus } from '@/lib/ingredientStatus';
+import { Icon } from '@/components/ui/icon';
 
 const SORT_OPTIONS: { value: (typeof INGREDIENT_SORT_VALUES)[number]; label: string }[] = [
   { value: 'newest', label: 'Neueste' },
@@ -118,19 +119,19 @@ export default function IngredientListPage() {
                 onClick={() => navigate('/ingredients/statistics')}
                 className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-foreground text-body font-medium hover:bg-muted transition-all"
               >
-                <span className="material-symbols-outlined text-[16px]">analytics</span>
+                <Icon name="analytics" size={16} />
                 Statistiken
               </button>
               <button
                 onClick={() => navigate('/ingredients/new')}
                 className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-primary/90 transition-all shadow-soft"
               >
-                <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                <Icon name="add_circle" size={16} />
                 Neue Zutat
               </button>
             </div>
             <div className="flex items-center gap-2 ml-auto">
-              <span className="material-symbols-outlined text-muted-foreground text-[18px]">sort</span>
+              <Icon name="sort" size={20} className="text-muted-foreground" />
               <select
                 value={sort}
                 onChange={(e) => patch({ sort: SORT_OPTIONS.find((opt) => opt.value === e.target.value)?.value, page: undefined })}

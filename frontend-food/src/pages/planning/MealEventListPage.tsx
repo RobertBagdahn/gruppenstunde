@@ -43,6 +43,7 @@ import {
 import type { MealPlan } from '@/schemas/mealPlan';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   verified: {
@@ -289,7 +290,7 @@ function MealPlanListPageInner() {
               </h3>
               {badgeConfig && (
                 <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
-                  <span className="material-symbols-outlined text-[12px]">{badgeConfig.icon}</span>
+                  <Icon name={badgeConfig.icon} size={16} />
                   {badgeConfig.label}
                 </span>
               )}

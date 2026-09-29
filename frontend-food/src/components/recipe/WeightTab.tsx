@@ -3,6 +3,7 @@ import { RecipeCategoryBenchmark } from '@/components/recipe/RecipeCategoryBench
 import { useRecipeTypeStats } from '@/api/recipes';
 import { formatWeight, formatNumber } from '@/lib/format';
 import type { RecipeNutritionBreakdown } from '@/schemas/recipe';
+import { Icon } from '@/components/ui/icon';
 
 interface Props {
   nb: RecipeNutritionBreakdown;
@@ -24,7 +25,7 @@ export function WeightTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 p-3 bg-info-soft rounded-lg border border-info-border">
-        <span className="material-symbols-outlined text-2xl text-info">scale</span>
+        <Icon name="scale" size={24} className="text-info" />
         <div>
           <p className="text-section font-bold text-info">
             {formatWeight(nb.total_weight_g)}

@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import type { ContentComment } from '@/schemas/content';
+import { Icon } from '@/components/ui/icon';
 
 interface ContentCommentsProps {
   /** Comments from the API (top-level with nested replies) */
@@ -135,14 +136,14 @@ export default function ContentComments({
       {/* Reply indicator */}
       {replyTo !== null && (
         <div className="flex items-center gap-2 mb-2 text-body text-primary">
-          <span className="material-symbols-outlined text-[16px]">reply</span>
+          <Icon name="reply" size={16} />
           <span>Antwort auf Kommentar</span>
           <button
             type="button"
             onClick={() => setReplyTo(null)}
             className="text-muted-foreground hover:text-foreground"
           >
-            <span className="material-symbols-outlined text-[16px]">close</span>
+            <Icon name="close" size={16} />
           </button>
         </div>
       )}
@@ -177,9 +178,9 @@ export default function ContentComments({
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
-              <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+              <Icon name="progress_activity" size={16} className="animate-spin" />
             ) : (
-              <span className="material-symbols-outlined text-[16px]">send</span>
+              <Icon name="send" size={16} />
             )}
             Senden
           </button>
