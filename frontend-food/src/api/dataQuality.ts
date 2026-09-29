@@ -2,6 +2,7 @@
  * TanStack Query hooks for data quality API endpoints.
  * MUST stay in sync with backend/content/api/data_quality.py
  */
+import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -323,6 +324,7 @@ export function useNutritionPlausibility(params: {
 export function useAiFillMissingIngredient() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: AI_META,
     mutationFn: async (ingredientId: number) => {
       const data = await postJson(`${ADMIN_DQ}/ingredients/${ingredientId}/ai-fill-missing/`, {});
       return IngredientFillResultSchema.parse(data);
@@ -338,6 +340,7 @@ export function useAiFillMissingIngredient() {
 export function useAiFillMissingBatch() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: AI_META,
     mutationFn: async (req: AiFillMissingRequest) => {
       const data = await postJson(`${ADMIN_DQ}/ingredients/ai-fill-missing/`, req);
       return AiFillMissingBatchSchema.parse(data);

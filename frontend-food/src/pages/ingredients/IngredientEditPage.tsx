@@ -79,7 +79,7 @@ export default function IngredientEditPage() {
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!userLoading && !user) navigate('/login');
+    if (!userLoading && !user) navigate(`/login?next=${encodeURIComponent(window.location.pathname)}`, { replace: true });
   }, [user, userLoading, navigate]);
 
   // Redirect to detail if can't edit

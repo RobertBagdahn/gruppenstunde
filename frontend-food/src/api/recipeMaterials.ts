@@ -2,6 +2,7 @@
  * TanStack Query hooks for recipe materials (ContentMaterialItem links).
  * MUST stay in sync with backend/recipe/api/materials.py
  */
+import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -176,6 +177,7 @@ export function useReorderRecipeMaterials(recipeId: number) {
 
 export function useSuggestRecipeMaterials(recipeId: number) {
   return useMutation({
+    meta: AI_META,
     mutationFn: (): Promise<AiMaterialSuggestions> =>
       postJson(`${API_BASE}/${recipeId}/ai-suggest-materials/`, {}, AiMaterialSuggestionsSchema),
   });

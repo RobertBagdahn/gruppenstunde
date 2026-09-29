@@ -9,7 +9,7 @@
  * Ist der KI-Modus aktiv, wurde die Zutat bereits per ai-create erstellt;
  * dann wird nur noch ein PATCH für eventuelle Änderungen aus Step 1 gemacht.
  */
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Pencil, Sparkles, Eye, Link } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,10 +19,13 @@ import {
   useUpdateIngredient,
   useRetailSections,
   useAiCreateIngredient,
+  useIngredientAiPreview,
   useIngredientImportUrl,
   useGenericTerms,
 } from '@/api/supplies';
-import UnauthGate from '@/components/shared/UnauthGate';
+import { RESTORE_DRAFT_PARAM, clearDraft, loadDraft } from '@/hooks/useDraft';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import type { IngredientStatus } from '@/schemas/supply';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
@@ -38,6 +41,8 @@ interface IngredientFormData {
   status: IngredientStatus;
   retail_section_id: number | null;
 }
+
+const INGREDIENT_DRAFT_KEY = 'ingredient:new';
 
 const EMPTY_FORM: IngredientFormData = {
   name: '',
@@ -196,6 +201,11 @@ export default function CreateIngredientPage() {
   const [createdSlug, setCreatedSlug] = useState('');
   const updateIngredient = useUpdateIngredient(createdSlug);
   const aiCreate = useAiCreateIngredient();
+  const aiPreview = useIngredientAiPreview();
+  const aiPending = aiCreate.isPending || aiPreview.isPending;
+  // "Zutat erkennen" (name/link) is on the anonymous allowlist; only the quota can block it.
+  const ai = useAiAccess({ anonymousAllowed: true });
+  const { guard } = useRequireLogin();
   const importUrl = useIngredientImportUrl();
   const { data: genericTerms } = useGenericTerms();
 
@@ -224,6 +234,18 @@ export default function CreateIngredientPage() {
   // Bot protection for manual creation
   const [honeyField, setHoneyField] = useState('');
 
+  // After the login round trip: restore the draft the visitor was about to save.
+  useEffect(() => {
+    if (!user || searchParams.get(RESTORE_DRAFT_PARAM) !== INGREDIENT_DRAFT_KEY) return;
+    const draft = loadDraft<IngredientFormData>(INGREDIENT_DRAFT_KEY);
+    if (!draft) return;
+    setFormData(draft);
+    setStep(1);
+    toast.info('Willkommen zurück! Deine Zutat ist wiederhergestellt – prüfe sie und speichere.');
+    // Only once per login round trip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   function updateForm(partial: Partial<IngredientFormData>) {
     setFormData((prev) => ({ ...prev, ...partial }));
   }
@@ -234,6 +256,25 @@ export default function CreateIngredientPage() {
   function handleAiCreate() {
     if (!aiName.trim()) return;
     setAiError(null);
+    if (!user) {
+      // Visitors get a draft without saving; the ingredient is created on save after login.
+      aiPreview.mutate(aiName.trim(), {
+        onSuccess: (result) => {
+          setFormData({
+            name: result.ingredient_draft.name,
+            description: result.ingredient_draft.description ?? '',
+            status: result.ingredient_draft.status,
+            retail_section_id: result.ingredient_draft.retail_section_id ?? null,
+          });
+          setStep(1);
+        },
+        onError: (err) => {
+          setAiError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
+          setAiMode('cancelled');
+        },
+      });
+      return;
+    }
     aiCreate.mutate(aiName.trim(), {
       onSuccess: (ingredient) => {
         setCreatedIngredient(ingredient);
@@ -292,6 +333,14 @@ export default function CreateIngredientPage() {
       toast.error('Bitte gib einen Namen ein');
       return;
     }
+    guard(saveIngredient, {
+      reason: 'Melde dich an, um deine Zutat zu speichern. Deine Eingaben bleiben erhalten.',
+      draftKey: INGREDIENT_DRAFT_KEY,
+      draftValue: formData,
+    });
+  }
+
+  function saveIngredient() {
 
     const payload = {
       name: formData.name.trim(),
@@ -328,6 +377,7 @@ export default function CreateIngredientPage() {
         } as Parameters<typeof createIngredient.mutate>[0],
         {
           onSuccess: (ingredient) => {
+            clearDraft(INGREDIENT_DRAFT_KEY);
             toast.success('Zutat erstellt');
             navigate(getRedirectUrl(ingredient.slug));
           },
@@ -348,16 +398,6 @@ export default function CreateIngredientPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="container py-8 max-w-3xl">
-        <UnauthGate
-          title="Anmeldung erforderlich"
-          description="Melde dich an, um eine Zutat zu erstellen."
-        />
-      </div>
-    );
-  }
 
   const isSaving = createIngredient.isPending || updateIngredient.isPending;
   const isNameTooGeneric =
@@ -402,13 +442,18 @@ export default function CreateIngredientPage() {
         <div className="bg-card rounded-xl border p-6">
           <h2 className="text-lg font-semibold mb-4">Wie möchtest du starten?</h2>
 
+          {aiMode === 'choose' && ai.hint && (
+            <p className="mb-3 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">{ai.hint}</p>
+          )}
           {aiMode === 'choose' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* KI */}
               <button
                 type="button"
                 onClick={() => setAiMode('ai')}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
+                disabled={ai.disabled}
+                title={ai.hint || undefined}
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10">
                   <span className="material-symbols-outlined text-[32px] text-primary">auto_awesome</span>
@@ -438,7 +483,9 @@ export default function CreateIngredientPage() {
               <button
                 type="button"
                 onClick={() => setShowUrlModal(true)}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
+                disabled={ai.disabled}
+                title={ai.hint || undefined}
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted">
                   <Link className="w-8 h-8 text-muted-foreground" />
@@ -461,17 +508,17 @@ export default function CreateIngredientPage() {
                 type="text"
                 value={aiName}
                 onChange={(e) => setAiName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !aiCreate.isPending && handleAiCreate()}
+                onKeyDown={(e) => e.key === 'Enter' && !aiPending && !ai.disabled && handleAiCreate()}
                 placeholder="z.B. Haferflocken, Parmesan, Kichererbsen..."
                 autoFocus
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <div className="flex gap-2">
-                {aiCreate.isPending ? (
+                {aiPending ? (
                   <>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      KI erstellt Zutat...
+                      {user ? 'KI erstellt Zutat...' : 'KI erkennt Zutat...'}
                     </div>
                   </>
                 ) : (
@@ -479,11 +526,12 @@ export default function CreateIngredientPage() {
                     <button
                       type="button"
                       onClick={handleAiCreate}
-                      disabled={!aiName.trim()}
+                      disabled={!aiName.trim() || ai.disabled}
+                      title={ai.hint || undefined}
                       className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-                      Mit KI erstellen
+                      {user ? 'Mit KI erstellen' : 'Mit KI erkennen'}
                     </button>
                     <button
                       type="button"

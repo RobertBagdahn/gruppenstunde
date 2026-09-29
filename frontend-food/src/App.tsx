@@ -53,6 +53,7 @@ import DatenschutzPage from './pages/legal/DatenschutzPage';
 // Profile
 import ProfilePage from './pages/profile/ProfilePage';
 import MyProfilePage from './pages/profile/MyProfilePage';
+import AccountPage from './pages/profile/AccountPage';
 
 // Auth
 import LoginPage from './pages/LoginPage';
@@ -105,6 +106,7 @@ export default function App() {
 
         {/* Profile */}
         <Route path="/profile" element={<MyProfilePage />} />
+        <Route path="/profile/account" element={<AccountPage />} />
         <Route path="/profile/name/:slug" element={<ProfilePage />} />
 
         {/* Legal */}

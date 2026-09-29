@@ -11,6 +11,7 @@
  * - "select": dropdown for enum fields
  */
 import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { useImproveText } from '@/api/ai';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { toast } from 'sonner';
@@ -64,6 +65,7 @@ export default function InlineEditor(props: InlineEditorProps) {
   const [editValue, setEditValue] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
   const improveText = useImproveText();
+  const ai = useAiAccess();
 
   // Reset edit value when opening
   useEffect(() => {
@@ -186,7 +188,8 @@ export default function InlineEditor(props: InlineEditorProps) {
                   <button
                     type="button"
                     onClick={handleAiImprove}
-                    disabled={!editValue.trim() || improveText.isPending}
+                    disabled={!editValue.trim() || improveText.isPending || ai.disabled}
+                    title={ai.hint || undefined}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-sm"
                   >
                     <span className="material-symbols-outlined text-[16px]">auto_awesome</span>

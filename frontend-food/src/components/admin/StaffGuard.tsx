@@ -18,7 +18,7 @@ export default function StaffGuard({ children }: StaffGuardProps) {
   }
 
   if (!user || (error instanceof Error && 'status' in error && error.status === 401)) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?next=${encodeURIComponent(window.location.pathname)}`} replace />;
   }
 
   if (!user.is_staff) {

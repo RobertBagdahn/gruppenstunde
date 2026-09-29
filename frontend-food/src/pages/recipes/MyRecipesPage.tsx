@@ -2,8 +2,9 @@
  * MyRecipesPage — Paginated list of the current user's personal recipes.
  */
 import { useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMyRecipes } from '@/api/recipes';
+import UnauthGate from '@/components/shared/UnauthGate';
 import { useCurrentUser } from '@/api/auth';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
@@ -42,23 +43,11 @@ export default function MyRecipesPage() {
 
   if (!currentUser) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <div className="max-w-md mx-auto text-center space-y-4">
-          <div className="flex justify-center">
-            <Lock className="w-12 h-12 text-muted-foreground" />
-          </div>
-          <h1 className="text-xl font-bold">Anmeldung erforderlich</h1>
-          <p className="text-sm text-muted-foreground">
-            Melde dich an, um deine persönlichen Rezepte zu sehen.
-          </p>
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
-          >
-            Anmelden
-          </Link>
-        </div>
-      </div>
+      <UnauthGate
+        title="Meine Rezepte"
+        description="Melde dich an, um deine eigenen Rezepte zu speichern und hier wiederzufinden."
+        benefits={['Eigene Rezepte anlegen und bearbeiten', 'Rezepte in Ordnern sammeln', 'Mit deiner Gruppe teilen']}
+      />
     );
   }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { useCurrentUser, useLogout } from '@/api/auth';
+import UserMenu from '@/components/auth/UserMenu';
 import { cn } from '@/lib/utils';
 import Footer from './Footer';
 import {
@@ -25,10 +25,7 @@ const bottomNavItems = [
 ];
 
 export default function FoodLayout() {
-  const { data: user } = useCurrentUser();
-  const logout = useLogout();
   const location = useLocation();
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -84,60 +81,7 @@ export default function FoodLayout() {
             ))}
           </nav>
 
-          {/* Profile */}
-          <div className="relative">
-            {user ? (
-              <>
-                <button
-                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-                >
-                  <span className="material-symbols-outlined text-[20px]">person</span>
-                  <span className="hidden md:inline">{user.first_name || 'Profil'}</span>
-                </button>
-                {profileMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-border/60 rounded-2xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <Link
-                        to="/profile"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">person</span>
-                        Profil
-                      </Link>
-                      {user.is_staff && (
-                        <Link
-                          to="/admin"
-                          onClick={() => setProfileMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">settings</span>
-                          Stammdaten
-                        </Link>
-                      )}
-                      <button
-                        onClick={() => { logout.mutate(); setProfileMenuOpen(false); }}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted rounded-lg mx-1 w-[calc(100%-8px)]"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">logout</span>
-                        Abmelden
-                      </button>
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-primary hover:bg-primary/10 transition-all"
-              >
-                <span className="material-symbols-outlined text-[20px]">login</span>
-                Anmelden
-              </Link>
-            )}
-          </div>
+          <UserMenu />
         </div>
       </header>
 

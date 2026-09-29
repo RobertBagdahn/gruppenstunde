@@ -11,7 +11,7 @@ import {
 } from '@/api/mealPlans';
 import { useAiMealPlanSuggest, useApplyAiSuggestions } from '@/api/mealPlans';
 import type { MealPlanWizardStrategy } from '@/schemas/mealPlan';
-import UnauthGate from '@/components/shared/UnauthGate';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
 
 import { useMealPlanWizardState, WIZARD_STEPS, STEP_LABELS } from './useMealPlanWizardState';
 import StepBasicSettings from './StepBasicSettings';
@@ -21,7 +21,9 @@ import StepCockpit from './StepCockpit';
 
 export default function MealPlanWizardPage() {
   const navigate = useNavigate();
-  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { isLoading: userLoading } = useCurrentUser();
+  // Wizard state lives in localStorage, so it survives the OAuth round trip on its own.
+  const { guard } = useRequireLogin();
   const { data: plans } = useMealPlans({});
 
   const {
@@ -48,7 +50,17 @@ export default function MealPlanWizardPage() {
     return state.nutritional_tag_ids.length > 0 ? [] : [];
   }, [state.nutritional_tag_ids]);
 
-  const handleGenerate = async () => {
+  const handleGenerate = () =>
+    guard(() => void generateSuggestions(), {
+      reason: 'Die KI-Vorschläge für Essenspläne gibt es nach der kostenlosen Anmeldung. Deine Eingaben bleiben erhalten.',
+    });
+
+  const handleCreate = () =>
+    guard(() => void createPlan(), {
+      reason: 'Melde dich an, um deinen Essensplan zu speichern. Deine Eingaben bleiben erhalten.',
+    });
+
+  const generateSuggestions = async () => {
     const startDate = state.start_datetime ? state.start_datetime.slice(0, 10) : '';
     const start = new Date(state.start_datetime);
     const end = new Date(state.end_datetime);
@@ -71,7 +83,7 @@ export default function MealPlanWizardPage() {
     }
   };
 
-  const handleCreate = async () => {
+  const createPlan = async () => {
     if (state.strategy === 'reference' && state.reference_plan_id) {
       try {
         const plan = await duplicateMutation.mutateAsync({
@@ -138,15 +150,6 @@ export default function MealPlanWizardPage() {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="h-96 rounded-xl bg-muted animate-pulse" />
       </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <UnauthGate
-        title="Essensplan erstellen"
-        description="Melde dich an, um einen neuen Essensplan zu erstellen."
-      />
     );
   }
 

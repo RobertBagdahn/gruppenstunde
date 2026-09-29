@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useCurrentUser } from '@/api/auth';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRecipeIngredientReviewPreview } from '@/api/recipeImport';
@@ -28,6 +30,9 @@ export default function WizardStepMethod({
   const hasResultRef = useRef(hasResult);
   const { mutateAsync: analyzeSources } = useRecipeIngredientReviewPreview();
   const { registerLeave } = useWizardStep();
+  // "Rezept erkennen" is on the anonymous allowlist; only the shared quota can block it.
+  const ai = useAiAccess({ anonymousAllowed: true });
+  const { data: user } = useCurrentUser();
 
   useEffect(() => registerLeave(async (direction) => {
     if (direction === 'back' || hasResultRef.current) return true;
@@ -38,13 +43,17 @@ export default function WizardStepMethod({
       });
       return false;
     }
+    if (ai.disabled) {
+      toast.warning(ai.hint, { description: 'Oder wähle „Ohne KI manuell beginnen“.' });
+      return false;
+    }
     const sourceType: RecipeImportSource['type'] = /^https?:\/\//i.test(value) ? 'url' : 'text';
     const nextSources = sources.length > 0 ? sources : [{ type: sourceType, value }];
     const result = await analyzeSources(nextSources);
     onSmartResult(result);
     hasResultRef.current = true;
     return true;
-  }), [analyzeSources, input, onSmartResult, registerLeave, sources]);
+  }), [ai.disabled, ai.hint, analyzeSources, input, onSmartResult, registerLeave, sources]);
 
   return (
     <div className="space-y-6">
@@ -104,6 +113,13 @@ export default function WizardStepMethod({
             </button>
           ))}
         </div>
+        {!user && (
+          <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            Ohne Anmeldung nutzt du eine kostenlose, begrenzte KI-Vorschau. Gespeichert wird erst, wenn du dich
+            anmeldest.
+          </p>
+        )}
+        {ai.hint && <p className="text-xs text-destructive">{ai.hint}</p>}
         <p className="text-xs leading-relaxed text-muted-foreground">
           Bei blockierten Webseiten versucht die KI, das Rezept über die Websuche zu rekonstruieren. Prüfe die Angaben danach trotzdem.
         </p>

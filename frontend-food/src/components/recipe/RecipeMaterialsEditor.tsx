@@ -6,6 +6,7 @@
  * in separate sections, so this editor only talks to the materials endpoints.
  */
 import { useMemo, useState } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { toast } from 'sonner';
 import { ArrowDown, ArrowUp, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
@@ -39,6 +40,7 @@ interface RecipeMaterialsEditorProps {
 }
 
 export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: RecipeMaterialsEditorProps) {
+  const ai = useAiAccess();
   const { data: materials, isLoading, error, refetch } = useRecipeMaterials(recipeId);
   const createMaterial = useCreateRecipeMaterial(recipeId);
   const updateMaterial = useUpdateRecipeMaterial(recipeId);
@@ -266,6 +268,8 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
                   type="button"
                   variant="outline"
                   onClick={onSuggestClick}
+                  disabled={ai.disabled}
+                  title={ai.hint || undefined}
                   data-testid="materials-suggest-button"
                 >
                   <Sparkles className="w-4 h-4" />

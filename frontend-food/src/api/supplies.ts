@@ -6,6 +6,7 @@
  * NutritionalTag hooks: /api/supplies/nutritional-tags/
  * RetailSection hooks: /api/retail-sections/
  */
+import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -426,6 +427,7 @@ export function useApplyAiSuggestions(slug: string) {
 
 export function usePreviewPortionMagicWand(slug: string) {
   return useMutation({
+    meta: AI_META,
     mutationFn: () =>
       postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/magic-wand/preview/`, {}, PortionMagicPreviewSchema),
   });
@@ -636,6 +638,7 @@ export function useRecipesByIngredient(
 export function useAiSuggestIngredientAll(slug: string) {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: AI_META,
     mutationFn: async () => {
       const { IngredientSuggestAllSchema } = await import('@/schemas/supply');
       return postJsonRaw(
@@ -653,6 +656,7 @@ export function useAiSuggestIngredientAll(slug: string) {
 export function useAiCreateIngredient() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: AI_META,
     mutationFn: async (name: string) => {
       return postJsonRaw(
         `${INGREDIENT_BASE}/ai-create/`,
@@ -666,8 +670,24 @@ export function useAiCreateIngredient() {
   });
 }
 
+/** "Zutat erkennen" by name: AI draft without saving (also for anonymous visitors). */
+export function useIngredientAiPreview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    meta: AI_META,
+    mutationFn: async (name: string) => {
+      const { IngredientImportUrlOutSchema } = await import('@/schemas/supply');
+      return postJsonRaw(`${INGREDIENT_BASE}/ai-preview/`, { name }, IngredientImportUrlOutSchema);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai', 'quota'] });
+    },
+  });
+}
+
 export function useIngredientImportUrl() {
   return useMutation({
+    meta: AI_META,
     mutationFn: async (url: string) => {
       const { IngredientImportUrlOutSchema } = await import('@/schemas/supply');
       return postJsonRaw(

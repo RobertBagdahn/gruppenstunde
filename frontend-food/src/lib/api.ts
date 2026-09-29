@@ -4,20 +4,25 @@ export type ApiErrorBody = {
   message?: unknown;
   code?: unknown;
   errors?: unknown;
+  error_code?: unknown;
+  retry_after_seconds?: unknown;
 };
 
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly details: unknown;
+  readonly retryAfterSeconds?: number;
 
-  constructor(status: number, statusText: string, body: ApiErrorBody = {}) {
-    super(formatApiErrorBody(body) || `API-Fehler (${status})`);
+  // statusText is kept for call compatibility but never shown: users see German `detail` texts only.
+  constructor(status: number, _statusText: string, body: ApiErrorBody = {}) {
+    super(formatApiErrorBody(body) || `Ein Fehler ist aufgetreten (${status}).`);
     this.name = 'ApiError';
     this.status = status;
-    this.code = typeof body.code === 'string' ? body.code : undefined;
+    const code = typeof body.code === 'string' ? body.code : body.error_code;
+    this.code = typeof code === 'string' ? code : undefined;
     this.details = body.errors;
-    if (statusText) this.message = `${this.message} (${statusText})`;
+    this.retryAfterSeconds = typeof body.retry_after_seconds === 'number' ? body.retry_after_seconds : undefined;
   }
 }
 

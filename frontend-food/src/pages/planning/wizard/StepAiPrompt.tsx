@@ -1,6 +1,8 @@
 import { Sparkles, Loader2 } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@/schemas/mealPlan';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
+import AiLockBadge from '@/components/auth/AiLockBadge';
+import { useAiAccess } from '@/hooks/useAiAccess';
 
 interface StepAiPromptProps {
   state: MealPlanWizardState;
@@ -15,6 +17,8 @@ export default function StepAiPrompt({
   onPromptChange,
   onGenerate,
 }: StepAiPromptProps) {
+  // Login is enforced by the page's guard; this only shows the state up front.
+  const ai = useAiAccess();
   return (
     <div className="space-y-5">
       <div>
@@ -42,7 +46,8 @@ export default function StepAiPrompt({
         <button
           type="button"
           onClick={onGenerate}
-          disabled={!state.ai_prompt.trim() || isLoading}
+          disabled={!state.ai_prompt.trim() || isLoading || ai.disabled}
+          title={ai.hint || undefined}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
         >
           {isLoading ? (
@@ -51,8 +56,10 @@ export default function StepAiPrompt({
             <Sparkles className="w-4 h-4" />
           )}
           {isLoading ? 'Generiere Vorschläge...' : 'Vorschläge generieren'}
+          {ai.locked && <AiLockBadge />}
         </button>
       )}
+      {!state.ai_suggestions && ai.hint && <p className="text-xs text-muted-foreground">{ai.hint}</p>}
 
       {state.ai_suggestions && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">

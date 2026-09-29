@@ -5,6 +5,7 @@
  * Supports three actions: file upload, AI image generation, and image removal.
  */
 import { useRef, useState } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { Upload, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { type UseMutationResult } from '@tanstack/react-query';
@@ -48,6 +49,7 @@ export default function TitleImageEditor({
 }: TitleImageEditorProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const ai = useAiAccess();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,7 +106,8 @@ export default function TitleImageEditor({
             <button
               type="button"
               onClick={() => setShowAiModal(true)}
-              disabled={isUploading}
+              disabled={isUploading || ai.disabled}
+              title={ai.hint || undefined}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-sm font-medium text-primary transition disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
@@ -195,6 +198,8 @@ export default function TitleImageEditor({
                   type="button"
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted transition"
                   onClick={() => { setShowAiModal(true); setShowMenu(false); }}
+                  disabled={ai.disabled}
+                  title={ai.hint || undefined}
                 >
                   <Sparkles className="w-4 h-4" />
                   Bild mit KI generieren
@@ -278,6 +283,7 @@ function AiImageModal({
   const [prompt, setPrompt] = useState('');
   const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);
   const generateImage = useGenerateImage();
+  const ai = useAiAccess();
 
   // Content-type-specific prompt templates
   const getDefaultPrompt = () => {
@@ -409,7 +415,8 @@ function AiImageModal({
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={generateImage.isPending}
+            disabled={generateImage.isPending || ai.disabled}
+            title={ai.hint || undefined}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition disabled:opacity-50 disabled:bg-green-600"
           >
             {generateImage.isPending ? (

@@ -19,7 +19,6 @@ import { getNextWeekend } from '@/lib/dateUtils';
 import { MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import UnauthGate from '@/components/shared/UnauthGate';
 import ListPageHero from '@/components/shared/ListPageHero';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
@@ -72,7 +71,7 @@ function getPlanBadge(plan: MealPlan): string | null {
 }
 
 export default function MealPlanListPage() {
-  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { isLoading: userLoading } = useCurrentUser();
 
   if (userLoading) {
     return (
@@ -86,15 +85,7 @@ export default function MealPlanListPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <UnauthGate
-        title="Essenspläne"
-        description="Melde dich an, um deine Essenspläne zu verwalten."
-      />
-    );
-  }
-
+  // Visitors see public, verified and template plans; "Meine"/"Geteilt" tabs stay empty for them.
   return <MealPlanListPageInner />;
 }
 

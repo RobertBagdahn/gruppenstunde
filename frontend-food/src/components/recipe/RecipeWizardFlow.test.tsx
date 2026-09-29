@@ -8,6 +8,7 @@ import { IngredientReviewPreviewSchema, type IngredientReviewPreview } from '@/s
 import { RecipeDetailSchema, type RecipeDetail } from '@/schemas/recipe';
 import type { RecipeCreatePayload } from '@/api/recipes';
 import { useRecipeIngredientReviewStore } from '@/store/useRecipeIngredientReviewStore';
+import { useLoginPrompt } from '@/store/loginPromptStore';
 import { useWizardStep } from './wizardContext';
 import RecipeWizard from './RecipeWizard';
 
@@ -19,6 +20,11 @@ const mocks = vi.hoisted(() => ({
   draftErrors: new Set<number>(),
   previewLeave: vi.fn(),
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+  user: { current: { id: 1, email: 'u@inspi.dev' } as { id: number; email: string } | null },
+}));
+
+vi.mock('@/api/auth', () => ({
+  useCurrentUser: () => ({ data: mocks.user.current }),
 }));
 
 vi.mock('sonner', () => ({ toast: mocks.toast }));
@@ -146,6 +152,9 @@ function confirmServings() {
 }
 
 beforeEach(() => {
+  mocks.user.current = { id: 1, email: 'u@inspi.dev' };
+  localStorage.clear();
+  useLoginPrompt.setState({ open: false });
   mocks.drafts.clear();
   mocks.draftErrors.clear();
   mocks.createRecipe.mockImplementation(async (payload: RecipeCreatePayload) => {
@@ -161,6 +170,23 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+describe('RecipeWizard for visitors', () => {
+  it('keeps the draft and opens the login dialog instead of creating the recipe', async () => {
+    mocks.user.current = null;
+    renderWizard();
+    await analyzeText(makePreview(0));
+    confirmServings();
+    clickNext();
+
+    await waitFor(() => expect(useLoginPrompt.getState().open).toBe(true));
+    expect(mocks.createRecipe).not.toHaveBeenCalled();
+    expect(useLoginPrompt.getState().next).toContain('restoreDraft=recipe%3Anew');
+    const stored = JSON.parse(localStorage.getItem('draft:recipe:new') ?? '{}');
+    expect(stored.value.creationMethod).toBe('smart');
+    expect(stored.value.basics.servings).toBe(4);
+  });
 });
 
 describe('RecipeWizard step model', () => {

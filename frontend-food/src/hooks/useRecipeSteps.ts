@@ -4,6 +4,7 @@
  * Handles fetching, creating, updating, and deleting recipe steps.
  * Uses React Query for caching and state management.
  */
+import { AI_META } from '@/lib/queryMeta';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { RecipeStep, RecipeStepsBatchInput } from '@/schemas/recipeStep';
@@ -140,6 +141,7 @@ export function useBatchUpdateSteps() {
  */
 export function useGenerateStepsFromItems() {
   return useMutation({
+    meta: AI_META,
     mutationFn: async (input: { recipe_slug: string }): Promise<RecipeStep[]> => {
       const response = await fetch(
         `${API_BASE}/${input.recipe_slug}/steps/generate-from-items/`,
@@ -178,6 +180,7 @@ export function useGenerateStepsFromItems() {
  */
 export function useSuggestIngredientAssignment() {
   return useMutation({
+    meta: AI_META,
     mutationFn: async (input: { recipe_slug: string; step_instruction: string }) => {
       const response = await fetch(
         `${API_BASE}/${input.recipe_slug}/steps/suggest-ingredients/`,
@@ -216,6 +219,7 @@ export function useSuggestIngredientAssignment() {
  */
 export function useImproveStepInstruction() {
   return useMutation({
+    meta: AI_META,
     mutationFn: async (input: {
       recipe_slug: string;
       step_id: number;

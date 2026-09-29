@@ -317,11 +317,11 @@ export default function ToolLandingPage({
               {ctaLabel}
             </Link>
             <Link
-              to="/register"
+              to="/login"
               className="flex items-center gap-2 px-8 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-sm font-bold hover:bg-white/25 hover:scale-105 transition-all"
             >
-              <span className="material-symbols-outlined text-[20px]">person_add</span>
-              Kostenlos registrieren
+              <span className="material-symbols-outlined text-[20px]">login</span>
+              Kostenlos anmelden
             </Link>
           </div>
         </div>

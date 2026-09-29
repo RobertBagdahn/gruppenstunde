@@ -130,7 +130,7 @@ export default function MyProfilePage() {
 
   useEffect(() => {
     if (!userLoading && !user) {
-      navigate('/login');
+      navigate('/login?next=%2Fprofile', { replace: true });
     }
   }, [user, userLoading, navigate]);
 

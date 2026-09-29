@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useCurrentUser } from '@/api/auth';
 import { useIngredients, useDeleteIngredient, ApiDeleteError } from '@/api/supplies';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
@@ -12,7 +11,6 @@ import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import IngredientCard from '@/components/ingredient/IngredientCard';
 import IngredientFilterSidebar from '@/components/ingredient/IngredientFilterSidebar';
 import EmptyState from '@/components/shared/EmptyState';
-import UnauthGate from '@/components/shared/UnauthGate';
 import { IngredientListStateSchema, type INGREDIENT_SORT_VALUES } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import { parseIngredientStatus } from '@/lib/ingredientStatus';
@@ -30,7 +28,6 @@ const COUNT_EXCLUDE = ['page'] as const;
 
 export default function IngredientListPage() {
   const navigate = useNavigate();
-  const { data: user } = useCurrentUser();
   const { state, patch, reset, activeCount, restored } = usePersistedListState({
     key: 'ingredients',
     schema: IngredientListStateSchema,
@@ -66,15 +63,6 @@ export default function IngredientListPage() {
   const handleReset = useCallback(() => {
     reset();
   }, [reset]);
-
-  if (!user) {
-    return (
-      <UnauthGate
-        title="Zutatendatenbank"
-        description="Melde dich an, um die Zutatendatenbank zu verwalten."
-      />
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">

@@ -6,6 +6,7 @@
  */
 
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import {
   DndContext,
   closestCenter,
@@ -59,6 +60,7 @@ const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEd
   const { data: steps, isLoading, error: fetchError } = useRecipeSteps(recipeSlug);
   const { mutateAsync: batchUpdate, isPending: isSaving } = useBatchUpdateSteps();
   const { mutate: generateSteps, isPending: isGenerating } = useGenerateStepsFromItems();
+  const ai = useAiAccess();
 
   const {
     steps: storeSteps,
@@ -215,6 +217,7 @@ const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEd
         onAddStep={handleAddStep}
         onGenerateSteps={handleGenerateSteps}
         isGenerating={isGenerating}
+        aiDisabledHint={ai.disabled ? ai.hint : undefined}
       />
 
       {storeError && <div className="rounded-lg bg-destructive/10 p-4 text-destructive text-sm">{storeError}</div>}

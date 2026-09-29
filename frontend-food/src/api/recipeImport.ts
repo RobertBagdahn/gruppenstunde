@@ -1,6 +1,7 @@
 /**
  * API hook for the recipe wizard's side-effect-free ingredient review preview.
  */
+import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
 import {
@@ -64,6 +65,7 @@ function getCsrfToken(): string {
 
 export function useRecipeIngredientReviewPreview() {
   return useMutation({
+    meta: AI_META,
     mutationFn: async (sources: RecipeImportSource[]): Promise<IngredientReviewPreview> => {
       const res = await fetch(`${API_BASE_URL}/api/recipes/ingredient-review/preview/`, {
         method: 'POST',

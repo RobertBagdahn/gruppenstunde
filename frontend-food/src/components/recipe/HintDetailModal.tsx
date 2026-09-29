@@ -13,6 +13,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { useLlmSuggestions } from '@/api/recipes';
+import AiLockBadge from '@/components/auth/AiLockBadge';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import type { Improvement, LlmSuggestion, RecipeItemNutrition } from '@/schemas/recipe';
 
@@ -109,6 +111,9 @@ export default function HintDetailModal({
 }: HintDetailModalProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const llmMutation = useLlmSuggestions(recipeId);
+  const ai = useAiAccess({
+    description: 'Die KI schlägt dir Zutaten vor, mit denen das Rezept ausgewogener wird.',
+  });
   const addItem = useRecipeModificationStore((s) => s.addItem);
 
   if (!improvement) return null;
@@ -116,10 +121,10 @@ export default function HintDetailModal({
   const parameter = improvement.parameter;
   const contributors = getTopContributors(breakdownItems, parameter);
 
-  const handleRequestSuggestions = () => {
+  const handleRequestSuggestions = ai.guard(() => {
     setShowSuggestions(true);
     llmMutation.mutate({ objective: parameter, direction: improvement.direction });
-  };
+  });
 
   const handleApplySuggestion = (suggestion: LlmSuggestion) => {
     // Add as a new item to the modification store
@@ -208,14 +213,20 @@ export default function HintDetailModal({
           </h3>
 
           {!showSuggestions && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleRequestSuggestions}
-            >
-              <span className="material-symbols-outlined text-sm mr-1.5">auto_awesome</span>
-              KI-Vorschläge anfordern
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleRequestSuggestions}
+                disabled={ai.disabled}
+                title={ai.hint || undefined}
+              >
+                <span className="material-symbols-outlined text-sm mr-1.5">auto_awesome</span>
+                KI-Vorschläge anfordern
+                {ai.locked && <AiLockBadge className="ml-1.5" />}
+              </Button>
+              {ai.hint && <p className="mt-2 text-xs text-muted-foreground">{ai.hint}</p>}
+            </>
           )}
 
           {llmMutation.isPending && (

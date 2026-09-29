@@ -6,6 +6,7 @@
  */
 
 import { X, Loader } from 'lucide-react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { useImproveStepInstruction } from '@/hooks/useRecipeSteps';
 import { toast } from 'sonner';
 
@@ -58,6 +59,7 @@ export default function ToneSelector({
   onClose,
 }: ToneSelectorProps) {
   const { mutate: improveStep, isPending: isImproving } = useImproveStepInstruction();
+  const ai = useAiAccess();
 
   const handleToneSelect = (tone: string) => {
     improveStep(
@@ -104,13 +106,14 @@ export default function ToneSelector({
         <p className="text-sm text-muted-foreground mb-4">
           Wähle einen Ton, in dem die Anweisung umgeschrieben werden soll:
         </p>
+        {ai.disabled && <p className="mb-4 text-sm text-destructive">{ai.hint}</p>}
 
         <div className="space-y-2 mb-6">
           {TONE_OPTIONS.map((tone) => (
             <button
               key={tone.id}
               onClick={() => handleToneSelect(tone.id)}
-              disabled={isImproving}
+              disabled={isImproving || ai.disabled}
               className="w-full text-left p-3 rounded border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-between">

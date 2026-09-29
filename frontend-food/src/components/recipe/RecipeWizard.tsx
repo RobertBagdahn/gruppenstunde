@@ -8,6 +8,10 @@ import type { RecipeDetail } from '@/schemas/recipe';
 import { useIngredient } from '@/api/supplies';
 import { useCreateRecipe, useRecipe, useUpdateRecipe, type RecipeCreatePayload } from '@/api/recipes';
 import { useRecipeIngredientReviewStore } from '@/store/useRecipeIngredientReviewStore';
+import { useCurrentUser } from '@/api/auth';
+import { RESTORE_DRAFT_PARAM, clearDraft, loadDraft, saveDraft, withRestoreParam } from '@/hooks/useDraft';
+import { useLoginPrompt } from '@/store/loginPromptStore';
+import type { IngredientReviewRow } from '@/schemas/ingredientReview';
 
 import WizardStepMethod from './WizardStepMethod';
 import WizardStepBasis, { type BasisDraft } from './WizardStepBasis';
@@ -100,12 +104,25 @@ interface BasicsState {
 
 const EMPTY_BASICS: BasicsState = { title: '', recipeType: null, servings: null, servingsConfirmed: false };
 
+// Visitors fill the wizard without an account; this key stores their work across the OAuth redirect.
+const RECIPE_DRAFT_KEY = 'recipe:new';
+
+interface StoredRecipeWizardDraft {
+  creationMethod: CreationMethod | null;
+  smartResult: IngredientReviewPreview | null;
+  basics: BasicsState;
+  reviewRows: IngredientReviewRow[];
+}
+
 export default function RecipeWizard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const ingredientSlug = searchParams.get('ingredient')?.trim() ?? '';
   const { data: linkedIngredient } = useIngredient(ingredientSlug);
+  const { data: user } = useCurrentUser();
+  const showLogin = useLoginPrompt((state) => state.show);
+  const [draftStashed, setDraftStashed] = useState(false);
 
   // --- Client state before the draft exists ---
   const [creationMethod, setCreationMethod] = useState<CreationMethod | null>(null);
@@ -157,6 +174,28 @@ export default function RecipeWizard() {
       servings: draft.source_servings ?? null,
     }));
   }, [draft, setBasics]);
+
+  // --- Restore a visitor's draft after the login round trip ---
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || !user || searchParams.get(RESTORE_DRAFT_PARAM) !== RECIPE_DRAFT_KEY) return;
+    restoredRef.current = true;
+    const stored = loadDraft<StoredRecipeWizardDraft>(RECIPE_DRAFT_KEY);
+    if (!stored) return;
+    setCreationMethod(stored.creationMethod);
+    setSmartResult(stored.smartResult);
+    setBasics(stored.basics);
+    if (stored.smartResult) {
+      initializeReview(stored.smartResult);
+      useRecipeIngredientReviewStore.setState({ rows: stored.reviewRows, isDirty: true });
+    }
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete(RESTORE_DRAFT_PARAM);
+      return next;
+    }, { replace: true });
+    toast.info('Willkommen zurück! Dein Rezept ist wiederhergestellt – klicke auf „Weiter“, um es zu speichern.');
+  }, [initializeReview, searchParams, setBasics, setSearchParams, user]);
 
   // --- Leave handlers registered by the rendered step ---
   const leaveHandlersRef = useRef(new Map<WizardStepId, Set<LeaveHandler>>());
@@ -252,7 +291,7 @@ export default function RecipeWizard() {
   }, [activeStepId, draftId, rawStep, runExclusive, runLeave, showError, urlStepId, visibleSteps, writeUrl]);
 
   // Warn before losing client-only state (nothing is on the server yet).
-  const hasUnsavedClientState = draftId === null && (creationMethod !== null || reviewIsDirty);
+  const hasUnsavedClientState = draftId === null && !draftStashed && (creationMethod !== null || reviewIsDirty);
   useEffect(() => {
     if (!hasUnsavedClientState) return;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -271,6 +310,22 @@ export default function RecipeWizard() {
     const finalizedRows = reviewIsVisible ? getFinalizedRows() : null;
     if (reviewIsVisible && !finalizedRows) {
       toast.error('Bitte bestätige alle Zutaten und löse offene Zuordnungen.');
+      return null;
+    }
+    if (!user) {
+      // Saving needs an account: keep everything the visitor entered and ask them to log in.
+      const stored: StoredRecipeWizardDraft = {
+        creationMethod,
+        smartResult,
+        basics: basicsRef.current,
+        reviewRows: useRecipeIngredientReviewStore.getState().rows,
+      };
+      saveDraft(RECIPE_DRAFT_KEY, stored);
+      setDraftStashed(true);
+      showLogin({
+        reason: 'Melde dich an, um dein Rezept zu speichern. Deine Eingaben bleiben erhalten.',
+        next: withRestoreParam(window.location.pathname + window.location.search, RECIPE_DRAFT_KEY),
+      });
       return null;
     }
     const recipeDraft = smartResult?.recipe_draft;
@@ -310,10 +365,11 @@ export default function RecipeWizard() {
       payload.ingredient_review_rows = finalizedRows;
     }
     const recipe = await createRecipe.mutateAsync(payload);
+    clearDraft(RECIPE_DRAFT_KEY);
     queryClient.setQueryData(['recipe', recipe.id], recipe);
     queryClient.setQueryData(['recipe', 'slug', recipe.slug], recipe);
     return recipe;
-  }, [createRecipe, getFinalizedRows, queryClient, smartResult, visibleSteps]);
+  }, [createRecipe, creationMethod, getFinalizedRows, queryClient, showLogin, smartResult, user, visibleSteps]);
 
   const saveRecipe = useCallback(async (body: Record<string, unknown>) => {
     await updateRecipe(body);

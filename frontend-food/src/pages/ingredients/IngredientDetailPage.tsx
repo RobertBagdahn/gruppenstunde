@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChefHat, Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2, Wand2 } from 'lucide-react';
@@ -790,6 +791,8 @@ interface PortionsSectionProps {
   isAddingPortion: boolean;
   onOpenMagicWand: () => void;
   isOpeningMagicWand: boolean;
+  /** Set when the AI quota is used up; disables AI actions and explains why. */
+  aiDisabledHint?: string;
 }
 
 function PortionsSection({
@@ -802,6 +805,7 @@ function PortionsSection({
   isAddingPortion,
   onOpenMagicWand,
   isOpeningMagicWand,
+  aiDisabledHint,
 }: PortionsSectionProps) {
   const reorderPortions = useReorderPortions(ingredient.slug);
   const [portions, setPortions] = useState(ingredient.portions);
@@ -906,9 +910,9 @@ function PortionsSection({
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenMagicWand}
-              disabled={isOpeningMagicWand}
+              disabled={isOpeningMagicWand || !!aiDisabledHint}
               className="flex items-center gap-1 text-sm text-primary hover:underline disabled:opacity-50"
-              title="Typische Portionen mit KI vorschlagen"
+              title={aiDisabledHint || 'Typische Portionen mit KI vorschlagen'}
             >
               {isOpeningMagicWand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
               Zauberstab
@@ -1023,6 +1027,7 @@ export default function IngredientDetailPage() {
   const [showAiSuggest, setShowAiSuggest] = useState(false);
   const [replacePortions, setReplacePortions] = useState(false);
   const aiSuggest = useAiSuggestIngredientAll(slug || '');
+  const ai = useAiAccess();
   const fillMissing = useAiFillMissingIngredient();
 
   const handleFillMissing = async () => {
@@ -1394,9 +1399,9 @@ export default function IngredientDetailPage() {
               <>
                 <button
                   onClick={handleFillMissing}
-                  disabled={fillMissing.isPending}
-                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground hover:text-primary"
-                  title="Fehlende Stammdaten mit KI ergänzen (bestehende bleiben erhalten)"
+                  disabled={fillMissing.isPending || ai.disabled}
+                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground hover:text-primary disabled:opacity-50"
+                  title={ai.disabled ? ai.hint : 'Fehlende Stammdaten mit KI ergänzen (bestehende bleiben erhalten)'}
                 >
                   {fillMissing.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -1411,8 +1416,9 @@ export default function IngredientDetailPage() {
                       aiSuggest.mutate();
                     }
                   }}
-                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
-                  title="Alle KI-Vorschläge prüfen & vergleichen"
+                  disabled={ai.disabled}
+                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground disabled:opacity-50"
+                  title={ai.disabled ? ai.hint : 'Alle KI-Vorschläge prüfen & vergleichen'}
                 >
                   <span className="material-symbols-outlined text-lg">auto_fix_high</span>
                 </button>
@@ -1713,6 +1719,7 @@ export default function IngredientDetailPage() {
         isAddingPortion={createPortion.isPending}
         onOpenMagicWand={openPortionMagicWand}
         isOpeningMagicWand={previewMagicWand.isPending}
+        aiDisabledHint={ai.disabled ? ai.hint : undefined}
       />
 
       <Dialog open={showPortionMagicWand} onOpenChange={setShowPortionMagicWand}>

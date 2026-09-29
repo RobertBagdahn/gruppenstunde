@@ -19,6 +19,8 @@ interface StepActionsBarProps {
   onAddStep: () => void;
   onGenerateSteps?: () => void;
   isGenerating?: boolean;
+  /** Set when the AI quota is used up; disables AI generation and explains why. */
+  aiDisabledHint?: string;
 }
 
 export default function StepActionsBar({
@@ -32,6 +34,7 @@ export default function StepActionsBar({
   onAddStep,
   onGenerateSteps,
   isGenerating = false,
+  aiDisabledHint,
 }: StepActionsBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
@@ -90,8 +93,8 @@ export default function StepActionsBar({
           variant="outline"
           size="sm"
           onClick={onGenerateSteps}
-          disabled={isGenerating}
-          title="Generiere Schritte automatisch von den Zutaten"
+          disabled={isGenerating || !!aiDisabledHint}
+          title={aiDisabledHint || 'Generiere Schritte automatisch von den Zutaten'}
           className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
         >
           {isGenerating ? (

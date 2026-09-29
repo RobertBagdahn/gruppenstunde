@@ -2,6 +2,7 @@
  * TanStack Query hooks for the MealPlan API.
  * MUST stay in sync with backend/planner/api/meal_plan.py
  */
+import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from '@tanstack/react-query';
 import {
@@ -186,6 +187,7 @@ export function useCreateMealPlan() {
 
 export function useAiMealPlanSuggest() {
   return useMutation({
+    meta: AI_META,
     mutationFn: (body: {
       prompt: string;
       num_persons: number;
@@ -780,6 +782,7 @@ export function useIntelligentSuggestions(
   if (!contextEnhance) searchParams.set('context_enhance', 'false');
 
   return useQuery<IntelligentSuggestionsResponse>({
+    meta: AI_META,
     queryKey: ['intelligent-suggestions', planId, mealId, contextEnhance],
     queryFn: () =>
       fetchJson(

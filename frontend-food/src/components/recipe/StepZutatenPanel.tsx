@@ -7,6 +7,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { Plus, Trash2, Sparkles, GripVertical } from 'lucide-react';
 import type { RecipeStepIngredient } from '@/schemas/recipeStep';
 import IngredientAssignmentDropdown from './IngredientAssignmentDropdown';
@@ -49,6 +50,7 @@ export default function StepZutatenPanel({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { mutate: suggestIngredients, isPending: isSuggesting } = useSuggestIngredientAssignment();
+  const ai = useAiAccess();
 
   // Memoize available items for dropdown
   const dropdownItems = useMemo(
@@ -133,9 +135,9 @@ export default function StepZutatenPanel({
           {stepInstruction.trim() && recipeSlug && (
             <button
               onClick={handleSuggestIngredients}
-              disabled={isSuggesting || !stepInstruction.trim()}
+              disabled={isSuggesting || !stepInstruction.trim() || ai.disabled}
               className="flex items-center gap-1 text-sm px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
-              title="KI-Vorschläge für Zutaten basierend auf der Anweisung"
+              title={ai.disabled ? ai.hint : 'KI-Vorschläge für Zutaten basierend auf der Anweisung'}
             >
               <Sparkles size={16} /> Vorschlagen
             </button>

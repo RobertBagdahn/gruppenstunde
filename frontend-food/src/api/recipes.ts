@@ -5,6 +5,7 @@
  * Recipe now extends Content. Comments use ContentCommentSchema (threaded).
  * Emotions are generic ContentEmotions (toggle returns counts dict).
  */
+import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -320,6 +321,7 @@ export function useCreateRecipe() {
 export function useRecipeAiCreate() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: AI_META,
     mutationFn: (payload: RecipeAiCreateIn) => {
       RecipeAiCreateInSchema.parse(payload);
       return postJson(`${API_BASE}/ai-create/`, payload, RecipeDetailSchema);
@@ -625,6 +627,7 @@ export function useSetRecipeImageFromUrl(recipeId: number) {
 export function useLlmSuggestions(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: AI_META,
     mutationFn: ({ objective, direction }: { objective: string; direction: string }) =>
       postJson(
         `${API_BASE}/${recipeId}/suggestions/`,
@@ -705,6 +708,7 @@ export function useEstimateQuantities(recipeId: number) {
 
 export function useRecipeIngredientSuggestionsPreview(recipeId: number) {
   return useMutation({
+    meta: AI_META,
     mutationFn: async (): Promise<IngredientReviewPreview> => {
       const res = await fetch(`${API_BASE}/${recipeId}/ai-suggest-ingredients-preview/`, {
         method: 'POST',
