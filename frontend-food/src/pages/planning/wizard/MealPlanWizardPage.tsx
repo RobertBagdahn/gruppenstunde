@@ -182,7 +182,7 @@ export default function MealPlanWizardPage() {
                   isActive ? 'bg-primary' : isPast ? 'bg-primary/40' : 'bg-muted'
                 }`}
               />
-              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${
+              <p className={`text-caption font-bold uppercase tracking-wider mt-1 ${
                 isActive ? 'text-primary' : isPast ? 'text-muted-foreground' : 'text-muted-foreground/50'
               }`}>
                 {STEP_LABELS[s]}

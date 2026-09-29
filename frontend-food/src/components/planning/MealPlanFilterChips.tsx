@@ -38,7 +38,7 @@ export default function MealPlanFilterChips({
           <button
             key={chip.value}
             onClick={() => onAmpelChange(chip.value)}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-semibold border transition-colors ${
               ampelFilter === chip.value
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:border-primary/40'
@@ -61,7 +61,7 @@ export default function MealPlanFilterChips({
           <button
             key={chip.value}
             onClick={() => onTimeRangeChange(chip.value)}
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold border transition-colors ${
               timeRange === chip.value
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:border-primary/40'

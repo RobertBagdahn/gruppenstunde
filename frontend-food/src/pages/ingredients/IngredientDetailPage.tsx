@@ -164,7 +164,7 @@ function NutritionalTagBadge({
 }) {
   return (
     <span
-      className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+      className={`text-caption px-2.5 py-1 rounded-full font-medium ${
         isDangerous
           ? 'bg-destructive/10 text-destructive border border-destructive/20'
           : 'bg-muted text-muted-foreground border border-border'
@@ -1333,7 +1333,7 @@ export default function IngredientDetailPage() {
               </span>
             ) : (
               <>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 border ${
+                <span className={`text-caption px-2 py-0.5 rounded-full font-medium shrink-0 border ${
                   ingredient.status === 'draft'
                     ? 'bg-warning-soft border-warning-border text-warning'
                     : 'bg-danger-soft border-danger-border text-danger'

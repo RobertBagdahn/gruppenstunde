@@ -38,7 +38,7 @@ export function RecipeNutriScoreDistribution({ stats, currentNutriClass }: Props
           return (
             <div key={grade} className="flex items-center gap-2">
               <span
-                className={`flex items-center justify-center w-7 h-7 rounded-md text-xs font-extrabold shrink-0 ${
+                className={`flex items-center justify-center w-7 h-7 rounded-lg text-caption font-extrabold shrink-0 ${
                   isActive
                     ? `${colors.bg} ${colors.text} shadow-md scale-110`
                     : `${colors.bg}/20 text-muted-foreground`

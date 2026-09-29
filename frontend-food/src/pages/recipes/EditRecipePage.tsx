@@ -188,7 +188,7 @@ export default function EditRecipePage() {
                     recipeType === opt.value ? 'text-primary' : 'text-muted-foreground'
                   }`} />
                 <span
-                  className={`font-medium text-xs ${
+                  className={`font-medium text-caption ${
                     recipeType === opt.value ? 'text-primary' : 'text-foreground'
                   }`}
                 >
@@ -219,7 +219,7 @@ export default function EditRecipePage() {
                 key={opt.value}
                 type="button"
                 onClick={() => setPreparationMethod(opt.value)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                   preparationMethod === opt.value
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background hover:bg-muted'
@@ -252,7 +252,7 @@ export default function EditRecipePage() {
                           : [...prev, eq.id],
                       );
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                    className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                       isSelected
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background hover:bg-muted'
@@ -394,7 +394,7 @@ export default function EditRecipePage() {
                 key={tag.id}
                 type="button"
                 onClick={() => toggleTag(tag.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                   selectedTagIds.includes(tag.id)
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background hover:bg-muted'
@@ -422,7 +422,7 @@ export default function EditRecipePage() {
                 key={level.id}
                 type="button"
                 onClick={() => toggleScoutLevel(level.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                   selectedScoutIds.includes(level.id)
                     ? 'bg-info text-white border-info'
                     : 'bg-background hover:bg-muted'

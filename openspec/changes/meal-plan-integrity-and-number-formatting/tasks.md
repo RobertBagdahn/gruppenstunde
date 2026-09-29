@@ -96,8 +96,8 @@
 
 ## 13. Frontend: ESLint-Durchsetzung
 
-- [ ] 13.1 Lokale Regel `food/design-tokens` (Palettenfarben, `text-[…]`, Größen außerhalb der Skala, Radien, `material-symbols`) für `className`, `cn()`, `clsx()`; Ausnahmen Tests und Styleguide
-- [ ] 13.2 Regel-Tests (RuleTester) und `npm run lint` ohne Fehler
+- [x] 13.1 Lokale Regel `food/design-tokens` (Palettenfarben, `text-[…]`, Größen außerhalb der Skala, Radien, `material-symbols`) für `className`, `cn()`, `clsx()`; Ausnahmen Tests und Styleguide
+- [x] 13.2 Regel-Tests (RuleTester) und `npm run lint` ohne Fehler
 
 ## 14. Prüfung
 

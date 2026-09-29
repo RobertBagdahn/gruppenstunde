@@ -76,7 +76,7 @@ export function MacroBar({
             </span>
           )}
           {dgeCoverage != null && (
-            <span className={`ml-1.5 text-[10px] font-semibold ${
+            <span className={`ml-1.5 text-caption font-semibold ${
               dgeCoverage >= 80 ? 'text-success' : dgeCoverage >= 40 ? 'text-warning' : 'text-danger'
             }`}>
               {formatNumber(dgeCoverage, { maxDecimals: 0 })}%

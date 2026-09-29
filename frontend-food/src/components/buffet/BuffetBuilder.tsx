@@ -397,7 +397,7 @@ function RoleSection({
                     key={itemKey(item)}
                     type="button"
                     onClick={() => onToggleItem(item)}
-                    className={`px-2.5 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1 transition-all ${
+                    className={`px-2.5 py-1.5 rounded-full border text-caption font-semibold flex items-center gap-1 transition-all ${
                       active
                         ? 'border-primary bg-primary/10 text-primary shadow-sm'
                         : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60'

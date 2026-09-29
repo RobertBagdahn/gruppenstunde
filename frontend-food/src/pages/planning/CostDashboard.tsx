@@ -169,7 +169,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
 
       {/* Incomplete data warning */}
       {isIncomplete && (
-        <div className={`flex items-start gap-3 p-4 border rounded-xl text-sm shadow-soft ${
+        <div className={`flex items-start gap-3 p-4 border rounded-xl text-body shadow-soft ${
           coverage < 50
             ? 'bg-destructive/10 border-destructive/20 text-destructive'
             : 'bg-accent/10 border-accent/20 text-accent-foreground'

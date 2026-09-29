@@ -30,7 +30,7 @@ export function RecipeAnalysisTabs({ tabs, showSummaryBox }: Props) {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ${
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-body font-medium transition-colors shrink-0 ${
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-md'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'

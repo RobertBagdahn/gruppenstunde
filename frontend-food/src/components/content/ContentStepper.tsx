@@ -306,7 +306,7 @@ export default function ContentStepper({
                   )}
                 </div>
                 <span
-                  className={`text-xs font-semibold whitespace-nowrap transition-colors duration-300 ${
+                  className={`text-caption font-semibold whitespace-nowrap transition-colors duration-300 ${
                     isCompleted || isActive ? 'text-foreground' : 'text-muted-foreground'
                   }`}
                 >
@@ -637,7 +637,7 @@ export default function ContentStepper({
                           : [...formData.selectedTagIds, tag.id],
                       })
                     }
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    className={`px-3 py-1 rounded-full text-caption font-medium border transition-colors ${
                       selected
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted text-muted-foreground border-border hover:border-primary/50'
@@ -667,7 +667,7 @@ export default function ContentStepper({
                           : [...formData.selectedScoutIds, level.id],
                       })
                     }
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    className={`px-3 py-1.5 rounded-full text-caption font-medium border transition-colors ${
                       selected
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted text-muted-foreground border-border hover:border-primary/50'

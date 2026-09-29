@@ -3,6 +3,7 @@ import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
+import foodPlugin from './eslint-rules/design-tokens.js';
 
 export default tseslint.config(
   { ignores: ['dist'] },
@@ -43,6 +44,16 @@ export default tseslint.config(
           message: 'Use formatNumber/formatEuro/formatWeight from @/lib/format instead of toFixed().',
         },
       ],
+    },
+  },
+  {
+    // Design tokens (colours, font sizes, radii, icons) — food-design-system spec.
+    // Tests and the styleguide may show raw values to demonstrate the tokens.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.ts', '**/*.test.tsx', 'src/__tests__/**', 'src/pages/StyleguidePage.tsx'],
+    plugins: { food: foodPlugin },
+    rules: {
+      'food/design-tokens': 'error',
     },
   },
   {

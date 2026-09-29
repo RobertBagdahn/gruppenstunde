@@ -28,7 +28,7 @@ function formatDate(dateStr: string): string {
 function AllergenChip({ name, isDangerous }: { name: string; isDangerous?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-caption font-bold border ${
         isDangerous
           ? 'bg-destructive/10 text-destructive border-destructive/20'
           : 'bg-warning-soft text-warning border-warning-border'
@@ -82,7 +82,7 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
                 return (
                   <span
                     key={`${ing.name}-${i}`}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-caption font-medium border
                       ${ing.is_optional ? 'bg-muted text-muted-foreground border-border italic' : 'bg-primary/5 text-foreground border-primary/10'}`}
                   >
                     {parts.join(' ')}{detail}

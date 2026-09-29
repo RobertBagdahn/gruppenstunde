@@ -536,7 +536,7 @@ export default function MealPlanDetailPage() {
               key={tab.key}
               to={`/meal-plans/${mealPlanId}/${tab.key}`}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
+                `flex items-center gap-2 px-5 py-3 text-body font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
                   isActive
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'

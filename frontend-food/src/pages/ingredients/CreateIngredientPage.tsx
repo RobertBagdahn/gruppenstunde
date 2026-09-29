@@ -82,7 +82,7 @@ function StepIndicator({ step }: { step: number }) {
                 )}
               </div>
               <span
-                className={`text-xs font-semibold whitespace-nowrap transition-colors duration-300 ${
+                className={`text-caption font-semibold whitespace-nowrap transition-colors duration-300 ${
                   isCompleted || isActive ? 'text-foreground' : 'text-muted-foreground'
                 }`}
               >

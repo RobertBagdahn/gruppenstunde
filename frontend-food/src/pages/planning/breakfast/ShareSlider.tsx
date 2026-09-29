@@ -40,7 +40,7 @@ export default function ShareSlider({
             onClick={onToggleLock}
             disabled={disabled}
             title={locked ? 'Entsperren' : 'Sperren'}
-            className={`p-1 rounded transition-colors ${
+            className={`p-1 rounded-lg transition-colors ${
               locked
                 ? 'text-primary bg-primary/10 hover:bg-primary/20'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'

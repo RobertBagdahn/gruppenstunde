@@ -95,7 +95,7 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-body font-semibold text-foreground">Preis</h3>
         <span
-          className={`text-[11px] px-2 py-0.5 rounded-full font-medium border ${
+          className={`text-caption px-2 py-0.5 rounded-full font-medium border ${
             ingredient.price_source === 'ai_accepted'
               ? 'bg-primary/10 border-primary/20 text-primary'
               : ingredient.price_source === 'missing'

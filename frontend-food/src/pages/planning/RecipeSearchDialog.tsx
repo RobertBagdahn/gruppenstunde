@@ -45,7 +45,7 @@ function BadgePill({ value, selected, onChange, icon, label }: BadgePillProps) {
   return (
     <button
       onClick={() => onChange(selected === value ? 'all' : value)}
-      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-medium transition-colors border ${
         selected === value
           ? 'bg-primary text-primary-foreground border-primary'
           : 'bg-card text-muted-foreground border-border hover:bg-muted'
@@ -249,7 +249,7 @@ export default function RecipeSearchDialog({
             <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 w-fit">
               <button
                 onClick={() => { setShowSuggestions(true); setSearchQuery(''); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-lg transition-colors ${
                   showSuggestions
                     ? 'bg-card text-foreground shadow-sm border border-border'
                     : 'text-muted-foreground hover:text-foreground'
@@ -260,7 +260,7 @@ export default function RecipeSearchDialog({
               </button>
               <button
                 onClick={() => setShowSuggestions(false)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-lg transition-colors ${
                   !showSuggestions
                     ? 'bg-card text-foreground shadow-sm border border-border'
                     : 'text-muted-foreground hover:text-foreground'
@@ -357,7 +357,7 @@ export default function RecipeSearchDialog({
                         ? includeTagIds.filter((id) => id !== tag.id)
                         : [...includeTagIds, tag.id]
                     )}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-medium transition-colors border ${
                       isSelected
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-card text-muted-foreground border-border hover:bg-muted'

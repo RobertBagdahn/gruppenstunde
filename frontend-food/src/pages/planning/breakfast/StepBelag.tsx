@@ -78,7 +78,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
               key={level}
               type="button"
               onClick={() => setGlobalIntensity(level)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+              className={`flex-1 py-2 px-3 rounded-lg text-body font-medium border transition-colors ${
                 state.globalIntensity === level
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border hover:bg-muted text-foreground'

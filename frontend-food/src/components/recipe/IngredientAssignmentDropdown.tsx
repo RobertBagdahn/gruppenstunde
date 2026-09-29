@@ -139,7 +139,7 @@ export default function IngredientAssignmentDropdown({
                   <button
                     key={item.id}
                     onClick={() => handleSelect(item.id)}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                    className={`w-full text-left px-4 py-2 text-body transition-colors ${
                       item.id === selectedItemId
                         ? 'bg-primary/10 text-primary font-medium'
                         : 'hover:bg-muted text-foreground'

@@ -42,7 +42,7 @@ function StepIndicator({ steps, activeIndex }: { steps: WizardStepDef[]; activeI
             <li key={step.id} className="flex items-center" data-testid={`recipe-wizard-indicator-${step.id}`}>
               <div
                 className={`
-                  flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold border-2 transition-colors
+                  flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-caption sm:text-body font-semibold border-2 transition-colors
                   ${isActive ? 'border-primary bg-primary text-primary-foreground' : ''}
                   ${isCompleted ? 'border-primary bg-primary/20 text-primary' : ''}
                   ${!isActive && !isCompleted ? 'border-muted-foreground/30 text-muted-foreground' : ''}

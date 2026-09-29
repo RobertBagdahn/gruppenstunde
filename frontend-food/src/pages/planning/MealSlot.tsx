@@ -379,7 +379,7 @@ export function MealSlot({
               )}
               {mealIsTooLittle && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold ${
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-caption font-bold ${
                     coverage.status === 'critical'
                       ? 'bg-destructive/10 text-destructive border-destructive/20'
                       : 'bg-warning-soft text-warning border-warning-border'

@@ -585,7 +585,7 @@ export default function IngredientEditPage() {
                     key={tag.id}
                     type="button"
                     onClick={() => toggleTag(tag.id)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                    className={`text-caption px-3 py-1.5 rounded-full border transition ${
                       selected
                         ? tag.is_dangerous
                           ? 'bg-destructive/10 text-destructive border-destructive/20'
@@ -615,7 +615,7 @@ export default function IngredientEditPage() {
                     key={tag.id}
                     type="button"
                     onClick={() => toggleContentTag(tag.id)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                    className={`text-caption px-3 py-1.5 rounded-full border transition ${
                       selected
                         ? 'bg-primary/10 text-primary border-primary/20'
                         : 'bg-background text-muted-foreground border-border hover:bg-muted'

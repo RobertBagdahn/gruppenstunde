@@ -178,7 +178,7 @@ export default function StepZutatenPanel({
                 e.dataTransfer.effectAllowed = 'copy';
               }}
               title={editingId !== ing.id ? `In die Anweisung ziehen, um {${index + 1}} einzufügen` : undefined}
-              className={`p-3 bg-muted/40 rounded border transition-colors ${
+              className={`p-3 bg-muted/40 rounded-lg border transition-colors ${
                 editingId !== ing.id ? 'cursor-grab active:cursor-grabbing' : ''
               } ${
                 editingId === ing.id

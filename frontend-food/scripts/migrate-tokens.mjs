@@ -220,6 +220,22 @@ function migrateRadii(text, stats) {
  */
 const STRING_RE = /(["'`])((?:\\.|(?!\1)[^\\])*?)\1/g;
 function inStrings(line, fn) {
+  const migrated = inClosedStrings(line, fn);
+  // Opening line of a multi-line template literal: className={`px-2 text-xs ${
+  // — the static part after the last backtick is class text as well.
+  if ((migrated.split('`').length - 1) % 2 === 1) {
+    const open = migrated.lastIndexOf('`');
+    const rest = migrated.slice(open + 1);
+    const exprAt = rest.indexOf('${');
+    const staticPart = exprAt === -1 ? rest : rest.slice(0, exprAt);
+    if (/[a-z]/.test(staticPart) && !/['"]/.test(staticPart)) {
+      return migrated.slice(0, open + 1) + fn(staticPart) + (exprAt === -1 ? '' : rest.slice(exprAt));
+    }
+  }
+  return migrated;
+}
+
+function inClosedStrings(line, fn) {
   return line.replace(STRING_RE, (_m, quote, content) => {
     // Template literals: in `${…}` expressions (JS code) only nested string literals are migrated.
     const migrated =

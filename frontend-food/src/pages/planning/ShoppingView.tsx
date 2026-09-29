@@ -111,7 +111,7 @@ function ShoppingItemWithSources({
           {item.portion_options!.map((opt, idx) => (
             <div
               key={idx}
-              className={`flex items-center gap-2 text-xs ${
+              className={`flex items-center gap-2 text-caption ${
                 opt.is_default ? 'text-muted-foreground font-semibold' : 'text-muted-foreground/60'
               }`}
             >

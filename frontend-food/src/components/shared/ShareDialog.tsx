@@ -166,7 +166,7 @@ export default function ShareDialog({
             <div className="flex gap-1 mb-3">
               <button
                 onClick={() => setAddMode('user')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-colors ${
+                className={`px-3 py-1.5 text-caption font-bold rounded-full border transition-colors ${
                   addMode === 'user'
                     ? 'bg-primary/15 text-primary border-primary/30'
                     : 'bg-background text-muted-foreground border-border hover:text-foreground'
@@ -176,7 +176,7 @@ export default function ShareDialog({
               </button>
               <button
                 onClick={() => setAddMode('group')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-colors ${
+                className={`px-3 py-1.5 text-caption font-bold rounded-full border transition-colors ${
                   addMode === 'group'
                     ? 'bg-primary/15 text-primary border-primary/30'
                     : 'bg-background text-muted-foreground border-border hover:text-foreground'
@@ -216,7 +216,7 @@ export default function ShareDialog({
                           setSearchQuery(result.display_name);
                           setSearchResults([]);
                         }}
-                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-muted transition-colors ${
+                        className={`px-3 py-2 text-body cursor-pointer hover:bg-muted transition-colors ${
                           selectedUserId === result.id ? 'bg-primary/10 font-medium' : ''
                         }`}
                       >

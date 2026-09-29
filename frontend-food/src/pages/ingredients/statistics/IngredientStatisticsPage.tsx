@@ -107,7 +107,7 @@ export default function IngredientStatisticsPage() {
               <button
                 key={t.id}
                 onClick={() => navigate(`/ingredients/statistics/${t.id}`)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-body font-medium whitespace-nowrap transition-colors ${
                   t.id === activeTabId
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'

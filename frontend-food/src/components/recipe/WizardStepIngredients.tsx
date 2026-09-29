@@ -99,7 +99,7 @@ export default function WizardStepIngredients({
                   type="button"
                   onClick={() => onRecipeTypeChange(option.value)}
                   aria-pressed={isSelected}
-                  className={`flex items-center gap-1 px-2 py-1.5 text-xs font-medium border rounded-md transition-colors ${
+                  className={`flex items-center gap-1 px-2 py-1.5 text-caption font-medium border rounded-lg transition-colors ${
                     isSelected
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'hover:bg-muted'
