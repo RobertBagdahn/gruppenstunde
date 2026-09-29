@@ -11,8 +11,8 @@ Branch gegen die Prod-Datenbank über den Cloud SQL Auth Proxy. Beim Deploy füh
 
 ## 0. Vorbereitung
 
-- [ ] DB-Snapshot der Prod-Datenbank anlegen und Namen hier notieren: `__________`
-- [ ] Freigabe durch Robert für diesen Termin
+- [x] DB-Snapshot der Prod-Datenbank anlegen und Namen hier notieren: Backup `1790661019101` (`inspi-db-west1`, 29.09.2026)
+- [x] Freigabe durch Robert für diesen Termin (29.09.2026, nur Abschnitte 1, 2)
 
 ## 1. meal-plan-integrity-and-number-formatting — vor dem Deploy
 
@@ -20,9 +20,9 @@ Die Planner-Migration setzt Referenzmahlzeiten auf datumslos und legt zwei Const
 Sie bricht ab, wenn es doppelte reguläre Mahlzeiten (Plan, Tag, Typ) gibt — Cloud Build
 stoppt dann vor dem Rollout. Deshalb vorher prüfen:
 
-- [ ] Vom Branch aus gegen Prod (nur Bericht, ändert nichts):
+- [x] Vom Branch aus gegen Prod (nur Bericht, ändert nichts):
       `uv run python manage.py check_meal_integrity`
-- [ ] Ausgabe prüfen:
+- [x] Ausgabe prüfen (Prod 29.09.2026: 0 Dubletten, 0 Referenzmahlzeiten mit Datum, 0 außerhalb, 0 ohne Menge):
   - „Doppelte reguläre Mahlzeiten“ **muss 0 sein** — sonst die gelisteten Mahlzeiten vorher
     mit den Verantwortlichen klären und zusammenführen/löschen.
   - „Referenz-Mahlzeiten mit Datum“: werden von der Migration verlustfrei datumslos gesetzt.
@@ -34,12 +34,12 @@ Lokaler Referenzlauf (28.09.2026): 0 Dubletten, 0 Referenzmahlzeiten mit Datum,
 
 ## 2. Deploy
 
-- [ ] Deploy auslösen; Cloud Build führt die Migrationen aus:
+- [x] Deploy (29.09.2026, Commit `84230790`, manuell: Images per `gcloud builds submit` in europe-west1, `inspi-backend-00070-8kb`, Job `inspi-migrate`, `inspi-frontend-food-00064-jdz`; Rollback-Revisionen `inspi-backend-00069-x8w`, `inspi-frontend-food-00063-qr8`). Hinweis: Der Trigger `GruppenstundeDeployMain` scheitert seit 27.09. beim Image-Push und deployt nicht. Migrationen:
   - `planner` (Referenzmahlzeiten datumslos, Constraints `meal_reference_without_datetime`,
     `unique_regular_meal_per_day_and_type`)
   - `supply.0020_viscosity_liquid_and_source`, `supply.0021_ingredient_package_suggestion`
   - Migrationen aus `ingredient-status-visibility-unification`
-- [ ] Nach dem Deploy erneut `check_meal_integrity` (erwartet: 0 Referenzmahlzeiten mit Datum)
+- [x] Nach dem Deploy erneut `check_meal_integrity` (alles 0, keine offenen Migrationen)
 
 ## 3. ingredient-status-visibility-unification — nach dem Deploy
 
