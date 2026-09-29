@@ -121,6 +121,24 @@ class TestMissingQuantityRule:
 
         assert _alerts(client, plan.id, "missing_quantity") == []
 
+    def test_reference_meal_item_without_quantity_flagged(self, client: Client, user, plan):
+        # Legacy data: the reference breakfast holds an ingredient without quantity
+        # ("4-Kornflocken Bio"), which every synced breakfast would copy.
+        client.force_login(user)
+        ref_meal = Meal.objects.create(
+            meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST, is_reference=True, day_part_factor=0.25
+        )
+        ingredient = baker.make("supply.Ingredient", name="4-Kornflocken Bio")
+        item = MealItem.objects.create(meal=ref_meal, ingredient=ingredient, quantity=None, factor=1.0)
+
+        alerts = _alerts(client, plan.id, "missing_quantity")
+        assert len(alerts) == 1
+        assert alerts[0]["meal_id"] == ref_meal.id
+        assert alerts[0]["date"] is None
+        assert alerts[0]["action_type"] == "open_ref_meal"
+        assert alerts[0]["action_payload"] == {"meal_type": "breakfast", "item_id": item.id}
+        assert "4-Kornflocken Bio" in alerts[0]["description"]
+
 
 @pytest.mark.django_db
 class TestMealOutsideRangeRule:

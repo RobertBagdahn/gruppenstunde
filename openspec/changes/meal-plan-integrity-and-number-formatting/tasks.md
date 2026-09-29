@@ -101,6 +101,6 @@
 
 ## 14. Prüfung
 
-- [ ] 14.1 `uv run pytest`; in `frontend-food`: `npm run test`, `npx tsc -b --noEmit`, `npm run lint`
-- [ ] 14.2 Lokal `migrate` und `check_meal_integrity`; Browser (Desktop und 375 px): Plan 14 ohne „1. Januar“, Plan-Check zeigt Wraps-Hinweis und fehlende Menge, Cockpit „Ziel: 2.335 kcal“, Einkauf mit deutschem Komma, Packungen und Litern, Rezeptliste „Rezepte“; Screenshot-Vergleich der Kernseiten vor/nach der Token-Migration; keine Wörter statt Icons beim Laden
-- [ ] 14.3 Prod-Schritte ins gesammelte Runbook aufnehmen (`check_meal_integrity` als Trockenlauf vor dem Deploy; Packungsvorschläge auf Prod erst nach Deploy mit Kostenanzeige und Freigabe)
+- [x] 14.1 `uv run pytest`; in `frontend-food`: `npm run test`, `npx tsc -b --noEmit`, `npm run lint`
+- [x] 14.2 Lokal `migrate` und `check_meal_integrity`; Browser (Desktop und 375 px): Plan 14 ohne „1. Januar“, Plan-Check zeigt Wraps-Hinweis und fehlende Menge, Cockpit „Ziel: 2.335 kcal“, Einkauf mit deutschem Komma, Packungen und Litern, Rezeptliste „Rezepte“; Screenshot-Vergleich der Kernseiten vor/nach der Token-Migration; keine Wörter statt Icons beim Laden (28.09.2026: `check_meal_integrity` lokal 0 Dubletten, 0 Referenzmahlzeiten mit Datum, #168 außerhalb, #149 ohne Menge. Plan 14 zeigt „1. Januar“ weiterhin, weil #168 ein reguläres, synchronisiertes Frühstück am 01.01. ist — der Plan-Check meldet es mit „Mahlzeit verschieben“/„Zeitraum anpassen“; die Referenzmahlzeit #167 ist datumslos. Plan-Check-Lücke behoben: fehlende Mengen in Referenzmahlzeiten werden jetzt gemeldet. Packungsanzeige nur per Tests verifiziert, da lokal kaum Standardpackungen existieren.)
+- [x] 14.3 Prod-Schritte ins gesammelte Runbook aufnehmen (`docs/prod-runbook.md`) (`check_meal_integrity` als Trockenlauf vor dem Deploy; Packungsvorschläge auf Prod erst nach Deploy mit Kostenanzeige und Freigabe)

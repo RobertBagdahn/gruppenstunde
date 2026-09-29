@@ -42,6 +42,18 @@ vi.mock('@/api/mealPlans', () => ({
           action_type: 'open_slot',
         },
         {
+          id: 'missing-quantity-ref-167-149',
+          type: 'missing_quantity',
+          severity: 'warning',
+          title: 'Menge fehlt in der Referenz Frühstück',
+          description: '«4-Kornflocken Bio» hat keine gültige Menge.',
+          date: null,
+          meal_id: 167,
+          meal_type: 'breakfast',
+          action_label: 'Referenz öffnen',
+          action_type: 'open_ref_meal',
+        },
+        {
           id: 'meal-outside-range-11',
           type: 'meal_outside_range',
           severity: 'warning',
@@ -215,5 +227,16 @@ describe('PlanCheckFlyout', () => {
     expect(screen.queryByRole('button', { name: /Menge setzen/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /Zeitraum anpassen/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /Gericht vorschlagen/i })).toBeNull();
+  });
+
+  it('opens the reference meal editor for a missing quantity in a reference meal', () => {
+    const handleOpenRefMeal = vi.fn();
+    const handleScrollToMeal = vi.fn();
+    render(<PlanCheckFlyout mealPlanId={42} onOpenRefMeal={handleOpenRefMeal} onScrollToMeal={handleScrollToMeal} />);
+    fireEvent.click(screen.getByRole('button', { name: /Plan-Check öffnen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Referenz öffnen/i }));
+
+    expect(handleOpenRefMeal).toHaveBeenCalledWith('breakfast');
+    expect(handleScrollToMeal).not.toHaveBeenCalled();
   });
 });

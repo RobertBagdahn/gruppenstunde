@@ -16,6 +16,7 @@ from planner.schemas.meal_plan import MealOut, PlanCheckAlertOut
 
 if TYPE_CHECKING:
     from planner.models import MealPlan
+    from supply.models import NutritionalTag
 
 # Recipe types a meal type can plausibly contain. Deliberately separate from
 # `MEAL_TYPE_TO_RECIPE_TYPES` (which drives recipe *search* and intentionally
@@ -52,7 +53,7 @@ def _meals_qs(meal_plan: MealPlan):
 
 
 def _check_empty_slots(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
-    alerts = []
+    alerts: list[PlanCheckAlertOut] = []
     for meal in meals:
         if not meal.start_datetime:
             continue
@@ -81,7 +82,7 @@ def _check_empty_slots(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheck
 
 
 def _check_budget_excess(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
-    alerts = []
+    alerts: list[PlanCheckAlertOut] = []
     if not (meal_plan.budget_per_person_per_day and meal_plan.budget_per_person_per_day > 0):
         return alerts
     budget_limit = meal_plan.budget_per_person_per_day
@@ -117,7 +118,7 @@ def _check_budget_excess(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanChe
 
 
 def _check_allergen_conflicts(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
-    alerts = []
+    alerts: list[PlanCheckAlertOut] = []
     plan_tag_ids = {tag.id for tag in meal_plan.nutritional_tags.all()}
     if not plan_tag_ids:
         return alerts
@@ -126,7 +127,7 @@ def _check_allergen_conflicts(meal_plan: MealPlan, meals: list[Meal]) -> list[Pl
             continue
         date_str = meal.start_datetime.strftime("%Y-%m-%d")
         for item in meal.items.all():
-            item_tags = set()
+            item_tags: set[NutritionalTag] = set()
             if item.recipe:
                 item_tags.update(item.recipe.nutritional_tags.all())
             if item.ingredient:
@@ -153,7 +154,7 @@ def _check_allergen_conflicts(meal_plan: MealPlan, meals: list[Meal]) -> list[Pl
 
 
 def _check_recipe_type_mismatch(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
-    alerts = []
+    alerts: list[PlanCheckAlertOut] = []
     for meal in meals:
         if not meal.start_datetime:
             continue
@@ -184,45 +185,76 @@ def _check_recipe_type_mismatch(meal_plan: MealPlan, meals: list[Meal]) -> list[
     return alerts
 
 
-def _check_missing_quantity(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
+def _item_has_missing_quantity(item, meal: Meal) -> bool:
+    """An ingredient item without quantity, or one that yields 0 kcal."""
     from planner.services.meal_item_helpers import resolve_ingredient_energy_kcal
 
-    alerts = []
+    if not item.quantity or float(item.quantity) <= 0:
+        return True
+    try:
+        kcal = resolve_ingredient_energy_kcal(item, effective_portions=meal.effective_portions)
+    except Exception:
+        kcal = None
+    return not kcal
+
+
+def _check_missing_quantity(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
+    alerts: list[PlanCheckAlertOut] = []
     for meal in meals:
         if not meal.start_datetime:
             continue
         date_str = meal.start_datetime.strftime("%Y-%m-%d")
         for item in meal.items.all():
-            if not item.ingredient:
+            if not item.ingredient or not _item_has_missing_quantity(item, meal):
                 continue
-            missing = not item.quantity or float(item.quantity) <= 0
-            if not missing:
-                try:
-                    kcal = resolve_ingredient_energy_kcal(item, effective_portions=meal.effective_portions)
-                except Exception:
-                    kcal = None
-                missing = not kcal
-            if missing:
-                alerts.append(
-                    PlanCheckAlertOut(
-                        id=f"missing-quantity-{meal.id}-{item.id}",
-                        type="missing_quantity",
-                        severity="warning",
-                        title=f"Menge fehlt bei {meal.get_meal_type_display()}",
-                        description=f"«{item.ingredient.name}» hat keine gültige Menge und liefert 0 kcal.",
-                        date=date_str,
-                        meal_id=meal.id,
-                        meal_type=meal.meal_type,
-                        action_label="Menge setzen",
-                        action_type="open_slot",
-                        action_payload={"meal_id": meal.id, "item_id": item.id},
-                    )
+            alerts.append(
+                PlanCheckAlertOut(
+                    id=f"missing-quantity-{meal.id}-{item.id}",
+                    type="missing_quantity",
+                    severity="warning",
+                    title=f"Menge fehlt bei {meal.get_meal_type_display()}",
+                    description=f"«{item.ingredient.name}» hat keine gültige Menge und liefert 0 kcal.",
+                    date=date_str,
+                    meal_id=meal.id,
+                    meal_type=meal.meal_type,
+                    action_label="Menge setzen",
+                    action_type="open_slot",
+                    action_payload={"meal_id": meal.id, "item_id": item.id},
                 )
+            )
+
+    # Reference meals are copied into every synced meal, so a missing quantity
+    # there silently breaks all of them — check them as well.
+    ref_meals = Meal.objects.filter(meal_plan=meal_plan, is_reference=True).prefetch_related(
+        "items__ingredient__portions", "items__measuring_unit"
+    )
+    for ref_meal in ref_meals:
+        for item in ref_meal.items.all():
+            if not item.ingredient or not _item_has_missing_quantity(item, ref_meal):
+                continue
+            alerts.append(
+                PlanCheckAlertOut(
+                    id=f"missing-quantity-ref-{ref_meal.id}-{item.id}",
+                    type="missing_quantity",
+                    severity="warning",
+                    title=f"Menge fehlt in der Referenz {ref_meal.get_meal_type_display()}",
+                    description=(
+                        f"«{item.ingredient.name}» hat keine gültige Menge; alle verknüpften Mahlzeiten "
+                        "liefern dafür 0 kcal."
+                    ),
+                    date=None,
+                    meal_id=ref_meal.id,
+                    meal_type=ref_meal.meal_type,
+                    action_label="Menge setzen",
+                    action_type="open_ref_meal",
+                    action_payload={"meal_type": ref_meal.meal_type, "item_id": item.id},
+                )
+            )
     return alerts
 
 
 def _check_meal_outside_range(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
-    alerts = []
+    alerts: list[PlanCheckAlertOut] = []
     if not meal_plan.start_datetime:
         return alerts
     plan_start = meal_plan.start_datetime.date()
@@ -254,7 +286,7 @@ def _check_meal_outside_range(meal_plan: MealPlan, meals: list[Meal]) -> list[Pl
 def _check_empty_days(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
     import datetime as dt
 
-    alerts = []
+    alerts: list[PlanCheckAlertOut] = []
     if not (meal_plan.start_datetime and meal_plan.end_datetime):
         return alerts
     days_with_meals = {m.start_datetime.date() for m in meals if m.start_datetime}

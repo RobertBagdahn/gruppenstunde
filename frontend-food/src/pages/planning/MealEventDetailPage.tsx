@@ -414,6 +414,7 @@ export default function MealPlanDetailPage() {
             mealPlanId={mealPlanId}
             canEdit={plan.can_edit}
             onOpenSettings={() => setShowSettingsDialog(true)}
+            onOpenRefMeal={(mealType) => navigate(`/meal-plans/${mealPlanId}/ref-meals/${mealType}`)}
             onCreateDayMeals={(date) => {
               handleAddMealType(date, 'breakfast')
                 .then(() => navigate(`/meal-plans/${mealPlanId}/plan#day-${date}`))

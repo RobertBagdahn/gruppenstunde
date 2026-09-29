@@ -16,6 +16,8 @@ interface PlanCheckFlyoutProps {
   onCreateDayMeals?: (date: string) => void;
   /** Open the plan settings, e.g. to adjust the plan period (`meal_outside_range`). */
   onOpenSettings?: () => void;
+  /** Open the reference meal editor for a meal type (`open_ref_meal`). */
+  onOpenRefMeal?: (mealType: string) => void;
 }
 
 const SEVERITY_ORDER: Record<PlanCheckAlert['severity'], number> = { error: 0, warning: 1, info: 2 };
@@ -29,7 +31,7 @@ export function sortPlanCheckAlerts(alerts: PlanCheckAlert[]): PlanCheckAlert[] 
 const OMNIBAR_ALERT_TYPES = new Set<PlanCheckAlert['type']>(['empty_slot', 'recipe_type_mismatch']);
 
 const SEVERITY_STYLES: Record<PlanCheckAlert['severity'], { box: string; icon: typeof AlertCircle; iconClass: string }> = {
-  error: { box: 'border-destructive/30 bg-destructive/5', icon: AlertCircle, iconClass: 'text-destructive' },
+  error: { box: 'border-danger-border bg-danger-soft', icon: AlertCircle, iconClass: 'text-danger' },
   warning: { box: 'border-warning-border bg-warning-soft', icon: AlertTriangle, iconClass: 'text-warning' },
   info: { box: 'border-border bg-muted/30', icon: Info, iconClass: 'text-muted-foreground' },
 };
@@ -48,6 +50,7 @@ export function PlanCheckFlyout({
   onScrollToMeal,
   onCreateDayMeals,
   onOpenSettings,
+  onOpenRefMeal,
 }: PlanCheckFlyoutProps) {
   const [open, setOpen] = useState(false);
   const { data, isLoading } = usePlanCheck(mealPlanId);
@@ -71,6 +74,9 @@ export function PlanCheckFlyout({
         break;
       case 'open_day':
         if (alert.date) onCreateDayMeals?.(alert.date);
+        break;
+      case 'open_ref_meal':
+        if (alert.meal_type) onOpenRefMeal?.(alert.meal_type);
         break;
     }
   };
