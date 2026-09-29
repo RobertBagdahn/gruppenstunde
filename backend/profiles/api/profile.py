@@ -6,14 +6,17 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from ninja import File, Router
 from ninja.errors import HttpError
 from ninja.files import UploadedFile
 
+from core.permissions import require_login
 from profiles.models import GroupMembership, UserPreference, UserProfile
 from profiles.schemas import (
     JoinRequestOut,
     MyContentOut,
+    OnboardingIn,
     ProfilePictureOut,
     PublicUserFoodProfileOut,
     PublicUserProfileOut,
@@ -30,23 +33,30 @@ MAX_PROFILE_PICTURE_SIZE = 500 * 1024  # 500KB
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
-
-
 @profile_router.get("/me/", response=UserProfileOut)
 def get_my_profile(request):
     """Get the current user's profile."""
-    _require_auth(request)
+    require_login(request)
     profile, _ = UserProfile.objects.prefetch_related("nutritional_tags").get_or_create(user=request.user)
+    return profile
+
+
+@profile_router.post("/me/onboarding/", response=UserProfileOut)
+def complete_onboarding(request, payload: OnboardingIn):
+    """Finish or skip the welcome dialog; optional names are stored on the profile."""
+    user = require_login(request)
+    profile, _ = UserProfile.objects.prefetch_related("nutritional_tags").get_or_create(user=user)
+    for field, value in payload.dict(exclude_none=True).items():
+        setattr(profile, field, value.strip())
+    profile.onboarded_at = timezone.now()
+    profile.save()
     return profile
 
 
 @profile_router.patch("/me/", response=UserProfileOut)
 def update_my_profile(request, payload: UserProfileUpdateIn):
     """Update the current user's profile."""
-    _require_auth(request)
+    require_login(request)
     profile, _ = UserProfile.objects.prefetch_related("nutritional_tags").get_or_create(user=request.user)
     data = payload.dict(exclude_unset=True)
     tag_ids = data.pop("nutritional_tag_ids", None)
@@ -76,7 +86,7 @@ def update_my_profile(request, payload: UserProfileUpdateIn):
 @profile_router.post("/me/picture/", response=ProfilePictureOut)
 def upload_profile_picture(request, file: UploadedFile = File(...)):
     """Upload a profile picture (max 500KB, jpeg/png/webp)."""
-    _require_auth(request)
+    require_login(request)
 
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HttpError(422, "Nur JPEG, PNG und WebP Bilder sind erlaubt")
@@ -94,7 +104,7 @@ def upload_profile_picture(request, file: UploadedFile = File(...)):
 @profile_router.delete("/me/picture/", response=ProfilePictureOut)
 def delete_profile_picture(request):
     """Remove the current user's profile picture."""
-    _require_auth(request)
+    require_login(request)
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
     if profile.profile_picture:
@@ -107,7 +117,7 @@ def delete_profile_picture(request):
 @profile_router.get("/me/preferences/", response=UserPreferenceOut)
 def get_my_preferences(request):
     """Get the current user's preferences."""
-    _require_auth(request)
+    require_login(request)
     prefs, _ = UserPreference.objects.get_or_create(user=request.user)
     return prefs
 
@@ -115,7 +125,7 @@ def get_my_preferences(request):
 @profile_router.patch("/me/preferences/", response=UserPreferenceOut)
 def update_my_preferences(request, payload: UserPreferenceIn):
     """Update the current user's preferences."""
-    _require_auth(request)
+    require_login(request)
     prefs, _ = UserPreference.objects.get_or_create(user=request.user)
     for field, value in payload.dict(exclude_unset=True).items():
         setattr(prefs, field, value)
@@ -126,7 +136,7 @@ def update_my_preferences(request, payload: UserPreferenceIn):
 @profile_router.get("/me/content/", response=list[MyContentOut])
 def get_my_content(request):
     """List all content authored by the current user (all statuses)."""
-    _require_auth(request)
+    require_login(request)
 
     from blog.models import Blog
     from game.models import Game
@@ -239,7 +249,7 @@ def get_user_profile(request, user_id: int):
 @profile_router.get("/me/groups/", response=list[UserGroupOut])
 def get_my_groups(request):
     """List groups the current user is a member of."""
-    _require_auth(request)
+    require_login(request)
     from profiles.models import UserGroup
 
     group_ids = GroupMembership.objects.filter(
@@ -252,7 +262,7 @@ def get_my_groups(request):
 @profile_router.get("/me/requests/", response=list[JoinRequestOut])
 def get_my_join_requests(request):
     """List the current user's pending join requests."""
-    _require_auth(request)
+    require_login(request)
     from profiles.models import GroupJoinRequest
 
     return GroupJoinRequest.objects.filter(

@@ -20,6 +20,7 @@ from ninja import Query, Router, Schema
 from ninja.errors import HttpError
 
 from content.choices import ContentStatus
+from core.permissions import require_staff
 from core.services.gemini import GeminiInvalidResponseError, GeminiUpstreamRateLimitError
 from supply.models import Ingredient, RetailSection
 from supply.schemas.data_offensive import (
@@ -47,11 +48,6 @@ data_offensive_router = Router(tags=["Data Offensive"])
 
 MAX_PAGE_SIZE = 100
 AI_REVIEW_WORKERS = 3
-
-
-def _require_staff(request: Any) -> None:
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur für Administratoren")
 
 
 def _duplicate_names(rows: list[offensive.IngredientSnapshotRow]) -> dict[int, str]:
@@ -111,7 +107,7 @@ class OffensiveIngredientFilters(Schema):
 
 @data_offensive_router.get("/summary/", response=OffensiveSummaryOut)
 def summary(request):
-    _require_staff(request)
+    require_staff(request)
     from recipe.services.recipe_data_offensive import junk_recipes
     from supply.services.ingredient_merge import exact_duplicate_groups, near_duplicate_groups
 
@@ -136,7 +132,7 @@ def summary(request):
 
 @data_offensive_router.get("/ingredients/", response=PaginatedOffensiveIngredientOut)
 def ingredient_list(request, filters: Query[OffensiveIngredientFilters]):
-    _require_staff(request)
+    require_staff(request)
     rows = offensive.filter_rows(
         offensive.build_snapshot(),
         issue=filters.issue,
@@ -166,7 +162,7 @@ def ingredient_list(request, filters: Query[OffensiveIngredientFilters]):
 @data_offensive_router.get("/ingredients/ids/", response=list[int])
 def ingredient_ids(request, filters: Query[OffensiveIngredientFilters]):
     """All ids matching the filters — for "select all N matches" bulk actions."""
-    _require_staff(request)
+    require_staff(request)
     rows = offensive.filter_rows(
         offensive.build_snapshot(),
         issue=filters.issue,
@@ -182,7 +178,7 @@ def ingredient_ids(request, filters: Query[OffensiveIngredientFilters]):
 
 @data_offensive_router.patch("/ingredients/{ingredient_id}/", response=OffensiveIngredientOut)
 def ingredient_patch(request, ingredient_id: int, payload: OffensiveIngredientPatchIn):
-    _require_staff(request)
+    require_staff(request)
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     data = payload.dict(exclude_unset=True)
     if "name" in data and not (data["name"] or "").strip():
@@ -209,7 +205,7 @@ def _review_batch(ids: list[int], user: Any) -> tuple[list[Any], str | None]:
 @data_offensive_router.post("/ai-review/", response=AiReviewRunOut)
 def ai_review(request, payload: AiReviewRunIn):
     """Review the next chunk of the AI queue (or the given ids)."""
-    _require_staff(request)
+    require_staff(request)
     from supply.services.ingredient_ai_review_service import MAX_BATCH_SIZE
 
     ids = offensive.review_queue_ids(limit=payload.limit, ids=payload.ids or None, force=payload.force)
@@ -240,7 +236,7 @@ def ai_review(request, payload: AiReviewRunIn):
 @data_offensive_router.post("/auto-resolve/", response=BulkActionOut)
 def auto_resolve(request):
     """Decide pending AI suggestions, renames, duplicates and junk by conservative rules."""
-    _require_staff(request)
+    require_staff(request)
     from supply.services.data_offensive_auto import auto_resolve as run_auto_resolve
 
     report = run_auto_resolve(apply=True, user=request.user)
@@ -262,7 +258,7 @@ def auto_resolve(request):
 
 @data_offensive_router.post("/repair-nutrition/", response=BulkActionOut)
 def repair_nutrition(request, payload: IdsIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.nutrition_repair import repair_nutrition as run_repair
 
     report = run_repair(apply=True, ingredient_ids=payload.ids or None)
@@ -276,7 +272,7 @@ def repair_nutrition(request, payload: IdsIn):
 
 @data_offensive_router.post("/reclassify-sections/", response=BulkActionOut)
 def reclassify_sections(request, payload: IdsIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.retail_section_reclassify import reclassify_retail_sections
 
     report = reclassify_retail_sections(apply=True, ingredient_ids=payload.ids or None)
@@ -290,7 +286,7 @@ def reclassify_sections(request, payload: IdsIn):
 
 @data_offensive_router.post("/embeddings/", response=BulkActionOut)
 def embeddings(request, payload: EmbeddingRunIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.ingredient_embeddings import backfill_embeddings, stale_or_missing_ids
 
     ids = stale_or_missing_ids(limit=payload.limit)
@@ -301,14 +297,14 @@ def embeddings(request, payload: EmbeddingRunIn):
 
 @data_offensive_router.post("/apply-suggestions/", response=BulkActionOut)
 def apply_suggestions(request, payload: ApplySuggestionsIn):
-    _require_staff(request)
+    require_staff(request)
     result = offensive.apply_ai_suggestions(ids=payload.ids, fields=set(payload.fields))
     return BulkActionOut(changed=result.changed, skipped=result.skipped, messages=result.messages)
 
 
 @data_offensive_router.post("/soft-delete/", response=BulkActionOut)
 def soft_delete(request, payload: IdsIn):
-    _require_staff(request)
+    require_staff(request)
     if not payload.ids:
         raise HttpError(400, "Keine Zutaten ausgewählt")
     result = offensive.soft_delete_ingredients(ids=payload.ids)
@@ -317,14 +313,14 @@ def soft_delete(request, payload: IdsIn):
 
 @data_offensive_router.post("/publish/", response=BulkActionOut)
 def publish(request, payload: IdsIn):
-    _require_staff(request)
+    require_staff(request)
     result = offensive.publish_ingredients(ids=payload.ids or None, apply=True)
     return BulkActionOut(changed=result.changed, skipped=result.skipped)
 
 
 @data_offensive_router.post("/merge-exact-duplicates/", response=BulkActionOut)
 def merge_exact(request):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.ingredient_merge import merge_exact_duplicates
 
     merged, messages = merge_exact_duplicates(apply=True, user=request.user)
@@ -333,7 +329,7 @@ def merge_exact(request):
 
 @data_offensive_router.get("/duplicate-groups/", response=PaginatedDuplicateGroupOut)
 def duplicate_groups(request, page: int = 1, page_size: int = 20):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.ingredient_merge import near_duplicate_groups, similarity_key
 
     groups = near_duplicate_groups()
@@ -364,7 +360,7 @@ def duplicate_groups(request, page: int = 1, page_size: int = 20):
 
 @data_offensive_router.post("/merge-group/", response=BulkActionOut)
 def merge_group(request, payload: MergeGroupIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.ingredient_merge import IngredientMergeError, merge_ingredient
 
     target = get_object_or_404(Ingredient, id=payload.target_id)
@@ -381,7 +377,7 @@ def merge_group(request, payload: MergeGroupIn):
 
 @data_offensive_router.get("/retail-sections/", response=list[RetailSectionOptionOut])
 def retail_sections(request):
-    _require_staff(request)
+    require_staff(request)
     sections = RetailSection.objects.annotate(
         ingredient_count=Count("ingredients", filter=Q(ingredients__deleted_at__isnull=True))
     ).order_by("rank", "name")
@@ -392,7 +388,7 @@ def retail_sections(request):
 
 @data_offensive_router.get("/recipes/junk/", response=list[JunkRecipeOut])
 def recipe_junk(request):
-    _require_staff(request)
+    require_staff(request)
     from recipe.services.recipe_data_offensive import junk_recipes
 
     return [
@@ -410,7 +406,7 @@ def recipe_junk(request):
 
 @data_offensive_router.post("/recipes/archive/", response=BulkActionOut)
 def recipe_archive(request, payload: IdsIn):
-    _require_staff(request)
+    require_staff(request)
     from recipe.services.recipe_data_offensive import archive_junk_recipes
 
     result = archive_junk_recipes(ids=payload.ids or None, apply=True)
@@ -419,7 +415,7 @@ def recipe_archive(request, payload: IdsIn):
 
 @data_offensive_router.post("/recipes/recategorize/", response=BulkActionOut)
 def recipe_recategorize(request, payload: IdsIn):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
     from recipe.services.recipe_data_offensive import recategorize_recipes
 

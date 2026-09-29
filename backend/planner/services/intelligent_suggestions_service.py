@@ -26,6 +26,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+AI_OPTIONAL_FALLBACK_CODES = frozenset(
+    {"ai_quota_exceeded", "ai_public_budget_exhausted", "ai_visitor_limit", "ai_login_required", "ai_rate_limited"}
+)
+
 # Meal type → allowed recipe types mapping
 MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
     "breakfast": ["breakfast", "drink", "dessert"],
@@ -534,7 +538,11 @@ class IntelligentSuggestionsService:
 
             return reranked if reranked else None
 
-        except HttpError:
+        except HttpError as exc:
+            # The rerank is an optional extra: an exhausted AI budget must not break suggestions.
+            if getattr(exc, "code", "") in AI_OPTIONAL_FALLBACK_CODES:
+                logger.info("AI reranking skipped (%s), using algorithmic ranking", exc.code)
+                return None
             raise
         except Exception:
             logger.warning("AI reranking failed, falling back to algorithmic", exc_info=True)

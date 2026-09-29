@@ -1,23 +1,29 @@
 """Fuzzy matching service for ingredients using pg_trgm similarity."""
 
+from typing import Any
+
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import FloatField, Value
 
 from supply.models import Ingredient, IngredientAlias
 
 
-def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> list[dict]:
-    """Find ingredients similar to the query string.
+def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3, *, user: Any = None) -> list[dict]:
+    """Find ingredients similar to the query string, limited to what `user` may read.
 
     Uses pg_trgm trigram similarity on both Ingredient.name and IngredientAlias.name.
     Returns top matches above the threshold, ordered by similarity score.
     """
+    from content.services.food_access import visible_ingredient_queryset
+
     if not query or len(query) < 2:
         return []
+    visible_ids = visible_ingredient_queryset(user).values("id")
 
     # Search in ingredient names
     ingredient_matches = (
-        Ingredient.objects.annotate(
+        Ingredient._default_manager.filter(id__in=visible_ids)
+        .annotate(
             similarity=TrigramSimilarity("name", query),
         )
         .filter(similarity__gt=threshold)
@@ -27,7 +33,7 @@ def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> l
 
     # Search in group names
     group_matches = (
-        Ingredient.objects.filter(groups__name__icontains=query)
+        Ingredient._default_manager.filter(id__in=visible_ids, groups__name__icontains=query)
         .annotate(similarity=Value(0.31, output_field=FloatField()))
         .distinct()
         .values("id", "name", "slug", "similarity")
@@ -35,7 +41,8 @@ def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> l
 
     # Search in aliases
     alias_matches = (
-        IngredientAlias.objects.annotate(
+        IngredientAlias._default_manager.filter(ingredient_id__in=visible_ids)
+        .annotate(
             similarity=TrigramSimilarity("name", query),
         )
         .filter(similarity__gt=threshold)

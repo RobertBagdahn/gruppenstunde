@@ -11,12 +11,13 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from ninja import Schema
 
+from core.permissions import require_login
 from event.models import Event
 from event.services.ci_helper import get_event_ci
 from event.services.invitation_pdf import InvitationPdfService
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class SendInvitationOut(Schema):
 @event_router.get("/{event_slug}/invitation-pdf/")
 def download_invitation_pdf(request, event_slug: str):
     """Download the invitation PDF for an event (manager only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -54,7 +55,7 @@ def download_invitation_pdf(request, event_slug: str):
 @event_router.post("/{event_slug}/send-invitation/", response=SendInvitationOut)
 def send_invitation(request, event_slug: str, payload: SendInvitationIn):
     """Send invitation PDF via email to groups or specific users (manager only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

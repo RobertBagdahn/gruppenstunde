@@ -4,6 +4,7 @@ from ninja import Router
 from ninja.errors import HttpError
 from pydantic import BaseModel, ConfigDict
 
+from core.permissions import require_login
 from recipe.models import RecipeFolder
 
 folder_router = Router(tags=["recipe-folders"])
@@ -31,15 +32,10 @@ class RecipeFolderUpdateIn(BaseModel):
     sort_order: int | None = None
 
 
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
-
-
 @folder_router.get("/", response=list[RecipeFolderOut])
 def list_folders(request):
     """List all recipe folders for the current user."""
-    _require_auth(request)
+    require_login(request)
     folders = RecipeFolder.objects.filter(owner=request.user)
     return [
         RecipeFolderOut(
@@ -56,7 +52,7 @@ def list_folders(request):
 @folder_router.post("/", response=RecipeFolderOut)
 def create_folder(request, payload: RecipeFolderCreateIn):
     """Create a new recipe folder."""
-    _require_auth(request)
+    require_login(request)
 
     # Max 2 levels deep
     if payload.parent_id:
@@ -84,7 +80,7 @@ def create_folder(request, payload: RecipeFolderCreateIn):
 @folder_router.patch("/{folder_id}/", response=RecipeFolderOut)
 def update_folder(request, folder_id: int, payload: RecipeFolderUpdateIn):
     """Update a recipe folder."""
-    _require_auth(request)
+    require_login(request)
     folder = RecipeFolder.objects.filter(id=folder_id, owner=request.user).first()
     if not folder:
         raise HttpError(404, "Ordner nicht gefunden")
@@ -111,7 +107,7 @@ def update_folder(request, folder_id: int, payload: RecipeFolderUpdateIn):
 @folder_router.delete("/{folder_id}/")
 def delete_folder(request, folder_id: int):
     """Delete a recipe folder. Recipes in it become unfoldered."""
-    _require_auth(request)
+    require_login(request)
     deleted, _ = RecipeFolder.objects.filter(id=folder_id, owner=request.user).delete()
     if not deleted:
         raise HttpError(404, "Ordner nicht gefunden")

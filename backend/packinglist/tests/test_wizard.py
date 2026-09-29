@@ -250,7 +250,7 @@ class TestGenerateEndpoint:
             ),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 @pytest.mark.django_db

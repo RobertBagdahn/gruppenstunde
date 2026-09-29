@@ -214,7 +214,7 @@ class TestApiEndpoint:
         meal = make_meal(meal_plan=plan)
         client = Client()
         response = client.get(f"/api/meal-plans/{plan.id}/meal/{meal.id}/suggestions/")
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_authenticated_returns_200(self):
         user = User.objects.create_user(username="testuser", password="pass")
@@ -388,3 +388,32 @@ class TestContextEnhancedSuggestions:
         data = response.json()
         assert "ai_enhanced" in data
         assert data["ai_enhanced"] is False  # No Gemini available in test
+
+
+@pytest.mark.django_db
+class TestAiRerankBudgetFallback:
+    @pytest.mark.parametrize("code", ["ai_quota_exceeded", "ai_login_required"])
+    def test_budget_errors_fall_back_to_algorithmic(self, code):
+        from unittest.mock import patch
+
+        from core.errors import ApiError
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+        plan = make_meal_plan()
+        meal = make_meal(meal_plan=plan)
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        with patch("core.services.gemini.gemini_call", side_effect=ApiError(429, code, "x")):
+            assert service._ai_rerank([]) is None
+
+    def test_other_http_errors_still_raise(self):
+        from unittest.mock import patch
+
+        from core.errors import ApiError
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+        plan = make_meal_plan()
+        meal = make_meal(meal_plan=plan)
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        with patch("core.services.gemini.gemini_call", side_effect=ApiError(403, "permission_denied", "x")):
+            with pytest.raises(ApiError):
+                service._ai_rerank([])

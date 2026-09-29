@@ -6,8 +6,9 @@ from django.shortcuts import get_object_or_404
 from ninja import Status
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.api.events import event_router
-from event.api.helpers import require_auth, require_event_manager
+from event.api.helpers import require_event_manager
 from event.models import BookingOption, Event, Person, WaitlistEntry
 from event.schemas import (
     PaginatedWaitlistEntryOut,
@@ -19,7 +20,7 @@ from event.schemas import (
 @event_router.post("/{event_slug}/waitlist/", response={201: WaitlistEntryOut})
 def join_waitlist(request, event_slug: str, payload: WaitlistEntryCreateIn):
     """Join the waitlist for a booking option."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     booking_option = get_object_or_404(BookingOption, id=payload.booking_option_id, event=event)
 
@@ -48,7 +49,7 @@ def join_waitlist(request, event_slug: str, payload: WaitlistEntryCreateIn):
 @event_router.get("/{event_slug}/waitlist/", response=PaginatedWaitlistEntryOut)
 def list_waitlist(request, event_slug: str, page: int = 1, page_size: int = 20):
     """List waitlist entries for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -75,7 +76,7 @@ def list_waitlist(request, event_slug: str, page: int = 1, page_size: int = 20):
 @event_router.delete("/{event_slug}/waitlist/{entry_id}/")
 def remove_from_waitlist(request, event_slug: str, entry_id: int):
     """Remove a waitlist entry."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     entry = get_object_or_404(WaitlistEntry, id=entry_id, event=event)
 

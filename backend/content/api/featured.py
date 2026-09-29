@@ -11,6 +11,7 @@ from ninja.errors import HttpError
 from content.models import FeaturedContent
 from content.schemas.base import FeaturedContentIn
 from content.schemas.content_links import FeaturedContentDetailOut
+from core.permissions import require_staff
 
 router = Router(tags=["content"])
 
@@ -78,8 +79,7 @@ def list_featured_content(request):
 )
 def create_featured_content(request, payload: FeaturedContentIn):
     """Feature a content item (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
+    require_staff(request)
 
     try:
         ct = ContentType.objects.get(model=payload.content_type)

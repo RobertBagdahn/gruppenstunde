@@ -315,9 +315,9 @@ class TestMealPlanEnhancedFeatures:
 
 class TestMealPlanPdfAPI:
     @pytest.mark.django_db
-    def test_export_pdf_requires_auth(self, api_client):
+    def test_export_pdf_unknown_plan_is_404(self, api_client):
         resp = api_client.get("/api/meal-plans/999/export/pdf/")
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
     @pytest.mark.django_db
     def test_export_pdf_not_found(self, auth_client):

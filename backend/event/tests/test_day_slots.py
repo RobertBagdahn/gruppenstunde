@@ -161,7 +161,7 @@ class TestCreateDaySlot:
             data=json.dumps(payload),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_requires_manager(self, auth_client: Client, event_with_manager: Event):
         """Non-manager authenticated user cannot create."""
@@ -220,7 +220,7 @@ class TestUpdateDaySlot:
             data=json.dumps({"title": "Hacked"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_update_requires_manager(self, auth_client: Client, sample_slot: EventDaySlot):
         resp = auth_client.patch(
@@ -261,7 +261,7 @@ class TestDeleteDaySlot:
         resp = api_client.delete(
             f"/api/events/{sample_slot.event.slug}/day-slots/{sample_slot.pk}/",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_delete_requires_manager(self, auth_client: Client, sample_slot: EventDaySlot):
         resp = auth_client.delete(

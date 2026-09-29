@@ -3,13 +3,14 @@
 from django.shortcuts import get_object_or_404
 from ninja import Status
 
+from core.permissions import require_login
 from event.choices import TimelineActionChoices
 from event.models import Event, Participant, ParticipantLabel
 from event.schemas import LabelAssignIn, LabelCreateIn, LabelOut, LabelUpdateIn
 from event.services.timeline import TimelineService
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 # ==========================================================================
 # Label CRUD (on events)
@@ -19,7 +20,7 @@ from .helpers import require_auth, require_event_manager
 @event_router.get("/{event_slug}/labels/", response=list[LabelOut])
 def list_labels(request, event_slug: str):
     """List labels for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -29,7 +30,7 @@ def list_labels(request, event_slug: str):
 @event_router.post("/{event_slug}/labels/", response={201: LabelOut})
 def create_label(request, event_slug: str, payload: LabelCreateIn):
     """Create a label for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -40,7 +41,7 @@ def create_label(request, event_slug: str, payload: LabelCreateIn):
 @event_router.patch("/{event_slug}/labels/{label_id}/", response=LabelOut)
 def update_label(request, event_slug: str, label_id: int, payload: LabelUpdateIn):
     """Update a label (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -57,7 +58,7 @@ def update_label(request, event_slug: str, label_id: int, payload: LabelUpdateIn
 @event_router.delete("/{event_slug}/labels/{label_id}/")
 def delete_label(request, event_slug: str, label_id: int):
     """Delete a label (managers only). Also removes from all participants."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -75,7 +76,7 @@ def delete_label(request, event_slug: str, label_id: int):
 @event_router.post("/{event_slug}/participants/{participant_id}/labels/")
 def assign_label(request, event_slug: str, participant_id: int, payload: LabelAssignIn):
     """Assign a label to a participant (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -99,7 +100,7 @@ def assign_label(request, event_slug: str, participant_id: int, payload: LabelAs
 @event_router.delete("/{event_slug}/participants/{participant_id}/labels/{label_id}/")
 def remove_label(request, event_slug: str, participant_id: int, label_id: int):
     """Remove a label from a participant (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

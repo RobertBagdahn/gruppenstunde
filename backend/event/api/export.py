@@ -3,18 +3,19 @@
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
+from core.permissions import require_login
 from event.models import Event
 from event.schemas import ExportColumnOut, ExportConfigIn
 from event.services.export import ExportService
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 
 @event_router.get("/{event_slug}/export/columns/", response=list[ExportColumnOut])
 def export_columns(request, event_slug: str):
     """Return all available export columns for this event."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -25,7 +26,7 @@ def export_columns(request, event_slug: str):
 @event_router.post("/{event_slug}/export/")
 def export_participants(request, event_slug: str, payload: ExportConfigIn):
     """Export participants as Excel/CSV/PDF file download."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

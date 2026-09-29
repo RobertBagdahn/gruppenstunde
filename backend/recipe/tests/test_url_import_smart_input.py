@@ -54,13 +54,57 @@ def _extraction_response() -> MagicMock:
 
 @pytest.mark.django_db
 class TestSmartInputEndpoint:
-    def test_requires_auth(self, api_client):
+    @patch("recipe.services.url_import_service.gemini_call")
+    @patch("recipe.services.ingredient_matcher.IngredientMatcher.match")
+    def test_anonymous_preview_writes_nothing(self, mock_match, mock_call, api_client):
+        from recipe.services.ingredient_matcher import MatchResult
+        from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Portion
+
+        mock_call.return_value = (_extraction_response(), None)
+        mock_match.return_value = MatchResult(needs_review=True, name="Kartoffel")
+        counts_before = [m.objects.count() for m in (Ingredient, Portion, IngredientAlias, MeasuringUnit)]
+
         response = api_client.post(
             "/api/recipes/smart-input/",
-            data=json.dumps({"input": "Kartoffelsuppe"}),
+            data=json.dumps({"input": "Kartoffelsuppe für 4 Personen"}),
             content_type="application/json",
         )
-        assert response.status_code == 403
+
+        assert response.status_code == 200, response.content
+        data = response.json()
+        assert data["is_preview"] is True
+        assert data["recipe_items"][0]["ingredient_id"] == 0
+        assert data["recipe_items"][0]["is_new_ingredient"] is True
+        assert data["created_ingredients"] == []
+        assert [m.objects.count() for m in (Ingredient, Portion, IngredientAlias, MeasuringUnit)] == counts_before
+
+    @patch("recipe.services.url_import_service.gemini_call")
+    @patch("recipe.services.ingredient_matcher.IngredientMatcher.match")
+    def test_anonymous_preview_is_cached(self, mock_match, mock_call, api_client):
+        from recipe.services.ingredient_matcher import MatchResult
+
+        mock_call.return_value = (_extraction_response(), None)
+        mock_match.return_value = MatchResult(needs_review=True, name="Kartoffel")
+        payload = json.dumps({"input": "Kartoffelsuppe   für 4 Personen"})
+        first = api_client.post("/api/recipes/smart-input/", data=payload, content_type="application/json")
+        calls_after_first = mock_call.call_count
+        second = api_client.post(
+            "/api/recipes/smart-input/",
+            data=json.dumps({"input": "Kartoffelsuppe für 4 Personen"}),
+            content_type="application/json",
+        )
+        assert first.status_code == second.status_code == 200
+        assert mock_call.call_count == calls_after_first
+        assert second.json() == first.json()
+
+    def test_anonymous_input_limit(self, api_client):
+        response = api_client.post(
+            "/api/recipes/smart-input/",
+            data=json.dumps({"input": "Zutaten " + "x" * 9000}),
+            content_type="application/json",
+        )
+        assert response.status_code == 422
+        assert response.json()["code"] == "input_too_long"
 
     def test_empty_input_is_rejected(self, auth_client):
         response = auth_client.post(

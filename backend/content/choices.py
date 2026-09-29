@@ -73,6 +73,13 @@ class SortChoices(models.TextChoices):
     RELEVANT = "relevant", _("Relevanz")
 
 
+class AiTierChoices(models.TextChoices):
+    ANONYMOUS = "anonymous", _("Anonym")
+    USER = "user", _("Nutzer")
+    STAFF = "staff", _("Staff")
+    SYSTEM = "system", _("System")
+
+
 class AiContextChoices(models.TextChoices):
     IMPROVE_TEXT = "improve_text", _("Text verbessern")
     SUGGEST_TAGS = "suggest_tags", _("Tags vorschlagen")

@@ -86,6 +86,7 @@ class UnitGramConverter:
         ingredient: Ingredient,
         user: AbstractBaseUser | None = None,
         _memo: dict[tuple[str, int], float] | None = None,
+        allow_ai_estimate: bool = True,
     ) -> float | None:
         """Convert `quantity` × `unit` into a portion count for `ingredient`.
 
@@ -96,7 +97,9 @@ class UnitGramConverter:
         if quantity <= 0:
             return None
 
-        total_grams = cls.convert_to_grams(quantity, unit, ingredient, user=user, _memo=_memo)
+        total_grams = cls.convert_to_grams(
+            quantity, unit, ingredient, user=user, _memo=_memo, allow_ai_estimate=allow_ai_estimate
+        )
         if total_grams is None:
             return None
 
@@ -117,11 +120,13 @@ class UnitGramConverter:
         ingredient: Ingredient,
         user: AbstractBaseUser | None = None,
         _memo: dict[tuple[str, int], float] | None = None,
+        allow_ai_estimate: bool = True,
     ) -> float | None:
         """Convert `quantity` × `unit` to grams for `ingredient`.
 
         Metric units and standard measures resolve directly; container units
-        are estimated via Gemini (memoized per (unit, ingredient)).
+        are estimated via Gemini (memoized per (unit, ingredient)) unless
+        `allow_ai_estimate` is False (anonymous previews).
         Returns None when the unit is unknown and Gemini fails.
         """
         unit_key = (unit or "").strip().lower()
@@ -136,7 +141,7 @@ class UnitGramConverter:
         if standard_key is not None:
             return cls._standard_measure_grams(quantity, standard_key, ingredient)
 
-        if unit_key not in CONTAINER_UNITS:
+        if unit_key not in CONTAINER_UNITS or not allow_ai_estimate:
             return None
 
         if _memo is not None:

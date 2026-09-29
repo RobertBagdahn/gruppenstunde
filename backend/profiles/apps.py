@@ -8,6 +8,7 @@ class ProfilesConfig(AppConfig):
 
     def ready(self) -> None:
         from content.services.privacy import ContentPrivacyCollector
+        from core.services.privacy import SocialLoginPrivacyCollector
         from event.services.privacy import EventPrivacyCollector, WhatsAppPrivacyCollector
         from packinglist.services.privacy import PackingListPrivacyCollector
         from planner.services.privacy import PlannerPrivacyCollector
@@ -21,3 +22,4 @@ class ProfilesConfig(AppConfig):
         PrivacyService.register(PlannerPrivacyCollector())
         PrivacyService.register(PackingListPrivacyCollector())
         PrivacyService.register(ShoppingPrivacyCollector())
+        PrivacyService.register(SocialLoginPrivacyCollector())

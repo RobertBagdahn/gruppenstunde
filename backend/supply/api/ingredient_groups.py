@@ -3,6 +3,7 @@
 from ninja import Router, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
 from supply.models import IngredientGroup
 from supply.schemas.reference import IngredientGroupOut
 
@@ -18,7 +19,7 @@ def list_groups(request):
 @ingredient_group_router.post("/", response={201: IngredientGroupOut})
 def create_group(request, payload: IngredientGroupOut):
     """Create a new ingredient group (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     group = IngredientGroup.objects.create(name=payload.name, slug=payload.slug)
     return Status(201, group)
 
@@ -26,7 +27,7 @@ def create_group(request, payload: IngredientGroupOut):
 @ingredient_group_router.patch("/{group_id}/", response=IngredientGroupOut)
 def update_group(request, group_id: int, payload: IngredientGroupOut):
     """Update an ingredient group (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         group = IngredientGroup.objects.get(id=group_id)
     except IngredientGroup.DoesNotExist:
@@ -41,15 +42,10 @@ def update_group(request, group_id: int, payload: IngredientGroupOut):
 @ingredient_group_router.delete("/{group_id}/", response={204: None})
 def delete_group(request, group_id: int):
     """Delete an ingredient group (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         group = IngredientGroup.objects.get(id=group_id)
     except IngredientGroup.DoesNotExist:
         raise HttpError(404, "Nicht gefunden")
     group.delete()
     return Status(204, None)
-
-
-def _require_staff(request):
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")

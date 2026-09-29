@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.models import Person
 from event.schemas import (
     PaginatedPersonOut,
@@ -13,8 +14,6 @@ from event.schemas import (
     PersonOut,
     PersonUpdateIn,
 )
-
-from .helpers import require_auth
 
 person_router = Router(tags=["persons"])
 
@@ -27,7 +26,7 @@ person_router = Router(tags=["persons"])
 @person_router.get("/", response=PaginatedPersonOut)
 def list_persons(request, page: int = 1, page_size: int = 20):
     """List persons of the current user (paginated). Admins see all."""
-    require_auth(request)
+    require_login(request)
     if request.user.is_staff:
         qs = Person.objects.select_related("user").prefetch_related("nutritional_tags").all()
     else:
@@ -51,7 +50,7 @@ def list_persons(request, page: int = 1, page_size: int = 20):
 @person_router.post("/", response=PersonOut)
 def create_person(request, payload: PersonCreateIn):
     """Create a new person for the current user."""
-    require_auth(request)
+    require_login(request)
     data = payload.dict(exclude={"nutritional_tag_ids"})
     person = Person.objects.create(user=request.user, **data)
     if payload.nutritional_tag_ids:
@@ -62,7 +61,7 @@ def create_person(request, payload: PersonCreateIn):
 @person_router.get("/{person_id}/", response=PersonOut)
 def get_person(request, person_id: int):
     """Get a person by ID."""
-    require_auth(request)
+    require_login(request)
     person = get_object_or_404(Person, id=person_id)
     if person.user != request.user and not request.user.is_staff:
         raise HttpError(403, "Zugriff verweigert")
@@ -72,7 +71,7 @@ def get_person(request, person_id: int):
 @person_router.patch("/{person_id}/", response=PersonOut)
 def update_person(request, person_id: int, payload: PersonUpdateIn):
     """Update a person."""
-    require_auth(request)
+    require_login(request)
     person = get_object_or_404(Person, id=person_id)
     if person.user != request.user and not request.user.is_staff:
         raise HttpError(403, "Zugriff verweigert")
@@ -89,7 +88,7 @@ def update_person(request, person_id: int, payload: PersonUpdateIn):
 @person_router.delete("/{person_id}/")
 def delete_person(request, person_id: int):
     """Delete a person."""
-    require_auth(request)
+    require_login(request)
     person = get_object_or_404(Person, id=person_id)
     if person.user != request.user and not request.user.is_staff:
         raise HttpError(403, "Zugriff verweigert")

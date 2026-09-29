@@ -3,13 +3,14 @@
 from django.shortcuts import get_object_or_404
 from ninja import Status
 
+from core.permissions import require_login
 from event.choices import PaymentMethodChoices
 from event.models import Event, Participant, Payment
 from event.schemas import ChoiceOut, PaymentCreateIn, PaymentOut
 from event.services.payment import PaymentService
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 
 @event_router.get("/{event_slug}/payments/", response=list[PaymentOut])
@@ -21,7 +22,7 @@ def list_payments(
     page_size: int = 50,
 ):
     """List payments for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -37,7 +38,7 @@ def list_payments(
 @event_router.post("/{event_slug}/payments/", response={201: PaymentOut})
 def create_payment(request, event_slug: str, payload: PaymentCreateIn):
     """Create a payment for a participant (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -59,7 +60,7 @@ def create_payment(request, event_slug: str, payload: PaymentCreateIn):
 @event_router.delete("/{event_slug}/payments/{payment_id}/")
 def delete_payment(request, event_slug: str, payment_id: int):
     """Delete a payment (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

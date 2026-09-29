@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Body, Router
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from recipe.models import Recipe, RecipeItem, RecipeStep, RecipeStepIngredient
 from recipe.schemas import GeneratedRecipeStepsOut, RecipeStepIn, RecipeStepOut, RecipeStepsBatchIn
 from recipe.services.step_ai_service import AiStepService
@@ -22,12 +23,6 @@ router = Router()
 # (e.g. a frontend bug re-firing a mutation on every render) that would
 # otherwise burn through the global Gemini quota in seconds.
 AI_ENDPOINT_COOLDOWN_SECONDS = 3
-
-
-def _require_auth(request):
-    """Require authenticated user."""
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Authentifizierung erforderlich")
 
 
 def _throttle_ai_endpoint(request, endpoint: str, *extra_key_parts: str) -> None:
@@ -57,7 +52,7 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
 
 def _get_visible_recipe(request, slug: str, *, require_auth: bool = False) -> Recipe:
     if require_auth:
-        _require_auth(request)
+        require_login(request)
     from content.services.food_access import visible_recipe_queryset
 
     recipe = visible_recipe_queryset(request.user).filter(slug=slug).first()
@@ -86,7 +81,7 @@ def list_recipe_steps(request, slug: str):
 @router.put("/{slug}/steps/batch", response=list[RecipeStepOut])
 def batch_update_recipe_steps(request, slug: str, payload: RecipeStepsBatchIn):
     """Batch update all steps for a recipe (replace all steps)."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe(request, slug, require_auth=True)
 
@@ -155,7 +150,7 @@ def batch_update_recipe_steps(request, slug: str, payload: RecipeStepsBatchIn):
 @router.post("/{slug}/steps/generate-from-items/", response=GeneratedRecipeStepsOut)
 def generate_steps_from_items(request, slug: str):
     """Generate steps from recipe items using AI."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe(request, slug, require_auth=True)
 
@@ -192,7 +187,7 @@ def generate_steps_from_items(request, slug: str):
 @router.post("/{slug}/steps/suggest-ingredients/")
 def suggest_ingredient_assignment(request, slug: str, payload: dict = Body(...)):
     """Suggest ingredient assignments for a step using AI."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe(request, slug, require_auth=True)
     step_instruction = payload.get("step_instruction", "").strip()
@@ -224,7 +219,7 @@ def suggest_ingredient_assignment(request, slug: str, payload: dict = Body(...))
 @router.post("/{slug}/steps/{step_id}/improve/")
 def improve_step_instruction(request, slug: str, step_id: int, payload: dict = Body(...)):
     """Improve/rewrite a step instruction with a specific tone using AI."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe(request, slug, require_auth=True)
     step = get_object_or_404(RecipeStep, id=step_id, recipe=recipe)

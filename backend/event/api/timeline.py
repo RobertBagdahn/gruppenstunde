@@ -2,11 +2,12 @@
 
 from django.shortcuts import get_object_or_404
 
+from core.permissions import require_login
 from event.models import Event, TimelineEntry
 from event.schemas import TimelineEntryOut
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 
 @event_router.get("/{event_slug}/timeline/", response=list[TimelineEntryOut])
@@ -19,7 +20,7 @@ def list_timeline(
     page_size: int = 50,
 ):
     """List timeline entries for an event (managers only). Supports filtering and pagination."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

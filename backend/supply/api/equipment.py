@@ -3,23 +3,11 @@
 from ninja import Router, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
 from supply.models import Equipment
 from supply.schemas import EquipmentIn, EquipmentOut
 
 equipment_router = Router(tags=["equipment"])
-
-
-def _require_staff(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Nur Admins")
-    if request.user.is_staff:
-        return
-    try:
-        if request.user.profile.role in ("staff", "admin"):
-            return
-    except AttributeError:
-        pass
-    raise HttpError(403, "Nur Admins")
 
 
 @equipment_router.get("/", response=list[EquipmentOut])
@@ -31,7 +19,7 @@ def list_equipment(request):
 @equipment_router.post("/", response={201: EquipmentOut})
 def create_equipment(request, payload: EquipmentIn):
     """Create new equipment (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     equipment = Equipment.objects.create(**payload.dict())
     return Status(201, equipment)
 
@@ -39,7 +27,7 @@ def create_equipment(request, payload: EquipmentIn):
 @equipment_router.patch("/{equipment_id}/", response=EquipmentOut)
 def update_equipment(request, equipment_id: int, payload: EquipmentIn):
     """Update equipment (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         equipment = Equipment.objects.get(id=equipment_id)
     except Equipment.DoesNotExist:
@@ -54,7 +42,7 @@ def update_equipment(request, equipment_id: int, payload: EquipmentIn):
 @equipment_router.delete("/{equipment_id}/", response={204: None})
 def delete_equipment(request, equipment_id: int):
     """Delete equipment (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         equipment = Equipment.objects.get(id=equipment_id)
     except Equipment.DoesNotExist:

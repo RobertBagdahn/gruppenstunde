@@ -6,8 +6,9 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.api.events import event_router
-from event.api.helpers import require_auth, require_event_manager
+from event.api.helpers import require_event_manager
 from event.models import AttendanceRecord, Event, Participant
 from event.schemas import (
     AttendanceRecordCreateIn,
@@ -20,7 +21,7 @@ from event.schemas import (
 @event_router.post("/{event_slug}/attendance/check-in/", response=AttendanceRecordOut)
 def check_in_participant(request, event_slug: str, payload: AttendanceRecordCreateIn):
     """Check in a single participant."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -45,7 +46,7 @@ def check_in_participant(request, event_slug: str, payload: AttendanceRecordCrea
 @event_router.post("/{event_slug}/attendance/batch-check-in/", response=list[AttendanceRecordOut])
 def batch_check_in(request, event_slug: str, payload: BatchCheckInIn):
     """Check in multiple participants at once."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -77,7 +78,7 @@ def batch_check_in(request, event_slug: str, payload: BatchCheckInIn):
 @event_router.patch("/{event_slug}/attendance/{participant_id}/check-out/", response=AttendanceRecordOut)
 def check_out_participant(request, event_slug: str, participant_id: int):
     """Check out a participant."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -95,7 +96,7 @@ def check_out_participant(request, event_slug: str, participant_id: int):
 @event_router.get("/{event_slug}/attendance/", response=PaginatedAttendanceRecordOut)
 def list_attendance(request, event_slug: str, page: int = 1, page_size: int = 50):
     """List attendance records for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

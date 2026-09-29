@@ -11,6 +11,7 @@ from django.utils.text import slugify
 from ninja import Router, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup, RecipeItemIdempotencyRecord
 from recipe.schemas import (
     AdoptCurrentPortionsIn,
@@ -48,11 +49,6 @@ def _recipe_item_has_active_variants(item: RecipeItem) -> bool:
 router = Router()
 
 
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
-
-
 def _can_edit_recipe(request, recipe: Recipe) -> bool:
     """Check if user can edit this recipe."""
     if not request.user.is_authenticated:
@@ -70,7 +66,7 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
 
 def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = True) -> Recipe:
     if require_auth:
-        _require_auth(request)
+        require_login(request)
     from content.services.food_access import get_visible_recipe_or_404
 
     return cast(Recipe, get_visible_recipe_or_404(request.user, recipe_id))
@@ -103,7 +99,7 @@ def adopt_current_portions(request, recipe_id: int, payload: AdoptCurrentPortion
     action in the editor passes exactly one id (see openspec change
     `portion-superseded-versions`).
     """
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -152,7 +148,7 @@ def _compute_item_payload_hash(payload: RecipeItemCreateIn) -> str:
 @router.post("/{recipe_id}/recipe-items/", response=RecipeItemOut)
 def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
     """Add a recipe item to a recipe."""
-    _require_auth(request)
+    require_login(request)
 
     request_key = (payload.idempotency_key or payload.client_request_id or "").strip() or None
     payload_hash = _compute_item_payload_hash(payload) if request_key else ""
@@ -251,7 +247,7 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
 @router.patch("/{recipe_id}/recipe-items/{item_id}/", response=RecipeItemOut)
 def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeItemUpdateIn):
     """Update a recipe item."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -361,7 +357,7 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
     quantity is required. Repeating a request with the same
     `client_request_id` returns the already-replaced item (idempotency).
     """
-    _require_auth(request)
+    require_login(request)
 
     request_key = (payload.client_request_id or "").strip() or None
     payload_hash = _compute_replace_payload_hash(payload) if request_key else ""
@@ -496,7 +492,7 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
 @router.delete("/{recipe_id}/recipe-items/{item_id}/")
 def delete_recipe_item(request, recipe_id: int, item_id: int):
     """Delete a recipe item."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -529,7 +525,7 @@ def list_exchange_groups(request, recipe_id: int):
 @router.post("/{recipe_id}/exchanges/", response={201: RecipeItemExchangeGroupOut})
 def create_exchange_group(request, recipe_id: int, payload: RecipeItemExchangeGroupCreateIn):
     """Create an exchange group for a recipe."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -547,7 +543,7 @@ def delete_exchange_group(request, recipe_id: int, group_id: int):
     Otherwise the non-default members (exchange_position > 0) are deleted and the original
     (position 0) is reset to a normal ingredient (exchange_group=None).
     """
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -580,7 +576,7 @@ def delete_exchange_group(request, recipe_id: int, group_id: int):
 )
 def ai_suggest_ingredients(request, recipe_id: int):
     """Use AI to suggest ingredients for a recipe."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -657,7 +653,7 @@ def ai_suggest_ingredients(request, recipe_id: int):
 @router.post("/{recipe_id}/ai-suggest-ingredients-preview/", response=IngredientReviewPreviewOut)
 def ai_suggest_ingredients_preview(request, recipe_id: int):
     """Return existing-recipe AI ingredient suggestions without applying them."""
-    _require_auth(request)
+    require_login(request)
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
@@ -720,7 +716,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
     Ingredient and/or gram fallback portion are created only on confirmation,
     never during preview.
     """
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -838,7 +834,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
 @router.post("/{recipe_id}/estimate-quantities/", response=EstimateQuantitiesOut)
 def estimate_quantities(request, recipe_id: int):
     """AI-estimate realistic quantities for existing recipe items."""
-    _require_auth(request)
+    require_login(request)
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     from content.services.food_access import can_edit
 

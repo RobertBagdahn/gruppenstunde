@@ -519,7 +519,7 @@ class TestDayOperationsAuthorization:
             data=json.dumps({"date": "2026-07-09"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_other_user_cannot_add_day(self):
         self.client.force_login(self.other_user)
@@ -532,12 +532,12 @@ class TestDayOperationsAuthorization:
 
     def test_unauthenticated_cannot_remove_day(self):
         resp = self.client.delete(f"/api/meal-plans/{self.plan.id}/days/?date=2026-07-10")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_unauthenticated_cannot_add_day_before(self):
         resp = self.client.post(f"/api/meal-plans/{self.plan.id}/add-day-before/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_unauthenticated_cannot_add_day_after(self):
         resp = self.client.post(f"/api/meal-plans/{self.plan.id}/add-day-after/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401

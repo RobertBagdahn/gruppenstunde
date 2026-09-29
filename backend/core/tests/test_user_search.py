@@ -70,7 +70,7 @@ class TestUserSearch:
     def test_requires_authentication(self, client: Client):
         """Unauthenticated request returns 403."""
         resp = self._search(client)
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_page_size_validation_error(self, client: Client):
         """page_size > 50 returns 422 validation error."""

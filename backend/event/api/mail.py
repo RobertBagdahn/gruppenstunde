@@ -3,18 +3,19 @@
 from django.shortcuts import get_object_or_404
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.models import Event
 from event.schemas import MailCreateIn, MailResultOut
 from event.services.mail import MailService
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 
 @event_router.post("/{event_slug}/send-mail/", response=MailResultOut)
 def send_mail(request, event_slug: str, payload: MailCreateIn):
     """Send manual email to event participants."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

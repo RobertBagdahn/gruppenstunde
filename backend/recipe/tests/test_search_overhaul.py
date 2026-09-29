@@ -267,7 +267,7 @@ class TestVerifyRecipe:
             data={"confirm": True},
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_verify_nonexistent_recipe(self, api_client, staff_user):
         api_client.force_login(staff_user)

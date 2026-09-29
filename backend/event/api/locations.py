@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.models import EventLocation
 from event.schemas import (
     EventLocationCreateIn,
@@ -13,8 +14,6 @@ from event.schemas import (
     EventLocationUpdateIn,
     PaginatedLocationOut,
 )
-
-from .helpers import require_auth
 
 location_router = Router(tags=["locations"])
 
@@ -47,7 +46,7 @@ def list_locations(request, page: int = 1, page_size: int = 20):
 @location_router.post("/", response=EventLocationOut)
 def create_location(request, payload: EventLocationCreateIn):
     """Create a new event location."""
-    require_auth(request)
+    require_login(request)
     return EventLocation.objects.create(created_by=request.user, **payload.dict())
 
 
@@ -60,7 +59,7 @@ def get_location(request, location_id: int):
 @location_router.patch("/{location_id}/", response=EventLocationOut)
 def update_location(request, location_id: int, payload: EventLocationUpdateIn):
     """Update a location."""
-    require_auth(request)
+    require_login(request)
     location = get_object_or_404(EventLocation, id=location_id)
     if location.created_by_id != request.user.id and not request.user.is_staff:
         raise HttpError(403, "Nur der Ersteller kann diesen Veranstaltungsort bearbeiten")
@@ -73,7 +72,7 @@ def update_location(request, location_id: int, payload: EventLocationUpdateIn):
 @location_router.delete("/{location_id}/")
 def delete_location(request, location_id: int):
     """Delete a location."""
-    require_auth(request)
+    require_login(request)
     location = get_object_or_404(EventLocation, id=location_id)
     if location.created_by_id != request.user.id and not request.user.is_staff:
         raise HttpError(403, "Nur der Ersteller kann diesen Veranstaltungsort löschen")

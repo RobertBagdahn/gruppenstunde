@@ -23,6 +23,7 @@ from content.schemas.ai import (
     AiSuggestTagsOut,
 )
 from content.schemas.ai_interaction import AiVoteIn, AiVoteOut
+from core.permissions import require_login
 
 logger = logging.getLogger(__name__)
 
@@ -307,8 +308,7 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
 )
 def ai_interaction_vote(request, interaction_id: str, payload: AiVoteIn):
     """Vote on an AI interaction (thumbs up/down)."""
-    if not request.user.is_authenticated:
-        raise HttpError(401, "Anmeldung erforderlich")
+    require_login(request)
 
     from uuid import UUID
 

@@ -63,7 +63,7 @@ class TestProfilePictureUpload:
         data = _make_image("JPEG")
         f = SimpleUploadedFile("avatar.jpg", data, content_type="image/jpeg")
         resp = api_client.post("/api/profile/me/picture/", {"file": f})
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 @pytest.mark.django_db
@@ -88,7 +88,7 @@ class TestProfilePictureDelete:
 
     def test_delete_unauthenticated(self, api_client):
         resp = api_client.delete("/api/profile/me/picture/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 # ---------------------------------------------------------------------------

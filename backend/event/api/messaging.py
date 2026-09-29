@@ -3,6 +3,7 @@
 from django.shortcuts import get_object_or_404
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.models import Event
 from event.schemas.messaging import (
     MessagePreviewOut,
@@ -12,13 +13,13 @@ from event.schemas.messaging import (
 from event.services.messaging import MessagingService
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 
 @event_router.post("/{event_slug}/messages/preview/", response=MessagePreviewOut)
 def message_preview(request, event_slug: str, payload: SendMessageIn):
     """Preview message recipients with availability status."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -54,7 +55,7 @@ def message_preview(request, event_slug: str, payload: SendMessageIn):
 @event_router.post("/{event_slug}/messages/send/", response=SendMessageResultOut)
 def message_send(request, event_slug: str, payload: SendMessageIn):
     """Send messages via email or WhatsApp."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

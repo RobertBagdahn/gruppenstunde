@@ -31,7 +31,7 @@ class TestGetCorporateIdentity:
     def test_get_ci_unauthenticated(self, api_client):
         group = make_user_group(name="Auth-Test-Gruppe")
         resp = api_client.get(f"/api/groups/{group.slug}/corporate-identity/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 @pytest.mark.django_db

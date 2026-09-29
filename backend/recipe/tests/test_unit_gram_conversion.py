@@ -62,6 +62,12 @@ class TestContainerConversion:
             assert UnitGramConverter.convert_to_grams(1, "Dose", ing) == 350
             assert UnitGramConverter.convert_to_portion_count(1, "Dose", ing) == 2.33
 
+    def test_no_ai_estimate_for_anonymous_previews(self):
+        ing = make_ingredient(name="Ananasstücke (Dose)")
+        with patch("core.services.gemini.gemini_call") as mocked:
+            assert UnitGramConverter.convert_to_grams(1, "Dose", ing, allow_ai_estimate=False) is None
+            mocked.assert_not_called()
+
     def test_gemini_fallback_to_none(self):
         ing = make_ingredient(name="Ananasstücke (Dose)")
         with patch("core.services.gemini.gemini_call", return_value=(None, None)):

@@ -154,7 +154,7 @@ class TestDataExport:
 
 @pytest.mark.django_db
 class TestDeleteAccount:
-    def test_correct_password_deletes_account(self, privacy_client, privacy_user):
+    def test_recent_login_deletes_account(self, privacy_client, privacy_user):
         resp = privacy_client.post(
             "/api/auth/privacy/delete-account/",
             data=json.dumps({"password": "testpass123", "confirmation": "KONTO LÖSCHEN"}),
@@ -166,13 +166,21 @@ class TestDeleteAccount:
         assert "deleted-" in privacy_user.email
         assert not privacy_user.has_usable_password()
 
-    def test_wrong_password_rejected(self, privacy_client):
+    def test_stale_login_requires_reauth(self, privacy_client, privacy_user):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        type(privacy_user).objects.filter(pk=privacy_user.pk).update(last_login=timezone.now() - timedelta(hours=1))
         resp = privacy_client.post(
             "/api/auth/privacy/delete-account/",
-            data=json.dumps({"password": "wrongpass", "confirmation": "KONTO LÖSCHEN"}),
+            data=json.dumps({"confirmation": "KONTO LÖSCHEN"}),
             content_type="application/json",
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 401
+        assert resp.json()["code"] == "reauth_required"
+        privacy_user.refresh_from_db()
+        assert privacy_user.is_active is True
 
     def test_missing_confirmation_rejected(self, privacy_client):
         resp = privacy_client.post(
@@ -182,7 +190,7 @@ class TestDeleteAccount:
         )
         assert resp.status_code == 422  # Pydantic validation error
 
-    def test_guest_account_no_password_needed(self, guest_client, guest_user):
+    def test_guest_account_deletes_account(self, guest_client, guest_user):
         resp = guest_client.post(
             "/api/auth/privacy/delete-account/",
             data=json.dumps({"password": None, "confirmation": "KONTO LÖSCHEN"}),

@@ -245,7 +245,7 @@ class TestContentLinks:
             },
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_duplicate_link(self, auth_client, sample_session, sample_blog, session_ct, blog_ct):
         """Creating duplicate link returns 409."""

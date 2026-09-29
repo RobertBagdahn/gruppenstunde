@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from profiles.choices import MembershipRoleChoices
 from profiles.models import GroupMembership
 
@@ -54,11 +55,6 @@ logger = logging.getLogger(__name__)
 packing_list_router = Router(tags=["packing-lists"])
 
 
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
-
-
 def _require_edit_permission(packing_list: PackingList, user):
     """Check that the user can edit this packing list."""
     if not packing_list.user_can_edit(user):
@@ -73,7 +69,7 @@ def _require_edit_permission(packing_list: PackingList, user):
 @packing_list_router.get("/", response=PaginatedPackingListOut)
 def list_packing_lists(request, page: int = 1, page_size: int = 20):
     """List packing lists the user owns or can admin via group membership."""
-    _require_auth(request)
+    require_login(request)
     import math
 
     # Groups where user is admin
@@ -143,7 +139,7 @@ def get_suggestion_categories(request):
 @packing_list_router.post("/generate/", response=PackingListOut)
 def generate_packing_list(request, payload: GeneratePackingListIn):
     """Generate a packing list from wizard context using the dynamic builder."""
-    _require_auth(request)
+    require_login(request)
 
     from .services.suggestion_service import build_dynamic_list
 
@@ -183,8 +179,7 @@ def generate_packing_list(request, payload: GeneratePackingListIn):
 
 @packing_list_router.post("/preview/", response=PreviewOut)
 def preview_packing_list(request, payload: PreviewIn):
-    """Preview the result of dynamic list generation without creating DB records."""
-    _require_auth(request)
+    """Preview the rule-based list without creating DB records (open to anonymous visitors)."""
 
     from .services.suggestion_service import preview_dynamic_list
 
@@ -213,7 +208,7 @@ def get_full_catalog(request):
 @packing_list_router.post("/", response=PackingListOut)
 def create_packing_list(request, payload: PackingListCreateIn):
     """Create a new packing list."""
-    _require_auth(request)
+    require_login(request)
     data = payload.dict(exclude={"group_id"})
     packing_list = PackingList.objects.create(owner=request.user, **data)
 
@@ -254,7 +249,7 @@ def get_packing_list(request, packing_list_id: int):
 @packing_list_router.patch("/{packing_list_id}/", response=PackingListOut)
 def update_packing_list(request, packing_list_id: int, payload: PackingListUpdateIn):
     """Update a packing list (owner/group-admin only)."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -281,7 +276,7 @@ def update_packing_list(request, packing_list_id: int, payload: PackingListUpdat
 @packing_list_router.delete("/{packing_list_id}/")
 def delete_packing_list(request, packing_list_id: int):
     """Delete a packing list (owner only)."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
 
     if packing_list.owner != request.user and not request.user.is_staff:
@@ -299,7 +294,7 @@ def delete_packing_list(request, packing_list_id: int):
 @packing_list_router.post("/{packing_list_id}/clone/", response=PackingListOut)
 def clone_packing_list(request, packing_list_id: int):
     """Clone a packing list (creates a deep copy for the current user)."""
-    _require_auth(request)
+    require_login(request)
     original = get_object_or_404(
         PackingList.objects.prefetch_related("categories__items"),
         id=packing_list_id,
@@ -370,7 +365,7 @@ def export_text(request, packing_list_id: int):
 @packing_list_router.post("/{packing_list_id}/reset-checks/")
 def reset_checks(request, packing_list_id: int):
     """Reset all is_checked flags to False."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -386,7 +381,7 @@ def reset_checks(request, packing_list_id: int):
 @packing_list_router.post("/{packing_list_id}/categories/", response=PackingCategoryOut)
 def create_category(request, packing_list_id: int, payload: PackingCategoryCreateIn):
     """Add a category to a packing list."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -405,7 +400,7 @@ def create_category(request, packing_list_id: int, payload: PackingCategoryCreat
 @packing_list_router.patch("/{packing_list_id}/categories/{category_id}/", response=PackingCategoryOut)
 def update_category(request, packing_list_id: int, category_id: int, payload: PackingCategoryUpdateIn):
     """Update a category (rename, reorder)."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -420,7 +415,7 @@ def update_category(request, packing_list_id: int, category_id: int, payload: Pa
 @packing_list_router.delete("/{packing_list_id}/categories/{category_id}/")
 def delete_category(request, packing_list_id: int, category_id: int):
     """Delete a category and all its items."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -432,7 +427,7 @@ def delete_category(request, packing_list_id: int, category_id: int):
 @packing_list_router.post("/{packing_list_id}/categories/sort/")
 def sort_categories(request, packing_list_id: int, payload: SortOrderIn):
     """Reorder categories within a packing list."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -450,7 +445,7 @@ def sort_categories(request, packing_list_id: int, payload: SortOrderIn):
 @packing_list_router.post("/{packing_list_id}/categories/{category_id}/items/", response=PackingItemOut)
 def create_item(request, packing_list_id: int, category_id: int, payload: PackingItemCreateIn):
     """Add an item to a category."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -491,7 +486,7 @@ def update_item(
     payload: PackingItemUpdateIn,
 ):
     """Update an item."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -530,7 +525,7 @@ def update_item(
 @packing_list_router.delete("/{packing_list_id}/categories/{category_id}/items/{item_id}/")
 def delete_item(request, packing_list_id: int, category_id: int, item_id: int):
     """Delete an item from a category."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -543,7 +538,7 @@ def delete_item(request, packing_list_id: int, category_id: int, item_id: int):
 @packing_list_router.post("/{packing_list_id}/categories/{category_id}/items/sort/")
 def sort_items(request, packing_list_id: int, category_id: int, payload: SortOrderIn):
     """Reorder items within a category."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -563,7 +558,7 @@ def sort_items(request, packing_list_id: int, category_id: int, payload: SortOrd
 @packing_list_router.post("/{packing_list_id}/shares/", response=ShareOut)
 def create_share(request, packing_list_id: int, payload: ShareCreateIn):
     """Create a share link for a packing list."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -577,7 +572,7 @@ def create_share(request, packing_list_id: int, payload: ShareCreateIn):
 @packing_list_router.get("/{packing_list_id}/shares/", response=list[ShareOut])
 def list_shares(request, packing_list_id: int):
     """List all active share links for a packing list."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -587,7 +582,7 @@ def list_shares(request, packing_list_id: int):
 @packing_list_router.delete("/{packing_list_id}/shares/{share_id}/")
 def deactivate_share(request, packing_list_id: int, share_id: int):
     """Deactivate a share link."""
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(PackingList, id=packing_list_id)
     _require_edit_permission(packing_list, request.user)
 
@@ -733,7 +728,7 @@ def get_ai_suggestions(request, packing_list_id: int, payload: AiSuggestIn):
 
     from django.http import HttpResponse
 
-    _require_auth(request)
+    require_login(request)
     packing_list = get_object_or_404(
         PackingList.objects.prefetch_related("categories__items"),
         id=packing_list_id,

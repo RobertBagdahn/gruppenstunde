@@ -21,6 +21,7 @@ from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmo
 from content.choices import ContentStatus
 from content.models import Tag
 from content.schemas import ImageFromUrlIn
+from core.permissions import require_staff
 
 from .models import Blog
 from .schemas import (
@@ -242,8 +243,7 @@ def update_blog(request, blog_id: int, payload: BlogUpdateIn):
 @router.delete("/{blog_id}/", response={204: None})
 def delete_blog(request, blog_id: int):
     """Soft-delete a blog (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins dürfen Blogs löschen.")
+    require_staff(request)
 
     blog = get_object_or_404(Blog, id=blog_id)
     blog.soft_delete()

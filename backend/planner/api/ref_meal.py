@@ -5,7 +5,8 @@ from django.shortcuts import get_object_or_404
 from ninja import Router, Status
 from ninja.errors import HttpError
 
-from planner.api.meal_plan import _get_user_role, _require_access, _require_auth, _require_edit
+from core.permissions import require_login
+from planner.api.meal_plan import _get_user_role, _require_access, _require_edit
 from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
     Meal,
@@ -101,7 +102,7 @@ def _sync_ref_meal_to_targets(ref_meal: Meal) -> int:
     summary="Liste aller RefMeals eines Plans",
 )
 def list_ref_meals(request, plan_id: int):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user)
     return plan.meals.filter(is_reference=True).prefetch_related(
         "items__recipe", "items__ingredient", "items__measuring_unit", "synced_meals"
@@ -115,7 +116,7 @@ def list_ref_meals(request, plan_id: int):
 )
 @transaction.atomic
 def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user, edit=True)
 
     # Check uniqueness
@@ -166,7 +167,7 @@ def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
     summary="RefMeal Detail",
 )
 def get_ref_meal(request, plan_id: int, ref_meal_id: int):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user)
     ref_meal = _get_ref_meal(plan, ref_meal_id)
     role = _get_user_role(plan, request.user)
@@ -182,7 +183,7 @@ def get_ref_meal(request, plan_id: int, ref_meal_id: int):
 )
 @transaction.atomic
 def update_ref_meal(request, plan_id: int, ref_meal_id: int, payload: RefMealUpdateIn):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user, edit=True)
     ref_meal = _get_ref_meal(plan, ref_meal_id)
 
@@ -232,7 +233,7 @@ def update_ref_meal(request, plan_id: int, ref_meal_id: int, payload: RefMealUpd
 )
 @transaction.atomic
 def delete_ref_meal(request, plan_id: int, ref_meal_id: int):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user, edit=True)
     ref_meal = _get_ref_meal(plan, ref_meal_id)
 
@@ -249,7 +250,7 @@ def delete_ref_meal(request, plan_id: int, ref_meal_id: int):
 )
 @transaction.atomic
 def sync_ref_meal(request, plan_id: int, ref_meal_id: int):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user, edit=True)
     ref_meal = _get_ref_meal(plan, ref_meal_id)
 
@@ -265,7 +266,7 @@ def sync_ref_meal(request, plan_id: int, ref_meal_id: int):
 )
 @transaction.atomic
 def link_meal(request, plan_id: int, meal_id: int, payload: LinkMealIn):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user, edit=True)
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=plan, is_reference=False)
     ref_meal = _get_ref_meal(plan, payload.ref_meal_id)
@@ -301,7 +302,7 @@ def link_meal(request, plan_id: int, meal_id: int, payload: LinkMealIn):
     summary="Meal vom RefMeal entkoppeln",
 )
 def unlink_meal(request, plan_id: int, meal_id: int):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user, edit=True)
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=plan, is_reference=False)
 
@@ -317,7 +318,7 @@ def unlink_meal(request, plan_id: int, meal_id: int):
 )
 @transaction.atomic
 def link_all_meals(request, plan_id: int, meal_type: str):
-    _require_auth(request)
+    require_login(request)
     plan = _get_plan(plan_id, request.user, edit=True)
 
     ref_meal = plan.meals.filter(is_reference=True, meal_type=meal_type).first()

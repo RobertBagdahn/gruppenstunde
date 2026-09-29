@@ -4,6 +4,7 @@ from datetime import date, datetime
 from typing import cast
 
 from ninja import Schema
+from pydantic import Field
 
 from supply.schemas import NutritionalTagOut
 
@@ -44,6 +45,14 @@ class UserProfileUpdateIn(Schema):
     nutritional_tag_ids: list[int] | None = None
     is_public: bool | None = None
     slug: str | None = None
+
+
+class OnboardingIn(Schema):
+    """Welcome dialog after the first social login; all fields optional (skippable)."""
+
+    first_name: str | None = Field(default=None, max_length=100)
+    last_name: str | None = Field(default=None, max_length=100)
+    scout_name: str | None = Field(default=None, max_length=100)
 
 
 class ProfilePictureOut(Schema):

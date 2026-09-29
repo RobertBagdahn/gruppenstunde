@@ -59,7 +59,7 @@ class TestForkRecipe:
         resp = api_client.post(
             f"/api/recipes/{recipe_with_items.id}/fork/", json.dumps({}), content_type="application/json"
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_fork_nonexistent_recipe(self, auth_client):
         """Forking a recipe with a non-existent ID returns 404."""
@@ -155,7 +155,7 @@ class TestVisibility:
             data=json.dumps({"visibility": "public"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_publish_blocked_without_ingredients(self, auth_client):
         """Cannot set visibility to public on a draft recipe without ingredients."""

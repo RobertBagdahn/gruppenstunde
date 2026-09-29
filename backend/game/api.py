@@ -21,6 +21,7 @@ from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmo
 from content.choices import ContentStatus
 from content.models import Tag
 from content.schemas import ImageFromUrlIn
+from core.permissions import require_staff
 
 from .models import Game
 from .schemas import (
@@ -253,8 +254,7 @@ def update_game(request, game_id: int, payload: GameUpdateIn):
 @router.delete("/{game_id}/", response={204: None})
 def delete_game(request, game_id: int):
     """Soft-delete a game (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins dürfen Spiele löschen.")
+    require_staff(request)
 
     game = get_object_or_404(Game, id=game_id)
     game.soft_delete()

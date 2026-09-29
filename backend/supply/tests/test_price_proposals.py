@@ -132,7 +132,7 @@ class TestCreateProposalAPI:
 
         res = Client().post(f"{BASE}/{ingredient.slug}/price-proposals/")
 
-        assert res.status_code == 403
+        assert res.status_code == 401
 
     def test_non_editor_member_gets_403(self, user_client, db):
         from supply.tests import make_ingredient
@@ -254,7 +254,7 @@ class TestAcceptRejectAPI:
             data=json.dumps({"replace": False}),
             content_type="application/json",
         )
-        assert res.status_code == 403
+        assert res.status_code == 401
 
     def test_list_proposals(self, staff_client, db):
         from supply.tests import make_ingredient

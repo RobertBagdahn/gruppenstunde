@@ -122,7 +122,7 @@ class TestTimelineAPI:
 
     def test_list_timeline_unauthenticated(self, client, event_with_manager):
         resp = client.get(f"/api/events/{event_with_manager.slug}/timeline/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 # ===========================================================================

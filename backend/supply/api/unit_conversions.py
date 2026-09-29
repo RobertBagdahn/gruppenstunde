@@ -4,6 +4,7 @@ from django.db.models import Q
 from ninja import Query, Router
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
 from supply.models import MeasuringUnit, UnitConversion
 from supply.schemas.unit_conversion import (
     AvailableConversionBatchItemOut,
@@ -87,8 +88,7 @@ def convert_unit(
 @unit_conversion_router.post("/", response=UnitConversionOut)
 def create_unit_conversion(request, payload: UnitConversionCreateIn) -> UnitConversionOut:
     """Create a new unit conversion."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
+    require_staff(request)
 
     conversion = UnitConversion.objects.create(
         from_unit_id=payload.from_unit_id,
@@ -215,8 +215,7 @@ def available_conversions_batch(
 @unit_conversion_router.delete("/{conversion_id}/")
 def delete_unit_conversion(request, conversion_id: int) -> dict:
     """Delete a unit conversion."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
+    require_staff(request)
 
     deleted, _ = UnitConversion.objects.filter(id=conversion_id).delete()
     if not deleted:

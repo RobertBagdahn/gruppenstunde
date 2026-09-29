@@ -7,7 +7,6 @@ from ninja.errors import HttpError
 
 from content.api.helpers import (
     _is_staff_or_admin,
-    _require_auth,
 )
 from content.models import ContentCollaborator, ContentCollaboratorRole
 from content.schemas.collaborator import (
@@ -15,6 +14,7 @@ from content.schemas.collaborator import (
     ContentCollaboratorOut,
     ContentCollaboratorUpdateIn,
 )
+from core.permissions import require_login
 
 router = Router(tags=["content-collaborators"])
 
@@ -59,7 +59,7 @@ def _resolve_content_object(content_type_app: str, content_type_model: str, obje
 @router.get("/", response=list[ContentCollaboratorOut])
 def list_collaborators(request, content_type_app: str, content_type_model: str, object_id: int):
     """List collaborators for a content object."""
-    _require_auth(request)
+    require_login(request)
 
     ct = get_object_or_404(ContentType, app_label=content_type_app, model=content_type_model)
     model_class = ct.model_class()
@@ -110,7 +110,7 @@ def list_collaborators(request, content_type_app: str, content_type_model: str, 
 @router.post("/", response=ContentCollaboratorOut)
 def add_collaborator(request, payload: ContentCollaboratorIn):
     """Add a collaborator to a content object."""
-    _require_auth(request)
+    require_login(request)
 
     ct = get_object_or_404(ContentType, app_label=payload.content_type_app, model=payload.content_type_model)
     model_class = ct.model_class()
@@ -149,7 +149,7 @@ def add_collaborator(request, payload: ContentCollaboratorIn):
 @router.patch("/{collab_id}/", response=ContentCollaboratorOut)
 def update_collaborator(request, collab_id: int, payload: ContentCollaboratorUpdateIn):
     """Update a collaborator's role."""
-    _require_auth(request)
+    require_login(request)
 
     collab = get_object_or_404(ContentCollaborator, id=collab_id)
 
@@ -175,7 +175,7 @@ def update_collaborator(request, collab_id: int, payload: ContentCollaboratorUpd
 @router.delete("/{collab_id}/", response={204: None})
 def remove_collaborator(request, collab_id: int):
     """Remove a collaborator."""
-    _require_auth(request)
+    require_login(request)
 
     collab = get_object_or_404(ContentCollaborator, id=collab_id)
 

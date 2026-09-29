@@ -287,12 +287,12 @@ class TestCookingScheduleAPI:
         assert item["lead_minutes"] == 30
         assert item["portions"] == 5
 
-    def test_unauthenticated_returns_403(self):
-        """Nicht-authentifizierte Anfragen werden mit 403 abgelehnt."""
+    def test_anonymous_private_plan_is_404(self):
+        """Private plans are invisible to anonymous visitors (public plans are readable)."""
         client = Client()
         plan = make_meal_plan()
         response = client.get(f"/api/meal-plans/{plan.id}/cooking-schedule/")
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     def test_no_access_returns_404(self):
         """Nutzer ohne Zugriff erhalten 404 (kein Leak von Plan-IDs)."""

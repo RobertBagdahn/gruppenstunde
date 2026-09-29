@@ -10,8 +10,7 @@ from .base import *  # noqa: F403
 # ("change-me-in-production") must never reach a live deployment.
 if SECRET_KEY == "change-me-in-production":
     raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY is not configured. "
-        "Set the environment variable before deploying to production."
+        "DJANGO_SECRET_KEY is not configured. " "Set the environment variable before deploying to production."
     )
 
 DEBUG = env("DEBUG", default="False").lower() in ("true", "1")
@@ -21,8 +20,17 @@ ALLOWED_HOSTS = [
     APPENGINE_URL.replace("https://", "").replace("http://", ""),
     "gruppenstunde.de",
     "www.gruppenstunde.de",
+    "essensplan.app",
+    "www.essensplan.app",
     ".run.app",
 ]
+
+# The dev login bypasses OAuth and must never be reachable in production.
+if AUTH_DEV_LOGIN_ENABLED:
+    raise ImproperlyConfigured("AUTH_DEV_LOGIN_ENABLED must be False in production.")
+
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+AI_CLIENT_IP_TRUSTED_HOPS = env.int("AI_CLIENT_IP_TRUSTED_HOPS", default=3)
 
 CSRF_TRUSTED_ORIGINS = [
     APPENGINE_URL,

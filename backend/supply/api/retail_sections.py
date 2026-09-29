@@ -3,6 +3,7 @@
 from ninja import Router, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
 from supply.models import RetailSection
 from supply.schemas import RetailSectionIn, RetailSectionOut, RetailSectionUpdateIn
 
@@ -15,23 +16,10 @@ def list_retail_sections(request):
     return RetailSection.objects.all()
 
 
-def _require_staff(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Nur Admins")
-    if request.user.is_staff:
-        return
-    try:
-        if request.user.profile.role in ("staff", "admin"):
-            return
-    except AttributeError:
-        pass
-    raise HttpError(403, "Nur Admins")
-
-
 @retail_section_router.post("/", response={201: RetailSectionOut})
 def create_retail_section(request, payload: RetailSectionIn):
     """Create a new retail section (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     section = RetailSection.objects.create(**payload.dict())
     return Status(201, section)
 
@@ -39,7 +27,7 @@ def create_retail_section(request, payload: RetailSectionIn):
 @retail_section_router.patch("/{section_id}/", response=RetailSectionOut)
 def update_retail_section(request, section_id: int, payload: RetailSectionUpdateIn):
     """Update a retail section (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         section = RetailSection.objects.get(id=section_id)
     except RetailSection.DoesNotExist:
@@ -54,7 +42,7 @@ def update_retail_section(request, section_id: int, payload: RetailSectionUpdate
 @retail_section_router.delete("/{section_id}/", response={204: None})
 def delete_retail_section(request, section_id: int):
     """Delete a retail section (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         section = RetailSection.objects.get(id=section_id)
     except RetailSection.DoesNotExist:

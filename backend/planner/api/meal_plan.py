@@ -11,6 +11,7 @@ from django.utils import timezone
 from ninja import Router, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
     Meal,
@@ -92,17 +93,18 @@ EVENT_DEFAULT_ARRIVAL_TIME = dt.time(17, 0)
 EVENT_DEFAULT_DEPARTURE_TIME = dt.time(11, 0)
 
 
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
-
-
 def _get_user_role(meal_plan: MealPlan, user) -> str | None:
     """Return the effective role of a user for a meal plan.
 
-    Returns 'owner' for the creator, the collaborator role string,
-    or None if the user has no access. Staff always gets 'owner'.
+    Returns 'owner' for the creator, the collaborator role string, 'viewer'
+    for public/verified/template plans (also for anonymous visitors), or None
+    if the user has no access. Staff always gets 'owner'.
     """
+    from content.services.food_access import is_public_meal_plan
+
+    public_role = MealPlanCollaboratorRole.VIEWER if is_public_meal_plan(meal_plan) else None
+    if user is None or not user.is_authenticated:
+        return public_role
     if user.is_staff:
         return "owner"
     if meal_plan.created_by_id == user.id:
@@ -122,7 +124,7 @@ def _get_user_role(meal_plan: MealPlan, user) -> str | None:
     generic_collab = ContentCollaborator.objects.filter(content_type=ct, object_id=meal_plan.id, user=user).first()
     if generic_collab is not None:
         return generic_collab.role
-    return None
+    return public_role
 
 
 def _require_access(meal_plan: MealPlan, user) -> str:
@@ -278,24 +280,43 @@ def list_meal_plans(
     - origin: 'all' (default), 'mine', 'community', 'verified'
     - sort: 'date_newest' (default), 'date_oldest', 'name_asc', 'name_desc'
     - date_from/date_to: date range filter
-    """
-    _require_auth(request)
 
+    Anonymous visitors only see public, verified and template plans.
+    """
+    from content.services.food_access import public_meal_plan_q
+
+    is_anonymous = not request.user.is_authenticated
+    is_owner_expr = (
+        Value(False)
+        if is_anonymous
+        else Case(
+            When(created_by=request.user, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    )
     qs = (
         MealPlan.objects.select_related("owner", "event_relation__event")
         .prefetch_related("nutritional_tags", "tags")
         .annotate(
             meals_count_ann=Count("meals", distinct=True),
             collaborators_count_ann=Count("collaborators", distinct=True),
-            is_owner_ann=Case(
-                When(created_by=request.user, then=Value(True)),
-                default=Value(False),
-                output_field=BooleanField(),
-            ),
+            is_owner_ann=is_owner_expr,
         )
     )
 
-    if origin == "verified":
+    if is_anonymous:
+        if origin in ("mine", "shared"):
+            qs = qs.none()
+        elif origin == "verified":
+            qs = qs.filter(owner__isnull=True)
+        elif origin == "template":
+            qs = qs.filter(is_template=True)
+        elif origin == "community":
+            qs = qs.filter(owner__isnull=False, visibility=MealPlanVisibility.PUBLIC)
+        else:
+            qs = qs.filter(public_meal_plan_q())
+    elif origin == "verified":
         qs = qs.filter(owner__isnull=True)
     elif origin == "template":
         # "Referenz-Vorlagen" tab: admin-marked templates visible to all
@@ -358,7 +379,7 @@ def list_meal_plans(
 @meal_plan_router.post("/", response=MealPlanOut)
 def create_meal_plan(request, payload: MealPlanCreateIn):
     """Create a new meal plan with auto-generated default meals."""
-    _require_auth(request)
+    require_login(request)
 
     nutritional_tags_to_set = None
     if payload.nutritional_tag_ids is not None:
@@ -456,7 +477,6 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
 @meal_plan_router.get("/{meal_plan_id}/", response=MealPlanDetailOut)
 def get_meal_plan(request, meal_plan_id: int):
     """Get a meal plan with all meals and items."""
-    _require_auth(request)
 
     meal_plan = get_object_or_404(
         MealPlan.objects.select_related("owner", "event_relation__event").prefetch_related(
@@ -484,7 +504,7 @@ def get_meal_plan(request, meal_plan_id: int):
 @meal_plan_router.patch("/{meal_plan_id}/", response=MealPlanOut)
 def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
     """Update a meal plan (owner/staff only)."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -587,7 +607,7 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
 @meal_plan_router.delete("/{meal_plan_id}/")
 def delete_meal_plan(request, meal_plan_id: int):
     """Delete a meal plan and all its meals/items."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_admin(meal_plan, request.user)
 
@@ -600,7 +620,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
     """Duplicate a meal plan using day-index mapping (Tag N → Tag N)."""
     from django.db import transaction
 
-    _require_auth(request)
+    require_login(request)
     source = get_object_or_404(
         MealPlan.objects.prefetch_related("meals__items"),
         id=meal_plan_id,
@@ -722,7 +742,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
 @meal_plan_router.post("/{meal_plan_id}/days/", response=list[MealOut])
 def add_day(request, meal_plan_id: int, payload: MealDayBulkCreateIn):
     """Add a day with default meals (breakfast, lunch, dinner)."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -749,7 +769,7 @@ def add_day(request, meal_plan_id: int, payload: MealDayBulkCreateIn):
 @meal_plan_router.delete("/{meal_plan_id}/days/")
 def remove_day(request, meal_plan_id: int, date: dt.date):
     """Remove all meals for a specific date. Only edge days (first or last) can be deleted."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -783,7 +803,7 @@ def remove_day(request, meal_plan_id: int, date: dt.date):
 @meal_plan_router.post("/{meal_plan_id}/add-day-before/", response=list[MealOut])
 def add_day_before(request, meal_plan_id: int):
     """Add a day before the current start, shifting start_datetime back by one day."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -807,7 +827,7 @@ def add_day_before(request, meal_plan_id: int):
 @meal_plan_router.post("/{meal_plan_id}/add-day-after/", response=list[MealOut])
 def add_day_after(request, meal_plan_id: int):
     """Add a day after the current end, shifting end_datetime forward by one day."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -836,7 +856,7 @@ def add_day_after(request, meal_plan_id: int):
 @meal_plan_router.post("/{meal_plan_id}/meals/", response=MealOut)
 def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
     """Add a meal to a meal plan."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -877,7 +897,7 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
 @meal_plan_router.post("/{meal_plan_id}/meals/reorder/", response=MealPlanDetailOut)
 def reorder_meals(request, meal_plan_id: int, payload: MealReorderIn):
     """Reorder or swap meals across days or slots."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -960,7 +980,7 @@ def reorder_meals(request, meal_plan_id: int, payload: MealReorderIn):
 @meal_plan_router.delete("/{meal_plan_id}/meals/{meal_id}/")
 def remove_meal(request, meal_plan_id: int, meal_id: int):
     """Remove a meal and all its items."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -977,7 +997,7 @@ def remove_meal(request, meal_plan_id: int, meal_id: int):
 @meal_plan_router.post("/{meal_plan_id}/meals/{meal_id}/items/", response=MealItemOut)
 def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCreateIn):
     """Add a recipe or ingredient to a meal."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1022,7 +1042,7 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
     """
     from django.db import transaction
 
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1080,7 +1100,7 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
     """Replace breakfast items in several event meals atomically."""
     from django.db import transaction
 
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
     if not payload.meal_ids:
@@ -1141,7 +1161,7 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
 )
 def batch_create_meal_items(request, meal_plan_id: int, meal_id: int, payload: MealItemBatchIn):
     """Create multiple meal items atomically (for variant items)."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
@@ -1188,7 +1208,7 @@ def batch_create_meal_items(request, meal_plan_id: int, meal_id: int, payload: M
 @meal_plan_router.delete("/{meal_plan_id}/meal-items/{item_id}/")
 def remove_meal_item(request, meal_plan_id: int, item_id: int):
     """Remove a recipe from a meal."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1204,7 +1224,7 @@ def remove_meal_item(request, meal_plan_id: int, item_id: int):
 @meal_plan_router.patch("/{meal_plan_id}/meal-items/{item_id}/", response=MealItemOut)
 def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItemUpdateIn):
     """Update a meal item (e.g. factor)."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1239,7 +1259,7 @@ def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItem
 @meal_plan_router.patch("/{meal_plan_id}/meals/{meal_id}/", response=MealOut)
 def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn):
     """Update meal notes, override_portions, or note visibility."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1280,7 +1300,7 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
 @meal_plan_router.post("/{meal_plan_id}/meals/{meal_id}/scale-to-target/", response=MealOut)
 def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     """Scale all items in a meal proportionally to target calories."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1324,7 +1344,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
 )
 def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: CopyItemsFromPlanIn):
     """Copy all items from a source plan's meal into the target meal."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1395,7 +1415,6 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
 @meal_plan_router.get("/{meal_plan_id}/plan-check/", response=PlanCheckResponseOut)
 def plan_check(request, meal_plan_id: int):
     """Analyze meal plan for empty slots, budget excess, and allergen/nutritional issues."""
-    _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -1520,7 +1539,7 @@ def plan_check(request, meal_plan_id: int):
 )
 def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: list[MealItemOverrideIn]):
     """Set overrides for a meal item's recipe ingredients."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -1565,7 +1584,6 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     from planner.services.calculation_context import active_recipe_items
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
 
-    _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -1668,7 +1686,6 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
 @meal_plan_router.get("/{meal_plan_id}/costs/", response=MealPlanCostSummaryOut)
 def cost_summary(request, meal_plan_id: int):
     """Get aggregated cost breakdown for the entire meal plan."""
-    _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -1870,7 +1887,7 @@ def cost_summary(request, meal_plan_id: int):
 )
 def shopping_list(request, meal_plan_id: int):
     """Generate an aggregated shopping list for a meal plan."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -2189,7 +2206,7 @@ def recently_used_recipes(
     limit: int = 5,
 ):
     """Return user's last 5 distinct recipes used across all meal plans."""
-    _require_auth(request)
+    require_login(request)
     limit = min(limit, 10)
 
     recipe_ids = (
@@ -2254,7 +2271,7 @@ def search_recipes(
                   'ingredient' als einziger Wert gibt nur eigenständig konsumierbare Zutaten zurück.
                   Überschreibt das automatische meal_type-Mapping.
     """
-    _require_auth(request)
+    require_login(request)
 
     limit = min(limit, 50)
     fallback_applied = False
@@ -2558,7 +2575,6 @@ def export_pdf(
     page_format: str = "A4",
 ):
     """Export meal plan as PDF with all sections configurable via query parameters."""
-    _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -2587,7 +2603,6 @@ def export_pdf(
 @meal_plan_router.get("/{meal_plan_id}/cooking-schedule/export/pdf/")
 def export_cooking_schedule_pdf(request, meal_plan_id: int, page_format: str = "A4"):
     """Export cooking schedule (Kochplan) as PDF."""
-    _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -2619,7 +2634,7 @@ def export_cooking_schedule_pdf(request, meal_plan_id: int, page_format: str = "
 )
 def list_collaborators(request, meal_plan_id: int):
     """List all collaborators of a meal plan."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -2632,7 +2647,7 @@ def list_collaborators(request, meal_plan_id: int):
 )
 def add_collaborator(request, meal_plan_id: int, payload: MealPlanCollaboratorCreateIn):
     """Add a collaborator to a meal plan (owner/admin only)."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_admin(meal_plan, request.user)
 
@@ -2671,7 +2686,7 @@ def add_collaborator(request, meal_plan_id: int, payload: MealPlanCollaboratorCr
 )
 def update_collaborator(request, meal_plan_id: int, collaborator_id: int, payload: MealPlanCollaboratorUpdateIn):
     """Update a collaborator's role (owner/admin only)."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_admin(meal_plan, request.user)
 
@@ -2688,7 +2703,7 @@ def update_collaborator(request, meal_plan_id: int, collaborator_id: int, payloa
 @meal_plan_router.delete("/{meal_plan_id}/collaborators/{collaborator_id}/")
 def remove_collaborator(request, meal_plan_id: int, collaborator_id: int):
     """Remove a collaborator from a meal plan (owner/admin only)."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_admin(meal_plan, request.user)
 
@@ -2707,7 +2722,7 @@ def remove_collaborator(request, meal_plan_id: int, collaborator_id: int):
 )
 def get_suggestions(request, meal_plan_id: int):
     """Evaluate all rules and system checks, return suggestion dashboard."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -2729,7 +2744,7 @@ def get_ingredient_scan(request, meal_plan_id: int):
     """Scan the meal plan for nutritional tag violations at ingredient level.
     Checks both recipe-level tags (after full sync) and standalone ingredient tags.
     """
-    _require_auth(request)
+    require_login(request)
 
     try:
         meal_plan = MealPlan.objects.prefetch_related(
@@ -2830,7 +2845,6 @@ def get_cooking_schedule(request, meal_plan_id: int):
     """
     from planner.services.cooking_schedule_service import build_cooking_schedule
 
-    _require_auth(request)
     try:
         meal_plan = MealPlan.objects.get(pk=meal_plan_id)
     except MealPlan.DoesNotExist:
@@ -2850,7 +2864,7 @@ def calculate_ingredient_kcal(request, meal_plan_id: int, payload: CalculateIngr
     Used by the breakfast wizard to calculate extra ingredient kcal.
     """
 
-    _require_auth(request)
+    require_login(request)
 
     # Check meal plan exists and user has access
     try:
@@ -2903,7 +2917,7 @@ def calculate_ingredient_kcal(request, meal_plan_id: int, payload: CalculateIngr
 )
 def list_tags(request, meal_plan_id: int):
     """List all tags for a meal plan."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
     return list(meal_plan.tags.all())
@@ -2915,7 +2929,7 @@ def list_tags(request, meal_plan_id: int):
 )
 def create_tag(request, meal_plan_id: int, payload: MealPlanTagCreateIn):
     """Create a new tag for a meal plan."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -2933,7 +2947,7 @@ def create_tag(request, meal_plan_id: int, payload: MealPlanTagCreateIn):
 )
 def delete_tag(request, meal_plan_id: int, tag_id: int):
     """Delete a tag from a meal plan."""
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -2964,7 +2978,7 @@ def intelligent_suggestions(
     Falls back to algorithmic scoring when Gemini is unavailable.
     Set context_enhance=false for pure algorithmic suggestions.
     """
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
@@ -3012,7 +3026,7 @@ STUFEN_DEFAULT_AGES = {
 
 @meal_plan_router.get("/{meal_plan_id}/group-members/", response=list[GroupMemberOut])
 def list_group_members(request, meal_plan_id: int):
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
     return meal_plan.group_members.select_related("person").prefetch_related("nutritional_tags").all()
@@ -3020,7 +3034,7 @@ def list_group_members(request, meal_plan_id: int):
 
 @meal_plan_router.post("/{meal_plan_id}/group-members/", response=GroupMemberOut)
 def create_group_member(request, meal_plan_id: int, payload: GroupMemberCreateIn):
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -3046,7 +3060,7 @@ def create_group_member(request, meal_plan_id: int, payload: GroupMemberCreateIn
 
 @meal_plan_router.post("/{meal_plan_id}/group-members/bulk/", response=list[GroupMemberOut])
 def bulk_create_group_members(request, meal_plan_id: int, payload: GroupMemberBulkCreateIn):
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
@@ -3078,7 +3092,7 @@ def bulk_create_group_members(request, meal_plan_id: int, payload: GroupMemberBu
 
 @meal_plan_router.patch("/{meal_plan_id}/group-members/{member_id}/", response=GroupMemberOut)
 def update_group_member(request, meal_plan_id: int, member_id: int, payload: GroupMemberUpdateIn):
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
     member = get_object_or_404(MealPlanGroupMember, id=member_id, meal_plan=meal_plan)
@@ -3105,7 +3119,7 @@ def update_group_member(request, meal_plan_id: int, member_id: int, payload: Gro
 
 @meal_plan_router.delete("/{meal_plan_id}/group-members/{member_id}/")
 def delete_group_member(request, meal_plan_id: int, member_id: int):
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
     member = get_object_or_404(MealPlanGroupMember, id=member_id, meal_plan=meal_plan)
@@ -3123,7 +3137,7 @@ def delete_group_member(request, meal_plan_id: int, member_id: int):
 
 @meal_plan_router.post("/{meal_plan_id}/sync-event-participants/", response=list[GroupMemberOut])
 def sync_event_participants(request, meal_plan_id: int):
-    _require_auth(request)
+    require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 

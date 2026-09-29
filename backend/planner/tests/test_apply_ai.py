@@ -133,14 +133,14 @@ class TestAiApplyEndpoint(TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
-    def test_unauthenticated_returns_403(self):
+    def test_unauthenticated_returns_401(self):
         self.client.logout()
         response = self.client.post(
             f"/api/meal-plans/{self.plan.id}/apply-ai/",
             data=json.dumps(self.valid_payload),
             content_type="application/json",
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_unauthorized_user_returns_403(self):
         self.client.force_login(self.other_user)

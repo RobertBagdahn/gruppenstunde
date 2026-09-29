@@ -153,7 +153,7 @@ class TestCreateReweExportTokenFailures:
     def test_unauthenticated_returns_403(self, shopping_list):
         c = Client()
         res = c.post(f"/api/shopping-lists/{shopping_list.id}/rewe-export-token/")
-        assert res.status_code == 403
+        assert res.status_code == 401
 
     def test_unrelated_user_gets_404(self, client_bob, shopping_list):
         res = client_bob.post(f"/api/shopping-lists/{shopping_list.id}/rewe-export-token/")

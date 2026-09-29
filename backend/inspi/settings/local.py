@@ -27,3 +27,6 @@ DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 # Use console backend for emails locally if no App Password is provided
 if not env("EMAIL_HOST_PASSWORD", default=None):
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Local login without OAuth provider (see core.api.dev_login).
+AUTH_DEV_LOGIN_ENABLED = True

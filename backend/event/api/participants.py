@@ -6,6 +6,7 @@ from django.utils import timezone
 from ninja import Schema
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.choices import TimelineActionChoices
 from event.models import BookingOption, Event, Participant, Person, Registration
 from event.schemas import (
@@ -20,7 +21,7 @@ from event.services.timeline import TimelineService
 from event.services.waitlist import WaitlistService
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 
 class RemoveParticipantIn(Schema):
@@ -35,7 +36,7 @@ class RemoveParticipantIn(Schema):
 @event_router.post("/{event_slug}/register/", response=RegistrationOut)
 def register_for_event(request, event_slug: str, payload: RegisterIn):
     """Register persons for an event. Creates a Registration and clones Person data."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
 
     if not event.user_is_invited(request.user):
@@ -97,7 +98,7 @@ def register_for_event(request, event_slug: str, payload: RegisterIn):
 @event_router.post("/{event_slug}/register-admin/", response=RegistrationOut)
 def register_admin(request, event_slug: str, payload: AdminRegisterIn):
     """Admin: Register persons for an event with inline person creation support."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -171,7 +172,7 @@ def register_admin(request, event_slug: str, payload: AdminRegisterIn):
 @event_router.delete("/{event_slug}/participants/{participant_id}/")
 def remove_participant(request, event_slug: str, participant_id: int, payload: RemoveParticipantIn | None = None):
     """Remove a participant from an event (soft-delete)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     participant = get_object_or_404(Participant, id=participant_id, registration__event=event)
 
@@ -213,7 +214,7 @@ def remove_participant(request, event_slug: str, participant_id: int, payload: R
 @event_router.patch("/{event_slug}/participants/{participant_id}/", response=ParticipantOut)
 def update_participant(request, event_slug: str, participant_id: int, payload: ParticipantUpdateIn):
     """Update a participant (payment status, booking option, etc.)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     participant = get_object_or_404(Participant, id=participant_id, registration__event=event)
 
@@ -302,7 +303,7 @@ def list_event_participants(
     page_size: int = 50,
 ):
     """List all participants of an event (managers only). Supports filtering and pagination."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

@@ -3,23 +3,11 @@
 from ninja import Router, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
 from supply.models import NutritionalTag
 from supply.schemas import NutritionalTagIn, NutritionalTagOut, NutritionalTagUpdateIn
 
 nutritional_tag_router = Router(tags=["nutritional-tags"])
-
-
-def _require_staff(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Nur Admins")
-    if request.user.is_staff:
-        return
-    try:
-        if request.user.profile.role in ("staff", "admin"):
-            return
-    except AttributeError:
-        pass
-    raise HttpError(403, "Nur Admins")
 
 
 @nutritional_tag_router.get("/", response=list[NutritionalTagOut])
@@ -31,7 +19,7 @@ def list_nutritional_tags(request):
 @nutritional_tag_router.post("/", response={201: NutritionalTagOut})
 def create_nutritional_tag(request, payload: NutritionalTagIn):
     """Create a new nutritional tag (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     tag = NutritionalTag.objects.create(**payload.dict())
     return Status(201, tag)
 
@@ -39,7 +27,7 @@ def create_nutritional_tag(request, payload: NutritionalTagIn):
 @nutritional_tag_router.patch("/{tag_id}/", response=NutritionalTagOut)
 def update_nutritional_tag(request, tag_id: int, payload: NutritionalTagUpdateIn):
     """Update a nutritional tag (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         tag = NutritionalTag.objects.get(id=tag_id)
     except NutritionalTag.DoesNotExist:
@@ -54,7 +42,7 @@ def update_nutritional_tag(request, tag_id: int, payload: NutritionalTagUpdateIn
 @nutritional_tag_router.delete("/{tag_id}/", response={204: None})
 def delete_nutritional_tag(request, tag_id: int):
     """Delete a nutritional tag (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         tag = NutritionalTag.objects.get(id=tag_id)
     except NutritionalTag.DoesNotExist:

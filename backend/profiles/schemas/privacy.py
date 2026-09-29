@@ -38,6 +38,7 @@ class DataOverviewSchema(Schema):
     planning: CategorySchema
     packing_lists: CategorySchema
     shopping_lists: CategorySchema
+    login_providers: CategorySchema
     analytics: AnalyticsDataSchema
 
 
@@ -47,7 +48,6 @@ class DataOverviewSchema(Schema):
 class DeleteAccountRequestSchema(Schema):
     """Request to delete (anonymize) user account."""
 
-    password: str | None = None
     confirmation: str
 
     @field_validator("confirmation")

@@ -12,6 +12,8 @@ from ninja import Query, Router
 from ninja.errors import HttpError
 
 from content.services.search_service import log_search, log_search_structured
+from core.errors import ApiError
+from core.permissions import require_login
 from recipe.schemas import PaginatedRecipeOut
 from supply.choices import PortionWeightSource, PortionWeightStatus
 from supply.models import (
@@ -29,8 +31,10 @@ from supply.schemas import (
     IngredientAliasOut,
     IngredientCreateIn,
     IngredientDetailOut,
+    IngredientDraftOut,
     IngredientImportUrlIn,
     IngredientImportUrlOut,
+    IngredientNutritionDraftOut,
     IngredientSimilarOut,
     IngredientSuggestAllOut,
     IngredientSuggestionOut,
@@ -60,8 +64,6 @@ from supply.services.portion_integrity import (
 )
 from supply.services.portion_resolution import is_piece_like_name
 
-from .helpers import require_auth
-
 logger = logging.getLogger(__name__)
 
 ingredient_router = Router(tags=["ingredients"])
@@ -70,7 +72,7 @@ ingredient_router = Router(tags=["ingredients"])
 @ingredient_router.post("/{slug}/portions/magic-wand/preview/", response=PortionMagicPreviewOut)
 def preview_portion_magic_wand(request, slug: str):
     """Create a fresh AI preview without mutating portions."""
-    require_auth(request)
+    require_login(request)
     from content.services.food_access import get_ingredient_detail_or_404
     from supply.services.portion_magic_wand import preview_portions
 
@@ -83,7 +85,7 @@ def preview_portion_magic_wand(request, slug: str):
 @ingredient_router.post("/{slug}/portions/magic-wand/apply/", response=PortionMagicApplyOut)
 def apply_portion_magic_wand(request, slug: str, payload: PortionMagicApplyIn):
     """Apply a confirmed magic-wand preview atomically."""
-    require_auth(request)
+    require_login(request)
     from content.services.food_access import get_ingredient_detail_or_404
     from supply.services.portion_magic_wand import apply_portions
 
@@ -244,11 +246,10 @@ def list_ingredients(
 
 @ingredient_router.get("/suggest/", response=list[IngredientSuggestionOut])
 def suggest_ingredients(request, q: str = "", limit: int = Query(default=5, le=50)):
-    """Fuzzy-match ingredients by name using trigram similarity."""
-    require_auth(request)
+    """Fuzzy-match ingredients by name using trigram similarity (open to anonymous visitors)."""
     from supply.services.fuzzy_match import suggest_ingredients as do_suggest
 
-    return do_suggest(query=q, limit=limit)
+    return do_suggest(query=q, limit=limit, user=request.user)
 
 
 @ingredient_router.get("/generic-terms/", response=list[str])
@@ -303,7 +304,7 @@ def list_standard_measures(request, slug: str):
 @ingredient_router.post("/ai-create/", response=IngredientDetailOut)
 def ai_create(request, payload: IngredientAiCreateIn):
     """Create a complete ingredient from just a name using AI."""
-    require_auth(request)
+    require_login(request)
 
     from supply.services.ingredient_ai_suggest_service import ai_create_ingredient
 
@@ -340,7 +341,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
 
     For breakfast wizard items, sets owner to current user and handles visibility/sharing.
     """
-    require_auth(request)
+    require_login(request)
 
     if payload.visibility == "shared" and payload.shared_group_ids:
         from profiles.models import UserGroup as Group
@@ -411,7 +412,7 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
     Only the owner can modify visibility and shared_group_ids.
     """
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import visible_ingredient_queryset
 
@@ -526,7 +527,7 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 @ingredient_router.delete("/{slug}/")
 def delete_ingredient(request, slug: str):
     """Soft-delete an ingredient while preserving existing recipe references."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import visible_ingredient_queryset
 
@@ -560,7 +561,7 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     Validates that portion name is unique per ingredient (case-insensitive).
     Returns 422 if name already exists.
     """
-    require_auth(request)
+    require_login(request)
 
     if not payload.name or not payload.name.strip():
         raise HttpError(422, "Portionsname darf nicht leer sein.")
@@ -633,7 +634,7 @@ def confirm_portion(request, slug: str, payload: PortionConfirmIn):
     duplicate names are reused or renamed, referenced portions are never
     mutated in place.
     """
-    require_auth(request)
+    require_login(request)
 
     from supply.services.portion_confirmation import confirm_portion as _confirm
 
@@ -671,7 +672,7 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
 
     Body: { orders: [{id: int, rank: int}, ...] }
     """
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -701,7 +702,7 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
     If `replace_all=True`, ALL existing portions and packages are soft-deleted
     before the selected suggestions are created, all within a single transaction.
     """
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -853,7 +854,7 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
     resolvable for existing RecipeItems (see openspec change
     `portion-superseded-versions`).
     """
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1012,7 +1013,7 @@ def delete_portion(request, slug: str, portion_id: int):
     `current_portion` never resolves to a portion that was just deleted (see
     openspec change `portion-superseded-versions`, design decision D8).
     """
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1059,7 +1060,7 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
     """
     from django.db import transaction
 
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1114,7 +1115,7 @@ def list_packages(request, slug: str):
 @ingredient_router.post("/{slug}/packages/", response=PackageOut)
 def create_package(request, slug: str, payload: PackageCreateIn):
     """Create a package for an ingredient."""
-    require_auth(request)
+    require_login(request)
 
     if not payload.name or not payload.name.strip():
         raise HttpError(422, "Packungsname darf nicht leer sein.")
@@ -1157,7 +1158,7 @@ def create_package(request, slug: str, payload: PackageCreateIn):
 @ingredient_router.post("/{slug}/packages/reorder/", response=list[PackageOut])
 def reorder_packages(request, slug: str, payload: PackageReorderIn):
     """Reorder multiple packages atomically."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1176,7 +1177,7 @@ def reorder_packages(request, slug: str, payload: PackageReorderIn):
 @ingredient_router.patch("/{slug}/packages/{package_id}/", response=PackageOut)
 def update_package(request, slug: str, package_id: int, payload: PackageUpdateIn):
     """Update a package."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1229,7 +1230,7 @@ def update_package(request, slug: str, package_id: int, payload: PackageUpdateIn
 @ingredient_router.delete("/{slug}/packages/{package_id}/")
 def delete_package(request, slug: str, package_id: int):
     """Soft-delete a package."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1251,7 +1252,7 @@ def delete_package(request, slug: str, package_id: int):
 @ingredient_router.post("/{slug}/aliases/", response=IngredientAliasOut)
 def create_alias(request, slug: str, payload: AliasCreateIn):
     """Create an alias for an ingredient."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1327,7 +1328,7 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
 @ingredient_router.delete("/{slug}/aliases/{alias_id}/")
 def delete_alias(request, slug: str, alias_id: int):
     """Delete an alias."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1348,7 +1349,7 @@ def delete_alias(request, slug: str, alias_id: int):
 @ingredient_router.post("/{slug}/ai-suggest-all/", response=IngredientSuggestAllOut)
 def ai_suggest_all(request, slug: str):
     """Get AI-powered suggestions for all fields of an ingredient."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
 
@@ -1365,7 +1366,7 @@ def ai_suggest_all(request, slug: str):
 @ingredient_router.post("/{slug}/ai-fill-missing/")
 def ai_fill_missing_by_slug(request, slug: str):
     """Fill only the missing master data fields of an ingredient using AI."""
-    require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_ingredient_detail_or_404
     from supply.services.ingredient_ai_fill_service import fill_missing_ingredient_fields
@@ -1389,19 +1390,72 @@ def ai_fill_missing_by_slug(request, slug: str):
 
 @ingredient_router.post("/import-from-url/", response=IngredientImportUrlOut)
 def import_from_url(request, payload: IngredientImportUrlIn):
-    """Extract ingredient data from a URL using Gemini (Produktseite, Open Food Facts, etc.)."""
-    require_auth(request)
+    """ "Zutat erkennen" from a URL (product page, Open Food Facts, …); never writes an ingredient.
 
-    from core.services.gemini import GeminiUnavailableError
+    Open to anonymous visitors (shared anonymous AI budget, 7-day result cache).
+    """
+    from core.permissions import optional_user
+    from core.services import ai_result_cache
     from supply.services.ingredient_url_import_service import import_ingredient_from_url
 
+    is_anonymous = optional_user(request) is None
+    if is_anonymous:
+        cached = ai_result_cache.get_cached("ingredient_recognize_url", payload.url)
+        if cached is not None:
+            return cached
     try:
         result = import_ingredient_from_url(payload.url, user=request.user)
-    except GeminiUnavailableError:
-        raise HttpError(429, "KI-Dienst vorübergehend nicht verfügbar. Bitte später erneut versuchen.")
     except ValueError as e:
         raise HttpError(422, str(e))
+    if is_anonymous:
+        ai_result_cache.store(
+            "ingredient_recognize_url",
+            payload.url,
+            IngredientImportUrlOut.model_validate(result).model_dump(mode="json"),
+        )
+    return result
 
+
+@ingredient_router.post("/ai-preview/", response=IngredientImportUrlOut)
+def ai_preview(request, payload: IngredientAiCreateIn):
+    """ "Zutat erkennen" by name: AI draft without saving (open to anonymous visitors)."""
+    from core.permissions import optional_user
+    from core.services import ai_result_cache
+    from supply.models import RetailSection
+    from supply.services.ingredient_ai_suggest_service import generate_ingredient_draft
+
+    name = payload.name.strip()
+    if not name or len(name) > 100:
+        raise ApiError(422, "invalid_input", "Bitte gib einen Zutatennamen mit höchstens 100 Zeichen ein.")
+    is_anonymous = optional_user(request) is None
+    if is_anonymous:
+        cached = ai_result_cache.get_cached("ingredient_recognize_name", name.lower())
+        if cached is not None:
+            return cached
+
+    data, interaction_id = generate_ingredient_draft(name, request.user)
+    retail_section = RetailSection.objects.filter(name=data.retail_section).first()
+    result = IngredientImportUrlOut(
+        ai_interaction_id=str(interaction_id) if interaction_id else None,
+        ingredient_draft=IngredientDraftOut(
+            name=data.name,
+            description=data.description,
+            retail_section_id=retail_section.id if retail_section else None,
+        ),
+        nutrition=IngredientNutritionDraftOut(
+            energy_kcal=data.energy_kcal,
+            protein_g=data.protein_g,
+            fat_g=data.fat_g,
+            fat_sat_g=data.fat_sat_g,
+            carbohydrate_g=data.carbohydrate_g,
+            sugar_g=data.sugar_g,
+            fibre_g=data.fibre_g,
+            salt_g=data.salt_g,
+            sodium_mg=data.sodium_mg,
+        ),
+    )
+    if is_anonymous:
+        ai_result_cache.store("ingredient_recognize_name", name.lower(), result.model_dump(mode="json"))
     return result
 
 

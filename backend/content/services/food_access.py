@@ -313,6 +313,15 @@ def public_recipe_queryset():
     )
 
 
+def public_meal_plan_q() -> Q:
+    """MealPlans readable by everyone, including anonymous visitors (read-only)."""
+    return Q(Q(owner__isnull=True) | Q(owner__isnull=False, visibility="public") | Q(is_template=True))
+
+
+def is_public_meal_plan(meal_plan: Any) -> bool:
+    return meal_plan.owner_id is None or meal_plan.visibility == "public" or bool(meal_plan.is_template)
+
+
 def public_ingredient_queryset():
     from supply.models import Ingredient
 

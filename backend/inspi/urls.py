@@ -13,6 +13,8 @@ from content.api.data_quality import admin_router as dq_admin_router
 from content.api.data_quality import public_router as dq_public_router
 from content.tags_api import scout_levels_router, tags_router
 from core.api import auth_router, users_router
+from core.api_ai import ai_router
+from core.errors import register_error_handlers
 from event.api import (
     event_router,
     location_router,
@@ -59,9 +61,11 @@ api = NinjaAPI(
     description="API für die Pfadfinder-Gruppenstunden-Plattform",
     version="2.0.0",
 )
+register_error_handlers(api)
 
 api.add_router("/auth/", auth_router)
 api.add_router("/users/", users_router)
+api.add_router("/ai/", ai_router)
 api.add_router("/admin/", admin_router)
 api.add_router("/admin/tags/", admin_tags_router)
 # Specific staff-only routes must precede the catch-all data-quality router.
@@ -177,6 +181,8 @@ def robots_txt(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # Allauth OAuth start + callback. Lives under /api/ because the frontends only proxy /api/.
+    path("api/accounts/", include("allauth.urls")),
     path("api/", api.urls),
     path("sitemap.xml", sitemap_xml, name="sitemap"),
     path("robots.txt", robots_txt, name="robots"),

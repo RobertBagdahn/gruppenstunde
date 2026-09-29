@@ -322,7 +322,7 @@ class TestReplaceEndpoint:
         recipe, item = recipe_with_salz
         target_portion = jodsalz.portions.first()
         resp = self._replace(client, recipe.id, item.id, portion_id=target_portion.id)
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_replace_other_user_forbidden(self, django_user_model, client, jodsalz, recipe_with_salz):
         recipe, item = recipe_with_salz

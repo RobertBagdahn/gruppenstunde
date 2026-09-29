@@ -3,6 +3,7 @@
 from django.shortcuts import get_object_or_404
 from ninja import Status
 
+from core.permissions import require_login
 from event.models import CustomField, CustomFieldValue, Event, Participant
 from event.schemas import (
     CustomFieldCreateIn,
@@ -13,7 +14,7 @@ from event.schemas import (
 )
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 # ==========================================================================
 # Custom Field CRUD (on events)
@@ -23,7 +24,7 @@ from .helpers import require_auth, require_event_manager
 @event_router.get("/{event_slug}/custom-fields/", response=list[CustomFieldOut])
 def list_custom_fields(request, event_slug: str):
     """List custom fields for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -33,7 +34,7 @@ def list_custom_fields(request, event_slug: str):
 @event_router.post("/{event_slug}/custom-fields/", response={201: CustomFieldOut})
 def create_custom_field(request, event_slug: str, payload: CustomFieldCreateIn):
     """Create a custom field for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -44,7 +45,7 @@ def create_custom_field(request, event_slug: str, payload: CustomFieldCreateIn):
 @event_router.patch("/{event_slug}/custom-fields/{field_id}/", response=CustomFieldOut)
 def update_custom_field(request, event_slug: str, field_id: int, payload: CustomFieldUpdateIn):
     """Update a custom field (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -61,7 +62,7 @@ def update_custom_field(request, event_slug: str, field_id: int, payload: Custom
 @event_router.delete("/{event_slug}/custom-fields/{field_id}/")
 def delete_custom_field(request, event_slug: str, field_id: int):
     """Delete a custom field (managers only). Also deletes all values."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -82,7 +83,7 @@ def delete_custom_field(request, event_slug: str, field_id: int):
 )
 def set_custom_field_values(request, event_slug: str, participant_id: int, payload: CustomFieldValuesIn):
     """Set custom field values for a participant (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

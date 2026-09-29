@@ -79,7 +79,7 @@ def test_create_portion_auth_and_validation(api_client, auth_client, ingredient,
         ),
         content_type="application/json",
     )
-    assert resp_unauth.status_code == 403
+    assert resp_unauth.status_code == 401
 
     # Authenticated creator of a draft, missing weight -> 422
     ingredient.created_by = auth_client._user

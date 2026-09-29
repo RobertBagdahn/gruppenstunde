@@ -5,7 +5,8 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from planner.api.meal_plan import _require_access, _require_auth, _require_edit
+from core.permissions import require_login
+from planner.api.meal_plan import _require_access, _require_edit
 from planner.models import BuffetTemplate, Meal, MealPlan
 from planner.schemas.buffet import (
     BuffetResultOut,
@@ -87,7 +88,7 @@ def _get_meal(meal_plan_id: int, meal_id: int, request, *, edit: bool) -> Meal:
 @buffet_router.get("/{meal_plan_id}/meals/{meal_id}/buffet/", response=BuffetStateOut)
 def get_buffet_state(request, meal_plan_id: int, meal_id: int):
     """Saved template, selection and role amounts of a meal's buffet."""
-    _require_auth(request)
+    require_login(request)
     meal = _get_meal(meal_plan_id, meal_id, request, edit=False)
     selections = [
         {"role_slug": item.buffet_role, "ingredient_id": item.ingredient_id, "recipe_id": item.recipe_id}
@@ -105,7 +106,7 @@ def save_meal_buffet(request, meal_plan_id: int, meal_id: int, payload: BuffetSa
     """Preview (``dry_run``) or save a buffet; quantities are computed here only."""
     from content.services.food_access import get_visible_ingredient_or_404, get_visible_recipe_or_404
 
-    _require_auth(request)
+    require_login(request)
     meal = _get_meal(meal_plan_id, meal_id, request, edit=True)
     template = get_object_or_404(active_templates(), id=payload.template_id)
 

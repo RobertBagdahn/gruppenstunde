@@ -114,7 +114,7 @@ class TestPriceEvaluateCreatesProposals:
             data=json.dumps({"ingredient_ids": [1]}),
             content_type="application/json",
         )
-        assert res.status_code == 403
+        assert res.status_code == 401
 
 
 @pytest.mark.django_db
@@ -259,4 +259,4 @@ class TestPriceApplyUsesProposals:
             data=json.dumps({"items": []}),
             content_type="application/json",
         )
-        assert res.status_code == 403
+        assert res.status_code == 401

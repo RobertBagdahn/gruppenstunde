@@ -97,7 +97,7 @@ class TestShareLinkCRUD:
             data=json.dumps({"label": "Test"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_share_link_requires_edit_permission(self, auth_client):
         pl = make_packing_list()  # Different owner

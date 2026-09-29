@@ -100,3 +100,6 @@ class RecipeImportUrlResponseOut(BaseModel):
     # search grounding. The UI must ask the user to verify it.
     is_reconstructed: bool = False
     ai_interaction_id: str | None = None
+    # Anonymous preview: nothing was stored. Items with `ingredient_id == 0` are
+    # new ingredients that get created when the (logged-in) user saves.
+    is_preview: bool = False

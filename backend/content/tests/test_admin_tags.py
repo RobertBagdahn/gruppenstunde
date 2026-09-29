@@ -44,7 +44,6 @@ def tag(db):
 
 @pytest.mark.django_db
 class TestAdminTagsCRUD:
-
     def test_list_admin_tags_staff(self, staff_user, tag, client):
         client.force_login(staff_user)
         resp = client.get("/api/admin/tags/")
@@ -60,7 +59,7 @@ class TestAdminTagsCRUD:
 
     def test_list_admin_tags_requires_auth(self, client):
         resp = client.get("/api/admin/tags/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_tag(self, staff_user, client):
         client.force_login(staff_user)
@@ -118,7 +117,6 @@ class TestAdminTagsCRUD:
 
 @pytest.mark.django_db
 class TestAdminTagDetail:
-
     def test_tag_detail(self, staff_user, tag, client):
         client.force_login(staff_user)
         resp = client.get(f"/api/admin/tags/{tag.id}/detail/")

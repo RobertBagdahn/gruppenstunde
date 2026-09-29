@@ -133,7 +133,7 @@ class TestWizardItemsEndpoint:
             data=json.dumps({"items": []}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_unauthorized_viewer(self, client: Client):
         owner = baker.make(User)

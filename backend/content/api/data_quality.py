@@ -53,6 +53,7 @@ from content.schemas.data_quality import (
     RecipeMetadataCheckOut,
 )
 from content.services.audit_service import get_audit_log_queryset
+from core.permissions import require_staff
 from supply.models import Ingredient, IngredientPriceProposal
 from supply.services.price_service import is_missing_price
 
@@ -72,14 +73,9 @@ DUPLICATE_NEIGHBOR_LIMIT = 10
 DUPLICATE_MAX_PAGE_SIZE = 50
 
 
-def _require_staff(request):
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur für Administratoren")
-
-
 @admin_router.post("/ingredients/{ingredient_id}/ai-fill-missing/")
 def ai_fill_missing(request, ingredient_id: int):
-    _require_staff(request)
+    require_staff(request)
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     from supply.services.ingredient_ai_fill_service import fill_missing_ingredient_fields
 
@@ -88,7 +84,7 @@ def ai_fill_missing(request, ingredient_id: int):
 
 @admin_router.post("/ingredients/ai-fill-missing/")
 def ai_fill_missing_batch(request, payload: AiFillMissingBatchIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.ingredient_ai_fill_service import fill_missing_ingredient_fields
 
     ingredients = Ingredient.objects.filter(id__in=payload.ingredient_ids)
@@ -102,7 +98,7 @@ def ai_fill_missing_batch(request, payload: AiFillMissingBatchIn):
 
 @admin_router.get("/ingredients/price-analysis/", response=PaginatedPriceAnomalyOut)
 def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: str | None = None):
-    _require_staff(request)
+    require_staff(request)
 
     from supply.services.price_service import is_missing_price
 
@@ -195,7 +191,7 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
 
 @admin_router.post("/ingredients/price-analysis/evaluate/", response=PriceEvaluateResponseOut)
 def price_evaluate(request, body: PriceEvaluateRequestIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.price_service import is_missing_price
 
     if not body.ingredient_ids:
@@ -242,7 +238,7 @@ def price_evaluate(request, body: PriceEvaluateRequestIn):
 
 @admin_router.patch("/ingredients/price-analysis/apply/", response=PriceApplyResponseOut)
 def price_apply(request, body: PriceApplyRequestIn):
-    _require_staff(request)
+    require_staff(request)
 
     from supply.services.ingredient_price_proposal_service import accept_proposal, pending_proposal_for, reject_proposal
 
@@ -344,7 +340,7 @@ def _normalize_duplicate_similarity(cosine_similarity: float) -> float:
 
 @admin_router.get("/ingredients/duplicates/", response=PaginatedDuplicatePairOut)
 def ingredient_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX_PAGE_SIZE):
-    _require_staff(request)
+    require_staff(request)
 
     from django.db import connection
 
@@ -426,7 +422,7 @@ def ingredient_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX
 
 @admin_router.get("/recipes/duplicates/", response=PaginatedDuplicatePairOut)
 def recipe_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX_PAGE_SIZE):
-    _require_staff(request)
+    require_staff(request)
 
     from content.services.embedding_service import cosine_similarity
     from recipe.models import Recipe
@@ -505,7 +501,7 @@ def recipe_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX_PAG
 
 @admin_router.post("/recipes/duplicates/dismiss/")
 def recipe_dismiss_duplicate(request, body: RecipeDismissRequestIn):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
 
     ct = ContentType.objects.get_for_model(Recipe)
@@ -522,7 +518,7 @@ def recipe_dismiss_duplicate(request, body: RecipeDismissRequestIn):
 
 @admin_router.delete("/recipes/duplicates/dismiss/")
 def recipe_undismiss_duplicate(request, body: RecipeDismissRequestIn):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
 
     ct = ContentType.objects.get_for_model(Recipe)
@@ -538,7 +534,7 @@ def recipe_undismiss_duplicate(request, body: RecipeDismissRequestIn):
 
 @admin_router.get("/recipes/merge/preview/", response=RecipeMergePreviewOut)
 def recipe_merge_preview(request, source_id: int, target_id: int):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
 
     try:
@@ -565,7 +561,7 @@ def recipe_merge_preview(request, source_id: int, target_id: int):
 
 @admin_router.post("/recipes/merge/")
 def recipe_merge(request, body: MergeRequestIn):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
 
     if body.source_id == body.target_id:
@@ -589,7 +585,7 @@ def recipe_merge(request, body: MergeRequestIn):
 
 @admin_router.post("/ingredients/duplicates/dismiss/")
 def dismiss_duplicate(request, body: DismissRequestIn):
-    _require_staff(request)
+    require_staff(request)
     ct = ContentType.objects.get_for_model(Ingredient)
     a, b = sorted([body.ingredient_a_id, body.ingredient_b_id])
     DuplicateDismissal.objects.get_or_create(
@@ -604,7 +600,7 @@ def dismiss_duplicate(request, body: DismissRequestIn):
 
 @admin_router.delete("/ingredients/duplicates/dismiss/")
 def undismiss_duplicate(request, body: DismissRequestIn):
-    _require_staff(request)
+    require_staff(request)
     ct = ContentType.objects.get_for_model(Ingredient)
     a, b = sorted([body.ingredient_a_id, body.ingredient_b_id])
     DuplicateDismissal.objects.filter(
@@ -618,7 +614,7 @@ def undismiss_duplicate(request, body: DismissRequestIn):
 
 @admin_router.get("/ingredients/merge/preview/", response=MergePreviewOut)
 def merge_preview(request, source_id: int, target_id: int):
-    _require_staff(request)
+    require_staff(request)
     if source_id == target_id:
         raise HttpError(400, "Quell- und Ziel-Zutat dürfen nicht identisch sein")
 
@@ -649,7 +645,7 @@ def merge_preview(request, source_id: int, target_id: int):
 
 @admin_router.post("/ingredients/merge/")
 def merge_ingredients(request, body: MergeRequestIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.ingredient_merge import IngredientMergeError, merge_ingredient
 
     try:
@@ -685,7 +681,7 @@ def merge_ingredients(request, body: MergeRequestIn):
 
 @admin_router.get("/ingredients/completeness/", response=PaginatedCompletenessOut)
 def ingredient_completeness(request, page: int = 1, page_size: int = 20):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.price_service import is_missing_price
 
     ingredients = Ingredient.objects.all().order_by(db_models.F("quality_score").asc(nulls_first=True))
@@ -733,7 +729,7 @@ def ingredient_completeness(request, page: int = 1, page_size: int = 20):
 
 @admin_router.get("/ingredients/missing-classification/")
 def missing_classification(request, page: int = 1, page_size: int = 20):
-    _require_staff(request)
+    require_staff(request)
     qs = Ingredient.objects.filter(Q(retail_section__isnull=True) | Q(nutritional_tags__isnull=True)).distinct()
 
     total = qs.count()
@@ -759,7 +755,7 @@ def missing_classification(request, page: int = 1, page_size: int = 20):
 def nutrition_plausibility(
     request, page: int = 1, page_size: int = 20, anomaly_type: str | None = None, search: str | None = None
 ):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.nutrition_plausibility import detect_nutrition_issues, ingredient_nutrition_values
 
     items = []
@@ -813,7 +809,7 @@ def nutrition_plausibility(
 
 @admin_router.get("/recipes/metadata-check/")
 def recipe_metadata_check(request, page: int = 1, page_size: int = 20):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
 
     qs = Recipe.objects.filter(Q(image__isnull=True) | Q(summary="") | Q(tags__isnull=True)).distinct()
@@ -840,7 +836,7 @@ def recipe_metadata_check(request, page: int = 1, page_size: int = 20):
 
 @admin_router.get("/recipes/cache-staleness/")
 def recipe_cache_staleness(request, page: int = 1, page_size: int = 20):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
 
     # Find recipes where any ingredient was updated after the cache
@@ -873,7 +869,7 @@ def recipe_cache_staleness(request, page: int = 1, page_size: int = 20):
 
 @admin_router.get("/recipes/portion-plausibility/")
 def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
-    _require_staff(request)
+    require_staff(request)
     from recipe.models import Recipe
 
     qs = Recipe.objects.filter(cached_weight_g__isnull=False).exclude(recipe_type__in=("snack", "recipe_part"))
@@ -911,7 +907,7 @@ def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
 @admin_router.get("/ingredients/missing-system-portions/")
 def missing_system_portions(request, page: int = 1, page_size: int = 20):
     """Ingredients without any portions."""
-    _require_staff(request)
+    require_staff(request)
 
     qs = Ingredient.objects.all().prefetch_related("portions")
 
@@ -943,7 +939,7 @@ def recipes_with_outdated_portions(request, page: int = 1, page_size: int = 20):
     stale weights until someone accepts the corrected portion via
     `POST /api/recipes/{id}/recipe-items/adopt-current-portions/`.
     """
-    _require_staff(request)
+    require_staff(request)
     from django.db.models import Count
 
     from recipe.models import Recipe, RecipeItem
@@ -984,7 +980,7 @@ def recipes_with_outdated_portions(request, page: int = 1, page_size: int = 20):
 
 @admin_router.get("/trend/", response=QualityTrendOut)
 def quality_trend(request, type: str = "ingredients"):
-    _require_staff(request)
+    require_staff(request)
     # Return daily average quality score for last 30 days
     now = timezone.now()
     points = []
@@ -1008,7 +1004,7 @@ def quality_trend(request, type: str = "ingredients"):
 def audit_log(
     request, content_type: str | None = None, object_id: int | None = None, page: int = 1, page_size: int = 20
 ):
-    _require_staff(request)
+    require_staff(request)
 
     qs = get_audit_log_queryset(content_type_str=content_type, object_id=object_id)
     total = qs.count()

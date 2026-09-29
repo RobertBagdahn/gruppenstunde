@@ -246,7 +246,7 @@ class TestIngredientCreate:
             data=json.dumps({"name": "Zucker"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_ingredient(self, auth_client):
         resp = auth_client.post(

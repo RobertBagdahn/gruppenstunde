@@ -38,6 +38,7 @@ from content.choices import ContentStatus
 from content.models import Tag
 from content.schemas import ImageFromUrlIn
 from content.services.image_service import download_and_save_image, validate_image_url
+from core.permissions import require_login, require_staff
 
 logger = logging.getLogger(__name__)
 
@@ -156,8 +157,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
     # ---------- create ----------
     @router.post("/", response={201: DetailOut})
     def content_create(request, payload: Any):
-        if not request.user.is_authenticated:
-            raise HttpError(403, "Anmeldung erforderlich")
+        require_login(request)
         create_kwargs = {
             "status": ContentStatus.DRAFT,
             "created_by": request.user,
@@ -194,8 +194,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
     # ---------- update ----------
     @router.patch("/{content_id}/", response=DetailOut)
     def content_update(request, content_id: int, payload: Any):
-        if not request.user.is_authenticated:
-            raise HttpError(403, "Anmeldung erforderlich")
+        require_login(request)
         obj = get_object_or_404(Model, id=content_id)
         if not request.user.is_staff and (not hasattr(obj, "created_by") or obj.created_by != request.user):
             raise HttpError(403, "Keine Berechtigung")
@@ -229,8 +228,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
     # ---------- delete ----------
     @router.delete("/{content_id}/", response={204: None})
     def content_delete(request, content_id: int):
-        if not request.user.is_authenticated or not request.user.is_staff:
-            raise HttpError(403, f"Nur Admins dürfen {config.resource_name} löschen")
+        require_staff(request)
         obj = get_object_or_404(Model, id=content_id)
         obj.soft_delete()
         return Status(204, None)
@@ -263,8 +261,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
     # ---------- image ----------
     @router.post("/{content_id}/image/", response=DetailOut)
     def content_image_upload(request, content_id: int):
-        if not request.user.is_authenticated:
-            raise HttpError(403, "Anmeldung erforderlich")
+        require_login(request)
         obj = get_object_or_404(Model, id=content_id)
         if not request.user.is_staff and hasattr(obj, "created_by") and obj.created_by != request.user:
             raise HttpError(403, "Keine Berechtigung")
@@ -278,8 +275,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
 
     @router.delete("/{content_id}/image/", response=DetailOut)
     def content_image_delete(request, content_id: int):
-        if not request.user.is_authenticated:
-            raise HttpError(403, "Anmeldung erforderlich")
+        require_login(request)
         obj = get_object_or_404(Model, id=content_id)
         if not request.user.is_staff and hasattr(obj, "created_by") and obj.created_by != request.user:
             raise HttpError(403, "Keine Berechtigung")
@@ -293,8 +289,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
 
     @router.post("/{content_id}/image-from-url/", response=DetailOut)
     def content_image_from_url(request, content_id: int, payload: ImageFromUrlIn):
-        if not request.user.is_authenticated:
-            raise HttpError(403, "Anmeldung erforderlich")
+        require_login(request)
         obj = get_object_or_404(Model, id=content_id)
         if not request.user.is_staff and hasattr(obj, "created_by") and obj.created_by != request.user:
             raise HttpError(403, "Keine Berechtigung")
@@ -334,8 +329,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
 
         @router.post("/{content_id}/materials/", response={201: dict})
         def content_materials_add(request, content_id: int, payload: ContentMaterialItemIn):
-            if not request.user.is_authenticated:
-                raise HttpError(403, "Anmeldung erforderlich")
+            require_login(request)
             obj = get_object_or_404(Model, id=content_id)
             material = get_object_or_404(Material, id=payload.material_id)
             content_type = ContentType.objects.get_for_model(Model)
@@ -358,8 +352,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
 
         @router.delete("/{content_id}/materials/{item_id}/", response={204: None})
         def content_materials_delete(request, content_id: int, item_id: int):
-            if not request.user.is_authenticated:
-                raise HttpError(403, "Anmeldung erforderlich")
+            require_login(request)
             obj = get_object_or_404(Model, id=content_id)
             item = get_object_or_404(ContentMaterialItem, id=item_id, object_id=obj.id)
             item.delete()

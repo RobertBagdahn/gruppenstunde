@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Status
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.models import Event, EventDaySlot
 from event.schemas import (
     EventDaySlotCreateIn,
@@ -12,7 +13,7 @@ from event.schemas import (
 )
 
 from .events import event_router
-from .helpers import require_auth, require_event_manager
+from .helpers import require_event_manager
 
 # ==========================================================================
 # Event Day Slots (Tagesplan)
@@ -37,7 +38,7 @@ def list_day_slots(request, event_slug: str):
 )
 def create_day_slot(request, event_slug: str, payload: EventDaySlotCreateIn):
     """Add a day slot to an event's day plan."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -74,7 +75,7 @@ def create_day_slot(request, event_slug: str, payload: EventDaySlotCreateIn):
 )
 def update_day_slot(request, event_slug: str, slot_id: int, payload: EventDaySlotUpdateIn):
     """Update a day slot."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -113,7 +114,7 @@ def update_day_slot(request, event_slug: str, slot_id: int, payload: EventDaySlo
 )
 def delete_day_slot(request, event_slug: str, slot_id: int):
     """Delete a day slot from an event."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

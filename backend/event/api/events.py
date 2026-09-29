@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router, Schema, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from core.services.gemini import DEFAULT_TEXT_MODEL
 from event.choices import GenderChoices, ParticipantVisibilityChoices
 from event.models import (
@@ -39,7 +40,7 @@ from event.schemas import (
 )
 from profiles.models import GroupMembership, UserGroup
 
-from .helpers import check_rate_limit, require_auth, require_event_manager
+from .helpers import check_rate_limit, require_event_manager
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +144,7 @@ def public_landing_events(request):
 @event_router.get("/templates/", response=PaginatedEventListOut)
 def list_templates(request, page: int = 1, page_size: int = 20):
     """List template events owned by the current user."""
-    require_auth(request)
+    require_login(request)
     qs = Event.objects.filter(
         is_template=True,
         responsible_persons=request.user,
@@ -175,7 +176,7 @@ def list_templates(request, page: int = 1, page_size: int = 20):
 @event_router.get("/my-invited/", response=list[EventListOut])
 def list_my_invited_events(request):
     """List events the current user is invited to (directly or via group)."""
-    require_auth(request)
+    require_login(request)
     qs = Event.objects.prefetch_related("booking_options", "registrations")
 
     user_group_ids = GroupMembership.objects.filter(user=request.user, is_active=True).values_list(
@@ -191,7 +192,7 @@ def list_my_invited_events(request):
 @event_router.get("/my-registered/", response=list[EventListOut])
 def list_my_registered_events(request):
     """List events the current user has registered for."""
-    require_auth(request)
+    require_login(request)
     registered_event_ids = Registration.objects.filter(user=request.user).values_list("event_id", flat=True)
 
     events = list(
@@ -294,7 +295,7 @@ def list_events(request, page: int = 1, page_size: int = 20):
 @event_router.post("/", response=EventListOut)
 def create_event(request, payload: EventCreateIn):
     """Create a new event with optional inline booking options."""
-    require_auth(request)
+    require_login(request)
     data = payload.dict(exclude={"booking_options", "group_id", "invited_user_ids", "invited_group_ids"})
     meal_plan_for_link = None
 
@@ -374,7 +375,7 @@ class DuplicateEventIn(Schema):
 @event_router.post("/{event_slug}/duplicate/", response=EventListOut)
 def duplicate_event(request, event_slug: str, payload: DuplicateEventIn | None = None):
     """Deep-copy an event with optional date shifting."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -427,7 +428,7 @@ def register_guest(request, event_slug: str, payload: GuestRegistrationIn):
 @event_router.post("/generate-invitation/", response=GenerateInvitationOut)
 def generate_invitation_text(request, payload: GenerateInvitationIn):
     """Generate an invitation text using AI."""
-    require_auth(request)
+    require_login(request)
 
     from core.services.gemini import gemini_call
 
@@ -591,7 +592,7 @@ def get_event(request, event_slug: str):
 @event_router.patch("/{event_slug}/", response=EventListOut)
 def update_event(request, event_slug: str, payload: EventUpdateIn):
     """Update an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -650,7 +651,7 @@ def update_event(request, event_slug: str, payload: EventUpdateIn):
 @event_router.delete("/{event_slug}/")
 def delete_event(request, event_slug: str):
     """Delete an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
     event.delete()
@@ -665,7 +666,7 @@ def delete_event(request, event_slug: str):
 @event_router.post("/{event_slug}/booking-options/", response=BookingOptionOut)
 def create_booking_option(request, event_slug: str, payload: BookingOptionCreateIn):
     """Add a booking option to an event."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
     return BookingOption.objects.create(event=event, **payload.dict())
@@ -674,7 +675,7 @@ def create_booking_option(request, event_slug: str, payload: BookingOptionCreate
 @event_router.patch("/{event_slug}/booking-options/{option_id}/", response=BookingOptionOut)
 def update_booking_option(request, event_slug: str, option_id: int, payload: BookingOptionUpdateIn):
     """Update a booking option."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
     option = get_object_or_404(BookingOption, id=option_id, event=event)
@@ -689,7 +690,7 @@ def update_booking_option(request, event_slug: str, option_id: int, payload: Boo
 @event_router.delete("/{event_slug}/booking-options/{option_id}/")
 def delete_booking_option(request, event_slug: str, option_id: int):
     """Delete a booking option."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
     option = get_object_or_404(BookingOption, id=option_id, event=event)
@@ -707,7 +708,7 @@ def delete_booking_option(request, event_slug: str, option_id: int):
 @event_router.post("/{event_slug}/invite-group/")
 def invite_group(request, event_slug: str, payload: InviteGroupIn):
     """Invite all members of a group to an event."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -724,7 +725,7 @@ def invite_group(request, event_slug: str, payload: InviteGroupIn):
 @event_router.post("/{event_slug}/invite-users/")
 def invite_users(request, event_slug: str, user_ids: list[int]):
     """Invite specific users to an event."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -751,7 +752,7 @@ def list_invitations(
     search: str | None = None,
 ):
     """List all invited users for an event with their response status."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

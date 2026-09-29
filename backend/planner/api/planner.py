@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from planner.models import Planner, PlannerCollaborator, PlannerEntry
 from planner.schemas import (
     InviteIn,
@@ -20,11 +21,6 @@ from profiles.choices import MembershipRoleChoices
 from profiles.models import GroupMembership
 
 router = Router(tags=["planner"])
-
-
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _can_edit_planner(planner: Planner, user) -> bool:
@@ -80,7 +76,7 @@ def _check_planner_access(planner: Planner, user, require_editor: bool = False):
 @router.get("/", response=list[PlannerOut])
 def list_planners(request):
     """List planners the user has access to (owned, group member, collaborator)."""
-    _require_auth(request)
+    require_login(request)
 
     # Groups where user is a member
     member_group_ids = GroupMembership.objects.filter(
@@ -101,7 +97,7 @@ def list_planners(request):
 @router.post("/", response=PlannerOut)
 def create_planner(request, payload: PlannerCreateIn):
     """Create a new planner."""
-    _require_auth(request)
+    require_login(request)
 
     data = payload.dict(exclude={"group_id"})
     planner = Planner.objects.create(owner=request.user, **data)
@@ -119,7 +115,7 @@ def create_planner(request, payload: PlannerCreateIn):
 @router.get("/{planner_id}/", response=PlannerDetailOut)
 def get_planner(request, planner_id: int):
     """Get a planner with all entries and collaborators."""
-    _require_auth(request)
+    require_login(request)
     planner = get_object_or_404(
         Planner.objects.select_related("group").prefetch_related("entries__session", "collaborators__user"),
         id=planner_id,
@@ -132,7 +128,7 @@ def get_planner(request, planner_id: int):
 @router.patch("/{planner_id}/", response=PlannerOut)
 def update_planner(request, planner_id: int, payload: PlannerUpdateIn):
     """Update a planner (owner/group-admin/editor only)."""
-    _require_auth(request)
+    require_login(request)
     planner = get_object_or_404(Planner, id=planner_id)
     _check_planner_access(planner, request.user, require_editor=True)
 
@@ -159,7 +155,7 @@ def update_planner(request, planner_id: int, payload: PlannerUpdateIn):
 @router.delete("/{planner_id}/")
 def delete_planner(request, planner_id: int):
     """Delete a planner and all its entries."""
-    _require_auth(request)
+    require_login(request)
     planner = get_object_or_404(Planner, id=planner_id)
 
     if planner.owner != request.user and not request.user.is_staff:
@@ -177,7 +173,7 @@ def delete_planner(request, planner_id: int):
 @router.post("/{planner_id}/entries/", response=PlannerEntryOut)
 def add_entry(request, planner_id: int, payload: PlannerEntryIn):
     """Add an entry to a planner."""
-    _require_auth(request)
+    require_login(request)
     planner = get_object_or_404(Planner, id=planner_id)
     _check_planner_access(planner, request.user, require_editor=True)
 
@@ -194,7 +190,7 @@ def add_entry(request, planner_id: int, payload: PlannerEntryIn):
 @router.patch("/{planner_id}/entries/{entry_id}/", response=PlannerEntryOut)
 def update_entry(request, planner_id: int, entry_id: int, payload: PlannerEntryUpdateIn):
     """Update an entry (session, notes, status, date)."""
-    _require_auth(request)
+    require_login(request)
     planner = get_object_or_404(Planner, id=planner_id)
     _check_planner_access(planner, request.user, require_editor=True)
 
@@ -209,7 +205,7 @@ def update_entry(request, planner_id: int, entry_id: int, payload: PlannerEntryU
 @router.delete("/{planner_id}/entries/{entry_id}/")
 def remove_entry(request, planner_id: int, entry_id: int):
     """Remove an entry from a planner."""
-    _require_auth(request)
+    require_login(request)
     planner = get_object_or_404(Planner, id=planner_id)
     _check_planner_access(planner, request.user, require_editor=True)
 
@@ -226,7 +222,7 @@ def remove_entry(request, planner_id: int, entry_id: int):
 @router.post("/{planner_id}/invite/")
 def invite_collaborator(request, planner_id: int, payload: InviteIn):
     """Invite a user as collaborator."""
-    _require_auth(request)
+    require_login(request)
     planner = get_object_or_404(Planner, id=planner_id)
 
     if planner.owner != request.user and not request.user.is_staff:

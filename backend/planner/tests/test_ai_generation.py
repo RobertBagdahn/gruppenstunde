@@ -112,14 +112,14 @@ class TestAiSuggestEndpoint(TestCase):
             self.assertIn("lunch", meal_types)
             self.assertIn("dinner", meal_types)
 
-    def test_unauthenticated_returns_403(self):
+    def test_unauthenticated_returns_401(self):
         self.client.logout()
         response = self.client.post(
             "/api/meal-plans/ai/suggest/",
             data=json.dumps(self.valid_payload),
             content_type="application/json",
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     def test_invalid_gemini_response_returns_502(self):
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:

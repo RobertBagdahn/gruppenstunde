@@ -6,21 +6,9 @@ from ninja.errors import HttpError
 
 from content.models import Tag
 from content.schemas.base import TagAdminIn, TagAdminOut, TagDetailOut
+from core.permissions import require_staff
 
 admin_tags_router = Router(tags=["admin-tags"])
-
-
-def _require_staff(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Nur Admins")
-    if request.user.is_staff:
-        return
-    try:
-        if request.user.profile.role in ("staff", "admin"):
-            return
-    except AttributeError:
-        pass
-    raise HttpError(403, "Nur Admins")
 
 
 def _tag_to_dict(t: Tag) -> dict:
@@ -44,7 +32,7 @@ def _tag_to_dict(t: Tag) -> dict:
 @admin_tags_router.get("/", response=dict)
 def list_admin_tags(request, page: int = 1, page_size: int = 20):
     """List all tags (paginated, staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     qs = Tag.objects.all().select_related("parent").order_by("sort_order", "name")
     total = qs.count()
     total_pages = max(1, (total + page_size - 1) // page_size)
@@ -65,7 +53,7 @@ def list_admin_tags(request, page: int = 1, page_size: int = 20):
 @admin_tags_router.get("/{tag_id}/detail/", response=TagDetailOut)
 def tag_detail(request, tag_id: str):
     """Get tag detail with linked recipes and ingredients (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         tag = Tag.objects.get(id=tag_id)
     except Tag.DoesNotExist:
@@ -87,7 +75,7 @@ def tag_detail(request, tag_id: str):
 @admin_tags_router.post("/", response={201: dict})
 def create_admin_tag(request, payload: TagAdminIn):
     """Create a new tag (staff-only). Slug is auto-generated from name."""
-    _require_staff(request)
+    require_staff(request)
     slug = slugify(payload.name)
     tag = Tag.objects.create(
         name=payload.name,
@@ -107,7 +95,7 @@ def create_admin_tag(request, payload: TagAdminIn):
 @admin_tags_router.patch("/{tag_id}/", response=dict)
 def update_admin_tag(request, tag_id: str, payload: TagAdminIn):
     """Update a tag (staff-only)."""
-    _require_staff(request)
+    require_staff(request)
     try:
         tag = Tag.objects.get(id=tag_id)
     except Tag.DoesNotExist:
@@ -126,7 +114,7 @@ def update_admin_tag(request, tag_id: str, payload: TagAdminIn):
 @admin_tags_router.delete("/{tag_id}/", response={204: None})
 def delete_admin_tag(request, tag_id: str):
     """Delete a tag (staff-only). Cascade removes all M2M links."""
-    _require_staff(request)
+    require_staff(request)
     try:
         tag = Tag.objects.get(id=tag_id)
     except Tag.DoesNotExist:

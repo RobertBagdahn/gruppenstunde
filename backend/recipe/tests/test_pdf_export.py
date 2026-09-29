@@ -206,9 +206,9 @@ class TestRecipePdfStructuredSteps:
 
 class TestRecipePdfAPI:
     @pytest.mark.django_db
-    def test_export_recipe_pdf_requires_auth(self, api_client):
+    def test_export_recipe_pdf_unknown_recipe_is_404(self, api_client):
         resp = api_client.get("/api/recipes/by-slug/nonexistent/export/pdf/")
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
     @pytest.mark.django_db
     def test_export_recipe_pdf_slug_not_found(self, auth_client):

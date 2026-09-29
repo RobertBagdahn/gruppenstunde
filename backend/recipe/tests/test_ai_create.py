@@ -42,7 +42,7 @@ class TestAiCreateEndpoint:
             data=json.dumps({"prompt": "Nudelauflauf"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     @patch("recipe.services.recipe_ai_suggest_service.gemini_call")
     @patch("recipe.services.ingredient_matcher.IngredientMatcher.match")

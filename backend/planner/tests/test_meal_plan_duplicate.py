@@ -122,7 +122,7 @@ class TestMealPlanDuplicate:
             "2026-08-01T08:00:00",
             "2026-08-03T20:00:00",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_duplicate_requires_end_datetime_on_source(self, client: Client):
         user = baker.make("auth.User")

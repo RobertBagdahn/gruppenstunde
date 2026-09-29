@@ -227,6 +227,7 @@ class UrlImportResult:
         is_reconstructed: bool = False,
         input_type: str = "url",
         ai_interaction_id: str | None = None,
+        is_preview: bool = False,
     ):
         self.title = title
         self.description = description
@@ -250,6 +251,8 @@ class UrlImportResult:
         self.is_reconstructed = is_reconstructed
         self.input_type = input_type
         self.ai_interaction_id = ai_interaction_id
+        # Anonymous preview: nothing was stored; `ingredient_id=0` items are created on save.
+        self.is_preview = is_preview
 
 
 # ---------------------------------------------------------------------------
@@ -265,8 +268,14 @@ def import_recipe_from_url(
     gemini_result_override: GeminiRecipeExtraction | None = None,
     input_type: str = "url",
     source_url: str | None = None,
+    persist: bool = True,
 ) -> UrlImportResult:
-    """Full URL import pipeline with IngredientMatcher + Gemini metadata."""
+    """Full URL import pipeline with IngredientMatcher + Gemini metadata.
+
+    With ``persist=False`` (anonymous preview) the pipeline writes nothing but
+    AiInteraction records: unknown ingredients are returned as ``is_new``
+    drafts with ``ingredient_id=0`` and portions are only looked up.
+    """
     from recipe.services.exceptions import SourceUnreachableError
     from recipe.services.import_service import import_from_url
     from recipe.services.ingredient_enrichment import enrich_ingredient
@@ -327,6 +336,20 @@ def import_recipe_from_url(
                     "unit": ing.unit,
                     "note": match_result.note or ing.note,
                     "is_new_ingredient": match_result.is_new,
+                    "estimated_portion_weight_g": ing.estimated_portion_weight_g,
+                }
+            )
+            continue
+
+        if match_result.needs_review and not persist:
+            matched_items.append(
+                {
+                    "ingredient_id": None,
+                    "preview_new_name": ing.original_name.strip(),
+                    "quantity": ing.quantity,
+                    "unit": ing.unit,
+                    "note": match_result.note or ing.note,
+                    "is_new_ingredient": True,
                     "estimated_portion_weight_g": ing.estimated_portion_weight_g,
                 }
             )
@@ -457,7 +480,7 @@ def import_recipe_from_url(
             )
 
     # Step 4: Resolve measuring units and build recipe items
-    recipe_items = _build_recipe_items_v2(matched_items, created_ingredients)
+    recipe_items = _build_recipe_items_v2(matched_items, created_ingredients, persist=persist)
 
     # Step 5: Resolve time choices
     execution_time_choice = gemini_result.execution_time_choice
@@ -497,6 +520,7 @@ def import_recipe_from_url(
             for ci in created_ingredients
         ],
         ai_interaction_id=ai_interaction_id,
+        is_preview=not persist,
     )
 
 
@@ -1208,6 +1232,8 @@ def _build_recipe_items(
 def _build_recipe_items_v2(
     matched_items: list[dict[str, Any]],
     created_ingredients: list[dict[str, Any]],
+    *,
+    persist: bool = True,
 ) -> list[RecipeItemDraftResult]:
     """Build recipe items from IngredientMatcher results (v2 — no Gemini note)."""
     from supply.models import Ingredient, Portion
@@ -1222,6 +1248,9 @@ def _build_recipe_items_v2(
 
     for item in matched_items:
         ingredient_id = item["ingredient_id"]
+        if ingredient_id is None and item.get("preview_new_name"):
+            results.append(_preview_new_ingredient_item(item))
+            continue
         if ingredient_id is None:
             continue
 
@@ -1293,7 +1322,8 @@ def _build_recipe_items_v2(
                 else:
                     weight_status = "unknown"
         else:
-            portion_id = _resolve_portion(
+            resolve = _resolve_portion if persist else _lookup_portion_without_writes
+            portion_id = resolve(
                 ingredient_id=ingredient_id,
                 measuring_unit_id=measuring_unit_id,
                 estimated_weight_g=item.get("estimated_portion_weight_g", 100),
@@ -1338,6 +1368,49 @@ def _build_recipe_items_v2(
         )
 
     return results
+
+
+def _preview_new_ingredient_item(item: dict[str, Any]) -> RecipeItemDraftResult:
+    """Draft item for an unknown ingredient in preview mode (created only on save)."""
+    from supply.services.unit_resolution import resolve_canonical_unit
+
+    unit_str = item.get("unit", "") or ""
+    unit = resolve_canonical_unit(unit_str) if unit_str else None
+    return RecipeItemDraftResult(
+        ingredient_id=0,
+        ingredient_name=item["preview_new_name"],
+        quantity=item.get("quantity", 1.0),
+        measuring_unit_id=unit.id if unit else None,
+        measuring_unit_name=unit.name if unit else unit_str,
+        note=item.get("note", "") or "",
+        is_new_ingredient=True,
+        suggested_unit_name=unit_str,
+        suggested_portion_weight_g=item.get("estimated_portion_weight_g") or None,
+    )
+
+
+class _PreviewRollbackError(Exception):
+    def __init__(self, portion_id: int | None) -> None:
+        super().__init__()
+        self.portion_id = portion_id
+
+
+def _lookup_portion_without_writes(**kwargs: Any) -> int | None:
+    """Run the regular portion resolution inside a rolled-back savepoint.
+
+    Keeps the matching rules identical to `_resolve_portion` while guaranteeing
+    that preview imports never create or modify portions.
+    """
+    from supply.models import Portion
+
+    try:
+        with transaction.Atomic(using=None, savepoint=True, durable=False):
+            raise _PreviewRollbackError(_resolve_portion(**kwargs))
+    except _PreviewRollbackError as rollback:
+        portion_id = rollback.portion_id
+    if portion_id is None or not Portion.objects.filter(id=portion_id).exists():
+        return None
+    return portion_id
 
 
 METRIC_BASE_UNITS = {"g", "gramm", "kg", "kilogramm", "ml", "milliliter", "l", "liter"}

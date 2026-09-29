@@ -66,7 +66,7 @@ class TestRecipeMaterialCrud:
             data=json.dumps({"material_id": toothpick_material.id, "quantity": "30 Stück"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_unauthenticated_update_returns_403(self, api_client, owner_recipe, toothpick_material):
         item = _create_material_item(owner_recipe, toothpick_material)
@@ -75,7 +75,7 @@ class TestRecipeMaterialCrud:
             data=json.dumps({"quantity": "10 Stück"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_non_editor_cannot_create(self, auth_client, django_user_model, public_foreign_recipe, toothpick_material):
         django_user_model.objects.create_user(username="viewer", password="pw")
@@ -212,7 +212,7 @@ class TestRecipeMaterialInDetail:
 class TestAiMaterialFlows:
     def test_suggest_unauthenticated_returns_403(self, api_client, owner_recipe):
         resp = api_client.post(f"/api/recipes/{owner_recipe.id}/ai-suggest-materials/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_suggest_returns_contract(self, auth_client, owner_recipe):
         results = [
@@ -296,7 +296,7 @@ class TestAiMaterialFlows:
             data=json.dumps([{"material_id": toothpick_material.id}]),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_apply_non_editor_returns_403(self, auth_client, public_foreign_recipe, toothpick_material):
         resp = auth_client.post(

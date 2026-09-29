@@ -114,4 +114,4 @@ class TestAiApplyIngredientsDedup:
             data=json.dumps([{"portion_id": portion_salz.id, "quantity": 5.0}]),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401

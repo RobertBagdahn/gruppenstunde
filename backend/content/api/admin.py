@@ -11,6 +11,8 @@ from django.db import models
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
+
 logger = logging.getLogger(__name__)
 
 from content.schemas.admin import (
@@ -33,12 +35,6 @@ from content.schemas.ai_interaction import (
 router = Router(tags=["content"])
 
 
-def _require_admin(request):
-    """Check that user is authenticated and staff."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
-
-
 # ---------------------------------------------------------------------------
 # Approval Queue
 # ---------------------------------------------------------------------------
@@ -51,7 +47,7 @@ def _require_admin(request):
 )
 def admin_approval_queue(request, page: int = 1, page_size: int = 20):
     """List content items awaiting approval (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from content.services.approval_service import get_pending_approvals
 
@@ -79,7 +75,7 @@ def admin_approval_queue(request, page: int = 1, page_size: int = 20):
 )
 def admin_approval_action(request, content_type_name: str, object_id: int, payload: AdminApprovalActionIn):
     """Approve or reject a content item (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from content.services.approval_service import ApprovalError, approve_content, reject_content
 
@@ -128,7 +124,7 @@ def admin_approval_action(request, content_type_name: str, object_id: int, paylo
 )
 def admin_approval_history(request, content_type_name: str, object_id: int):
     """Get the approval history for a content item (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     try:
         ct = ContentType.objects.get(model=content_type_name)
@@ -175,7 +171,7 @@ def admin_embedding_status(
     page_size: int = 20,
 ):
     """List content items with their embedding status (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from blog.models import Blog
     from game.models import Game
@@ -261,7 +257,7 @@ def admin_embedding_status(
 )
 def admin_embedding_batch_update(request, payload: BatchEmbeddingIn):
     """Batch update embeddings for content (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from content.services.embedding_service import batch_update_embeddings
 
@@ -291,7 +287,7 @@ def admin_embedding_feedback(
     page_size: int = 20,
 ):
     """List embedding feedback entries (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from content.models import EmbeddingFeedback
 
@@ -361,7 +357,7 @@ def admin_embedding_feedback(
 )
 def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
     """Aggregated AI interaction statistics (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from datetime import date, timedelta
 
@@ -526,7 +522,7 @@ def admin_ai_interactions_list(
     search: str = "",
 ):
     """Paginated list of AI interactions (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from content.models import AiInteraction
 
@@ -586,7 +582,7 @@ def admin_ai_interactions_list(
 )
 def admin_ai_interactions_user_costs(request, date_from: str = "", date_to: str = ""):
     """Per-user cost aggregation (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from datetime import date, timedelta
 
@@ -659,7 +655,7 @@ def admin_ai_interactions_user_costs(request, date_from: str = "", date_to: str 
 )
 def admin_ai_interactions_detail(request, interaction_id: str):
     """Detail view with full prompt and response (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from uuid import UUID
 
@@ -705,7 +701,7 @@ def admin_ai_interactions_detail(request, interaction_id: str):
 )
 def admin_ai_pricing(request):
     """Current Gemini pricing configuration (admin only)."""
-    _require_admin(request)
+    require_staff(request)
 
     from django.conf import settings
 

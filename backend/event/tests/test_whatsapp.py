@@ -463,27 +463,27 @@ class TestWhatsAppAPI:
             data=json.dumps({"privacy_consent": True}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_status_unauthenticated(self, api_client):
         resp = api_client.get("/api/whatsapp/status/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_disconnect_unauthenticated(self, api_client):
         resp = api_client.post("/api/whatsapp/disconnect/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_delete_unauthenticated(self, api_client):
         resp = api_client.delete("/api/whatsapp/delete/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_stats_unauthenticated(self, api_client):
         resp = api_client.get("/api/whatsapp/stats/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_qr_status_unauthenticated(self, api_client):
         resp = api_client.get("/api/whatsapp/qr-status/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     @patch("event.api.whatsapp._wa_service")
     def test_connect_requires_privacy_consent(self, mock_service, auth_client):
@@ -583,7 +583,7 @@ class TestMessageTemplateCRUD:
 
     def test_list_templates_unauthenticated(self, api_client):
         resp = api_client.get("/api/message-templates/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_template(self, auth_client):
         resp = auth_client.post(
@@ -1494,19 +1494,19 @@ class TestConnectionManagementAPI:
 
     def test_health_check_unauthenticated(self, api_client):
         resp = api_client.post("/api/whatsapp/health-check/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_test_message_unauthenticated(self, api_client):
         resp = api_client.post("/api/whatsapp/test/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_reconnect_unauthenticated(self, api_client):
         resp = api_client.post("/api/whatsapp/reconnect/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_logs_unauthenticated(self, api_client):
         resp = api_client.get("/api/whatsapp/logs/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     # -- Health check endpoint --
 

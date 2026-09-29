@@ -32,7 +32,7 @@ def _post(client):
 class TestImportFromUrlEnhancedErrors:
     def test_requires_auth(self, api_client):
         resp = _post(api_client)
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_source_unreachable(self, auth_client):
         with patch(TARGET, side_effect=SourceUnreachableError("boom")):
@@ -42,7 +42,13 @@ class TestImportFromUrlEnhancedErrors:
         assert data["error_code"] == "IMPORT_SOURCE_UNREACHABLE"
         assert "detail" in data
 
-    @pytest.mark.parametrize("exc", [GeminiUnavailableError(), GeminiAuthError()])
+    def test_ai_login_required_propagates(self, auth_client):
+        with patch(TARGET, side_effect=GeminiAuthError()):
+            resp = _post(auth_client)
+        assert resp.status_code == 401
+        assert resp.json()["code"] == "ai_login_required"
+
+    @pytest.mark.parametrize("exc", [GeminiUnavailableError()])
     def test_ai_unavailable(self, auth_client, exc):
         with patch(TARGET, side_effect=exc):
             resp = _post(auth_client)

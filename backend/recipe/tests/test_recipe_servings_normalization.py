@@ -99,7 +99,7 @@ class TestServingsNormalization:
             },
         )
 
-        assert resp.status_code == 403
+        assert resp.status_code == 401
         assert not Recipe.objects.filter(title="Anonym").exists()
 
     def test_source_servings_patch_does_not_rescale(self, auth_client, gram_portion):

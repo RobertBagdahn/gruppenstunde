@@ -150,7 +150,7 @@ class TestBuffetEndpoint:
         resp = _post_buffet(
             api_client, meal_plan.id, meal.id, {"template_id": template.id, "selections": [], "dry_run": True}
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
         assert MealItem.objects.filter(meal=meal).count() == 0
 
     def test_viewer_role_returns_403(self, auth_client, gram_unit):

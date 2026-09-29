@@ -257,7 +257,7 @@ def test_anonymous_cannot_patch(api_client):
     resp = api_client.patch(
         f"/api/ingredients/{ingredient.slug}/", data=json.dumps({"status": "draft"}), content_type="application/json"
     )
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 @pytest.mark.django_db

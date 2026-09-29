@@ -439,7 +439,7 @@ def test_magic_wand_requires_authentication(ingredient, client):
         response = client.post(
             f"{BASE}/{ingredient.slug}/portions/magic-wand/preview/", content_type="application/json"
         )
-    assert response.status_code == 403
+    assert response.status_code == 401
     gemini.assert_not_called()
 
 

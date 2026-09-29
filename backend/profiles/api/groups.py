@@ -7,6 +7,7 @@ from ninja import File, Router, Status
 from ninja.errors import HttpError
 from ninja.files import UploadedFile
 
+from core.permissions import require_login
 from profiles.choices import MembershipRoleChoices
 from profiles.models import GroupCorporateIdentity, GroupJoinRequest, GroupMembership, UserGroup
 from profiles.schemas import (
@@ -26,11 +27,6 @@ from profiles.schemas import (
 )
 
 group_router = Router(tags=["groups"])
-
-
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _require_group_admin(group: UserGroup, user):
@@ -57,7 +53,7 @@ def list_groups(request, q: str = ""):
 @group_router.post("/", response=UserGroupOut)
 def create_group(request, payload: UserGroupCreateIn):
     """Create a new group. The creator becomes admin."""
-    _require_auth(request)
+    require_login(request)
     group = UserGroup.objects.create(
         name=payload.name,
         description=payload.description,
@@ -86,7 +82,7 @@ def get_group(request, group_slug: str):
 @group_router.patch("/{group_slug}/", response=UserGroupDetailOut)
 def update_group(request, group_slug: str, payload: UserGroupUpdateIn):
     """Update group settings (admin only)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -99,7 +95,7 @@ def update_group(request, group_slug: str, payload: UserGroupUpdateIn):
 @group_router.delete("/{group_slug}/")
 def delete_group(request, group_slug: str):
     """Soft-delete a group (admin only)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -124,7 +120,7 @@ def add_member(request, group_slug: str, payload: AddMemberIn):
     """Add a member to a group (admin only)."""
     from django.contrib.auth import get_user_model
 
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -146,7 +142,7 @@ def add_member(request, group_slug: str, payload: AddMemberIn):
 @group_router.patch("/{group_slug}/members/{membership_id}/", response=GroupMemberOut)
 def update_member(request, group_slug: str, membership_id: int, payload: UpdateMemberIn):
     """Update a membership (admin only)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -160,7 +156,7 @@ def update_member(request, group_slug: str, membership_id: int, payload: UpdateM
 @group_router.delete("/{group_slug}/members/{membership_id}/")
 def remove_member(request, group_slug: str, membership_id: int):
     """Remove a member from a group (admin or self)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     membership = get_object_or_404(GroupMembership, id=membership_id, group=group)
 
@@ -179,7 +175,7 @@ def remove_member(request, group_slug: str, membership_id: int):
 @group_router.post("/{group_slug}/join/", response={200: GroupMemberOut, 201: JoinRequestOut})
 def join_group(request, group_slug: str, payload: JoinRequestIn | None = None):
     """Join a group (directly if free_to_join, otherwise create a request)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
 
     # Check if already a member
@@ -213,7 +209,7 @@ def join_group(request, group_slug: str, payload: JoinRequestIn | None = None):
 @group_router.post("/{group_slug}/join-by-code/", response=GroupMemberOut)
 def join_by_code(request, group_slug: str, payload: JoinByCodeIn):
     """Join a group using a join code."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
 
     if not group.join_code or group.join_code != payload.join_code:
@@ -236,7 +232,7 @@ def join_by_code(request, group_slug: str, payload: JoinByCodeIn):
 @group_router.get("/{group_slug}/requests/", response=list[JoinRequestOut])
 def list_join_requests(request, group_slug: str):
     """List pending join requests for a group (admin only)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -249,7 +245,7 @@ def list_join_requests(request, group_slug: str):
 @group_router.post("/{group_slug}/requests/{request_id}/", response=JoinRequestOut)
 def decide_join_request(request, group_slug: str, request_id: int, payload: JoinRequestDecisionIn):
     """Approve or reject a join request (admin only)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -292,7 +288,7 @@ _CI_DEFAULTS = {
 @group_router.get("/{group_slug}/corporate-identity/", response=GroupCorporateIdentityOut)
 def get_corporate_identity(request, group_slug: str):
     """Get the corporate identity for a group (returns defaults if none configured)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     try:
         return group.corporate_identity
@@ -303,7 +299,7 @@ def get_corporate_identity(request, group_slug: str):
 @group_router.put("/{group_slug}/corporate-identity/", response=GroupCorporateIdentityOut)
 def update_corporate_identity(request, group_slug: str, payload: GroupCorporateIdentityIn):
     """Create or update the corporate identity for a group (admin only)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -320,7 +316,7 @@ MAX_LOGO_SIZE = 500 * 1024  # 500KB
 @group_router.post("/{group_slug}/corporate-identity/logo/", response=GroupCorporateIdentityOut)
 def upload_logo(request, group_slug: str, file: UploadedFile = File(...)):
     """Upload a logo for the group's corporate identity (admin only, max 500KB)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
@@ -335,7 +331,7 @@ def upload_logo(request, group_slug: str, file: UploadedFile = File(...)):
 @group_router.delete("/{group_slug}/corporate-identity/logo/")
 def delete_logo(request, group_slug: str):
     """Remove the logo from a group's corporate identity (admin only)."""
-    _require_auth(request)
+    require_login(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 

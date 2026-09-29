@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from recipe.models import Recipe
 from recipe.schemas import (
     AiMaterialApplyIn,
@@ -17,7 +18,7 @@ from recipe.schemas import (
 )
 from supply.models import ContentMaterialItem, Material
 
-from .items import _get_visible_recipe_or_404, _require_auth
+from .items import _get_visible_recipe_or_404
 
 router = Router()
 
@@ -27,7 +28,7 @@ def _recipe_content_type() -> ContentType:
 
 
 def _require_edit_permission(request, recipe: Recipe) -> None:
-    _require_auth(request)
+    require_login(request)
     from content.services.food_access import can_edit
 
     if not can_edit(recipe, request.user):
@@ -150,7 +151,7 @@ def ai_suggest_materials(request, recipe_id: int):
 @router.post("/{recipe_id}/ai-apply-materials/", response={201: list[RecipeMaterialOut]})
 def ai_apply_materials(request, recipe_id: int, payload: list[AiMaterialApplyIn]):
     """Apply matched AI-suggested materials as recipe material links."""
-    _require_auth(request)
+    require_login(request)
 
     with transaction.atomic():
         recipe = _get_visible_recipe_or_404(request, recipe_id)

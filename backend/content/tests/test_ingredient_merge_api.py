@@ -70,7 +70,7 @@ class TestIngredientMergePreview:
             f"{BASE}/ingredients/merge/preview/",
             {"source_id": ingredient.id, "target_id": target_ingredient.id},
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 class TestIngredientMerge:
@@ -194,7 +194,7 @@ class TestIngredientMerge:
             {"source_id": ingredient.id, "target_id": target_ingredient.id},
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_merge_migrates_aliases(self, admin_client, ingredient, target_ingredient):
         from supply.models import IngredientAlias

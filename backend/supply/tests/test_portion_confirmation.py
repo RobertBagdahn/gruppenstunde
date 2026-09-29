@@ -226,7 +226,7 @@ class TestConfirmPortionEndpoint:
             data=json.dumps({"name": "kleines Brötchen", "weight_g": 45.0}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_confirm_endpoint_returns_existing_choice(self):
         client, user = self._client()

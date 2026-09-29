@@ -26,6 +26,8 @@ from content.base_api import (
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
 from content.schemas import ImageFromUrlIn
 from content.services.search_service import log_search, log_search_structured
+from core.errors import ApiError
+from core.permissions import require_login
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
     ForkRecipeIn,
@@ -56,11 +58,6 @@ from recipe.schemas.ingredient_review import IngredientReviewPreviewOut, RecipeI
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-
-def _require_auth(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 # Choice fields that must never be set to an empty string via PATCH.
@@ -103,7 +100,7 @@ def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = Fal
                       If False, unauthenticated users can see approved public/system recipes.
     """
     if require_auth:
-        _require_auth(request)
+        require_login(request)
     recipe = _get_visible_recipes_qs(request).filter(id=recipe_id).first()
     if recipe is None:
         raise HttpError(404, "Rezept nicht gefunden")
@@ -203,8 +200,7 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
 @router.get("/my-recipes/", response=PaginatedRecipeOut)
 def list_my_recipes(request, page: int = 1, page_size: int = 20, folder: int | None = None):
     """List current user's personal recipes."""
-    if not request.user.is_authenticated:
-        raise HttpError(401, "Anmeldung erforderlich")
+    require_login(request)
 
     qs = (
         Recipe.objects.filter(owner=request.user)
@@ -234,8 +230,15 @@ class RecipeIngredientReviewSourcesIn(BaseModel):
 
 @router.post("/ingredient-review/preview/", response=IngredientReviewPreviewOut)
 def preview_recipe_ingredient_review(request, payload: RecipeIngredientReviewSourcesIn):
-    """Return an ingredient review preview without persisting imported data."""
-    _require_auth(request)
+    """ "Rezept erkennen": ingredient review preview without persisting anything.
+
+    Open to anonymous visitors (shared anonymous AI budget, 7-day result cache,
+    input limit); per-ingredient AI extras only run for logged-in users.
+    """
+    from django.conf import settings
+
+    from core.permissions import optional_user
+    from core.services import ai_result_cache
     from recipe.services.ingredient_review_service import preview_recipe_ingredients
 
     sources = payload.sources
@@ -246,8 +249,24 @@ def preview_recipe_ingredient_review(request, payload: RecipeIngredientReviewSou
         raise HttpError(422, "Bitte gib mindestens eine Quelle an")
     from recipe.services.exceptions import SourceUnreachableError
 
+    is_anonymous = optional_user(request) is None
+    cache_key = "\n".join(f"{source.type}:{source.value.strip()}" for source in sources)
+    if is_anonymous:
+        if len(cache_key) > settings.AI_ANONYMOUS_MAX_INPUT_CHARS:
+            raise ApiError(
+                422,
+                "input_too_long",
+                f"Ohne Anmeldung kann die KI höchstens {settings.AI_ANONYMOUS_MAX_INPUT_CHARS} Zeichen lesen. "
+                "Kürze den Text oder melde dich an.",
+            )
+        cached = ai_result_cache.get_cached("recipe_review_preview", cache_key)
+        if cached is not None:
+            return cached
+
     try:
-        return preview_recipe_ingredients(sources, request.user)
+        preview = preview_recipe_ingredients(sources, request.user)
+    except ApiError:
+        raise
     except SourceUnreachableError:
         raise HttpError(
             422,
@@ -257,12 +276,19 @@ def preview_recipe_ingredient_review(request, payload: RecipeIngredientReviewSou
     except Exception as exc:
         logger.exception("Recipe ingredient review preview failed")
         raise HttpError(422, f"Zutaten konnten nicht analysiert werden: {exc}") from exc
+    if is_anonymous:
+        ai_result_cache.store(
+            "recipe_review_preview",
+            cache_key,
+            IngredientReviewPreviewOut.model_validate(preview).model_dump(mode="json"),
+        )
+    return preview
 
 
 @router.post("/import-from-url/", response=RecipeImportPreviewOut)
 def import_recipe_from_url(request, payload: RecipeImportRequestIn):
     """Import a recipe from an external URL and return a preview."""
-    _require_auth(request)
+    require_login(request)
 
     from recipe.services.import_service import ImportedRecipe, import_from_url
 
@@ -342,6 +368,7 @@ def _recipe_import_response(result) -> RecipeImportUrlResponseOut:
         input_type=getattr(result, "input_type", "url"),
         is_reconstructed=getattr(result, "is_reconstructed", False),
         ai_interaction_id=getattr(result, "ai_interaction_id", None),
+        is_preview=getattr(result, "is_preview", False),
     )
 
 
@@ -354,8 +381,13 @@ def _import_error_response(status: int, error_code: str, detail: str) -> HttpRes
 
 
 def _handle_smart_import_error(exc: Exception, source: str) -> HttpResponse:
-    from core.services.gemini import GeminiAuthError, GeminiUnavailableError
+    from core.errors import ApiError
+    from core.services.gemini import GeminiUnavailableError
     from recipe.services.exceptions import NoRecipeFoundError, SourceUnreachableError
+
+    # Budget, login and rate-limit errors carry their own codes for the frontend.
+    if isinstance(exc, ApiError) and not isinstance(exc, GeminiUnavailableError):
+        raise exc
 
     if isinstance(exc, SourceUnreachableError):
         return _import_error_response(
@@ -364,7 +396,7 @@ def _handle_smart_import_error(exc: Exception, source: str) -> HttpResponse:
             "Die Seite konnte nicht geladen werden und auch die Websuche hat kein passendes Rezept gefunden. "
             "Bitte kopiere den Rezepttext oder versuche eine andere Quelle.",
         )
-    if isinstance(exc, GeminiUnavailableError | GeminiAuthError):
+    if isinstance(exc, GeminiUnavailableError):
         return _import_error_response(
             503,
             "IMPORT_AI_UNAVAILABLE",
@@ -389,7 +421,7 @@ def _handle_smart_import_error(exc: Exception, source: str) -> HttpResponse:
 @router.post("/import-from-url-enhanced/", response=RecipeImportUrlResponseOut)
 def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
     """Import a recipe from URL with Gemini-based ingredient matching and creation."""
-    _require_auth(request)
+    require_login(request)
     from recipe.services.url_import_service import import_recipe_from_url
 
     try:
@@ -401,22 +433,43 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
 
 @router.post("/smart-input/", response=RecipeImportUrlResponseOut)
 def import_recipe_from_smart_input(request, payload: SmartRecipeInputIn):
-    """Analyze a URL, copied recipe text, or recipe idea through one contract."""
-    _require_auth(request)
+    """Analyze a URL, copied recipe text, or recipe idea ("Rezept erkennen").
+
+    Anonymous visitors get a preview without any database writes, charged to the
+    shared anonymous AI budget and served from a 7-day result cache when possible.
+    """
+    from django.conf import settings
+
+    from core.permissions import optional_user
+    from core.services import ai_result_cache
     from recipe.services.url_import_service import (
         classify_smart_input,
         extract_smart_recipe_input,
         import_recipe_from_url,
     )
 
+    user = optional_user(request)
     value = payload.input.strip()
     if not value:
         return _import_error_response(422, "IMPORT_EMPTY_INPUT", "Bitte gib einen Link, Rezepttext oder eine Idee ein.")
 
+    is_preview = user is None
+    if is_preview:
+        if len(value) > settings.AI_ANONYMOUS_MAX_INPUT_CHARS:
+            raise ApiError(
+                422,
+                "input_too_long",
+                f"Ohne Anmeldung kann die KI höchstens {settings.AI_ANONYMOUS_MAX_INPUT_CHARS} Zeichen lesen. "
+                "Kürze den Text oder melde dich an.",
+            )
+        cached = ai_result_cache.get_cached("recipe_recognize", value)
+        if cached is not None:
+            return RecipeImportUrlResponseOut.model_validate(cached)
+
     input_type = classify_smart_input(value)
     try:
         if input_type == "url":
-            result = import_recipe_from_url(value, request.user, input_type="url")
+            result = import_recipe_from_url(value, request.user, input_type="url", persist=not is_preview)
         else:
             detected_type, parsed, gemini_result = extract_smart_recipe_input(value, request.user)
             result = import_recipe_from_url(
@@ -426,10 +479,14 @@ def import_recipe_from_smart_input(request, payload: SmartRecipeInputIn):
                 gemini_result_override=gemini_result,
                 input_type=detected_type,
                 source_url="",
+                persist=not is_preview,
             )
     except Exception as exc:
         return _handle_smart_import_error(exc, value[:120])
-    return _recipe_import_response(result)
+    response = _recipe_import_response(result)
+    if is_preview:
+        ai_result_cache.store("recipe_recognize", value, response.model_dump(mode="json"))
+    return response
 
 
 # ===========================================================================
@@ -440,7 +497,7 @@ def import_recipe_from_smart_input(request, payload: SmartRecipeInputIn):
 @router.post("/ai-create/", response=RecipeDetailOut)
 def ai_create(request, payload: RecipeAiCreateIn):
     """Create a complete recipe from a free-text prompt using AI."""
-    _require_auth(request)
+    require_login(request)
 
     from recipe.services.recipe_ai_suggest_service import ai_create_recipe
 
@@ -529,8 +586,7 @@ def get_recipe_by_slug(request, slug: str):
 
 @router.get("/by-slug/{slug}/export/pdf/")
 def export_recipe_pdf(request, slug: str, page_format: str = "A4", servings: int = 1):
-    """Export recipe as PDF, scaled to a temporary target serving count."""
-    _require_auth(request)
+    """Export recipe as PDF, scaled to a temporary target serving count (public recipes: anonymous too)."""
 
     if page_format not in ("A4", "letter"):
         raise HttpError(422, "Ungültiges Seitenformat. Erlaubt: A4, letter")
@@ -589,7 +645,7 @@ def create_recipe(request, payload: RecipeCreateIn):
 
     For breakfast wizard items, sets owner to current user and handles visibility/sharing.
     """
-    _require_auth(request)
+    require_login(request)
 
     # Bot protection
     if payload.website:
@@ -877,7 +933,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     execution_time, preparation_time, difficulty, tag_ids, scout_level_ids,
     nutritional_tag_ids, recipe_items, shared_group_ids (breakfast wizard).
     """
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
 
@@ -1014,7 +1070,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
 @router.delete("/{recipe_id}/")
 def delete_recipe(request, recipe_id: int):
     """Soft-delete a recipe."""
-    _require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_visible_recipe_or_404, require_action
 
@@ -1105,7 +1161,7 @@ def get_similar_recipes(request, recipe_id: int):
 @router.post("/{recipe_id}/image/")
 def upload_recipe_image(request, recipe_id: int):
     """Upload an image for a recipe."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -1123,7 +1179,7 @@ def upload_recipe_image(request, recipe_id: int):
 @router.delete("/{recipe_id}/image/")
 def delete_recipe_image(request, recipe_id: int):
     """Remove the title image from a recipe."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -1137,7 +1193,7 @@ def delete_recipe_image(request, recipe_id: int):
 @router.post("/{recipe_id}/image-from-url/")
 def set_recipe_image_from_url(request, recipe_id: int, payload: ImageFromUrlIn):
     """Set the title image from an existing storage URL."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
@@ -1170,7 +1226,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
     Copies the recipe and all its RecipeItems, setting owner to the current user.
     Accepts an optional custom title for the clone.
     """
-    _require_auth(request)
+    require_login(request)
 
     if payload is None:
         payload = ForkRecipeIn()
@@ -1250,7 +1306,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
 @router.post("/{recipe_id}/verify/", response=VerifyStatusOut)
 def verify_recipe_endpoint(request, recipe_id: int, payload: VerifyRequestIn):
     """Verify a recipe. Staff-only. Checks rules and required fields, warns if not all met."""
-    _require_auth(request)
+    require_login(request)
     if not request.user.is_staff:
         raise HttpError(403, "Nur Staff-User dürfen Rezepte verifizieren")
 
@@ -1276,7 +1332,7 @@ def get_verification_status(request, recipe_id: int):
 @router.patch("/{recipe_id}/visibility/")
 def update_recipe_visibility(request, recipe_id: int, payload: VisibilityUpdateIn):
     """Update the visibility of a personal recipe. Only the owner can change visibility."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = get_object_or_404(Recipe, id=recipe_id)
 
@@ -1311,7 +1367,7 @@ def update_recipe_visibility(request, recipe_id: int, payload: VisibilityUpdateI
 @router.post("/{recipe_id}/ai-suggest-all/", response=RecipeSuggestAllOut)
 def ai_suggest_all(request, recipe_id: int):
     """Get AI-powered suggestions for missing recipe metadata."""
-    _require_auth(request)
+    require_login(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):

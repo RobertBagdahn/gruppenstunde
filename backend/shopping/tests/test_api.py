@@ -82,7 +82,7 @@ class TestListShoppingLists:
     def test_unauthenticated_returns_403(self):
         c = Client()
         res = c.get("/api/shopping-lists/")
-        assert res.status_code == 403
+        assert res.status_code == 401
 
     def test_returns_own_lists(self, client_alice, shopping_list):
         res = client_alice.get("/api/shopping-lists/")
@@ -125,7 +125,7 @@ class TestCreateShoppingList:
             data=json.dumps({"name": "X"}),
             content_type="application/json",
         )
-        assert res.status_code == 403
+        assert res.status_code == 401
 
 
 @pytest.mark.django_db
@@ -414,7 +414,7 @@ class TestCreateFromRecipe:
             data=json.dumps({"portions": 1}),
             content_type="application/json",
         )
-        assert res.status_code == 403
+        assert res.status_code == 401
 
 
 # ---------------------------------------------------------------------------

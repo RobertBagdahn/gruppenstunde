@@ -30,7 +30,7 @@ class TestContentLinkAuthorization:
             data=json.dumps(_link_payload(g1.id, g2.id)),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_cannot_link_to_private_draft_target(self, auth_client, django_user_model):
         owner = django_user_model.objects.create_user(username="owner", password="x")

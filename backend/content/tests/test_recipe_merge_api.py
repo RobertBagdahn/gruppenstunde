@@ -83,7 +83,7 @@ class TestRecipeMergePreview:
             f"{BASE}/recipes/merge/preview/",
             {"source_id": recipe.id, "target_id": target_recipe.id},
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 class TestRecipeMerge:
@@ -144,7 +144,7 @@ class TestRecipeMerge:
             {"source_id": recipe.id, "target_id": target_recipe.id},
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 class TestRecipeDismiss:
@@ -198,7 +198,7 @@ class TestRecipeDismiss:
             {"recipe_a_id": recipe.id, "recipe_b_id": target_recipe.id},
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 class TestRecipeDuplicates:

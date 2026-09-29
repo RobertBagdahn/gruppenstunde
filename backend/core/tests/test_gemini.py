@@ -44,13 +44,13 @@ class TestAuthEnforcement:
     def test_unauthenticated_user_rejected(self, anon_user):
         with pytest.raises(HttpError) as exc_info:
             gemini_call(user=anon_user, model="test", contents="hello")
-        assert exc_info.value.status_code == 403
+        assert exc_info.value.status_code == 401
 
     @pytest.mark.django_db
     def test_none_user_rejected(self):
         with pytest.raises(HttpError) as exc_info:
             gemini_call(user=None, model="test", contents="hello")
-        assert exc_info.value.status_code == 403
+        assert exc_info.value.status_code == 401
 
     @pytest.mark.django_db
     def test_bypass_limits_skips_auth(self):
@@ -261,7 +261,7 @@ class TestImageCall:
     def test_image_call_enforces_auth(self, anon_user):
         with pytest.raises(HttpError) as exc_info:
             gemini_image_call(user=anon_user, model="test", contents="hello")
-        assert exc_info.value.status_code == 403
+        assert exc_info.value.status_code == 401
 
 
 class TestCostCalculation:

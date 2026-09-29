@@ -25,6 +25,7 @@ from .privacy import (
 )
 from .profile import (
     MyContentOut,
+    OnboardingIn,
     ProfilePictureOut,
     PublicContentOut,
     PublicMealPlanOut,
@@ -53,6 +54,7 @@ __all__ = [
     "JoinRequestIn",
     "JoinRequestOut",
     "MyContentOut",
+    "OnboardingIn",
     "ProfilePictureOut",
     "PublicContentOut",
     "PublicMealPlanOut",

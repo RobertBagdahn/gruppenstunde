@@ -64,7 +64,7 @@ class TestMealPlanTagsAPI(TestCase):
             {"name": "test"},
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_tag_requires_edit_permission(self):
         self.client.force_login(self.other_user)

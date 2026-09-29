@@ -3,6 +3,7 @@
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
 from recipe.models import Rule
 from recipe.schemas.rules import RuleIn, RuleOut, RuleUpdateIn
 
@@ -27,8 +28,7 @@ def get_rule(request, rule_id: int):
 @router.post("/", response=RuleOut)
 def create_rule(request, payload: RuleIn):
     """Create a new rule (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
+    require_staff(request)
     rule = Rule.objects.create(**payload.dict())
     return rule
 
@@ -36,8 +36,7 @@ def create_rule(request, payload: RuleIn):
 @router.patch("/{rule_id}", response=RuleOut)
 def update_rule(request, rule_id: int, payload: RuleUpdateIn):
     """Update an existing rule (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
+    require_staff(request)
     try:
         rule = Rule.objects.get(id=rule_id)
     except Rule.DoesNotExist:
@@ -53,8 +52,7 @@ def update_rule(request, rule_id: int, payload: RuleUpdateIn):
 @router.delete("/{rule_id}")
 def delete_rule(request, rule_id: int):
     """Delete a rule (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
+    require_staff(request)
     try:
         rule = Rule.objects.get(id=rule_id)
     except Rule.DoesNotExist:

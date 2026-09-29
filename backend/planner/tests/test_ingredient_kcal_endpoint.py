@@ -126,7 +126,7 @@ class TestCalculateIngredientKcal:
         assert result["items"] == []
 
     def test_unauthenticated_user_denied(self, client: Client):
-        """Test that unauthenticated user gets 403."""
+        """Test that unauthenticated user gets 401."""
         plan = baker.make("planner.MealPlan")
 
         resp = client.post(
@@ -135,7 +135,7 @@ class TestCalculateIngredientKcal:
             content_type="application/json",
         )
 
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code == 401, resp.content
 
     def test_meal_plan_not_found(self, client: Client):
         """Test that non-existent meal plan returns 404."""

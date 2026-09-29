@@ -11,6 +11,7 @@ from ninja import Query, Router
 from ninja.errors import HttpError
 
 from content.api.helpers import paginate_queryset
+from core.permissions import require_login
 from supply.models import Portion
 
 from .models import (
@@ -54,11 +55,6 @@ shopping_router = Router(tags=["shopping-lists"])
 # ---------------------------------------------------------------------------
 # Auth & permission helpers
 # ---------------------------------------------------------------------------
-
-
-def _require_auth(request) -> None:
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _get_user_role(shopping_list: ShoppingList, user) -> str | None:
@@ -122,7 +118,7 @@ def list_shopping_lists(
     q: str = "",
 ):
     """List all shopping lists the user owns or collaborates on."""
-    _require_auth(request)
+    require_login(request)
     qs = (
         ShoppingList.objects.filter(Q(owner=request.user) | Q(collaborators__user=request.user))
         .select_related("owner")
@@ -151,7 +147,7 @@ def list_shopping_lists(
 @shopping_router.post("/", response=ShoppingListOut)
 def create_shopping_list(request, payload: ShoppingListCreateIn):
     """Create a new manual shopping list."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = ShoppingList.objects.create(
         name=payload.name,
         owner=request.user,
@@ -169,7 +165,7 @@ def list_users(
     page_size: int = Query(default=20, le=50),
 ):
     """Return users for collaborator invite dropdown (paginated, searchable)."""
-    _require_auth(request)
+    require_login(request)
     from django.contrib.auth import get_user_model
 
     User = get_user_model()
@@ -313,7 +309,7 @@ def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
 @shopping_router.get("/{shopping_list_id}/", response=ShoppingListDetailOut)
 def get_shopping_list(request, shopping_list_id: int):
     """Get shopping list detail with items and collaborators."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     role = _require_access(shopping_list, request.user)
 
@@ -331,7 +327,7 @@ def get_shopping_list(request, shopping_list_id: int):
 @shopping_router.patch("/{shopping_list_id}/", response=ShoppingListOut)
 def update_shopping_list(request, shopping_list_id: int, payload: ShoppingListUpdateIn):
     """Update shopping list name (owner/admin only)."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_admin(shopping_list, request.user)
 
@@ -345,7 +341,7 @@ def update_shopping_list(request, shopping_list_id: int, payload: ShoppingListUp
 @shopping_router.delete("/{shopping_list_id}/")
 def delete_shopping_list(request, shopping_list_id: int):
     """Delete a shopping list (owner only)."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_owner(shopping_list, request.user)
     shopping_list.delete()
@@ -366,7 +362,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
     - summarized: group by ingredient, sum quantities
     - by_recipe: group by source recipe
     """
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_access(shopping_list, request.user)
 
@@ -445,7 +441,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
 @shopping_router.post("/{shopping_list_id}/items/", response=ShoppingListItemOut)
 def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     """Add an item to a shopping list."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_edit(shopping_list, request.user)
 
@@ -484,7 +480,7 @@ def update_item(
     payload: ShoppingListItemUpdateIn,
 ):
     """Update or check/uncheck a shopping list item."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_edit(shopping_list, request.user)
     item = get_object_or_404(ShoppingListItem, id=item_id, shopping_list=shopping_list)
@@ -523,7 +519,7 @@ def update_item(
 @shopping_router.delete("/{shopping_list_id}/items/{item_id}/")
 def delete_item(request, shopping_list_id: int, item_id: int):
     """Remove an item from a shopping list."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_edit(shopping_list, request.user)
     item = get_object_or_404(ShoppingListItem, id=item_id, shopping_list=shopping_list)
@@ -542,7 +538,7 @@ def delete_item(request, shopping_list_id: int, item_id: int):
 )
 def add_collaborator(request, shopping_list_id: int, payload: CollaboratorCreateIn):
     """Invite a collaborator to a shopping list."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_admin(shopping_list, request.user)
 
@@ -583,7 +579,7 @@ def update_collaborator(
     payload: CollaboratorUpdateIn,
 ):
     """Change a collaborator's role."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_admin(shopping_list, request.user)
 
@@ -601,7 +597,7 @@ def update_collaborator(
 @shopping_router.delete("/{shopping_list_id}/collaborators/{collab_id}/")
 def remove_collaborator(request, shopping_list_id: int, collab_id: int):
     """Remove a collaborator from a shopping list."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_admin(shopping_list, request.user)
 
@@ -618,7 +614,7 @@ def remove_collaborator(request, shopping_list_id: int, collab_id: int):
 @shopping_router.post("/{shopping_list_id}/rewe-export-token/", response=ReweExportTokenResponse)
 def create_rewe_export_token(request, shopping_list_id: int):
     """Generate a short-lived token for REWE basket export."""
-    _require_auth(request)
+    require_login(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_access(shopping_list, request.user)
 
@@ -646,7 +642,7 @@ def create_rewe_export_token(request, shopping_list_id: int):
 @shopping_router.post("/from-recipe/{recipe_id}/", response=ShoppingListDetailOut)
 def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
     """Create a shopping list from a recipe's ingredients."""
-    _require_auth(request)
+    require_login(request)
 
     from content.services.food_access import get_visible_recipe_or_404
     from planner.services.calculation_context import resolve_active_recipe_items
@@ -735,7 +731,7 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
 @shopping_router.post("/from-meal-plan/{meal_plan_id}/", response=ShoppingListDetailOut)
 def create_from_meal_plan(request, meal_plan_id: int):
     """Create a persistent shopping list from a MealPlan."""
-    _require_auth(request)
+    require_login(request)
 
     from planner.models import MealPlan
 
@@ -890,7 +886,7 @@ def list_kitchen_reminders(request):
 )
 def suggest_kitchen_reminder(request, payload: KitchenReminderSuggestIn):
     """Submit a new kitchen reminder suggestion."""
-    _require_auth(request)
+    require_login(request)
 
     reminder = KitchenReminder.objects.create(
         name=payload.name,

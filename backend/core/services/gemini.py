@@ -9,15 +9,20 @@ import json
 import logging
 import time
 import uuid
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import NoReturn
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.core.cache import cache
-from ninja.errors import HttpError
+from django.db.models import F, Value
+from django.db.models.functions import Coalesce
 
+from content.choices import AiTierChoices
 from content.models import AiInteraction
+from core.errors import ApiError
+from core.services import ai_budget
 
 logger = logging.getLogger(__name__)
 
@@ -41,39 +46,39 @@ EMBEDDING_CACHE_KEY = "gemini_embedding_calls"
 # ---------------------------------------------------------------------------
 
 
-class GeminiRateLimitError(HttpError):
-    """Global Gemini rate limit exceeded."""
+class GeminiRateLimitError(ApiError):
+    """Instance-local burst guard exceeded (runaway loops); cost limits live in ai_budget."""
 
     def __init__(self):
-        super().__init__(429, "KI-Limit erreicht. Bitte versuche es in einigen Minuten erneut.")
+        super().__init__(429, "ai_rate_limited", "KI-Limit erreicht. Bitte versuche es in einigen Minuten erneut.")
 
 
-class GeminiAuthError(HttpError):
-    """User not authenticated for Gemini calls."""
+class GeminiAuthError(ApiError):
+    """Anonymous call to an AI feature outside the anonymous allowlist."""
 
     def __init__(self):
-        super().__init__(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+        super().__init__(401, "ai_login_required", ai_budget.LOGIN_REQUIRED_DETAIL)
 
 
-class GeminiUnavailableError(HttpError):
+class GeminiUnavailableError(ApiError):
     """Gemini API not reachable."""
 
     def __init__(self, detail: str = "KI nicht erreichbar. Bitte versuche es später erneut."):
-        super().__init__(503, detail)
+        super().__init__(503, "ai_unavailable", detail)
 
 
-class GeminiInvalidResponseError(HttpError):
+class GeminiInvalidResponseError(ApiError):
     """Gemini returned empty/invalid response."""
 
     def __init__(self, detail: str = "KI-Antwort ungültig. Bitte versuche es erneut."):
-        super().__init__(502, detail)
+        super().__init__(502, "ai_invalid_response", detail)
 
 
-class GeminiUpstreamRateLimitError(HttpError):
+class GeminiUpstreamRateLimitError(ApiError):
     """Google's own 429."""
 
     def __init__(self):
-        super().__init__(429, "KI ist gerade überlastet. Bitte versuche es in einer Minute erneut.")
+        super().__init__(429, "ai_rate_limited", "KI ist gerade überlastet. Bitte versuche es in einer Minute erneut.")
 
 
 # ---------------------------------------------------------------------------
@@ -132,14 +137,6 @@ def _get_image_client():
 # ---------------------------------------------------------------------------
 # Rate limit & auth checks
 # ---------------------------------------------------------------------------
-
-
-def _check_auth(user: AbstractBaseUser | None, *, bypass_limits: bool) -> None:
-    """Raise 403 if user is not authenticated (unless bypassed)."""
-    if bypass_limits:
-        return
-    if user is None or not user.is_authenticated:
-        raise GeminiAuthError()
 
 
 def _atomic_incr_and_check(key: str, limit: int, timeout: int) -> None:
@@ -263,17 +260,34 @@ def _create_interaction(
     contents: str | list,
     context: str = "",
     is_background: bool = False,
+    bypass_limits: bool = False,
+    max_output_tokens: int | None = None,
+    attempts: int = 1,
 ) -> tuple[AiInteraction, uuid.UUID]:
-    """Create an AiInteraction record and return (record, id)."""
-    kwargs: dict = {"is_background": is_background}
-    if user and user.is_authenticated:
-        kwargs["user"] = user
-    interaction = AiInteraction.objects.create(
+    """Reserve budget for the call's tier and create its AiInteraction record atomically."""
+    tier = ai_budget.resolve_ai_tier(user, bypass_limits=bypass_limits)
+    base: dict = {
+        "context": context,
+        "prompt": _truncate_prompt(contents),
+        "model": model,
+        "success": False,
+        "is_background": is_background,
+    }
+    if user is not None and user.is_authenticated:
+        base["user"] = user
+
+    def create(**budget_fields: object) -> AiInteraction:
+        return AiInteraction.objects.create(**base, **budget_fields)
+
+    from core.middleware import current_anon_key
+
+    interaction = ai_budget.reserve(
+        tier=tier,
+        user=user,
+        anon_key=current_anon_key.get(),
         context=context,
-        prompt=_truncate_prompt(contents),
-        model=model,
-        success=False,
-        **kwargs,
+        estimate_eur=ai_budget.estimate_max_cost_eur(model, contents, max_output_tokens, attempts=attempts),
+        create_interaction=create,
     )
     return interaction, interaction.id
 
@@ -368,7 +382,8 @@ def _update_interaction(
             if field in tokens:
                 update_kwargs[field] = tokens[field]
     if cost_eur is not None:
-        update_kwargs["cost_eur"] = cost_eur
+        # Structured retries reuse one record; costs of all attempts must add up for budgets.
+        update_kwargs["cost_eur"] = Coalesce(F("cost_eur"), Value(Decimal("0"))) + Value(Decimal(cost_eur))
     if pricing_model:
         update_kwargs["pricing_model"] = pricing_model
     if structured_attempts is not None:
@@ -419,7 +434,8 @@ def _execute_gemini_call(
         duration = int((time.monotonic() - start) * 1000)
         error_code = _map_exception_to_error_code(exc)
         tokens = _extract_usage_metadata(exc)
-        cost = _calculate_cost_eur(model, getattr(exc, "usage_metadata", None))
+        # No usage metadata means no billable tokens: settle the reservation at 0 €.
+        cost = _calculate_cost_eur(model, getattr(exc, "usage_metadata", None)) or "0"
         _update_interaction(
             interaction,
             success=False,
@@ -515,7 +531,8 @@ def gemini_call(
         AiInteraction record id for feedback.
 
     Raises:
-        GeminiAuthError: If user is not authenticated.
+        GeminiAuthError: Anonymous call outside the anonymous allowlist.
+        ApiError: 429 when the tier budget is exhausted (see core.services.ai_budget).
         GeminiRateLimitError: If global limit exceeded.
         GeminiUpstreamRateLimitError: If Google returns 429.
         GeminiUnavailableError: If Gemini is unreachable.
@@ -523,17 +540,7 @@ def gemini_call(
     # Keep callers backwards-compatible while routing every text request to
     # the single globally deployed Flash-Lite model.
     model = DEFAULT_TEXT_MODEL
-    _check_auth(user, bypass_limits=bypass_limits)
     _check_global_limit(bypass_limits=bypass_limits)
-
-    interaction, interaction_id = _create_interaction(
-        user=user, model=model, contents=contents, context=context, is_background=is_background
-    )
-
-    client = _get_client()
-    if not client:
-        _update_interaction(interaction, success=False, error_code="client_unavailable")
-        return None, interaction_id
 
     from google.genai import types
 
@@ -547,7 +554,28 @@ def gemini_call(
     else:
         config = types.GenerateContentConfig(http_options=http_options)
 
+    tier = ai_budget.resolve_ai_tier(user, bypass_limits=bypass_limits)
+    if tier == AiTierChoices.ANONYMOUS and not config.max_output_tokens:
+        # Hard output cap makes the anonymous cost estimate a true upper bound.
+        config = config.model_copy(update={"max_output_tokens": settings.AI_ANONYMOUS_MAX_OUTPUT_TOKENS})
+
     structured_schema = _structured_schema(config)
+    interaction, interaction_id = _create_interaction(
+        user=user,
+        model=model,
+        contents=contents,
+        context=context,
+        is_background=is_background,
+        bypass_limits=bypass_limits,
+        max_output_tokens=config.max_output_tokens,
+        attempts=STRUCTURED_MAX_ATTEMPTS if structured_schema is not None else 1,
+    )
+
+    client = _get_client()
+    if not client:
+        _update_interaction(interaction, success=False, error_code="client_unavailable", cost_eur="0")
+        return None, interaction_id
+
     config = _apply_structured_output_rules(config)
     current_contents = contents
     last_error: Exception | None = None
@@ -622,16 +650,20 @@ def gemini_image_call(
     Returns:
         Tuple of (GenerateContentResponse | None, UUID).
     """
-    _check_auth(user, bypass_limits=bypass_limits)
     _check_global_limit(bypass_limits=bypass_limits)
 
     interaction, interaction_id = _create_interaction(
-        user=user, model=model, contents=contents, context=context, is_background=is_background
+        user=user,
+        model=model,
+        contents=contents,
+        context=context,
+        is_background=is_background,
+        bypass_limits=bypass_limits,
     )
 
     client = _get_image_client()
     if not client:
-        _update_interaction(interaction, success=False, error_code="client_unavailable")
+        _update_interaction(interaction, success=False, error_code="client_unavailable", cost_eur="0")
         return None, interaction_id
 
     return _execute_gemini_call(
@@ -697,8 +729,9 @@ def gemini_embed(
     # Embeddings are also used by database-free utility code. Analytics must
     # not make an otherwise successful embedding call require database access.
     try:
+        # Embeddings are infrastructure (search/matching), never charged to a tier budget.
         interaction, _interaction_id = _create_interaction(
-            user=user, model=model, contents=contents, is_background=True
+            user=user, model=model, contents=contents, is_background=True, bypass_limits=True
         )
     except Exception:
         interaction = None

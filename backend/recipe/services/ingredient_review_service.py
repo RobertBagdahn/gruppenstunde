@@ -81,7 +81,11 @@ def _suggested_portion_count(
     ingredient = Ingredient.objects.filter(id=ingredient_id, deleted_at__isnull=True).first()
     if ingredient is None:
         return None
-    return UnitGramConverter.convert_to_portion_count(quantity, unit, ingredient, user=user, _memo=memo)
+    # Container-unit estimates are a per-ingredient AI call outside the anonymous allowlist.
+    is_authenticated = user is not None and user.is_authenticated
+    return UnitGramConverter.convert_to_portion_count(
+        quantity, unit, ingredient, user=user, _memo=memo, allow_ai_estimate=is_authenticated
+    )
 
 
 def _temporary_draft(
@@ -89,7 +93,9 @@ def _temporary_draft(
 ) -> TemporaryIngredientDraftOut:
     from recipe.services.ingredient_enrichment import enrich_ingredient
 
-    enriched = enrich_ingredient(name, user)
+    # Anonymous previews get a name-only draft; enrichment is a per-ingredient AI
+    # call outside the anonymous allowlist and runs when the logged-in user saves.
+    enriched = enrich_ingredient(name, user) if user is not None and user.is_authenticated else None
     if enriched is None:
         return TemporaryIngredientDraftOut(name=name, quantity=quantity)
 

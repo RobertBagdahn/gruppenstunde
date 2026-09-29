@@ -10,6 +10,7 @@ from ninja.errors import HttpError
 from content.models import ContentLink
 from content.schemas.base import ContentLinkCreateIn
 from content.schemas.content_links import ContentLinkDetailOut
+from core.permissions import require_login, require_staff
 
 router = Router(tags=["content"])
 
@@ -121,8 +122,7 @@ def list_content_links(
 )
 def create_content_link(request, payload: ContentLinkCreateIn):
     """Create a manual content link between two content items."""
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+    require_login(request)
 
     try:
         src_ct = ContentType.objects.get(model=payload.source_content_type)
@@ -172,8 +172,7 @@ def create_content_link(request, payload: ContentLinkCreateIn):
 )
 def reject_content_link(request, link_id: int):
     """Reject a content link (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins")
+    require_staff(request)
 
     try:
         link = ContentLink.objects.get(pk=link_id)
@@ -192,8 +191,7 @@ def reject_content_link(request, link_id: int):
 )
 def delete_content_link(request, link_id: int):
     """Delete a content link (creator or admin)."""
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+    require_login(request)
 
     try:
         link = ContentLink.objects.get(pk=link_id)

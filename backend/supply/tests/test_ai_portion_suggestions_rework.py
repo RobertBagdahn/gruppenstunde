@@ -111,7 +111,7 @@ class TestAiApplyPortionsEndpoint:
             data={"replace_all": False, "selected": []},
             content_type="application/json",
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_replace_all_false_creates_new_non_duplicate_portions(self):
         client, _user = self._client()

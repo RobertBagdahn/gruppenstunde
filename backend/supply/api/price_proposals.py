@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from supply.models import Ingredient, IngredientPriceProposal
 from supply.schemas import (
     IngredientPriceProposalAcceptIn,
@@ -18,7 +19,6 @@ from supply.services.ingredient_price_proposal_service import (
     reject_proposal,
 )
 
-from .helpers import require_auth
 from .ingredients import _can_edit_ingredient, _is_staff_or_admin_user
 
 price_proposal_router = Router(tags=["ingredient-price-proposals"])
@@ -32,7 +32,7 @@ def _get_ingredient_for_user(request, slug: str) -> Ingredient:
 
 def _check_proposal_permission(ingredient: Ingredient, request) -> None:
     """Only users with edit permission on the ingredient or staff may create/approve proposals."""
-    require_auth(request)
+    require_login(request)
     if not _can_edit_ingredient(ingredient, request.user) and not _is_staff_or_admin_user(request.user):
         raise HttpError(403, "Keine Berechtigung, Preisvorschläge für diese Zutat zu verwalten")
 

@@ -3,7 +3,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 
-from ..choices import AiContextChoices
+from ..choices import AiContextChoices, AiTierChoices
 
 
 class AiInteraction(models.Model):
@@ -31,6 +31,11 @@ class AiInteraction(models.Model):
     cost_eur = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     pricing_model = models.CharField(max_length=100, blank=True, default="")
     is_background = models.BooleanField(default=False)
+    tier = models.CharField(max_length=10, choices=AiTierChoices.choices, default=AiTierChoices.USER)
+    # HMAC of IP + user agent with a daily rotating key; never a raw IP.
+    anon_key = models.CharField(max_length=64, blank=True, default="")
+    # Worst-case estimate held against the budget until `cost_eur` is known.
+    reserved_cost_eur = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     vote = models.CharField(
         max_length=10,
         null=True,
@@ -47,7 +52,39 @@ class AiInteraction(models.Model):
             models.Index(fields=["user"], name="aiinteraction_user_idx"),
             models.Index(fields=["created_at"], name="aiinteraction_created_at_idx"),
             models.Index(fields=["vote"], name="aiinteraction_vote_idx"),
+            models.Index(fields=["tier", "created_at"], name="aiinteraction_tier_created_idx"),
+            models.Index(fields=["anon_key", "created_at"], name="aiinteraction_anon_created_idx"),
+            models.Index(fields=["user", "created_at"], name="aiinteraction_user_created_idx"),
         ]
 
     def __str__(self) -> str:
         return f"[{self.context}] by {self.user_id} at {self.created_at}"
+
+
+class AiBudgetBucket(models.Model):
+    """Lock row serializing budget checks per scope ("anonymous", "user:<id>") across instances."""
+
+    key = models.CharField(max_length=64, unique=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return self.key
+
+
+class AiResultCache(models.Model):
+    """Cross-instance cache for anonymous preview results (recognize recipe/ingredient)."""
+
+    feature = models.CharField(max_length=50)
+    input_hash = models.CharField(max_length=64)
+    payload = models.JSONField()
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["feature", "input_hash"], name="airesultcache_feature_hash_uniq"),
+        ]
+        indexes = [models.Index(fields=["expires_at"], name="airesultcache_expires_idx")]
+
+    def __str__(self) -> str:
+        return f"{self.feature}:{self.input_hash[:8]}"

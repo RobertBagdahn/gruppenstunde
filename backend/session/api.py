@@ -21,6 +21,7 @@ from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmo
 from content.choices import ContentStatus
 from content.models import Tag
 from content.schemas import ImageFromUrlIn
+from core.permissions import require_staff
 from supply.schemas import ContentMaterialItemIn
 
 from .models import GroupSession
@@ -259,8 +260,7 @@ def update_session(request, session_id: int, payload: GroupSessionUpdateIn):
 @router.delete("/{session_id}/", response={204: None})
 def delete_session(request, session_id: int):
     """Soft-delete a group session (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur Admins dürfen Gruppenstunden löschen.")
+    require_staff(request)
 
     session = get_object_or_404(GroupSession, id=session_id)
     session.soft_delete()

@@ -141,14 +141,6 @@ def create_comment(
 # ---------------------------------------------------------------------------
 
 
-def _require_auth(request):
-    """Require the user to be authenticated."""
-    if not request.user.is_authenticated:
-        from ninja.errors import HttpError
-
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
-
-
 def _is_staff_or_admin(request) -> bool:
     """Check if the user is staff or has a staff/admin profile role."""
     if not request.user.is_authenticated:

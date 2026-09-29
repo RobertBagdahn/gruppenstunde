@@ -34,3 +34,5 @@ MIGRATION_MODULES = DisableMigrations()
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 DEFAULT_FILE_STORAGE = "django.core.files.storage.InMemoryStorage"
+
+AUTH_DEV_LOGIN_ENABLED = True

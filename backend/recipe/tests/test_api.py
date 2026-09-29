@@ -234,7 +234,7 @@ class TestCreateRecipe:
             data=json.dumps({"title": "Test"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_create_recipe(self, auth_client):
         resp = auth_client.post(
@@ -390,7 +390,7 @@ class TestUpdateRecipe:
             data=json.dumps({"title": "Updated"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_owner_can_update(self, auth_client, db):
         user = auth_client._user
@@ -652,7 +652,7 @@ class TestUpdateRecipe:
 class TestDeleteRecipe:
     def test_delete_requires_auth(self, api_client, approved_recipe):
         resp = api_client.delete(f"/api/recipes/{approved_recipe.id}/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_soft_delete(self, admin_client, db):
         admin_user = admin_client._user
@@ -831,7 +831,7 @@ class TestRecipeItems:
 class TestRecipeImageUpload:
     def test_upload_requires_auth(self, api_client, approved_recipe):
         resp = api_client.post(f"/api/recipes/{approved_recipe.id}/image/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 @pytest.mark.django_db

@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_staff
 from supply.models import PortionRepairFinding
 from supply.schemas.portion_repair import (
     PaginatedPortionRepairFindingOut,
@@ -28,11 +29,6 @@ from supply.schemas.portion_repair import (
 
 portion_repair_router = Router(tags=["Portion Repair"])
 logger = logging.getLogger(__name__)
-
-
-def _require_staff(request):
-    if not request.user.is_authenticated or not request.user.is_staff:
-        raise HttpError(403, "Nur für Administratoren")
 
 
 def _to_out(finding: PortionRepairFinding) -> PortionRepairFindingOut:
@@ -68,7 +64,7 @@ def _to_out(finding: PortionRepairFinding) -> PortionRepairFindingOut:
 @portion_repair_router.get("/", response=PaginatedPortionRepairFindingOut)
 def list_findings(request, page: int = 1, page_size: int = 20, status: str | None = None):
     """Paginated list of portion repair findings (staff only)."""
-    _require_staff(request)
+    require_staff(request)
     page_size = min(max(page_size, 1), 100)
     qs = PortionRepairFinding.objects.select_related("portion", "ingredient").order_by("-created_at")
     if status:
@@ -89,7 +85,7 @@ def list_findings(request, page: int = 1, page_size: int = 20, status: str | Non
 
 @portion_repair_router.post("/scan/", response=PortionRepairProcessOut)
 def scan_endpoint(request, payload: PortionRepairProcessIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.services.portion_repair import scan_suspicious_portions
 
     reports = scan_suspicious_portions(limit=max(1, min(payload.limit, 100)))
@@ -98,7 +94,7 @@ def scan_endpoint(request, payload: PortionRepairProcessIn):
 
 @portion_repair_router.post("/evaluate/", response=PortionRepairProcessOut)
 def evaluate_endpoint(request, payload: PortionRepairProcessIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.choices import PortionRepairStatus
     from supply.services.portion_repair_ai import evaluate_finding
 
@@ -120,7 +116,7 @@ def evaluate_endpoint(request, payload: PortionRepairProcessIn):
 
 @portion_repair_router.post("/approve-selected/", response=PortionRepairBulkApproveOut)
 def approve_selected_endpoint(request, payload: PortionRepairBulkApproveIn):
-    _require_staff(request)
+    require_staff(request)
     from django.utils import timezone
 
     from supply.choices import PortionRepairStatus
@@ -141,7 +137,7 @@ def approve_selected_endpoint(request, payload: PortionRepairBulkApproveIn):
 
 @portion_repair_router.post("/apply-approved/", response=PortionRepairBulkApplyOut)
 def apply_approved_endpoint(request, payload: PortionRepairBulkApplyIn):
-    _require_staff(request)
+    require_staff(request)
     from supply.choices import PortionRepairStatus
     from supply.services.portion_repair import apply_finding
 
@@ -167,7 +163,7 @@ def apply_approved_endpoint(request, payload: PortionRepairBulkApplyIn):
 
 @portion_repair_router.post("/{finding_id}/approve/", response=PortionRepairApproveOut)
 def approve_finding_endpoint(request, finding_id: int):
-    _require_staff(request)
+    require_staff(request)
     from django.utils import timezone
 
     from supply.choices import PortionRepairStatus
@@ -184,7 +180,7 @@ def approve_finding_endpoint(request, finding_id: int):
 @portion_repair_router.post("/{finding_id}/apply/", response=PortionRepairApplyOut)
 def apply_finding_endpoint(request, finding_id: int):
     """Apply an explicitly approved finding (staff only)."""
-    _require_staff(request)
+    require_staff(request)
     from supply.choices import PortionRepairStatus
     from supply.services.portion_repair import apply_finding
 
@@ -205,7 +201,7 @@ def apply_finding_endpoint(request, finding_id: int):
 @portion_repair_router.post("/{finding_id}/reject/", response=PortionRepairRejectOut)
 def reject_finding_endpoint(request, finding_id: int):
     """Reject a finding (staff only, no data changes)."""
-    _require_staff(request)
+    require_staff(request)
     from supply.services.portion_repair import reject_finding
 
     finding = get_object_or_404(PortionRepairFinding, id=finding_id)
@@ -219,7 +215,7 @@ def reject_finding_endpoint(request, finding_id: int):
 @portion_repair_router.get("/{finding_id}", response=PortionRepairFindingOut)
 def get_finding(request, finding_id: int):
     """Detail view of a single finding (staff only)."""
-    _require_staff(request)
+    require_staff(request)
     finding = get_object_or_404(
         PortionRepairFinding.objects.select_related("portion", "ingredient"),
         id=finding_id,

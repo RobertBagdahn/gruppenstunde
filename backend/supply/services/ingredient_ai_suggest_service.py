@@ -13,7 +13,7 @@ Both share ``INGREDIENT_DATA_RULES`` with the batch review
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from django.contrib.auth.models import AbstractBaseUser, User
 from django.utils.text import slugify
@@ -361,28 +361,20 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
     return data
 
 
-def ai_create_ingredient(
+def generate_ingredient_draft(
     name: str,
     user: AbstractBaseUser | None = None,
     bypass_limits: bool = False,
     is_background: bool = False,
-) -> Ingredient:
-    """Create a complete ingredient from just a name using Gemini.
+) -> tuple[IngredientAiCreateSchema, Any]:
+    """Ask Gemini for a complete ingredient draft without touching the database.
 
-    Creates the Ingredient in the database with Portions and Aliases.
-    Returns the created Ingredient instance, or an existing ingredient with the
-    same (requested or AI-standardised) name to avoid duplicates.
+    Used by `ai_create_ingredient` and by the anonymous "Zutat erkennen" preview.
+    Returns the validated draft and the AiInteraction id.
     """
     from google.genai import types
 
     from core.services.prompt_context import build_prompt_context
-    from supply.choices import IngredientStatusChoices, RetailSectionSourceChoices
-    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Package, Portion, RetailSection
-
-    existing = Ingredient.objects.filter(name__iexact=name.strip()).order_by("-usage_count", "id").first()
-    if existing is not None:
-        existing.ai_interaction_id = None
-        return existing
 
     prompt = (
         f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
@@ -418,11 +410,36 @@ def ai_create_ingredient(
     )
 
     if response is None:
-        from ninja.errors import HttpError
+        from core.services.gemini import GeminiUnavailableError
 
-        raise HttpError(503, "KI nicht verfügbar")
+        raise GeminiUnavailableError("KI nicht verfügbar")
 
-    data = IngredientAiCreateSchema.model_validate_json(response.text)
+    return IngredientAiCreateSchema.model_validate_json(response.text), interaction_id
+
+
+def ai_create_ingredient(
+    name: str,
+    user: AbstractBaseUser | None = None,
+    bypass_limits: bool = False,
+    is_background: bool = False,
+) -> Ingredient:
+    """Create a complete ingredient from just a name using Gemini.
+
+    Creates the Ingredient in the database with Portions and Aliases.
+    Returns the created Ingredient instance, or an existing ingredient with the
+    same (requested or AI-standardised) name to avoid duplicates.
+    """
+    from supply.choices import IngredientStatusChoices, RetailSectionSourceChoices
+    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Package, Portion, RetailSection
+
+    existing = Ingredient.objects.filter(name__iexact=name.strip()).order_by("-usage_count", "id").first()
+    if existing is not None:
+        existing.ai_interaction_id = None
+        return existing
+
+    data, interaction_id = generate_ingredient_draft(
+        name, user, bypass_limits=bypass_limits, is_background=is_background
+    )
 
     existing = Ingredient.objects.filter(name__iexact=data.name.strip()).order_by("-usage_count", "id").first()
     if existing is not None:

@@ -88,7 +88,7 @@ def api_client() -> Client:
 
 class TestAccessControl:
     def test_anonymous_gets_403(self, api_client, finding):
-        assert api_client.get(f"{BASE}/").status_code == 403
+        assert api_client.get(f"{BASE}/").status_code == 401
 
     def test_non_staff_gets_403(self, user_client, finding):
         assert user_client.get(f"{BASE}/").status_code == 403

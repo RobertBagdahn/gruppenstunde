@@ -204,7 +204,7 @@ def test_update_portion_anonymous_is_forbidden(api_client, egg, egg_piece):
         data=json.dumps({"weight_g": 60.0}),
         content_type="application/json",
     )
-    assert resp.status_code == 403
+    assert resp.status_code == 401
     egg_piece.refresh_from_db()
     assert egg_piece.weight_g == 50.0
 
@@ -395,7 +395,7 @@ def test_adopt_current_portions_anonymous_forbidden(api_client, egg, egg_piece):
         data=json.dumps({}),
         content_type="application/json",
     )
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 @pytest.mark.django_db

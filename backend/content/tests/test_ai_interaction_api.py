@@ -216,7 +216,7 @@ class TestAiInteractionStats:
     def test_unauthenticated_returns_403(self, client, interaction):
         """Unauthenticated request returns 403."""
         res = client.get(self.STATS_URL)
-        assert res.status_code == 403
+        assert res.status_code == 401
 
     def test_stats_counts_are_correct(self, client, staff_user, db, owner_user):
         """Stats counts reflect actual data."""
@@ -458,7 +458,7 @@ class TestAiPricing:
 
     def test_unauthenticated_returns_403(self, client):
         res = client.get(self.PRICING_URL)
-        assert res.status_code == 403
+        assert res.status_code == 401
 
 
 # ---------------------------------------------------------------------------

@@ -54,7 +54,7 @@ def draft_recipe(db, auth_client):
 class TestAiSuggestIngredientsEndpoint:
     def test_unauthenticated_returns_403(self, client, draft_recipe):
         resp = client.post(f"/api/recipes/{draft_recipe.id}/ai-suggest-ingredients/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_other_user_draft_returns_404_or_403(self, client, django_user_model, draft_recipe):
         other = django_user_model.objects.create_user(username="other", password="pw")

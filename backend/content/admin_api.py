@@ -27,6 +27,9 @@ from django.utils import timezone
 from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
+from core.errors import ApiError
+from core.permissions import require_login, require_staff
+
 logger = logging.getLogger(__name__)
 
 from blog.models import Blog
@@ -42,29 +45,15 @@ User = get_user_model()
 router = Router(tags=["admin"])
 
 
-def _require_staff(request):
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Nur Admins haben Zugriff.")
-    if request.user.is_staff:
-        return
-    try:
-        if request.user.profile.role in ("staff", "admin"):
-            return
-    except AttributeError:
-        pass
-    raise HttpError(403, "Nur Admins haben Zugriff.")
-
-
 def _require_admin(request):
     """Require the top-level 'admin' profile role (stricter than staff)."""
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Nur Administratoren haben Zugriff.")
+    require_login(request, "um diesen Bereich zu öffnen")
     try:
         if request.user.profile.role == "admin":
             return
     except AttributeError:
         pass
-    raise HttpError(403, "Nur Administratoren haben Zugriff.")
+    raise ApiError(403, "staff_required", "Dieser Bereich ist nur für Administratoren.")
 
 
 # ---------------------------------------------------------------------------
@@ -117,10 +106,20 @@ class AdminUserOut(Schema):
     is_staff: bool
     is_active: bool
     date_joined: str
+    last_login: str | None = None
+    providers: list[str] = []
 
     @staticmethod
     def resolve_date_joined(obj) -> str:
         return cast(str, obj.date_joined.isoformat())
+
+    @staticmethod
+    def resolve_last_login(obj) -> str | None:
+        return obj.last_login.isoformat() if obj.last_login else None
+
+    @staticmethod
+    def resolve_providers(obj) -> list[str]:
+        return sorted({account.provider for account in obj.socialaccount_set.all()})
 
 
 class AdminUserContentOut(Schema):
@@ -154,6 +153,10 @@ class AdminUserDetailOut(Schema):
     is_active: bool
     date_joined: str
     last_login: str | None
+    providers: list[str]
+    ai_used_today_eur: float
+    ai_used_30d_eur: float
+    ai_daily_limit_eur: float
     content: list[AdminUserContentOut]
     comments: list[AdminUserCommentOut]
 
@@ -302,7 +305,7 @@ def _get_all_content_qs():
 
 @router.get("/statistics/", response=StatsOut)
 def admin_statistics(request):
-    _require_staff(request)
+    require_staff(request)
 
     total_content = sum(m.objects.count() for m in CONTENT_MODELS)
     published_content = sum(m.objects.filter(status=ContentStatus.APPROVED).count() for m in CONTENT_MODELS)
@@ -348,7 +351,7 @@ def admin_statistics(request):
 
 @router.get("/trending/", response=TrendingOut)
 def admin_trending(request):
-    _require_staff(request)
+    require_staff(request)
 
     seven_days_ago = timezone.now() - timedelta(days=7)
 
@@ -410,7 +413,7 @@ def admin_trending(request):
 
 @router.get("/recent-activity/", response=RecentActivityOut)
 def admin_recent_activity(request):
-    _require_staff(request)
+    require_staff(request)
 
     # Recent views
     recent_views_qs = ContentView.objects.select_related("user", "content_type").order_by("-created_at")[:20]
@@ -481,9 +484,13 @@ def admin_recent_activity(request):
 
 
 @router.get("/users/", response=PaginatedUserOut)
-def admin_users(request, page: int = 1, page_size: int = 50):
-    _require_staff(request)
-    qs = User.objects.all().order_by("-date_joined")
+def admin_users(request, page: int = 1, page_size: int = 50, provider: str | None = None, q: str = ""):
+    require_staff(request)
+    qs = User.objects.prefetch_related("socialaccount_set").order_by("-date_joined")
+    if provider:
+        qs = qs.filter(socialaccount__provider=provider).distinct()
+    if q:
+        qs = qs.filter(Q(email__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q))
     total = qs.count()
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
@@ -497,9 +504,24 @@ def admin_users(request, page: int = 1, page_size: int = 50):
     }
 
 
+def _ai_usage_for(user) -> dict[str, float]:
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from core.services.ai_budget import daily_limit_eur, resolve_ai_tier, user_usage_since, user_usage_today
+
+    now = timezone.now()
+    return {
+        "ai_used_today_eur": float(round(user_usage_today(user, now), 4)),
+        "ai_used_30d_eur": float(round(user_usage_since(user, now - timedelta(days=30), now), 4)),
+        "ai_daily_limit_eur": float(daily_limit_eur(resolve_ai_tier(user))),
+    }
+
+
 @router.get("/users/{user_id}/", response=AdminUserDetailOut)
 def admin_user_detail(request, user_id: int):
-    _require_staff(request)
+    require_staff(request)
 
     user = get_object_or_404(User, id=user_id)
 
@@ -547,6 +569,8 @@ def admin_user_detail(request, user_id: int):
         "is_active": user.is_active,
         "date_joined": user.date_joined.isoformat(),
         "last_login": user.last_login.isoformat() if user.last_login else None,
+        "providers": sorted(set(user.socialaccount_set.values_list("provider", flat=True))),
+        **_ai_usage_for(user),
         "content": user_content,
         "comments": comments,
     }
@@ -559,7 +583,7 @@ def admin_user_detail(request, user_id: int):
 
 @router.get("/moderation/", response=PaginatedCommentModerationOut)
 def moderation_queue(request, page: int = 1, page_size: int = 50):
-    _require_staff(request)
+    require_staff(request)
     qs = (
         ContentComment.objects.filter(status=CommentStatus.PENDING)
         .select_related("content_type", "user")
@@ -580,7 +604,7 @@ def moderation_queue(request, page: int = 1, page_size: int = 50):
 
 @router.post("/moderation/", response=CommentModerationOut)
 def moderate_comment(request, payload: ModerationActionIn):
-    _require_staff(request)
+    require_staff(request)
 
     comment = get_object_or_404(ContentComment, id=payload.comment_id)
     if payload.action == "approve":
@@ -606,7 +630,7 @@ class MaterialFilterIn(Schema):
 
 @router.get("/materials/", response=PaginatedMaterialAdminOut)
 def admin_materials(request, filters: Query[MaterialFilterIn]):
-    _require_staff(request)
+    require_staff(request)
 
     qs = Material.objects.all()
     if filters.q:
@@ -637,7 +661,7 @@ def admin_materials(request, filters: Query[MaterialFilterIn]):
 
 @router.post("/materials/", response={201: MaterialAdminOut})
 def admin_create_material(request, payload: MaterialAdminCreateIn):
-    _require_staff(request)
+    require_staff(request)
 
     material = Material.objects.create(
         name=payload.name,
@@ -649,7 +673,7 @@ def admin_create_material(request, payload: MaterialAdminCreateIn):
 
 @router.patch("/materials/{material_id}/", response=MaterialAdminOut)
 def admin_update_material(request, material_id: int, payload: MaterialAdminUpdateIn):
-    _require_staff(request)
+    require_staff(request)
 
     material = get_object_or_404(Material, id=material_id)
     if payload.name is not None:
@@ -663,7 +687,7 @@ def admin_update_material(request, material_id: int, payload: MaterialAdminUpdat
 
 @router.delete("/materials/{material_id}/", response={204: None})
 def admin_delete_material(request, material_id: int):
-    _require_staff(request)
+    require_staff(request)
 
     material = get_object_or_404(Material, id=material_id)
     material.soft_delete()
@@ -677,20 +701,20 @@ def admin_delete_material(request, material_id: int):
 
 @router.get("/units/", response=list[UnitOut])
 def admin_units(request):
-    _require_staff(request)
+    require_staff(request)
     return list(MeasuringUnit.objects.all())
 
 
 @router.post("/units/", response={201: UnitOut})
 def admin_create_unit(request, payload: UnitCreateIn):
-    _require_staff(request)
+    require_staff(request)
     unit = MeasuringUnit.objects.create(name=payload.name)
     return Status(201, unit)
 
 
 @router.patch("/units/{unit_id}/", response=UnitOut)
 def admin_update_unit(request, unit_id: int, payload: UnitUpdateIn):
-    _require_staff(request)
+    require_staff(request)
     unit = get_object_or_404(MeasuringUnit, id=unit_id)
     if payload.name is not None:
         unit.name = payload.name
@@ -700,7 +724,7 @@ def admin_update_unit(request, unit_id: int, payload: UnitUpdateIn):
 
 @router.delete("/units/{unit_id}/", response={204: None})
 def admin_delete_unit(request, unit_id: int):
-    _require_staff(request)
+    require_staff(request)
     unit = get_object_or_404(MeasuringUnit, id=unit_id)
     unit.delete()
     return Status(204, None)
@@ -753,7 +777,7 @@ class ApprovalQueueItemOut(Schema):
 @router.get("/approval-queue/", response=list[ApprovalQueueItemOut])
 def admin_approval_queue(request, page_size: int = 50):
     """List draft content awaiting verification, across content types (staff/admin)."""
-    _require_staff(request)
+    require_staff(request)
 
     from supply.models import Ingredient
 
@@ -783,7 +807,7 @@ def admin_approval_queue(request, page_size: int = 50):
 @router.patch("/approval-queue/ingredient/{ingredient_id}/verify/", response={200: dict})
 def admin_verify_ingredient(request, ingredient_id: int):
     """Mark an ingredient draft as verified (staff/admin)."""
-    _require_staff(request)
+    require_staff(request)
 
     from supply.models import Ingredient
 

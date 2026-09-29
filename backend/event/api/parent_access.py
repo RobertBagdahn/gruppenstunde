@@ -7,8 +7,9 @@ from django.utils import timezone
 from ninja import Schema, Status
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.api.events import event_router
-from event.api.helpers import require_auth, require_event_manager
+from event.api.helpers import require_event_manager
 from event.models import Event, ParentAccessToken, Participant
 from event.schemas import (
     BatchParentAccessTokenCreateIn,
@@ -71,7 +72,7 @@ def get_parent_view(request, event_slug: str, token: str):
 @event_router.post("/{event_slug}/parent-access/", response={201: ParentAccessTokenOut})
 def create_parent_token(request, event_slug: str, payload: ParentAccessTokenCreateIn):
     """Generate a parent access token for a participant."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -90,7 +91,7 @@ def create_parent_token(request, event_slug: str, payload: ParentAccessTokenCrea
 @event_router.post("/{event_slug}/parent-access/batch/", response=list[ParentAccessTokenOut])
 def batch_create_parent_tokens(request, event_slug: str, payload: BatchParentAccessTokenCreateIn):
     """Generate parent access tokens for all participants."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -122,7 +123,7 @@ def batch_create_parent_tokens(request, event_slug: str, payload: BatchParentAcc
 @event_router.get("/{event_slug}/parent-access/", response=PaginatedParentAccessTokenOut)
 def list_parent_tokens(request, event_slug: str, page: int = 1, page_size: int = 20):
     """List parent access tokens for an event (managers only)."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
@@ -148,7 +149,7 @@ def list_parent_tokens(request, event_slug: str, page: int = 1, page_size: int =
 @event_router.delete("/{event_slug}/parent-access/{token_id}/")
 def revoke_parent_token(request, event_slug: str, token_id: int):
     """Revoke a parent access token."""
-    require_auth(request)
+    require_login(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 

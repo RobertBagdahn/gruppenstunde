@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from core.permissions import require_login
 from event.models import MeetingPoint
 from event.schemas import (
     MeetingPointCreateIn,
@@ -16,8 +17,6 @@ from event.schemas import (
 )
 from profiles.choices import MembershipRoleChoices
 from profiles.models import GroupMembership, UserGroup
-
-from .helpers import require_auth
 
 meeting_point_router = Router(tags=["meeting-points"])
 
@@ -39,7 +38,7 @@ def _visible_meeting_points_qs(user):
 @meeting_point_router.get("/", response=PaginatedMeetingPointOut)
 def list_meeting_points(request, page: int = 1, page_size: int = 20):
     """List visible MeetingPoints (own personal + group)."""
-    require_auth(request)
+    require_login(request)
     qs = _visible_meeting_points_qs(request.user)
 
     total = qs.count()
@@ -60,7 +59,7 @@ def list_meeting_points(request, page: int = 1, page_size: int = 20):
 @meeting_point_router.post("/", response=MeetingPointOut)
 def create_meeting_point(request, payload: MeetingPointCreateIn):
     """Create a new MeetingPoint. Optionally assign to a group."""
-    require_auth(request)
+    require_login(request)
     data = payload.dict()
     group_id = data.pop("group_id", None)
 
@@ -77,7 +76,7 @@ def create_meeting_point(request, payload: MeetingPointCreateIn):
 @meeting_point_router.get("/{meeting_point_id}/", response=MeetingPointOut)
 def get_meeting_point(request, meeting_point_id: int):
     """Get a single MeetingPoint (visibility check)."""
-    require_auth(request)
+    require_login(request)
     qs = _visible_meeting_points_qs(request.user)
     meeting_point = qs.filter(id=meeting_point_id).first()
     if not meeting_point:
@@ -88,7 +87,7 @@ def get_meeting_point(request, meeting_point_id: int):
 @meeting_point_router.patch("/{meeting_point_id}/", response=MeetingPointOut)
 def update_meeting_point(request, meeting_point_id: int, payload: MeetingPointUpdateIn):
     """Update a MeetingPoint (creator or group admin)."""
-    require_auth(request)
+    require_login(request)
     qs = _visible_meeting_points_qs(request.user)
     meeting_point = qs.filter(id=meeting_point_id).first()
     if not meeting_point:
@@ -115,7 +114,7 @@ def update_meeting_point(request, meeting_point_id: int, payload: MeetingPointUp
 @meeting_point_router.delete("/{meeting_point_id}/")
 def delete_meeting_point(request, meeting_point_id: int):
     """Delete a MeetingPoint (creator only)."""
-    require_auth(request)
+    require_login(request)
     meeting_point = get_object_or_404(MeetingPoint, id=meeting_point_id)
 
     if meeting_point.created_by_id != request.user.id:

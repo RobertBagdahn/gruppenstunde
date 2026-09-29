@@ -4,8 +4,8 @@ from typing import Any, cast
 
 from django.db.models import Q
 from ninja import Router
-from ninja.errors import HttpError
 
+from core.permissions import require_login
 from recipe.models import RecipeItem
 from recipe.schemas import (
     ImprovementListOut,
@@ -85,8 +85,7 @@ def get_recipe_rules(request, recipe_id: int):
 @router.post("/{recipe_id}/suggestions/", response=LlmSuggestionsOut)
 def get_llm_suggestions(request, recipe_id: int, body: LlmSuggestionRequestIn):
     """Get LLM-generated ingredient suggestions for a recipe improvement objective."""
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+    require_login(request)
 
     from content.services.food_access import get_visible_recipe_or_404
     from recipe.services.suggestion_service import get_suggestions

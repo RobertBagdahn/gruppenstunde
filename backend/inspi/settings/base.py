@@ -35,6 +35,11 @@ INSTALLED_APPS = [
     "corsheaders",
     "allauth",
     "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.apple",
+    "allauth.socialaccount.providers.microsoft",
+    "allauth.socialaccount.providers.facebook",
     "django_cleanup.apps.CleanupConfig",
     "imagekit",
     # Project apps – core & shared
@@ -64,6 +69,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "core.middleware.AiRequestContextMiddleware",
 ]
 
 ROOT_URLCONF = "inspi.urls"
@@ -150,13 +156,92 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:5173", "http://localhost:5174"])
 CSRF_COOKIE_HTTPONLY = False  # allow JS to read CSRF token
 
-# Session
+# Session — long-lived so visitors stay signed in; sliding expiry on every request.
 SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
+SESSION_SAVE_EVERY_REQUEST = True
 
-# Django Allauth
+# The frontends proxy /api/ and set X-Forwarded-Host so OAuth callback URLs and
+# redirects use the visitor's domain (gruppenstunde.de / essensplan.app / localhost).
+USE_X_FORWARDED_HOST = True
+
+# Django Allauth — social login only. Local password signup/login is closed via
+# the account adapter; ModelBackend stays for the /admin/ emergency login.
+SOCIALACCOUNT_ONLY = True
 ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_ADAPTER = "core.auth.adapters.NoPasswordAccountAdapter"
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = env("ACCOUNT_DEFAULT_HTTP_PROTOCOL", default="http")
+SOCIALACCOUNT_ADAPTER = "core.auth.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_LOGIN_ON_GET = False
+SOCIALACCOUNT_STORE_TOKENS = False
+SOCIALACCOUNT_QUERY_EMAIL = True
+LOGIN_REDIRECT_URL = "/"
+# Where allauth sends users on errors; the SPA renders the message.
+FRONTEND_LOGIN_URL = "/login"
+FRONTEND_ACCOUNT_URL = "/profile/account"
+
+# Only providers with configured credentials are offered (see core.auth.providers).
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"prompt": "select_account"},
+        "OAUTH_PKCE_ENABLED": True,
+        "APPS": [
+            {
+                "client_id": env("GOOGLE_OAUTH_CLIENT_ID", default=""),
+                "secret": env("GOOGLE_OAUTH_CLIENT_SECRET", default=""),
+            }
+        ],
+    },
+    "microsoft": {
+        "TENANT": "common",
+        "SCOPE": ["User.Read", "openid", "email", "profile"],
+        "APPS": [
+            {
+                "client_id": env("MICROSOFT_OAUTH_CLIENT_ID", default=""),
+                "secret": env("MICROSOFT_OAUTH_CLIENT_SECRET", default=""),
+            }
+        ],
+    },
+    "apple": {
+        "APPS": [
+            {
+                "client_id": env("APPLE_OAUTH_CLIENT_ID", default=""),
+                "secret": env("APPLE_OAUTH_KEY_ID", default=""),
+                "key": env("APPLE_OAUTH_TEAM_ID", default=""),
+                "settings": {"certificate_key": env("APPLE_OAUTH_PRIVATE_KEY", default="")},
+            }
+        ],
+    },
+    "facebook": {
+        "METHOD": "oauth2",
+        "SCOPE": ["email", "public_profile"],
+        "FIELDS": ["id", "email", "first_name", "last_name", "name"],
+        # Facebook does not guarantee verified emails: never auto-connect by email.
+        "VERIFIED_EMAIL": False,
+        "EMAIL_AUTHENTICATION": False,
+        "APPS": [
+            {
+                "client_id": env("FACEBOOK_OAUTH_CLIENT_ID", default=""),
+                "secret": env("FACEBOOK_OAUTH_CLIENT_SECRET", default=""),
+            }
+        ],
+    },
+}
+# Drop unconfigured apps so allauth never builds a login URL without credentials.
+for _provider_config in SOCIALACCOUNT_PROVIDERS.values():
+    _provider_config["APPS"] = [app for app in _provider_config["APPS"] if app["client_id"]]
+
+# Dev login (local + tests only). production.py refuses to start if enabled.
+AUTH_DEV_LOGIN_ENABLED = env.bool("AUTH_DEV_LOGIN_ENABLED", default=False)
 
 # Email Configuration
 EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
@@ -190,6 +275,17 @@ GEMINI_PRICING = {
     },
 }
 USD_TO_EUR = env.float("USD_TO_EUR", default=0.92)
+
+# AI budgets (EUR), enforced in core.services.ai_budget across all instances via the DB.
+AI_BUDGET_ANONYMOUS_EUR_PER_HOUR = env.float("AI_BUDGET_ANONYMOUS_EUR_PER_HOUR", default=0.05)
+AI_BUDGET_ANONYMOUS_VISITOR_EUR_PER_HOUR = env.float("AI_BUDGET_ANONYMOUS_VISITOR_EUR_PER_HOUR", default=0.02)
+AI_BUDGET_USER_EUR_PER_DAY = env.float("AI_BUDGET_USER_EUR_PER_DAY", default=0.30)
+AI_BUDGET_STAFF_EUR_PER_DAY = env.float("AI_BUDGET_STAFF_EUR_PER_DAY", default=3.00)
+AI_ANONYMOUS_MAX_OUTPUT_TOKENS = env.int("AI_ANONYMOUS_MAX_OUTPUT_TOKENS", default=4096)
+AI_ANONYMOUS_MAX_INPUT_CHARS = env.int("AI_ANONYMOUS_MAX_INPUT_CHARS", default=8000)
+# Number of trailing X-Forwarded-For entries appended by our own proxies
+# (Cloud Run front end → nginx → Cloud Run front end). 0 = use REMOTE_ADDR.
+AI_CLIENT_IP_TRUSTED_HOPS = env.int("AI_CLIENT_IP_TRUSTED_HOPS", default=0)
 
 # Inspi Logo for PDF exports
 INSPI_LOGO_PATH = env("INSPI_LOGO_PATH", default=str(BASE_DIR / "static" / "img" / "inspi-logo.png"))
