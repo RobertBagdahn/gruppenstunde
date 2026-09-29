@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
+import UnauthGate from '@/components/shared/UnauthGate';
 import {
   usePackingLists,
   usePackingListTemplates,
@@ -191,21 +192,11 @@ export default function PackingListsPage() {
 
   if (!user) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 text-center">
-        <span className="material-symbols-outlined text-5xl text-muted-foreground mb-4 block">
-          backpack
-        </span>
-        <h1 className="text-2xl font-bold mb-2">Packlisten</h1>
-        <p className="text-muted-foreground mb-4">
-          Melde dich an, um deine Packlisten zu verwalten.
-        </p>
-        <button
-          onClick={() => navigate('/login')}
-          className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-md text-sm hover:opacity-90 transition"
-        >
-          Anmelden
-        </button>
-      </div>
+      <UnauthGate
+        title="Packlisten"
+        description="Melde dich an, um deine Packlisten zu speichern und mit deiner Gruppe zu teilen."
+        benefits={['Packlisten aus Vorlagen erstellen', 'Per Link teilen und gemeinsam abhaken']}
+      />
     );
   }
 

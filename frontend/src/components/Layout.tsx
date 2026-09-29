@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCurrentUser, useLogout } from '@/api/auth';
+import AiQuotaBar from '@/components/auth/AiQuotaBar';
+import { useLoginPrompt } from '@/store/loginPromptStore';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import CommandPalette from '@/components/shared/CommandPalette';
@@ -123,6 +126,10 @@ function ProfileMenuItem({ to, icon, label, active, onClick }: ProfileMenuItemPr
 export default function Layout({ children }: LayoutProps) {
   const { data: user } = useCurrentUser();
   const logout = useLogout();
+  const showLogin = useLoginPrompt((state) => state.show);
+  const handleLogout = () =>
+    logout.mutate(undefined, { onSuccess: () => toast.success('Du bist abgemeldet.') });
+  const openLogin = () => showLogin({ reason: 'Melde dich an, um Gruppenstunden, Packlisten und Pläne zu speichern.' });
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -168,6 +175,7 @@ export default function Layout({ children }: LayoutProps) {
     ...(user ? [{ to: `/profile/name/${user.id}`, icon: 'badge', label: 'Meine Daten' }] : []),
     { to: '/profile/groups', icon: 'groups', label: 'Gruppen' },
     { to: '/profile/persons', icon: 'family_restroom', label: 'Personen' },
+    { to: '/profile/account', icon: 'key', label: 'Konto & Anmeldung' },
     { to: '/profile/privacy', icon: 'shield', label: 'Datenschutz' },
   ];
 
@@ -385,6 +393,7 @@ export default function Layout({ children }: LayoutProps) {
                             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                           </div>
                         </div>
+                        <AiQuotaBar showEuro={user.is_staff} className="mt-3" />
                       </div>
 
                       {/* Menu Items */}
@@ -411,7 +420,7 @@ export default function Layout({ children }: LayoutProps) {
                       {/* Logout */}
                       <div className="border-t border-border/60 mt-1 pt-1 mx-1">
                         <button
-                          onClick={() => { logout.mutate(); setProfileMenuOpen(false); }}
+                          onClick={() => { handleLogout(); setProfileMenuOpen(false); }}
                           className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-destructive hover:bg-destructive/8 rounded-lg transition-colors"
                         >
                           <span className="material-symbols-outlined text-[20px]">logout</span>
@@ -423,13 +432,14 @@ export default function Layout({ children }: LayoutProps) {
                 )}
               </div>
             ) : (
-              <Link
-                to="/login"
+              <button
+                type="button"
+                onClick={openLogin}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-foreground hover:bg-muted transition-all"
               >
                 <span className="material-symbols-outlined text-[20px]">login</span>
                 Anmelden
-              </Link>
+              </button>
             )}
           </div>
 
@@ -589,21 +599,21 @@ export default function Layout({ children }: LayoutProps) {
               <div className="border-t border-border/60 my-2" />
               {user ? (
                 <button
-                  onClick={() => { logout.mutate(); setMobileMenuOpen(false); }}
+                  onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
                   className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-destructive hover:bg-destructive/8 transition-colors"
                 >
                   <span className="material-symbols-outlined text-[20px]">logout</span>
                   Abmelden
                 </button>
               ) : (
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-primary hover:bg-primary/8 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => { openLogin(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-primary hover:bg-primary/8 transition-colors"
                 >
                   <span className="material-symbols-outlined text-[20px]">login</span>
                   Anmelden
-                </Link>
+                </button>
               )}
             </nav>
           </div>

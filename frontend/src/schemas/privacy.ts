@@ -29,14 +29,15 @@ export const DataOverviewSchema = z.object({
   interactions: CategorySchema,
   planning: CategorySchema,
   packing_lists: CategorySchema,
+  login_providers: CategorySchema,
   analytics: AnalyticsDataSchema,
 });
 export type DataOverview = z.infer<typeof DataOverviewSchema>;
 
 // --- Account Deletion Schemas ---
 
+// Social login only: no password; the backend requires a login within 15 minutes.
 export const DeleteAccountRequestSchema = z.object({
-  password: z.string().nullable(),
   confirmation: z.literal('KONTO LÖSCHEN'),
 });
 export type DeleteAccountRequest = z.infer<typeof DeleteAccountRequestSchema>;

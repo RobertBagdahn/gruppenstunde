@@ -4,7 +4,7 @@
  * Includes both legacy admin endpoints (/api/admin/) and
  * new content admin endpoints (/api/content/admin/).
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ContentCommentSchema, type ContentComment } from '@/schemas/content';
 import { z } from 'zod';
 import { API_BASE_URL } from '@/lib/api';
@@ -145,13 +145,36 @@ const AdminUserSchema = z.object({
   is_staff: z.boolean(),
   is_active: z.boolean(),
   date_joined: z.string(),
+  last_login: z.string().nullable(),
+  providers: z.array(z.string()),
 });
 export type AdminUser = z.infer<typeof AdminUserSchema>;
 
-export function useAdminUsers() {
-  return useQuery<AdminUser[]>({
-    queryKey: ['admin', 'users'],
-    queryFn: () => fetchJson(`${API_BASE}/users/`, z.array(AdminUserSchema)),
+const PaginatedAdminUserSchema = z.object({
+  items: z.array(AdminUserSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+
+export interface AdminUserFilters {
+  provider?: string;
+  q?: string;
+}
+
+/** Paginated user list ("Mehr laden"), filterable by social login provider. */
+export function useAdminUsers(filters: AdminUserFilters = {}, pageSize = 20) {
+  return useInfiniteQuery({
+    queryKey: ['admin', 'users', filters, pageSize],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ page: String(pageParam), page_size: String(pageSize) });
+      if (filters.provider) params.set('provider', filters.provider);
+      if (filters.q) params.set('q', filters.q);
+      return fetchJson(`${API_BASE}/users/?${params}`, PaginatedAdminUserSchema);
+    },
+    getNextPageParam: (last) => (last.page < last.total_pages ? last.page + 1 : undefined),
   });
 }
 
@@ -184,6 +207,10 @@ const AdminUserDetailSchema = z.object({
   is_active: z.boolean(),
   date_joined: z.string(),
   last_login: z.string().nullable(),
+  providers: z.array(z.string()),
+  ai_used_today_eur: z.number(),
+  ai_used_30d_eur: z.number(),
+  ai_daily_limit_eur: z.number(),
   content: z.array(AdminUserContentSchema),
   comments: z.array(AdminUserCommentSchema),
 });

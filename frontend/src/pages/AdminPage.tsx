@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAdminStats, useModerationQueue, useModerateComment, useAdminUsers, useRecentActivity, useTrending } from '@/api/admin';
 
 const LazyContentStatsBarChart = lazy(() => import('@/components/charts/ContentStatsBarChart'));
@@ -67,7 +67,20 @@ export default function AdminPage() {
   const { data: recentActivity, isLoading: activityLoading } = useRecentActivity();
   const { data: trending, isLoading: trendingLoading } = useTrending();
 
-  const { data: users } = useAdminUsers();
+  // URL state for the user list filters.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const providerFilter = searchParams.get('provider') ?? '';
+  const userQuery = searchParams.get('q') ?? '';
+  const usersQuery = useAdminUsers({ provider: providerFilter || undefined, q: userQuery || undefined });
+  const users = usersQuery.data?.pages.flatMap((page) => page.items);
+  const usersTotal = usersQuery.data?.pages[0]?.total ?? 0;
+  const setUserFilter = (key: 'provider' | 'q', value: string) =>
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      return next;
+    }, { replace: true });
   const [materialPage, setMaterialPage] = useState(1);
   const [materialSearch, setMaterialSearch] = useState('');
   const { data: materialsData } = useAdminMaterials(materialPage, 20, materialSearch);
@@ -671,8 +684,30 @@ export default function AdminPage() {
             <section>
               <h2 className="text-lg font-semibold mb-3">
                 Benutzer
-                {users && <span className="ml-2 text-sm text-muted-foreground">({users.length})</span>}
+                {users && <span className="ml-2 text-sm text-muted-foreground">({usersTotal})</span>}
               </h2>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="search"
+                  value={userQuery}
+                  onChange={(e) => setUserFilter('q', e.target.value)}
+                  placeholder="Name oder E-Mail suchen"
+                  aria-label="Benutzer suchen"
+                  className="w-full rounded-lg border px-3 py-2 text-sm sm:max-w-xs"
+                />
+                <select
+                  value={providerFilter}
+                  onChange={(e) => setUserFilter('provider', e.target.value)}
+                  aria-label="Nach Anmeldeanbieter filtern"
+                  className="rounded-lg border px-3 py-2 text-sm"
+                >
+                  <option value="">Alle Anbieter</option>
+                  <option value="google">Google</option>
+                  <option value="microsoft">Microsoft</option>
+                  <option value="apple">Apple</option>
+                  <option value="facebook">Facebook</option>
+                </select>
+              </div>
 
               {users && users.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -683,6 +718,7 @@ export default function AdminPage() {
                         <th className="px-3 py-2 font-semibold">Vorname</th>
                         <th className="px-3 py-2 font-semibold">Nachname</th>
                         <th className="px-3 py-2 font-semibold">Beitrittsdatum</th>
+                        <th className="px-3 py-2 font-semibold">Anmeldung über</th>
                         <th className="px-3 py-2 font-semibold">Status</th>
                         <th className="px-3 py-2 font-semibold">Admin</th>
                       </tr>
@@ -699,6 +735,9 @@ export default function AdminPage() {
                           <td className="px-3 py-2">{user.last_name}</td>
                           <td className="px-3 py-2 text-muted-foreground">
                             {new Date(user.date_joined).toLocaleDateString('de-DE')}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">
+                            {user.providers.length > 0 ? user.providers.join(', ') : '–'}
                           </td>
                           <td className="px-3 py-2">
                             {user.is_active ? (
@@ -718,7 +757,19 @@ export default function AdminPage() {
                       ))}
                     </tbody>
                   </table>
+                  {usersQuery.hasNextPage && (
+                    <button
+                      type="button"
+                      onClick={() => usersQuery.fetchNextPage()}
+                      disabled={usersQuery.isFetchingNextPage}
+                      className="mt-3 w-full rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      {usersQuery.isFetchingNextPage ? 'Wird geladen …' : 'Mehr laden'}
+                    </button>
+                  )}
                 </div>
+              ) : usersQuery.isError ? (
+                <p className="text-sm text-destructive">Die Benutzer konnten nicht geladen werden.</p>
               ) : (
                 <p className="text-sm text-muted-foreground">Keine Benutzer vorhanden.</p>
               )}

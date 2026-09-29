@@ -32,6 +32,7 @@ import PackingListSharePage from './pages/PackingListSharePage';
 import PackingListWizardPage from './pages/PackingListWizardPage';
 import PackingListLandingPage from './pages/tools/PackingListLandingPage';
 import PrivacyPage from './pages/profile/PrivacyPage';
+import AccountPage from './pages/profile/AccountPage';
 import MeineDatenPage from './pages/profile/MeineDatenPage';
 import CreateSessionPage from './pages/sessions/CreateSessionPage';
 import CreateBlogPage from './pages/blogs/CreateBlogPage';
@@ -74,6 +75,7 @@ function App() {
         <Route path="/groups/:slug/settings/corporate-identity" element={<GroupCorporateIdentityPage />} />
         <Route path="/profile/settings" element={<Navigate to="/profile" replace />} />
         <Route path="/profile/privacy" element={<PrivacyPage />} />
+        <Route path="/profile/account" element={<AccountPage />} />
         <Route path="/profile/persons" element={<PersonsPage />} />
 
         {/* Tool: Events / Veranstaltungen */}

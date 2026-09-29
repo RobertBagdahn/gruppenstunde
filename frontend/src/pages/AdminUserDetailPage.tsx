@@ -80,6 +80,17 @@ export default function AdminUserDetailPage() {
               : '–'}
           </span>
         </div>
+        <div className="border rounded-lg p-3">
+          <div className="text-xs text-muted-foreground mb-1">Anmeldung über</div>
+          <span className="text-sm">{user.providers.length > 0 ? user.providers.join(', ') : 'Kein Anbieter verknüpft'}</span>
+        </div>
+        <div className="border rounded-lg p-3">
+          <div className="text-xs text-muted-foreground mb-1">KI-Verbrauch</div>
+          <span className="text-sm">
+            heute {user.ai_used_today_eur.toFixed(2)} € von {user.ai_daily_limit_eur.toFixed(2)} € · 30 Tage{' '}
+            {user.ai_used_30d_eur.toFixed(2)} €
+          </span>
+        </div>
       </div>
 
       {/* Content */}

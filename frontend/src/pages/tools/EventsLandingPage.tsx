@@ -186,17 +186,11 @@ export default function EventsLandingPage() {
         </p>
         <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
           <Link
-            to="/register"
+            to="/login?next=%2Fevents"
             className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
-            Kostenlos registrieren
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
-          >
-            Anmelden
+            Kostenlos anmelden
           </Link>
         </div>
       </div>

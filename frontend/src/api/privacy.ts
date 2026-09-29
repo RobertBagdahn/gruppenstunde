@@ -3,7 +3,7 @@
  * Data overview, export, and account deletion.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
+import { API_BASE_URL, fetchWithCsrf, parseApiResponse } from '@/lib/api';
 import { DataOverviewSchema, type DataOverview, type DeleteAccountRequest } from '@/schemas/privacy';
 
 const API_BASE = `${API_BASE_URL}/api/auth/privacy`;
@@ -61,10 +61,8 @@ export function useDeleteAccount() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || 'Kontolöschung fehlgeschlagen');
-      }
+      // ApiError keeps `code` so the dialog can offer a re-login on `reauth_required`.
+      await parseApiResponse(res);
     },
     onSuccess: () => {
       queryClient.setQueryData(['auth', 'me'], null);

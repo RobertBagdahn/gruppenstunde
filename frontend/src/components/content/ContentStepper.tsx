@@ -14,6 +14,8 @@
  *  - `typeLabel` / `typeIcon` for display
  */
 import { useRef, useState, type ReactNode } from 'react';
+import AiLockBadge from '@/components/auth/AiLockBadge';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { useRefurbish, useImproveText, useSuggestTags } from '@/api/ai';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
@@ -146,13 +148,18 @@ export default function ContentStepper({
   const refurbish = useRefurbish();
   const improveText = useImproveText();
   const suggestTags = useSuggestTags();
+  const ai = useAiAccess({
+    description: 'Die KI erstellt aus deiner Beschreibung einen strukturierten Entwurf und verbessert Texte.',
+  });
   const { data: allTags } = useTags();
   const { data: scoutLevels } = useScoutLevels();
 
   // -------------------------------------------------------------------------
   // Step 0 → Step 1: AI refurbish
   // -------------------------------------------------------------------------
-  function handleAiRefurbish() {
+  const handleAiRefurbish = () => ai.guard(runAiRefurbish)();
+
+  function runAiRefurbish() {
     if (!rawText.trim()) return;
     setAiErrorMessage(null);
 
@@ -200,6 +207,10 @@ export default function ContentStepper({
 
   // AI improve text for a single field
   function handleImproveField(field: string, text: string, setter: (v: string) => void) {
+    ai.guard(() => improveField(field, text, setter))();
+  }
+
+  function improveField(field: string, text: string, setter: (v: string) => void) {
     improveText.mutate(
       { text, field },
       {
@@ -214,6 +225,10 @@ export default function ContentStepper({
 
   // AI suggest tags
   function handleSuggestTags() {
+    ai.guard(runSuggestTags)();
+  }
+
+  function runSuggestTags() {
     suggestTags.mutate(
       {
         title: formData.title,
@@ -331,7 +346,10 @@ export default function ContentStepper({
                 <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10">
                   <span className="material-symbols-outlined text-[32px] text-primary">auto_awesome</span>
                 </div>
-                <span className="font-semibold">Mit KI-Hilfe</span>
+                <span className="flex items-center gap-1.5 font-semibold">
+                  Mit KI-Hilfe
+                  {ai.locked && <AiLockBadge />}
+                </span>
                 <span className="text-xs text-muted-foreground">
                   Beschreibe deine Idee in eigenen Worten — die KI strukturiert alles für dich
                 </span>
@@ -381,11 +399,13 @@ export default function ContentStepper({
                     <button
                       type="button"
                       onClick={handleAiRefurbish}
-                      disabled={!rawText.trim()}
+                      disabled={!rawText.trim() || ai.disabled}
+                      title={ai.hint || undefined}
                       className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                       KI-Entwurf erstellen
+                      {ai.locked && <AiLockBadge />}
                     </button>
                     <button
                       type="button"
@@ -464,9 +484,9 @@ export default function ContentStepper({
                     setFormData({ title: v }),
                   )
                 }
-                disabled={!formData.title.trim() || improveText.isPending}
+                disabled={!formData.title.trim() || improveText.isPending || ai.disabled}
                 className="px-2 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
-                title="KI-Verbesserung"
+                title={ai.hint || 'KI-Verbesserung'}
               >
                 <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
               </button>
@@ -491,9 +511,9 @@ export default function ContentStepper({
                     setFormData({ summary: v }),
                   )
                 }
-                disabled={!formData.summary.trim() || improveText.isPending}
+                disabled={!formData.summary.trim() || improveText.isPending || ai.disabled}
                 className="px-2 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 self-start"
-                title="KI-Verbesserung"
+                title={ai.hint || 'KI-Verbesserung'}
               >
                 <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
               </button>
@@ -511,7 +531,8 @@ export default function ContentStepper({
                     setFormData({ description: v }),
                   )
                 }
-                disabled={!formData.description.trim() || improveText.isPending}
+                disabled={!formData.description.trim() || improveText.isPending || ai.disabled}
+                title={ai.hint || undefined}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-xs"
               >
                 <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
@@ -591,11 +612,13 @@ export default function ContentStepper({
               <button
                 type="button"
                 onClick={handleSuggestTags}
-                disabled={(!formData.title && !formData.description) || suggestTags.isPending}
+                disabled={(!formData.title && !formData.description) || suggestTags.isPending || ai.disabled}
+                title={ai.hint || undefined}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-xs"
               >
                 <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
                 {suggestTags.isPending ? 'Wird geladen...' : 'KI-Vorschläge'}
+                {ai.locked && <AiLockBadge />}
               </button>
             </div>
             <div className="flex flex-wrap gap-2">

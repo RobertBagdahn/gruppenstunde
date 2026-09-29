@@ -1,88 +1,38 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useLogin } from '@/api/auth';
+import { LogIn, AlertCircle } from 'lucide-react';
+import { Navigate, useSearchParams } from 'react-router-dom';
+import { useCurrentUser } from '@/api/auth';
+import LoginPanel from '@/components/auth/LoginPanel';
+import { LOGIN_ERROR_MESSAGES, safeNextPath } from '@/lib/socialLogin';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const navigate = useNavigate();
-  const login = useLogin();
+  const [searchParams] = useSearchParams();
+  const { data: user } = useCurrentUser();
+  const next = safeNextPath(searchParams.get('next'));
+  const errorCode = searchParams.get('error');
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    login.mutate(
-      { email, password },
-      { onSuccess: () => navigate('/') },
-    );
-  }
+  if (user) return <Navigate to={next} replace />;
 
   return (
-    <div className="container py-12 max-w-md">
-      <div className="bg-card rounded-2xl border shadow-soft p-8">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-2xl gradient-primary text-white">
-            <span className="material-symbols-outlined text-[32px]">login</span>
+    <div className="container mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center px-4 py-16">
+      <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-md sm:p-8">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <LogIn className="h-5 w-5" />
           </div>
-          <h1 className="text-2xl font-bold">Willkommen zurück</h1>
-          <p className="text-sm text-muted-foreground mt-1">Melde dich an, um fortzufahren</p>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Anmelden</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Mit einem Klick über ein Konto, das du schon hast. Ein eigenes Passwort brauchst du nicht.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="flex items-center gap-1.5 text-sm font-medium mb-1.5">
-              <span className="material-symbols-outlined text-muted-foreground text-[18px]">email</span>
-              E-Mail
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+        {errorCode && (
+          <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs leading-relaxed text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{LOGIN_ERROR_MESSAGES[errorCode] ?? LOGIN_ERROR_MESSAGES.provider_error}</span>
           </div>
+        )}
 
-          <div>
-            <label htmlFor="password" className="flex items-center gap-1.5 text-sm font-medium mb-1.5">
-              <span className="material-symbols-outlined text-muted-foreground text-[18px]">lock</span>
-              Passwort
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          {login.error && (
-            <p className="flex items-center gap-1.5 text-sm text-destructive">
-              <span className="material-symbols-outlined text-[18px]">error</span>
-              {login.error.message}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={login.isPending}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 gradient-primary text-white rounded-xl font-medium hover:shadow-glow disabled:opacity-50 transition-all"
-          >
-            <span className="material-symbols-outlined text-[20px]">login</span>
-            {login.isPending ? 'Anmelden...' : 'Anmelden'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Noch kein Konto?{' '}
-          <Link to="/register" className="text-primary font-medium hover:underline">
-            Jetzt registrieren
-          </Link>
-        </p>
+        <LoginPanel next={next} />
       </div>
     </div>
   );

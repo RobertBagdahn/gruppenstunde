@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
@@ -947,6 +948,7 @@ function SuggestionPanel({
   });
   const { data: suggestionCats } = useSuggestionCategories();
   const aiSuggest = useAiSuggestItems(packingListId);
+  const ai = useAiAccess();
   const createItemDynamic = useCreateItemDynamic(packingListId);
 
   // Update target category when categories change
@@ -1098,7 +1100,8 @@ function SuggestionPanel({
         <button
           type="button"
           onClick={handleAiSuggest}
-          disabled={aiSuggest.isPending}
+          disabled={aiSuggest.isPending || ai.disabled}
+          title={ai.hint || undefined}
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600
             text-white rounded-lg text-sm hover:opacity-90 transition disabled:opacity-50 w-full justify-center"
         >

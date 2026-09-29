@@ -5,6 +5,7 @@
  * Supports three actions: file upload, AI image generation, and image removal.
  */
 import { useRef, useState } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { toast } from 'sonner';
 import { type UseMutationResult } from '@tanstack/react-query';
 import { useGenerateImage } from '@/api/ai';
@@ -50,6 +51,7 @@ export default function TitleImageEditor({
 }: TitleImageEditorProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const ai = useAiAccess();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -152,6 +154,8 @@ export default function TitleImageEditor({
                     setShowAiModal(true);
                     setShowMenu(false);
                   }}
+                  disabled={ai.disabled}
+                  title={ai.hint || undefined}
                 >
                   <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
                   Bild mit KI generieren
@@ -248,6 +252,7 @@ function AiImageModal({
   const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);
   const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
   const generateImage = useGenerateImage();
+  const ai = useAiAccess();
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -364,7 +369,8 @@ function AiImageModal({
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={generateImage.isPending}
+            disabled={generateImage.isPending || isSettingImage || ai.disabled}
+            title={ai.hint || undefined}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition disabled:opacity-50 disabled:bg-green-600"
           >
             {generateImage.isPending ? (

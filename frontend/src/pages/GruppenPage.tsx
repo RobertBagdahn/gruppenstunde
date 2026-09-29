@@ -38,7 +38,7 @@ export default function GruppenPage() {
 
   useEffect(() => {
     if (!userLoading && !user) {
-      navigate('/login');
+      navigate(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
     }
   }, [user, userLoading, navigate]);
 

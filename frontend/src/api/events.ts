@@ -2,6 +2,7 @@
  * TanStack Query hooks for the Event API.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AI_META } from '@/lib/queryMeta';
 import { z } from 'zod';
 import { API_BASE_URL } from '@/lib/api';
 import {
@@ -549,6 +550,7 @@ export function useDeleteMeetingPoint() {
 
 export function useGenerateInvitation() {
   return useMutation({
+    meta: AI_META,
     mutationFn: (body: {
       name: string;
       description?: string;

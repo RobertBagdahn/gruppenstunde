@@ -27,6 +27,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        // Django builds OAuth callback URLs and redirects from the visitor's host.
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            proxyReq.setHeader('X-Forwarded-Host', req.headers.host ?? '');
+          });
+        },
         timeout: 300_000, // 5 min – image generation can take up to 3 min
         proxyTimeout: 300_000,
       },

@@ -1,53 +1,40 @@
 /**
- * Shared UnauthGate — friendly gate for anonymous users on features that require login.
- *
- * Prevents surfacing a 403 from the API. Renders a centered card with a lock icon,
- * explanatory copy, and two CTAs (Anmelden + Kostenlos registrieren). Optionally a
- * custom secondary CTA can replace the "Kostenlos registrieren" link.
+ * Explaining empty state for pages that only show personal data (e.g. "Meine Rezepte").
+ * Creation flows must NOT use this gate — they stay usable and guard the save action.
  */
-import { Link, useLocation } from 'react-router-dom';
+import { Lock, LogIn } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useLoginPrompt } from '@/store/loginPromptStore';
 
 interface UnauthGateProps {
   title: string;
   description: string;
-  /** Optional alternative label for the secondary (non-login) CTA. Defaults to "Kostenlos registrieren". */
-  ctaLabel?: string;
-  /** Optional target route for the secondary CTA. Defaults to "/registrieren". */
-  ctaRoute?: string;
+  /** Short list of what the visitor gets after logging in. */
+  benefits?: string[];
 }
 
-export default function UnauthGate({
-  title,
-  description,
-  ctaLabel = 'Kostenlos registrieren',
-  ctaRoute = '/register',
-}: UnauthGateProps) {
-  const location = useLocation();
-  const loginHref = `/login?next=${encodeURIComponent(location.pathname + location.search)}`;
+export default function UnauthGate({ title, description, benefits = [] }: UnauthGateProps) {
+  const showLogin = useLoginPrompt((state) => state.show);
 
   return (
     <div className="flex items-center justify-center px-4 py-12 sm:py-16">
-      <div className="w-full max-w-md rounded-2xl border bg-card p-6 sm:p-8 text-center shadow-sm">
-        <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-          <span className="material-symbols-outlined text-3xl text-primary">lock</span>
+      <div className="w-full max-w-md rounded-2xl border bg-card p-6 text-center shadow-sm sm:p-8">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Lock className="h-6 w-6" />
         </div>
         <h2 className="text-xl font-semibold text-foreground">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-        <div className="mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-center">
-          <Link
-            to={loginHref}
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[18px]">login</span>
-            Anmelden
-          </Link>
-          <Link
-            to={ctaRoute}
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
-          >
-            {ctaLabel}
-          </Link>
-        </div>
+        {benefits.length > 0 && (
+          <ul className="mt-4 space-y-1 text-left text-sm text-muted-foreground">
+            {benefits.map((benefit) => (
+              <li key={benefit}>• {benefit}</li>
+            ))}
+          </ul>
+        )}
+        <Button className="mt-6 gap-2" onClick={() => showLogin({ reason: description })}>
+          <LogIn className="h-4 w-4" />
+          Kostenlos anmelden
+        </Button>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
  * Step 7: Einladungstext — Markdown editor, AI generation, preview.
  */
 import { useState, useEffect } from 'react';
+import { useAiAccess } from '@/hooks/useAiAccess';
 import { useEventWizardStore } from '@/store/eventWizardStore';
 import { useGenerateInvitation } from '@/api/events';
 import MarkdownEditor from '@/components/MarkdownEditor';
@@ -11,6 +12,7 @@ import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 export default function StepInvitationText() {
   const { data, updateStep7, setStepValid } = useEventWizardStore();
   const generateInvitation = useGenerateInvitation();
+  const ai = useAiAccess();
   const [specialNotes, setSpecialNotes] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
@@ -72,7 +74,8 @@ export default function StepInvitationText() {
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={generateInvitation.isPending || !data.name}
+          disabled={generateInvitation.isPending || !data.name || ai.disabled}
+          title={ai.hint || undefined}
           className="px-4 py-2 gradient-primary text-white rounded-md text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
         >
           <span className="material-symbols-outlined text-[18px]">auto_awesome</span>

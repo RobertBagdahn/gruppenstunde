@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
+import { RESTORE_DRAFT_PARAM, clearDraft, loadDraft } from '@/hooks/useDraft';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
 import {
   useGeneratePackingList,
   usePreviewPackingList,
@@ -186,9 +188,21 @@ function PreviewPanel({
 // Main page
 // ---------------------------------------------------------------------------
 
+const PACKING_DRAFT_KEY = 'packing-list:new';
+
+interface PackingListDraft {
+  activity: string | null;
+  duration: string | null;
+  season: string | null;
+  ageGroup: string | null;
+  title: string;
+}
+
 export default function PackingListWizardPage() {
   const navigate = useNavigate();
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { guard } = useRequireLogin();
+  const [searchParams] = useSearchParams();
   const { data: presets } = usePresets();
   const generateMutation = useGeneratePackingList();
   const previewMutation = usePreviewPackingList();
@@ -208,6 +222,21 @@ export default function PackingListWizardPage() {
       setTitle(generateTitle({ activity: activity ?? undefined, duration: duration ?? undefined, season: season ?? undefined }));
     }
   }, [activity, duration, season, titleManuallySet]);
+
+  // After the login round trip: restore the visitor's selection.
+  useEffect(() => {
+    if (!user || searchParams.get(RESTORE_DRAFT_PARAM) !== PACKING_DRAFT_KEY) return;
+    const draft = loadDraft<PackingListDraft>(PACKING_DRAFT_KEY);
+    if (!draft) return;
+    setActivity(draft.activity);
+    setDuration(draft.duration);
+    setSeason(draft.season);
+    setAgeGroup(draft.ageGroup);
+    setTitle(draft.title);
+    setTitleManuallySet(true);
+    toast.info('Willkommen zurück! Deine Auswahl ist wiederhergestellt – jetzt kannst du die Packliste speichern.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Debounced preview
   const triggerPreview = useCallback(() => {
@@ -240,7 +269,14 @@ export default function PackingListWizardPage() {
     setTitleManuallySet(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = () =>
+    guard(createPackingList, {
+      reason: 'Melde dich an, um deine Packliste zu speichern. Deine Auswahl bleibt erhalten.',
+      draftKey: PACKING_DRAFT_KEY,
+      draftValue: { activity, duration, season, ageGroup, title },
+    });
+
+  const createPackingList = () => {
     if (!activity || !duration || !season) return;
 
     const finalTitle = title.trim() || generateTitle({ activity, duration, season });
@@ -260,6 +296,7 @@ export default function PackingListWizardPage() {
           toast.success('Packliste erstellt!', {
             description: `${finalTitle} wurde mit ${data.categories.length} Kategorien angelegt.`,
           });
+          clearDraft(PACKING_DRAFT_KEY);
           navigate(`/packing-lists/${data.id}`);
         },
         onError: (err) => {
@@ -284,26 +321,6 @@ export default function PackingListWizardPage() {
           <div className="animate-pulse h-32 bg-muted rounded-xl" />
         </div>
         <div className="animate-pulse h-12 w-full bg-muted rounded-lg" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-8 text-center">
-        <span className="material-symbols-outlined text-5xl text-muted-foreground mb-4 block">
-          backpack
-        </span>
-        <h1 className="text-2xl font-bold mb-2">Neue Packliste</h1>
-        <p className="text-muted-foreground mb-4">
-          Melde dich an, um eine Packliste zu erstellen.
-        </p>
-        <button
-          onClick={() => navigate('/login')}
-          className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-md text-sm hover:opacity-90 transition"
-        >
-          Anmelden
-        </button>
       </div>
     );
   }

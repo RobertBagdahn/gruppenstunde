@@ -6,6 +6,7 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
+import UnauthGate from '@/components/shared/UnauthGate';
 import { useCreateEvent, useEventTemplates } from '@/api/events';
 import { useEventWizardStore, TOTAL_STEPS } from '@/store/eventWizardStore';
 import WizardStepper from '@/components/events/wizard/WizardStepper';
@@ -86,12 +87,10 @@ export default function NewEventPage() {
 
   if (!user) {
     return (
-      <div className="container py-16 text-center">
-        <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-3 block">
-          lock
-        </span>
-        <p className="text-muted-foreground">Bitte melde dich an, um ein Event zu erstellen.</p>
-      </div>
+      <UnauthGate
+        title="Aktion anlegen"
+        description="Melde dich an, um eine Aktion mit Anmeldung, Teilnehmenden und Zahlungen zu verwalten."
+      />
     );
   }
 

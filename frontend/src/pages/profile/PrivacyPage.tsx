@@ -3,11 +3,13 @@
  * Route: /profile/privacy
  */
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
 import { useDataOverview, useDataExport, useDeleteAccount } from '@/api/privacy';
 import { cn } from '@/lib/utils';
+import { ApiError } from '@/lib/api';
+import { useLoginPrompt } from '@/store/loginPromptStore';
 import type { Category } from '@/schemas/privacy';
 
 /* ------------------------------------------------------------------ */
@@ -82,26 +84,22 @@ function DataCategory({ icon, label, count, items }: DataCategoryProps) {
 interface DeleteDialogProps {
   open: boolean;
   onClose: () => void;
-  hasPassword: boolean;
 }
 
-function DeleteAccountDialog({ open, onClose, hasPassword }: DeleteDialogProps) {
+function DeleteAccountDialog({ open, onClose }: DeleteDialogProps) {
   const navigate = useNavigate();
   const deleteAccount = useDeleteAccount();
-  const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
+  const [needsReauth, setNeedsReauth] = useState(false);
+  const showLogin = useLoginPrompt((state) => state.show);
   const [step, setStep] = useState(1);
 
   const isConfirmationValid = confirmation === 'KONTO LÖSCHEN';
-  const isPasswordValid = hasPassword ? password.length > 0 : true;
-  const canDelete = isConfirmationValid && isPasswordValid;
+  const canDelete = isConfirmationValid;
 
   const handleDelete = () => {
     deleteAccount.mutate(
-      {
-        password: hasPassword ? password : null,
-        confirmation: confirmation as 'KONTO LÖSCHEN',
-      },
+      { confirmation: confirmation as 'KONTO LÖSCHEN' },
       {
         onSuccess: () => {
           toast.success('Dein Konto wurde gelöscht');
@@ -109,6 +107,10 @@ function DeleteAccountDialog({ open, onClose, hasPassword }: DeleteDialogProps) 
           navigate('/');
         },
         onError: (err) => {
+          if (err instanceof ApiError && err.code === 'reauth_required') {
+            setNeedsReauth(true);
+            return;
+          }
           toast.error('Fehler', { description: err.message });
         },
       }
@@ -176,22 +178,23 @@ function DeleteAccountDialog({ open, onClose, hasPassword }: DeleteDialogProps) 
 
         {step === 2 && (
           <div className="space-y-4">
-            {hasPassword && (
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Passwort bestätigen</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Dein aktuelles Passwort"
-                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-destructive/50"
-                />
+            {needsReauth && (
+              <div className="space-y-2 rounded-lg bg-muted/50 px-3 py-2 text-sm">
+                <p>Bitte melde dich zur Sicherheit noch einmal an. Danach kannst du dein Konto löschen.</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    showLogin({
+                      mode: 'reauth',
+                      reason: 'Bitte melde dich zur Sicherheit noch einmal an.',
+                      next: '/profile/privacy?deleteAccount=1',
+                    })
+                  }
+                  className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+                >
+                  Erneut anmelden
+                </button>
               </div>
-            )}
-            {!hasPassword && (
-              <p className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg">
-                Dein Konto hat kein Passwort (Gast-Account). Keine Passwort-Bestätigung nötig.
-              </p>
             )}
             <div>
               <label className="block text-sm font-medium mb-1.5">
@@ -241,11 +244,13 @@ export default function PrivacyPage() {
   const navigate = useNavigate();
   const { data, isLoading, error } = useDataOverview();
   const dataExport = useDataExport();
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // `?deleteAccount=1` reopens the dialog after the security re-login.
+  const [searchParams] = useSearchParams();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(searchParams.get('deleteAccount') === '1');
 
   useEffect(() => {
     if (!userLoading && !user) {
-      navigate('/login');
+      navigate(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
     }
   }, [user, userLoading, navigate]);
 
@@ -408,7 +413,6 @@ export default function PrivacyPage() {
       <DeleteAccountDialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        hasPassword={true}
       />
     </div>
   );

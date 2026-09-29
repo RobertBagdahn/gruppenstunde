@@ -77,7 +77,7 @@ export default function ProfilePage() {
   const [groupSizeMax, setGroupSizeMax] = useState<string>('');
 
   useEffect(() => {
-    if (!userLoading && !user) navigate('/login');
+    if (!userLoading && !user) navigate(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
   }, [user, userLoading, navigate]);
 
   // Sync profile form state when entering edit mode

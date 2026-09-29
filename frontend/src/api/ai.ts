@@ -1,7 +1,9 @@
 /**
  * TanStack Query mutations for the AI API.
  */
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { AI_META } from '@/lib/queryMeta';
+import { aiQuotaSchema, type AiQuota } from '@/schemas/ai';
 import {
   AiImproveTextSchema,
   AiSuggestTagsSchema,
@@ -12,7 +14,7 @@ import {
   type AiRefurbish,
 } from '@/schemas/content';
 import { z } from 'zod';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, parseApiResponse } from '@/lib/api';
 
 const API_BASE = `${API_BASE_URL}/api/content/ai`;
 
@@ -59,18 +61,21 @@ async function postJson<S extends z.ZodTypeAny>(
 
 export function useImproveText() {
   return useMutation<AiImproveText, Error, { text: string; field: string }>({
+    meta: AI_META,
     mutationFn: (body) => postJson(`${API_BASE}/improve-text/`, body, AiImproveTextSchema),
   });
 }
 
 export function useSuggestTags() {
   return useMutation<AiSuggestTags, Error, { title: string; description: string }>({
+    meta: AI_META,
     mutationFn: (body) => postJson(`${API_BASE}/suggest-tags/`, body, AiSuggestTagsSchema),
   });
 }
 
 export function useRefurbish() {
   return useMutation<AiRefurbish, AiApiError, { raw_text: string; signal?: AbortSignal }>({
+    meta: AI_META,
     mutationFn: async ({ raw_text, signal }) => {
       return postJson(`${API_BASE}/refurbish/`, { raw_text }, AiRefurbishSchema, signal);
     },
@@ -85,6 +90,23 @@ type AiGenerateImage = z.infer<typeof AiGenerateImageSchema>;
 
 export function useGenerateImage() {
   return useMutation<AiGenerateImage, AiApiError, { prompt: string; title?: string; summary?: string; description?: string; content_type?: string; signal?: AbortSignal }>({
+    meta: AI_META,
     mutationFn: ({ signal, ...body }) => postJson(`${API_BASE}/generate-image/`, body, AiGenerateImageSchema, signal),
+  });
+}
+
+// --- AI quota (tiered budgets, see openspec ai-budget) ---
+
+export const AI_QUOTA_QUERY_KEY = ['ai', 'quota'] as const;
+
+export function useAiQuota(enabled = true) {
+  return useQuery<AiQuota>({
+    queryKey: AI_QUOTA_QUERY_KEY,
+    enabled,
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/ai/quota/`, { credentials: 'include' });
+      return parseApiResponse(res, aiQuotaSchema);
+    },
+    staleTime: 60 * 1000,
   });
 }

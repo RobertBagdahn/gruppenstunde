@@ -2,6 +2,7 @@
  * TanStack Query hooks for the Packing List API.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AI_META } from '@/lib/queryMeta';
 import {
   PackingListSchema,
   PackingListSummarySchema,
@@ -463,6 +464,7 @@ export function useSuggestionCategories() {
 export function useAiSuggestItems(packingListId: number) {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: AI_META,
     mutationFn: async (body: { category?: string; count?: number }): Promise<AiSuggestions> => {
       const data = await postJson(`${API_BASE}/${packingListId}/suggestions/ai/`, body, AiSuggestionsSchema);
       return data;
