@@ -36,12 +36,16 @@ const RECIPE_LIST_DEFAULTS = {
   view: 'grid',
   page: 1,
 } satisfies Partial<RecipeListState>;
-const PERSIST_EXCLUDE = ['page'] as const;
-const COUNT_EXCLUDE = ['page', 'view'] as const;
+const PERSIST_EXCLUDE = ['page', 'seed'] as const;
+const COUNT_EXCLUDE = ['page', 'view', 'seed'] as const;
 
 /** The view mode used to live in its own key; take it over once. */
 function migrateLegacyView() {
   return takeLegacyValue('recipe-search-view') === 'table' ? { view: 'table' } : null;
+}
+
+function newRandomSeed(): number {
+  return 1 + Math.floor(Math.random() * 2_147_483_646);
 }
 
 function buildPageTitle(filters: Partial<RecipeFilter>): string {
@@ -78,8 +82,15 @@ export default function RecipeListPage() {
   });
   const { view, ...filterState } = state;
   const viewMode: ViewMode = view;
+  // A shared or legacy URL may say "random" without a seed: keep one for this visit
+  // so paging stays inside one shuffle.
+  const [fallbackSeed] = useState(newRandomSeed);
   const filters = useMemo<Partial<RecipeFilter>>(
-    () => ({ ...filterState, page_size: 20 }),
+    () => ({
+      ...filterState,
+      seed: filterState.sort === 'random' ? (filterState.seed ?? fallbackSeed) : undefined,
+      page_size: 20,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(filterState)],
   );
@@ -106,6 +117,8 @@ export default function RecipeListPage() {
     patch({
       [key]: value,
       ...(key !== 'page' ? { page: undefined } : {}),
+      // Every new pick of "random" is a new shuffle; other sorts carry no seed.
+      ...(key === 'sort' ? { seed: value === 'random' ? newRandomSeed() : undefined } : {}),
     } as Partial<RecipeListState>);
   }, [patch]);
 

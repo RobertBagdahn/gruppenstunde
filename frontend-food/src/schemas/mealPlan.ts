@@ -59,6 +59,8 @@ export const MealItemSchema = z.object({
   quantity: z.number().nullable(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string(),
+  portion_id: z.number().nullable().optional(),
+  portion_name: z.string().optional(),
   display_name: z.string().nullable(),
   factor: z.number(),
   active_recipe_item_ids: z.array(z.number()),

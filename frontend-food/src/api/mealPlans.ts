@@ -344,6 +344,7 @@ export function useAddMealItem(mealPlanId: number) {
       ingredient_id?: number;
       quantity?: number;
       measuring_unit_id?: number;
+      portion_id?: number;
       factor?: number;
     }) => postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/items/`, body, MealItemSchema),
     onSuccess: () => {

@@ -50,4 +50,48 @@ describe('useRecipeIngredientReviewStore', () => {
     store.confirmCompleteRows();
     expect(useRecipeIngredientReviewStore.getState().rows[0].status).toBe('confirmed');
   });
+
+  it('removes a row and restores it at its old position', () => {
+    const second = { ...preview.rows[0], key: 'two' };
+    const store = useRecipeIngredientReviewStore.getState();
+    store.initialize({ ...preview, rows: [preview.rows[0], second] });
+
+    const removed = useRecipeIngredientReviewStore.getState().removeRow('one');
+    expect(useRecipeIngredientReviewStore.getState().rows.map((row) => row.key)).toEqual(['two']);
+
+    useRecipeIngredientReviewStore.getState().restoreRow(removed!.row, removed!.index);
+    expect(useRecipeIngredientReviewStore.getState().rows.map((row) => row.key)).toEqual(['one', 'two']);
+  });
+
+  it('finalizes without the removed, still unresolved row', () => {
+    const unresolved = { ...preview.rows[0], key: 'noise', quantity: null, status: 'unresolved' as const };
+    const store = useRecipeIngredientReviewStore.getState();
+    store.initialize({ ...preview, rows: [preview.rows[0], unresolved] });
+    useRecipeIngredientReviewStore.getState().confirmRow('one');
+    expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()).toBeNull();
+
+    useRecipeIngredientReviewStore.getState().removeRow('noise');
+
+    expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()).toHaveLength(1);
+  });
+
+  it('keeps an explicit status passed to updateRow', () => {
+    const store = useRecipeIngredientReviewStore.getState();
+    store.initialize(preview);
+
+    useRecipeIngredientReviewStore.getState().updateRow('one', { status: 'unresolved' });
+
+    expect(useRecipeIngredientReviewStore.getState().rows[0].status).toBe('unresolved');
+  });
+
+  it('adds an empty unresolved row', () => {
+    const store = useRecipeIngredientReviewStore.getState();
+    store.initialize(preview);
+
+    const key = useRecipeIngredientReviewStore.getState().addEmptyRow();
+
+    const row = useRecipeIngredientReviewStore.getState().rows.find((candidate) => candidate.key === key);
+    expect(row?.status).toBe('unresolved');
+    expect(row?.selected_ingredient_id).toBeNull();
+  });
 });

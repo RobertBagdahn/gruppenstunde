@@ -39,6 +39,8 @@ export const RecipeListStateSchema = lenient({
   costs_min: z.coerce.number().min(0),
   costs_max: z.coerce.number().min(0),
   sort: z.enum(values(RECIPE_SORT_OPTIONS)),
+  // Seed of the random order, so all pages of one shuffle belong together.
+  seed: z.coerce.number().int().min(1).max(2_147_483_647),
   view: z.enum(['grid', 'table']),
   page: z.coerce.number().int().min(1),
 });

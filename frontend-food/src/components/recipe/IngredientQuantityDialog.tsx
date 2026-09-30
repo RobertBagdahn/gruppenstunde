@@ -16,6 +16,8 @@ interface IngredientQuantityDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   initialQuantity?: number;
+  /** Portion to preselect (e.g. the one already chosen for a review row). */
+  initialPortionId?: number | null;
   confirmLabel?: string;
 }
 
@@ -35,13 +37,18 @@ export default function IngredientQuantityDialog({
   onOpenChange,
   onConfirm,
   initialQuantity = 1,
+  initialPortionId = null,
   confirmLabel = 'Hinzufügen',
 }: IngredientQuantityDialogProps) {
   // rank=1 is the Normalportion/default; portions are sorted by rank asc from backend
   const gramPortion = useMemo(() => findGramPortion(ingredient.portions), [ingredient.portions]);
   const defaultPortion = useMemo(
-    () => ingredient.portions.find((p) => p.rank === 1) ?? ingredient.portions[0] ?? null,
-    [ingredient.portions],
+    () =>
+      ingredient.portions.find((p) => p.id === initialPortionId)
+      ?? ingredient.portions.find((p) => p.rank === 1)
+      ?? ingredient.portions[0]
+      ?? null,
+    [ingredient.portions, initialPortionId],
   );
 
   // null = direct gram entry
@@ -59,16 +66,20 @@ export default function IngredientQuantityDialog({
     : null;
 
   const handleSelectStandardMeasure = (measure: PickerStandardMeasure) => {
-    setSelectedPortionId(gramPortion ? String(gramPortion.id) : null);
+    if (!gramPortion) return;
+    setSelectedPortionId(String(gramPortion.id));
     setQuantity(measure.grams);
   };
 
+  const handleSelectGrams = () => {
+    if (gramPortion) setSelectedPortionId(String(gramPortion.id));
+  };
+
+  // A confirmed quantity always belongs to a concrete portion — grams map to the
+  // ingredient's gram portion, never to "whatever is first".
   const handleConfirm = () => {
-    onConfirm(
-      selectedPortion?.id ?? null,
-      selectedPortion?.measuring_unit_id ?? null,
-      quantity,
-    );
+    if (!selectedPortion) return;
+    onConfirm(selectedPortion.id, selectedPortion.measuring_unit_id ?? null, quantity);
   };
 
   return (
@@ -94,6 +105,12 @@ export default function IngredientQuantityDialog({
             />
           </div>
 
+          {ingredient.portions.length === 0 && (
+            <p className="text-caption text-warning">
+              Für diese Zutat gibt es noch keine Portion. Lege zuerst eine Portion an.
+            </p>
+          )}
+
           {ingredient.portions.length > 0 && (
             <div>
               <label className="text-body font-medium">Einheit</label>
@@ -109,10 +126,12 @@ export default function IngredientQuantityDialog({
                     is_weight_trusted: p.is_weight_trusted,
                   }))}
                   value={selectedPortionId != null ? Number(selectedPortionId) : null}
-                  ingredientSlug={ingredient.slug}
+                  // Grams and standard measures need the ingredient's gram portion.
+                  ingredientSlug={gramPortion ? ingredient.slug : undefined}
+                  showGramsSection={gramPortion !== null}
                   onSelectPortion={(portionId) => setSelectedPortionId(String(portionId))}
                   onSelectStandardMeasure={handleSelectStandardMeasure}
-                  onSelectGrams={() => setSelectedPortionId(null)}
+                  onSelectGrams={handleSelectGrams}
                 />
               </div>
             </div>
@@ -133,7 +152,8 @@ export default function IngredientQuantityDialog({
             </button>
             <button
               onClick={handleConfirm}
-              className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              disabled={!selectedPortion}
+              className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {confirmLabel}
             </button>

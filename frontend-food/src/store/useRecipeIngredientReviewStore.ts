@@ -14,6 +14,11 @@ interface RecipeIngredientReviewState {
   fieldErrors: Record<string, string>;
   initialize: (preview: IngredientReviewPreview) => void;
   updateRow: (key: string, updates: Partial<IngredientReviewRow>) => void;
+  /** Removes a row and returns it with its position so the caller can offer undo. */
+  removeRow: (key: string) => { row: IngredientReviewRow; index: number } | null;
+  restoreRow: (row: IngredientReviewRow, index: number) => void;
+  /** Appends an empty, unresolved row for an ingredient the AI did not list. */
+  addEmptyRow: () => string;
   confirmRow: (key: string) => void;
   confirmCompleteRows: () => void;
   reset: () => void;
@@ -45,11 +50,55 @@ export const useRecipeIngredientReviewStore = create<RecipeIngredientReviewState
     fieldErrors: {},
   }),
 
+  // An edit marks the row as changed unless the caller sets the status itself
+  // (e.g. "unresolved" for a rejected suggestion).
   updateRow: (key, updates) => set((state) => ({
-    rows: state.rows.map((row) => row.key === key ? { ...row, ...updates, status: 'changed' } : row),
+    rows: state.rows.map((row) => row.key === key ? { ...row, status: 'changed', ...updates } : row),
     isDirty: true,
     error: null,
   })),
+
+  removeRow: (key) => {
+    const { rows } = get();
+    const index = rows.findIndex((row) => row.key === key);
+    if (index === -1) return null;
+    const row = rows[index];
+    set({ rows: rows.filter((candidate) => candidate.key !== key), isDirty: true, error: null });
+    return { row, index };
+  },
+
+  restoreRow: (row, index) => set((state) => {
+    if (state.rows.some((candidate) => candidate.key === row.key)) return {};
+    const next = [...state.rows];
+    next.splice(Math.min(index, next.length), 0, row);
+    return { rows: next, isDirty: true, error: null };
+  }),
+
+  addEmptyRow: () => {
+    const key = `manual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const row: IngredientReviewRow = {
+      key,
+      source_text: 'Zusätzliche Zutat',
+      sources: [{ type: 'text', label: 'Manuell hinzugefügt', value: key }],
+      selected_ingredient_id: null,
+      selected_ingredient_slug: '',
+      selected_ingredient_name: '',
+      suggested_ingredient_id: null,
+      suggested_ingredient_name: '',
+      candidates: [],
+      selected_portion: null,
+      suggested_portion: null,
+      quantity: null,
+      suggested_quantity: null,
+      reason: 'Suche eine Zutat und lege Menge und Portion fest.',
+      technical_details: null,
+      conflicts: [],
+      new_ingredient_draft: null,
+      status: 'unresolved',
+    };
+    set((state) => ({ rows: [...state.rows, row], isDirty: true, error: null }));
+    return key;
+  },
 
   confirmRow: (key) => set((state) => ({
     rows: state.rows.map((row) => row.key === key && isComplete(row)

@@ -120,6 +120,12 @@ export function resolveStepId(
   }
   if (!parsed.success || getStepDef(parsed.data).requiresDraft) return 'input';
   if (parsed.data !== 'input' && ctx.creationMethod === null) return 'input';
-  if (!visibleIds.includes(parsed.data)) return 'input';
+  if (!visibleIds.includes(parsed.data)) {
+    // A hidden step (e.g. "review" once its rows were removed) continues at the
+    // closest visible step before it, so the next "Weiter" still creates the draft.
+    const position = WIZARD_STEP_IDS.indexOf(parsed.data);
+    const before = visibleIds.filter((id) => WIZARD_STEP_IDS.indexOf(id) < position).pop();
+    return before ?? 'input';
+  }
   return parsed.data;
 }

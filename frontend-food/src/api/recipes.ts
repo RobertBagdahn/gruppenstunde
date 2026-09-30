@@ -163,6 +163,7 @@ function buildFilterParams(filters: Partial<RecipeFilter>): string {
     filters.origin.forEach((v) => params.append('origin', v));
   }
   if (filters.sort) params.set('sort', filters.sort);
+  if (filters.sort === 'random' && filters.seed !== undefined) params.set('seed', String(filters.seed));
   if (filters.page) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
   if (filters.scout_level_ids?.length) {

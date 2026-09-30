@@ -1,4 +1,5 @@
 import type { MealItem } from '@/schemas/mealPlan';
+import { formatWeight } from '@/lib/format';
 
 /**
  * Formats a number with comma as decimal separator, max 2 decimals.
@@ -18,6 +19,12 @@ export function formatQuantityNumber(value: number): string {
  */
 export function formatItemPortion(item: MealItem): string {
   const perPersonSuffix = item.is_per_norm_person ? ' / P.' : '';
+
+  if (item.quantity != null && item.quantity > 0 && item.portion_name) {
+    // A chosen portion defines what the quantity counts: "1 Scheibe / P. (30 g)".
+    const weight = item.quantity_g != null && item.quantity_g > 0 ? ` (${formatWeight(item.quantity_g)})` : '';
+    return `${formatQuantityNumber(item.quantity)} ${item.portion_name}${perPersonSuffix}${weight}`;
+  }
 
   if (item.quantity != null && item.quantity > 0) {
     const qtyStr = formatQuantityNumber(item.quantity);

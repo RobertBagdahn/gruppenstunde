@@ -571,6 +571,15 @@ class MealItem(models.Model):
         related_name="meal_items",
         verbose_name=_("Einheit"),
     )
+    portion = models.ForeignKey(
+        "supply.Portion",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="meal_items",
+        verbose_name=_("Portion"),
+        help_text=_("Gewählte Portion der Einzelzutat; dann ist die Menge die Anzahl Portionen pro Person"),
+    )
     display_name = models.CharField(
         max_length=200,
         blank=True,

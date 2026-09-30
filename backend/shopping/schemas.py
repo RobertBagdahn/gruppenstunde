@@ -49,7 +49,9 @@ class ShoppingItemSourceOut(Schema):
 
     @staticmethod
     def _display_quantity(obj) -> tuple[float, str]:
-        if obj.unit != "g":
+        # ``quantity_g`` is always grams. Entries with an ingredient derive the
+        # display unit from it (ml via density); free-text entries show as stored.
+        if obj.ingredient is None:
             return float(obj.quantity_g or 0), obj.unit
         from supply.utils import shopping_quantity
 
@@ -110,7 +112,9 @@ class ShoppingListItemOut(Schema):
 
     @staticmethod
     def _display_quantity(obj) -> tuple[float, str]:
-        if obj.unit != "g":
+        # ``quantity_g`` is always grams. Entries with an ingredient derive the
+        # display unit from it (ml via density); free-text entries show as stored.
+        if obj.ingredient is None:
             return float(obj.quantity_g or 0), obj.unit
         from supply.utils import shopping_quantity
 

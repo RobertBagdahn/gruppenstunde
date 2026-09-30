@@ -2,12 +2,13 @@
 
 import json
 import logging
+import random
 import time
 from typing import cast
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q
-from django.db.models.functions import Lower
+from django.db.models import CharField, Q, Value
+from django.db.models.functions import MD5, Cast, Concat, Lower
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
@@ -174,24 +175,25 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
     if origin_q:
         qs = qs.filter(origin_q)
 
-    # Sorting
+    # Sorting. Every order ends in ``-id`` so ties never reshuffle between pages.
     sort_map = {
-        "newest": "-created_at",
-        "oldest": "created_at",
-        "most_liked": "-like_score",
-        "popular": "-view_count",
-        "use_count": "-usage_count",
+        "newest": ("-created_at", "-id"),
+        "oldest": ("created_at", "id"),
+        "most_liked": ("-like_score", "-id"),
+        "popular": ("-view_count", "-id"),
+        "use_count": ("-usage_count", "-created_at", "-id"),
     }
+    seed: int | None = None
     if filters.sort == "random":
-        qs = qs.order_by("?")
-    elif filters.sort == "use_count":
-        qs = qs.order_by("-usage_count", "-created_at")
-    elif filters.sort in sort_map:
-        qs = qs.order_by(sort_map[filters.sort])
+        seed = filters.seed if filters.seed is not None else random.randint(1, 2_147_483_647)
+        qs = qs.annotate(
+            shuffle_key=MD5(Concat(Cast("id", CharField()), Value(f":{seed}"), output_field=CharField()))
+        ).order_by("shuffle_key", "id")
     else:
-        qs = qs.order_by("-usage_count", "-created_at")
+        qs = qs.order_by(*sort_map.get(filters.sort, sort_map["use_count"]))
 
     result = paginate_queryset(qs, filters.page, filters.page_size)
+    result["seed"] = seed
     enrich_list_with_permissions(request, result["items"])
     if filters.q:
         user = request.user if request.user.is_authenticated else None

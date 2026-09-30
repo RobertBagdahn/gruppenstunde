@@ -241,6 +241,20 @@ def _require_defined_unit(ingredient, measuring_unit_id: int | None) -> None:
         raise HttpError(422, f"Einheit {unit.name} ist für {ingredient.name} nicht definiert.")
 
 
+def _resolve_chosen_portion(ingredient, portion_id: int | None):
+    """Return the active portion chosen for a single ingredient, or None.
+
+    The portion must belong to the ingredient; otherwise the request is
+    rejected instead of silently falling back to another weight.
+    """
+    if ingredient is None or not portion_id:
+        return None
+    portion = ingredient.portions.active().filter(id=portion_id).select_related("measuring_unit").first()
+    if portion is None:
+        raise HttpError(422, "Die Portion gehört nicht zu dieser Zutat")
+    return portion
+
+
 def _attach_warnings(item: MealItem) -> MealItem:
     """Attach plausibility warnings for the response (never blocks saving)."""
     from planner.services.quantity_plausibility import check_item
@@ -357,9 +371,9 @@ def list_meal_plans(
         "name_desc": "-name",
     }
     if sort and sort in sort_map:
-        qs = qs.order_by(sort_map[sort], "-created_at")
+        qs = qs.order_by(sort_map[sort], "-created_at", "-id")
     else:
-        qs = qs.order_by("-start_datetime", "-created_at")
+        qs = qs.order_by("-start_datetime", "-created_at", "-id")
 
     items = list(qs)
     for plan in items:
@@ -1015,12 +1029,16 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
 
         ingredient = get_visible_ingredient_or_404(request.user, payload.ingredient_id, allow_system_draft=True)
 
+    chosen_portion = _resolve_chosen_portion(ingredient, payload.portion_id)
+
     item = _create_meal_item(
         meal=meal,
         recipe=recipe,
         ingredient=ingredient,
         quantity=payload.quantity,
-        measuring_unit_id=payload.measuring_unit_id,
+        # The portion's own unit wins so all views agree on what "1 Scheibe" means.
+        measuring_unit_id=chosen_portion.measuring_unit_id if chosen_portion else payload.measuring_unit_id,
+        portion=chosen_portion,
         display_name=payload.display_name,
         factor=payload.factor,
     )

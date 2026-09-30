@@ -2,9 +2,11 @@
 
 import math
 from datetime import timedelta
+from typing import Literal
 
 from django.db import transaction
 from django.db.models import Count, Q
+from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Query, Router
@@ -120,8 +122,15 @@ def list_shopping_lists(
     page: int = 1,
     page_size: int = 20,
     q: str = "",
+    sort: Literal["newest", "oldest", "name_asc"] = "newest",
+    mine: bool = False,
 ):
-    """List all shopping lists the user owns or collaborates on."""
+    """List shopping lists the user owns or collaborates on.
+
+    ``sort`` orders the whole result (not just one page) and ``mine`` limits it to
+    lists owned by the user. Every order ends in ``id`` so paging never skips or
+    repeats a list.
+    """
     _require_auth(request)
     qs = (
         ShoppingList.objects.filter(Q(owner=request.user) | Q(collaborators__user=request.user))
@@ -135,6 +144,14 @@ def list_shopping_lists(
     )
     if q:
         qs = qs.filter(name__icontains=q)
+    if mine:
+        qs = qs.filter(owner=request.user)
+    ordering = {
+        "newest": ("-updated_at", "-id"),
+        "oldest": ("updated_at", "id"),
+        "name_asc": (Lower("name"), "id"),
+    }[sort]
+    qs = qs.order_by(*ordering)
     result = paginate_queryset(qs, page, page_size)
     for item in result["items"]:
         if item.owner_id == request.user.id:
@@ -779,7 +796,8 @@ def create_from_meal_plan(request, meal_plan_id: int):
                 ingredient=ingredient,
                 name=ti.ingredient_name,
                 quantity_g=ti.total_quantity_g,
-                unit=ti.unit,
+                # quantity_g is grams; the display unit is derived from it on read.
+                unit="g",
                 note=ti.display_text if not ti.total_quantity_g and ti.display_text else "",
                 retail_section=retail_section,
                 sort_order=sort_idx,

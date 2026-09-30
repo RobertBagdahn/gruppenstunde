@@ -28,6 +28,7 @@ export function DayPlanView({
   onDeleteMeal,
   onAddRecipe,
   onAddIngredient,
+  onActivateMeal,
   onDeleteItem,
   onUpdateItemFactor,
   onUpdateItemQuantity,
@@ -53,6 +54,7 @@ export function DayPlanView({
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  onActivateMeal?: (mealId: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
   onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
@@ -226,6 +228,7 @@ export function DayPlanView({
                       onDeleteMeal={onDeleteMeal}
                       onAddRecipe={onAddRecipe}
                       onAddIngredient={onAddIngredient}
+                      onActivate={onActivateMeal}
                       onDeleteItem={onDeleteItem}
                       onUpdateItemFactor={onUpdateItemFactor}
                       onUpdateItemQuantity={onUpdateItemQuantity}

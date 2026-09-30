@@ -7,6 +7,9 @@ import type { Portion } from '@/schemas/supply';
 import RecipeIngredientReviewStep from './RecipeIngredientReviewStep';
 import { useRecipeIngredientReviewStore } from '@/store/useRecipeIngredientReviewStore';
 import { useIngredientPortions } from '@/api/supplies';
+import { toast } from 'sonner';
+
+vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
 vi.mock('@/api/supplies', () => ({
   useIngredientPortions: vi.fn(() => ({ data: [] })),
@@ -142,12 +145,118 @@ describe('RecipeIngredientReviewStep', () => {
     expect((confirmButton as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('keeps the row unconfirmable until the quantity dialog is confirmed', () => {
+  it('offers no confirmation for an incomplete row', () => {
     useRecipeIngredientReviewStore.setState({ rows: [greyZoneRow()] });
     renderReviewStep();
 
-    const confirmButton = screen.getByRole('button', { name: 'Vorschlag bestätigen' });
-    expect((confirmButton as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Vorschlag bestätigen' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zutat wählen' })).toBeInTheDocument();
+  });
+
+  describe('missing quantity', () => {
+    const matchedRowWithoutQuantity = () => greyZoneRow({
+      source_text: 'Ananas',
+      selected_ingredient_id: 1,
+      selected_ingredient_slug: 'ananas',
+      selected_ingredient_name: 'Ananas',
+      selected_portion: { ...portions[0], is_new: false },
+      quantity: null,
+      reason: 'Menge fehlt – bitte Menge und Portion festlegen.',
+    });
+
+    it('shows "Menge fehlt" and opens the quantity dialog from the primary action', () => {
+      useRecipeIngredientReviewStore.setState({ rows: [matchedRowWithoutQuantity()] });
+      renderReviewStep();
+
+      expect(screen.getByText('Menge fehlt')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Menge festlegen' }));
+      expect(screen.getByText('Ananas hinzufügen')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+
+      expect(useRecipeIngredientReviewStore.getState().rows[0].quantity).toBe(1);
+      expect(screen.getByRole('button', { name: 'Vorschlag bestätigen' })).toBeEnabled();
+    });
+  });
+
+  it('keeps portion and quantity when the quantity dialog is cancelled', () => {
+    useRecipeIngredientReviewStore.setState({
+      rows: [greyZoneRow({
+        selected_ingredient_id: 1,
+        selected_ingredient_slug: 'ananas',
+        selected_ingredient_name: 'Ananas',
+        selected_portion: { ...portions[0], is_new: false },
+        quantity: 2,
+        status: 'open',
+      })],
+    });
+    renderReviewStep();
+
+    fireEvent.click(screen.getByRole('button', { name: /Menge und Portion/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+
+    const row = useRecipeIngredientReviewStore.getState().rows[0];
+    expect(row.quantity).toBe(2);
+    expect(row.selected_portion?.id).toBe(1);
+    expect(screen.getByRole('button', { name: 'Vorschlag bestätigen' })).toBeEnabled();
+  });
+
+  it('shows the quantity in German format with the portion name and weight', () => {
+    useRecipeIngredientReviewStore.setState({
+      rows: [greyZoneRow({
+        selected_ingredient_id: 1,
+        selected_ingredient_slug: 'ananas',
+        selected_ingredient_name: 'Ananas',
+        selected_portion: { ...portions[0], name: 'Tasse Mehl', weight_g: 100, is_new: false },
+        quantity: 2.4,
+        status: 'open',
+      })],
+    });
+    renderReviewStep();
+
+    expect(screen.getByText(/2,4 × Tasse Mehl/)).toBeInTheDocument();
+    expect(screen.getByText(/à 100 g/)).toBeInTheDocument();
+  });
+
+  describe('removing rows', () => {
+    it('removes a row, lets the user undo it and never blocks the final save', () => {
+      useRecipeIngredientReviewStore.setState({
+        rows: [greyZoneRow({ key: 'keep', status: 'open', selected_ingredient_id: 1, selected_portion: { ...portions[0], is_new: false }, quantity: 1 }), greyZoneRow({ key: 'drop' })],
+      });
+      renderReviewStep();
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Zeile entfernen' })[1]);
+
+      expect(useRecipeIngredientReviewStore.getState().rows.map((row) => row.key)).toEqual(['keep']);
+      useRecipeIngredientReviewStore.getState().confirmRow('keep');
+      expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()).toHaveLength(1);
+
+      const calls = vi.mocked(toast).mock.calls;
+      const [, options] = calls[calls.length - 1] as unknown as [string, { action: { onClick: () => void } }];
+      options.action.onClick();
+      expect(useRecipeIngredientReviewStore.getState().rows.map((row) => row.key)).toEqual(['keep', 'drop']);
+    });
+
+    it('asks before removing the last row', () => {
+      useRecipeIngredientReviewStore.setState({ rows: [greyZoneRow({ key: 'only' })] });
+      renderReviewStep();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Zeile entfernen' }));
+      expect(useRecipeIngredientReviewStore.getState().rows).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole('button', { name: /^Entfernen$/ }));
+      expect(useRecipeIngredientReviewStore.getState().rows).toHaveLength(0);
+    });
+  });
+
+  it('adds an empty row with "Zutat hinzufügen"', () => {
+    renderReviewStep();
+
+    fireEvent.click(screen.getByRole('button', { name: /Zutat hinzufügen/ }));
+
+    const rows = useRecipeIngredientReviewStore.getState().rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe('unresolved');
   });
 
   it('new ingredient draft is reviewed in a complete dialog and becomes confirmable', () => {

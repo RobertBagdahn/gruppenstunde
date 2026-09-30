@@ -142,4 +142,38 @@ describe('formatItemDisplay', () => {
     expect(summary.totalCostPerPerson).toBe(1.5); // 15 / 10
     expect(summary.previewNames).toEqual(['Brot', 'Käse']);
   });
+
+  it('shows the chosen portion with its weight', () => {
+    const item = {
+      id: 3,
+      recipe_id: null,
+      recipe_title: '',
+      recipe_slug: '',
+      image_url: null,
+      ingredient_id: 11,
+      ingredient_name: 'Toastbrot',
+      ingredient_slug: 'toastbrot',
+      quantity: 1,
+      measuring_unit_id: 1,
+      measuring_unit_name: 'Gramm',
+      portion_id: 7,
+      portion_name: 'Scheibe',
+      display_name: null,
+      factor: 1,
+      active_recipe_item_ids: [],
+      variant_group_id: null,
+      energy_kcal: 80,
+      cost_eur: 0.05,
+      quantity_g: 30,
+      ingredient_tags: [],
+      recipe_type: '',
+      overrides: [],
+      has_missing_weight: false,
+      is_per_norm_person: true,
+      buffet_role: '',
+      warnings: [],
+    } satisfies MealItem;
+
+    expect(formatItemPortion(item)).toBe('1 Scheibe / P. (30 g)');
+  });
 });

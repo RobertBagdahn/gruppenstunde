@@ -42,6 +42,8 @@ class MealItemOut(Schema):
     quantity: float | None = None
     measuring_unit_id: int | None = None
     measuring_unit_name: str = ""
+    portion_id: int | None = None
+    portion_name: str = ""
     display_name: str | None = None
     factor: float
     active_recipe_item_ids: list[int] = []
@@ -67,6 +69,10 @@ class MealItemOut(Schema):
     @staticmethod
     def resolve_recipe_portions(obj) -> int | None:
         return obj.recipe.portions if obj.recipe else None
+
+    @staticmethod
+    def resolve_portion_name(obj) -> str:
+        return obj.portion.name if obj.portion else ""
 
     @staticmethod
     def resolve_recipe_title(obj) -> str:
@@ -137,6 +143,10 @@ class MealItemOut(Schema):
     @staticmethod
     def resolve_has_missing_weight(obj) -> bool:
         """Return True if the ingredient has a portion-based unit but no weight_g."""
+        if obj.ingredient and obj.quantity and obj.portion_id:
+            from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+
+            return _resolve_ingredient_weight_g(obj) <= 0
         if obj.ingredient and obj.quantity and obj.measuring_unit:
             name_lower = obj.measuring_unit.name.lower()
             if name_lower in ("g", "ml"):
@@ -166,25 +176,13 @@ class MealItemOut(Schema):
 
     @staticmethod
     def resolve_quantity_g(obj) -> float | None:
-        """Per-person grams for ingredient items."""
-        if obj.ingredient and obj.quantity and obj.measuring_unit:
-            name_lower = obj.measuring_unit.name.lower()
-            if name_lower in ("g",):
-                return float(obj.quantity)
-            if name_lower in ("ml",):
-                density = getattr(obj.ingredient, "physical_density", 1.0) or 1.0
-                return float(obj.quantity) * density
-            portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
-            if portion and portion.weight_g:
-                return cast(float, portion.weight_g * float(obj.quantity))
+        """Per-person grams for ingredient items (same helper as energy, cost and shopping)."""
+        if not (obj.ingredient and obj.quantity):
+            return None
+        from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
 
-            default_portions = obj.ingredient.portions.filter(rank=1, weight_g__isnull=False)
-            if default_portions.exists():
-                return float(default_portions.first().weight_g) * float(obj.quantity)
-
-            if obj.ingredient.standard_recipe_weight_g:
-                return float(obj.ingredient.standard_recipe_weight_g) * float(obj.quantity)
-        return None
+        grams = _resolve_ingredient_weight_g(obj)
+        return grams if grams > 0 else None
 
 
 class MealItemVariantIn(Schema):
@@ -203,6 +201,7 @@ class MealItemCreateIn(Schema):
     ingredient_id: int | None = None
     quantity: float | None = None
     measuring_unit_id: int | None = None
+    portion_id: int | None = None
     display_name: str | None = None
     factor: float = 1.0
 

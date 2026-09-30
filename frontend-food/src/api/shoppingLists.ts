@@ -91,16 +91,30 @@ async function deleteJson(url: string): Promise<void> {
 
 // --- Shopping List CRUD hooks ---
 
-export function useShoppingLists(page = 1, pageSize = 20, q = '', options: { enabled?: boolean } = {}) {
+export interface ShoppingListQuery {
+  q?: string;
+  sort?: 'newest' | 'oldest' | 'name_asc';
+  mine?: boolean;
+}
+
+export function useShoppingLists(
+  page = 1,
+  pageSize = 20,
+  query: ShoppingListQuery = {},
+  options: { enabled?: boolean } = {},
+) {
+  const { q = '', sort = 'newest', mine = false } = query;
   return useQuery({
     enabled: options.enabled ?? true,
-    queryKey: ['shopping-lists', page, pageSize, q] as const,
+    queryKey: ['shopping-lists', page, pageSize, q, sort, mine] as const,
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
         page_size: String(pageSize),
+        sort,
       });
       if (q) params.set('q', q);
+      if (mine) params.set('mine', 'true');
       return fetchJson(`${API_BASE}/?${params.toString()}`, PaginatedShoppingListsSchema);
     },
   });

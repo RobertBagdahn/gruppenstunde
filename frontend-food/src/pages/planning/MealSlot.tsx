@@ -28,6 +28,7 @@ import {
 import type { Meal, RecipeSearchResult } from '@/schemas/mealPlan';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
 import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
+import { mealTargetLabel } from '@/lib/mealTargetLabel';
 import { BUFFET_ROLE_ORDER, buffetRoleName, itemBuffetRole } from '@/lib/buffetRoles';
 import RecipePreviewDialog from './RecipePreviewDialog';
 import { FactorInput } from './FactorInput';
@@ -47,6 +48,7 @@ export function MealSlot({
   onDeleteMeal,
   onAddRecipe,
   onAddIngredient,
+  onActivate,
   onDeleteItem,
   onUpdateItemFactor,
   onUpdateItemQuantity,
@@ -64,6 +66,8 @@ export function MealSlot({
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  /** Reports the slot the user last interacted with (target of the Cmd+K shortcut). */
+  onActivate?: (mealId: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
   onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
@@ -168,6 +172,7 @@ export function MealSlot({
   const mealTargetCost = budgetPerPersonPerDay ? budgetPerPersonPerDay * meal.day_part_factor : 0;
   const mealActualCost = meal.total_cost_eur / effPortions;
   const mealTime = formatMealTime(meal.start_datetime);
+  const targetLabel = mealTargetLabel(meal);
   const mealIsTooLittle = meal.meal_type !== 'drinks' && coverage.percent < 80;
   const mealIsTooExpensive = mealTargetCost > 0 && mealActualCost > mealTargetCost;
   const mealIsUnhealthy = meal.items.some((item) => (item.nutri_class ?? 0) >= 4);
@@ -235,7 +240,10 @@ export function MealSlot({
 
   if (isEmpty && !meal.is_external) {
     return (
-      <div className={`p-4 rounded-xl border-2 border-dashed ${mealColors.border}/40 bg-card/60 hover:bg-muted/30 transition-all space-y-3`}>
+      <div
+        className={`p-4 rounded-xl border-2 border-dashed ${mealColors.border}/40 bg-card/60 hover:bg-muted/30 transition-all space-y-3`}
+        onClickCapture={() => onActivate?.(meal.id)}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Icon name={MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'} size={20} className={mealColors.text} />
@@ -306,6 +314,7 @@ export function MealSlot({
           onOpenChange={setDialogOpen}
           mealType={meal.meal_type}
           mealId={meal.id}
+          targetLabel={targetLabel}
           normPortions={effPortions}
           onSelectRecipe={handleSelect}
           onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
@@ -332,7 +341,10 @@ export function MealSlot({
   }
 
   return (
-    <div className={`rounded-xl border ${mealColors.border}/40 bg-card shadow-soft overflow-hidden transition-all`}>
+    <div
+      className={`rounded-xl border ${mealColors.border}/40 bg-card shadow-soft overflow-hidden transition-all`}
+      onClickCapture={() => onActivate?.(meal.id)}
+    >
       {/* Compact Card Header */}
       <div
         className="p-3.5 flex items-start justify-between gap-3 cursor-pointer select-none hover:bg-muted/20 transition-colors"
@@ -696,6 +708,7 @@ export function MealSlot({
         onOpenChange={setDialogOpen}
         mealType={meal.meal_type}
         mealId={meal.id}
+        targetLabel={targetLabel}
         normPortions={effPortions}
         onSelectRecipe={(recipeId) => handleSelect(recipeId)}
         onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {

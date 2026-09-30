@@ -21,6 +21,18 @@ class TestMetricConversion:
         assert UnitGramConverter.convert_to_grams(0.5, "kg", ing) == 500
         assert UnitGramConverter.convert_to_portion_count(0.5, "kg", ing) == 2
 
+    def test_grams_ignore_density(self):
+        ing = make_ingredient(name="Weizenmehl Type 405", physical_density=0.6)
+        make_portion(ing, name="Tasse Mehl", quantity=1.0, weight_g=100.0, rank=1)
+        assert UnitGramConverter.convert_to_grams(250, "g", ing) == 250
+        assert UnitGramConverter.convert_to_portion_count(250, "g", ing) == 2.5
+
+    def test_kg_ignores_density(self):
+        ing = make_ingredient(name="Kartoffeln", physical_density=0.7)
+        make_portion(ing, name="Portion", quantity=1.0, weight_g=100.0, rank=1)
+        assert UnitGramConverter.convert_to_grams(1, "kg", ing) == 1000
+        assert UnitGramConverter.convert_to_portion_count(1, "kg", ing) == 10
+
     def test_liter_without_density_uses_1000g(self):
         ing = make_ingredient(name="Wasser", physical_density=1.0)
         make_portion(ing, name="Portion", quantity=1.0, weight_g=200.0, rank=1)

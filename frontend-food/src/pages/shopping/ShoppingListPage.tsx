@@ -108,7 +108,7 @@ export default function ShoppingListPage() {
   const q = state.q ?? '';
   const myDataOnly = state.mine === '1';
 
-  const { data, isLoading, error } = useShoppingLists(page, 20, q, { enabled: restored });
+  const { data, isLoading, error } = useShoppingLists(page, 20, { q, sort, mine: myDataOnly }, { enabled: restored });
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
 
@@ -155,17 +155,8 @@ export default function ShoppingListPage() {
     );
   }
 
-  // Owner filter only (server handles search); sort is client-side within the page
-  const filteredLists = myDataOnly
-    ? lists.filter((l) => l.owner_id === user.id)
-    : lists;
-
-  const sortedLists = [...filteredLists].sort((a, b) => {
-    if (sort === 'newest') return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    if (sort === 'oldest') return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-    if (sort === 'name_asc') return a.name.localeCompare(b.name);
-    return 0;
-  });
+  // Search, sort and the owner filter are applied by the server across all pages.
+  const sortedLists = lists;
 
   const handleCreate = () => {
     if (!newName.trim()) return;

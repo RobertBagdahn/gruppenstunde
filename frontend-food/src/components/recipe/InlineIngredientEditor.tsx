@@ -1020,17 +1020,14 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredientSlug}/portions/`, { credentials: 'include' });
         const portions = await res.json();
 
-        let selectedPortion = portionId
+        // The dialog always hands over a concrete portion. Never guess another one:
+        // a silent fallback to the standard portion turned 250 g into 250 cups.
+        const selectedPortion = portionId
           ? portions.find((p: { id: number }) => p.id === portionId) ?? null
           : null;
 
         if (!selectedPortion) {
-          // Fall back to rank=1 (Normalportion) or first available
-          selectedPortion = portions.find((p: { rank?: number }) => p.rank === 1) ?? portions[0] ?? null;
-        }
-
-        if (!selectedPortion) {
-          toast.error('Keine Portion für diese Zutat gefunden');
+          toast.error('Die gewählte Portion wurde nicht gefunden. Bitte wähle die Menge erneut.');
           return;
         }
 
@@ -1040,8 +1037,9 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const selectedWeightG = selectedPortion!.weight_g ?? 1;
         const totalWeightG = selectedWeightG * quantity;
         const isMetric = isDirectMetricPortion(selectedPortion!, '');
-        const displayedBaseQuantity = isMetric ? totalWeightG : quantity;
-        const displayedQuantity = scaleQuantity(displayedBaseQuantity, scale);
+        // The dialog quantity is what the user typed for the whole group (serving
+        // context). It is shown as-is; saving divides it by the context once.
+        const displayedQuantity = Math.round((isMetric ? totalWeightG : quantity) * 100) / 100;
         const rowKey = `ing-dlg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
         setEditItems((prev) => [
@@ -1083,7 +1081,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         toast.error('Fehler beim Laden der Portion');
       }
     },
-    [editItems, scale],
+    [editItems],
   );
 
   // --- AI Estimate ---

@@ -213,10 +213,11 @@ def list_ingredients(
         "popularity": "-usage_count",
     }
 
+    # ``-id`` as last key keeps paging stable when values tie.
     if ordering in ordering_map:
-        qs = qs.order_by(ordering_map[ordering])
+        qs = qs.order_by(ordering_map[ordering], "-id")
     else:
-        qs = qs.order_by("-usage_count")
+        qs = qs.order_by("-usage_count", "-id")
 
     total = qs.count()
     total_pages = max(1, math.ceil(total / page_size))
