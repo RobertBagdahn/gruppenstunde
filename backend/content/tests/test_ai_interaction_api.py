@@ -7,6 +7,7 @@ Covers:
 """
 
 import uuid
+from datetime import UTC
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -366,8 +367,6 @@ class TestAiInteractionStats:
 
     def test_timeline_entries_include_embedding_cost(self, client, staff_user, owner_user):
         """Timeline entry for today includes embedding costs of background calls."""
-        from datetime import date
-
         from content.models import AiInteraction
 
         fg = AiInteraction.objects.create(
@@ -396,9 +395,38 @@ class TestAiInteractionStats:
         client.force_login(staff_user)
         res = client.get(self.STATS_URL)
         timeline = res.json()["timeline"]
-        today_entry = next(e for e in timeline if e["date"] == date.today().isoformat())
+        today_entry = next(e for e in timeline if e["date"] == timezone.localdate().isoformat())
         assert round(today_entry["embedding_cost_eur"], 2) == 0.01
         assert round(today_entry["total_cost_eur"], 2) == 0.05
+
+    def test_timeline_uses_local_date_between_midnight_and_utc_midnight(self, client, staff_user, owner_user):
+        """22:30 UTC on 2026-09-30 is 00:30 on 2026-10-01 in Europe/Berlin."""
+        from datetime import datetime
+        from unittest import mock
+
+        from content.models import AiInteraction
+
+        frozen = datetime(2026, 9, 30, 22, 30, tzinfo=UTC)
+        interaction = AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "fg"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+            is_background=False,
+            cost_eur=0.05,
+        )
+        AiInteraction.objects.filter(id=interaction.id).update(created_at=frozen)
+
+        client.force_login(staff_user)
+        with mock.patch("django.utils.timezone.now", return_value=frozen):
+            res = client.get(self.STATS_URL)
+
+        data = res.json()
+        entry = next(e for e in data["timeline"] if e["date"] == "2026-10-01")
+        assert round(entry["total_cost_eur"], 2) == 0.05
+        assert data["calls_today"] == 1
 
 
 @pytest.mark.django_db
