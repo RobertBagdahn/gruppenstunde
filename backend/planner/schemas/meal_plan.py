@@ -532,7 +532,7 @@ class MealPlanDuplicateIn(Schema):
 class MealPlanCreateIn(Schema):
     name: str
     description: str = ""
-    norm_portions: float = 10.0
+    norm_portions: float = Field(10.0, gt=0, le=1000)
     reserve_factor: float = 1.1
     budget_per_person_per_day: float | None = None
     visibility: Literal["private", "group", "public", "draft"] = "private"
@@ -548,7 +548,7 @@ class MealPlanCreateIn(Schema):
 class MealPlanUpdateIn(Schema):
     name: str | None = None
     description: str | None = None
-    norm_portions: float | None = None
+    norm_portions: float | None = Field(None, gt=0, le=1000)
     norm_portions_manual: bool | None = None
     reserve_factor: float | None = None
     activity_factor: float | None = None

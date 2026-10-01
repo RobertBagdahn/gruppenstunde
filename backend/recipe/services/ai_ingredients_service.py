@@ -382,7 +382,7 @@ class RecipeAiIngredientsService:
             if weight_g is None:
                 continue
             result.portion_id = portion.id
-            result.portion_name = str(portion)
+            result.portion_name = portion.name
             result.quantity = round(result.quantity / weight_g, 2)
             result.measuring_unit_id = portion.measuring_unit_id
             result.measuring_unit_name = portion.measuring_unit.name if portion.measuring_unit else None

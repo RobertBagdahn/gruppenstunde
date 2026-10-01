@@ -6,6 +6,7 @@ from typing import cast
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Query, Router
@@ -180,10 +181,17 @@ def list_ingredients(
     retail_section: int | None = None,
     status: str = "",
     ordering: str = "",
+    sort: str = "",
+    origin: str = "",
     nutritional_tag: int | None = None,
     group: str = "",
 ):
-    """List ingredients with pagination, filters, and ordering."""
+    """List ingredients with pagination, filters, and ordering.
+
+    ``sort`` (newest, oldest, name_asc, name_desc) is the list page's order;
+    ``ordering`` keeps the price/nutrition orders of the search dialogs.
+    ``origin=mine`` limits the list to the user's own ingredients.
+    """
     from django.db.models import F
 
     qs = _visible_ingredients_qs(request)
@@ -202,6 +210,9 @@ def list_ingredients(
     if status:
         qs = qs.filter(status=status)
 
+    if origin == "mine":
+        qs = qs.filter(owner=request.user) if request.user.is_authenticated else qs.none()
+
     if nutritional_tag:
         qs = qs.filter(nutritional_tags__id=nutritional_tag)
 
@@ -211,9 +222,14 @@ def list_ingredients(
         "nutri_class_asc": F("nutri_class").asc(nulls_last=True),
         "energy_kcal_asc": F("energy_kcal").asc(nulls_last=True),
         "popularity": "-usage_count",
+        "newest": "-created_at",
+        "oldest": "created_at",
+        "name_asc": Lower("name"),
+        "name_desc": Lower("name").desc(),
     }
 
     # ``-id`` as last key keeps paging stable when values tie.
+    ordering = ordering or sort
     if ordering in ordering_map:
         qs = qs.order_by(ordering_map[ordering], "-id")
     else:

@@ -7,6 +7,7 @@ import { UtensilsCrossed, Moon, Cookie, GlassWater } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
 import { PriceCoverageSchema } from './recipe';
 import { QuantityWarningSchema } from './buffet';
+import { planDateKey } from '@/lib/mealPlanDateTime';
 
 // Lightweight nutritional tag schema for search results (backend only returns id+name)
 export const NutritionalTagPreviewSchema = z.object({
@@ -508,7 +509,7 @@ export function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }
   const groups: Record<string, Meal[]> = {};
   for (const meal of meals) {
     if (!meal.start_datetime) continue;
-    const date = meal.start_datetime.slice(0, 10);
+    const date = planDateKey(meal.start_datetime);
     (groups[date] ??= []).push(meal);
   }
   return Object.entries(groups)

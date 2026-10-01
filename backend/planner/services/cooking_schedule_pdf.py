@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 from weasyprint import HTML
 
 from planner.models import Meal, MealPlan
+from planner.services.cooking_schedule_service import local_time
 from supply.services.price_service import price_or_none
 
 MEAL_TYPE_LABELS = {
@@ -157,7 +158,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
     days_map: dict[str, list] = defaultdict(list)
     for meal in meals:
         if meal.start_datetime:
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
+            date_str = local_time(meal.start_datetime).strftime("%Y-%m-%d")
         else:
             date_str = "unbekannt"
         days_map[date_str].append(meal)
@@ -182,14 +183,14 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
         if day_meals:
             start_times = [m.start_datetime for m in day_meals if m.start_datetime]
             if start_times:
-                time_range = f"{min(start_times).strftime('%H:%M')} – {max(start_times).strftime('%H:%M')}"
+                time_range = f"{local_time(min(start_times)).strftime('%H:%M')} – {local_time(max(start_times)).strftime('%H:%M')}"
 
         day_cost = 0.0
         recipes = []
 
         for meal in day_meals:
             meal_type_label = MEAL_TYPE_LABELS.get(meal.meal_type, meal.meal_type)
-            start_time = meal.start_datetime.strftime("%H:%M") if meal.start_datetime else ""
+            start_time = local_time(meal.start_datetime).strftime("%H:%M") if meal.start_datetime else ""
 
             for item in meal.items.all():
                 if not item.recipe and item.ingredient and item.ingredient.deleted_at is None:
@@ -297,8 +298,8 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
             }
         )
 
-    start_date = meal_plan.start_datetime.date() if meal_plan.start_datetime else None
-    end_date = meal_plan.end_datetime.date() if meal_plan.end_datetime else None
+    start_date = local_time(meal_plan.start_datetime).date() if meal_plan.start_datetime else None
+    end_date = local_time(meal_plan.end_datetime).date() if meal_plan.end_datetime else None
 
     if start_date and end_date:
         date_label = f"{_format_date(start_date)} – {_format_date(end_date)}"

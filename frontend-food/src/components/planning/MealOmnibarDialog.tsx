@@ -149,7 +149,7 @@ export function MealOmnibarDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[min(760px,90vh)] p-0 overflow-hidden shadow-2xl border-border">
+      <DialogContent className="max-w-5xl max-h-[min(760px,90vh)] p-0 overflow-hidden shadow-2xl border-border flex flex-col gap-0">
         {targetLabel && (
           <p className="px-4 pt-3 text-caption text-muted-foreground">
             Hinzufügen zu: <span className="font-semibold text-foreground">{targetLabel}</span>
@@ -238,9 +238,9 @@ export function MealOmnibarDialog({
         </div>
 
         {/* 2-Column Area: List on left, Live Preview on right */}
-        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[420px] max-h-[620px]">
+        <div className="grid grid-cols-1 md:grid-cols-12 flex-1 min-h-0 md:min-h-[420px] md:max-h-[620px]">
           {/* List Area */}
-          <div className="md:col-span-7 overflow-y-auto border-r border-border p-3 space-y-1">
+          <div className="md:col-span-7 min-h-0 overflow-y-auto md:border-r border-border p-3 space-y-1">
             {isLoading && (
               <p className="text-caption text-muted-foreground py-10 text-center">Suche läuft...</p>
             )}
@@ -325,7 +325,7 @@ export function MealOmnibarDialog({
           </div>
 
           {/* Details Panel on Right */}
-          <div className="md:col-span-5 p-5 flex flex-col justify-between bg-muted/10 overflow-y-auto">
+          <div className="hidden md:col-span-5 p-5 md:flex flex-col justify-between bg-muted/10 overflow-y-auto">
             {activeItem ? (
               <div className="space-y-5">
                 {activeItem.type === 'recipe' && (
@@ -418,6 +418,23 @@ export function MealOmnibarDialog({
             )}
           </div>
         </div>
+
+        {/* Phones have no detail column: keep the confirm action in view below the list. */}
+        {activeItem && (
+          <div className="md:hidden shrink-0 border-t border-border bg-card p-3 space-y-2">
+            <p className="text-caption text-muted-foreground truncate">
+              Ausgewählt: <span className="font-semibold text-foreground">{activeItem.type === 'ingredient' ? activeItem.data.name : activeItem.data.title}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => handleConfirmSelection(activeItem)}
+              className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-caption bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              {activeItem.type === 'recipe' ? `Gericht hinzufügen (${normPortions} P.)` : 'Zutat hinzufügen'}
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

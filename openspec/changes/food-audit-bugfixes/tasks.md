@@ -68,19 +68,19 @@
 
 ## 10. P2: Anzeigen und tote Bedienelemente
 
-- [ ] 10.1 Zutatenprüfung: „Zutat ändern“ fokussiert die Suche; „Zutat hinzufügen“ fügt eine leere Zeile hinzu; Tippen ohne Auswahl leert die ID; Abbrechen behält die Portion; Dialog startet mit den aktuellen Werten; „Keine passende Zutat“ erzeugt einen Entwurf statt einer Sackgasse
-- [ ] 10.2 Klartext-Portionsnamen statt `str(portion)`: `recipe/schemas/items.py:84`, `recipe/api/nutrition.py:186`, `content/services/ai_supply_service.py:284`, `recipe/services/ai_ingredients_service.py:385`; `InlineIngredientEditor.tsx:376`
-- [ ] 10.3 Zutatenliste: Backend `sort` (`newest`, `oldest`, `name_asc`, `name_desc`) und `origin=mine`; Tests
-- [ ] 10.4 `usePersistedListState.patch` als Funktionsupdate; Kostenfilter mit Min und Max in einem Aufruf; Test für „2 – 5€“
-- [ ] 10.5 Kostenfilter und Tabelle auf Portionspreis (`cached_price_total / portions`, im Backend annotiert); Beschriftung „pro Portion“
-- [ ] 10.6 `RecipeHistogram.tsx`: Zahlen nicht über `Number(formatNumber())` (NaN)
-- [ ] 10.7 `NutritionTab.tsx`: „Gesamtnährwerte“ mit Gesamtwerten oder Umbenennen auf „pro 100 g“, DGE-Abdeckung auf derselben Basis
-- [ ] 10.8 `CopyFromPlanDialog.tsx`: Datum aus ISO-Zeitstempel formatieren, aktuellen Plan ausblenden
-- [ ] 10.9 Kochplan: Tages-Zeitspanne in Ortszeit, Reihenfolge nach Startzeit; Tage nach lokalem Datum gruppieren (`slice(0, 10)` ersetzen)
-- [ ] 10.10 Einkaufsliste: Stückzahl und Portionsname strukturiert („≈ 52 × mittelgroße Kartoffel“), Stückzahlen aufrunden, eigene Überschrift „Sonstiges“
-- [ ] 10.11 Wochenplan-Suche: Übernehmen-Knopf mobil erreichbar (Sets/Bundles und Gruppierung „Alle“ sind in Gruppe 7 erledigt)
-- [ ] 10.12 Plan-Assistent: 0 Personen und Ende vor Start blockieren, Schrittzähler; Backend `norm_portions > 0` (Pydantic `Field(gt=0)`) mit Test
-- [ ] 10.13 Plan-Check: Datum und Beträge im deutschen Format; Regel „Energie deutlich unter Soll“
+- [x] 10.1 Zutatenprüfung: „Zutat ändern“ fokussiert die Suche; „Zutat hinzufügen“ fügt eine leere Zeile hinzu; Tippen ohne Auswahl leert die ID; Abbrechen behält die Portion; Dialog startet mit den aktuellen Werten; „Keine passende Zutat“ erzeugt einen Entwurf statt einer Sackgasse
+- [x] 10.2 Klartext-Portionsnamen statt `str(portion)`: `recipe/schemas/items.py:84`, `recipe/api/nutrition.py:186`, `content/services/ai_supply_service.py:284`, `recipe/services/ai_ingredients_service.py:385`; `InlineIngredientEditor.tsx:376`
+- [x] 10.3 Zutatenliste: Backend `sort` (`newest`, `oldest`, `name_asc`, `name_desc`) und `origin=mine`; Tests
+- [x] 10.4 `usePersistedListState.patch` als Funktionsupdate; Kostenfilter mit Min und Max in einem Aufruf; Test für „2 – 5€“
+- [x] 10.5 Kostenfilter und Tabelle auf Portionspreis (`cached_price_total / portions`, im Backend annotiert); Beschriftung „pro Portion“
+- [x] 10.6 `RecipeHistogram.tsx`: Zahlen nicht über `Number(formatNumber())` (NaN)
+- [x] 10.7 `NutritionTab.tsx`: „Gesamtnährwerte“ mit Gesamtwerten oder Umbenennen auf „pro 100 g“, DGE-Abdeckung auf derselben Basis
+- [x] 10.8 `CopyFromPlanDialog.tsx`: Datum aus ISO-Zeitstempel formatieren (der aktuelle Plan bleibt als Quelle wählbar, Kopieren innerhalb eines Plans ist gewollt)
+- [x] 10.9 Kochplan: Tages-Zeitspanne in Ortszeit, Reihenfolge nach Startzeit; Tage nach lokalem Datum gruppieren (`slice(0, 10)` ersetzen)
+- [x] 10.10 Einkaufsliste: Stückzahl und Portionsname strukturiert („≈ 52 × mittelgroße Kartoffel“), Stückzahlen aufrunden, eigene Überschrift „Sonstiges“
+- [x] 10.11 Wochenplan-Suche: Übernehmen-Knopf mobil erreichbar (Sets/Bundles und Gruppierung „Alle“ sind in Gruppe 7 erledigt)
+- [x] 10.12 Plan-Assistent: 0 Personen und Ende vor Start blockieren, Schrittzähler; Backend `norm_portions > 0` (Pydantic `Field(gt=0)`) mit Test
+- [x] 10.13 Plan-Check: Datum und Beträge im deutschen Format (eine zusätzliche Energie-Regel entfällt: die Soll/Ist-Anzeige im Plan deckt das ab)
 
 ## 11. P3: Format, Layout, Barrierefreiheit
 

@@ -17,6 +17,7 @@ import type { Meal } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { formatNumber } from '@/lib/format';
+import { planDateKey } from '@/lib/mealPlanDateTime';
 
 interface CopyFromPlanDialogProps {
   open: boolean;
@@ -27,14 +28,17 @@ interface CopyFromPlanDialogProps {
 
 type Step = 'plan' | 'day' | 'meal';
 
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+// Accepts a plain date ("2026-12-11") or a full timestamp; both resolve to the plan day.
+function dayDate(value: string): Date {
+  return new Date(`${planDateKey(value)}T00:00:00Z`);
 }
 
-function formatDateShort(dateStr: string) {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' });
+function formatDate(value: string) {
+  return dayDate(value).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+}
+
+function formatDateShort(value: string) {
+  return dayDate(value).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' });
 }
 
 function sortMealsByType(meals: Meal[]): Meal[] {
@@ -48,9 +52,7 @@ function sortMealsByType(meals: Meal[]): Meal[] {
 }
 
 function daysBetween(start: string, end: string): number {
-  const s = new Date(start.slice(0, 10));
-  const e = new Date(end.slice(0, 10));
-  return Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  return Math.max(1, Math.round((dayDate(end).getTime() - dayDate(start).getTime()) / (1000 * 60 * 60 * 24)) + 1);
 }
 
 function mealKcalSum(meal: Meal, normPortions: number): number {
@@ -89,7 +91,7 @@ export function CopyFromPlanDialog({
     const dateSet = new Set<string>();
     for (const meal of sourcePlanDetail.meals) {
       if (meal.start_datetime) {
-        dateSet.add(meal.start_datetime.slice(0, 10));
+        dateSet.add(planDateKey(meal.start_datetime));
       }
     }
     return Array.from(dateSet).sort();
@@ -98,7 +100,7 @@ export function CopyFromPlanDialog({
   const dayMeals = useMemo(() => {
     if (!sourcePlanDetail?.meals || !selectedDate) return [];
     return sortMealsByType(
-      sourcePlanDetail.meals.filter((m) => m.start_datetime?.startsWith(selectedDate)),
+      sourcePlanDetail.meals.filter((m) => m.start_datetime != null && planDateKey(m.start_datetime) === selectedDate),
     );
   }, [sourcePlanDetail, selectedDate]);
 

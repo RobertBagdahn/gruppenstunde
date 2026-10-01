@@ -432,23 +432,28 @@ export default function ShoppingListDetailPage() {
 
 // --- Helpers ---
 
-function groupBySection(
+/** Heading of entries without retail section (free text); always listed last. */
+const OTHER_SECTION = 'Sonstiges';
+
+export function groupBySection(
   items: ShoppingListItem[],
 ): Record<string, ShoppingListItem[]> {
   const groups: Record<string, ShoppingListItem[]> = {};
 
   // Preserve the server's retail-section order and sort only within sections.
   const sorted = [...items].sort((a, b) => {
-    if ((a.retail_section_name || '') !== (b.retail_section_name || '')) return 0;
+    if ((a.retail_section_name || OTHER_SECTION) !== (b.retail_section_name || OTHER_SECTION)) return 0;
     if (a.is_checked !== b.is_checked) return a.is_checked ? 1 : -1;
     return a.sort_order - b.sort_order;
   });
 
   for (const item of sorted) {
-    const section = item.retail_section_name || '';
+    const section = item.retail_section_name || OTHER_SECTION;
     if (!groups[section]) groups[section] = [];
     groups[section].push(item);
   }
 
-  return groups;
+  // Free-text entries have no section and would otherwise come first, headless.
+  const { [OTHER_SECTION]: other, ...sections } = groups;
+  return other ? { ...sections, [OTHER_SECTION]: other } : sections;
 }

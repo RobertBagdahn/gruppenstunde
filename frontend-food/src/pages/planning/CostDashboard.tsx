@@ -6,6 +6,7 @@ import { MEAL_TYPE_LABELS, getDayCoverage, getEffectiveCoverage, getCoverageBadg
 import type { Meal } from '@/schemas/mealPlan';
 import SollIstBar from '@/components/shared/SollIstBar';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
+import { planDateKey } from '@/lib/mealPlanDateTime';
 
 interface CostDashboardProps {
   mealPlanId: number;
@@ -29,7 +30,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
     const groups: Record<string, Meal[]> = {};
     for (const meal of meals) {
       if (!meal.start_datetime) continue;
-      const date = meal.start_datetime.slice(0, 10);
+      const date = planDateKey(meal.start_datetime);
       if (!groups[date]) groups[date] = [];
       groups[date].push(meal);
     }
@@ -74,7 +75,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
         const groups: Record<string, Meal[]> = {};
         for (const meal of meals) {
           if (!meal.start_datetime) continue;
-          const date = meal.start_datetime.slice(0, 10);
+          const date = planDateKey(meal.start_datetime);
           if (!groups[date]) groups[date] = [];
           groups[date].push(meal);
         }

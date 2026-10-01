@@ -11,6 +11,7 @@ import SuggestionCard from '@/components/suggestions/SuggestionCard';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import { planDateKey } from '@/lib/mealPlanDateTime';
 
 const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
@@ -18,7 +19,7 @@ function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
   const groups: Record<string, Meal[]> = {};
   for (const meal of meals) {
     if (!meal.start_datetime) continue;
-    const date = meal.start_datetime.slice(0, 10);
+    const date = planDateKey(meal.start_datetime);
     if (!groups[date]) {
       groups[date] = [];
     }

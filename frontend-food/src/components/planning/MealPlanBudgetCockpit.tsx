@@ -4,6 +4,7 @@ import type { Meal } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL, effectivePortions } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
 import { formatCount, formatNumber } from '@/lib/format';
+import { planDateKey } from '@/lib/mealPlanDateTime';
 
 interface MealPlanBudgetCockpitProps {
   normPortions: number;
@@ -27,7 +28,7 @@ export function MealPlanBudgetCockpit({
     const dateSet = new Set<string>();
     for (const meal of meals) {
       if (meal.start_datetime) {
-        dateSet.add(meal.start_datetime.slice(0, 10));
+        dateSet.add(planDateKey(meal.start_datetime));
       }
     }
     const numDays = Math.max(1, dateSet.size);

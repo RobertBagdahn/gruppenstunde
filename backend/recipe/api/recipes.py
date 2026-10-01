@@ -7,8 +7,8 @@ import time
 from typing import cast
 
 from django.db import IntegrityError, transaction
-from django.db.models import CharField, Q, Value
-from django.db.models.functions import MD5, Cast, Concat, Lower
+from django.db.models import CharField, FloatField, Q, Value
+from django.db.models.functions import MD5, Cast, Concat, Greatest, Lower
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
@@ -154,10 +154,15 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
     if filters.difficulty:
         qs = qs.filter(difficulty__in=filters.difficulty)
 
-    if filters.costs_min is not None:
-        qs = qs.filter(cached_price_total__gte=filters.costs_min)
-    if filters.costs_max is not None:
-        qs = qs.filter(cached_price_total__lte=filters.costs_max)
+    # Cost bounds are per portion, like the price shown on every recipe card.
+    if filters.costs_min is not None or filters.costs_max is not None:
+        qs = qs.annotate(
+            price_per_portion=Cast("cached_price_total", FloatField()) / Cast(Greatest("portions", 1), FloatField())
+        )
+        if filters.costs_min is not None:
+            qs = qs.filter(price_per_portion__gte=filters.costs_min)
+        if filters.costs_max is not None:
+            qs = qs.filter(price_per_portion__lte=filters.costs_max)
 
     if filters.execution_time:
         qs = qs.filter(execution_time__in=filters.execution_time)

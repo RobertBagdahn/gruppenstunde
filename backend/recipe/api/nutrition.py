@@ -183,7 +183,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             "ingredient_id": ingredient.id,
             "ingredient_name": ingredient.name,
             "quantity": item.quantity,
-            "portion_name": str(item.portion) if item.portion else "Stück",
+            "portion_name": item.portion.name if item.portion else "Stück",
             "weight_g": weight_g,
             "price_eur": item_price,
             "energy_kcal": energy_kcal,

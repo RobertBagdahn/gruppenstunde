@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { costBounds } from '@/lib/recipeCostRanges';
 import { useNavigate, Link } from 'react-router-dom';
 import type { z } from 'zod';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
@@ -88,6 +89,7 @@ export default function RecipeListPage() {
   const filters = useMemo<Partial<RecipeFilter>>(
     () => ({
       ...filterState,
+      ...costBounds(filterState.cost),
       seed: filterState.sort === 'random' ? (filterState.seed ?? fallbackSeed) : undefined,
       page_size: 20,
     }),
@@ -366,7 +368,7 @@ function hasNonDefaultFilters(filters: Partial<RecipeFilter>): boolean {
   if (filters.preparation_method?.length) return true;
   if (filters.origin && !(filters.origin.length === 1 && filters.origin[0] === 'verified')) return true;
   if (filters.tag_slugs?.length) return true;
-  if (filters.costs_min !== undefined || filters.costs_max !== undefined) return true;
+  if (filters.cost?.length) return true;
   return false;
 }
 

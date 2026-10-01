@@ -125,6 +125,20 @@ class TestGroupingAndSorting:
         assert result.days[0].date == datetime.date(2026, 8, 1)
         assert result.days[1].date == datetime.date(2026, 8, 2)
 
+    def test_meal_after_midnight_belongs_to_the_local_day(self):
+        """00:30 Berlin time (winter) is 23:30 UTC of the previous day but belongs to the local next day."""
+        plan = make_meal_plan(norm_portions=5)
+        late = datetime.datetime(2026, 12, 11, 23, 30, tzinfo=datetime.UTC)  # 00:30 on 12 Dec in Berlin
+        meal = make_meal(meal_plan=plan, start_datetime=late, meal_type=MealTypeChoices.SNACK)
+        recipe = make_recipe(execution_time=ExecutionTimeChoices.LESS_30, preparation_time=PreparationTimeChoices.NONE)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+
+        assert [day.date for day in result.days] == [datetime.date(2026, 12, 12)]
+        assert result.days[0].day_end_time == "00:30"
+        assert result.days[0].day_start_time == "00:00"
+
     def test_sorts_by_start_time_within_day(self):
         """Rezepte innerhalb eines Tages aufsteigend nach Startzeit."""
         plan = make_meal_plan(norm_portions=5)

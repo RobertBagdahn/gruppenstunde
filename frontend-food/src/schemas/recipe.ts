@@ -290,6 +290,8 @@ export const RecipeFilterSchema = z.object({
   difficulty: z.array(z.string()).optional(),
   costs_min: z.number().optional(),
   costs_max: z.number().optional(),
+  // UI-only: selected price ranges (costs_min/costs_max are derived from them).
+  cost: z.array(z.string()).optional(),
   execution_time: z.array(z.string()).optional(),
   origin: z.array(z.string()).optional(), // ["verified"] | ["community"] | ["mine"] or combinations
   sort: z.string().default('use_count'),

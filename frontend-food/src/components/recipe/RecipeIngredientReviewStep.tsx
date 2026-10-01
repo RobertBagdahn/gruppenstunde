@@ -381,12 +381,29 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
             value={row.selected_ingredient_name || row.suggested_ingredient_name}
             onChange={handleNameChange}
             onSelect={(ingredient) => selectIngredient(ingredient.id, ingredient.name, ingredient.slug)}
-            onCreateNew={() => updateRow(row.key, {
-              selected_ingredient_id: null,
-              selected_ingredient_name: '',
-              status: 'unresolved',
-              reason: 'Eine neue Zutat muss im Zutateneditor vollständig geprüft werden.',
-            })}
+            onCreateNew={(name) => {
+              // "No existing ingredient fits": start a new-ingredient draft from the
+              // typed name; the draft dialog completes values, portion and quantity.
+              const draftName = (name || row.source_text).trim();
+              updateRow(row.key, {
+                selected_ingredient_id: null,
+                selected_ingredient_slug: '',
+                selected_ingredient_name: draftName,
+                selected_portion: null,
+                quantity: null,
+                new_ingredient_draft: row.new_ingredient_draft ?? {
+                  name: draftName,
+                  description: '',
+                  status: 'draft',
+                  values: {},
+                  portions: [],
+                  quantity: null,
+                },
+                status: 'unresolved',
+                reason: 'Neue Zutat: bitte Nährwerte, Portion und Menge prüfen.',
+              });
+              setNewIngredientOpen(true);
+            }}
             placeholder="Zutat suchen..."
           />
           </div>

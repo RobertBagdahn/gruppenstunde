@@ -119,7 +119,8 @@ describe('MealOmnibarDialog', () => {
       />
     );
 
-    expect(screen.getAllByText(/^Rezept \d+$/)).toHaveLength(5 + 1); // list + preview title
+    // 5 list entries + the active recipe's title in the preview column and in the phone bar
+    expect(screen.getAllByText(/^Rezept \d+$/)).toHaveLength(5 + 2);
     expect(screen.getAllByText(/^Zutat \d+$/)).toHaveLength(5);
     expect(screen.getByRole('button', { name: /Alle 25 Rezepte anzeigen/ })).toBeDefined();
 

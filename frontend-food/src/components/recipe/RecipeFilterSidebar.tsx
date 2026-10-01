@@ -10,40 +10,12 @@ import {
 } from '@/schemas/recipe';
 import TagMultiSelect from './TagMultiSelect';
 import { Icon } from '@/components/ui/icon';
-
-const COST_RANGE_OPTIONS = [
-  { value: 'lt2', label: '< 2€' },
-  { value: '2-5', label: '2 – 5€' },
-  { value: '5-10', label: '5 – 10€' },
-  { value: 'gt10', label: '> 10€' },
-] as const;
+import { RECIPE_COST_RANGES } from '@/lib/recipeCostRanges';
 
 function toggleArrayValue<T>(arr: T[], value: T): T[] {
   return arr.includes(value)
     ? arr.filter((x) => x !== value)
     : [...arr, value];
-}
-
-function costRangeToParams(range: string): { costs_min?: number; costs_max?: number } {
-  switch (range) {
-    case 'lt2': return { costs_max: 2 };
-    case '2-5': return { costs_min: 2, costs_max: 5 };
-    case '5-10': return { costs_min: 5, costs_max: 10 };
-    case 'gt10': return { costs_min: 10 };
-    default: return {};
-  }
-}
-
-function parseCostRangesFromFilters(
-  costsMin: number | undefined,
-  costsMax: number | undefined,
-): string[] {
-  const ranges: string[] = [];
-  if (costsMax === 2) ranges.push('lt2');
-  if (costsMin === 2 && costsMax === 5) ranges.push('2-5');
-  if (costsMin === 5 && costsMax === 10) ranges.push('5-10');
-  if (costsMin === 10) ranges.push('gt10');
-  return ranges;
 }
 
 interface RecipeFilterSidebarProps {
@@ -62,29 +34,11 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
   const selectedDifficulty = (filters.difficulty as string[]) ?? [];
   const selectedExecutionTime = (filters.execution_time as string[]) ?? [];
   const selectedPrepMethod = (filters.preparation_method as string[]) ?? [];
-  const selectedCostRanges = parseCostRangesFromFilters(filters.costs_min, filters.costs_max);
+  const selectedCostRanges = (filters.cost as string[]) ?? [];
 
   function toggleMulti(key: string, current: string[], value: string) {
     const next = toggleArrayValue(current, value);
     onFilterChange(key, next.length ? next : undefined);
-  }
-
-  function handleCostChange(range: string) {
-    const next = toggleArrayValue(selectedCostRanges, range);
-    if (next.length === 0) {
-      onFilterChange('costs_min', undefined);
-      onFilterChange('costs_max', undefined);
-      return;
-    }
-    let min: number | undefined;
-    let max: number | undefined;
-    for (const r of next) {
-      const p = costRangeToParams(r);
-      if (p.costs_min !== undefined && (min === undefined || p.costs_min < min)) min = p.costs_min;
-      if (p.costs_max !== undefined && (max === undefined || p.costs_max > max)) max = p.costs_max;
-    }
-    onFilterChange('costs_min', min);
-    onFilterChange('costs_max', max);
   }
 
   const hasActiveFilters =
@@ -253,11 +207,11 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         </FilterGroup>
 
         <FilterGroup title="Kosten" icon="payments" color="hsl(var(--primary))">
-          {COST_RANGE_OPTIONS.map((opt) => (
+          {RECIPE_COST_RANGES.map((opt) => (
             <FilterCheckbox
               key={opt.value}
               checked={selectedCostRanges.includes(opt.value)}
-              onChange={() => handleCostChange(opt.value)}
+              onChange={() => toggleMulti('cost', selectedCostRanges, opt.value)}
               label={opt.label}
             />
           ))}

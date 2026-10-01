@@ -61,3 +61,16 @@ export function fromLocalDateTimeInput(value: string): string | null {
 
   return new Date(utcMilliseconds).toISOString();
 }
+
+/**
+ * Calendar day ("YYYY-MM-DD") of a meal plan timestamp in plan time (Europe/Berlin).
+ * `slice(0, 10)` would give the UTC day and move meals after midnight to the day before.
+ * A plain date string is returned unchanged.
+ */
+export function planDateKey(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  const parts = getDateTimeParts(date);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { RecipeFilterSchema, RECIPE_SORT_OPTIONS } from '@/schemas/recipe';
 import { MEALPLAN_ORIGIN_OPTIONS, MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
 import { IngredientStatusSchema } from '@/schemas/supply';
+import { RECIPE_COST_RANGE_VALUES } from '@/lib/recipeCostRanges';
 
 /**
  * Persisted list state per list page.
@@ -36,8 +37,8 @@ export const RecipeListStateSchema = lenient({
   execution_time: recipeFilterFields.execution_time.unwrap(),
   origin: recipeFilterFields.origin.unwrap(),
   tag_slugs: recipeFilterFields.tag_slugs.unwrap(),
-  costs_min: z.coerce.number().min(0),
-  costs_max: z.coerce.number().min(0),
+  // Selected price ranges; the API bounds are derived from them.
+  cost: z.array(z.enum(RECIPE_COST_RANGE_VALUES)),
   sort: z.enum(values(RECIPE_SORT_OPTIONS)),
   // Seed of the random order, so all pages of one shuffle belong together.
   seed: z.coerce.number().int().min(1).max(2_147_483_647),
