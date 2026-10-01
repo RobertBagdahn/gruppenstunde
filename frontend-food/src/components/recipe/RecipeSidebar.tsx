@@ -77,7 +77,7 @@ export default function RecipeSidebar({
               { replace: true },
             );
           }}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-warning text-white rounded-lg hover:bg-warning transition-colors"
         >
           <UtensilsCrossed className="w-4 h-4" />
           Kochen starten
@@ -86,7 +86,7 @@ export default function RecipeSidebar({
           type="button"
           onClick={onOpenShoppingList}
           aria-label="Einkaufsliste erstellen"
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           <ShoppingCart className="w-4 h-4" />
           Einkaufsliste
@@ -98,7 +98,7 @@ export default function RecipeSidebar({
             type="button"
             onClick={() => setPdfDialogOpen(true)}
             title="Als PDF öffnen"
-            className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+            className="flex items-center justify-center gap-1 px-2 py-1.5 text-caption font-medium border rounded-lg hover:bg-muted transition-colors"
           >
             <Printer className="w-4 h-4" />
             <span className="hidden xl:inline">PDF</span>
@@ -107,7 +107,7 @@ export default function RecipeSidebar({
             type="button"
             onClick={handleShare}
             title="Teilen"
-            className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+            className="flex items-center justify-center gap-1 px-2 py-1.5 text-caption font-medium border rounded-lg hover:bg-muted transition-colors"
           >
             <Share2 className="w-4 h-4" />
             <span className="hidden xl:inline">Teilen</span>
@@ -116,7 +116,7 @@ export default function RecipeSidebar({
             type="button"
             onClick={onClone}
             title="Rezept clonen"
-            className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium border border-primary/40 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 hover:border-primary/60 transition-colors"
+            className="flex items-center justify-center gap-1 px-2 py-1.5 text-caption font-medium border border-primary/40 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 hover:border-primary/60 transition-colors"
           >
             <Copy className="w-4 h-4" />
             <span className="hidden xl:inline">Clonen</span>

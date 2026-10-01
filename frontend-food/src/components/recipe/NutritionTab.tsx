@@ -24,7 +24,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <h3 className="text-body font-semibold mb-3 flex items-center gap-2">
           Inhaltsstoffe
           <NutritionBaseBadge base="per_portion" />
         </h3>
@@ -34,32 +34,32 @@ export function NutritionTab({ nb, recipeType }: Props) {
             value={nb.per_serving_energy_kcal ?? 0}
             unit="kcal"
             icon="local_fire_department"
-            color="text-orange-600"
-            bgColor="bg-orange-50 border-orange-200"
+            color="text-warning"
+            bgColor="bg-warning-soft border-warning-border"
           />
           <NutrientCard
             label="Protein"
             value={nb.per_serving_protein_g ?? 0}
             unit="g"
             icon="fitness_center"
-            color="text-red-600"
-            bgColor="bg-red-50 border-red-200"
+            color="text-danger"
+            bgColor="bg-danger-soft border-danger-border"
           />
           <NutrientCard
             label="Fett"
             value={nb.per_serving_fat_g ?? 0}
             unit="g"
             icon="water_drop"
-            color="text-amber-600"
-            bgColor="bg-amber-50 border-amber-200"
+            color="text-warning"
+            bgColor="bg-warning-soft border-warning-border"
           />
           <NutrientCard
             label="Kohlenhydrate"
             value={nb.per_serving_carbohydrate_g ?? 0}
             unit="g"
             icon="grain"
-            color="text-teal-600"
-            bgColor="bg-teal-50 border-teal-200"
+            color="text-success"
+            bgColor="bg-success-soft border-success-border"
           />
         </div>
       </div>
@@ -68,7 +68,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
 
       {(nb.per_100g_protein_g || nb.per_100g_fat_g || nb.per_100g_carbohydrate_g) && (
         <div>
-          <h3 className="text-sm font-semibold mb-3">Makronährstoff-Verteilung</h3>
+          <h3 className="text-body font-semibold mb-3">Makronährstoff-Verteilung</h3>
           <div className="bg-muted/30 rounded-xl p-4">
             <Suspense fallback={<div className="h-[260px] bg-muted rounded-xl animate-pulse" />}>
               <LazyNutritionPieChart
@@ -82,12 +82,12 @@ export function NutritionTab({ nb, recipeType }: Props) {
       )}
 
       <div>
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <h3 className="text-body font-semibold mb-3 flex items-center gap-2">
           Gesamtnährwerte
           <NutritionBaseBadge base="total" />
         </h3>
         {(Object.keys(nb.dge_reference).length > 0) && (
-          <p className="text-[10px] text-muted-foreground mb-2">
+          <p className="text-caption text-muted-foreground mb-2">
             DGE-Referenzwerte (25 Jahre, männlich)
           </p>
         )}
@@ -96,7 +96,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
             label="Protein"
             value={nb.per_100g_protein_g ?? 0}
             max={Math.max(nb.per_100g_protein_g ?? 0, nb.per_100g_fat_g ?? 0, nb.per_100g_carbohydrate_g ?? 0)}
-            color="bg-red-500"
+            color="bg-danger"
             dgeRef={nb.dge_reference.protein_g}
             dgeCoverage={nb.dge_coverage.protein_g}
           />
@@ -104,7 +104,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
             label="Fett"
             value={nb.per_100g_fat_g ?? 0}
             max={Math.max(nb.per_100g_protein_g ?? 0, nb.per_100g_fat_g ?? 0, nb.per_100g_carbohydrate_g ?? 0)}
-            color="bg-amber-500"
+            color="bg-warning"
             dgeRef={nb.dge_reference.fat_g}
             dgeCoverage={nb.dge_coverage.fat_g}
           />
@@ -112,7 +112,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
             label="davon gesättigt"
             value={nb.per_100g_fat_sat_g ?? 0}
             max={nb.per_100g_fat_g ?? 1}
-            color="bg-amber-300"
+            color="bg-warning"
             dgeRef={nb.dge_reference.fat_sat_g}
             dgeCoverage={nb.dge_coverage.fat_sat_g}
           />
@@ -120,7 +120,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
             label="Kohlenhydrate"
             value={nb.per_100g_carbohydrate_g ?? 0}
             max={Math.max(nb.per_100g_protein_g ?? 0, nb.per_100g_fat_g ?? 0, nb.per_100g_carbohydrate_g ?? 0)}
-            color="bg-teal-500"
+            color="bg-success"
             dgeRef={nb.dge_reference.carbohydrate_g}
             dgeCoverage={nb.dge_coverage.carbohydrate_g}
           />
@@ -128,7 +128,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
             label="davon Zucker"
             value={nb.per_100g_sugar_g ?? 0}
             max={nb.per_100g_carbohydrate_g ?? 1}
-            color="bg-teal-300"
+            color="bg-success"
             dgeRef={nb.dge_reference.sugar_g}
             dgeCoverage={nb.dge_coverage.sugar_g}
           />
@@ -136,7 +136,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
             label="Ballaststoffe"
             value={nb.per_100g_fibre_g ?? 0}
             max={nb.dge_reference.fibre_g ?? 30}
-            color="bg-green-500"
+            color="bg-success"
             dgeRef={nb.dge_reference.fibre_g}
             dgeCoverage={nb.dge_coverage.fibre_g}
           />
@@ -144,7 +144,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
             label="Salz"
             value={nb.per_100g_salt_g ?? 0}
             max={nb.dge_reference.salt_g ?? 6}
-            color="bg-blue-500"
+            color="bg-info"
             dgeRef={nb.dge_reference.salt_g}
             dgeCoverage={nb.dge_coverage.salt_g}
           />
@@ -154,7 +154,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
       <MicronutrientSection
         title="Vitamine (pro 100g)"
         icon="medication"
-        accentColor="text-amber-600"
+        accentColor="text-warning"
         nutrients={[
           { label: 'Vitamin C', value: nb.per_100g_vitamin_c_mg, unit: 'mg', dgeKey: 'vitamin_c_mg', per100g: true },
         ]}

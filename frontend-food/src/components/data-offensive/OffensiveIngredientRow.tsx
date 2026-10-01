@@ -44,7 +44,7 @@ function NumberCell({ label, value, flagged, suggestion, disabled, onCommit }: N
 
   return (
     <label className="flex flex-col gap-0.5 min-w-0">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{label}</span>
+      <span className="text-caption uppercase tracking-wide text-muted-foreground truncate">{label}</span>
       <input
         inputMode="decimal"
         value={draft}
@@ -56,7 +56,7 @@ function NumberCell({ label, value, flagged, suggestion, disabled, onCommit }: N
           if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
         }}
         className={cn(
-          'h-8 w-full rounded-md border bg-background px-1.5 text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'h-8 w-full rounded-lg border bg-background px-1.5 text-body tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           flagged && 'border-destructive bg-destructive/5',
           value === null && 'border-dashed'
         )}
@@ -67,7 +67,7 @@ function NumberCell({ label, value, flagged, suggestion, disabled, onCommit }: N
           type="button"
           disabled={disabled}
           onClick={() => onCommit(suggestion)}
-          className="text-[10px] text-primary hover:underline text-left truncate"
+          className="text-caption text-primary hover:underline text-left truncate"
           title="KI-Vorschlag übernehmen"
         >
           KI: {formatNumber(suggestion)}
@@ -128,14 +128,14 @@ export default function OffensiveIngredientRow({
             <Link
               to={`/ingredients/${ingredient.slug}`}
               target="_blank"
-              className="font-semibold text-sm leading-tight hover:text-primary truncate"
+              className="font-semibold text-body leading-tight hover:text-primary truncate"
               title={ingredient.name}
             >
               {ingredient.name}
             </Link>
             <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {STATUS_LABELS[ingredient.status] ?? ingredient.status} · {ingredient.usage_count}× verwendet
             {ingredient.quality_score !== null && ` · Qualität ${ingredient.quality_score}`}
           </p>
@@ -144,7 +144,7 @@ export default function OffensiveIngredientRow({
               type="button"
               disabled={busy}
               onClick={() => onPatch({ name: ingredient.suggested_name ?? undefined })}
-              className="block text-left text-xs text-primary hover:underline"
+              className="block text-left text-caption text-primary hover:underline"
             >
               Umbenennen in „{ingredient.suggested_name}“
             </button>
@@ -154,14 +154,14 @@ export default function OffensiveIngredientRow({
               type="button"
               disabled={busy}
               onClick={() => ingredient.duplicate_of_id !== null && onMergeInto(ingredient.duplicate_of_id)}
-              className="block text-left text-xs text-primary hover:underline"
+              className="block text-left text-caption text-primary hover:underline"
             >
               In „{ingredient.duplicate_of_name}“ zusammenführen
             </button>
           )}
           <div className="flex flex-wrap gap-1">
             {ingredient.ai_review_verdict && (
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium">
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-caption font-medium">
                 {VERDICT_LABELS[ingredient.ai_review_verdict] ?? ingredient.ai_review_verdict}
               </span>
             )}
@@ -169,7 +169,7 @@ export default function OffensiveIngredientRow({
               <span
                 key={issue}
                 className={cn(
-                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  'rounded-full px-2 py-0.5 text-caption font-medium',
                   CRITICAL_ISSUES.has(issue) ? 'bg-destructive/10 text-destructive' : 'bg-accent/15 text-foreground'
                 )}
               >
@@ -178,12 +178,12 @@ export default function OffensiveIngredientRow({
             ))}
           </div>
           {ingredient.nutrition_issues.length > 0 && (
-            <p className="text-[11px] text-destructive">
+            <p className="text-caption text-destructive">
               {ingredient.nutrition_issues.map((code) => nutritionIssueLabels[code] ?? code).join(' · ')}
             </p>
           )}
           {ingredient.ai_reason && (
-            <p className="text-[11px] text-muted-foreground italic">
+            <p className="text-caption text-muted-foreground italic">
               KI: {ingredient.ai_reason}
               {ingredient.ai_confidence !== null && ` (${Math.round(ingredient.ai_confidence * 100)} %)`}
             </p>
@@ -208,7 +208,7 @@ export default function OffensiveIngredientRow({
       <div className="flex flex-col gap-2 md:w-56 md:shrink-0">
         <div className="grid grid-cols-[1fr_5rem] gap-1.5">
           <label className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="text-caption uppercase tracking-wide text-muted-foreground">
               Warengruppe{ingredient.retail_section_source === 'manual' && ' · manuell'}
             </span>
             <select
@@ -218,7 +218,7 @@ export default function OffensiveIngredientRow({
                 onPatch({ retail_section_id: event.target.value ? Number(event.target.value) : null })
               }
               className={cn(
-                'h-8 w-full rounded-md border bg-background px-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'h-8 w-full rounded-lg border bg-background px-1.5 text-caption focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 ingredient.issues.includes('section_missing') && 'border-destructive'
               )}
             >
@@ -231,7 +231,7 @@ export default function OffensiveIngredientRow({
             </select>
           </label>
           <label className="flex flex-col gap-0.5">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">€/kg</span>
+            <span className="text-caption uppercase tracking-wide text-muted-foreground">€/kg</span>
             <input
               inputMode="decimal"
               value={priceDraft}
@@ -243,7 +243,7 @@ export default function OffensiveIngredientRow({
                 if (next !== ingredient.price_per_kg) onPatch({ price_per_kg: next });
               }}
               className={cn(
-                'h-8 w-full rounded-md border bg-background px-1.5 text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'h-8 w-full rounded-lg border bg-background px-1.5 text-body tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 ingredient.issues.includes('price_missing') && 'border-destructive'
               )}
             />
@@ -252,7 +252,7 @@ export default function OffensiveIngredientRow({
                 type="button"
                 disabled={busy}
                 onClick={() => onPatch({ price_per_kg: ingredient.suggestions.price_per_kg })}
-                className="text-[10px] text-primary hover:underline text-left"
+                className="text-caption text-primary hover:underline text-left"
               >
                 KI: {formatNumber(ingredient.suggestions.price_per_kg, 2)}
               </button>

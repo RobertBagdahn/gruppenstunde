@@ -3,13 +3,14 @@
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from allauth.socialaccount.models import SocialAccount
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import Http404, HttpResponse
 from django.middleware.csrf import get_token
-from ninja import Query, Router, Status
+from ninja import Router, Status
 
 from core.auth.passwords import register_password_user
 from core.auth.providers import configured_providers, provider_name, user_connections
@@ -73,7 +74,12 @@ def password_login(request, payload: PasswordLoginIn):
     """Log in with e-mail and password while the transition period is active."""
     if not settings.AUTH_PASSWORD_LOGIN_ENABLED:
         raise Http404
-    user = authenticate(request, username=payload.email.strip().lower(), password=payload.password)
+    email = payload.email.strip()
+    # Legacy accounts may have a mixed-case username even though their email is
+    # case-insensitive. Resolve the stored username first, then use Django's backend.
+    candidate = User._default_manager.filter(email__iexact=email).first()
+    username = candidate.get_username() if candidate is not None else email
+    user = authenticate(request, username=username, password=payload.password)
     if user is None:
         raise ApiError(400, "invalid_credentials", "E-Mail-Adresse oder Passwort ist falsch.")
     login(request, user)
@@ -146,11 +152,11 @@ def _connection_out(account: SocialAccount) -> SocialConnectionOut:
     email = str(extra.get("email") or extra.get("mail") or extra.get("userPrincipalName") or "")
     return SocialConnectionOut(
         id=account.pk,
-        provider=account.provider,
-        provider_name=provider_name(account.provider),
+        provider=cast(str, account.provider),
+        provider_name=provider_name(cast(str, account.provider)),
         email=email,
-        connected_at=account.date_joined,
-        last_login=account.last_login,
+        connected_at=cast(datetime, account.date_joined),
+        last_login=cast(datetime | None, account.last_login),
     )
 
 
@@ -162,9 +168,12 @@ def search_users(
     request,
     q: str = "",
     page: int = 1,
-    page_size: int = Query(default=20, le=50),
+    page_size: int = 20,
 ):
     """Search users by username for collaborator invite flows."""
+    # Validate pagination before auth, like Ninja's former Query(le=50) parameter validation.
+    if page < 1 or page_size < 1 or page_size > 50:
+        raise ApiError(422, "invalid_input", "Die Seitengröße muss zwischen 1 und 50 liegen.")
     require_login(request)
 
     qs = User.objects.order_by("username")
@@ -209,7 +218,7 @@ def export_data(request):
     filename = f"inspi-datenexport-{date_str}.json"
 
     response = HttpResponse(
-        json.dumps(export, ensure_ascii=False, indent=2, default=str),
+        json.dumps(export, ensure_ascii=False, indent=2, default=str).encode("utf-8"),
         content_type="application/json",
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -220,6 +229,6 @@ def export_data(request):
 def delete_account(request, payload: DeleteAccountRequestSchema):
     """Delete (anonymize) the user account (GDPR Art. 17). Requires a login within 15 minutes."""
     user = require_recent_login(request, minutes=15)
-    PrivacyService.anonymize_user(user)
+    PrivacyService.anonymize_user(cast(Any, user))
     logout(request)
     return {"success": True, "message": "Dein Konto wurde gelöscht"}

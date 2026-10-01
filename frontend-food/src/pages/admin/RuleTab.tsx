@@ -15,10 +15,10 @@ const SCOPE_LABELS: Record<string, string> = {
 };
 
 const SCOPE_COLORS: Record<string, string> = {
-  meal_event: 'bg-purple-50 text-purple-700 border-purple-200/60 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/40',
-  day: 'bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/40',
-  meal: 'bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/40',
-  recipe: 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/40',
+  meal_event: 'bg-info-soft text-info border-info-border/60',
+  day: 'bg-info-soft text-info border-info-border/60',
+  meal: 'bg-warning-soft text-warning border-warning-border/60',
+  recipe: 'bg-success-soft text-success border-success-border/60',
 };
 
 export default function RuleTab() {
@@ -62,7 +62,7 @@ export default function RuleTab() {
 
   if (isLoading) {
     return (
-      <div className="py-12 text-center text-sm text-muted-foreground">
+      <div className="py-12 text-center text-body text-muted-foreground">
         Lade Regeln...
       </div>
     );
@@ -70,7 +70,7 @@ export default function RuleTab() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive flex items-center gap-2">
+      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-body text-destructive flex items-center gap-2">
         <AlertCircle className="h-4 w-4" />
         Fehler beim Laden der Regeln.
       </div>
@@ -81,7 +81,7 @@ export default function RuleTab() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold font-display">Regeln</h2>
+          <h2 className="text-section font-semibold font-display">Regeln</h2>
           <Button size="sm" onClick={() => { setEditRule(null); setShowDialog(true); }} className="gap-1.5">
             <Plus className="h-4 w-4" />
             Neue Regel
@@ -89,8 +89,8 @@ export default function RuleTab() {
         </div>
         <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-border bg-card text-center text-muted-foreground">
           <Sparkles className="h-8 w-8 mb-2 text-muted-foreground/60" />
-          <p className="text-sm font-medium">Keine Regeln vorhanden</p>
-          <p className="text-xs text-muted-foreground mt-1">Erstelle deine erste Regel, um Ernährungswerte im Planer zu prüfen.</p>
+          <p className="text-body font-medium">Keine Regeln vorhanden</p>
+          <p className="text-caption text-muted-foreground mt-1">Erstelle deine erste Regel, um Ernährungswerte im Planer zu prüfen.</p>
         </div>
         <RuleEditDialog
           open={showDialog}
@@ -115,7 +115,7 @@ export default function RuleTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold font-display">Regeln ({rules.length})</h2>
+        <h2 className="text-section font-semibold font-display">Regeln ({rules.length})</h2>
         <Button size="sm" onClick={() => { setEditRule(null); setShowDialog(true); }} className="gap-1.5">
           <Plus className="h-4 w-4" />
           Neue Regel
@@ -127,10 +127,10 @@ export default function RuleTab() {
           <div key={scope} className="border border-border bg-card rounded-xl overflow-hidden shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30 border-b border-border">
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${SCOPE_COLORS[scope] || ''}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-caption font-semibold border ${SCOPE_COLORS[scope] || ''}`}>
                 {SCOPE_LABELS[scope] || scope}
               </span>
-              <span className="text-xs text-muted-foreground font-medium">
+              <span className="text-caption text-muted-foreground font-medium">
                 {grouped[scope].length} {grouped[scope].length === 1 ? 'Regel' : 'Regeln'}
               </span>
             </div>
@@ -153,7 +153,7 @@ export default function RuleTab() {
                           rule.is_active ? 'translate-x-3.5' : 'translate-x-0'
                         }`} />
                       </button>
-                      <span className="text-sm font-semibold text-foreground leading-none">{rule.name}</span>
+                      <span className="text-body font-semibold text-foreground leading-none">{rule.name}</span>
                     </div>
 
                     <div className="flex items-center gap-1">

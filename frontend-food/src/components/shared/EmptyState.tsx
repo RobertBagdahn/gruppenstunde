@@ -2,6 +2,7 @@
  * Shared EmptyState — consistent empty state display with optional mascot, icon, and CTA.
  */
 import { Link } from 'react-router-dom';
+import { Icon } from '@/components/ui/icon';
 
 interface EmptyStateProps {
   title: string;
@@ -37,19 +38,17 @@ export default function EmptyState({
         />
       ) : icon ? (
         <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-6">
-          <span className="material-symbols-outlined text-4xl text-muted-foreground">
-            {icon}
-          </span>
+          <Icon name={icon} size={24} className="text-muted-foreground" />
         </div>
       ) : null}
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-      <p className="text-sm text-muted-foreground mt-1 max-w-md">{description}</p>
+      <h2 className="text-section font-semibold text-foreground">{title}</h2>
+      <p className="text-body text-muted-foreground mt-1 max-w-md">{description}</p>
       {ctaLabel && ctaHref && (
         <Link
           to={ctaHref}
-          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-body font-medium hover:bg-primary/90 transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <Icon name="add" size={20} />
           {ctaLabel}
         </Link>
       )}
@@ -57,9 +56,9 @@ export default function EmptyState({
         <button
           type="button"
           onClick={onCtaClick}
-          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-body font-medium hover:bg-primary/90 transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">add</span>
+          <Icon name="add" size={20} />
           {ctaLabel}
         </button>
       )}

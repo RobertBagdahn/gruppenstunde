@@ -4,29 +4,6 @@
 
 Definiert ein konsistentes Format für die Anzeige von Gewichtsmengen in Gramm, Milligramm und Kilogramm mit deutscher Zahlenformatierung (Komma als Dezimalzeichen) sowie für Portionsmengen in Bruchteilen.
 ## Requirements
-### Requirement: Gewichtsformatierung mit automatischer Einheitenwahl
-Die zentrale Gewichtsformatierungsfunktion MUST die Stufen mg/g/kg unterstützen und deutsche Zahlenformatierung (Komma als Dezimalzeichen) verwenden. Die Funktion existiert sowohl im Backend (`backend/supply/utils.py`) als auch im Frontend (`frontend-food/src/utils/formatWeight.ts`) und MUST konsistentes Verhalten zeigen.
-
-#### Scenario: Milligramm-Stufe (neu)
-- **WHEN** der Wert in Gramm ist `< 1`
-- **THEN** MUST in Milligramm ausgegeben werden: `0.3g → "300mg"`, `0.05g → "50mg"`
-
-#### Scenario: Gramm-Stufe — kleine Mengen (1–9g)
-- **WHEN** `1 <= grams < 10`
-- **THEN** MUST auf die nächste ganze Zahl gerundet und mit „g" ausgegeben werden: `3.7g → "4g"`
-
-#### Scenario: Gramm-Stufe — mittlere Mengen (10–99g)
-- **WHEN** `10 <= grams < 100`
-- **THEN** MUST auf 5g gerundet ausgegeben werden: `47g → "45g"`
-
-#### Scenario: Gramm-Stufe — große Mengen (100–999g)
-- **WHEN** `100 <= grams < 1000`
-- **THEN** MUST auf 10g gerundet ausgegeben werden: `145g → "150g"`
-
-#### Scenario: Kilogramm-Stufe
-- **WHEN** `grams >= 1000`
-- **THEN** MUST in kg mit genau einer Dezimalstelle ausgegeben werden, Dezimalzeichen ist Komma: `1500g → "1,5 kg"`, `1000g → "1,0 kg"`
-
 ### Requirement: Internal calculations remain exact
 The system SHALL store and compute with exact (unrounded) values. Rounding is applied only at the display layer and MUST NOT affect stored data, API responses, or intermediate calculations.
 
@@ -46,16 +23,46 @@ Portionsmengen (der `quantity`-Wert vor dem Einheitennamen) MUST mit deutschem D
 - **THEN** MUST die Anzeige `"2"` sein (nicht `"2,0"`)
 
 ### Requirement: Konvention „Gramm zuerst, Portion sekundär"
-
-Überall dort, wo eine Gramm-Menge zusammen mit einem abgeleiteten Portionshinweis angezeigt wird, SHALL die Reihenfolge „Gramm zuerst, Portion sekundär" gelten: `"{grams}g · ≈ {count} {portion_name}"`. Diese Konvention gilt sowohl für neue Anzeigeorte (Breakfast Wizard, Essensplan-Editor) als auch für bestehende Anzeigeorte, die zuvor „Portion zuerst" darstellten (z.B. `IngredientDetailPage`).
+Überall dort, wo eine Gramm-Menge zusammen mit einem abgeleiteten Portionshinweis angezeigt wird, SHALL die Reihenfolge „Gramm zuerst, Portion sekundär" gelten: `"{grams} g · ≈ {count} {portion_name}"`. Diese Konvention gilt für alle Anzeigeorte (Buffet- bzw. Frühstücksbaukasten, Essensplan-Editor, Einkaufsliste, `IngredientDetailPage`).
 
 #### Scenario: Vereinheitlichung auf IngredientDetailPage
-
 - **WHEN** `IngredientDetailPage` eine Portion mit `weight_g=285` für eine Zutat mit `name="Stück"` anzeigt
-- **THEN** MUST die Anzeige `"285g · ≈ 1 Stück"` lauten (nicht mehr `"Stück (≈ 285g)"`)
+- **THEN** MUST die Anzeige `"285 g · ≈ 1 Stück"` lauten
 
 #### Scenario: Konsistenz zwischen Essensplan-Editor und Wizard
+- **WHEN** dieselbe Zutat sowohl im Baukasten als auch im Essensplan-Editor mit Gramm-Menge angezeigt wird
+- **THEN** MUST in beiden Kontexten dieselbe Reihenfolge und dasselbe Rundungsverhalten gelten
 
-- **WHEN** dieselbe Zutat sowohl im Breakfast Wizard als auch im Essensplan-Editor mit Gramm-Menge angezeigt wird
-- **THEN** MUST in beiden Kontexten dieselbe „Gramm zuerst, Portion sekundär"-Reihenfolge und dasselbe Rundungsverhalten gelten
+### Requirement: Gewichtsformatierung mit Einheitenwahl und kaufmännischem Runden
+Die zentrale Gewichtsformatierungsfunktion MUST die Stufen mg/g/kg unterstützen und deutsche Zahlenformatierung (Komma als Dezimalzeichen) verwenden. Zwischen Zahl und Einheit MUST ein Leerzeichen stehen. Die Funktion existiert im Frontend (`frontend-food/src/lib/format.ts`, `formatWeight`) und für die PDF-Ausgabe im Backend (`backend/supply/utils.py`, `format_weight`) und MUST in beiden identische Ergebnisse liefern. Gerundet wird kaufmännisch (0,5 rundet auf), nicht mit Bankers-Rounding.
 
+#### Scenario: Milligramm-Stufe
+- **WHEN** der Wert in Gramm ist `< 1`
+- **THEN** MUST in Milligramm ausgegeben werden: `0.3 → "300 mg"`, `0.05 → "50 mg"`
+
+#### Scenario: Gramm-Stufe — kleine Mengen (1–49 g)
+- **WHEN** `1 <= grams < 50`
+- **THEN** MUST auf die nächste ganze Zahl gerundet werden: `3.7 → "4 g"`, `2.5 → "3 g"`, `47 → "47 g"`
+
+#### Scenario: Gramm-Stufe — mittlere Mengen (50–99 g)
+- **WHEN** `50 <= grams < 100`
+- **THEN** MUST auf 5 g gerundet werden: `57 → "55 g"`, `97.5 → "100 g"`
+
+#### Scenario: Gramm-Stufe — große Mengen (100–999 g)
+- **WHEN** `100 <= grams < 1000`
+- **THEN** MUST auf 10 g gerundet werden: `145 → "150 g"`
+
+#### Scenario: Kilogramm-Stufe
+- **WHEN** `grams >= 1000`
+- **THEN** MUST in kg mit genau einer Dezimalstelle ausgegeben werden: `1500 → "1,5 kg"`, `1000 → "1,0 kg"`
+
+#### Scenario: Gleiches Ergebnis in Front- und Backend
+- **WHEN** Frontend und Backend denselben Wert formatieren (Testtabelle mit Grenzwerten 0.5, 2.5, 49.5, 97.5, 999.5)
+- **THEN** MUST die Ausgabe identisch sein
+
+### Requirement: Definierte Portionsgewichte werden nicht gerundet
+Das definierte Gewicht einer Portion („à … g“, Portionslisten, Portionsauswahl) MUST exakt angezeigt werden (`formatExactWeight`, höchstens eine Nachkommastelle, Komma). Gerundet werden nur berechnete Mengen (Anzahl × Portionsgewicht, Summen).
+
+#### Scenario: Portion Nudeln
+- **WHEN** eine Rezeptzeile „1,9 × Portion Nudeln“ mit Portionsgewicht 125 g angezeigt wird
+- **THEN** zeigt die Portionsangabe „à 125 g“ und die berechnete Menge „240 g“

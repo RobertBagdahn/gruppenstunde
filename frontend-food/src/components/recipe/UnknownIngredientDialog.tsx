@@ -67,30 +67,30 @@ export function UnknownIngredientDialog({
         </DialogHeader>
 
         <div className="space-y-2 py-4">
-          {isLoading && <p className="text-sm text-muted-foreground">Suche...</p>}
+          {isLoading && <p className="text-body text-muted-foreground">Suche...</p>}
           {suggestions && suggestions.length > 0 ? (
             suggestions.map((s) => (
               <button
                 key={s.id}
-                className="flex w-full items-center justify-between rounded-md border p-3 text-left hover:bg-accent transition-colors"
+                className="flex w-full items-center justify-between rounded-lg border p-3 text-left hover:bg-accent transition-colors"
                 onClick={() => onSelect(s.id, s.name)}
               >
                 <div>
                   <span className="font-medium">{s.name}</span>
                   {s.matched_via && (
-                    <span className="ml-2 text-xs text-muted-foreground">
+                    <span className="ml-2 text-caption text-muted-foreground">
                       (auch: {s.matched_via})
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-caption text-muted-foreground">
                   {Math.round(s.similarity * 100)}%
                 </span>
               </button>
             ))
           ) : (
             !isLoading && (
-              <p className="text-sm text-muted-foreground">Keine ähnlichen Zutaten gefunden.</p>
+              <p className="text-body text-muted-foreground">Keine ähnlichen Zutaten gefunden.</p>
             )
           )}
         </div>

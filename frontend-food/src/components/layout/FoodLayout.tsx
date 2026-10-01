@@ -9,6 +9,7 @@ import {
   TOOL_MEAL_PLAN,
   TOOL_SHOPPING_LISTS,
 } from '@/lib/toolColors';
+import { Icon } from '@/components/ui/icon';
 
 const navItems = [
   { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label },
@@ -18,10 +19,10 @@ const navItems = [
 ];
 
 const bottomNavItems = [
-  { to: '/', icon: 'home', filledIcon: 'home', label: 'Start' },
-  { to: '/recipes', icon: 'menu_book', filledIcon: 'menu_book', label: 'Rezepte' },
-  { to: '/meal-plans/app', icon: 'restaurant_menu', filledIcon: 'restaurant_menu', label: 'Essensplan' },
-  { to: '/shopping-lists', icon: 'shopping_cart', filledIcon: 'shopping_cart', label: 'Einkaufen' },
+  { to: '/', icon: 'home', label: 'Start' },
+  { to: '/recipes', icon: 'menu_book', label: 'Rezepte' },
+  { to: '/meal-plans/app', icon: 'restaurant_menu', label: 'Essensplan' },
+  { to: '/shopping-lists', icon: 'shopping_cart', label: 'Einkaufen' },
 ];
 
 export default function FoodLayout() {
@@ -52,7 +53,7 @@ export default function FoodLayout() {
               alt="Inspi Food"
               className="h-9 w-auto transition-transform group-hover:scale-110 group-hover:rotate-3"
             />
-            <span className="text-xl font-extrabold tracking-tight text-foreground">
+            <span className="text-section font-extrabold tracking-tight text-foreground">
               Inspi <span className="text-primary">Food</span>
             </span>
           </Link>
@@ -64,18 +65,13 @@ export default function FoodLayout() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  'flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all',
+                  'flex items-center gap-2 px-3.5 py-2 rounded-xl text-body font-semibold transition-all',
                   isActive(item.to)
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
               >
-                <span
-                  className="material-symbols-outlined text-[20px]"
-                  style={isActive(item.to) ? { fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" } : undefined}
-                >
-                  {item.icon}
-                </span>
+                <Icon name={item.icon} size={20} />
                 {item.label}
               </Link>
             ))}
@@ -109,13 +105,8 @@ export default function FoodLayout() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <span
-                className="material-symbols-outlined text-[24px]"
-                style={isActive(item.to, item.to === '/') ? { fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" } : undefined}
-              >
-                {isActive(item.to, item.to === '/') && item.filledIcon ? item.filledIcon : item.icon}
-              </span>
-              <span className={cn('text-[10px] font-medium leading-none', isActive(item.to, item.to === '/') && 'font-bold')}>
+              <Icon name={item.icon} size={24} />
+              <span className={cn('text-caption font-medium leading-none', isActive(item.to, item.to === '/') && 'font-bold')}>
                 {item.label}
               </span>
             </Link>

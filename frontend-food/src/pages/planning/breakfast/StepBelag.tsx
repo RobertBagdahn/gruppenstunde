@@ -68,8 +68,8 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
     <div className="space-y-6">
       {/* Intensität */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="font-display font-semibold text-base">Belag-Intensität</h3>
-        <p className="text-xs text-muted-foreground">
+        <h3 className="font-display font-semibold text-emphasis">Belag-Intensität</h3>
+        <p className="text-caption text-muted-foreground">
           Wie viel Belag pro Person?
         </p>
         <div className="flex gap-2">
@@ -78,7 +78,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
               key={level}
               type="button"
               onClick={() => setGlobalIntensity(level)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+              className={`flex-1 py-2 px-3 rounded-lg text-body font-medium border transition-colors ${
                 state.globalIntensity === level
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'border-border hover:bg-muted text-foreground'
@@ -88,7 +88,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           Gesamt Belag: <span className="font-medium text-foreground">{Math.round(toppingKcal)} kcal</span>/Person
         </p>
       </div>
@@ -97,7 +97,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
       {activeToppings.length >= 4 && (
         <div className="flex items-start gap-2 bg-muted border border-border rounded-xl px-4 py-3">
           <AlertTriangle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Bei {activeToppings.length} Sorten entstehen mehr Reste. Lieber 2–3 Sorten wählen.
           </p>
         </div>
@@ -107,16 +107,16 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
       {state.toppings.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-base">Sortenverteilung</h3>
+            <h3 className="font-display font-semibold text-emphasis">Sortenverteilung</h3>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => wiz.openCreateModal('ingredient', 'breakfast-topping')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
               >
                 + Neues Belag erstellen
               </button>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-caption text-muted-foreground">
                 {Math.round(toppingKcal)} kcal/Person
               </span>
             </div>

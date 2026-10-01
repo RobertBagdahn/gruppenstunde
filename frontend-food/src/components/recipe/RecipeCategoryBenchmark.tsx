@@ -1,4 +1,5 @@
 import { RECIPE_TYPE_OPTIONS, type RecipeTypeStats } from '@/schemas/recipe';
+import { formatNumber } from '@/lib/format';
 
 interface MetricConfig {
   label: string;
@@ -70,7 +71,7 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
     : 50;
 
   const formatVal = (v: number) =>
-    metric === 'price' ? `${v.toFixed(2)} ${cfg.unit}` : `${Math.round(v)} ${cfg.unit}`;
+    metric === 'price' ? `${formatNumber(v, { maxDecimals: 2 })} ${cfg.unit}` : `${Math.round(v)} ${cfg.unit}`;
 
   const typeLabel = getTypeLabel(stats.recipe_type);
   const isBelowAvg = currentValue <= avg;
@@ -81,14 +82,14 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
 
   return (
     <div className="bg-card rounded-xl border p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-muted-foreground">
+      <h3 className="text-body font-semibold text-muted-foreground">
         Kategorievergleich: {typeLabel}
-        <span className="font-normal ml-1.5 text-xs text-muted-foreground">
+        <span className="font-normal ml-1.5 text-caption text-muted-foreground">
           ({stats.count} Rezepte)
         </span>
       </h3>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-caption text-muted-foreground">
         <span>{formatVal(effectiveMin)}</span>
         {median != null && (
           <span className="hidden sm:inline">Median {formatVal(median)}</span>
@@ -111,7 +112,7 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
         />
       </div>
 
-      <p className="text-xs text-muted-foreground text-center">
+      <p className="text-caption text-muted-foreground text-center">
         <span className="font-semibold text-foreground">{label}</span>
         {' '}als geschätzt {percentile}% der {typeLabel}-Rezepte
       </p>

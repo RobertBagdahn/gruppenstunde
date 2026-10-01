@@ -74,7 +74,7 @@ export default function AiFeedbackTab() {
             else next.delete('view');
             return next;
           })}
-          className={`px-3 py-1.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+          className={`px-3 py-1.5 text-body font-medium whitespace-nowrap border-b-2 transition-colors ${
             activeView === view ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >

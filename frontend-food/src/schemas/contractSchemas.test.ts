@@ -6,7 +6,15 @@ import {
   RecipeMaterialSchema,
   AiMaterialSuggestionsSchema,
 } from './recipe';
-import { PortionOptionSchema, ShoppingItemSourceSchema, MealPlanCostSummarySchema } from './mealPlan';
+import {
+  PortionOptionSchema,
+  ShoppingItemSourceSchema,
+  ShoppingPieceEquivalentSchema,
+  ShoppingPackageOptionSchema,
+  MealPlanCostSummarySchema,
+  PlanCheckAlertSchema,
+  MealPlanDetailSchema,
+} from './mealPlan';
 import { IngredientDetailSchema, StandardMeasureSchema } from './supply';
 import {
   PriceApplyRequestSchema,
@@ -25,10 +33,43 @@ describe('food API contracts', () => {
   it('accepts ingredient shopping sources and applies numeric defaults', () => {
     const result = ShoppingItemSourceSchema.parse({ ingredient_id: 7 });
     expect(result).toMatchObject({ ingredient_id: 7, recipe_id: null, quantity_g: 0 });
-    expect(PortionOptionSchema.parse({ name: 'Packung', display: '500 g', is_default: false })).toMatchObject({
+    // No `display` field — the backend sends structured numeric/name fields
+    // only, and the frontend composes the display string itself.
+    expect(PortionOptionSchema.parse({ name: 'Packung', is_default: false })).toMatchObject({
       weight_g: 0,
       count: 0,
     });
+  });
+
+  it('parses structured piece-equivalent and package-option shopping fields', () => {
+    expect(ShoppingPieceEquivalentSchema.parse({ count: 2.5, portion_name: 'Scheiben' })).toEqual({
+      count: 2.5,
+      portion_name: 'Scheiben',
+    });
+    expect(
+      ShoppingPackageOptionSchema.parse({ count: 2, package_name: 'Packung', weight_g: 500 }),
+    ).toEqual({ count: 2, package_name: 'Packung', weight_g: 500 });
+  });
+
+  it('accepts the extended plan-check alert types added for meal integrity', () => {
+    for (const type of ['recipe_type_mismatch', 'missing_quantity', 'meal_outside_range', 'empty_day']) {
+      expect(
+        PlanCheckAlertSchema.parse({
+          id: 'alert-1',
+          type,
+          severity: 'warning',
+          title: 'Titel',
+          description: 'Beschreibung',
+        }).type,
+      ).toBe(type);
+    }
+  });
+
+  it('defaults ref_meals to an empty list on meal plan detail', () => {
+    const parsed = MealPlanDetailSchema.parse({
+      ...MEAL_PLAN_DETAIL_BASE,
+    });
+    expect(parsed.ref_meals).toEqual([]);
   });
 
   it('parses the standard-measure catalog with backend-matching defaults', () => {
@@ -180,6 +221,30 @@ describe('food API contracts', () => {
     expect(recipe.price_coverage?.affected_items[0]?.ingredient_name).toBe('Zwiebel');
   });
 });
+
+const MEAL_PLAN_DETAIL_BASE = {
+  id: 1,
+  name: 'Fixture-Plan',
+  slug: 'fixture-plan',
+  description: '',
+  norm_portions: 10,
+  reserve_factor: 1.1,
+  budget_per_person_per_day: null,
+  event_id: null,
+  event_name: '',
+  start_datetime: null,
+  end_datetime: null,
+  created_by_id: 1,
+  owner_id: 1,
+  owner_name: 'robert',
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+  day_part_factors: {},
+  meal_default_times: {},
+  meals: [],
+  can_edit: true,
+  can_delete: true,
+};
 
 const RECIPE_DETAIL_BASE = {
   id: 1,

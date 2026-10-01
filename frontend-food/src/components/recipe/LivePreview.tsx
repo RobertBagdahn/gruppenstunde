@@ -66,22 +66,22 @@ export default function LivePreview({
     >
       <div className="flex items-center gap-2 mb-2">
         <Eye size={16} className="text-muted-foreground" />
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <h4 className="text-caption font-semibold text-muted-foreground uppercase tracking-wide">
           {title}
         </h4>
         {hasUnresolvedPlaceholders && (
-          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full ml-auto">
+          <span className="text-caption bg-warning-soft text-warning px-2 py-1 rounded-full ml-auto">
             Unaufgelöste Platzhalter
           </span>
         )}
       </div>
 
-      <div className="text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">
+      <div className="text-body leading-relaxed text-foreground whitespace-pre-wrap break-words">
         {resolvedText}
       </div>
 
       {!instruction && (
-        <p className="text-xs text-muted-foreground italic">
+        <p className="text-caption text-muted-foreground italic">
           Gib eine Anweisung ein, um eine Vorschau zu sehen
         </p>
       )}

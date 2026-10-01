@@ -15,6 +15,7 @@ import { useAiAccess } from '@/hooks/useAiAccess';
 import { useImproveText } from '@/api/ai';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { toast } from 'sonner';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,7 +117,7 @@ export default function InlineEditor(props: InlineEditorProps) {
           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary"
           title={`${label} bearbeiten`}
         >
-          <span className="material-symbols-outlined text-[18px]">edit</span>
+          <Icon name="edit" size={20} />
         </button>
       )}
 
@@ -129,13 +130,13 @@ export default function InlineEditor(props: InlineEditorProps) {
         {isOpen && (
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">{label} bearbeiten</h3>
+              <h3 className="text-section font-semibold">{label} bearbeiten</h3>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="p-1 rounded-lg hover:bg-muted"
               >
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <Icon name="close" size={20} />
               </button>
             </div>
 
@@ -145,7 +146,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                 type="text"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             )}
 
@@ -154,7 +155,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             )}
 
@@ -170,7 +171,7 @@ export default function InlineEditor(props: InlineEditorProps) {
               <select
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body"
               >
                 <option value="">— Wählen —</option>
                 {props.options.map((o) => (
@@ -192,7 +193,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                     title={ai.hint || undefined}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-sm"
                   >
-                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                    <Icon name="auto_awesome" size={16} />
                     {improveText.isPending ? 'Verbessert...' : 'KI-Vorschlag'}
                   </button>
                 )}
@@ -202,7 +203,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 rounded-lg border text-sm"
+                  className="px-4 py-2 rounded-lg border text-body"
                 >
                   Abbrechen
                 </button>
@@ -210,7 +211,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {isSaving ? (
                     <>
@@ -219,7 +220,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      <Icon name="save" size={16} />
                       Speichern
                     </>
                   )}

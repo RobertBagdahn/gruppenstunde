@@ -1,5 +1,6 @@
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import type { RecipeStep } from '@/schemas/recipeStep';
+import { formatNumber } from '@/lib/format';
 
 interface RecipeStepsReadOnlyProps {
   steps: RecipeStep[];
@@ -11,13 +12,13 @@ function formatQuantity(value: number): string {
   if (Number.isInteger(rounded)) {
     return String(rounded);
   }
-  return rounded.toFixed(1).replace('.', ',');
+  return formatNumber(rounded, { maxDecimals: 1 }).replace('.', ',');
 }
 
 export default function RecipeStepsReadOnly({ steps, scale = 1 }: RecipeStepsReadOnlyProps) {
   if (steps.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Keine Zubereitungsschritte vorhanden.
       </p>
     );
@@ -32,16 +33,16 @@ export default function RecipeStepsReadOnly({ steps, scale = 1 }: RecipeStepsRea
         return (
           <li key={step.id} className="space-y-2">
             {showSection && (
-              <h4 className="text-sm font-semibold text-blue-700 pt-1">{step.section}</h4>
+              <h4 className="text-body font-semibold text-info pt-1">{step.section}</h4>
             )}
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-info-soft text-info text-caption font-semibold">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1 space-y-1">
                 <MarkdownRenderer content={step.instruction} />
                 {step.duration_minutes != null && step.duration_minutes > 0 && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     ⏱ ca. {step.duration_minutes} min
                   </p>
                 )}
@@ -54,7 +55,7 @@ export default function RecipeStepsReadOnly({ steps, scale = 1 }: RecipeStepsRea
                       return (
                         <li
                           key={ingredient.id}
-                          className="rounded-full bg-muted px-2.5 py-1 text-xs"
+                          className="rounded-full bg-muted px-2.5 py-1 text-caption"
                         >
                           {[quantity, unit].filter(Boolean).join(' ')}{' '}
                           {ingredient.ingredient_name ?? ''}

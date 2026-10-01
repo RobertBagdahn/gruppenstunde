@@ -19,6 +19,8 @@ import {
 } from 'recharts';
 import { useIngredientDistributions } from '@/api/supplies';
 import type { DistributionBucket, DistributionStats } from '@/schemas/supply';
+import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Konfiguration der angezeigten Felder
@@ -36,7 +38,7 @@ const BENCHMARK_FIELDS: FieldConfig[] = [
     label: 'Preis',
     unit: '€/kg',
     field: 'price_per_kg',
-    formatValue: (v) => `${v.toFixed(2)} €`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 2 })} €`,
   },
   {
     label: 'Energie',
@@ -48,25 +50,25 @@ const BENCHMARK_FIELDS: FieldConfig[] = [
     label: 'Protein',
     unit: 'g/100g',
     field: 'protein_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
   {
     label: 'Kohlenhydrate',
     unit: 'g/100g',
     field: 'carbohydrate_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
   {
     label: 'Zucker',
     unit: 'g/100g',
     field: 'sugar_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
   {
     label: 'Fett',
     unit: 'g/100g',
     field: 'fat_g',
-    formatValue: (v) => `${v.toFixed(1)} g`,
+    formatValue: (v) => `${formatNumber(v, { maxDecimals: 1 })} g`,
   },
 ];
 
@@ -92,7 +94,7 @@ function IngredientHistogram({
   const nonEmpty = buckets.filter((b) => b.count > 0);
   if (nonEmpty.length === 0 || stats.count < 3) {
     return (
-      <div className="text-xs text-muted-foreground text-center py-6">
+      <div className="text-caption text-muted-foreground text-center py-6">
         Nicht genug Daten für Vergleich
       </div>
     );
@@ -115,17 +117,17 @@ function IngredientHistogram({
 
   return (
     <div>
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+      <p className="text-caption font-semibold text-muted-foreground uppercase tracking-wide mb-1">
         {label}
         <span className="font-normal ml-1 text-muted-foreground/70">
           ({stats.count} Zutaten)
         </span>
       </p>
       {stats.mean != null && (
-        <p className="text-xs text-muted-foreground mb-2">
-          Ø {`${stats.mean.toFixed(2)} ${unit.split('/')[0]}`}
+        <p className="text-caption text-muted-foreground mb-2">
+          Ø {`${formatNumber(stats.mean, { maxDecimals: 2 })} ${unit.split('/')[0]}`}
           {stats.median != null && (
-            <> · Median {`${stats.median.toFixed(2)} ${unit.split('/')[0]}`}</>
+            <> · Median {`${formatNumber(stats.median, { maxDecimals: 2 })} ${unit.split('/')[0]}`}</>
           )}
         </p>
       )}
@@ -206,7 +208,7 @@ function RangeBar({ min, max, value, mean, formatValue }: RangeBarProps) {
           style={{ left: `calc(${pct}% - 6px)` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between text-caption text-muted-foreground">
         <span>{formatValue(min)}</span>
         {mean != null && (
           <span className="hidden sm:inline text-muted-foreground/60">Ø {formatValue(mean)}</span>
@@ -257,10 +259,10 @@ function BenchmarkPanel({
     <div className="bg-card rounded-xl border border-border p-4 space-y-5">
       {/* Feldname + Aktueller Wert */}
       <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <p className="text-caption font-semibold text-muted-foreground uppercase tracking-wide">
           {cfg.label}
         </p>
-        <p className="text-lg font-bold font-display text-foreground">
+        <p className="text-section font-bold font-display text-foreground">
           {cfg.formatValue(currentValue)}
         </p>
       </div>
@@ -268,7 +270,7 @@ function BenchmarkPanel({
       {/* Min/Max Leiste – Global */}
       {hasGlobal && globalStats.p5 != null && globalStats.p95 != null && (
         <div>
-          <p className="text-xs text-muted-foreground mb-1">
+          <p className="text-caption text-muted-foreground mb-1">
             Einordnung global (P5–P95)
           </p>
           <RangeBar
@@ -284,7 +286,7 @@ function BenchmarkPanel({
       {/* Min/Max Leiste – Einkaufsgruppe */}
       {hasSection && sectionStats.p5 != null && sectionStats.p95 != null && (
         <div>
-          <p className="text-xs text-muted-foreground mb-1">
+          <p className="text-caption text-muted-foreground mb-1">
             Einordnung in {retailSectionName ?? 'Kategorie'} (P5–P95)
           </p>
           <RangeBar
@@ -321,7 +323,7 @@ function BenchmarkPanel({
 
       {/* Ladezustand */}
       {(globalDist.isLoading || sectionDist.isLoading) && (
-        <div className="text-xs text-muted-foreground animate-pulse">Lade Statistiken…</div>
+        <div className="text-caption text-muted-foreground animate-pulse">Lade Statistiken…</div>
       )}
     </div>
   );
@@ -369,11 +371,11 @@ export function IngredientBenchmarkSection({ values }: IngredientBenchmarkSectio
 
   return (
     <section className="mb-8">
-      <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2 mb-4">
-        <span className="material-symbols-outlined text-primary">bar_chart</span>
+      <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2 mb-4">
+        <Icon name="bar_chart" size={24} className="text-primary" />
         Einordnung im Vergleich
       </h2>
-      <p className="text-sm text-muted-foreground mb-4">
+      <p className="text-body text-muted-foreground mb-4">
         Wie schneidet diese Zutat im Vergleich zu anderen ab?
         {values.retail_section_name && (
           <> Die gelbe Linie zeigt den Platz in <strong>{values.retail_section_name}</strong> und global.</>

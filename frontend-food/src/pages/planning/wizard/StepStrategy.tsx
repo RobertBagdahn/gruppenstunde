@@ -42,7 +42,7 @@ export default function StepStrategy({
 }: StepStrategyProps) {
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground font-medium">
+      <p className="text-body text-muted-foreground font-medium">
         Wie soll der neue Essensplan befüllt werden?
       </p>
 
@@ -63,8 +63,8 @@ export default function StepStrategy({
                 <Icon className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-display font-bold text-sm text-foreground">{title}</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                <h4 className="font-display font-bold text-body text-foreground">{title}</h4>
+                <p className="text-caption text-muted-foreground mt-0.5">{description}</p>
               </div>
             </div>
           </button>
@@ -73,7 +73,7 @@ export default function StepStrategy({
 
       {state.strategy === 'reference' && (
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
             Vorlage auswählen
           </label>
           <select
@@ -83,7 +83,7 @@ export default function StepStrategy({
               const plan = plans.find((p) => p.id === id);
               onReferencePlanChange(id, plan?.name ?? '');
             }}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           >
             <option value="">Plan auswählen...</option>
             {plans.map((p) => (
@@ -93,7 +93,7 @@ export default function StepStrategy({
             ))}
           </select>
           {state.reference_plan_name && (
-            <p className="text-xs text-muted-foreground mt-2 font-medium">
+            <p className="text-caption text-muted-foreground mt-2 font-medium">
               Vorlage: <span className="text-foreground">{state.reference_plan_name}</span>
             </p>
           )}

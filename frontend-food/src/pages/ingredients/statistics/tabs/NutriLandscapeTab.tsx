@@ -1,6 +1,7 @@
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIngredientScores } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
+import { formatNumber } from '@/lib/format';
 
 const NUTRI_COLORS: Record<number, { bg: string; label: string }> = {
   1: { bg: 'bg-nutri-a', label: 'A' },
@@ -17,7 +18,7 @@ export default function NutriLandscapeTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Verteilung der Nutri-Score-Klassen (A–E) über alle verifizierten Zutaten.
       </p>
       <TabFilters showRetailSection />
@@ -28,26 +29,26 @@ export default function NutriLandscapeTab() {
           <div className="flex flex-wrap gap-3">
             {data.classes.map((cls) => (
               <div key={cls.class_value} className="flex-1 min-w-[100px] rounded-xl border border-border bg-card p-4 text-center">
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-lg font-bold text-white mb-2 ${NUTRI_COLORS[cls.class_value]?.bg ?? 'bg-muted'}`}>
+                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-section font-bold text-white mb-2 ${NUTRI_COLORS[cls.class_value]?.bg ?? 'bg-muted'}`}>
                   {cls.class_label}
                 </div>
-                <p className="text-2xl font-bold font-display">{cls.count}</p>
-                <p className="text-xs text-muted-foreground">{cls.percentage}%</p>
+                <p className="text-title font-bold font-display">{cls.count}</p>
+                <p className="text-caption text-muted-foreground">{cls.percentage}%</p>
               </div>
             ))}
           </div>
 
           {data.classes.map((cls) => (
             <div key={cls.class_value} className="space-y-2">
-              <h4 className="text-sm font-semibold">
+              <h4 className="text-body font-semibold">
                 Nutri-Score {cls.class_label} – Top-3 (nach Energie)
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {cls.top.map((item) => (
                   <Link key={item.id} to={`/ingredients/${item.slug}`}
-                    className="rounded-lg border border-border bg-card p-3 hover:bg-muted/30 transition-colors">
-                    <p className="text-sm font-medium text-primary">{item.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.value?.toFixed(0) ?? '–'} kcal</p>
+                    className="rounded-xl border border-border bg-card p-3 hover:bg-muted/30 transition-colors">
+                    <p className="text-body font-medium text-primary">{item.name}</p>
+                    <p className="text-caption text-muted-foreground mt-0.5">{formatNumber(item.value, { maxDecimals: 0 }) ?? '–'} kcal</p>
                   </Link>
                 ))}
               </div>

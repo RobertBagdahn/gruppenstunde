@@ -106,7 +106,7 @@ class TestRecipePdfServingScaling:
         recipe = make_recipe(portions=1)
         RecipeItem.objects.create(recipe=recipe, portion=None, quantity=200)
         export = RecipePdfExport.build(recipe, servings=4)
-        assert any(row["display"] == "800g" for row in export.ingredients)
+        assert any(row["display"] == "800 g" for row in export.ingredients)
 
     @pytest.mark.django_db
     def test_named_portion_display_includes_gram_value(self):
@@ -123,7 +123,7 @@ class TestRecipePdfServingScaling:
         recipe = make_recipe(portions=1)
         make_recipe_item(recipe=recipe, portion=portion, quantity=2)
         export = RecipePdfExport.build(recipe, servings=2)
-        assert any("4 kleine Zwiebeln (240g)" in row["display"] for row in export.ingredients)
+        assert any("4 kleine Zwiebeln (240 g)" in row["display"] for row in export.ingredients)
 
     @pytest.mark.django_db
     def test_nutrition_per_portion_uses_target_servings(self):

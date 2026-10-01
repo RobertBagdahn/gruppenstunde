@@ -10,7 +10,7 @@ export default function EnergyDensityTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Die kalorienreichsten und kalorienärmsten verifizierten Zutaten pro 100g.
       </p>
       <TabFilters showRetailSection />

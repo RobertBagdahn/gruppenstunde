@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 interface PortionScalerProps {
   /** Current portion count (controlled) */
@@ -45,15 +46,13 @@ export default function PortionScaler({
     <div
       data-testid="recipe-portion-scaler"
       className={cn(
-        'flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-200',
+        'flex items-center gap-3 rounded-xl bg-warning-soft border border-warning-border',
         compact ? 'px-3 py-2' : 'px-4 py-3',
         className,
       )}
     >
-      <span className={cn('material-symbols-outlined text-amber-600', compact ? 'text-lg' : 'text-xl')}>
-        restaurant
-      </span>
-      <span className={cn('font-medium text-amber-800 whitespace-nowrap', compact ? 'text-xs' : 'text-sm')}>
+      <Icon name="restaurant" size={20} className={cn('text-warning', compact ? '' : '')} />
+      <span className={cn('font-medium text-warning whitespace-nowrap', compact ? 'text-caption' : 'text-body')}>
         Portionen
       </span>
 
@@ -64,14 +63,14 @@ export default function PortionScaler({
           disabled={value <= min}
           className={cn(
             'flex items-center justify-center rounded-full',
-            'border border-amber-300 bg-white text-amber-700',
-            'hover:bg-amber-100 active:bg-amber-200 transition-colors',
+            'border border-warning-border bg-white text-warning',
+            'hover:bg-warning-soft active:bg-warning-soft transition-colors',
             'disabled:opacity-40 disabled:cursor-not-allowed',
             compact ? 'w-7 h-7' : 'w-9 h-9',
           )}
           aria-label="Portion verringern"
         >
-          <span className={cn('material-symbols-outlined', compact ? 'text-base' : 'text-lg')}>remove</span>
+          <Icon name="remove" size={16} className={cn(compact ? '' : '')} />
         </button>
 
         <input
@@ -84,11 +83,11 @@ export default function PortionScaler({
           min={min}
           max={max}
           className={cn(
-            'text-center font-semibold text-amber-900',
-            'border border-amber-300 rounded-lg bg-white',
-            'focus:outline-none focus:ring-2 focus:ring-amber-400',
+            'text-center font-semibold text-warning',
+            'border border-warning-border rounded-lg bg-white',
+            'focus:outline-none focus:ring-2 focus:ring-warning',
             '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-            compact ? 'w-12 h-7 text-sm' : 'w-14 h-9 text-lg',
+            compact ? 'w-12 h-7 text-body' : 'w-14 h-9 text-emphasis',
           )}
           aria-label="Portionszahl"
         />
@@ -99,25 +98,25 @@ export default function PortionScaler({
           disabled={value >= max}
           className={cn(
             'flex items-center justify-center rounded-full',
-            'border border-amber-300 bg-white text-amber-700',
-            'hover:bg-amber-100 active:bg-amber-200 transition-colors',
+            'border border-warning-border bg-white text-warning',
+            'hover:bg-warning-soft active:bg-warning-soft transition-colors',
             'disabled:opacity-40 disabled:cursor-not-allowed',
             compact ? 'w-7 h-7' : 'w-9 h-9',
           )}
            aria-label="Portion erhöhen"
         >
-          <span className={cn('material-symbols-outlined', compact ? 'text-base' : 'text-lg')}>add</span>
+          <Icon name="add" size={16} className={cn(compact ? '' : '')} />
         </button>
       </div>
 
       {showFactors && (
-        <div className="flex items-center gap-1.5 border-t border-amber-200 pt-2 mt-2 w-full">
+        <div className="flex items-center gap-1.5 border-t border-warning-border pt-2 mt-2 w-full">
           {[0.5, 1.5, 2].map((factor) => (
             <button
               key={factor}
               type="button"
               onClick={() => updatePortions(Math.round(defaultValue * factor))}
-              className="flex-1 text-xs font-medium py-1 rounded-lg border border-amber-200 bg-white text-amber-700 hover:bg-amber-100 transition-colors"
+              className="flex-1 text-caption font-medium py-1 rounded-lg border border-warning-border bg-white text-warning hover:bg-warning-soft transition-colors"
             >
               {factor.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}×
             </button>

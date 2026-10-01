@@ -24,15 +24,16 @@ import {
 import { Loader2, GitMerge, EyeOff, AlertTriangle, ArrowRight, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
+import { formatNumber, roundToDecimals } from '@/lib/format';
 
 interface DuplicateDetectionListProps {
   type: 'ingredient' | 'recipe';
 }
 
 function similarityColor(similarity: number): string {
-  if (similarity >= 0.97) return 'text-red-600';
-  if (similarity >= 0.92) return 'text-amber-600';
-  if (similarity >= 0.85) return 'text-amber-500';
+  if (similarity >= 0.97) return 'text-danger';
+  if (similarity >= 0.92) return 'text-warning';
+  if (similarity >= 0.85) return 'text-warning';
   return 'text-muted-foreground';
 }
 
@@ -109,10 +110,10 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
       {/* Loading / Error */}
       {isLoading && (
         <div className="flex justify-center py-12">
-          <Loader2 className="animate-spin text-2xl text-muted-foreground" />
+          <Loader2 className="animate-spin text-title text-muted-foreground" />
         </div>
       )}
-      {error && <div className="text-red-500 py-4">Fehler beim Laden: {error.message}</div>}
+      {error && <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>}
 
       {/* Duplicate List */}
       {data && data.items.length > 0 && (
@@ -140,8 +141,8 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
                         {pair.ingredient_b.name}
                       </a>
                     </div>
-                    <span className={cn('text-sm font-semibold', similarityColor(pair.similarity))}>
-                      {(pair.similarity * 100).toFixed(1)}%
+                    <span className={cn('text-body font-semibold', similarityColor(pair.similarity))}>
+                      {formatNumber((pair.similarity * 100), { maxDecimals: 1 })}%
                     </span>
                   </div>
 
@@ -216,12 +217,12 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
 
           {mergePreviewLoading && (
             <div className="flex justify-center py-6">
-              <Loader2 className="animate-spin text-2xl text-muted-foreground" />
+              <Loader2 className="animate-spin text-title text-muted-foreground" />
             </div>
           )}
 
           {mergePreviewError && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 text-sm text-red-800 dark:text-red-300">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-danger-soft border border-danger-border text-body text-danger">
               <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>Fehler beim Laden der Vorschau: {mergePreviewError instanceof Error ? mergePreviewError.message : 'Unbekannter Fehler'}</span>
             </div>
@@ -235,7 +236,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
           )}
 
           {mergePreview && !mergePreviewLoading && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 text-sm text-amber-800 dark:text-amber-300">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning-soft border border-warning-border text-body text-warning">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               Diese Aktion kann nicht rückgängig gemacht werden. Die Quelldaten werden soft-gelöscht.
             </div>
@@ -269,7 +270,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
 
 function IngredientMergePreview({ preview }: { preview: MergePreview }) {
   return (
-    <div className="space-y-3 text-sm">
+    <div className="space-y-3 text-body">
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground">Betroffene Rezept-Zutaten:</span>
         <span className="font-semibold">{preview.affected_recipe_items}</span>
@@ -280,7 +281,7 @@ function IngredientMergePreview({ preview }: { preview: MergePreview }) {
           <span className="text-muted-foreground block mb-1">Aliase der Quelle:</span>
           <div className="flex flex-wrap gap-1">
             {preview.source_aliases.map((a) => (
-              <span key={a} className="rounded-full bg-muted px-2 py-0.5 text-xs">{a}</span>
+              <span key={a} className="rounded-full bg-muted px-2 py-0.5 text-caption">{a}</span>
             ))}
           </div>
         </div>
@@ -288,16 +289,16 @@ function IngredientMergePreview({ preview }: { preview: MergePreview }) {
 
       <div className="border-t border-border pt-2">
         <span className="text-muted-foreground block mb-1">Nährwert-Vergleich:</span>
-        <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="grid grid-cols-2 gap-2 text-caption">
           <div>
             <span className="text-muted-foreground">{preview.source_name}</span>
             <div>Energie: {preview.nutrition_comparison.source.energy_kcal != null ? `${Math.round(preview.nutrition_comparison.source.energy_kcal)}` : '–'} kcal</div>
-            <div>Protein: {preview.nutrition_comparison.source.protein_g != null ? `${parseFloat(preview.nutrition_comparison.source.protein_g.toFixed(1))}` : '–'} g</div>
+            <div>Protein: {preview.nutrition_comparison.source.protein_g != null ? `${roundToDecimals(preview.nutrition_comparison.source.protein_g, 1)}` : '–'} g</div>
           </div>
           <div>
             <span className="text-muted-foreground">{preview.target_name}</span>
             <div>Energie: {preview.nutrition_comparison.target.energy_kcal != null ? `${Math.round(preview.nutrition_comparison.target.energy_kcal)}` : '–'} kcal</div>
-            <div>Protein: {preview.nutrition_comparison.target.protein_g != null ? `${parseFloat(preview.nutrition_comparison.target.protein_g.toFixed(1))}` : '–'} g</div>
+            <div>Protein: {preview.nutrition_comparison.target.protein_g != null ? `${roundToDecimals(preview.nutrition_comparison.target.protein_g, 1)}` : '–'} g</div>
           </div>
         </div>
       </div>
@@ -307,7 +308,7 @@ function IngredientMergePreview({ preview }: { preview: MergePreview }) {
 
 function RecipeMergePreview({ preview }: { preview: RecipeMergePreview }) {
   return (
-    <div className="space-y-3 text-sm">
+    <div className="space-y-3 text-body">
       <p className="text-muted-foreground">
         Das Quell-Rezept <strong>{preview.source_name}</strong> wird soft-gelöscht und ein ContentLink zu{' '}
         <strong>{preview.target_name}</strong> erstellt.

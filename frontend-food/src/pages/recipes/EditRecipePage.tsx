@@ -15,6 +15,7 @@ import {
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 import { toast } from 'sonner';
+import { Icon } from '@/components/ui/icon';
 
 export default function EditRecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -125,9 +126,9 @@ export default function EditRecipePage() {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-muted rounded w-1/3" />
-          <div className="h-40 bg-muted rounded" />
-          <div className="h-40 bg-muted rounded" />
+          <div className="h-8 bg-muted rounded-lg w-1/3" />
+          <div className="h-40 bg-muted rounded-lg" />
+          <div className="h-40 bg-muted rounded-lg" />
         </div>
       </div>
     );
@@ -154,11 +155,11 @@ export default function EditRecipePage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-          <span className="material-symbols-outlined text-[24px]">edit</span>
+          <Icon name="edit" size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Rezept bearbeiten</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-title font-bold">Rezept bearbeiten</h1>
+          <p className="text-body text-muted-foreground">
             Änderungen an deinem Rezept vornehmen
           </p>
         </div>
@@ -167,8 +168,8 @@ export default function EditRecipePage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Recipe Type */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">restaurant</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
+            <Icon name="restaurant" size={20} className="text-primary" />
             Rezeptart
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -183,15 +184,11 @@ export default function EditRecipePage() {
                     : 'border-border hover:border-primary/30 hover:bg-primary/5'
                 }`}
               >
-                <span
-                  className={`material-symbols-outlined text-[24px] ${
+                <Icon name={opt.icon} size={24} className={`${
                     recipeType === opt.value ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {opt.icon}
-                </span>
+                  }`} />
                 <span
-                  className={`font-medium text-xs ${
+                  className={`font-medium text-caption ${
                     recipeType === opt.value ? 'text-primary' : 'text-foreground'
                   }`}
                 >
@@ -204,8 +201,8 @@ export default function EditRecipePage() {
 
         {/* Preparation Method */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">cooking</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
+            <Icon name="cooking" size={20} className="text-primary" />
             Zubereitungsart
           </label>
           <div className="flex flex-wrap gap-2">
@@ -222,7 +219,7 @@ export default function EditRecipePage() {
                 key={opt.value}
                 type="button"
                 onClick={() => setPreparationMethod(opt.value)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                   preparationMethod === opt.value
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background hover:bg-muted'
@@ -237,8 +234,8 @@ export default function EditRecipePage() {
         {/* Equipment */}
         {equipment && equipment.length > 0 && (
           <div className="bg-card rounded-xl border p-5">
-            <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-              <span className="material-symbols-outlined text-primary text-[18px]">skillet</span>
+            <label className="flex items-center gap-1.5 text-body font-medium mb-3">
+              <Icon name="skillet" size={20} className="text-primary" />
               Equipment
             </label>
             <div className="flex flex-wrap gap-2">
@@ -255,7 +252,7 @@ export default function EditRecipePage() {
                           : [...prev, eq.id],
                       );
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                    className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                       isSelected
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background hover:bg-muted'
@@ -271,8 +268,8 @@ export default function EditRecipePage() {
 
         {/* Materials */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">inventory_2</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
+            <Icon name="inventory_2" size={20} className="text-primary" />
             Materialien
           </label>
           <RecipeMaterialsEditor
@@ -288,8 +285,8 @@ export default function EditRecipePage() {
 
         {/* Title */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">title</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-2">
+            <Icon name="title" size={20} className="text-primary" />
             Titel *
           </label>
           <input
@@ -304,8 +301,8 @@ export default function EditRecipePage() {
 
         {/* Summary */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">short_text</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-2">
+            <Icon name="short_text" size={20} className="text-primary" />
             Zusammenfassung
           </label>
           <textarea
@@ -319,8 +316,8 @@ export default function EditRecipePage() {
 
         {/* Description */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">description</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-2">
+            <Icon name="description" size={20} className="text-primary" />
             Beschreibung
           </label>
           <MarkdownEditor
@@ -332,17 +329,17 @@ export default function EditRecipePage() {
 
         {/* Servings + Meta */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">tune</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
+            <Icon name="tune" size={20} className="text-primary" />
             Details
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Schwierigkeit</label>
+              <label className="text-caption text-muted-foreground mb-1 block">Schwierigkeit</label>
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">–</option>
                 {RECIPE_DIFFICULTY_OPTIONS.map((o) => (
@@ -353,11 +350,11 @@ export default function EditRecipePage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Kochzeit</label>
+              <label className="text-caption text-muted-foreground mb-1 block">Kochzeit</label>
               <select
                 value={executionTime}
                 onChange={(e) => setExecutionTime(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">–</option>
                 {RECIPE_EXECUTION_TIME_OPTIONS.map((o) => (
@@ -368,11 +365,11 @@ export default function EditRecipePage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Vorbereitung</label>
+              <label className="text-caption text-muted-foreground mb-1 block">Vorbereitung</label>
               <select
                 value={preparationTime}
                 onChange={(e) => setPreparationTime(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">–</option>
                 {RECIPE_PREPARATION_TIME_OPTIONS.map((o) => (
@@ -387,8 +384,8 @@ export default function EditRecipePage() {
 
         {/* Tags */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-            <span className="material-symbols-outlined text-primary text-[18px]">label</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
+            <Icon name="label" size={20} className="text-primary" />
             Tags
           </label>
           <div className="flex flex-wrap gap-2">
@@ -397,14 +394,14 @@ export default function EditRecipePage() {
                 key={tag.id}
                 type="button"
                 onClick={() => toggleTag(tag.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                   selectedTagIds.includes(tag.id)
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background hover:bg-muted'
                 }`}
               >
                 {tag.icon && (
-                  <span className="material-symbols-outlined text-[14px] mr-1">{tag.icon}</span>
+                  <Icon name={tag.icon} size={16} className="mr-1" />
                 )}
                 {tag.name}
               </button>
@@ -415,8 +412,8 @@ export default function EditRecipePage() {
         {/* Scout Levels */}
         {scoutLevels && (
           <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-            <span className="material-symbols-outlined text-[hsl(var(--chart-3))] text-[18px]">groups</span>
+          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
+            <Icon name="groups" size={20} className="text-info" />
             Stufen
           </label>
           <div className="flex flex-wrap gap-2">
@@ -425,9 +422,9 @@ export default function EditRecipePage() {
                 key={level.id}
                 type="button"
                 onClick={() => toggleScoutLevel(level.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
                   selectedScoutIds.includes(level.id)
-                    ? 'bg-[hsl(var(--chart-3))] text-white border-[hsl(var(--chart-3))]'
+                    ? 'bg-info text-white border-info'
                     : 'bg-background hover:bg-muted'
                 }`}
                 >
@@ -440,20 +437,20 @@ export default function EditRecipePage() {
 
         {/* Admin Controls (Staff Only) */}
         {user?.is_staff && (
-          <div className="bg-card rounded-xl border-2 border-amber-200 bg-amber-50 p-5 shadow-sm">
-            <label className="flex items-center gap-1.5 text-sm font-medium mb-3 text-amber-900">
-              <span className="material-symbols-outlined text-amber-600 text-[18px]">admin_panel_settings</span>
+          <div className="bg-card rounded-xl border-2 border-warning-border bg-warning-soft p-5 shadow-sm">
+            <label className="flex items-center gap-1.5 text-body font-medium mb-3 text-warning">
+              <Icon name="admin_panel_settings" size={20} className="text-warning" />
               Admin-Kontrollen
             </label>
             <div className="space-y-4">
               {/* Status */}
               <div>
-                <label htmlFor="recipe-admin-status" className="text-xs text-amber-800 mb-1 block font-medium">Rezept-Status</label>
+                <label htmlFor="recipe-admin-status" className="text-caption text-warning mb-1 block font-medium">Rezept-Status</label>
                 <select
                   id="recipe-admin-status"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
                 >
                   <option value="">Keine Änderung</option>
                   <option value="draft">Entwurf</option>
@@ -466,20 +463,20 @@ export default function EditRecipePage() {
 
               {/* Source URL */}
               <div>
-                <label htmlFor="recipe-admin-source-url" className="text-xs text-amber-800 mb-1 block font-medium">Quell-URL</label>
+                <label htmlFor="recipe-admin-source-url" className="text-caption text-warning mb-1 block font-medium">Quell-URL</label>
                 <input
                   id="recipe-admin-source-url"
                   type="url"
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
                   placeholder="z.B. https://example.com/recipe"
-                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
                 />
               </div>
 
               {/* Authors (Simplified: comma-separated IDs or user selection) */}
               <div>
-                <label htmlFor="recipe-admin-authors" className="text-xs text-amber-800 mb-1 block font-medium">Autoren / Mitwirkende</label>
+                <label htmlFor="recipe-admin-authors" className="text-caption text-warning mb-1 block font-medium">Autoren / Mitwirkende</label>
                 <input
                   id="recipe-admin-authors"
                   type="text"
@@ -492,9 +489,9 @@ export default function EditRecipePage() {
                       .filter((id) => !isNaN(id));
                     setSelectedAuthorIds(ids);
                   }}
-                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
                 />
-                <p className="text-xs text-amber-700 mt-1">
+                <p className="text-caption text-warning mt-1">
                   {selectedAuthorIds.length > 0
                     ? `${selectedAuthorIds.length} Autor(en) ausgewählt`
                     : 'Keine Autoren'}
@@ -509,7 +506,7 @@ export default function EditRecipePage() {
           <button
             type="button"
             onClick={() => navigate(`/recipes/${slug}`)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border text-body font-medium hover:bg-muted transition-colors"
           >
             <ArrowLeft className="w-4.5 h-4.5" />
             Abbrechen
@@ -517,7 +514,7 @@ export default function EditRecipePage() {
           <button
             type="submit"
             disabled={!title.trim() || updateRecipe.isPending}
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-lg font-semibold hover:bg-primary/90 shadow-md hover:shadow-lg disabled:opacity-50 transition-all"
+            className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-section font-semibold hover:bg-primary/90 shadow-md hover:shadow-lg disabled:opacity-50 transition-all"
           >
             <Save className="w-6 h-6" />
             {updateRecipe.isPending ? 'Wird gespeichert...' : 'Änderungen speichern'}

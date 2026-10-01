@@ -25,6 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Loader2, GitMerge, ArrowRight, ArrowLeftRight, ArrowLeft, AlertTriangle, Search, XCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatNumber } from '@/lib/format';
 
 interface InlineIngredient {
   id: number;
@@ -176,7 +177,7 @@ export default function IngredientMergeDialog({
 
             {searchText.length < 2 && (
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Ähnliche Zutaten (Embedding-basiert):</p>
+                <p className="text-body text-muted-foreground">Ähnliche Zutaten (Embedding-basiert):</p>
                 {similarQuery.isLoading && (
                   <div className="flex justify-center py-4">
                     <Loader2 className="animate-spin text-muted-foreground" />
@@ -190,18 +191,18 @@ export default function IngredientMergeDialog({
                         onClick={() =>
                           handleSelectIngredient({ id: s.id, name: s.name, slug: s.slug })
                         }
-                        className="w-full flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted/50 transition-colors text-left"
+                        className="w-full flex items-center justify-between rounded-xl border border-border bg-card p-3 hover:bg-muted/50 transition-colors text-left"
                       >
                         <span className="font-medium">{s.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {s.similarity_pct.toFixed(0)}%
+                        <span className="text-caption text-muted-foreground">
+                          {formatNumber(s.similarity_pct, { maxDecimals: 0 })}%
                         </span>
                       </button>
                     ))}
                   </div>
                 ) : (
                   !similarQuery.isLoading && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-body text-muted-foreground">
                       Keine ähnlichen Zutaten gefunden. Nutze die Suche.
                     </p>
                   )
@@ -221,7 +222,7 @@ export default function IngredientMergeDialog({
                     <button
                       key={item.id}
                       onClick={() => handleSelectIngredient(item)}
-                      className="w-full flex items-center justify-between rounded-lg border border-border bg-card p-3 hover:bg-muted/50 transition-colors text-left"
+                      className="w-full flex items-center justify-between rounded-xl border border-border bg-card p-3 hover:bg-muted/50 transition-colors text-left"
                     >
                       <span className="font-medium">{item.name}</span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -229,7 +230,7 @@ export default function IngredientMergeDialog({
                   ))
                 ) : (
                   !searchQuery.isLoading && (
-                    <p className="text-sm text-muted-foreground">Keine Ergebnisse</p>
+                    <p className="text-body text-muted-foreground">Keine Ergebnisse</p>
                   )
                 )}
               </div>
@@ -242,12 +243,12 @@ export default function IngredientMergeDialog({
             <div className="flex items-center justify-center gap-3 py-2">
               <div className="text-center">
                 <span className={cn(
-                  'text-sm font-semibold px-3 py-1 rounded-full',
-                  'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300'
+                  'text-body font-semibold px-3 py-1 rounded-full',
+                  'bg-warning-soft text-warning'
                 )}>
                   {sourceIngredient.name}
                 </span>
-                <p className="text-xs text-muted-foreground mt-1">Quelle (wird gelöscht)</p>
+                <p className="text-caption text-muted-foreground mt-1">Quelle (wird gelöscht)</p>
               </div>
               <button
                 onClick={handleSwap}
@@ -257,10 +258,10 @@ export default function IngredientMergeDialog({
                 <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
               </button>
               <div className="text-center">
-                <span className="text-sm font-semibold px-3 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-300">
+                <span className="text-body font-semibold px-3 py-1 rounded-full bg-success-soft text-success">
                   {targetIngredient.name}
                 </span>
-                <p className="text-xs text-muted-foreground mt-1">Ziel (bleibt erhalten)</p>
+                <p className="text-caption text-muted-foreground mt-1">Ziel (bleibt erhalten)</p>
               </div>
             </div>
 
@@ -271,13 +272,13 @@ export default function IngredientMergeDialog({
             )}
 
             {mergePreviewQuery.isError && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 text-sm text-red-800 dark:text-red-300">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-danger-soft border border-danger-border text-body text-danger">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                 <span className="flex-1">Fehler beim Laden der Vorschau: {mergePreviewQuery.error instanceof Error ? mergePreviewQuery.error.message : 'Unbekannter Fehler'}</span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-auto py-0 px-2 text-red-800 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/40"
+                  className="h-auto py-0 px-2 text-danger hover:bg-danger-soft"
                   onClick={() => mergePreviewQuery.refetch()}
                 >
                   <RefreshCw className="h-3.5 w-3.5 mr-1" />
@@ -287,7 +288,7 @@ export default function IngredientMergeDialog({
             )}
 
             {preview && (
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-body">
                 <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
                   <span className="text-muted-foreground">Betroffene Rezepte:</span>
                   <span className="font-semibold">{preview.affected_recipe_items}</span>
@@ -296,14 +297,14 @@ export default function IngredientMergeDialog({
             )}
 
             {needsWarning && (
-              <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-4">
+              <div className="space-y-3 rounded-lg border border-warning-border bg-warning-soft p-4">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                  <p className="text-body text-warning">
                     Diese Zutat wird in über 20 Rezepten verwendet. Das Zusammenführen kann viele Rezepte beeinflussen.
                   </p>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300 cursor-pointer">
+                <label className="flex items-center gap-2 text-body text-warning cursor-pointer">
                   <Checkbox
                     checked={confirmed}
                     onCheckedChange={(v) => setConfirmed(v === true)}
@@ -313,7 +314,7 @@ export default function IngredientMergeDialog({
               </div>
             )}
 
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 text-sm text-amber-800 dark:text-amber-300">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-warning-soft border border-warning-border text-body text-warning">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               Diese Aktion kann nicht rückgängig gemacht werden. Die Quelldaten werden soft-gelöscht.
             </div>

@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Icon } from '@/components/ui/icon';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -56,11 +57,11 @@ export default function ConfirmDialog({
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className={`material-symbols-outlined ${iconColor}`}>{iconName}</span>
+          <DialogTitle className="flex items-center gap-2 text-emphasis">
+            <Icon name={iconName} size={24} className={iconColor} />
             {title}
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-body text-muted-foreground">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -69,7 +70,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition disabled:opacity-50"
+            className="px-4 py-2 border rounded-lg text-body hover:bg-muted transition disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -77,12 +78,10 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`px-4 py-2 rounded-md text-sm transition disabled:opacity-50 flex items-center gap-1.5 ${confirmButtonClass}`}
+            className={`px-4 py-2 rounded-lg text-body transition disabled:opacity-50 flex items-center gap-1.5 ${confirmButtonClass}`}
           >
             {loading && (
-              <span className="material-symbols-outlined text-lg animate-spin">
-                progress_activity
-              </span>
+              <Icon name="progress_activity" size={20} className="animate-spin" />
             )}
             {confirmLabel}
           </button>

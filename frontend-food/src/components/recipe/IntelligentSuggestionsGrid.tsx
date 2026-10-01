@@ -4,6 +4,7 @@ import type { IntelligentSuggestion } from '@/schemas/mealPlan';
 import RecipeBadge from './RecipeBadge';
 import RecipeThumbnail from './RecipeThumbnail';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
+import { formatNumber } from '@/lib/format';
 
 interface IntelligentSuggestionsGridProps {
   planId: number;
@@ -16,17 +17,17 @@ interface IntelligentSuggestionsGridProps {
 const CATEGORY_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
   top_picks: {
     label: 'Top-Auswahl',
-    icon: <Sparkles className="w-4 h-4 text-yellow-500" />,
+    icon: <Sparkles className="w-4 h-4 text-warning" />,
     description: 'Die besten Rezepte für diese Mahlzeit',
   },
   variety: {
     label: 'Abwechslung',
-    icon: <Lightbulb className="w-4 h-4 text-blue-500" />,
+    icon: <Lightbulb className="w-4 h-4 text-info" />,
     description: 'Etwas ganz anderes',
   },
   discovery: {
     label: 'Entdeckungen',
-    icon: <Compass className="w-4 h-4 text-emerald-500" />,
+    icon: <Compass className="w-4 h-4 text-success" />,
     description: 'Geheimtipps zum Ausprobieren',
   },
 };
@@ -57,15 +58,15 @@ function SuggestionCard({
         </div>
       </div>
       <div className="p-2.5 flex flex-col gap-1 flex-1">
-        <span className="text-sm font-medium leading-tight line-clamp-2">{suggestion.title}</span>
+        <span className="text-body font-medium leading-tight line-clamp-2">{suggestion.title}</span>
         {suggestion.reason_text && (
-          <span className="text-[10px] text-muted-foreground leading-tight line-clamp-1">
+          <span className="text-caption text-muted-foreground leading-tight line-clamp-1">
             {suggestion.reason_text}
           </span>
         )}
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-auto pt-1">
+        <div className="flex items-center gap-1.5 text-caption text-muted-foreground mt-auto pt-1">
           {suggestion.price_per_serving != null && (
-            <span>{suggestion.price_per_serving.toFixed(2).replace('.', ',')} €/P.</span>
+            <span>{formatNumber(suggestion.price_per_serving, { maxDecimals: 2 }).replace('.', ',')} €/P.</span>
           )}
           <span>{suggestion.usage_count}×</span>
         </div>
@@ -79,14 +80,14 @@ function SkeletonGrid() {
     <div className="space-y-4">
       {['top_picks', 'variety', 'discovery'].map((cat) => (
         <div key={cat}>
-          <div className="h-4 w-24 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-24 bg-muted rounded-lg animate-pulse mb-2" />
           <div className="grid grid-cols-3 gap-2">
             {[1, 2, 3].map((i) => (
               <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="aspect-[4/3] bg-muted animate-pulse" />
                 <div className="p-2.5 space-y-1.5">
-                  <div className="h-3 bg-muted rounded animate-pulse w-full" />
-                  <div className="h-2 bg-muted rounded animate-pulse w-2/3" />
+                  <div className="h-3 bg-muted rounded-lg animate-pulse w-full" />
+                  <div className="h-2 bg-muted rounded-lg animate-pulse w-2/3" />
                 </div>
               </div>
             ))}
@@ -114,7 +115,7 @@ export default function IntelligentSuggestionsGrid({
     return (
       <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
         <AlertCircle className="w-8 h-8 mb-2" />
-        <p className="text-sm">Vorschläge konnten nicht geladen werden</p>
+        <p className="text-body">Vorschläge konnten nicht geladen werden</p>
       </div>
     );
   }
@@ -127,8 +128,8 @@ export default function IntelligentSuggestionsGrid({
     return (
       <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
         <AlertCircle className="w-8 h-8 mb-2" />
-        <p className="text-sm">Keine passenden Rezepte gefunden</p>
-        <p className="text-xs mt-1">Versuche es mit der Suche oder ändere die Filter</p>
+        <p className="text-body">Keine passenden Rezepte gefunden</p>
+        <p className="text-caption mt-1">Versuche es mit der Suche oder ändere die Filter</p>
       </div>
     );
   }
@@ -136,7 +137,7 @@ export default function IntelligentSuggestionsGrid({
   return (
     <div className="space-y-4">
       {data.ai_enhanced && (
-        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
+        <div className="flex items-center justify-between gap-3 text-caption text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
           <div className="flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
             KI-gestützte Vorschläge
@@ -154,10 +155,10 @@ export default function IntelligentSuggestionsGrid({
           <div key={category}>
             <div className="flex items-center gap-1.5 mb-2 px-0.5">
               {catInfo.icon}
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <span className="text-caption font-semibold text-muted-foreground uppercase tracking-wide">
                 {catInfo.label}
               </span>
-              <span className="text-[10px] text-muted-foreground/60">— {catInfo.description}</span>
+              <span className="text-caption text-muted-foreground/60">— {catInfo.description}</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {items.map((suggestion) => (

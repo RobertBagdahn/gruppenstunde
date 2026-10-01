@@ -131,6 +131,13 @@ class TestFormatNaturalPortion(TestCase):
         result = _format_natural_portion(3, "Stück")
         self.assertEqual(result, "ca. 3 Stück")
 
+    def test_fractional_count_uses_german_comma(self):
+        """PDF-Ausgabe (der einzige verbleibende Aufrufer) MUSS deutsches
+        Komma verwenden, nicht den Punkt aus Pythons float-Repr."""
+        result = _format_natural_portion(2.5, "Stück")
+        self.assertEqual(result, "ca. 2,5 Stück")
+        self.assertNotIn("2.5", result)
+
     def test_el_no_x(self):
         """Esslöffel erhält kein 'x'-Symbol (Regression)."""
         result = _format_natural_portion(2, "EL")

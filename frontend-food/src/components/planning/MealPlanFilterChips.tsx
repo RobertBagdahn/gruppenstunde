@@ -9,9 +9,9 @@ interface MealPlanFilterChipsProps {
 
 const AMPEL_CHIPS: { value: AmpelStatus | 'all'; label: string; dotClass: string }[] = [
   { value: 'all', label: 'Alle', dotClass: '' },
-  { value: 'green', label: 'Bereit', dotClass: 'bg-emerald-500' },
-  { value: 'yellow', label: 'In Arbeit', dotClass: 'bg-amber-500' },
-  { value: 'red', label: 'Teilweise', dotClass: 'bg-red-500' },
+  { value: 'green', label: 'Bereit', dotClass: 'bg-success' },
+  { value: 'yellow', label: 'In Arbeit', dotClass: 'bg-warning' },
+  { value: 'red', label: 'Teilweise', dotClass: 'bg-danger' },
 ];
 
 const TIME_CHIPS: { value: 'this_week' | 'next_week' | 'next_month' | 'all'; label: string }[] = [
@@ -31,14 +31,14 @@ export default function MealPlanFilterChips({
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
       {/* Ampel filter chips */}
       <div className="flex items-center gap-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
+        <span className="text-caption font-bold uppercase tracking-wider text-muted-foreground mr-1">
           Status
         </span>
         {AMPEL_CHIPS.map((chip) => (
           <button
             key={chip.value}
             onClick={() => onAmpelChange(chip.value)}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-semibold border transition-colors ${
               ampelFilter === chip.value
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:border-primary/40'
@@ -54,14 +54,14 @@ export default function MealPlanFilterChips({
 
       {/* Time range filter chips */}
       <div className="flex items-center gap-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mr-1">
+        <span className="text-caption font-bold uppercase tracking-wider text-muted-foreground mr-1">
           Zeitraum
         </span>
         {TIME_CHIPS.map((chip) => (
           <button
             key={chip.value}
             onClick={() => onTimeRangeChange(chip.value)}
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold border transition-colors ${
               timeRange === chip.value
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:border-primary/40'

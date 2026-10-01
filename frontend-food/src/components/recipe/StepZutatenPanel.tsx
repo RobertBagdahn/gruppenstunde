@@ -128,7 +128,7 @@ export default function StepZutatenPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <label className="block text-sm font-medium text-foreground">
+        <label className="block text-body font-medium text-foreground">
           Zutaten in diesem Schritt ({stepIngredients.length})
         </label>
         <div className="flex gap-2">
@@ -145,7 +145,7 @@ export default function StepZutatenPanel({
           <button
             onClick={handleAddIngredient}
             disabled={availableRecipeItems.length === 0}
-            className="flex items-center gap-1 text-sm px-2 py-1 bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+            className="flex items-center gap-1 text-body px-2 py-1 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
           >
             <Plus size={16} /> Zutat
           </button>
@@ -168,7 +168,7 @@ export default function StepZutatenPanel({
       )}
 
       {stepIngredients.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">Keine Zutaten hinzugefügt</p>
+        <p className="text-body text-muted-foreground italic">Keine Zutaten hinzugefügt</p>
       ) : (
         <div className="space-y-2">
           {stepIngredients.map((ing, index) => (
@@ -180,7 +180,7 @@ export default function StepZutatenPanel({
                 e.dataTransfer.effectAllowed = 'copy';
               }}
               title={editingId !== ing.id ? `In die Anweisung ziehen, um {${index + 1}} einzufügen` : undefined}
-              className={`p-3 bg-muted/40 rounded border transition-colors ${
+              className={`p-3 bg-muted/40 rounded-lg border transition-colors ${
                 editingId !== ing.id ? 'cursor-grab active:cursor-grabbing' : ''
               } ${
                 editingId === ing.id
@@ -194,16 +194,16 @@ export default function StepZutatenPanel({
                   <div className="flex items-start gap-2 flex-1 min-w-0">
                     <GripVertical className="w-4 h-4 text-muted-foreground/60 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground">
+                      <div className="text-body font-medium text-foreground">
                         {getIngredientDisplay(ing)}
                       </div>
                       {ing.quantity_modifier && (
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-caption text-muted-foreground mt-1">
                           Menge: {ing.quantity_modifier}
                         </div>
                       )}
                       {ing.preparation && (
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-caption text-muted-foreground mt-1">
                           Zubereitung: {ing.preparation}
                         </div>
                       )}
@@ -212,13 +212,13 @@ export default function StepZutatenPanel({
                   <div className="flex gap-1">
                     <button
                       onClick={() => setEditingId(ing.id)}
-                      className="px-2 py-1 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 whitespace-nowrap"
+                      className="px-2 py-1 text-body bg-primary/10 text-primary rounded-lg hover:bg-primary/20 whitespace-nowrap"
                     >
                       Bearbeiten
                     </button>
                     <button
                       onClick={() => handleRemoveIngredient(ing.id)}
-                      className="p-1 text-destructive hover:bg-destructive/10 rounded"
+                      className="p-1 text-destructive hover:bg-destructive/10 rounded-lg"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -230,7 +230,7 @@ export default function StepZutatenPanel({
               {editingId === ing.id && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
+                    <label className="block text-caption font-medium text-foreground mb-1">
                       Zutat
                     </label>
                     <IngredientAssignmentDropdown
@@ -246,7 +246,7 @@ export default function StepZutatenPanel({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
+                    <label className="block text-caption font-medium text-foreground mb-1">
                       Mengenmodifikator
                     </label>
                     <input
@@ -260,15 +260,15 @@ export default function StepZutatenPanel({
                         })
                       }
                       placeholder="z. B. 1.5 oder 0.5"
-                      className="w-full p-2 border border-input bg-background rounded text-sm"
+                      className="w-full p-2 border border-input bg-background rounded-lg text-body"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-caption text-muted-foreground mt-1">
                       Multiplikator zur Basis-Menge (z.B. 1.5 = 50% mehr)
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1">
+                    <label className="block text-caption font-medium text-foreground mb-1">
                       Zubereitung
                     </label>
                     <input
@@ -278,20 +278,20 @@ export default function StepZutatenPanel({
                         handleUpdateIngredient(ing.id, { preparation: e.target.value })
                       }
                       placeholder="z. B. 'gehackt', 'gesiebt'"
-                      className="w-full p-2 border border-input bg-background rounded text-sm"
+                      className="w-full p-2 border border-input bg-background rounded-lg text-body"
                     />
                   </div>
 
                   <div className="flex gap-2 justify-end pt-2">
                     <button
                       onClick={() => setEditingId(null)}
-                      className="px-3 py-1 text-sm rounded border border-input hover:bg-muted"
+                      className="px-3 py-1 text-body rounded-lg border border-input hover:bg-muted"
                     >
                       Fertig
                     </button>
                     <button
                       onClick={() => handleRemoveIngredient(ing.id)}
-                      className="px-3 py-1 text-sm rounded bg-destructive/10 text-destructive hover:bg-destructive/20"
+                      className="px-3 py-1 text-body rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20"
                     >
                       Löschen
                     </button>

@@ -45,7 +45,7 @@ import {
   usePreviewPortionMagicWand,
   useApplyPortionMagicWand,
 } from '@/api/supplies';
-import { NUTRI_SCORE_COLORS, type PortionMagicOperation } from '@/schemas/supply';
+import { NUTRI_SCORE_COLORS, PHYSICAL_VISCOSITY_LABELS, type PortionMagicOperation } from '@/schemas/supply';
 import type { Package, Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
 import { formatMeasuringUnitLabel } from '@/lib/units';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
@@ -134,6 +134,8 @@ import { Label } from '@/components/ui/label';
 import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
+import { formatExactWeight, formatNumber, roundToDecimals } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -145,7 +147,7 @@ function NutriScoreBadge({ nutriClass }: { nutriClass: number | null }) {
   const colors = NUTRI_SCORE_COLORS[nutriClass];
   if (!colors) return null;
   return (
-    <span className={`${colors.bg} ${colors.text} text-sm font-bold px-3 py-1 rounded-md`}>
+    <span className={`${colors.bg} ${colors.text} text-body font-bold px-3 py-1 rounded-lg`}>
       Nutri-Score {colors.label}
     </span>
   );
@@ -163,7 +165,7 @@ function NutritionalTagBadge({
 }) {
   return (
     <span
-      className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+      className={`text-caption px-2.5 py-1 rounded-full font-medium ${
         isDangerous
           ? 'bg-destructive/10 text-destructive border border-destructive/20'
           : 'bg-muted text-muted-foreground border border-border'
@@ -188,9 +190,9 @@ function NutritionRow({
 }) {
   return (
     <div className="flex justify-between py-1.5 border-b border-border/30 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">
-        {value !== null ? `${parseFloat(value.toFixed(1))} ${unit}` : '\u2014'}
+      <span className="text-body text-muted-foreground">{label}</span>
+      <span className="text-body font-medium">
+        {value !== null ? `${roundToDecimals(value, 1)} ${unit}` : '\u2014'}
       </span>
     </div>
   );
@@ -217,15 +219,11 @@ function CollapsibleNutritionGroup({
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-2 p-2.5 text-left hover:bg-muted/50 transition-colors"
       >
-        <span className="flex items-center gap-1.5 text-sm font-semibold">
-          <span className={`material-symbols-outlined text-base ${iconColor}`}>{icon}</span>
+        <span className="flex items-center gap-1.5 text-body font-semibold">
+          <Icon name={icon} size={16} className={iconColor} />
           {title}
         </span>
-        <span
-          className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          expand_more
-        </span>
+        <Icon name="expand_more" size={16} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && <div className="px-3 pb-2">{children}</div>}
     </div>
@@ -262,14 +260,14 @@ function PackageRow({
         <input
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
-          className="flex-1 px-2 py-1 text-sm border border-border rounded bg-background"
+          className="flex-1 px-2 py-1 text-body border border-border rounded-lg bg-background"
         />
         <input
           value={editWeight}
           onChange={(e) => setEditWeight(e.target.value)}
           type="number"
           placeholder="g"
-          className="w-24 px-2 py-1 text-sm border border-border rounded bg-background"
+          className="w-24 px-2 py-1 text-body border border-border rounded-lg bg-background"
         />
         <button
           onClick={() => {
@@ -279,11 +277,11 @@ function PackageRow({
             });
             setEditing(false);
           }}
-          className="text-xs text-primary hover:underline"
+          className="text-caption text-primary hover:underline"
         >
           OK
         </button>
-        <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:underline">
+        <button onClick={() => setEditing(false)} className="text-caption text-muted-foreground hover:underline">
           Abbrechen
         </button>
       </div>
@@ -293,9 +291,9 @@ function PackageRow({
   return (
     <div className="flex items-center gap-3 p-3 border border-border rounded-xl bg-card">
       <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium text-foreground">{pkg.name}</span>
+        <span className="text-body font-medium text-foreground">{pkg.name}</span>
         {pkg.weight_g && (
-          <span className="text-xs text-muted-foreground ml-2">{pkg.weight_g}g</span>
+          <span className="text-caption text-muted-foreground ml-2">{formatExactWeight(pkg.weight_g)}</span>
         )}
       </div>
       {canEdit && (
@@ -305,14 +303,14 @@ function PackageRow({
             className="p-1 text-muted-foreground hover:text-foreground"
             aria-label={`Packung bearbeiten: ${pkg.name}`}
           >
-            <span className="material-symbols-outlined text-sm">edit</span>
+            <Icon name="edit" size={16} />
           </button>
           <button
             onClick={() => setConfirmDelete(true)}
             className="p-1 text-muted-foreground hover:text-destructive"
             aria-label={`Packung löschen: ${pkg.name}`}
           >
-            <span className="material-symbols-outlined text-sm">delete</span>
+            <Icon name="delete" size={16} />
           </button>
         </div>
       )}
@@ -495,7 +493,7 @@ function PortionFormDialog({
                 id={`${idPrefix}-unit`}
                 value={values.unitId}
                 onChange={(event) => setValue('unitId', event.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-body ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="" disabled>
                   Einheit auswählen
@@ -521,7 +519,7 @@ function PortionFormDialog({
                 step="1"
                 inputMode="numeric"
               />
-              <p className="text-xs text-muted-foreground">Rang 1 ist die Standardportion.</p>
+              <p className="text-caption text-muted-foreground">Rang 1 ist die Standardportion.</p>
             </div>
 
             <div className="space-y-2">
@@ -534,7 +532,7 @@ function PortionFormDialog({
                 inputMode="decimal"
                 placeholder="Automatisch"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Feld leer lassen, damit das Gewicht aus Anzahl und Einheit berechnet wird.
               </p>
             </div>
@@ -613,34 +611,32 @@ function PortionCard({
   return (
     <div className={`border rounded-xl overflow-hidden shadow-soft ${isDefault ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'}`}>
       <div className={`flex items-center gap-2 px-4 py-3 border-b ${isDefault ? 'bg-primary/10 border-primary/20' : 'bg-muted/20 border-border/80'}`}>
-        <span className={`material-symbols-outlined text-lg shrink-0 ${isDefault ? 'text-primary' : 'text-primary'}`}>
-          scale
-        </span>
+        <Icon name="scale" size={20} className={`shrink-0 ${isDefault ? 'text-primary' : 'text-primary'}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm">
+            <span className="font-semibold text-body">
               {portion.name.trim() || <span className="text-destructive font-medium italic">Unbenannt</span>}
             </span>
             {isDefault && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
+              <span className="text-caption px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
                 Standard
               </span>
             )}
             {portion.weight_g && portion.is_weight_trusted ? (
-              <span className="text-xs text-muted-foreground">
-                ≈ {portion.weight_g}g
+              <span className="text-caption text-muted-foreground">
+                ≈ {formatExactWeight(portion.weight_g)}
               </span>
             ) : portion.weight_status === 'ai_proposed' ? (
-              <span className="inline-flex items-center gap-1 text-[11px] bg-amber-50 text-amber-800 font-medium px-1.5 py-0.5 rounded border border-amber-200">
+              <span className="inline-flex items-center gap-1 text-caption bg-warning-soft text-warning font-medium px-1.5 py-0.5 rounded-lg border border-warning-border">
                 <Sparkles className="h-3 w-3" />
-                Vorschlag: {portion.weight_g ?? 'unbekannt'}g bestätigen
+                Vorschlag: {portion.weight_g != null ? formatExactWeight(portion.weight_g) : 'unbekannt'} bestätigen
               </span>
             ) : (
               <span
-                className="inline-flex items-center gap-1 text-[11px] bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] font-medium px-1.5 py-0.5 rounded border border-[hsl(var(--chart-4))]/20"
+                className="inline-flex items-center gap-1 text-caption bg-warning-soft text-warning font-medium px-1.5 py-0.5 rounded-lg border border-warning-border"
                 title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
               >
-                <span className="material-symbols-outlined text-[12px]">warning</span>
+                <Icon name="warning" size={16} />
                 Kein Gewicht
               </span>
             )}
@@ -651,7 +647,7 @@ function PortionCard({
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setEditing(true)}
-              className="text-muted-foreground hover:text-foreground rounded p-1 transition"
+              className="text-muted-foreground hover:text-foreground rounded-lg p-1 transition"
               title="Bearbeiten"
               aria-label={`Portion bearbeiten: ${portion.name}`}
             >
@@ -659,7 +655,7 @@ function PortionCard({
             </button>
             <button
               onClick={() => setConfirmDelete(true)}
-              className="text-destructive/60 hover:text-destructive rounded p-1 transition"
+              className="text-destructive/60 hover:text-destructive rounded-lg p-1 transition"
               title="Löschen"
               aria-label={`Portion löschen: ${portion.name}`}
             >
@@ -721,7 +717,7 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
+        <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
           <ChefHat className="text-primary" size={20} />
           Rezepte mit dieser Zutat
         </h2>
@@ -734,8 +730,8 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
             <div key={i} className="animate-pulse rounded-xl border bg-card overflow-hidden">
               <div className="aspect-[16/9] bg-muted" />
               <div className="p-3 space-y-2">
-                <div className="h-4 bg-muted rounded w-3/4" />
-                <div className="h-3 bg-muted rounded w-1/2" />
+                <div className="h-4 bg-muted rounded-lg w-3/4" />
+                <div className="h-3 bg-muted rounded-lg w-1/2" />
               </div>
             </div>
           ))}
@@ -744,7 +740,7 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
 
       {/* Error */}
       {error && !isLoading && (
-        <p className="text-sm text-destructive">
+        <p className="text-body text-destructive">
           Rezepte konnten nicht geladen werden.
         </p>
       )}
@@ -752,12 +748,12 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
       {/* Empty state */}
       {!isLoading && !error && data && data.items.length === 0 && (
         <div className="border border-border rounded-xl p-6 bg-card text-center space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Noch kein Rezept mit dieser Zutat.
           </p>
           <button
             onClick={() => navigate(`/recipes/new?ingredient=${slug}`)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium hover:bg-primary/90 transition"
           >
             <Plus size={16} />
             Rezept mit {ingredientName} erstellen
@@ -887,9 +883,9 @@ function PortionsSection({
   return (
     <div className="mb-8">
       {showPackungWarning && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-          <span className="material-symbols-outlined text-amber-600 text-lg shrink-0 mt-0.5">warning</span>
-          <div className="text-sm text-amber-800">
+        <div className="mb-4 p-3 bg-warning-soft border border-warning-border rounded-lg flex items-start gap-3">
+          <Icon name="warning" size={20} className="text-warning shrink-0 mt-0.5" />
+          <div className="text-body text-warning">
             <strong>Packungsgewicht fehlt:</strong> Die Packung-Portion hat kein Gewicht. Bitte manuell eintragen, damit die Einkaufsliste korrekt berechnet wird.
           </div>
         </div>
@@ -897,11 +893,11 @@ function PortionsSection({
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">scale</span>
+          <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
+            <Icon name="scale" size={24} className="text-primary" />
             Portionen
           </h2>
-          <p className="text-xs text-muted-foreground mt-1 ml-7">
+          <p className="text-caption text-muted-foreground mt-1 ml-7">
             Jede Portion hat einen Namen, eine Anzahl und eine Einheit. Das Gewicht in Gramm wird automatisch berechnet.
             Ziehen Sie die Portionen zum Sortieren.
           </p>
@@ -919,7 +915,7 @@ function PortionsSection({
             </button>
             <button
               onClick={() => setShowAddPortion(!showAddPortion)}
-              className="flex items-center gap-1 text-sm text-primary hover:underline"
+              className="flex items-center gap-1 text-body text-primary hover:underline"
             >
               <Plus className="h-4 w-4" />
               Portion hinzufügen
@@ -945,7 +941,7 @@ function PortionsSection({
         onSubmit={onAddPortion}
       />
 
-      {ingredient.portions.length === 0 && <p className="text-sm text-muted-foreground italic">Keine Portionen definiert.</p>}
+      {ingredient.portions.length === 0 && <p className="text-body text-muted-foreground italic">Keine Portionen definiert.</p>}
 
       {canEdit ? (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -1112,8 +1108,8 @@ export default function IngredientDetailPage() {
   if (isLoading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        <div className="animate-pulse h-8 w-48 bg-muted rounded" />
-        <div className="animate-pulse h-4 w-72 bg-muted rounded" />
+        <div className="animate-pulse h-8 w-48 bg-muted rounded-lg" />
+        <div className="animate-pulse h-4 w-72 bg-muted rounded-lg" />
         <div className="animate-pulse h-32 bg-muted rounded-lg" />
         <div className="animate-pulse h-32 bg-muted rounded-lg" />
       </div>
@@ -1312,7 +1308,7 @@ export default function IngredientDetailPage() {
 
   const formatPrice = (price: number | null) => {
     if (price === null) return '\u2014';
-    return `${price.toFixed(2).replace('.', ',')} EUR`;
+    return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} EUR`;
   };
 
   const nutriColors = ingredient.nutri_class
@@ -1324,9 +1320,9 @@ export default function IngredientDetailPage() {
       {/* Back link */}
       <button
         onClick={() => navigate('/ingredients')}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition"
+        className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground mb-4 transition"
       >
-        <span className="material-symbols-outlined text-lg">arrow_back</span>
+        <Icon name="arrow_back" size={20} />
         Alle Zutaten
       </button>
 
@@ -1334,18 +1330,18 @@ export default function IngredientDetailPage() {
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground truncate">{ingredient.name}</h1>
+            <h1 className="text-section sm:text-title font-display font-bold text-foreground truncate">{ingredient.name}</h1>
             {ingredient.status === 'verified' ? (
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 border bg-emerald-50 border-emerald-200 text-emerald-700 flex items-center gap-1">
+              <span className="text-caption px-2 py-0.5 rounded-full font-medium shrink-0 border bg-success-soft border-success-border text-success flex items-center gap-1">
                 <CheckCircle size={12} />
                 Inspi Verified
               </span>
             ) : (
               <>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 border ${
+                <span className={`text-caption px-2 py-0.5 rounded-full font-medium shrink-0 border ${
                   ingredient.status === 'draft'
-                    ? 'bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]'
-                    : 'bg-[hsl(var(--chart-5))]/10 border-[hsl(var(--chart-5))]/20 text-[hsl(var(--chart-5))]'
+                    ? 'bg-warning-soft border-warning-border text-warning'
+                    : 'bg-danger-soft border-danger-border text-danger'
                 }`}>
                   {ingredientStatusLabel(ingredient.status)}
                 </span>
@@ -1353,7 +1349,7 @@ export default function IngredientDetailPage() {
                   <button
                     onClick={() => updateIngredient.mutate({ status: 'verified' } as Record<string, unknown>)}
                     disabled={updateIngredient.isPending}
-                    className="text-[10px] px-2 py-0.5 rounded-full font-medium border border-emerald-200 text-emerald-700 hover:bg-emerald-50 shrink-0"
+                    className="text-caption px-2 py-0.5 rounded-full font-medium border border-success-border text-success hover:bg-success-soft shrink-0"
                   >
                     Verifizieren
                   </button>
@@ -1362,31 +1358,31 @@ export default function IngredientDetailPage() {
             )}
           </div>
           {ingredient.description && (
-            <p className="text-sm text-muted-foreground mb-2">{ingredient.description}</p>
+            <p className="text-body text-muted-foreground mb-2">{ingredient.description}</p>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <NutriScoreBadge nutriClass={ingredient.nutri_class} />
             {ingredient.camp_suitable && (
-              <span className="flex items-center gap-1 text-xs text-foreground bg-amber-100 px-2 py-1 rounded">
-                <span className="material-symbols-outlined text-sm">camping</span>
+              <span className="flex items-center gap-1 text-caption text-foreground bg-warning-soft px-2 py-1 rounded-lg">
+                <Icon name="camping" size={16} />
                 Camp-geeignet
               </span>
             )}
             {ingredient.retail_section_name && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                <span className="material-symbols-outlined text-sm">store</span>
+              <span className="flex items-center gap-1 text-caption text-muted-foreground bg-muted px-2 py-1 rounded-lg">
+                <Icon name="store" size={16} />
                 {ingredient.retail_section_name}
               </span>
             )}
             {ingredient.price_per_kg !== null && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                <span className="material-symbols-outlined text-sm">payments</span>
+              <span className="flex items-center gap-1 text-caption text-muted-foreground bg-muted px-2 py-1 rounded-lg">
+                <Icon name="payments" size={16} />
                 {formatPrice(ingredient.price_per_kg)}/kg
               </span>
             )}
             {ingredient.is_standalone_food && (
-              <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded font-medium">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
+              <span className="flex items-center gap-1 text-caption text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg font-medium">
+                <Icon name="check_circle" size={16} />
                 Roh verzehrbar
               </span>
             )}
@@ -1420,7 +1416,7 @@ export default function IngredientDetailPage() {
                   className="p-2 rounded-md hover:bg-muted transition text-muted-foreground disabled:opacity-50"
                   title={ai.disabled ? ai.hint : 'Alle KI-Vorschläge prüfen & vergleichen'}
                 >
-                  <span className="material-symbols-outlined text-lg">auto_fix_high</span>
+                  <Icon name="auto_fix_high" size={20} />
                 </button>
               </>
             )}
@@ -1429,18 +1425,18 @@ export default function IngredientDetailPage() {
                 <button
                   onClick={() => navigate(`/ingredients/${ingredient.slug}/edit`)}
                   data-testid="ingredient-edit-button"
-                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
+                  className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground"
                   title="Bearbeiten"
                 >
-                  <span className="material-symbols-outlined text-lg">edit</span>
+                  <Icon name="edit" size={20} />
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   data-testid="ingredient-delete-button"
-                  className="p-2 rounded-md hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
+                  className="p-2 rounded-lg hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
                   title="Zutat löschen"
                 >
-                  <span className="material-symbols-outlined text-lg">delete</span>
+                  <Icon name="delete" size={20} />
                 </button>
               </>
             )}
@@ -1464,11 +1460,11 @@ export default function IngredientDetailPage() {
       {/* Tags (content.Tag) */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-muted-foreground">Tags</h3>
+          <h3 className="text-body font-medium text-muted-foreground">Tags</h3>
           {canEdit && (
             <button
               onClick={() => setShowTagPicker(!showTagPicker)}
-              className="flex items-center gap-1 text-xs text-primary hover:underline"
+              className="flex items-center gap-1 text-caption text-primary hover:underline"
             >
               <Plus size={14} />
               Tag hinzufügen
@@ -1483,11 +1479,11 @@ export default function IngredientDetailPage() {
                 value={tagSearch}
                 onChange={(e) => setTagSearch(e.target.value)}
                 placeholder="Tag suchen..."
-                className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg bg-background"
+                className="w-full pl-8 pr-3 py-1.5 text-body border border-border rounded-lg bg-background"
               />
             </div>
             {tagSearch && (
-              <div className="mt-1 border border-border rounded-lg max-h-40 overflow-y-auto bg-card">
+              <div className="mt-1 border border-border rounded-xl max-h-40 overflow-y-auto bg-card">
                 {(allTags || [])
                   .filter((t) => !(ingredient.tags || []).some((it: Tag) => it.id === t.id) && t.name.toLowerCase().includes(tagSearch.toLowerCase()))
                   .slice(0, 10)
@@ -1500,11 +1496,11 @@ export default function IngredientDetailPage() {
                         setTagSearch('');
                         setShowTagPicker(false);
                       }}
-                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted flex items-center gap-2"
+                      className="w-full text-left px-3 py-1.5 text-body hover:bg-muted flex items-center gap-2"
                     >
-                      <span className="text-xs">{tag.icon}</span>
+                      <span className="text-caption">{tag.icon}</span>
                       <span>{tag.name}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{tag.group}</span>
+                      <span className="text-caption text-muted-foreground ml-auto">{tag.group}</span>
                     </button>
                   ))}
               </div>
@@ -1513,12 +1509,12 @@ export default function IngredientDetailPage() {
         )}
         <div className="flex flex-wrap gap-2">
           {(ingredient.tags || []).length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">Keine Tags</p>
+            <p className="text-body text-muted-foreground italic">Keine Tags</p>
           ) : (
             (ingredient.tags || []).map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted border border-border"
+                className="inline-flex items-center gap-1 text-caption px-2 py-1 rounded-full bg-muted border border-border"
               >
                 <span>{tag.icon}</span>
                 <span>{tag.name}</span>
@@ -1548,8 +1544,8 @@ export default function IngredientDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Nutritional Values */}
         <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-          <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-lg">nutrition</span>
+          <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
+            <Icon name="nutrition" size={20} className="text-primary" />
             Nährwerte pro 100g
           </h2>
           <div>
@@ -1578,16 +1574,16 @@ export default function IngredientDetailPage() {
         <div className="space-y-6">
           {/* Scores */}
           <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-            <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">health_and_safety</span>
+            <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
+              <Icon name="health_and_safety" size={20} className="text-primary" />
               Bewertungen
             </h2>
             <div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
-                <span className="text-sm text-muted-foreground">Nutri-Score</span>
-                <span className="text-sm font-medium">
+                <span className="text-body text-muted-foreground">Nutri-Score</span>
+                <span className="text-body font-medium">
                   {nutriColors ? (
-                    <span className={`${nutriColors.bg} ${nutriColors.text} text-xs font-bold px-2 py-0.5 rounded`}>
+                    <span className={`${nutriColors.bg} ${nutriColors.text} text-caption font-bold px-2 py-0.5 rounded-lg`}>
                       {nutriColors.label}
                     </span>
                   ) : '\u2014'}
@@ -1603,18 +1599,18 @@ export default function IngredientDetailPage() {
 
           {/* Physical Properties */}
           <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-            <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">science</span>
+            <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
+              <Icon name="science" size={20} className="text-primary" />
               Physikalische Eigenschaften
             </h2>
             <div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
-                <span className="text-sm text-muted-foreground">Dichte</span>
-                <span className="text-sm font-medium">{ingredient.physical_density} g/ml</span>
+                <span className="text-body text-muted-foreground">Dichte</span>
+                <span className="text-body font-medium">{ingredient.physical_density} g/ml</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
-                <span className="text-sm text-muted-foreground">Viskosität</span>
-                <span className="text-sm font-medium">{ingredient.physical_viscosity ? ({ solid: 'Fest', beverage: 'Flüssig', powder: 'Pulver' }[ingredient.physical_viscosity] ?? ingredient.physical_viscosity) : '\u2014'}</span>
+                <span className="text-body text-muted-foreground">Viskosität</span>
+                <span className="text-body font-medium">{ingredient.physical_viscosity ? (PHYSICAL_VISCOSITY_LABELS[ingredient.physical_viscosity] ?? ingredient.physical_viscosity) : '\u2014'}</span>
               </div>
               <NutritionRow label="Haltbarkeit" value={ingredient.durability_in_days} unit="Tage" />
               <NutritionRow label="Max. Lagertemperatur" value={ingredient.max_storage_temperature} unit="°C" />
@@ -1624,23 +1620,23 @@ export default function IngredientDetailPage() {
           {/* Scout / Camp Fields */}
           {(ingredient.storage_type != null || ingredient.cooking_factor != null || ingredient.preparation_time_min != null || ingredient.season_start != null) && (
             <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-              <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-lg">backpack</span>
+              <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
+                <Icon name="backpack" size={20} className="text-primary" />
                 Lager & Pfadfinder
               </h2>
               <div>
                 {ingredient.storage_type != null && (
                   <div className="flex justify-between py-1.5 border-b border-border/30">
-                    <span className="text-sm text-muted-foreground">Lagerungsart</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-body text-muted-foreground">Lagerungsart</span>
+                    <span className="text-body font-medium">
                       {{ dry: 'Trocken', refrigerated: 'Kühlschrank', frozen: 'Gefroren', ambient: 'Raumtemperatur' }[ingredient.storage_type] ?? ingredient.storage_type}
                     </span>
                   </div>
                 )}
                 {ingredient.cooking_factor != null && (
                   <div className="flex justify-between py-1.5 border-b border-border/30">
-                    <span className="text-sm text-muted-foreground">Kochfaktor</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-body text-muted-foreground">Kochfaktor</span>
+                    <span className="text-body font-medium">
                       aus 100g roh &rarr; {Math.round(ingredient.cooking_factor * 100)}g gekocht
                     </span>
                   </div>
@@ -1650,26 +1646,26 @@ export default function IngredientDetailPage() {
                 )}
                 {ingredient.season_start != null && ingredient.season_end != null ? (
                   <div className="flex justify-between py-1.5">
-                    <span className="text-sm text-muted-foreground">Saison</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-body text-muted-foreground">Saison</span>
+                    <span className="text-body font-medium">
                       {MONTH_NAMES[ingredient.season_start - 1]}–{MONTH_NAMES[ingredient.season_end - 1]}
                     </span>
                   </div>
                 ) : ingredient.season_start != null ? (
                   <div className="flex justify-between py-1.5">
-                    <span className="text-sm text-muted-foreground">Saison ab</span>
-                    <span className="text-sm font-medium">{MONTH_NAMES[ingredient.season_start - 1]}</span>
+                    <span className="text-body text-muted-foreground">Saison ab</span>
+                    <span className="text-body font-medium">{MONTH_NAMES[ingredient.season_start - 1]}</span>
                   </div>
                 ) : ingredient.season_end != null ? (
                   <div className="flex justify-between py-1.5">
-                    <span className="text-sm text-muted-foreground">Saison bis</span>
-                    <span className="text-sm font-medium">{MONTH_NAMES[ingredient.season_end - 1]}</span>
+                    <span className="text-body text-muted-foreground">Saison bis</span>
+                    <span className="text-body font-medium">{MONTH_NAMES[ingredient.season_end - 1]}</span>
                   </div>
                 ) : null}
                 {ingredient.season_start == null && ingredient.season_end == null && (
                   <div className="flex justify-between py-1.5">
-                    <span className="text-sm text-muted-foreground">Saison</span>
-                    <span className="text-sm font-medium">ganzjährig</span>
+                    <span className="text-body text-muted-foreground">Saison</span>
+                    <span className="text-body font-medium">ganzjährig</span>
                   </div>
                 )}
               </div>
@@ -1679,27 +1675,27 @@ export default function IngredientDetailPage() {
           {/* References */}
           {(ingredient.fdc_id || ingredient.nan_art_id_rewe || ingredient.ean) && (
             <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-              <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-lg">link</span>
+              <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
+                <Icon name="link" size={20} className="text-primary" />
                 Referenzen
               </h2>
               <div>
                 {ingredient.fdc_id && (
                   <div className="flex justify-between py-1.5 border-b border-border/30">
-                    <span className="text-sm text-muted-foreground">FDC ID</span>
-                    <span className="text-sm font-medium">{ingredient.fdc_id}</span>
+                    <span className="text-body text-muted-foreground">FDC ID</span>
+                    <span className="text-body font-medium">{ingredient.fdc_id}</span>
                   </div>
                 )}
                 {ingredient.nan_art_id_rewe && (
                   <div className="flex justify-between py-1.5 border-b border-border/30">
-                    <span className="text-sm text-muted-foreground">REWE Artikelnr.</span>
-                    <span className="text-sm font-medium">{ingredient.nan_art_id_rewe}</span>
+                    <span className="text-body text-muted-foreground">REWE Artikelnr.</span>
+                    <span className="text-body font-medium">{ingredient.nan_art_id_rewe}</span>
                   </div>
                 )}
                 {ingredient.ean && (
                   <div className="flex justify-between py-1.5">
-                    <span className="text-sm text-muted-foreground">EAN</span>
-                    <span className="text-sm font-medium">{ingredient.ean}</span>
+                    <span className="text-body text-muted-foreground">EAN</span>
+                    <span className="text-body font-medium">{ingredient.ean}</span>
                   </div>
                 )}
               </div>
@@ -1729,16 +1725,16 @@ export default function IngredientDetailPage() {
             <DialogDescription>
               Gewichtete Portionen bleiben unverändert. Ungewichtete Portionen werden standardmäßig ersetzt.
             </DialogDescription>
-            {hasPartialMagicResult && <p className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">Wähle passende Portionen und Packungen getrennt aus. Bestehende Gewichte bleiben unverändert.</p>}
+            {hasPartialMagicResult && <p className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-body text-muted-foreground">Wähle passende Portionen und Packungen getrennt aus. Bestehende Gewichte bleiben unverändert.</p>}
           </DialogHeader>
           <DndContext sensors={magicSensors} collisionDetection={closestCenter} onDragEnd={handleMagicDragEnd}>
             <SortableContext items={magicOperations.map((operation) => operation.operation_id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-5">
                 <div>
-                  <h3 className="mb-2 text-sm font-semibold text-foreground">Portionen</h3>
+                  <h3 className="mb-2 text-body font-semibold text-foreground">Portionen</h3>
                   <div className="space-y-3">
                 {magicPortionOperations.length === 0 && (
-              <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+              <p className="rounded-lg border border-border p-4 text-body text-muted-foreground">
                 Die KI hat keine neuen Portionen vorgeschlagen.
               </p>
             )}
@@ -1757,7 +1753,7 @@ export default function IngredientDetailPage() {
                       onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })}
                      className="mt-1"
                    />
-                   <label htmlFor={`magic-select-${operation.operation_id}`} className="flex-1 cursor-pointer text-sm">
+                   <label htmlFor={`magic-select-${operation.operation_id}`} className="flex-1 cursor-pointer text-body">
                      <span className="font-medium">{operation.name}</span>
                      <span className="block text-muted-foreground">
                       {operation.operation === 'replace' ? 'Ersetzt eine ungewichtete Portion' : operation.operation === 'unchanged' ? 'Bleibt unverändert' : operation.operation === 'package' ? 'Neue Packung für den Bereich Packungen' : 'Neue typische Portion'} · {operation.measuring_unit_name}
@@ -1768,22 +1764,22 @@ export default function IngredientDetailPage() {
                    </label>
                 </div>
                 {operation.operation !== 'unchanged' && (
-                  <div className="ml-7 text-sm font-medium text-primary">
+                  <div className="ml-7 text-body font-medium text-primary">
                     {formatMagicWeight(operation.proposed_weight_g)}
                   </div>
                 )}
                 {operation.operation === 'unchanged' && operation.proposed_weight_g != null && (
-                  <div className="ml-7 text-sm font-medium text-muted-foreground">
+                  <div className="ml-7 text-body font-medium text-muted-foreground">
                     Aktuelles Gewicht: {formatMagicWeight(operation.proposed_weight_g).replace('Neue Grammzahl: ', '')}
                   </div>
                 )}
                 {operation.selected && (
                   <div className="ml-7 space-y-1">
                     {operation.rationale && (
-                      <p className="text-xs text-muted-foreground">{operation.rationale}</p>
+                      <p className="text-caption text-muted-foreground">{operation.rationale}</p>
                     )}
                     {operation.confidence != null && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         Sicherheit: {Math.round(operation.confidence * 100)} %
                       </p>
                     )}
@@ -1802,7 +1798,7 @@ export default function IngredientDetailPage() {
                 )}
                 {operation.operation === 'replace' && !operation.selected && (
                   <div className="ml-7 space-y-2">
-                    {operation.rationale && <p className="text-xs text-muted-foreground">{operation.rationale}</p>}
+                    {operation.rationale && <p className="text-caption text-muted-foreground">{operation.rationale}</p>}
                     <div className="space-y-1">
                       <Label htmlFor={`magic-keep-weight-${operation.operation_id}`}>Oder bestehende Portion behalten mit Gewicht (g)</Label>
                       <Input
@@ -1816,7 +1812,7 @@ export default function IngredientDetailPage() {
                         placeholder="Gewicht eintragen"
                       />
                     </div>
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <label className="flex items-center gap-2 text-caption text-muted-foreground">
                       <input
                         type="checkbox"
                         checked={operation.delete_without_replacement}
@@ -1833,9 +1829,9 @@ export default function IngredientDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="mb-2 text-sm font-semibold text-foreground">Packungen</h3>
+                  <h3 className="mb-2 text-body font-semibold text-foreground">Packungen</h3>
                   <div className="space-y-3">
-                    {magicPackageOperations.length === 0 && <p className="rounded-lg border border-border p-3 text-sm text-muted-foreground">Keine neue Packung vorgeschlagen.</p>}
+                    {magicPackageOperations.length === 0 && <p className="rounded-lg border border-border p-3 text-body text-muted-foreground">Keine neue Packung vorgeschlagen.</p>}
                     {magicPackageOperations.map((operation) => (
                       <SortableMagicOperation key={operation.operation_id} operation={operation}>
                         {({ setNodeRef, style, attributes, listeners }) => (
@@ -1843,12 +1839,12 @@ export default function IngredientDetailPage() {
                             <div className="flex items-start gap-3">
                               <button type="button" className="cursor-grab touch-none text-muted-foreground" aria-label="Packung verschieben" {...attributes} {...listeners}>⠿</button>
                               <input id={`magic-select-${operation.operation_id}`} type="checkbox" checked={operation.selected} aria-label={`${operation.name} übernehmen`} onChange={(event) => updateMagicOperation(operation.operation_id, { selected: event.target.checked })} className="mt-1" />
-                              <label htmlFor={`magic-select-${operation.operation_id}`} className="flex-1 cursor-pointer text-sm">
+                              <label htmlFor={`magic-select-${operation.operation_id}`} className="flex-1 cursor-pointer text-body">
                                 <span className="font-medium">{operation.name}</span>
                                 <span className="block text-muted-foreground">Neue Packung · {operation.quantity} Stück · Gesamtgewicht</span>
                               </label>
                             </div>
-                            <div className="ml-7 text-sm font-medium text-primary">{formatMagicWeight(operation.proposed_weight_g)}</div>
+                            <div className="ml-7 text-body font-medium text-primary">{formatMagicWeight(operation.proposed_weight_g)}</div>
                             {operation.selected && <div className="ml-7 space-y-1"><Label htmlFor={`magic-weight-${operation.operation_id}`}>Gesamtgewicht der Packung (g)</Label><Input id={`magic-weight-${operation.operation_id}`} value={operation.proposed_weight_g ?? ''} onChange={(event) => updateMagicOperation(operation.operation_id, { proposed_weight_g: event.target.value ? Number(event.target.value.replace(',', '.')) : null })} type="text" inputMode="decimal" /></div>}
                           </div>
                         )}
@@ -1876,16 +1872,16 @@ export default function IngredientDetailPage() {
       {/* Packages Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">inventory_2</span>
+          <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
+            <Icon name="inventory_2" size={24} className="text-primary" />
             Packungen
           </h2>
           {canEdit && (
             <button
               onClick={() => setShowAddPackage(!showAddPackage)}
-              className="flex items-center gap-1 text-sm text-primary hover:underline"
+              className="flex items-center gap-1 text-body text-primary hover:underline"
             >
-              <span className="material-symbols-outlined text-lg">add</span>
+              <Icon name="add" size={20} />
               Packung hinzufügen
             </button>
           )}
@@ -1898,14 +1894,14 @@ export default function IngredientDetailPage() {
                 value={newPackageName}
                 onChange={(e) => setNewPackageName(e.target.value)}
                 placeholder="Name (z.B. 500g Packung)"
-                className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                className="flex-1 px-3 py-2 text-body border border-border rounded-lg bg-background"
               />
               <input
                 value={newPackageWeight}
                 onChange={(e) => setNewPackageWeight(e.target.value)}
                 placeholder="Gewicht (g)"
                 type="number"
-                className="w-32 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                className="w-32 px-3 py-2 text-body border border-border rounded-lg bg-background"
               />
               <button
                 onClick={() => {
@@ -1923,7 +1919,7 @@ export default function IngredientDetailPage() {
                   );
                 }}
                 disabled={createPackage.isPending || !newPackageName.trim()}
-                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                className="px-4 py-2 text-body bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
               >
                 {createPackage.isPending ? '...' : 'Hinzufügen'}
               </button>
@@ -1932,7 +1928,7 @@ export default function IngredientDetailPage() {
         )}
 
         {(ingredient.packages || []).length === 0 ? (
-          <p className="text-sm text-muted-foreground italic">Keine Packungen definiert</p>
+          <p className="text-body text-muted-foreground italic">Keine Packungen definiert</p>
         ) : (
           <div className="space-y-2">
             {(ingredient.packages || []).map((pkg) => (
@@ -1951,16 +1947,16 @@ export default function IngredientDetailPage() {
       {/* Aliases Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">label</span>
+          <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
+            <Icon name="label" size={24} className="text-primary" />
             Aliase
           </h2>
           {canEdit && (
             <button
               onClick={() => setShowAddAlias(!showAddAlias)}
-              className="flex items-center gap-1 text-sm text-primary hover:underline"
+              className="flex items-center gap-1 text-body text-primary hover:underline"
             >
-              <span className="material-symbols-outlined text-lg">add</span>
+              <Icon name="add" size={20} />
               Alias hinzufügen
             </button>
           )}
@@ -1973,19 +1969,19 @@ export default function IngredientDetailPage() {
                 value={newAliasName}
                 onChange={(e) => setNewAliasName(e.target.value)}
                 placeholder="Alternativer Name..."
-                className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
+                className="flex-1 px-3 py-2 border rounded-lg text-body bg-background"
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddAlias(); }}
                 autoFocus
               />
               <button
                 onClick={handleAddAlias}
                 disabled={!newAliasName.trim() || createAlias.isPending}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-body disabled:opacity-50"
               >
                 Hinzufügen
               </button>
             </div>
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <label className="flex items-center gap-2 text-caption text-muted-foreground">
               <input
                 type="checkbox"
                 checked={newAliasIsGeneric}
@@ -1997,7 +1993,7 @@ export default function IngredientDetailPage() {
         )}
 
         {ingredient.aliases.length === 0 && !showAddAlias && (
-          <p className="text-sm text-muted-foreground italic">Keine Aliase definiert.</p>
+          <p className="text-body text-muted-foreground italic">Keine Aliase definiert.</p>
         )}
 
         {ingredient.aliases.length > 0 && (
@@ -2005,18 +2001,18 @@ export default function IngredientDetailPage() {
             {ingredient.aliases.map((alias) => (
               <span
                 key={alias.id}
-                className="flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full text-sm group"
+                className="flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full text-body group"
               >
                 {alias.name}
                 {alias.is_generic && (
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">generisch</span>
+                  <span className="text-caption uppercase tracking-wide text-muted-foreground/70">generisch</span>
                 )}
                 {canEdit && (
                   <button
                     onClick={() => setDeleteAliasId(alias.id)}
                     className="text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition"
                   >
-                    <span className="material-symbols-outlined text-sm">close</span>
+                    <Icon name="close" size={16} />
                   </button>
                 )}
               </span>
@@ -2043,7 +2039,7 @@ export default function IngredientDetailPage() {
       />
 
       {/* Meta */}
-      <div className="border-t pt-4 text-xs text-muted-foreground flex flex-wrap gap-4">
+      <div className="border-t pt-4 text-caption text-muted-foreground flex flex-wrap gap-4">
         <span>Erstellt: {new Date(ingredient.created_at).toLocaleDateString('de-DE')}</span>
         <span>Aktualisiert: {new Date(ingredient.updated_at).toLocaleDateString('de-DE')}</span>
         <span>Slug: {ingredient.slug}</span>

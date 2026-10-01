@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAiPricing } from '@/api/aiInteraction';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { formatNumber } from '@/lib/format';
 
 export default function AiPricingSection() {
   const [open, setOpen] = useState(false);
@@ -14,7 +15,7 @@ export default function AiPricingSection() {
         <CardTitle>
           <Button
             variant="ghost"
-            className="p-0 h-auto font-bold font-display text-base hover:bg-transparent"
+            className="p-0 h-auto font-bold font-display text-emphasis hover:bg-transparent"
             onClick={() => setOpen(!open)}
           >
             {open ? (
@@ -34,7 +35,7 @@ export default function AiPricingSection() {
           {data && (
             <div className="space-y-3">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-body">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
                       <th className="pb-2 pr-4">Modell</th>
@@ -50,16 +51,16 @@ export default function AiPricingSection() {
                         <td className="py-2 pr-4 font-medium">{entry.model}</td>
                         <td className="py-2 pr-4 capitalize">{entry.type}</td>
                         <td className="py-2 pr-4 text-right">
-                          {entry.input_per_1m_usd.toFixed(4)} $
+                          {formatNumber(entry.input_per_1m_usd, { maxDecimals: 4 })} $
                         </td>
                         <td className="py-2 pr-4 text-right">
                           {entry.output_per_1m_usd !== null
-                            ? `${entry.output_per_1m_usd.toFixed(4)} $`
+                            ? `${formatNumber(entry.output_per_1m_usd, { maxDecimals: 4 })} $`
                             : '—'}
                         </td>
                         <td className="py-2 pr-4 text-right">
                           {entry.image_output_per_1m_usd !== null
-                            ? `${entry.image_output_per_1m_usd.toFixed(2)} $`
+                            ? `${formatNumber(entry.image_output_per_1m_usd, { maxDecimals: 2 })} $`
                             : '—'}
                         </td>
                       </tr>
@@ -67,8 +68,8 @@ export default function AiPricingSection() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Umrechnungskurs: 1 USD = {data.usd_to_eur.toFixed(4)} EUR
+              <p className="text-caption text-muted-foreground">
+                Umrechnungskurs: 1 USD = {formatNumber(data.usd_to_eur, { maxDecimals: 4 })} EUR
               </p>
             </div>
           )}

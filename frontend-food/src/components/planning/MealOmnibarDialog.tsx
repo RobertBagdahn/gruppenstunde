@@ -4,6 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRecipeSearch } from '@/api/mealPlans';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 type FilterPill = 'all' | 'recipes' | 'ingredients' | 'bundles';
 
@@ -20,7 +21,7 @@ function recipeTypeLabel(type: string): string {
   return RECIPE_TYPE_LABELS[type] ?? 'Rezept';
 }
 
-function formatNumber(value: number | null | undefined, suffix: string): string | null {
+function formatOptionalBadge(value: number | null | undefined, suffix: string): string | null {
   return value == null ? null : `${Math.round(value)} ${suffix}`;
 }
 
@@ -203,24 +204,24 @@ export function MealOmnibarDialog({
             }}
             onKeyDown={handleInputKeyDown}
             placeholder="Gericht, Zutat oder Set suchen... (z. B. Spaghetti, Haferflocken)"
-            className="min-w-0 w-full text-base font-sans bg-transparent border-0 focus:outline-none placeholder:text-muted-foreground"
+            className="min-w-0 w-full text-emphasis font-sans bg-transparent border-0 focus:outline-none placeholder:text-muted-foreground"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground"
+              className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <span className="hidden sm:inline-flex text-[11px] font-semibold text-muted-foreground px-2 py-0.5 rounded border border-border bg-muted/40">
+          <span className="hidden sm:inline-flex text-caption font-semibold text-muted-foreground px-2 py-0.5 rounded-lg border border-border bg-muted/40">
             Esc
           </span>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-border/60 bg-muted/20 overflow-x-auto text-xs">
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-border/60 bg-muted/20 overflow-x-auto text-caption">
           <button
             type="button"
             onClick={() => {
@@ -292,11 +293,11 @@ export function MealOmnibarDialog({
           {/* List Area */}
           <div className="md:col-span-7 overflow-y-auto border-r border-border p-3 space-y-1">
             {isLoading && (
-              <p className="text-xs text-muted-foreground py-10 text-center">Suche läuft...</p>
+              <p className="text-caption text-muted-foreground py-10 text-center">Suche läuft...</p>
             )}
 
             {!isLoading && displayedItems.length === 0 && (
-              <div className="py-12 text-center text-xs text-muted-foreground space-y-1">
+              <div className="py-12 text-center text-caption text-muted-foreground space-y-1">
                 <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-1 opacity-50" />
                 <p className="font-semibold text-foreground">Keine Treffer gefunden</p>
                 <p>Probiere einen anderen Suchbegriff oder wechsle den Filter.</p>
@@ -314,7 +315,7 @@ export function MealOmnibarDialog({
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={cn(
-                    'p-3 rounded-xl cursor-pointer flex items-start gap-3 transition-colors text-xs',
+                    'p-3 rounded-xl cursor-pointer flex items-start gap-3 transition-colors text-caption',
                     isSelected
                       ? 'bg-primary/10 border border-primary/30 text-foreground'
                       : 'hover:bg-muted/40 text-muted-foreground hover:text-foreground'
@@ -326,26 +327,26 @@ export function MealOmnibarDialog({
                     </div>
                   )}
                   {item.type === 'ingredient' && (
-                    <div className="w-9 h-9 rounded-lg bg-orange-500/10 text-orange-600 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0">
                       <Carrot className="w-4 h-4" />
                     </div>
                   )}
                   {item.type === 'bundle' && (
-                    <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
                       <Layers className="w-4 h-4" />
                     </div>
                   )}
 
                   <div className="flex-1 min-w-0 space-y-1">
-                    <div className="font-bold text-foreground text-sm leading-snug break-words">
+                    <div className="font-bold text-foreground text-body leading-snug break-words">
                       {item.type === 'ingredient' ? item.data.name : item.data.title}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
                       {item.type === 'recipe' && (
                         <>
                           <span>{recipeTypeLabel(item.data.recipe_type)}</span>
                           {item.data.portions != null && <span>{item.data.portions} Portionen</span>}
-                          {item.data.price_per_serving != null && <span>{item.data.price_per_serving.toFixed(2)} €/P.</span>}
+                          {item.data.price_per_serving != null && <span>{formatNumber(item.data.price_per_serving, { maxDecimals: 2 })} €/P.</span>}
                         </>
                       )}
                       {item.type === 'ingredient' && <span>Einzelzutat</span>}
@@ -366,31 +367,31 @@ export function MealOmnibarDialog({
                 {activeItem.type === 'recipe' && (
                   <>
                     <div>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-primary mb-2">
+                      <div className="flex items-center gap-2 text-caption font-semibold text-primary mb-2">
                         <ChefHat className="w-4 h-4" />
                         {recipeTypeLabel(activeItem.data.recipe_type)}
                         {activeItem.data.recipe_badge === 'verified' && (
                           <span className="inline-flex items-center gap-1 text-muted-foreground"><BadgeCheck className="w-3.5 h-3.5" />Verifiziert</span>
                         )}
                       </div>
-                      <h3 className="font-display font-bold text-xl text-foreground leading-tight break-words">
+                      <h3 className="font-display font-bold text-section text-foreground leading-tight break-words">
                         {activeItem.data.title}
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs">
-                        <span className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-caption">
+                        <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
                           <Users className="w-3.5 h-3.5 text-primary" />
                           {normPortions} Personen
                         </span>
                         {activeItem.data.price_per_serving != null && (
-                          <span className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
-                            <Euro className="w-3.5 h-3.5 text-emerald-600" />
-                            {(activeItem.data.price_per_serving * normPortions).toFixed(2)} € gesamt
+                          <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
+                            <Euro className="w-3.5 h-3.5 text-success" />
+                            {formatNumber((activeItem.data.price_per_serving * normPortions), { maxDecimals: 2 })} € gesamt
                           </span>
                         )}
                       </div>
                     </div>
                     {(activeItem.data.description || (activeItem.data.ingredients_preview?.length ?? 0) > 0) && (
-                      <div className="space-y-3 text-xs">
+                      <div className="space-y-3 text-caption">
                         {activeItem.data.description && <p className="text-muted-foreground leading-relaxed break-words">{activeItem.data.description}</p>}
                         {activeItem.data.ingredients_preview && activeItem.data.ingredients_preview.length > 0 && (
                           <div className="rounded-xl border border-border bg-card p-3">
@@ -402,10 +403,10 @@ export function MealOmnibarDialog({
                     )}
                     {(activeItem.data.cached_energy_kcal != null || activeItem.data.cached_protein_g != null || activeItem.data.nutritional_tags?.length) && (
                       <div className="rounded-xl border border-border bg-card p-3 space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-foreground"><Flame className="w-3.5 h-3.5 text-primary" />Nährwerte und Hinweise</div>
-                        <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                          {formatNumber(activeItem.data.cached_energy_kcal, 'kcal') && <span>{formatNumber(activeItem.data.cached_energy_kcal, 'kcal')}</span>}
-                          {formatNumber(activeItem.data.cached_protein_g, 'g Protein') && <span>{formatNumber(activeItem.data.cached_protein_g, 'g Protein')}</span>}
+                        <div className="flex items-center gap-2 text-caption font-semibold text-foreground"><Flame className="w-3.5 h-3.5 text-primary" />Nährwerte und Hinweise</div>
+                        <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
+                          {formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal') && <span>{formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal')}</span>}
+                          {formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein') && <span>{formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein')}</span>}
                           {activeItem.data.nutritional_tags?.map((tag) => <span key={tag.id} className="rounded-full bg-primary/10 px-2 py-1 text-primary">{tag.name}</span>)}
                         </div>
                       </div>
@@ -415,14 +416,14 @@ export function MealOmnibarDialog({
 
                 {activeItem.type === 'ingredient' && (
                   <div className="space-y-3 py-4 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center mx-auto">
+                    <div className="w-14 h-14 rounded-xl bg-warning-soft text-warning flex items-center justify-center mx-auto">
                       <Carrot className="w-7 h-7" />
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-base text-foreground">
+                      <h3 className="font-display font-bold text-emphasis text-foreground">
                         {activeItem.data.name}
                       </h3>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-caption text-muted-foreground mt-1">
                         Einzelzutat für {normPortions} Personen hinzufügen
                       </p>
                     </div>
@@ -431,14 +432,14 @@ export function MealOmnibarDialog({
 
                 {activeItem.type === 'bundle' && (
                   <div className="space-y-3 py-4 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center mx-auto">
+                    <div className="w-14 h-14 rounded-xl bg-info-soft text-info flex items-center justify-center mx-auto">
                       <Layers className="w-7 h-7" />
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-base text-foreground">
+                      <h3 className="font-display font-bold text-emphasis text-foreground">
                         {activeItem.data.title}
                       </h3>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-caption text-muted-foreground mt-1">
                         {activeItem.data.description}
                       </p>
                     </div>
@@ -446,7 +447,7 @@ export function MealOmnibarDialog({
                 )}
               </div>
             ) : (
-              <div className="py-20 text-center text-xs text-muted-foreground">
+              <div className="py-20 text-center text-caption text-muted-foreground">
                 Kein Element ausgewählt
               </div>
             )}
@@ -456,7 +457,7 @@ export function MealOmnibarDialog({
                 <button
                   type="button"
                   onClick={() => handleConfirmSelection(activeItem)}
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-caption bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span>

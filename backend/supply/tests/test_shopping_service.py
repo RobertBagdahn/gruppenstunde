@@ -249,3 +249,73 @@ class TestShoppingListRankOrdering:
         items = generate_shopping_list(meal_plan)
         names_in_order = [item.ingredient_name for item in items]
         assert names_in_order == ["Zzz Apfel", "Aaa Sonstige Zutat"]
+
+
+@pytest.mark.django_db
+class TestShoppingPackagesAndLiquids:
+    """Packages (rank=1, 5 % tolerance) and millilitres for beverages/liquids."""
+
+    def _plan_with(self, ingredient, quantity_g_per_person: float):
+        from model_bakery import baker
+
+        from planner.models import MealItem
+
+        meal_plan = make_meal_plan(norm_portions=10, reserve_factor=1.0)
+        meal = make_meal(meal_plan=meal_plan)
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
+        baker.make(
+            MealItem,
+            meal=meal,
+            recipe=None,
+            ingredient=ingredient,
+            quantity=Decimal(str(quantity_g_per_person)),
+            measuring_unit=mu,
+            factor=1.0,
+        )
+        return meal_plan
+
+    def _package(self, ingredient, weight_g: float, name: str = "Packung", rank: int = 1):
+        from supply.models import Package
+
+        return Package.objects.create(ingredient=ingredient, name=name, weight_g=weight_g, rank=rank)
+
+    @pytest.mark.parametrize(
+        ("total_g", "package_g", "count", "surplus"),
+        [(1020, 500, 2, -20.0), (700, 250, 3, 50.0), (30, 500, 1, 470.0)],
+    )
+    def test_package_need(self, total_g, package_g, count, surplus):
+        ing = make_ingredient(name=f"Nudeln {total_g}")
+        self._package(ing, package_g)
+        [item] = generate_shopping_list(self._plan_with(ing, total_g / 10))
+        assert item.total_quantity_g == pytest.approx(total_g)
+        assert item.package_options == [{"count": count, "package_name": "Packung", "weight_g": package_g}]
+        assert item.package_surplus_g == pytest.approx(surplus)
+
+    def test_no_package_means_no_options(self):
+        ing = make_ingredient(name="Pfeffer")
+        [item] = generate_shopping_list(self._plan_with(ing, 0.3))
+        assert item.package_options is None
+        assert item.package_surplus_g is None
+
+    def test_only_rank_one_package_is_used(self):
+        ing = make_ingredient(name="Reis")
+        self._package(ing, 1000, name="Großpackung", rank=2)
+        [item] = generate_shopping_list(self._plan_with(ing, 70))
+        assert item.package_options is None
+
+    def test_milk_is_listed_in_ml(self):
+        milk = make_ingredient(name="Milch", physical_viscosity="beverage", physical_density=1.03)
+        [item] = generate_shopping_list(self._plan_with(milk, 940))
+        assert item.total_quantity_g == pytest.approx(9400)
+        assert item.quantity == 9126
+        assert item.unit == "ml"
+
+    def test_liquid_is_listed_in_ml(self):
+        oil = make_ingredient(name="Rapsöl", physical_viscosity="liquid", physical_density=0.92)
+        [item] = generate_shopping_list(self._plan_with(oil, 92))
+        assert (item.quantity, item.unit) == (1000, "ml")
+
+    def test_solid_stays_in_grams(self):
+        flour = make_ingredient(name="Mehl", physical_viscosity="solid")
+        [item] = generate_shopping_list(self._plan_with(flour, 50))
+        assert (item.quantity, item.unit) == (pytest.approx(500), "g")

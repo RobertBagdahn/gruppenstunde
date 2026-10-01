@@ -167,8 +167,8 @@ export default function MealPlanWizardPage() {
     <div className="max-w-5xl mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="font-display font-bold text-2xl text-foreground">Neuen Essensplan erstellen</h1>
-        <p className="text-sm text-muted-foreground mt-1">Schritt {currentStepIndex + 1} von {WIZARD_STEPS.length - (state.strategy !== 'ai' ? 1 : 0)}</p>
+        <h1 className="font-display font-bold text-title text-foreground">Neuen Essensplan erstellen</h1>
+        <p className="text-body text-muted-foreground mt-1">Schritt {currentStepIndex + 1} von {WIZARD_STEPS.length - (state.strategy !== 'ai' ? 1 : 0)}</p>
       </div>
 
       {/* Step progress */}
@@ -185,7 +185,7 @@ export default function MealPlanWizardPage() {
                   isActive ? 'bg-primary' : isPast ? 'bg-primary/40' : 'bg-muted'
                 }`}
               />
-              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${
+              <p className={`text-caption font-bold uppercase tracking-wider mt-1 ${
                 isActive ? 'text-primary' : isPast ? 'text-muted-foreground' : 'text-muted-foreground/50'
               }`}>
                 {STEP_LABELS[s]}
@@ -251,7 +251,7 @@ export default function MealPlanWizardPage() {
         <button
           type="button"
           onClick={step === 'basics' ? handleCancel : goPrev}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-body font-semibold hover:bg-muted transition-all"
         >
           <ArrowLeft className="w-4 h-4" />
           {step === 'basics' ? 'Abbrechen' : 'Zurück'}
@@ -262,7 +262,7 @@ export default function MealPlanWizardPage() {
             type="button"
             onClick={goNext}
             disabled={!isStepValid()}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
           >
             Weiter
             <ArrowRight className="w-4 h-4" />

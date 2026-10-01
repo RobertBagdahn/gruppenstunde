@@ -79,35 +79,35 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
   ];
 
   return (
-    <div className={cn('bg-card rounded-2xl border p-5 space-y-5 shadow-sm', className)}>
+    <div className={cn('bg-card rounded-xl border p-5 space-y-5 shadow-sm', className)}>
       {/* Header Row with Gesamtkosten & Nutri-Score */}
       <div className="flex items-center justify-between gap-4 border-b pb-4">
         <div className="flex-1">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Gesamtkosten</p>
+          <p className="text-caption text-muted-foreground uppercase tracking-wider font-semibold mb-1">Gesamtkosten</p>
           {isLoading ? (
             <>
-              <div className="h-9 bg-muted/60 rounded animate-pulse mb-2 w-24" />
-              <div className="h-3 bg-muted/40 rounded animate-pulse w-20" />
+              <div className="h-9 bg-muted/60 rounded-lg animate-pulse mb-2 w-24" />
+              <div className="h-3 bg-muted/40 rounded-lg animate-pulse w-20" />
             </>
           ) : (
             <>
-              <p className="text-3xl font-black text-foreground tracking-tight">{formattedPrice}</p>
+              <p className="text-title font-black text-foreground tracking-tight">{formattedPrice}</p>
               {formattedPricePerPortion && (
-                <p className="text-xs text-muted-foreground mt-1">{formattedPricePerPortion}</p>
+                <p className="text-caption text-muted-foreground mt-1">{formattedPricePerPortion}</p>
               )}
             </>
           )}
         </div>
         {isLoading ? (
           <div className="flex flex-col items-center gap-1.5">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Nutri-Score</p>
+            <p className="text-caption text-muted-foreground uppercase tracking-wider font-semibold">Nutri-Score</p>
             <div className="w-10 h-10 bg-muted/60 rounded-full animate-pulse" />
           </div>
         ) : (
           nutriLabel && nutriColors && (
             <div className="flex flex-col items-center gap-1.5" title={`Nutri-Score ${nutriLabel}: ${['Hervorragend', 'Gut', 'Ausreichend', 'Mäßig', 'Schlecht'][recipe.cached_nutri_class! - 1]}`}>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Nutri-Score</span>
-              <span className={cn(nutriColors.bg, nutriColors.text, 'flex items-center justify-center w-10 h-10 text-xl font-black rounded-full shadow-sm cursor-help')}>
+              <span className="text-caption text-muted-foreground uppercase tracking-wider font-semibold">Nutri-Score</span>
+              <span className={cn(nutriColors.bg, nutriColors.text, 'flex items-center justify-center w-10 h-10 text-section font-black rounded-full shadow-sm cursor-help')}>
                 {nutriLabel}
               </span>
             </div>
@@ -123,10 +123,10 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
               <item.Icon className="w-4 h-4 text-primary" />
             </div>
             <div className="min-w-0 pt-0.5">
-              <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1.5">
+              <p className="text-caption text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1.5">
                 {item.label}
               </p>
-              <p className="font-semibold text-foreground text-sm leading-snug line-clamp-2 break-words" title={item.value}>
+              <p className="font-semibold text-foreground text-body leading-snug line-clamp-2 break-words" title={item.value}>
                 {item.value}
               </p>
             </div>
@@ -145,10 +145,10 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
               <item.Icon className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="min-w-0 pt-0.5">
-              <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1.5">
+              <p className="text-caption text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1.5">
                 {item.label}
               </p>
-              <p className="font-semibold text-foreground text-sm leading-snug line-clamp-2 break-words" title={item.value}>
+              <p className="font-semibold text-foreground text-body leading-snug line-clamp-2 break-words" title={item.value}>
                 {item.value}
               </p>
             </div>
@@ -165,10 +165,10 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
               <Calendar className="w-4 h-4 text-muted-foreground/50" />
             </div>
             <div className="min-w-0 pt-0.5">
-              <p className="text-[11px] text-muted-foreground/60 font-medium uppercase tracking-wide leading-none mb-1.5">
+              <p className="text-caption text-muted-foreground/60 font-medium uppercase tracking-wide leading-none mb-1.5">
                 Erstellt am
               </p>
-              <p className="font-semibold text-foreground/60 text-sm leading-snug line-clamp-2 break-words" title={createdAtLabel}>
+              <p className="font-semibold text-foreground/60 text-body leading-snug line-clamp-2 break-words" title={createdAtLabel}>
                 {createdAtLabel}
               </p>
             </div>

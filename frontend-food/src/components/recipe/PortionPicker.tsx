@@ -14,7 +14,8 @@
 import { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { useStandardMeasures } from '@/api/supplies';
-import { formatGramsShort, type PortionLabelInput } from '@/lib/portionLabels';
+import { type PortionLabelInput } from '@/lib/portionLabels';
+import { formatExactWeight } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export interface PortionPickerPortion extends PortionLabelInput {
@@ -81,7 +82,7 @@ export default function PortionPicker({
       : 'Gramm';
   const triggerWeightG = selectedPortion?.weight_g ?? (isFallbackSelected ? selectedFallback!.weight_g : null);
   const triggerWeight = triggerWeightG && triggerWeightG > 0
-    ? formatGramsShort(triggerWeightG)
+    ? formatExactWeight(triggerWeightG)
     : ((selectedPortion || isFallbackSelected) ? 'Gewicht fehlt' : null);
 
   const sortedPortions = [...portions].sort((a, b) => a.rank - b.rank);
@@ -94,11 +95,11 @@ export default function PortionPicker({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label="Portion wählen"
-        className="w-full flex items-center justify-between gap-1 min-w-[4.5rem] px-1.5 py-1.5 text-xs text-muted-foreground border border-input rounded-md bg-background hover:bg-muted transition-colors"
+        className="w-full flex items-center justify-between gap-1 min-w-[4.5rem] px-1.5 py-1.5 text-caption text-muted-foreground border border-input rounded-lg bg-background hover:bg-muted transition-colors"
       >
         <span className="truncate">{triggerLabel}</span>
-        <span className={cn('flex items-center gap-1 shrink-0', 'text-xs tabular-nums')}>
-          {triggerWeight && <span className={!triggerWeightG || triggerWeightG <= 0 ? 'text-amber-600' : ''}>{triggerWeight}</span>}
+        <span className={cn('flex items-center gap-1 shrink-0', 'text-caption tabular-nums')}>
+          {triggerWeight && <span className={!triggerWeightG || triggerWeightG <= 0 ? 'text-warning' : ''}>{triggerWeight}</span>}
           <ChevronDown size={12} className={cn('transition-transform', isOpen && 'rotate-180')} />
         </span>
       </button>
@@ -106,9 +107,9 @@ export default function PortionPicker({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-30" onClick={close} />
-          <div className="absolute top-full right-0 mt-1 w-56 max-w-[80vw] bg-card border border-border rounded-lg shadow-lg z-40 max-h-72 overflow-y-auto p-1">
+          <div className="absolute top-full right-0 mt-1 w-56 max-w-[80vw] bg-card border border-border rounded-xl shadow-lg z-40 max-h-72 overflow-y-auto p-1">
             {/* Portionen der Zutat */}
-            <p className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+            <p className="px-2 py-1 text-caption font-medium uppercase tracking-wide text-muted-foreground/70">
               Zutat
             </p>
             {sortedPortions.map((portion) => {
@@ -125,17 +126,17 @@ export default function PortionPicker({
                     close();
                   }}
                   className={cn(
-                    'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-sm rounded-md transition-colors text-left',
+                    'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left',
                     isSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
                   )}
                 >
                   <span className="truncate">{portionDisplayName(portion)}</span>
                   {hasWeight ? (
-                    <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                      {formatGramsShort(portion.weight_g ?? 0)}
+                    <span className="text-caption text-muted-foreground shrink-0 tabular-nums">
+                      {formatExactWeight(portion.weight_g ?? 0)}
                     </span>
                   ) : (
-                    <span className="text-xs text-amber-600 shrink-0">Gewicht fehlt</span>
+                    <span className="text-caption text-warning shrink-0">Gewicht fehlt</span>
                   )}
                   {isSelected && <Check size={14} className="shrink-0 text-primary" />}
                 </button>
@@ -145,7 +146,7 @@ export default function PortionPicker({
             {/* Standardmengen-Katalog */}
             {ingredientSlug && standardMeasures.length > 0 && (
               <>
-                <p className="px-2 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                <p className="px-2 pt-2 pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground/70">
                   Standardmengen
                 </p>
                 {standardMeasures.map((measure) => (
@@ -157,11 +158,11 @@ export default function PortionPicker({
                       onSelectStandardMeasure(measure);
                       close();
                     }}
-                    className="w-full flex items-center justify-between gap-1 px-2 py-1.5 text-sm rounded-md transition-colors text-left hover:bg-muted text-foreground"
+                    className="w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left hover:bg-muted text-foreground"
                   >
                     <span className="truncate">{measure.name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                      {formatGramsShort(measure.grams)} g{measure.is_approx ? ' (ca.)' : ''}
+                    <span className="text-caption text-muted-foreground shrink-0 tabular-nums">
+                      {formatExactWeight(measure.grams)}{measure.is_approx ? ' (ca.)' : ''}
                     </span>
                   </button>
                 ))}
@@ -171,7 +172,7 @@ export default function PortionPicker({
             {/* Direkte Gramm-Eingabe */}
             {showGramsSection && (
               <>
-                <p className="px-2 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                <p className="px-2 pt-2 pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground/70">
                   Gramm
                 </p>
                 <button
@@ -183,12 +184,12 @@ export default function PortionPicker({
                     close();
                   }}
                   className={cn(
-                    'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-sm rounded-md transition-colors text-left',
+                    'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left',
                     value == null ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
                   )}
                 >
                   <span>Gramm</span>
-                  <span className="text-xs text-muted-foreground shrink-0">freie Menge</span>
+                  <span className="text-caption text-muted-foreground shrink-0">freie Menge</span>
                   {value == null && <Check size={14} className="shrink-0 text-primary" />}
                 </button>
               </>

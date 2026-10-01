@@ -45,16 +45,16 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
       {state.basis.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-base">Sortenverteilung</h3>
+            <h3 className="font-display font-semibold text-emphasis">Sortenverteilung</h3>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => wiz.openCreateModal('ingredient', 'breakfast-base')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
               >
                 +  Neue Basis erstellen
               </button>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-caption text-muted-foreground">
                  {Math.round(totalGrams)}g · {Math.round(breadKcal)} kcal/Person
               </span>
             </div>
@@ -85,7 +85,7 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
             })}
           </div>
           {hasMuesli && (
-            <p className="text-xs text-muted-foreground rounded-lg bg-muted/50 px-3 py-2">
+            <p className="text-caption text-muted-foreground rounded-lg bg-muted/50 px-3 py-2">
               Müsli-Menge als Trockenprodukt. Milch, Hafermilch und Obst kannst du in den nächsten Schritten ergänzen.
             </p>
           )}
@@ -93,17 +93,17 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
       )}
 
       {isPending && (
-        <p className="text-sm text-muted-foreground text-center py-8">
+        <p className="text-body text-muted-foreground text-center py-8">
           Katalog wird geladen…
         </p>
       )}
       {isError && (
-        <p className="text-sm text-destructive text-center py-8">
+        <p className="text-body text-destructive text-center py-8">
           Fehler beim Laden des Katalogs
         </p>
       )}
       {!isPending && !isError && catalog && catalog.base_ingredients.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">
+        <p className="text-body text-muted-foreground text-center py-8">
           Keine Basis-Zutaten verfügbar
         </p>
       )}

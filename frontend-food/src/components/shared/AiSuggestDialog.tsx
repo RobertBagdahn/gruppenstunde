@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
+import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -164,8 +165,8 @@ export function AiSuggestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="material-symbols-outlined text-primary">auto_awesome</span>
+          <DialogTitle className="flex items-center gap-2 text-emphasis">
+            <Icon name="auto_awesome" size={24} className="text-primary" />
             {title}
           </DialogTitle>
           <DialogDescription>
@@ -179,12 +180,12 @@ export function AiSuggestDialog({
           </p>
         ) : isLoading ? (
           <div className="space-y-3 py-4">
-            <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-2/3 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-2/3 bg-muted animate-pulse rounded" />
+            <div className="h-4 w-3/4 bg-muted animate-pulse rounded-lg" />
+            <div className="h-4 w-1/2 bg-muted animate-pulse rounded-lg" />
+            <div className="h-4 w-2/3 bg-muted animate-pulse rounded-lg" />
+            <div className="h-4 w-3/4 bg-muted animate-pulse rounded-lg" />
+            <div className="h-4 w-1/2 bg-muted animate-pulse rounded-lg" />
+            <div className="h-4 w-2/3 bg-muted animate-pulse rounded-lg" />
           </div>
         ) : relevantFields.length === 0 ? (
           <p className="py-6 text-center text-muted-foreground italic">
@@ -198,14 +199,14 @@ export function AiSuggestDialog({
                 className={groupName === 'Name' ? 'md:col-span-2 lg:col-span-3' : ''}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">
+                  <h4 className="text-body font-medium text-muted-foreground">
                     {groupName}
                   </h4>
                   {perGroupSelectAll && groupFields.length > 1 && (
                     <button
                       type="button"
                       onClick={() => toggleGroup(groupFields)}
-                      className="text-xs text-primary hover:underline"
+                      className="text-caption text-primary hover:underline"
                     >
                       {groupFields.every((f) => selected.has(f.key)) ? 'Keine auswählen' : 'Alle auswählen'}
                     </button>
@@ -215,29 +216,29 @@ export function AiSuggestDialog({
                   {groupFields.map((field) => (
                     <label
                       key={field.key}
-                      className="flex items-center gap-3 rounded-md border p-2 cursor-pointer hover:bg-accent/50"
+                      className="flex items-center gap-3 rounded-lg border p-2 cursor-pointer hover:bg-accent/50"
                     >
                       <input
                         type="checkbox"
                         checked={selected.has(field.key)}
                         onChange={() => toggleField(field.key)}
-                        className="h-4 w-4 rounded border-border"
+                        className="h-4 w-4 rounded-lg border-border"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium flex items-center gap-2">
+                        <div className="text-body font-medium flex items-center gap-2">
                           {field.label}
                           {field.type === 'list' && field.priority !== undefined && field.priority >= 100 && (
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary">
+                            <span className="inline-flex items-center rounded-lg px-1.5 py-0.5 text-caption font-semibold bg-primary/10 text-primary">
                               Rezeptportion
                             </span>
                           )}
                           {field.type === 'list' && field.priority !== undefined && field.priority >= 50 && field.priority < 100 && (
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground">
+                            <span className="inline-flex items-center rounded-lg px-1.5 py-0.5 text-caption font-semibold bg-muted text-muted-foreground">
                               Packung
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground flex gap-2">
+                        <div className="text-caption text-muted-foreground flex gap-2">
                           {field.type === 'list' ? (
                             <span>{formatListValue(field.suggestedValue)}</span>
                           ) : (
@@ -267,12 +268,12 @@ export function AiSuggestDialog({
                 type="checkbox"
                 checked={extraCheckbox.checked}
                 onChange={(e) => extraCheckbox.onChange(e.target.checked)}
-                className="h-4 w-4 rounded border-border"
+                className="h-4 w-4 rounded-lg border-border"
               />
-              <span className="text-sm font-medium">{extraCheckbox.label}</span>
+              <span className="text-body font-medium">{extraCheckbox.label}</span>
             </label>
             {extraCheckbox.checked && extraCheckbox.warning && (
-              <p className="mt-1 ml-7 text-xs text-destructive">{extraCheckbox.warning}</p>
+              <p className="mt-1 ml-7 text-caption text-destructive">{extraCheckbox.warning}</p>
             )}
           </div>
         )}
@@ -284,7 +285,7 @@ export function AiSuggestDialog({
                 {allSelected ? 'Keine auswählen' : 'Alle auswählen'}
               </Button>
               {interactionId && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 text-caption text-muted-foreground">
                   <span>Hilfreich?</span>
                   <AiVoteButtons interactionId={interactionId} />
                 </div>

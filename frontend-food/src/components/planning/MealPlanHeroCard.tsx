@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { MealPlan } from '@/schemas/mealPlan';
 import { getPlanBadge, formatDateRange, getDaysCount } from '@/schemas/mealPlan';
+import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   verified: {
@@ -25,13 +27,13 @@ const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> 
   },
   community: {
     label: 'Community',
-    bg: 'bg-[hsl(var(--chart-3))]/10 border border-[hsl(var(--chart-3))]/20',
-    text: 'text-[hsl(var(--chart-3))]',
+    bg: 'bg-info-soft border border-info-border',
+    text: 'text-info',
   },
   personal: {
     label: 'Mein Plan',
-    bg: 'bg-[hsl(var(--chart-2))]/10 border border-[hsl(var(--chart-2))]/20',
-    text: 'text-[hsl(var(--chart-2))]',
+    bg: 'bg-warning-soft border border-warning-border',
+    text: 'text-warning',
   },
 };
 
@@ -60,7 +62,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2.5">
           {badgeConfig && (
-            <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+            <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
               {badgeConfig.label}
             </span>
           )}
@@ -76,7 +78,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
             <DropdownMenuItem
-              className="font-semibold text-xs"
+              className="font-semibold text-caption"
               onClick={(e) => {
                 e.stopPropagation();
                 onUseAsTemplate(plan);
@@ -90,7 +92,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
                 e.stopPropagation();
                 onDelete(plan.id);
               }}
-              className="text-destructive focus:text-destructive font-semibold text-xs"
+              className="text-destructive focus:text-destructive font-semibold text-caption"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Löschen
@@ -100,13 +102,13 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       </div>
 
       {/* Name */}
-      <h3 className="font-display font-bold text-lg md:text-xl text-foreground truncate group-hover:text-primary transition-colors mb-1">
+      <h3 className="font-display font-bold text-section md:text-section text-foreground truncate group-hover:text-primary transition-colors mb-1">
         {plan.name}
       </h3>
 
       {/* Event link */}
       {plan.event_name && (
-        <p className="text-xs text-muted-foreground font-medium mb-2">
+        <p className="text-caption text-muted-foreground font-medium mb-2">
           Verknüpft mit:{' '}
           <span className="inline-flex items-center gap-1 text-primary font-semibold">
             <Sparkles className="w-3 h-3" />
@@ -118,13 +120,13 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       {/* Date range */}
       <div className="flex flex-wrap items-center gap-3 mb-3">
         {dateRange && (
-          <span className="inline-flex items-center gap-1 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-1 text-body font-semibold text-foreground">
             <Calendar className="w-4 h-4 text-muted-foreground" />
             {dateRange}
           </span>
         )}
         {daysCount > 0 && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {daysCount} {daysCount === 1 ? 'Tag' : 'Tage'}
           </span>
         )}
@@ -133,25 +135,25 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       {/* Meal count */}
       {totalMeals > 0 && (
         <div className="mb-3">
-          <span className="text-xs font-semibold text-muted-foreground">
+          <span className="text-caption font-semibold text-muted-foreground">
             {totalMeals} {totalMeals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} geplant
           </span>
         </div>
       )}
 
       {/* Info row */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground mb-3">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption font-semibold text-muted-foreground mb-3">
         <span className="inline-flex items-center gap-1">
           <Users className="w-3.5 h-3.5" />
-          {plan.norm_portions.toFixed(1)} Portionen
+          {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
           {reservePercent > 0 && (
-            <span className="text-[10px] text-muted-foreground/70">(+{reservePercent}% Reserve)</span>
+            <span className="text-caption text-muted-foreground/70">(+{reservePercent}% Reserve)</span>
           )}
         </span>
         {plan.budget_per_person_per_day != null && (
           <span className="inline-flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">euro</span>
-            {Number(plan.budget_per_person_per_day).toFixed(2).replace('.', ',')} €/Person/Tag
+            <Icon name="euro" size={16} />
+            {formatNumber(Number(plan.budget_per_person_per_day), { maxDecimals: 2 }).replace('.', ',')} €/Person/Tag
           </span>
         )}
       </div>
@@ -162,7 +164,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
           {plan.nutritional_tag_names.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center rounded-full bg-primary/5 border border-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary"
+              className="inline-flex items-center rounded-full bg-primary/5 border border-primary/15 px-2 py-0.5 text-caption font-semibold text-primary"
             >
               {tag}
             </span>
@@ -177,14 +179,14 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
             e.stopPropagation();
             navigate(`/meal-plans/${plan.id}`);
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-caption font-semibold hover:bg-primary/90 transition-colors"
         >
           Öffnen
         </button>
         {plan.budget_per_person_per_day != null && (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 text-caption text-muted-foreground">
             <ShoppingCart className="w-3.5 h-3.5" />
-            Budget {Number(plan.budget_per_person_per_day).toFixed(2).replace('.', ',')} €/Tag
+            Budget {formatNumber(Number(plan.budget_per_person_per_day), { maxDecimals: 2 }).replace('.', ',')} €/Tag
           </span>
         )}
       </div>

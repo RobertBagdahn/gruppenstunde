@@ -39,14 +39,14 @@ export default function RecipeServingContextSelector({
   }
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5" data-testid="recipe-serving-context-selector">
+    <div className="rounded-xl border border-warning-border bg-warning-soft p-4 sm:p-5" data-testid="recipe-serving-context-selector">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-amber-900">Für wie viele Personen?</h3>
-          <p className="mt-1 max-w-xl text-sm text-amber-800">{description}</p>
+          <h3 className="text-body font-semibold text-warning">Für wie viele Personen?</h3>
+          <p className="mt-1 max-w-xl text-body text-warning">{description}</p>
         </div>
         <div className="flex items-end gap-3">
-          <label className="text-sm font-medium text-amber-900">
+          <label className="text-body font-medium text-warning">
             Personen
             <input
               type="number"
@@ -57,7 +57,7 @@ export default function RecipeServingContextSelector({
               onBlur={handleBlur}
               aria-label="Personenzahl"
               data-testid="recipe-serving-context-input"
-              className="mt-1 block w-24 rounded-lg border border-amber-300 bg-white px-3 py-2 text-center text-base font-semibold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="mt-1 block w-24 rounded-lg border border-warning-border bg-white px-3 py-2 text-center text-emphasis font-semibold text-warning focus:outline-none focus:ring-2 focus:ring-warning"
             />
           </label>
           {onConfirm && (

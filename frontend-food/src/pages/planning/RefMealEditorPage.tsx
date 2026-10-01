@@ -21,6 +21,7 @@ import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
 import { BackButton } from '@/components/shared/BackButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefMealSyncConfirmDialog } from '@/components/planning/RefMealSyncConfirmDialog';
+import { formatNumber } from '@/lib/format';
 
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
@@ -240,15 +241,15 @@ export default function RefMealEditorPage() {
     setLocalItems((prev) =>
       prev.map((item) => ({ ...item, factor: Math.round((item.factor || 1) * ratio * 100) / 100 }))
     );
-    toast.success(`Faktoren normalisiert (×${ratio.toFixed(2)})`);
+    toast.success(`Faktoren normalisiert (×${formatNumber(ratio, { maxDecimals: 2 })})`);
   };
 
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/3" />
-          <div className="h-64 bg-muted rounded" />
+          <div className="h-8 bg-muted rounded-lg w-1/3" />
+          <div className="h-64 bg-muted rounded-lg" />
         </div>
       </div>
     );
@@ -265,11 +266,11 @@ export default function RefMealEditorPage() {
       <div className="flex items-center gap-3">
         <BackButton />
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-title font-bold">
             Referenz-Mahlzeit: {mealTypeLabel}
           </h1>
           {plan && (
-            <p className="text-muted-foreground text-sm">{plan.name}</p>
+            <p className="text-muted-foreground text-body">{plan.name}</p>
           )}
         </div>
       </div>
@@ -285,23 +286,23 @@ export default function RefMealEditorPage() {
               canEdit ? (
                 <button
                   onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                 >
                   Frühstücksassistent starten
                 </button>
               ) : (
-                <p className="text-sm text-muted-foreground">Keine Berechtigung zum Erstellen von Referenz-Mahlzeiten.</p>
+                <p className="text-body text-muted-foreground">Keine Berechtigung zum Erstellen von Referenz-Mahlzeiten.</p>
               )
             ) : (
               canEdit ? (
                 <button
                   onClick={handleCreateRefMeal}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                 >
                   Referenz-Mahlzeit erstellen
                 </button>
               ) : (
-                <p className="text-sm text-muted-foreground">Keine Berechtigung zum Erstellen von Referenz-Mahlzeiten.</p>
+                <p className="text-body text-muted-foreground">Keine Berechtigung zum Erstellen von Referenz-Mahlzeiten.</p>
               )
             )}
           </CardContent>
@@ -313,7 +314,7 @@ export default function RefMealEditorPage() {
         <div className="flex justify-end">
           <button
             onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm border rounded-lg hover:bg-muted transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-body border rounded-lg hover:bg-muted transition-colors"
           >
             Frühstücksassistent öffnen
           </button>
@@ -329,13 +330,13 @@ export default function RefMealEditorPage() {
             return (
               <Card key={cat}>
                 <CardContent className="p-4 space-y-2">
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  <h3 className="font-semibold text-body text-muted-foreground uppercase tracking-wide">
                     {CATEGORY_LABELS[cat]}
                   </h3>
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between text-sm"
+                      className="flex items-center justify-between text-body"
                     >
                       <span className="font-medium">
                         {item.display_name || item.recipe_title || item.ingredient_name || 'Unbekannt'}
@@ -354,12 +355,12 @@ export default function RefMealEditorPage() {
           {/* Energy split */}
           <Card>
             <CardContent className="p-4 space-y-2 bg-muted/50">
-              <h3 className="font-semibold text-sm">Energie pro Person</h3>
-              <div className="flex justify-between text-sm">
+              <h3 className="font-semibold text-body">Energie pro Person</h3>
+              <div className="flex justify-between text-body">
                 <span>Essen:</span>
                 <span className="font-mono">{Math.round(foodKcal)} kcal</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-body">
                 <span>Getränke:</span>
                 <span className="font-mono">{Math.round(drinkKcal)} kcal</span>
               </div>
@@ -369,8 +370,8 @@ export default function RefMealEditorPage() {
           {/* Sync info */}
           <Card>
             <CardContent className="p-4 space-y-2 bg-muted/50">
-              <h3 className="font-semibold text-sm">Verknüpfung</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-body">Verknüpfung</h3>
+              <p className="text-body text-muted-foreground">
                 {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
                 {plan && (
                   <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
@@ -385,14 +386,14 @@ export default function RefMealEditorPage() {
               <button
                 onClick={handleSync}
                 disabled={syncRefMeal.isPending}
-                className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
               >
                 Für alle übernehmen
               </button>
               <button
                 onClick={handleLinkAll}
                 disabled={linkAllMeals.isPending}
-                className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
               >
                 Alle {mealTypeLabel} verknüpfen
               </button>
@@ -406,13 +407,13 @@ export default function RefMealEditorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Recipe Picker (Baukasten) */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Verfügbare Rezepte</h2>
+            <h2 className="text-section font-semibold">Verfügbare Rezepte</h2>
             <input
               type="text"
               placeholder="Rezepte suchen..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md text-sm"
+              className="w-full px-3 py-2 border rounded-lg text-body"
             />
 
             {/* Recipe tiles grouped by type */}
@@ -423,17 +424,17 @@ export default function RefMealEditorPage() {
                     <button
                       key={recipe.id}
                       onClick={() => handleAddRecipe(recipe.id, recipe.title)}
-                      className="p-3 border rounded-md text-left text-sm hover:bg-accent hover:border-primary transition-colors"
+                      className="p-3 border rounded-lg text-left text-body hover:bg-accent hover:border-primary transition-colors"
                     >
                       <span className="font-medium">{recipe.title}</span>
-                      <span className="block text-xs text-muted-foreground mt-0.5">
+                      <span className="block text-caption text-muted-foreground mt-0.5">
                         {RECIPE_TYPE_GROUPS[recipe.recipe_type] || recipe.recipe_type}
                       </span>
                     </button>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-body text-muted-foreground">
                   Keine Rezepte gefunden. Führe den Seed-Command aus.
                 </p>
               )}
@@ -442,24 +443,24 @@ export default function RefMealEditorPage() {
 
           {/* Right: Selected items + Energy overview */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Zusammenstellung</h2>
+            <h2 className="text-section font-semibold">Zusammenstellung</h2>
 
             {/* Items list */}
             <div className="space-y-2">
               {localItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-4 border rounded-md text-center">
+                <p className="text-body text-muted-foreground p-4 border rounded-lg text-center">
                   Noch keine Rezepte ausgewählt. Klicke links auf ein Rezept.
                 </p>
               ) : (
                 localItems.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 p-3 border rounded-md"
+                    className="flex items-center gap-2 p-3 border rounded-lg"
                   >
-                    <span className="flex-1 text-sm font-medium truncate">
+                    <span className="flex-1 text-body font-medium truncate">
                       {item.display_name || `Rezept #${item.recipe_id}`}
                     </span>
-                    <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <label className="flex items-center gap-1 text-caption text-muted-foreground">
                       ×
                       <input
                         type="number"
@@ -470,12 +471,12 @@ export default function RefMealEditorPage() {
                         step={0.1}
                         min={0.1}
                         max={5}
-                        className="w-16 px-1 py-0.5 border rounded text-sm text-center"
+                        className="w-16 px-1 py-0.5 border rounded-lg text-body text-center"
                       />
                     </label>
                     <button
                       onClick={() => handleRemoveItem(index)}
-                      className="text-destructive hover:text-destructive/80 text-sm p-1"
+                      className="text-destructive hover:text-destructive/80 text-body p-1"
                       title="Entfernen"
                     >
                       ✕
@@ -488,16 +489,16 @@ export default function RefMealEditorPage() {
             {/* Energy overview */}
             <Card>
               <CardContent className="p-4 space-y-2 bg-muted/50">
-                <h3 className="font-semibold text-sm">Energie pro Person</h3>
-                <div className="flex justify-between text-sm">
+                <h3 className="font-semibold text-body">Energie pro Person</h3>
+                <div className="flex justify-between text-body">
                   <span>Ist:</span>
                   <span className="font-mono">{Math.round(totalEnergyKcal)} kcal</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-body">
                   <span>Soll ({Math.round(dayPartFactor * 100)}% von {NORM_PERSON_DAILY_KCAL}):</span>
                   <span className="font-mono">{Math.round(targetKcal)} kcal</span>
                 </div>
-                <div className="flex justify-between text-sm font-medium">
+                <div className="flex justify-between text-body font-medium">
                   <span>Abweichung:</span>
                   <span
                     className={
@@ -512,7 +513,7 @@ export default function RefMealEditorPage() {
                 {localItems.length > 0 && (
                   <button
                     onClick={handleNormalize}
-                    className="w-full mt-2 px-3 py-1.5 text-sm border rounded-md hover:bg-background"
+                    className="w-full mt-2 px-3 py-1.5 text-body border rounded-lg hover:bg-background"
                   >
                     Normalisieren auf {Math.round(targetKcal)} kcal
                   </button>
@@ -523,8 +524,8 @@ export default function RefMealEditorPage() {
             {/* Sync info */}
             <Card>
               <CardContent className="p-4 space-y-2 bg-muted/50">
-                <h3 className="font-semibold text-sm">Verknüpfung</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-body">Verknüpfung</h3>
+                <p className="text-body text-muted-foreground">
                   {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
                   {plan && (
                     <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
@@ -538,7 +539,7 @@ export default function RefMealEditorPage() {
               <button
                 onClick={handleSaveClick}
                 disabled={updateRefMealMutation.isPending}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-body disabled:opacity-50"
                 data-testid="ref-meal-save-button"
               >
                 Speichern
@@ -546,14 +547,14 @@ export default function RefMealEditorPage() {
               <button
                 onClick={handleSync}
                 disabled={syncRefMeal.isPending}
-                className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
               >
                 Für alle übernehmen
               </button>
               <button
                 onClick={handleLinkAll}
                 disabled={linkAllMeals.isPending}
-                className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
               >
                 Alle {mealTypeLabel} verknüpfen
               </button>

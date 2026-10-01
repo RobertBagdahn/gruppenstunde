@@ -22,9 +22,9 @@ const SCORE_COLUMNS: { key: SortKey; label: string }[] = [
 ];
 
 function scoreColor(value: number): string {
-  if (value >= 80) return 'text-emerald-600';
-  if (value >= 50) return 'text-amber-600';
-  return 'text-red-600';
+  if (value >= 80) return 'text-success';
+  if (value >= 50) return 'text-warning';
+  return 'text-danger';
 }
 
 export default function CompletenessGrid() {
@@ -78,16 +78,16 @@ export default function CompletenessGrid() {
   if (isLoading)
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin text-2xl text-muted-foreground" />
+        <Loader2 className="animate-spin text-title text-muted-foreground" />
       </div>
     );
-  if (error) return <div className="text-red-500 py-4">Fehler beim Laden: {error.message}</div>;
+  if (error) return <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>;
   if (!sortedItems.length) return <div className="text-muted-foreground py-4">Keine Zutaten gefunden</div>;
 
   return (
     <div>
       <div className="rounded-xl border border-border overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <thead>
             <tr className="bg-muted/50">
               {SCORE_COLUMNS.map((col) => (
@@ -120,7 +120,7 @@ export default function CompletenessGrid() {
                   >
                     {item.name}
                   </a>
-                  <span className="ml-2 text-xs text-muted-foreground">{item.status}</span>
+                  <span className="ml-2 text-caption text-muted-foreground">{item.status}</span>
                 </td>
                 <td className={cn('px-3 py-2.5 text-right font-semibold', scoreColor(item.quality_score ?? 0))}>
                   {item.quality_score ?? '–'}
@@ -132,7 +132,7 @@ export default function CompletenessGrid() {
                   {item.price_status === 'pending' ? (
                     <a
                       href={`/ingredients/${item.slug}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20"
+                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-caption font-medium text-primary hover:bg-primary/20"
                       title="Preisvorschlag prüfen und bestätigen"
                     >
                       <Sparkles className="h-3 w-3" />
@@ -140,7 +140,7 @@ export default function CompletenessGrid() {
                     </a>
                   ) : item.price_source === 'ai_accepted' ? (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                      className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground"
                       title="Preis aus KI-Vorschlag bestätigt"
                     >
                       <Sparkles className="h-3 w-3" />
@@ -169,7 +169,7 @@ export default function CompletenessGrid() {
                     disabled={fillingId === item.id}
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    className="h-7 px-2 text-caption gap-1 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
                     title="Fehlende Stammdaten mit KI ergänzen"
                   >
                     {fillingId === item.id ? (

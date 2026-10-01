@@ -41,6 +41,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { MealPlan } from '@/schemas/mealPlan';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
+import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   verified: {
@@ -51,14 +53,14 @@ const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; ic
   },
   community: {
     label: 'Community',
-    bg: 'bg-[hsl(var(--chart-3))]/10 border border-[hsl(var(--chart-3))]/20',
-    text: 'text-[hsl(var(--chart-3))]',
+    bg: 'bg-info-soft border border-info-border',
+    text: 'text-info',
     icon: 'groups',
   },
   personal: {
     label: 'Mein Plan',
-    bg: 'bg-[hsl(var(--chart-2))]/10 border border-[hsl(var(--chart-2))]/20',
-    text: 'text-[hsl(var(--chart-2))]',
+    bg: 'bg-warning-soft border border-warning-border',
+    text: 'text-warning',
     icon: 'person',
   },
 };
@@ -274,29 +276,29 @@ function MealPlanListPageInner() {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-display font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
+              <h3 className="font-display font-bold text-emphasis text-foreground truncate group-hover:text-primary transition-colors">
                 {plan.name}
               </h3>
               {badgeConfig && (
-                <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
-                  <span className="material-symbols-outlined text-[12px]">{badgeConfig.icon}</span>
+                <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+                  <Icon name={badgeConfig.icon} size={16} />
                   {badgeConfig.label}
                 </span>
               )}
             </div>
             {dateRange && (
-              <p className="text-xs text-muted-foreground font-medium mb-2">
+              <p className="text-caption text-muted-foreground font-medium mb-2">
                 {dateRange}
               </p>
             )}
-            <div className="flex flex-wrap gap-3 text-xs font-semibold text-muted-foreground">
+            <div className="flex flex-wrap gap-3 text-caption font-semibold text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                 {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}
               </span>
               <span className="inline-flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                {plan.norm_portions.toFixed(1)} Portionen
+                {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
               </span>
               {plan.event_name && (
                 <span className="inline-flex items-center gap-1">
@@ -319,7 +321,7 @@ function MealPlanListPageInner() {
             <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
               {plan.start_datetime && plan.end_datetime && plan.can_edit && (
                 <DropdownMenuItem
-                  className="font-semibold text-xs"
+                  className="font-semibold text-caption"
                   onClick={(e) => {
                     e.stopPropagation();
                     const w = getNextWeekend();
@@ -342,7 +344,7 @@ function MealPlanListPageInner() {
                     e.stopPropagation();
                     setDeleteId(plan.id);
                   }}
-                  className="text-destructive focus:text-destructive font-semibold text-xs"
+                  className="text-destructive focus:text-destructive font-semibold text-caption"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Löschen
@@ -361,11 +363,11 @@ function MealPlanListPageInner() {
       <div className="mb-6">
         <button
           onClick={onToggle}
-          className="flex items-center gap-2 mb-3 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-2 mb-3 text-body font-bold text-muted-foreground hover:text-foreground transition-colors"
         >
           {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           {title}
-          <span className="text-xs font-semibold text-muted-foreground">({plans.length})</span>
+          <span className="text-caption font-semibold text-muted-foreground">({plans.length})</span>
         </button>
         {open && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -387,7 +389,7 @@ function MealPlanListPageInner() {
         icon="restaurant_menu"
         gradientClasses="gradient-primary"
         totalCount={totalCount}
-        countLabel="Plan"
+        countLabel={{ one: 'Plan', other: 'Pläne' }}
         countIcon="restaurant_menu"
       />
 
@@ -395,7 +397,7 @@ function MealPlanListPageInner() {
       <div className="mb-4">
         <Link
           to="/tools/norm-portion-simulator"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/25 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 shadow-soft transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/25 bg-primary/5 text-primary text-body font-semibold hover:bg-primary/10 shadow-soft transition-all"
         >
           <Calculator className="w-4 h-4" />
           Norm-Portion-Simulator
@@ -426,7 +428,7 @@ function MealPlanListPageInner() {
           <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
           {/* Sort */}
           <div className="flex items-center justify-between mb-4">
-            <div className="text-xs text-muted-foreground font-semibold">
+            <div className="text-caption text-muted-foreground font-semibold">
               {totalCount ?? 0} {totalCount === 1 ? 'Plan' : 'Pläne'}
             </div>
             <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
@@ -434,7 +436,7 @@ function MealPlanListPageInner() {
               <select
                 value={sort}
                 onChange={(e) => patch({ sort: MealPlanListStateSchema.shape.sort.parse(e.target.value) })}
-                className="px-3.5 py-1.5 rounded-xl border border-border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
+                className="px-3.5 py-1.5 rounded-xl border border-border text-body bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
               >
                 {MEALPLAN_SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -484,19 +486,19 @@ function MealPlanListPageInner() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md rounded-2xl border-border p-6 shadow-soft">
+        <DialogContent className="sm:max-w-md rounded-xl border-border p-6 shadow-soft">
           <DialogHeader>
-            <DialogTitle className="font-display font-bold text-lg text-foreground">Neuen Essensplan erstellen</DialogTitle>
+            <DialogTitle className="font-display font-bold text-section text-foreground">Neuen Essensplan erstellen</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name *</label>
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Name *</label>
               <input
                 type="text"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 placeholder="z.B. Sommerlager 2026"
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
 
@@ -514,9 +516,9 @@ function MealPlanListPageInner() {
                       setCreatePortions(10);
                     }
                   }}
-                  className="rounded border-border text-primary focus:ring-primary/50"
+                  className="rounded-lg border-border text-primary focus:ring-primary/50"
                 />
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <span className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
                   Von bestehendem Plan kopieren
                 </span>
               </label>
@@ -525,11 +527,11 @@ function MealPlanListPageInner() {
             {copyEnabled && (
               <>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Quelle</label>
+                  <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Quelle</label>
                   <select
                     value={copySourceId ?? ''}
                     onChange={(e) => setCopySourceId(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                    className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   >
                     <option value="">Plan auswählen...</option>
                     {mealPlans?.map((p) => (
@@ -541,7 +543,7 @@ function MealPlanListPageInner() {
                 </div>
                 {copySource && (
                   <div className="sm:col-span-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-caption font-semibold text-primary">
                       <Copy className="w-3.5 h-3.5" />
                       Vorlage: {copySource.name} ({copySource.meals_count} Mahlzeiten)
                     </div>
@@ -551,36 +553,36 @@ function MealPlanListPageInner() {
             )}
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
               <input
                 type="datetime-local"
                 value={createStartDatetime}
                 onChange={(e) => setCreateStartDatetime(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
               <input
                 type="datetime-local"
                 value={createEndDatetime}
                 onChange={(e) => setCreateEndDatetime(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen)</label>
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen)</label>
               <input
                 type="number"
                 min={1}
                 max={500}
                 value={createPortions}
                 onChange={(e) => setCreatePortions(Number(e.target.value))}
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ernährungstags</label>
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Ernährungstags</label>
               <NutritionalTagMultiSelect selectedTagIds={nutritionalTagIds} onToggle={toggleTag} />
             </div>
           </div>
@@ -590,14 +592,14 @@ function MealPlanListPageInner() {
                 setShowCreate(false);
                 resetCreateForm();
               }}
-              className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all"
+              className="px-4 py-2.5 rounded-xl border border-border text-body font-semibold hover:bg-muted transition-all"
             >
               Abbrechen
             </button>
             <button
               onClick={handleSubmit}
               disabled={!createName.trim() || createMutation.isPending || duplicateMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
             >
               {(createMutation.isPending || duplicateMutation.isPending) ? 'Erstelle...' : 'Erstellen'}
             </button>

@@ -13,7 +13,7 @@ export default function ProteinPerEuroTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Zutaten mit dem meisten Protein pro Gramm – ideal für die Scout-Ernährung.
       </p>
       <TabFilters showRetailSection />

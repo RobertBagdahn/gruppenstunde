@@ -3,6 +3,8 @@ import { EntityLink } from '@/components/shared/EntityLink';
 import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
+import { formatNumber, roundToDecimals } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 export { NUTRI_SCORE_COLORS_BY_LETTER as NUTRI_SCORE_COLORS } from '@/schemas/supply';
 
@@ -29,17 +31,13 @@ export function AnalysisSection({
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-muted/50 transition-colors"
       >
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          <span className={`material-symbols-outlined text-[18px] ${accentColor}`}>{icon}</span>
+        <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
+          <Icon name={icon} size={20} className={accentColor} />
           {title}
         </h2>
         <div className="flex items-center gap-3">
           {preview && <div className="shrink-0">{preview}</div>}
-          <span
-            className={`material-symbols-outlined text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          >
-            expand_more
-          </span>
+          <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
       {open && <div className="px-5 pb-5 pt-0">{children}</div>}
@@ -68,20 +66,20 @@ export function MacroBar({
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs">
+      <div className="flex justify-between text-caption">
         <span className="font-medium">{label}</span>
         <span className="text-muted-foreground">
-        {unit === 'kcal' ? Math.round(value) : parseFloat(value.toFixed(1))} {unit}
+        {unit === 'kcal' ? Math.round(value) : roundToDecimals(value, 1)} {unit}
           {dgeRef != null && dgeRef > 0 && (
-            <span className="ml-2 text-[10px] text-muted-foreground">
-              Referenz: {dgeRef.toFixed(1)} {unit}
+            <span className="ml-2 text-caption text-muted-foreground">
+              Referenz: {formatNumber(dgeRef, { maxDecimals: 1 })} {unit}
             </span>
           )}
           {dgeCoverage != null && (
-            <span className={`ml-1.5 text-[10px] font-semibold ${
-              dgeCoverage >= 80 ? 'text-green-600' : dgeCoverage >= 40 ? 'text-amber-600' : 'text-red-600'
+            <span className={`ml-1.5 text-caption font-semibold ${
+              dgeCoverage >= 80 ? 'text-success' : dgeCoverage >= 40 ? 'text-warning' : 'text-danger'
             }`}>
-              {dgeCoverage.toFixed(0)}%
+              {formatNumber(dgeCoverage, { maxDecimals: 0 })}%
             </span>
           )}
         </span>
@@ -128,15 +126,11 @@ export function MicronutrientSection({
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
       >
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          <span className={`material-symbols-outlined text-base ${accentColor}`}>{icon}</span>
+        <span className="flex items-center gap-2 text-body font-semibold">
+          <Icon name={icon} size={16} className={accentColor} />
           {title}
         </span>
-        <span
-          className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          expand_more
-        </span>
+        <Icon name="expand_more" size={16} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="px-3 pb-3 space-y-2">
@@ -147,13 +141,13 @@ export function MicronutrientSection({
             const coverage = dgeCoverage[n.dgeKey] ?? null;
             return (
               <div key={n.dgeKey} className="space-y-1">
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-caption">
                   <span className="font-medium">{n.label}</span>
                   <span className="text-muted-foreground">
-                    {displayValue < 0.1 ? displayValue.toFixed(3) : displayValue.toFixed(1)} {unitLabel}
+                    {displayValue < 0.1 ? formatNumber(displayValue, { maxDecimals: 3 }) : formatNumber(displayValue, { maxDecimals: 1 })} {unitLabel}
                     {coverage != null && (
-                      <span className={`ml-2 font-semibold ${coverage >= 80 ? 'text-green-600' : coverage >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                        {coverage.toFixed(0)}% DGE
+                      <span className={`ml-2 font-semibold ${coverage >= 80 ? 'text-success' : coverage >= 40 ? 'text-warning' : 'text-danger'}`}>
+                        {formatNumber(coverage, { maxDecimals: 0 })}% DGE
                       </span>
                     )}
                   </span>
@@ -162,7 +156,7 @@ export function MicronutrientSection({
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        coverage >= 80 ? 'bg-green-500' : coverage >= 40 ? 'bg-amber-400' : 'bg-red-400'
+                        coverage >= 80 ? 'bg-success' : coverage >= 40 ? 'bg-warning' : 'bg-danger'
                       }`}
                       style={{ width: `${Math.min(coverage, 100)}%` }}
                     />
@@ -191,7 +185,7 @@ export function CollapsibleContributions({ items }: { items: RecipeItemNutrition
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+      <h3 className="text-body font-semibold mb-3 flex items-center gap-2">
         Zutaten-Beiträge pro Portion
         <NutritionBaseBadge base="per_portion" />
       </h3>
@@ -204,12 +198,8 @@ export function CollapsibleContributions({ items }: { items: RecipeItemNutrition
                 onClick={() => setOpenParam(isOpen ? null : param)}
                 className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
               >
-                <span className="text-sm font-medium">{PARAMETER_LABELS[param] ?? param}</span>
-                <span
-                  className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                >
-                  expand_more
-                </span>
+                <span className="text-body font-medium">{PARAMETER_LABELS[param] ?? param}</span>
+                <Icon name="expand_more" size={16} className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
               {isOpen && (
                 <div className="px-3 pb-3">
@@ -245,11 +235,11 @@ export function NutrientCard({
 }) {
   return (
     <div className={`text-center p-4 rounded-xl border ${bgColor}`}>
-      <span className={`material-symbols-outlined text-2xl ${color}`}>{icon}</span>
-      <p className="text-xl font-extrabold mt-1">
-        {value.toFixed(unit === 'kcal' ? 0 : 1)}
+      <Icon name={icon} size={24} className={color} />
+      <p className="text-section font-extrabold mt-1">
+        {formatNumber(value, { maxDecimals: unit === 'kcal' ? 0 : 1 })}
       </p>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-caption text-muted-foreground">
         {label} ({unit})
       </p>
     </div>
@@ -281,9 +271,9 @@ export function HealthIndicator({
   }
 
   const statusColors = {
-    good: 'bg-green-50 border-green-200 text-green-700',
-    warn: 'bg-amber-50 border-amber-200 text-amber-700',
-    bad: 'bg-red-50 border-red-200 text-red-700',
+    good: 'bg-success-soft border-success-border text-success',
+    warn: 'bg-warning-soft border-warning-border text-warning',
+    bad: 'bg-danger-soft border-danger-border text-danger',
   };
 
   const statusIcons = {
@@ -298,16 +288,16 @@ export function HealthIndicator({
   return (
     <div className={`p-3 rounded-xl border ${statusColors[status]}`}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium">{label}</span>
-        <span className="material-symbols-outlined text-[16px]">{statusIcons[status]}</span>
+        <span className="text-caption font-medium">{label}</span>
+        <Icon name={statusIcons[status]} size={16} />
       </div>
-      <p className="text-lg font-bold">
-        {value.toFixed(1)} {unit}
+      <p className="text-section font-bold">
+        {formatNumber(value, { maxDecimals: 1 })} {unit}
       </p>
-      <p className="text-[10px] opacity-75">{dgePct}% der DGE-Referenz</p>
+      <p className="text-caption opacity-75">{dgePct}% der DGE-Referenz</p>
       <div className="h-1.5 bg-white/50 rounded-full mt-1 overflow-hidden">
         <div
-          className={`h-full rounded-full ${status === 'good' ? 'bg-green-500' : status === 'warn' ? 'bg-amber-500' : 'bg-red-500'}`}
+          className={`h-full rounded-full ${status === 'good' ? 'bg-success' : status === 'warn' ? 'bg-warning' : 'bg-danger'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -334,19 +324,19 @@ export function PriceRow({
           slug={ingredientSlugById.get(item.ingredient_id)!}
           name={item.ingredient_name}
           variant="muted"
-          className="text-sm font-medium w-32 truncate"
+          className="text-body font-medium w-32 truncate"
         />
       ) : (
-        <span className="text-sm font-medium w-32 truncate">{item.ingredient_name}</span>
+        <span className="text-body font-medium w-32 truncate">{item.ingredient_name}</span>
       )}
       <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         <div
-          className="h-full bg-yellow-400 rounded-full"
+          className="h-full bg-warning rounded-full"
           style={{ width: `${pricePct}%` }}
         />
       </div>
-      <span className="text-xs font-semibold text-yellow-700 w-16 text-right">
-        {item.price_eur?.toFixed(2)} EUR
+      <span className="text-caption font-semibold text-warning w-16 text-right">
+        {formatNumber(item.price_eur, { maxDecimals: 2 })} EUR
       </span>
     </div>
   );

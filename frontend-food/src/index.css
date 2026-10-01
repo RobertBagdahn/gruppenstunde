@@ -10,7 +10,8 @@
     --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 10%;
-    --primary: 142 76% 36%;
+    /* Darkened for WCAG AA: white text on primary >= 4.5:1 */
+    --primary: 142 72% 28%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 94%;
     --secondary-foreground: 240 10% 15%;
@@ -18,11 +19,30 @@
     --muted-foreground: 240 5% 40%;
     --accent: 38 92% 50%;
     --accent-foreground: 240 10% 10%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 86%;
-    --input: 240 6% 86%;
-    --ring: 142 76% 36%;
+    /* Status tokens: DEFAULT (solid/text), -foreground (text on solid), -soft (surface), -border */
+    --success: 142 72% 26%;
+    --success-foreground: 0 0% 100%;
+    --success-soft: 140 60% 95%;
+    --success-border: 142 45% 75%;
+    --warning: 32 95% 30%;
+    --warning-foreground: 0 0% 100%;
+    --warning-soft: 45 100% 94%;
+    --warning-border: 40 90% 70%;
+    --danger: 0 72% 45%;
+    --danger-foreground: 0 0% 100%;
+    --danger-soft: 0 86% 96%;
+    --danger-border: 0 75% 82%;
+    --info: 205 85% 32%;
+    --info-foreground: 0 0% 100%;
+    --info-soft: 205 90% 95%;
+    --info-border: 205 70% 78%;
+    /* shadcn alias */
+    --destructive: var(--danger);
+    --destructive-foreground: var(--danger-foreground);
+    --border: 240 6% 82%;
+    /* Form controls: >= 3:1 against the background */
+    --input: 240 5% 55%;
+    --ring: 142 72% 28%;
     --radius: 0.75rem;
     --chart-1: 142 76% 36%;
     --chart-2: 38 92% 50%;
@@ -56,9 +76,6 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-bold tracking-tight;
-  }
-  .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   }
 }
 

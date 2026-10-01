@@ -8,6 +8,7 @@
 import { Link } from 'react-router-dom';
 import { useContentLinks } from '@/api/contentLinks';
 import { CONTENT_TYPE_LABELS, type ContentLink } from '@/schemas/contentLink';
+import { Icon } from '@/components/ui/icon';
 
 interface ContentLinkSectionProps {
   /** Model name of the current content (e.g., "groupsession", "recipe") */
@@ -86,23 +87,19 @@ function RelatedCard({ link, currentType, currentId }: {
         />
       ) : (
         <div className="w-14 aspect-square rounded-lg bg-muted flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-[24px] text-muted-foreground/50">
-            {typeConfig?.icon ?? 'article'}
-          </span>
+          <Icon name={typeConfig?.icon ?? 'article'} size={24} className="text-muted-foreground/50" />
         </div>
       )}
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+        <h4 className="text-body font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
           {info.title}
         </h4>
       </div>
 
       {/* Arrow */}
-      <span className="material-symbols-outlined text-muted-foreground text-[18px] shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all">
-        chevron_right
-      </span>
+      <Icon name="chevron_right" size={20} className="text-muted-foreground shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
     </Link>
   );
 }
@@ -131,8 +128,8 @@ export function ContentLinkSection({ contentType, objectId }: ContentLinkSection
 
         return (
           <div key={typeKey}>
-            <h3 className="flex items-center gap-2 text-lg font-bold text-foreground mb-3">
-              <span className="material-symbols-outlined text-primary">{sectionIcon}</span>
+            <h3 className="flex items-center gap-2 text-section font-bold text-foreground mb-3">
+              <Icon name={sectionIcon} size={24} className="text-primary" />
               {sectionTitle}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

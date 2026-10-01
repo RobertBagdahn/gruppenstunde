@@ -1,8 +1,9 @@
 import { EntityLink } from '@/components/shared/EntityLink';
 import { RecipeCategoryBenchmark } from '@/components/recipe/RecipeCategoryBenchmark';
 import { useRecipeTypeStats } from '@/api/recipes';
-import { formatWeight } from '@/utils/formatWeight';
+import { formatWeight, formatNumber } from '@/lib/format';
 import type { RecipeNutritionBreakdown } from '@/schemas/recipe';
+import { Icon } from '@/components/ui/icon';
 
 interface Props {
   nb: RecipeNutritionBreakdown;
@@ -23,13 +24,13 @@ export function WeightTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-        <span className="material-symbols-outlined text-2xl text-indigo-600">scale</span>
+      <div className="flex items-center gap-3 p-3 bg-info-soft rounded-lg border border-info-border">
+        <Icon name="scale" size={24} className="text-info" />
         <div>
-          <p className="text-lg font-bold text-indigo-700">
+          <p className="text-section font-bold text-info">
             {formatWeight(nb.total_weight_g)}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Gesamtgewicht ({formatWeight(nb.total_weight_g / effectivePortions)})
           </p>
         </div>
@@ -44,21 +45,21 @@ export function WeightTab({
                 slug={ingredientSlugById.get(item.ingredient_id)!}
                 name={item.ingredient_name}
                 variant="muted"
-                className="text-sm font-medium w-32 truncate"
+                className="text-body font-medium w-32 truncate"
               />
             ) : (
-              <span className="text-sm font-medium w-32 truncate">
+              <span className="text-body font-medium w-32 truncate">
                 {item.ingredient_name}
               </span>
             )}
             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-indigo-400 rounded-full"
+                className="h-full bg-info rounded-full"
                 style={{ width: `${item.weight_pct}%` }}
               />
             </div>
-            <span className="text-xs text-muted-foreground w-20 text-right">
-              {formatWeight(item.weight_g)} ({item.weight_pct.toFixed(0)}%)
+            <span className="text-caption text-muted-foreground w-20 text-right">
+              {formatWeight(item.weight_g)} ({formatNumber(item.weight_pct, { maxDecimals: 0 })}%)
             </span>
           </div>
         ))}

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
+import { formatNumber } from '@/lib/format';
 
 export function QuantityInput({ value, onChange }: { value: number; onChange: (quantity: number) => void }) {
-  const formatQuantity = (v: number) => v.toFixed(2).replace('.', ',');
+  const formatQuantity = (v: number) => formatNumber(v, { maxDecimals: 2 }).replace('.', ',');
   const [localValue, setLocalValue] = useState(formatQuantity(value));
   const lastSaved = useRef(value);
 
@@ -32,7 +33,7 @@ export function QuantityInput({ value, onChange }: { value: number; onChange: (q
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-        className="w-14 px-1 py-0.5 text-sm border rounded bg-background text-center"
+        className="w-14 px-1 py-0.5 text-body border rounded-lg bg-background text-center"
       />
     </span>
   );

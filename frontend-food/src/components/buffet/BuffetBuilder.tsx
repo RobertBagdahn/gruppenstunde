@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBuffetTemplates, useBuffetCatalog, useBuffetState, useBuffetPreview, useSaveBuffet } from '@/api/buffet';
 import type { BuffetCatalogItem, BuffetCatalogRole } from '@/schemas/buffet';
+import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface BuffetBuilderProps {
   open: boolean;
@@ -202,10 +204,10 @@ export function BuffetBuilder({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-border shadow-2xl">
         <DialogHeader className="p-4 sm:p-5 border-b border-border bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-display font-bold text-foreground">
+            <DialogTitle className="flex items-center gap-2 text-section sm:text-section font-display font-bold text-foreground">
               <LayoutGrid className="w-5 h-5 text-primary" />
               <span>Buffet zusammenstellen</span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
+              <span className="text-caption font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
                 {normPortions} {normPortions === 1 ? 'Person' : 'Personen'}
               </span>
             </DialogTitle>
@@ -217,7 +219,7 @@ export function BuffetBuilder({
                   seededTemplateRef.current = null;
                 }}
               >
-                <SelectTrigger className="w-full sm:w-56 h-9 text-sm" data-testid="buffet-template-select">
+                <SelectTrigger className="w-full sm:w-56 h-9 text-body" data-testid="buffet-template-select">
                   <SelectValue placeholder="Vorlage wählen" />
                 </SelectTrigger>
                 <SelectContent>
@@ -233,7 +235,7 @@ export function BuffetBuilder({
         </DialogHeader>
 
         {isLoading || !catalog || !template ? (
-          <div className="p-12 text-center text-xs text-muted-foreground">Lade Buffet-Katalog...</div>
+          <div className="p-12 text-center text-caption text-muted-foreground">Lade Buffet-Katalog...</div>
         ) : (
           <div className="p-4 sm:p-6 space-y-4">
             {catalog.roles.map((role) => (
@@ -258,7 +260,7 @@ export function BuffetBuilder({
               {previewResult.warnings.map((warning, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-1.5 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-2.5 py-1.5"
+                  className="flex items-start gap-1.5 text-caption text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-2.5 py-1.5"
                 >
                   <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                   <span>{warning.message}</span>
@@ -267,7 +269,7 @@ export function BuffetBuilder({
             </div>
           )}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-3 text-caption">
               {previewResult ? (
                 <>
                   <span
@@ -275,14 +277,12 @@ export function BuffetBuilder({
                       kcalPercent != null && kcalPercent < 80 ? 'text-destructive' : 'text-foreground'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[16px] text-amber-500">
-                      local_fire_department
-                    </span>
+                    <Icon name="local_fire_department" size={16} className="text-warning" />
                     {Math.round(previewResult.energy_kcal_per_person)} / {Math.round(previewResult.target_kcal_per_person)} kcal / Person
                     {kcalPercent != null && ` (${kcalPercent}%)`}
                   </span>
                   <span className="inline-flex items-center gap-1 font-bold text-primary">
-                    {previewResult.cost_per_person.toFixed(2)} €/P. ({previewResult.cost_total.toFixed(2)} €)
+                    {formatNumber(previewResult.cost_per_person, { maxDecimals: 2 })} €/P. ({formatNumber(previewResult.cost_total, { maxDecimals: 2 })} €)
                   </span>
                 </>
               ) : (
@@ -293,7 +293,7 @@ export function BuffetBuilder({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="px-4 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors"
+                className="px-4 py-2 rounded-xl border border-border text-caption font-semibold hover:bg-muted transition-colors"
               >
                 Abbrechen
               </button>
@@ -302,7 +302,7 @@ export function BuffetBuilder({
                 onClick={handleSave}
                 disabled={saveBuffet.isPending || isLoading || !template}
                 data-testid="buffet-save"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-caption font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 <span>{saveBuffet.isPending ? 'Speichert...' : 'Buffet übernehmen'}</span>
@@ -346,31 +346,29 @@ function RoleSection({
         className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <h4 className="font-display font-bold text-sm text-foreground">{role.role.name}</h4>
+          <h4 className="font-display font-bold text-body text-foreground">{role.role.name}</h4>
           {selectedCount > 0 && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            <span className="text-caption font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
               {selectedCount}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {role.amount_per_person != null && (
-            <label className="flex items-center gap-1 text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+            <label className="flex items-center gap-1 text-caption text-muted-foreground" onClick={(e) => e.stopPropagation()}>
               <input
                 type="number"
                 min={0.1}
                 step={role.unit === 'ml' ? 10 : 5}
                 value={state?.amount ?? role.amount_per_person}
                 onChange={(e) => onAmountChange(Number(e.target.value))}
-                className="w-16 px-1.5 py-1 rounded border border-border bg-background text-xs text-right"
+                className="w-16 px-1.5 py-1 rounded-lg border border-border bg-background text-caption text-right"
                 aria-label={`Menge pro Person für ${role.role.name}`}
               />
               {role.unit}/P.
             </label>
           )}
-          <span className="material-symbols-outlined text-[18px] text-muted-foreground">
-            {expanded ? 'expand_less' : 'expand_more'}
-          </span>
+          <Icon name={expanded ? 'expand_less' : 'expand_more'} size={20} className="text-muted-foreground" />
         </div>
       </button>
 
@@ -384,12 +382,12 @@ function RoleSection({
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Suchen..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-xs"
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-background text-caption"
               />
             </div>
           )}
           {filteredItems.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic py-2">Keine Einträge gefunden.</p>
+            <p className="text-caption text-muted-foreground italic py-2">Keine Einträge gefunden.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {filteredItems.map((item) => {
@@ -399,7 +397,7 @@ function RoleSection({
                     key={itemKey(item)}
                     type="button"
                     onClick={() => onToggleItem(item)}
-                    className={`px-2.5 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1 transition-all ${
+                    className={`px-2.5 py-1.5 rounded-full border text-caption font-semibold flex items-center gap-1 transition-all ${
                       active
                         ? 'border-primary bg-primary/10 text-primary shadow-sm'
                         : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60'

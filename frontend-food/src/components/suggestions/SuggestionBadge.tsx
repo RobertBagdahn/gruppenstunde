@@ -7,7 +7,7 @@ interface SuggestionBadgeProps {
 
 const statusColors = {
   green: 'text-primary',
-  yellow: 'text-[hsl(var(--chart-2))]',
+  yellow: 'text-warning',
   red: 'text-destructive',
 };
 
@@ -23,7 +23,7 @@ export default function SuggestionBadge({ summaryStatus, nonGreenCount }: Sugges
   return (
     <span className={`inline-flex items-center gap-1.5 ${statusColors[summaryStatus]}`}>
       <span className="inline-block w-2.5 h-2.5 rounded-full bg-current" />
-      <span className="text-sm font-semibold">{nonGreenCount}</span>
+      <span className="text-body font-semibold">{nonGreenCount}</span>
     </span>
   );
 }

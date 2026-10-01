@@ -29,13 +29,13 @@ function getUnitForSuggestion(suggestion: Suggestion): string {
 const suggestionStyles = {
   green: {
     card: 'bg-primary/[0.04] dark:bg-primary/[0.02] border border-primary/20',
-    text: 'text-emerald-700 dark:text-emerald-400',
+    text: 'text-success',
     bullet: 'bg-primary',
   },
   yellow: {
-    card: 'bg-[hsl(var(--chart-2))]/[0.04] dark:bg-[hsl(var(--chart-2))]/[0.02] border border-[hsl(var(--chart-2))]/20',
-    text: 'text-amber-700 dark:text-amber-400',
-    bullet: 'bg-[hsl(var(--chart-2))]',
+    card: 'bg-warning/[0.04] dark:bg-warning/[0.02] border border-warning-border',
+    text: 'text-warning',
+    bullet: 'bg-warning',
   },
   red: {
     card: 'bg-destructive/[0.04] dark:bg-destructive/[0.02] border border-destructive/20',
@@ -45,10 +45,10 @@ const suggestionStyles = {
 };
 
 const scopeBadgeConfig: Record<string, { text: string; color: string }> = {
-  day: { text: 'Summe', color: 'bg-sky-500' },
-  event: { text: 'Ø Plan', color: 'bg-amber-500' },
-  meal_event: { text: 'Ø Plan', color: 'bg-amber-500' },
-  meal: { text: 'Mahlzeit', color: 'bg-emerald-500' },
+  day: { text: 'Summe', color: 'bg-info' },
+  event: { text: 'Ø Plan', color: 'bg-warning' },
+  meal_event: { text: 'Ø Plan', color: 'bg-warning' },
+  meal: { text: 'Mahlzeit', color: 'bg-success' },
 };
 
 function getScopeBadgeConfig(suggestion: Suggestion): { text: string; color: string } | null {
@@ -89,23 +89,23 @@ export default function SuggestionCard({ suggestion, mealPlanId, planAnchor, onS
             {scopeBadge && (
               <div className="flex items-center gap-2 mb-1">
                 <span className={`w-2 h-2 rounded-full ${scopeBadge.color} shrink-0`} />
-                <span className="text-xs font-medium text-muted-foreground">{scopeBadge.text}</span>
+                <span className="text-caption font-medium text-muted-foreground">{scopeBadge.text}</span>
               </div>
             )}
-            <p className="text-xs text-muted-foreground font-medium">
+            <p className="text-caption text-muted-foreground font-medium">
               {suggestion.scope_label}
             </p>
-            <p className={`text-sm font-semibold mt-1 font-display tracking-tight ${style.text}`}>
+            <p className={`text-body font-semibold mt-1 font-display tracking-tight ${style.text}`}>
               {suggestion.message}
             </p>
             {suggestion.tip && (
-              <p className="text-xs text-muted-foreground/90 mt-1 leading-relaxed">
+              <p className="text-caption text-muted-foreground/90 mt-1 leading-relaxed">
                 {suggestion.tip}
               </p>
             )}
 
             {hasSollIst && (
-              <div className="mt-3 p-3 bg-card/60 dark:bg-zinc-900/40 border border-border/40 rounded-xl max-w-md shadow-sm">
+              <div className="mt-3 p-3 bg-card/60 border border-border/40 rounded-xl max-w-md shadow-sm">
                 <SollIstBar
                   current={suggestion.current_value!}
                   min_green={suggestion.min_green}
@@ -123,7 +123,7 @@ export default function SuggestionCard({ suggestion, mealPlanId, planAnchor, onS
                   <a
                     key={recipe.id}
                     href={`/recipes/${recipe.slug}`}
-                    className="text-xs bg-card/80 dark:bg-zinc-800/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-lg px-2.5 py-1.5 font-medium inline-flex items-center gap-1 transition-all shadow-sm hover:shadow-md hover:border-primary/30"
+                    className="text-caption bg-card/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-xl px-2.5 py-1.5 font-medium inline-flex items-center gap-1 transition-all shadow-sm hover:shadow-md hover:border-primary/30"
                   >
                     <span>{recipe.title}</span>
                     <ArrowUpRight className="w-3.5 h-3.5 opacity-60 shrink-0" />
@@ -138,7 +138,7 @@ export default function SuggestionCard({ suggestion, mealPlanId, planAnchor, onS
                   mealPlanId && planAnchor ? (
                     <Link
                       to={`/meal-plans/${mealPlanId}/plan#${planAnchor}`}
-                      className="text-xs bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all"
+                      className="text-caption bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all"
                     >
                       <Plus className="w-3.5 h-3.5 shrink-0" />
                       Rezept hinzufügen
@@ -147,7 +147,7 @@ export default function SuggestionCard({ suggestion, mealPlanId, planAnchor, onS
                     <button
                       type="button"
                       onClick={() => onSelectTab?.('plan')}
-                      className="text-xs bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all"
+                      className="text-caption bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all"
                     >
                       <Plus className="w-3.5 h-3.5 shrink-0" />
                       Rezept hinzufügen
@@ -158,7 +158,7 @@ export default function SuggestionCard({ suggestion, mealPlanId, planAnchor, onS
                   <button
                     type="button"
                     onClick={() => onSelectTab?.('table')}
-                    className="text-xs bg-card/80 dark:bg-zinc-800/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all shadow-sm"
+                    className="text-caption bg-card/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-xl px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all shadow-sm"
                   >
                     <Scale className="w-3.5 h-3.5 shrink-0" />
                     Portion skalieren
@@ -167,7 +167,7 @@ export default function SuggestionCard({ suggestion, mealPlanId, planAnchor, onS
                 {showBreakfastWizard && (
                   <a
                     href={`/meal-plans/${mealPlanId}/ref-meals/breakfast/wizard`}
-                    className="text-xs bg-card/80 dark:bg-zinc-800/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all shadow-sm"
+                    className="text-caption bg-card/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-xl px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all shadow-sm"
                   >
                     <ChefHat className="w-3.5 h-3.5 shrink-0" />
                     Frühstücks-Assistent

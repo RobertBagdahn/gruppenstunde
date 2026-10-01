@@ -70,7 +70,6 @@ export const MealItemSchema = z.object({
   recipe_type: z.string(),
   nutri_class: z.number().nullable().optional(),
   overrides: z.array(MealItemOverrideSchema),
-  portion_display: z.string().default(''),
   has_missing_weight: z.boolean().default(false),
   is_per_norm_person: z.boolean().default(true),
   recipe_portions: z.number().nullable().optional(),
@@ -249,6 +248,7 @@ export const MealPlanDetailSchema = z.object({
   day_part_factors: z.record(z.string(), z.number()),
   meal_default_times: z.record(z.string(), z.array(z.string())),
   meals: z.array(MealSchema),
+  ref_meals: z.array(z.lazy(() => RefMealSchema)).default([]),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
   is_owner: z.boolean().default(false),
@@ -303,6 +303,7 @@ export type NutritionSummary = z.infer<typeof NutritionSummarySchema>;
 export const ShoppingItemSourceSchema = z.object({
   recipe_id: z.number().nullable().default(null),
   ingredient_id: z.number().nullable().default(null),
+  meal_id: z.number().nullable().optional(),
   recipe_name: z.string().default(''),
   recipe_slug: z.string().default(''),
   meal_label: z.string().default(''),
@@ -311,11 +312,23 @@ export const ShoppingItemSourceSchema = z.object({
 
 export const PortionOptionSchema = z.object({
   name: z.string(),
-  display: z.string(),
   is_default: z.boolean(),
   weight_g: z.number().default(0),
   count: z.number().default(0),
 });
+
+export const ShoppingPieceEquivalentSchema = z.object({
+  count: z.number(),
+  portion_name: z.string(),
+});
+export type ShoppingPieceEquivalent = z.infer<typeof ShoppingPieceEquivalentSchema>;
+
+export const ShoppingPackageOptionSchema = z.object({
+  count: z.number(),
+  package_name: z.string(),
+  weight_g: z.number(),
+});
+export type ShoppingPackageOption = z.infer<typeof ShoppingPackageOptionSchema>;
 
 export const ShoppingListItemSchema = z.object({
   ingredient_id: z.number().nullable(),
@@ -324,13 +337,16 @@ export const ShoppingListItemSchema = z.object({
   total_quantity_g: z.number(),
   net_quantity_g: z.number().default(0),
   reserve_quantity_g: z.number().default(0),
-  unit: z.string(),
+  /** Display quantity in `unit` (grams, or millilitres for beverages/liquids). */
+  quantity: z.number().default(0),
+  unit: z.enum(['g', 'ml']).default('g'),
   retail_section: z.string(),
   estimated_price_eur: z.number().nullable(),
-  display_quantity: z.string().default(''),
-  display_text: z.string().default(''),
-  natural_portions: z.string().default(''),
+  piece_equivalent: ShoppingPieceEquivalentSchema.nullable().optional(),
   portion_options: z.array(PortionOptionSchema).default([]),
+  package_options: z.array(ShoppingPackageOptionSchema).default([]),
+  /** count × package weight − total_quantity_g; negative when rounded down within tolerance. */
+  package_surplus_g: z.number().nullable().default(null),
   sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;
@@ -467,6 +483,36 @@ export type UnifiedSearchResponse = z.infer<typeof UnifiedSearchResponseSchema>;
 // ==========================================================================
 
 export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'] as const;
+
+function mealTypeIndex(mealType: string): number {
+  const idx = MEAL_TYPE_ORDER.indexOf(mealType as (typeof MEAL_TYPE_ORDER)[number]);
+  return idx === -1 ? MEAL_TYPE_ORDER.length : idx;
+}
+
+/**
+ * Compare meals by start time (ascending); meals at the same time follow
+ * MEAL_TYPE_ORDER (Frühstück, Mittagessen, Abendessen, Snack, Getränke).
+ */
+export function compareMealsByTime(
+  a: Pick<Meal, 'start_datetime' | 'meal_type'>,
+  b: Pick<Meal, 'start_datetime' | 'meal_type'>,
+): number {
+  const byTime = (a.start_datetime ?? '').localeCompare(b.start_datetime ?? '');
+  return byTime || mealTypeIndex(a.meal_type) - mealTypeIndex(b.meal_type);
+}
+
+/** Group meals by date (from `start_datetime`), each day sorted by time of day. Meals without date are skipped. */
+export function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
+  const groups: Record<string, Meal[]> = {};
+  for (const meal of meals) {
+    if (!meal.start_datetime) continue;
+    const date = meal.start_datetime.slice(0, 10);
+    (groups[date] ??= []).push(meal);
+  }
+  return Object.entries(groups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, dayMeals]) => ({ date, meals: [...dayMeals].sort(compareMealsByTime) }));
+}
 
 // ==========================================================================
 // AI Meal Plan Generation
@@ -629,8 +675,8 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
   breakfast: { text: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', dot: 'bg-primary' },
   lunch: { text: 'text-accent-foreground', bg: 'bg-accent/30', border: 'border-accent', dot: 'bg-accent-foreground' },
   dinner: { text: 'text-secondary-foreground', bg: 'bg-secondary', border: 'border-secondary-foreground/30', dot: 'bg-secondary-foreground' },
-  snack: { text: 'text-chart-4', bg: 'bg-chart-4/10', border: 'border-chart-4/30', dot: 'bg-chart-4' },
-  drinks: { text: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200', dot: 'bg-sky-500' },
+  snack: { text: 'text-warning', bg: 'bg-warning-soft', border: 'border-warning-border', dot: 'bg-warning' },
+  drinks: { text: 'text-info', bg: 'bg-info-soft', border: 'border-info-border', dot: 'bg-info' },
 };
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';
@@ -727,10 +773,10 @@ export function getEffectiveCoverage(coverage: number): number {
 export function getCoverageBadge(coverage: number): { label: string; status: 'green' | 'yellow' | 'red' | 'overplanned'; effectiveCoverage: number } {
   const effectiveCoverage = getEffectiveCoverage(coverage);
   const pct = Math.round(coverage * 100);
-  if (coverage > 1.0) return { label: `Überplant ${pct} %`, status: 'overplanned', effectiveCoverage };
-  if (coverage >= 0.8) return { label: 'Vollständig', status: 'green', effectiveCoverage };
-  if (coverage >= 0.35) return { label: `Teilweise ${pct} %`, status: 'yellow', effectiveCoverage };
-  return { label: `Teilweise ${pct} %`, status: 'red', effectiveCoverage };
+  if (coverage > 1.0) return { label: `Überplant (${pct} %)`, status: 'overplanned', effectiveCoverage };
+  if (coverage >= 0.8) return { label: 'Alle Mahlzeiten geplant', status: 'green', effectiveCoverage };
+  if (coverage >= 0.35) return { label: `Teilweise geplant (${pct} %)`, status: 'yellow', effectiveCoverage };
+  return { label: `Teilweise geplant (${pct} %)`, status: 'red', effectiveCoverage };
 }
 
 /** Read meal_default_times from plan data with fallback to hardcoded defaults. */
@@ -1157,7 +1203,16 @@ export type MealReorderInput = z.infer<typeof MealReorderSchema>;
 
 export const PlanCheckAlertSchema = z.object({
   id: z.string(),
-  type: z.enum(['empty_slot', 'budget_excess', 'allergen_conflict', 'info']),
+  type: z.enum([
+    'empty_slot',
+    'budget_excess',
+    'allergen_conflict',
+    'recipe_type_mismatch',
+    'missing_quantity',
+    'meal_outside_range',
+    'empty_day',
+    'info',
+  ]),
   severity: z.enum(['error', 'warning', 'info']),
   title: z.string(),
   description: z.string(),

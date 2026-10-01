@@ -3,6 +3,7 @@ import { Wallet, Flame, Users, CheckCircle2, AlertTriangle, ArrowRight } from 'l
 import type { Meal } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL, effectivePortions } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
+import { formatCount, formatNumber } from '@/lib/format';
 
 interface MealPlanBudgetCockpitProps {
   normPortions: number;
@@ -104,12 +105,12 @@ export function MealPlanBudgetCockpit({
             "flex flex-col gap-1.5 p-2.5 rounded-lg border transition-colors",
             onNavigateToCosts && "cursor-pointer hover:border-primary/40 hover:bg-muted/40",
             hasBudget && budgetStatus === 'green' && "bg-primary/5 border-primary/20",
-            hasBudget && budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/30",
+            hasBudget && budgetStatus === 'yellow' && "bg-warning-soft border-warning-border",
             hasBudget && budgetStatus === 'red' && "bg-destructive/10 border-destructive/30",
             !hasBudget && "bg-muted/30 border-border/50"
           )}
         >
-          <div className="flex items-center justify-between text-xs font-semibold">
+          <div className="flex items-center justify-between text-caption font-semibold">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Wallet className="w-3.5 h-3.5 text-primary" />
               Tagesbudget / Person
@@ -117,9 +118,9 @@ export function MealPlanBudgetCockpit({
             {hasBudget ? (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold",
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold",
                   budgetStatus === 'green' && "bg-primary/15 text-primary",
-                  budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]",
+                  budgetStatus === 'yellow' && "bg-warning-soft text-warning",
                   budgetStatus === 'red' && "bg-destructive/20 text-destructive"
                 )}
               >
@@ -136,28 +137,28 @@ export function MealPlanBudgetCockpit({
                 )}
               </span>
             ) : (
-              <span className="text-[11px] text-muted-foreground">Kein Budgetlimit</span>
+              <span className="text-caption text-muted-foreground">Kein Budgetlimit</span>
             )}
           </div>
 
           <div className="flex items-baseline justify-between gap-2">
-            <div className="text-base sm:text-lg font-bold text-foreground font-display">
-              {actualCostPerPersonPerDay.toFixed(2).replace('.', ',')} €
+            <div className="text-emphasis sm:text-section font-bold text-foreground font-display">
+              {formatNumber(actualCostPerPersonPerDay, { maxDecimals: 2 }).replace('.', ',')} €
               {hasBudget && (
-                <span className="text-xs font-normal text-muted-foreground ml-1">
-                  / {budget?.toFixed(2).replace('.', ',')} €
+                <span className="text-caption font-normal text-muted-foreground ml-1">
+                  / {formatNumber(budget, { maxDecimals: 2 }).replace('.', ',')} €
                 </span>
               )}
             </div>
             {hasBudget && (
               <span
                 className={cn(
-                  "text-xs font-semibold",
+                  "text-caption font-semibold",
                   diffPerPersonPerDay >= 0 ? "text-primary" : "text-destructive"
                 )}
               >
                 {diffPerPersonPerDay >= 0 ? '+' : ''}
-                {diffPerPersonPerDay.toFixed(2).replace('.', ',')} € Rest
+                {formatNumber(diffPerPersonPerDay, { maxDecimals: 2 }).replace('.', ',')} € Rest
               </span>
             )}
           </div>
@@ -168,7 +169,7 @@ export function MealPlanBudgetCockpit({
                 className={cn(
                   "h-full rounded-full transition-all duration-300",
                   budgetStatus === 'green' && "bg-primary",
-                  budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]",
+                  budgetStatus === 'yellow' && "bg-warning",
                   budgetStatus === 'red' && "bg-destructive"
                 )}
                 style={{ width: `${Math.min(100, budgetPercent)}%` }}
@@ -185,25 +186,25 @@ export function MealPlanBudgetCockpit({
             onNavigateToSuggestions && "cursor-pointer hover:border-primary/40 hover:bg-muted/40"
           )}
         >
-          <div className="flex items-center justify-between text-xs font-semibold">
+          <div className="flex items-center justify-between text-caption font-semibold">
             <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Flame className="w-3.5 h-3.5 text-orange-500" />
+              <Flame className="w-3.5 h-3.5 text-warning" />
               Kalorienschnitt / Tag
             </span>
-            <span className="text-[11px] font-bold text-muted-foreground">
+            <span className="text-caption font-bold text-muted-foreground">
               {kcalPercent}%
             </span>
           </div>
 
           <div className="flex items-baseline justify-between gap-2">
-            <div className="text-base sm:text-lg font-bold text-foreground font-display">
-              {actualKcalPerPersonPerDay}{' '}
-              <span className="text-xs font-normal text-muted-foreground">
-                / {NORM_PERSON_DAILY_KCAL} kcal
+            <div className="text-emphasis sm:text-section font-bold text-foreground font-display">
+              {formatCount(actualKcalPerPersonPerDay)}{' '}
+              <span className="text-caption font-normal text-muted-foreground">
+                / {formatCount(NORM_PERSON_DAILY_KCAL)} kcal
               </span>
             </div>
-            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-              Ziel: 2.000 <ArrowRight className="w-3 h-3" />
+            <span className="text-caption text-muted-foreground flex items-center gap-0.5">
+              Ziel: {formatCount(NORM_PERSON_DAILY_KCAL)} <ArrowRight className="w-3 h-3" />
             </span>
           </div>
 
@@ -211,7 +212,7 @@ export function MealPlanBudgetCockpit({
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-300",
-                kcalPercent >= 85 && kcalPercent <= 115 ? "bg-primary" : "bg-orange-500"
+                kcalPercent >= 85 && kcalPercent <= 115 ? "bg-primary" : "bg-warning"
               )}
               style={{ width: `${Math.min(100, kcalPercent)}%` }}
             />
@@ -225,10 +226,10 @@ export function MealPlanBudgetCockpit({
               <Users className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-xs font-bold text-foreground">
-                {normPortions.toFixed(1)} Personen
+              <div className="text-caption font-bold text-foreground">
+                {formatNumber(normPortions, { maxDecimals: 1 })} Personen
               </div>
-              <div className="text-[11px] text-muted-foreground font-medium">
+              <div className="text-caption text-muted-foreground font-medium">
                 +{Math.round((reserveFactor - 1) * 100)}% Einkaufsreserve
               </div>
             </div>
@@ -237,7 +238,7 @@ export function MealPlanBudgetCockpit({
           {onNavigateToCosts && (
             <button
               onClick={onNavigateToCosts}
-              className="text-xs font-semibold text-primary hover:underline shrink-0"
+              className="text-caption font-semibold text-primary hover:underline shrink-0"
             >
               Kosten-Details →
             </button>

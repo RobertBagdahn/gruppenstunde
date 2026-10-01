@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import type { RankingItem } from '@/schemas/supply';
+import { formatNumber } from '@/lib/format';
 
 interface LeaderboardTableProps {
   top: RankingItem[];
@@ -35,13 +36,13 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           {count} verifizierte Zutaten mit Werten &gt; 0
         </p>
         <div className="flex rounded-xl border border-border overflow-hidden">
           <button
             onClick={() => setShowTop(true)}
-            className={`px-3 py-1 text-sm font-medium transition-colors ${
+            className={`px-3 py-1 text-body font-medium transition-colors ${
               showTop ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground hover:bg-muted'
             }`}
           >
@@ -49,7 +50,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
           </button>
           <button
             onClick={() => setShowTop(false)}
-            className={`px-3 py-1 text-sm font-medium transition-colors ${
+            className={`px-3 py-1 text-body font-medium transition-colors ${
               !showTop ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground hover:bg-muted'
             }`}
           >
@@ -64,7 +65,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
             <XAxis type="number" tick={{ fontSize: 12 }} />
             <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
             <Tooltip
-              formatter={((value: unknown) => [`${Number(value).toFixed(1)} ${unit}`, label]) as never}
+              formatter={((value: unknown) => [`${formatNumber(Number(value), { maxDecimals: 1 })} ${unit}`, label]) as never}
               labelFormatter={((label: unknown) => `Zutat: ${label}`) as never}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -81,7 +82,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <thead>
             <tr className="border-b border-border text-muted-foreground">
               <th className="text-left py-2 px-3 font-medium">#</th>
@@ -100,11 +101,11 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
                     {item.name}
                   </Link>
                 </td>
-                <td className="py-2 px-3 text-right font-mono text-xs">{item.value.toFixed(1)}</td>
+                <td className="py-2 px-3 text-right font-mono text-caption">{formatNumber(item.value, { maxDecimals: 1 })}</td>
                 <td className="py-2 px-3 text-center hidden sm:table-cell">
                   {item.nutri_class ? (
                     <span
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white"
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-full text-caption font-bold text-white"
                       style={{ backgroundColor: NUTRI_CLASS_COLORS[item.nutri_class] || '#94a3b8' }}
                     >
                       {['', 'A', 'B', 'C', 'D', 'E'][item.nutri_class]}

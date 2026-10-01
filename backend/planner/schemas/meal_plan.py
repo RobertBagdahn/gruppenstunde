@@ -53,7 +53,6 @@ class MealItemOut(Schema):
     recipe_type: str = ""
     nutri_class: int | None = None
     overrides: list[MealItemOverrideOut] = []
-    portion_display: str = ""
     has_missing_weight: bool = False
     is_per_norm_person: bool = True
     recipe_portions: int | None = None
@@ -136,52 +135,6 @@ class MealItemOut(Schema):
         return list(obj.overrides.all())
 
     @staticmethod
-    def resolve_portion_display(obj) -> str:
-        """Return the per-person portion display string.
-
-        ``MealItem.quantity`` is a per-person amount (consistent with
-        ``resolve_ingredient_energy_kcal``, ``cost_summary``, ``nutrition_summary``
-        and ``shopping_service``), so no division by ``norm_portions`` is applied here.
-        """
-        from supply.utils import _format_quantity, format_weight
-
-        # Ingredient-based MealItem (single ingredient, not a recipe)
-        if obj.ingredient and obj.quantity and obj.measuring_unit:
-            per_person_g = None
-
-            name_lower = obj.measuring_unit.name.lower()
-            if name_lower in ("g", "gramm"):
-                per_person_g = float(obj.quantity)
-            elif name_lower == "ml":
-                density = getattr(obj.ingredient, "physical_density", 1.0) or 1.0
-                per_person_g = float(obj.quantity) * density
-            else:
-                portion = obj.ingredient.portions.filter(
-                    measuring_unit=obj.measuring_unit,
-                    deleted_at__isnull=True,
-                ).first()
-                if portion and portion.weight_g:
-                    per_person_g = portion.weight_g * float(obj.quantity)
-
-            if per_person_g is not None:
-                ingredient_name = obj.ingredient.name or obj.ingredient.slug or ""
-                unit_name = obj.measuring_unit.name if obj.measuring_unit.name.lower() != "stück" else ""
-                qty_str = _format_quantity(float(obj.quantity))
-                parts = [qty_str]
-                if unit_name:
-                    parts.append(unit_name)
-                if ingredient_name:
-                    parts.append(ingredient_name)
-                base = " ".join(parts)
-                return f"{base} ({format_weight(per_person_g)})"
-
-            ingredient_name = obj.ingredient.name or obj.ingredient.slug or ""
-            return ingredient_name
-
-        # Recipe-based MealItem — no per-item portion display
-        return ""
-
-    @staticmethod
     def resolve_has_missing_weight(obj) -> bool:
         """Return True if the ingredient has a portion-based unit but no weight_g."""
         if obj.ingredient and obj.quantity and obj.measuring_unit:
@@ -253,11 +206,25 @@ class MealItemCreateIn(Schema):
     display_name: str | None = None
     factor: float = 1.0
 
+    @model_validator(mode="after")
+    def validate_ingredient_quantity(self):
+        if self.ingredient_id is not None and not (self.quantity and self.quantity > 0):
+            raise ValueError("Für eine Einzelzutat wird eine Menge größer 0 benötigt")
+        return self
+
 
 class MealItemUpdateIn(Schema):
     factor: float | None = None
     quantity: float | None = None
     servings: float | None = None
+
+    @model_validator(mode="after")
+    def validate_quantity_not_cleared(self):
+        # Updates never carry ingredient_id (see add/update split in the API), so
+        # only guard against explicitly clearing quantity to zero/negative here.
+        if "quantity" in self.model_fields_set and self.quantity is not None and self.quantity <= 0:
+            raise ValueError("Die Menge muss größer 0 sein")
+        return self
 
 
 class MealReorderIn(Schema):
@@ -270,7 +237,16 @@ class MealReorderIn(Schema):
 
 class PlanCheckAlertOut(Schema):
     id: str
-    type: Literal["empty_slot", "budget_excess", "allergen_conflict", "info"]
+    type: Literal[
+        "empty_slot",
+        "budget_excess",
+        "allergen_conflict",
+        "recipe_type_mismatch",
+        "missing_quantity",
+        "meal_outside_range",
+        "empty_day",
+        "info",
+    ]
     severity: Literal["error", "warning", "info"]
     title: str
     description: str
@@ -659,6 +635,7 @@ class MealPlanDetailOut(Schema):
     day_part_factors: dict[str, float]
     meal_default_times: dict[str, list[str]]
     meals: list[MealOut] = []
+    ref_meals: list["RefMealOut"] = []
     can_edit: bool = False
     can_delete: bool = False
     is_owner: bool = False
@@ -673,6 +650,16 @@ class MealPlanDetailOut(Schema):
     meals_copied: int = 0
     items_copied: int = 0
     overrides_copied: int = 0
+
+    @staticmethod
+    def resolve_meals(obj):
+        # `meals` is the prefetched related manager (includes reference meals);
+        # filter in Python to reuse the prefetch cache instead of re-querying.
+        return [m for m in obj.meals.all() if not m.is_reference]
+
+    @staticmethod
+    def resolve_ref_meals(obj):
+        return [m for m in obj.meals.all() if m.is_reference]
 
     @staticmethod
     def resolve_event_id(obj) -> int | None:
@@ -801,10 +788,20 @@ class ShoppingItemSourceOut(Schema):
 
 class ShoppingItemPortionOptionOut(Schema):
     name: str
-    display: str
     is_default: bool
     weight_g: float = 0.0
     count: float = 0.0
+
+
+class ShoppingPieceEquivalentOut(Schema):
+    count: float
+    portion_name: str
+
+
+class ShoppingPackageOptionOut(Schema):
+    count: int
+    package_name: str
+    weight_g: float
 
 
 class ShoppingListItemOut(Schema):
@@ -814,13 +811,16 @@ class ShoppingListItemOut(Schema):
     total_quantity_g: float
     net_quantity_g: float = 0.0
     reserve_quantity_g: float = 0.0
-    unit: str = "g"
+    # Display quantity in `unit`: grams, or millilitres for beverages/liquids.
+    quantity: float = 0.0
+    unit: Literal["g", "ml"] = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
-    display_quantity: str = ""
-    display_text: str = ""
-    natural_portions: str = ""
+    piece_equivalent: ShoppingPieceEquivalentOut | None = None
     portion_options: list[ShoppingItemPortionOptionOut] = []
+    package_options: list[ShoppingPackageOptionOut] = []
+    # count × package weight − quantity_g; negative when rounded down within tolerance.
+    package_surplus_g: float | None = None
     sources: list[ShoppingItemSourceOut] = []
 
 
@@ -880,6 +880,12 @@ class RefMealItemIn(Schema):
     measuring_unit_id: int | None = None
     display_name: str | None = None
     factor: float = 1.0
+
+    @model_validator(mode="after")
+    def validate_ingredient_quantity(self):
+        if self.ingredient_id is not None and not (self.quantity and self.quantity > 0):
+            raise ValueError("Für eine Einzelzutat wird eine Menge größer 0 benötigt")
+        return self
 
 
 class RefMealCreateIn(Schema):

@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { Check, ChevronRight, ChevronDown } from 'lucide-react';
+import { formatEuro, formatWeight } from '@/lib/format';
+import { formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -39,18 +41,14 @@ export default function ShoppingListItemRow({
     setShowChecker(false);
   }, [recentChecker]);
 
-  const formatQuantity = (g: number, unit: string): string => {
-    if (g === 0) return '';
-    if (unit !== 'g') {
-      const rounded = Math.round(g * 100) / 100;
-      return `${rounded} ${unit}`;
-    }
-    if (g >= 1000) {
-      const kg = g / 1000;
-      return kg === Math.floor(kg) ? `${kg} kg` : `${kg.toFixed(1)} kg`;
-    }
-    return `${Math.round(g)} g`;
-  };
+  // `quantity` is in the display unit (ml for beverages/liquids); fall back to grams.
+  const quantityLabel = formatShoppingQuantity(
+    item.quantity || item.quantity_g,
+    item.unit,
+    item.piece_equivalent,
+    item.package_options[0],
+  );
+  const reserveLabel = formatPackageReserve(item.package_surplus_g);
 
   return (
     <div className="font-sans" data-testid={`shopping-item-${item.id}`}>
@@ -96,7 +94,7 @@ export default function ShoppingListItemRow({
               <Link
                 to={`/ingredients/${item.ingredient_slug}`}
                 className={cn(
-                  'font-semibold text-sm hover:text-primary transition-colors text-foreground',
+                  'font-semibold text-body hover:text-primary transition-colors text-foreground',
                   item.is_checked && 'line-through text-muted-foreground',
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -106,50 +104,50 @@ export default function ShoppingListItemRow({
             ) : (
               <span
                 className={cn(
-                  'font-semibold text-sm text-foreground',
+                  'font-semibold text-body text-foreground',
                   item.is_checked && 'line-through text-muted-foreground',
                 )}
               >
                 {item.name}
               </span>
             )}
-            {item.quantity_g > 0 && (
-              <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
-                {item.display_quantity || formatQuantity(item.quantity_g, item.unit)}
+            {quantityLabel && (
+              <span className="text-caption font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
+                {quantityLabel}
               </span>
             )}
           </div>
-          {/* Natural portions & price */}
+          {reserveLabel && <p className="text-caption text-muted-foreground mt-0.5">{reserveLabel}</p>}
+          {/* Portion options toggle & price */}
           <div className="flex items-center gap-2 mt-0.5">
-            {item.natural_portions && (
+            {hasPortionOptions && (
               <button
                 type="button"
-                onClick={() => hasPortionOptions && setPortionsExpanded(!portionsExpanded)}
-                className={cn(
-                  'inline-flex items-center gap-1 text-xs transition-colors',
-                  hasPortionOptions ? 'text-muted-foreground/70 hover:text-muted-foreground cursor-pointer' : 'text-muted-foreground/70',
-                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPortionsExpanded(!portionsExpanded);
+                }}
+                aria-expanded={portionsExpanded}
+                className="inline-flex items-center gap-1 text-caption transition-colors text-muted-foreground/70 hover:text-muted-foreground cursor-pointer"
               >
-                {hasPortionOptions && (
-                  <ChevronDown className={cn(
-                    'w-3 h-3 transition-transform duration-200',
-                    portionsExpanded && 'rotate-180',
-                  )} />
-                )}
-                {item.natural_portions}
+                <ChevronDown className={cn(
+                  'w-3 h-3 transition-transform duration-200',
+                  portionsExpanded && 'rotate-180',
+                )} />
+                Portionsgrößen
               </button>
             )}
             {item.estimated_price_eur !== null && item.estimated_price_eur !== undefined && (
-              <span className="text-xs font-semibold text-foreground">
-                {item.estimated_price_eur.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+              <span className="text-caption font-semibold text-foreground">
+                {formatEuro(item.estimated_price_eur)}
               </span>
             )}
             {item.estimated_price_eur === null && item.ingredient_id && (
-              <span className="text-xs text-red-400">kein Preis</span>
+              <span className="text-caption text-danger">kein Preis</span>
             )}
           </div>
           {item.note && (
-            <p className="text-xs text-muted-foreground italic mt-0.5">{item.note}</p>
+            <p className="text-caption text-muted-foreground italic mt-0.5">{item.note}</p>
           )}
           {/* Expanded portion options */}
           {portionsExpanded && hasPortionOptions && (
@@ -158,14 +156,14 @@ export default function ShoppingListItemRow({
                 <div
                   key={idx}
                   className={cn(
-                    'flex items-center gap-2 text-xs pl-4',
+                    'flex items-center gap-2 text-caption pl-4',
                     opt.is_default ? 'text-muted-foreground font-semibold' : 'text-muted-foreground/60',
                   )}
                 >
                   <span className="text-muted-foreground/40">&#8226;</span>
-                  <span>{opt.display}</span>
+                  <span>{formatPortionOption(opt)}</span>
                   {opt.is_default && (
-                    <span className="text-[10px] text-muted-foreground/40 font-normal">(Standard)</span>
+                    <span className="text-caption text-muted-foreground/40 font-normal">(Standard)</span>
                   )}
                 </div>
               ))}
@@ -173,7 +171,7 @@ export default function ShoppingListItemRow({
           )}
           {/* Real-time checker indicator */}
           {showChecker && recentChecker && (
-            <p className="text-xs text-primary font-semibold mt-0.5 animate-fade-inUp">
+            <p className="text-caption text-primary font-semibold mt-0.5 animate-fade-inUp">
               {recentChecker} hat abgehakt
             </p>
           )}
@@ -181,7 +179,7 @@ export default function ShoppingListItemRow({
 
         {/* Checked-by indicator */}
         {item.is_checked && item.checked_by_username && !showChecker && (
-          <span className="text-xs font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40 shrink-0">
+          <span className="text-caption font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40 shrink-0">
             {item.checked_by_username}
           </span>
         )}
@@ -191,7 +189,7 @@ export default function ShoppingListItemRow({
       {sourcesExpanded && hasSources && (
         <div className="pl-16 pr-2 pb-2.5 space-y-1.5">
           {item.sources.map((source, idx) => (
-            <div key={idx} className="flex items-center justify-between text-xs text-muted-foreground">
+            <div key={idx} className="flex items-center justify-between text-caption text-muted-foreground">
               <div className="flex items-center gap-1.5 font-medium">
                 <span className="text-muted-foreground/60">&#8226;</span>
                 {source.recipe_slug ? (
@@ -208,7 +206,7 @@ export default function ShoppingListItemRow({
                   <span className="text-muted-foreground/60 font-normal">({source.meal_label})</span>
                 )}
               </div>
-              <span className="font-semibold">{Math.round(source.quantity_g)} g</span>
+              <span className="font-semibold">{formatWeight(source.quantity_g)}</span>
             </div>
           ))}
         </div>

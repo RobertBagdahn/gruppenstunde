@@ -58,3 +58,20 @@ Beim ersten Social Login SHALL das System ohne weiteres Formular automatisch ein
 - **WHEN** ein Social-Anbieter eine E-Mail-Adresse liefert, die bereits einem lokalen Konto gehört
 - **THEN** SHALL das System nicht automatisch verknüpfen oder anmelden
 - **AND** es leitet auf `/login?error=email_conflict` weiter
+
+## ADDED Requirements
+
+### Requirement: Session-Antwort bleibt während des Frontend-Rollouts rückwärtslesbar
+
+Bis alle Frontends aktualisiert sind, SHALL `GET /api/auth/me/` zusätzlich zum neuen `{ is_authenticated, user }`-Format bei angemeldeten Nutzern die bisherigen Top-Level-Felder `id`, `email`, `first_name`, `last_name`, `is_staff` und `is_superuser` ausliefern. Diese Felder SHALL dieselben Werte wie `user` enthalten. Neue Frontends SHALL ausschließlich `user` und `is_authenticated` verwenden. Anonyme Requests SHALL weiterhin HTTP 200 mit `is_authenticated: false` und `user: null` liefern; es SHALL keine Nutzer-ID für anonyme Besucher geben.
+
+#### Scenario: Altes Frontend liest bestehende Session während des Rollouts
+- **GIVEN** ein Nutzer ist angemeldet und ein altes Frontend ruft `/api/auth/me/` auf
+- **WHEN** das Backend die Session serialisiert
+- **THEN** enthält die Antwort die bisherigen Top-Level-Nutzerdaten sowie `is_authenticated: true` und das neue `user`-Objekt
+- **AND** beide Darstellungen enthalten dieselbe ID und E-Mail-Adresse
+
+#### Scenario: Anonyme Antwort exponiert keine Legacy-Identität
+- **WHEN** ein nicht angemeldeter Besucher `/api/auth/me/` aufruft
+- **THEN** antwortet das System mit `{ is_authenticated: false, user: null }`
+- **AND** `id` und `email` sind `null`

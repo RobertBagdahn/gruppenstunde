@@ -3,6 +3,7 @@
  * Supports numbered page buttons with ellipsis, prev/next arrows, and mobile-compact mode.
  */
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 interface PaginationProps {
   currentPage: number;
@@ -69,10 +70,10 @@ export default function Pagination({
         type="button"
         disabled={currentPage <= 1}
         onClick={() => handlePageChange(currentPage - 1)}
-        className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-body font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Vorherige Seite"
       >
-        <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+        <Icon name="chevron_left" size={20} />
       </button>
 
       {/* Page numbers — hidden on mobile, shown on sm+ */}
@@ -81,7 +82,7 @@ export default function Pagination({
           page === 'ellipsis' ? (
             <span
               key={`ellipsis-${idx}`}
-              className="px-2 text-sm text-muted-foreground select-none"
+              className="px-2 text-body text-muted-foreground select-none"
             >
               ...
             </span>
@@ -91,7 +92,7 @@ export default function Pagination({
               type="button"
               onClick={() => handlePageChange(page)}
               className={cn(
-                'inline-flex items-center justify-center rounded-lg w-9 h-9 text-sm font-medium transition-colors',
+                'inline-flex items-center justify-center rounded-lg w-9 h-9 text-body font-medium transition-colors',
                 page === currentPage
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'hover:bg-muted text-muted-foreground'
@@ -106,7 +107,7 @@ export default function Pagination({
       </div>
 
       {/* Mobile compact: "Seite X von Y" */}
-      <span className="sm:hidden text-sm text-muted-foreground px-3">
+      <span className="sm:hidden text-body text-muted-foreground px-3">
         Seite {currentPage} von {totalPages}
       </span>
 
@@ -115,10 +116,10 @@ export default function Pagination({
         type="button"
         disabled={currentPage >= totalPages}
         onClick={() => handlePageChange(currentPage + 1)}
-        className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-body font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Naechste Seite"
       >
-        <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+        <Icon name="chevron_right" size={20} />
       </button>
     </div>
   );

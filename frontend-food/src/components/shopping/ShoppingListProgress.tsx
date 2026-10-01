@@ -18,7 +18,7 @@ export default function ShoppingListProgress({
 
   return (
     <div className={cn('space-y-1', className)}>
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between text-caption text-muted-foreground">
         <span>
           {checked} / {total} erledigt
         </span>
@@ -28,7 +28,7 @@ export default function ShoppingListProgress({
         <div
           className={cn(
             'h-full rounded-full transition-all duration-500',
-            pct === 100 ? 'bg-emerald-500' : 'bg-primary',
+            pct === 100 ? 'bg-success' : 'bg-primary',
           )}
           style={{ width: `${pct}%` }}
         />

@@ -31,6 +31,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { formatEuro } from '@/lib/format';
 
 export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -217,7 +218,7 @@ export default function ShoppingListDetailPage() {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   data-testid="shopping-list-name-input"
-                  className="flex-1 px-3.5 py-1.5 text-lg font-bold border border-border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="flex-1 px-3.5 py-1.5 text-section font-bold border border-border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName();
@@ -227,7 +228,7 @@ export default function ShoppingListDetailPage() {
                 <button
                   type="button"
                   onClick={handleSaveName}
-                  className="px-4 py-1.5 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-soft shrink-0"
+                  className="px-4 py-1.5 text-body font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-soft shrink-0"
                 >
                   OK
                 </button>
@@ -235,7 +236,7 @@ export default function ShoppingListDetailPage() {
             ) : (
               <h1
                 className={cn(
-                  'text-2xl font-display font-bold text-foreground',
+                  'text-title font-display font-bold text-foreground',
                   canRename && 'cursor-pointer hover:text-primary transition-colors',
                 )}
                 onClick={() => {
@@ -275,7 +276,7 @@ export default function ShoppingListDetailPage() {
       </div>
 
       {/* Source info */}
-      <div className="flex items-center gap-3 text-xs font-semibold text-muted-foreground mb-4 pl-8">
+      <div className="flex items-center gap-3 text-caption font-semibold text-muted-foreground mb-4 pl-8">
         <span>
           {SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type}
         </span>
@@ -296,14 +297,11 @@ export default function ShoppingListDetailPage() {
       {/* Total price */}
       {items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
         <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 shadow-soft mb-6">
-          <span className="text-sm font-semibold text-muted-foreground">
+          <span className="text-body font-semibold text-muted-foreground">
             Geschätzter Gesamtpreis
           </span>
-          <span className="text-lg font-bold text-foreground">
-            {items
-              .reduce((sum, i) => sum + (i.estimated_price_eur ?? 0), 0)
-              .toFixed(2)}{' '}
-            €
+          <span className="text-section font-bold text-foreground">
+            {formatEuro(items.reduce((sum, i) => sum + (i.estimated_price_eur ?? 0), 0))}
           </span>
         </div>
       )}
@@ -312,7 +310,7 @@ export default function ShoppingListDetailPage() {
       {totalCount === 0 ? (
         <div className="text-center py-12 bg-card border border-border rounded-xl shadow-soft">
           <ShoppingBag className="w-10 h-10 text-muted-foreground/80 mb-2.5 mx-auto" />
-          <p className="text-muted-foreground text-sm font-semibold">
+          <p className="text-muted-foreground text-body font-semibold">
             Diese Liste ist noch leer. Füge Einträge hinzu.
           </p>
         </div>
@@ -321,7 +319,7 @@ export default function ShoppingListDetailPage() {
           {Object.entries(groupedItems).map(([section, items]) => (
             <div key={section} className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-soft">
               {section && (
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5 border-b border-border/40 pb-2">
+                <h3 className="text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5 border-b border-border/40 pb-2">
                   <Store className="w-4 h-4 text-primary shrink-0" />
                   {section}
                 </h3>
@@ -352,7 +350,7 @@ export default function ShoppingListDetailPage() {
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
                 placeholder="Neuer Eintrag..."
-                className="flex-1 px-3.5 py-2 text-sm border border-border bg-background rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                className="flex-1 px-3.5 py-2 text-body border border-border bg-background rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
                 autoFocus
               />
@@ -360,7 +358,7 @@ export default function ShoppingListDetailPage() {
                 type="button"
                 onClick={handleAddItem}
                 disabled={addItem.isPending || !newItemName.trim()}
-                className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+                className="px-4 py-2 text-body font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
               >
                 Hinzufügen
               </button>
@@ -370,7 +368,7 @@ export default function ShoppingListDetailPage() {
                   setShowAddItem(false);
                   setNewItemName('');
                 }}
-                className="px-4 py-2 text-sm font-semibold border border-border bg-card rounded-xl hover:bg-muted transition-all shadow-soft"
+                className="px-4 py-2 text-body font-semibold border border-border bg-card rounded-xl hover:bg-muted transition-all shadow-soft"
               >
                 Abbrechen
               </button>
@@ -379,7 +377,7 @@ export default function ShoppingListDetailPage() {
             <button
               type="button"
               onClick={() => setShowAddItem(true)}
-              className="inline-flex items-center gap-1.5 text-sm text-primary font-bold hover:underline py-2"
+              className="inline-flex items-center gap-1.5 text-body text-primary font-bold hover:underline py-2"
             >
               <Plus className="w-4 h-4 stroke-[3px]" />
               Eintrag hinzufügen
@@ -390,7 +388,7 @@ export default function ShoppingListDetailPage() {
 
       {/* REWE Export */}
       <section className="mt-6 bg-card rounded-xl border border-border p-5 shadow-soft">
-        <h2 className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
+        <h2 className="flex items-center gap-2 text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4">
           <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
           REWE-Export
         </h2>
@@ -407,7 +405,7 @@ export default function ShoppingListDetailPage() {
           onClick={() => setShowCollaborators(!showCollaborators)}
           className="w-full flex items-center justify-between"
         >
-          <h2 className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <h2 className="flex items-center gap-2 text-caption font-bold text-muted-foreground uppercase tracking-wider">
             <Users className="w-4 h-4 text-primary shrink-0" />
             Mitglieder ({collabs.length})
           </h2>

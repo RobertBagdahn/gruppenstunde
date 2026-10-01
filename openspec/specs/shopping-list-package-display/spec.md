@@ -4,56 +4,6 @@
 
 Erweitert Einkaufslisten-Items, um neben der Gramm-Menge auch sinnvolle Packungsgrößen anzuzeigen (z.B. "750g · 6×125g"), basierend auf den verfügbaren Portionen der Zutat.
 ## Requirements
-### Requirement: Packungsoptionen in Einkaufslisten-Zeile
-
-Das Backend SHALL für jeden `ShoppingListItem` mit einem verknüpften `Ingredient` die kleinste sinnvolle Packungsgröße berechnen und in `display_quantity` anhängen. Die Packungsgröße wird anhand der Portion mit dem kleinsten `weight_g > 0` ermittelt, die nicht die Gramm-Basiseinheit ist (kein `measuring_unit.unit="g"` mit `quantity <= 1`). Besitzt diese Portion einen aussagekräftigen Namen (ungleich generischer Gewichtsbezeichnung, z.B. „Scheibe", „Packung", „Stück"), SHALL dieser Name statt einer reinen Gewichtsangabe verwendet werden.
-
-#### Scenario: Ein Ingredient mit mehreren Portionen — kleinste Packung verwendet
-
-- **WHEN** ein `ShoppingListItem` hat `quantity_g=750`, `ingredient` hat Portionen `"125g" (weight_g=125)`, `"Stück" (weight_g=180)`, `"Packung" (weight_g=500)`
-- **THEN** MUST `display_quantity` den String `"750g · 6×125g"` enthalten (kleinste nicht-g Portion)
-
-#### Scenario: Nur eine nicht-g Portion vorhanden
-
-- **WHEN** ein `ShoppingListItem` hat `quantity_g=750`, `ingredient` hat Portionen `"Packung" (weight_g=250)` und `"g"`
-- **THEN** MUST `display_quantity` den String `"750g · 3×250g"` enthalten
-
-#### Scenario: Benannte Portion wird bevorzugt dargestellt
-
-- **WHEN** ein `ShoppingListItem` hat `quantity_g=170`, `ingredient` hat eine Portion `"Scheibe"` mit `weight_g=50`
-- **THEN** MUST `display_quantity` den String `"170g · ≈ 3,4 Scheiben"` enthalten (benannte Portion statt generischer „N×50g"-Zählung)
-
-#### Scenario: Kein geeignete Portion vorhanden
-
-- **WHEN** ein `ShoppingListItem` hat keinen Ingredient oder der Ingredient hat keine Portion mit `weight_g > 0` außer der g-Einheit
-- **THEN** MUST `display_quantity` nur die Gramm-Menge enthalten, ohne ` · ` Erweiterung
-
-#### Scenario: Packungsmenge geht nicht genau auf — aufrunden
-
-- **WHEN** `quantity_g=700`, kleinste Packung `weight_g=250` → exakt 2,8 Packungen
-- **THEN** MUST auf 3 aufgerundet werden: `display = "3×250g"`
-
-#### Scenario: Packungsmenge geht nicht auf — Rest unter 10% Schwelle → abrunden
-
-- **WHEN** `quantity_g=995`, kleinste Packung `weight_g=500` → exakt 1,99 Packungen, Rest = 5g = 0,5% von 995g
-- **THEN** MUST auf 2 abgerundet werden (Rest < 10%): `display = "2×500g"`
-
-#### Scenario: Reserve-Faktor bereits in quantity_g eingerechnet
-
-- **WHEN** `ShoppingListItem.quantity_g` enthält bereits den skalierten Wert inkl. `reserve_factor`
-- **THEN** MUST die Packungsberechnung direkt auf diesem Wert arbeiten, ohne weiteren Aufschlag
-
-### Requirement: Packungsanzeige nur bei vorhandenen Daten
-
-Packungsoptionen sollen nur angezeigt werden wenn tatsächlich nicht-Gramm-Portionen mit `weight_g > 0` am Ingredient definiert sind. Das System SHALL keine Schätzungen oder generischen Packungshinweise für Zutaten ohne geeignete Portionen erzeugen.
-
-#### Scenario: Gewürze ohne geeignete Portionen
-
-- **WHEN** `ingredient` hat nur die Portion „g" mit weight_g=1
-- **THEN** MUST `display_quantity` nur `"3g"` (oder entsprechende Gramm-Angabe) enthalten
-
----
-
 ### Requirement: Packungsoptionen nur lesend
 
 Packungsoptionen in der Einkaufsliste sind rein informativ. Das System SHALL keine Auswahl speichern oder den `ShoppingListItem`-Datensatz beim Anzeigen von Packungsoptionen verändern.
@@ -68,3 +18,43 @@ Packungsoptionen in der Einkaufsliste sind rein informativ. Das System SHALL kei
 - **WHEN** ein Nutzer die Einkaufsliste ansieht und die Packungsoptionen liest
 - **THEN** MUST kein Schreibvorgang auf `ShoppingListItem` stattfinden
 
+### Requirement: Packungsbedarf aus der Standardpackung
+
+Das Backend SHALL für jeden `ShoppingListItem` mit verknüpftem `Ingredient` die benötigte Anzahl der Standardpackung (`Package` mit `rank=1`, nicht gelöscht) berechnen und als strukturierte Werte liefern: `package_options: [{count, package_name, weight_g}]` sowie den Überschuss `package_surplus_g`. Die UI SHALL die Konvention „Gramm zuerst, Packung dahinter“ anwenden: „1.020 g · 2 × 500-g-Packung“. Der Überschuss SHALL klein darunter als „+ … g Reserve“ erscheinen, sofern er > 0 ist.
+
+Rundungsregel: `exact = quantity_g / package.weight_g`. Liegt der Anteil über der ganzen Zahl (`exact − floor(exact)`) bei höchstens 0,05 Packungen, wird abgerundet, sonst aufgerundet; mindestens 1 Packung.
+
+#### Scenario: Knapp über der Packungsgrenze
+- **WHEN** `quantity_g=1020` und Standardpackung `weight_g=500` (exakt 2,04)
+- **THEN** `package_options[0].count = 2` und `package_surplus_g = -20` (Fehlmenge innerhalb der Toleranz, durch die Einkaufsreserve gedeckt, keine Reserve-Zeile); die UI zeigt „1.020 g · 2 × 500-g-Packung“
+
+#### Scenario: Deutlich über der Packungsgrenze
+- **WHEN** `quantity_g=700` und `weight_g=250` (exakt 2,8)
+- **THEN** `count = 3` und `package_surplus_g = 50`; die UI zeigt „700 g · 3 × 250-g-Packung“ und „+ 50 g Reserve“
+
+#### Scenario: Kleinstmenge
+- **WHEN** `quantity_g=30` und `weight_g=500`
+- **THEN** `count = 1`
+
+#### Scenario: Reserve-Faktor bereits in quantity_g eingerechnet
+- **WHEN** `ShoppingListItem.quantity_g` bereits den skalierten Wert inkl. `reserve_factor` enthält
+- **THEN** MUST die Packungsberechnung direkt auf diesem Wert arbeiten, ohne weiteren Aufschlag
+
+### Requirement: Packungsanzeige nur mit Standardpackung
+
+Packungsoptionen SHALL nur erscheinen, wenn die Zutat eine freigegebene Standardpackung (`Package`, `rank=1`) hat. Das System SHALL keine Packungen aus Portionen ableiten oder schätzen; ohne Packung zeigt die Zeile die Menge und gegebenenfalls das Stück-Äquivalent.
+
+#### Scenario: Gewürz ohne Packung
+- **WHEN** die Zutat keine `Package`-Zeile hat
+- **THEN** ist `package_options` leer und die UI zeigt nur „3 g“
+
+### Requirement: Flüssigkeiten in Litern
+Für Zutaten mit `physical_viscosity` in (`beverage`, `liquid`) MUST die Einkaufsliste die Menge über `physical_density` in Milliliter umrechnen und mit `unit="ml"` liefern. Die UI zeigt ab 1.000 ml Liter mit einer Nachkommastelle („9,1 l“). `PhysicalViscosityChoices` erhält den Wert `liquid` („Flüssig“, z. B. Öl, Essig, Sahne); `beverage` bleibt für Getränke.
+
+#### Scenario: Milch
+- **WHEN** 9.400 g Milch mit `physical_viscosity="beverage"` und Dichte 1,03 benötigt werden
+- **THEN** liefert die API `quantity: 9126, unit: "ml"` und die UI zeigt „9,1 l“
+
+#### Scenario: Feste Zutat
+- **WHEN** eine Zutat `physical_viscosity="solid"` hat
+- **THEN** bleibt die Einheit Gramm

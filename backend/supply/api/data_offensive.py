@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import Any, cast
 
 from django.db import connection
 from django.db.models import Count, Q
@@ -22,7 +22,7 @@ from ninja.errors import HttpError
 from content.choices import ContentStatus
 from core.permissions import require_staff
 from core.services.gemini import GeminiInvalidResponseError, GeminiUpstreamRateLimitError
-from supply.models import Ingredient, RetailSection
+from supply.models import Ingredient, IngredientPackageSuggestion, RetailSection
 from supply.schemas.data_offensive import (
     AiReviewRunIn,
     AiReviewRunOut,
@@ -37,8 +37,16 @@ from supply.schemas.data_offensive import (
     OffensiveIngredientOut,
     OffensiveIngredientPatchIn,
     OffensiveSummaryOut,
+    PackageSuggestionDecisionIn,
+    PackageSuggestionOut,
+    PackageSuggestionPatchIn,
+    PackageSuggestionStatus,
+    PackageSuggestRunIn,
+    PackageSuggestRunOut,
     PaginatedDuplicateGroupOut,
     PaginatedOffensiveIngredientOut,
+    PaginatedPackageSuggestionOut,
+    PhysicalViscosity,
     RetailSectionOptionOut,
 )
 from supply.services import data_offensive as offensive
@@ -422,3 +430,162 @@ def recipe_recategorize(request, payload: IdsIn):
     active = Recipe.objects.exclude(status=ContentStatus.ARCHIVED).count()
     result = recategorize_recipes(ids=payload.ids or None, apply=True, user=request.user, bypass_limits=False)
     return BulkActionOut(changed=result.changed, skipped=active - result.changed, messages=result.messages[:50])
+
+
+# ---------------------------------------------------------------------------
+# Package suggestions (AI) — suggest in chunks, then accept/reject in the cockpit
+# ---------------------------------------------------------------------------
+
+DEFAULT_PACKAGE_PAGE_SIZE = 50
+
+
+class PackageSuggestionFilters(Schema):
+    status: str = IngredientPackageSuggestion.Status.PENDING
+    min_confidence: float | None = None
+    section_id: int | None = None
+    search: str | None = None
+    page: int = 1
+    page_size: int = DEFAULT_PACKAGE_PAGE_SIZE
+
+
+def _package_suggestions_qs(
+    *, status: str | None, min_confidence: float | None, section_id: int | None, search: str | None = None
+):
+    queryset = IngredientPackageSuggestion.objects.select_related("ingredient", "ingredient__retail_section")
+    if status:
+        queryset = queryset.filter(status=status)
+    if min_confidence is not None:
+        queryset = queryset.filter(confidence__gte=min_confidence)
+    if section_id is not None:
+        queryset = queryset.filter(ingredient__retail_section_id=section_id)
+    if search and search.strip():
+        queryset = queryset.filter(ingredient__name__icontains=search.strip())
+    return queryset
+
+
+def _package_suggestion_out(suggestion: IngredientPackageSuggestion) -> PackageSuggestionOut:
+    from supply.choices import PhysicalPropertiesSourceChoices
+
+    ingredient = suggestion.ingredient
+    section = ingredient.retail_section
+    return PackageSuggestionOut(
+        id=suggestion.pk,
+        ingredient_id=ingredient.pk,
+        ingredient_name=ingredient.name,
+        ingredient_slug=ingredient.slug,
+        retail_section_id=section.pk if section else None,
+        retail_section_name=section.name if section else None,
+        package_name=suggestion.package_name,
+        weight_g=suggestion.weight_g,
+        volume_ml=suggestion.volume_ml,
+        # Model choices guarantee the literal values.
+        physical_viscosity=cast(PhysicalViscosity, suggestion.physical_viscosity),
+        physical_density=suggestion.physical_density,
+        confidence=suggestion.confidence,
+        reason=suggestion.reason,
+        status=cast(PackageSuggestionStatus, suggestion.status),
+        viscosity_is_manual=ingredient.viscosity_source == PhysicalPropertiesSourceChoices.MANUAL,
+        created_at=suggestion.created_at,
+        can_edit=suggestion.status == IngredientPackageSuggestion.Status.PENDING,
+    )
+
+
+@data_offensive_router.post("/packages/suggest/", response=PackageSuggestRunOut)
+def package_suggest(request, payload: PackageSuggestRunIn):
+    """Run one chunk of AI package suggestions; ``dry_run`` returns only the cost estimate."""
+    require_staff(request)
+    from supply.services import package_suggestions as packages
+
+    candidates = packages.candidate_queryset()
+    total = candidates.count()
+    calls, cost = packages.estimate(total)
+    if payload.dry_run:
+        return PackageSuggestRunOut(
+            dry_run=True, candidates=total, estimated_calls=calls, estimated_cost_eur=cost, remaining=total
+        )
+    ids = list(candidates.values_list("id", flat=True)[: payload.limit])
+    result = packages.suggest_packages(ingredient_ids=ids, user=request.user)
+    return PackageSuggestRunOut(
+        dry_run=False,
+        candidates=total,
+        estimated_calls=calls,
+        estimated_cost_eur=cost,
+        suggested=result.suggested,
+        skipped=result.skipped,
+        calls=result.calls,
+        remaining=packages.candidate_queryset().count(),
+        errors=result.errors,
+    )
+
+
+@data_offensive_router.get("/packages/", response=PaginatedPackageSuggestionOut)
+def package_suggestion_list(request, filters: Query[PackageSuggestionFilters]):
+    require_staff(request)
+    queryset = _package_suggestions_qs(
+        status=filters.status or None,
+        min_confidence=filters.min_confidence,
+        section_id=filters.section_id,
+        search=filters.search,
+    )
+    page_size = max(1, min(filters.page_size, MAX_PAGE_SIZE))
+    total = queryset.count()
+    total_pages = max(1, math.ceil(total / page_size))
+    page = max(1, min(filters.page, total_pages))
+    start = (page - 1) * page_size
+    return PaginatedPackageSuggestionOut(
+        items=[_package_suggestion_out(s) for s in queryset[start : start + page_size]],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+@data_offensive_router.patch("/packages/{int:suggestion_id}/", response=PackageSuggestionOut)
+def package_suggestion_patch(request, suggestion_id: int, payload: PackageSuggestionPatchIn):
+    require_staff(request)
+    suggestion = get_object_or_404(
+        IngredientPackageSuggestion.objects.select_related("ingredient", "ingredient__retail_section"),
+        id=suggestion_id,
+    )
+    if suggestion.status != IngredientPackageSuggestion.Status.PENDING:
+        raise HttpError(400, "Nur offene Vorschläge können bearbeitet werden")
+    data = payload.dict(exclude_unset=True)
+    if "package_name" in data and not (data["package_name"] or "").strip():
+        raise HttpError(400, "Packungsname darf nicht leer sein")
+    for field_name, value in data.items():
+        if value is None and field_name in {"package_name", "weight_g", "physical_viscosity"}:
+            continue
+        setattr(suggestion, field_name, value.strip() if isinstance(value, str) else value)
+    suggestion.save()
+    return _package_suggestion_out(suggestion)
+
+
+def _decision_queryset(payload: PackageSuggestionDecisionIn):
+    if not payload.ids and payload.min_confidence is None:
+        raise HttpError(400, "Keine Vorschläge ausgewählt")
+    queryset = _package_suggestions_qs(
+        status=IngredientPackageSuggestion.Status.PENDING,
+        min_confidence=payload.min_confidence,
+        section_id=payload.section_id,
+    )
+    return queryset.filter(id__in=payload.ids) if payload.ids else queryset
+
+
+@data_offensive_router.post("/packages/accept/", response=BulkActionOut)
+def package_suggestion_accept(request, payload: PackageSuggestionDecisionIn):
+    """Accept the given suggestions, or all pending ones with ``confidence >= min_confidence``."""
+    require_staff(request)
+    from supply.services.package_suggestions import accept_suggestions
+
+    result = accept_suggestions(_decision_queryset(payload), user=request.user)
+    return BulkActionOut(changed=result.changed, skipped=result.skipped, messages=result.messages[:30])
+
+
+@data_offensive_router.post("/packages/reject/", response=BulkActionOut)
+def package_suggestion_reject(request, payload: PackageSuggestionDecisionIn):
+    require_staff(request)
+    from supply.services.package_suggestions import reject_suggestions
+
+    result = reject_suggestions(_decision_queryset(payload), user=request.user)
+    return BulkActionOut(changed=result.changed, skipped=result.skipped)

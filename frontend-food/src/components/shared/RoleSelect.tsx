@@ -23,7 +23,7 @@ export default function RoleSelect({ value, onChange, disabled, className }: Rol
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       className={cn(
-        'rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40',
+        'rounded-lg border border-border bg-background px-3 py-1.5 text-body focus:outline-none focus:ring-2 focus:ring-primary/40',
         className,
       )}
     >

@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import MealPlanHeroCard from '@/components/planning/MealPlanHeroCard';
 import MealPlanCompactCard from '@/components/planning/MealPlanCompactCard';
 import type { MealPlan } from '@/schemas/mealPlan';
+import { Icon } from '@/components/ui/icon';
 
 interface MealPlanSectionProps {
   title: string;
@@ -37,7 +38,7 @@ export default function MealPlanSection({
     <div className="mb-8">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 mb-4 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-2 mb-4 text-body font-bold text-muted-foreground hover:text-foreground transition-colors"
       >
         {open ? (
           <ChevronDown className="w-4 h-4" />
@@ -45,10 +46,10 @@ export default function MealPlanSection({
           <ChevronRight className="w-4 h-4" />
         )}
         {icon && (
-          <span className="material-symbols-outlined text-[18px]">{icon}</span>
+          <Icon name={icon} size={20} />
         )}
         {title}
-        <span className="text-xs font-semibold text-muted-foreground">({plans.length})</span>
+        <span className="text-caption font-semibold text-muted-foreground">({plans.length})</span>
       </button>
 
       {open && (

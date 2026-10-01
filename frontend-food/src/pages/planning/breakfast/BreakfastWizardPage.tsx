@@ -289,8 +289,8 @@ export default function BreakfastWizardPage() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div className="flex-1">
-              <h1 className="font-display font-bold text-lg">Frühstücksassistent</h1>
-              <p className="text-xs text-muted-foreground">{plan?.name ?? '…'}</p>
+              <h1 className="font-display font-bold text-section">Frühstücksassistent</h1>
+              <p className="text-caption text-muted-foreground">{plan?.name ?? '…'}</p>
             </div>
           </div>
 
@@ -305,7 +305,7 @@ export default function BreakfastWizardPage() {
               />
             ))}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground text-center">
+          <p className="mt-1 text-caption text-muted-foreground text-center">
             Schritt {currentStepIndex + 1} / {WIZARD_STEPS.length}: {STEP_LABELS[step]}
           </p>
         </div>
@@ -316,14 +316,14 @@ export default function BreakfastWizardPage() {
         {step === 'basis' && catalog && (
           <div className="mb-6 rounded-xl border border-border bg-card p-4 space-y-3">
             <div>
-              <h2 className="font-display font-semibold text-base">Schnellstart: Frühstück auswählen</h2>
-              <p className="text-xs text-muted-foreground">Wähle eine Vorlage. Danach kannst du jede Auswahl im Detail anpassen.</p>
+              <h2 className="font-display font-semibold text-emphasis">Schnellstart: Frühstück auswählen</h2>
+              <p className="text-caption text-muted-foreground">Wähle eine Vorlage. Danach kannst du jede Auswahl im Detail anpassen.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {BREAKFAST_PROFILES.map((profile) => (
                 <button key={profile.id} type="button" onClick={() => applyBreakfastProfile(profile.id)} className="rounded-lg border border-border p-3 text-left hover:border-primary hover:bg-primary/5 transition-colors">
-                  <span className="block text-sm font-semibold">{profile.title}</span>
-                  <span className="block text-xs text-muted-foreground mt-0.5">{profile.description}</span>
+                  <span className="block text-body font-semibold">{profile.title}</span>
+                  <span className="block text-caption text-muted-foreground mt-0.5">{profile.description}</span>
                 </button>
               ))}
             </div>
@@ -356,7 +356,7 @@ export default function BreakfastWizardPage() {
             <button
               type="button"
               onClick={handleBack}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors text-sm font-medium text-muted-foreground"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors text-body font-medium text-muted-foreground"
             >
               <X className="w-4 h-4" />
               Abbrechen
@@ -366,7 +366,7 @@ export default function BreakfastWizardPage() {
             <button
               type="button"
               onClick={goPrev}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors text-body font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Zurück
@@ -376,7 +376,7 @@ export default function BreakfastWizardPage() {
             <button
               type="button"
               onClick={goNext}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-body font-medium"
             >
               Weiter
               <ArrowRight className="w-4 h-4" />
@@ -387,7 +387,7 @@ export default function BreakfastWizardPage() {
               type="button"
               onClick={handleSave}
               disabled={savePending}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-60"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-body font-medium disabled:opacity-60"
             >
               <Check className="w-4 h-4" />
               {savePending ? 'Wird gespeichert…' : 'Frühstück speichern'}

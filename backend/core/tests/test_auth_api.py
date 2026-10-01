@@ -41,7 +41,10 @@ class TestSessionEndpoints:
     def test_me_anonymous_returns_200(self, api_client: Client) -> None:
         response = api_client.get("/api/auth/me/")
         assert response.status_code == 200
-        assert response.json() == {"is_authenticated": False, "user": None}
+        body = response.json()
+        assert body["is_authenticated"] is False
+        assert body["user"] is None
+        assert body["id"] is None
 
     def test_me_authenticated(self, user: object) -> None:
         SocialAccount.objects.create(user=user, provider="google", uid="123")
@@ -51,6 +54,9 @@ class TestSessionEndpoints:
         assert body["user"]["providers"] == ["google"]
         assert body["user"]["needs_onboarding"] is False
         assert body["user"]["display_name"] == "Max"
+        # The previous frontend revision reads these top-level session fields.
+        assert body["id"] == user.id
+        assert body["is_superuser"] is False
 
     def test_new_user_needs_onboarding(self, db) -> None:
         fresh = User.objects.create_user(username="neu@example.org", email="neu@example.org")
@@ -285,7 +291,7 @@ class TestPasswordTransition:
         assert api_client.get("/api/auth/providers/").json()["password_login"] is True
 
     def test_existing_password_user_can_log_in(self, api_client: Client) -> None:
-        User.objects.create_user(username="alt@example.org", email="alt@example.org", password="geheim-12345")
+        User.objects.create_user(username="Alt@Example.org", email="alt@example.org", password="geheim-12345")
         response = api_client.post(
             "/api/auth/login/",
             data={"email": "Alt@Example.org", "password": "geheim-12345"},

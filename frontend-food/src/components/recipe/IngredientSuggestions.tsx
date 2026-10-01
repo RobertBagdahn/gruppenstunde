@@ -137,14 +137,14 @@ export default function IngredientSuggestions({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-card text-card-foreground rounded-lg shadow-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+      <div className="bg-card text-card-foreground rounded-xl shadow-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3 className="text-section font-semibold text-foreground">
             Vorgeschlagene Zutaten
           </h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-muted rounded"
+            className="p-1 hover:bg-muted rounded-lg"
           >
             <X size={20} />
           </button>
@@ -156,7 +156,7 @@ export default function IngredientSuggestions({
           </div>
         ) : suggestions.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-body">
               Keine neuen Zutaten gefunden. Alle Zutaten sind bereits im Rezept.
             </p>
           </div>
@@ -166,7 +166,7 @@ export default function IngredientSuggestions({
               {suggestions.map((suggestion, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-3 p-3 border border-border rounded hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                  className="flex items-start gap-3 p-3 border border-border rounded-lg hover:border-primary/40 hover:bg-primary/5 transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -175,16 +175,16 @@ export default function IngredientSuggestions({
                     className="mt-1 cursor-pointer"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-sm">
+                    <p className="font-medium text-foreground text-body">
                       {getItemName(suggestion.recipe_item_id, suggestion.ingredient_name)}
                     </p>
                     {suggestion.preparation && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-caption text-muted-foreground mt-1">
                         {suggestion.preparation}
                       </p>
                     )}
                     {suggestion.confidence !== undefined && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-caption text-muted-foreground mt-1">
                         Sicherheit: {Math.round(suggestion.confidence * 100)}%
                       </p>
                     )}
@@ -196,14 +196,14 @@ export default function IngredientSuggestions({
             <div className="flex gap-2">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 text-foreground bg-secondary hover:bg-secondary/80 rounded transition-colors"
+                className="flex-1 px-4 py-2 text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
               >
                 Abbrechen
               </button>
               <button
                 onClick={handleAddSelected}
                 disabled={selectedSuggestions.size === 0}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check size={16} />
                 Hinzufügen ({selectedSuggestions.size})

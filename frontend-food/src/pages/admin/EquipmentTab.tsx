@@ -76,7 +76,7 @@ export default function EquipmentTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{equipment?.length ?? 0} Einträge</p>
+        <p className="text-body text-muted-foreground">{equipment?.length ?? 0} Einträge</p>
         <Button onClick={openCreate} className="gap-1.5" size="sm">
           <Plus className="h-4 w-4" />
           Neu
@@ -85,9 +85,9 @@ export default function EquipmentTab() {
 
       <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-body">
             <thead>
-              <tr className="bg-muted/50 border-b border-border text-muted-foreground font-medium text-xs uppercase tracking-wider">
+              <tr className="bg-muted/50 border-b border-border text-muted-foreground font-medium text-caption uppercase tracking-wider">
                 <th className="text-left px-5 py-3 font-semibold">Name</th>
                 <th className="text-left px-5 py-3 font-semibold hidden sm:table-cell">Slug</th>
                 <th className="text-left px-5 py-3 font-semibold w-24">Sortierung</th>
@@ -146,7 +146,7 @@ export default function EquipmentTab() {
               <Label htmlFor="name">Name</Label>
               <Input id="name" {...form.register('name')} placeholder="z.B. Topf, Pfanne" />
               {form.formState.errors.name && (
-                <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
+                <p className="text-caption text-destructive">{form.formState.errors.name.message}</p>
               )}
             </div>
             <div className="space-y-2">

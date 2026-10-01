@@ -73,25 +73,25 @@ export default function WizardStepMetadata({ recipeSlug, saveRecipe }: WizardSte
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-display font-bold">Beschreibung &amp; Details</h2>
-        <p className="text-sm text-muted-foreground mt-2">
+        <h2 className="text-section font-display font-bold">Beschreibung &amp; Details</h2>
+        <p className="text-body text-muted-foreground mt-2">
           Prüfe Beschreibung, Zeiten, Schwierigkeit und ergänze anschließend die Zubereitungsschritte.
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1.5">Kurzbeschreibung</label>
+        <label className="block text-body font-medium mb-1.5">Kurzbeschreibung</label>
         <input
           type="text"
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           placeholder="Kurze Zusammenfassung..."
-          className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full px-3 py-2 border rounded-lg text-body focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1.5">Beschreibung</label>
+        <label className="block text-body font-medium mb-1.5">Beschreibung</label>
         <MarkdownEditor
           value={description}
           onChange={setDescription}
@@ -102,11 +102,11 @@ export default function WizardStepMetadata({ recipeSlug, saveRecipe }: WizardSte
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1.5">Schwierigkeit</label>
+          <label className="block text-body font-medium mb-1.5">Schwierigkeit</label>
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full px-3 py-2 border rounded-lg text-body bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Keine Angabe</option>
             {RECIPE_DIFFICULTY_OPTIONS.map((opt) => (
@@ -115,11 +115,11 @@ export default function WizardStepMetadata({ recipeSlug, saveRecipe }: WizardSte
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Zubereitungszeit</label>
+          <label className="block text-body font-medium mb-1.5">Zubereitungszeit</label>
           <select
             value={executionTime}
             onChange={(e) => setExecutionTime(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full px-3 py-2 border rounded-lg text-body bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Keine Angabe</option>
             {RECIPE_EXECUTION_TIME_OPTIONS.map((opt) => (
@@ -128,11 +128,11 @@ export default function WizardStepMetadata({ recipeSlug, saveRecipe }: WizardSte
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Vorbereitungszeit</label>
+          <label className="block text-body font-medium mb-1.5">Vorbereitungszeit</label>
           <select
             value={preparationTime}
             onChange={(e) => setPreparationTime(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-full px-3 py-2 border rounded-lg text-body bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Keine Angabe</option>
             {PREP_TIME_OPTIONS.map((opt) => (
@@ -143,7 +143,7 @@ export default function WizardStepMetadata({ recipeSlug, saveRecipe }: WizardSte
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1.5">Tags</label>
+        <label className="block text-body font-medium mb-1.5">Tags</label>
         <TagMultiSelect
           selectedSlugs={selectedTagSlugs}
           onToggle={handleToggleTag}
@@ -152,11 +152,11 @@ export default function WizardStepMetadata({ recipeSlug, saveRecipe }: WizardSte
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1.5">Sichtbarkeit</label>
+        <label className="block text-body font-medium mb-1.5">Sichtbarkeit</label>
         <select
           value={visibility}
           onChange={(e) => setVisibility(e.target.value)}
-          className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full px-3 py-2 border rounded-lg text-body bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
           {VISIBILITY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -164,7 +164,7 @@ export default function WizardStepMetadata({ recipeSlug, saveRecipe }: WizardSte
         </select>
       </div>
 
-      <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+      <div className="text-caption text-muted-foreground bg-muted/50 rounded-lg p-3">
         Deine Änderungen werden beim Klick auf "Weiter" gespeichert. Die Zutaten bleiben dabei erhalten.
       </div>
     </div>

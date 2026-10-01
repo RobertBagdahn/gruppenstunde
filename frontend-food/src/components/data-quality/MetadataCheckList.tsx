@@ -13,10 +13,10 @@ export default function MetadataCheckList({ page = 1, pageSize = 50 }: MetadataC
   if (isLoading)
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin text-2xl text-muted-foreground" />
+        <Loader2 className="animate-spin text-title text-muted-foreground" />
       </div>
     );
-  if (error) return <div className="text-red-500 py-4">Fehler beim Laden: {error.message}</div>;
+  if (error) return <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>;
   if (!data?.items.length) return <div className="text-muted-foreground py-4">Alle Rezepte haben vollständige Metadaten</div>;
 
   return (
@@ -28,19 +28,19 @@ export default function MetadataCheckList({ page = 1, pageSize = 50 }: MetadataC
           className="block rounded-xl border border-border bg-card p-4 hover:shadow-sm transition-shadow"
         >
           <span className="font-medium block mb-1">{item.title}</span>
-          <div className="flex gap-3 text-xs">
+          <div className="flex gap-3 text-caption">
             {item.missing_image && (
-              <span className="flex items-center gap-1 text-amber-600">
+              <span className="flex items-center gap-1 text-warning">
                 <Image className="h-3 w-3" /> Kein Bild
               </span>
             )}
             {item.missing_tags && (
-              <span className="flex items-center gap-1 text-amber-600">
+              <span className="flex items-center gap-1 text-warning">
                 <Tags className="h-3 w-3" /> Keine Tags
               </span>
             )}
             {item.missing_summary && (
-              <span className="flex items-center gap-1 text-amber-600">
+              <span className="flex items-center gap-1 text-warning">
                 <FileText className="h-3 w-3" /> Keine Zusammenfassung
               </span>
             )}

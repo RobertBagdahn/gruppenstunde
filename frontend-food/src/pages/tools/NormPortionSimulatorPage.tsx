@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DgeReferencePoint } from '@/schemas/normPerson';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/lib/format';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -77,12 +78,12 @@ function ChartTooltip({ active, payload, label, unit = '' }: CustomTooltipProps)
 
   return (
     <div className="rounded-xl border border-border/60 bg-card px-4 py-3 shadow-lg">
-      <p className="text-sm font-semibold text-foreground mb-1">
+      <p className="text-body font-semibold text-foreground mb-1">
         {typeof label === 'number' ? `Alter: ${label} Jahre` : label}
       </p>
       {payload.map((item) => (
-        <p key={item.dataKey} className="text-sm" style={{ color: item.color }}>
-          {item.name}: {typeof item.value === 'number' ? item.value.toFixed(1) : item.value} {unit}
+        <p key={item.dataKey} className="text-body" style={{ color: item.color }}>
+          {item.name}: {typeof item.value === 'number' ? formatNumber(item.value, { maxDecimals: 1 }) : item.value} {unit}
         </p>
       ))}
     </div>
@@ -112,10 +113,10 @@ function PalSelector({ value, onChange }: PalSelectorProps) {
               : 'border-border bg-card hover:border-primary/50 hover:bg-primary/5',
           )}
         >
-          <span className="block text-sm font-semibold text-foreground">
+          <span className="block text-body font-semibold text-foreground">
             {option.label} ({option.value})
           </span>
-          <span className="block text-xs text-muted-foreground mt-0.5">
+          <span className="block text-caption text-muted-foreground mt-0.5">
             {option.description}
           </span>
         </button>
@@ -134,10 +135,10 @@ function ReferenceInfoCard() {
       <div className="flex items-start gap-3">
         <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <h4 className="text-sm font-bold text-foreground font-display">
+          <h4 className="text-body font-bold text-foreground font-display">
             Referenz-Normperson
           </h4>
-          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+          <p className="text-body text-muted-foreground mt-1 leading-relaxed">
             15 Jahre, männlich, PAL 1.5 (moderat). Ein Normfaktor von 1.0
             entspricht dem Energiebedarf dieser Referenzperson. Werte über 1.0
             bedeuten höheren Bedarf, Werte unter 1.0 geringeren.
@@ -208,13 +209,13 @@ function MacroBreakdownChart({ dgePoints }: { dgePoints: DgeReferencePoint[] }) 
   if (!data.length) return null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+        <h2 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
           <BarChart3 className="w-5 h-5 text-primary" />
           Makronährstoff-Verteilung (DGE-Empfehlung)
         </h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-caption text-muted-foreground mt-0.5">
           Empfohlene Tageszufuhr in Gramm nach Altersgruppe und Geschlecht (M=Männlich, W=Weiblich)
         </p>
       </div>
@@ -318,13 +319,13 @@ function IstVsSollComparison({
   ];
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+        <h2 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
           <ArrowLeftRight className="w-5 h-5 text-primary" />
           Ist vs. Soll - {mealPlan.name}
         </h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-caption text-muted-foreground mt-0.5">
           Vergleich der tatsächlichen Nährwerte pro Normportion mit DGE-Empfehlung (Durchschnitt 7-19 J.)
         </p>
       </div>
@@ -380,9 +381,9 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
   const { data, isLoading, error } = useNormPersonCalculation(age, gender, chartPal);
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
-        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+        <h3 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
           <Calculator className="w-5 h-5 text-primary" />
           Einzelperson berechnen
         </h3>
@@ -392,7 +393,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Age input */}
           <div className="space-y-1.5">
-            <Label htmlFor="calculator-age" className="text-sm font-medium text-foreground">
+            <Label htmlFor="calculator-age" className="text-body font-medium text-foreground">
               Alter (Jahre)
             </Label>
             <Input
@@ -410,14 +411,14 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
 
           {/* Gender select */}
           <div className="space-y-1.5">
-            <Label htmlFor="calculator-gender" className="text-sm font-medium text-foreground">
+            <Label htmlFor="calculator-gender" className="text-body font-medium text-foreground">
               Geschlecht
             </Label>
             <select
               id="calculator-gender"
               value={gender}
               onChange={(e) => setGender(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-body ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               {GENDER_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -430,14 +431,14 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
 
         {/* Results */}
         {isLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-body text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin text-primary" />
             Berechne...
           </div>
         )}
 
         {error && (
-          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-body text-destructive">
             Fehler bei der Berechnung.
           </div>
         )}
@@ -446,16 +447,16 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <ResultCard
               label="Normfaktor"
-              value={data.norm_factor.toFixed(2)}
+              value={formatNumber(data.norm_factor, { maxDecimals: 2 })}
               highlight
             />
             <ResultCard
               label="Grundumsatz"
-              value={`${data.bmr.toFixed(0)} kcal`}
+              value={`${formatNumber(data.bmr, { maxDecimals: 0 })} kcal`}
             />
             <ResultCard
               label="Tagesbedarf"
-              value={`${data.tdee.toFixed(0)} kcal`}
+              value={`${formatNumber(data.tdee, { maxDecimals: 0 })} kcal`}
             />
             <ResultCard
               label="Referenzgewicht"
@@ -488,10 +489,10 @@ function ResultCard({ label, value, highlight }: ResultCardProps) {
           : 'border-border bg-muted/20',
       )}
     >
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-caption text-muted-foreground">{label}</p>
       <p
         className={cn(
-          'text-lg font-bold mt-0.5',
+          'text-section font-bold mt-0.5',
           highlight ? 'text-primary' : 'text-foreground',
         )}
       >
@@ -539,11 +540,11 @@ export default function NormPortionSimulatorPage() {
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 font-display">
+        <h1 className="text-title font-bold text-foreground flex items-center gap-2 font-display">
           <Calculator className="w-6 h-6 text-primary" />
           Normportion-Simulator
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-body text-muted-foreground mt-1">
           Visualisiere den Energiebedarf und Normfaktor nach Alter, Geschlecht
           und Aktivitätslevel. Die Normfaktoren helfen bei der
           Portionsberechnung für unterschiedliche Altersgruppen.
@@ -556,10 +557,10 @@ export default function NormPortionSimulatorPage() {
           <div className="flex items-start gap-3">
             <Utensils className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-sm font-semibold text-foreground font-display">
+              <h4 className="text-body font-semibold text-foreground font-display">
                 Essensplan-Kontext aktiv
               </h4>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-body text-muted-foreground mt-1">
                 Ist vs. Soll Vergleich wird unten angezeigt basierend auf den
                 tatsächlichen Nährwerten des Essensplans.
               </p>
@@ -573,7 +574,7 @@ export default function NormPortionSimulatorPage() {
 
       {/* PAL Selector */}
       <div className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground font-display">
+        <h2 className="text-emphasis font-semibold text-foreground font-display">
           Aktivitätslevel (PAL)
         </h2>
         <PalSelector value={pal} onChange={handlePalChange} />
@@ -590,7 +591,7 @@ export default function NormPortionSimulatorPage() {
       )}
 
       {error && (
-        <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-4 text-sm text-destructive">
+        <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-4 text-body text-destructive">
           Daten konnten nicht geladen werden.
         </div>
       )}
@@ -599,13 +600,13 @@ export default function NormPortionSimulatorPage() {
       {curves && (
         <div className="space-y-6">
           {/* Norm Factor Chart */}
-          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-muted/30">
-              <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+              <h2 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
                 <Scale className="w-5 h-5 text-primary" />
                 Normfaktor nach Alter
               </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-caption text-muted-foreground mt-0.5">
                 Faktor relativ zur Referenz-Normperson (1.0 = 15 J., männlich, PAL 1.5)
               </p>
             </div>

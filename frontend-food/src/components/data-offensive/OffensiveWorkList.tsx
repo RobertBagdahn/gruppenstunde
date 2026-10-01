@@ -130,8 +130,8 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
   return (
     <section className="space-y-3" id="arbeitsliste">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-lg font-bold">Arbeitsliste</h2>
-        <p className="text-xs text-muted-foreground">
+        <h2 className="font-display text-section font-bold">Arbeitsliste</h2>
+        <p className="text-caption text-muted-foreground">
           {data ? `${data.total.toLocaleString('de-DE')} Treffer` : ' '}
           {isFetching && !isLoading && ' · aktualisiere …'}
         </p>
@@ -151,7 +151,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
         <select
           value={filters.issue ?? ''}
           onChange={(event) => onFiltersChange({ ...filters, issue: event.target.value || undefined, nutrition_issue: undefined, page: 1 })}
-          className="h-9 rounded-md border bg-background px-2 text-sm"
+          className="h-9 rounded-lg border bg-background px-2 text-body"
           aria-label="Problem filtern"
         >
           <option value="">Alle Zutaten</option>
@@ -168,7 +168,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
           onChange={(event) =>
             onFiltersChange({ ...filters, section_id: event.target.value ? Number(event.target.value) : undefined, page: 1 })
           }
-          className="h-9 rounded-md border bg-background px-2 text-sm"
+          className="h-9 rounded-lg border bg-background px-2 text-body"
           aria-label="Warengruppe filtern"
         >
           <option value="">Alle Warengruppen</option>
@@ -178,7 +178,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
             </option>
           ))}
         </select>
-        <label className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm whitespace-nowrap">
+        <label className="flex h-9 items-center gap-2 rounded-lg border px-3 text-body whitespace-nowrap">
           <input
             type="checkbox"
             checked={!!filters.used_only}
@@ -197,7 +197,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
               onClick={() =>
                 onFiltersChange({ ...filters, nutrition_issue: filters.nutrition_issue === code ? undefined : code, page: 1 })
               }
-              className={`rounded-full border px-2.5 py-1 text-xs ${filters.nutrition_issue === code ? 'border-primary bg-primary/10 text-primary' : 'bg-card'}`}
+              className={`rounded-full border px-2.5 py-1 text-caption ${filters.nutrition_issue === code ? 'border-primary bg-primary/10 text-primary' : 'bg-card'}`}
             >
               {summary.nutrition_issue_labels[code] ?? code} · {count}
             </button>
@@ -206,7 +206,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
       )}
 
       <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 backdrop-blur">
-        <label className="flex items-center gap-2 px-1 text-xs font-medium">
+        <label className="flex items-center gap-2 px-1 text-caption font-medium">
           <input
             type="checkbox"
             checked={allPageSelected}
@@ -222,11 +222,11 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
           Seite
         </label>
         {data && data.total > items.length && (
-          <button type="button" onClick={selectAllMatches} className="text-xs text-primary hover:underline">
+          <button type="button" onClick={selectAllMatches} className="text-caption text-primary hover:underline">
             Alle {data.total.toLocaleString('de-DE')} Treffer auswählen
           </button>
         )}
-        <span className="text-xs text-muted-foreground">{selected.size > 0 && `${selected.size} ausgewählt`}</span>
+        <span className="text-caption text-muted-foreground">{selected.size > 0 && `${selected.size} ausgewählt`}</span>
         {selected.size > 0 && (
           <div className="ml-auto flex flex-wrap gap-1.5">
             <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => reviewIds(selectedIds)}>
@@ -250,11 +250,11 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 py-12 text-body text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin text-primary" /> Lade Zutaten …
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive space-y-2">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-body text-destructive space-y-2">
           <p className="font-semibold">Arbeitsliste konnte nicht geladen werden</p>
           <p>{error.message}</p>
           <Button size="sm" variant="outline" onClick={() => refetch()}>

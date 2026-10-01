@@ -79,7 +79,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
   const barColor =
     coverage < 0.8 ? 'bg-destructive'
     : coverage <= 1.1 ? 'bg-primary'
-    : coverage <= 1.2 ? 'bg-amber-400'
+    : coverage <= 1.2 ? 'bg-warning'
     : 'bg-destructive';
   const showOverplanWarning = coverage > 1.2;
 
@@ -101,33 +101,33 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
       {saveMode === 'directMeal' && breakfastMeals.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
           <div>
-            <h3 className="font-display font-semibold text-base">Auf welche Frühstücke anwenden?</h3>
-            <p className="text-xs text-muted-foreground">Die geprüfte Zusammenstellung wird auf jedes ausgewählte Frühstück dieses Events kopiert.</p>
+            <h3 className="font-display font-semibold text-emphasis">Auf welche Frühstücke anwenden?</h3>
+            <p className="text-caption text-muted-foreground">Die geprüfte Zusammenstellung wird auf jedes ausgewählte Frühstück dieses Events kopiert.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(breakfastMeals.map((meal) => meal.id))} className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted">Alle Frühstücke</button>
-            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(mealId ? [mealId] : [])} className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted">Nur dieses</button>
+            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(breakfastMeals.map((meal) => meal.id))} className="px-3 py-1.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">Alle Frühstücke</button>
+            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(mealId ? [mealId] : [])} className="px-3 py-1.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">Nur dieses</button>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {breakfastMeals.map((meal) => {
               const selected = selectedBreakfastMealIds.includes(meal.id);
               const label = meal.start_datetime ? new Date(meal.start_datetime).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : `Frühstück #${meal.id}`;
-              return <label key={meal.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selected} onChange={() => onSelectedBreakfastMealIdsChange(selected ? selectedBreakfastMealIds.filter((id) => id !== meal.id) : [...selectedBreakfastMealIds, meal.id])} />{label}</label>;
+              return <label key={meal.id} className="flex items-center gap-2 text-body"><input type="checkbox" checked={selected} onChange={() => onSelectedBreakfastMealIdsChange(selected ? selectedBreakfastMealIds.filter((id) => id !== meal.id) : [...selectedBreakfastMealIds, meal.id])} />{label}</label>;
             })}
           </div>
-          {selectedBreakfastMealIds.length === 0 && <p className="text-xs text-destructive">Bitte mindestens ein Frühstück auswählen.</p>}
+          {selectedBreakfastMealIds.length === 0 && <p className="text-caption text-destructive">Bitte mindestens ein Frühstück auswählen.</p>}
         </div>
       )}
       {/* SollIstBar */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-display font-semibold text-base">Energie-Check</h3>
+          <h3 className="font-display font-semibold text-emphasis">Energie-Check</h3>
           {saveMode === 'directMeal' && (
             <button
               type="button"
               onClick={handleNormalize}
               disabled={scaleMutation.isPending}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 text-caption px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors disabled:opacity-40"
               title="Alle Mengen auf das Soll skalieren"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -136,7 +136,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
           )}
         </div>
         <div className="space-y-1.5">
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-body">
             <span className="text-muted-foreground">Ist: {Math.round(totalKcal)} kcal/Person</span>
             <span className="text-muted-foreground">Soll: {Math.round(target)} kcal/Person</span>
           </div>
@@ -146,7 +146,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
               style={{ width: `${barWidth}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground text-right">
+          <p className="text-caption text-muted-foreground text-right">
             {Math.round(coverage * 100)}% des Tagesziels (× {dayPartFactor} Faktor)
             {hasDrinks && drinksKcal > 0 && ` · inkl. Getränke: +${Math.round(drinksKcal)} kcal`}
           </p>
@@ -155,13 +155,13 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
       {/* Warnung bei Überplanung > 120% */}
       {showOverplanWarning && (
-        <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
+        <div className="flex items-start gap-3 bg-warning-soft border border-warning-border rounded-xl px-4 py-3">
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+            <p className="text-body font-medium text-warning">
               Zu viele Kalorien ({Math.round(coverage * 100)}%)
             </p>
             {saveMode === 'directMeal' && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              <p className="text-caption text-warning mt-1">
                 Mit 'Normalisieren' auf das Soll von {Math.round(target)} kcal/Person anpassen.
               </p>
             )}
@@ -172,10 +172,10 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
       {/* Transparenz-Tabelle */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border">
-          <h3 className="font-display font-semibold text-base">Zusammenfassung</h3>
+          <h3 className="font-display font-semibold text-emphasis">Zusammenfassung</h3>
         </div>
-        <div className="divide-y divide-border text-sm">
-          <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 text-xs text-muted-foreground font-medium">
+        <div className="divide-y divide-border text-body">
+          <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 text-caption text-muted-foreground font-medium">
             <span>Position</span>
             <span className="text-right">Menge/P</span>
             <span className="text-right">kcal/P</span>
@@ -184,7 +184,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
           {/* ── Brot ── */}
           {state.basis.filter((b) => b.sharePercent > 0).length > 0 && (
-            <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Brot</div>
+            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Brot</div>
           )}
           {state.basis.filter((b) => b.sharePercent > 0).map((b) => {
             const grams = breadItemGrams(b.sharePercent, basisTotalShare, breadKcal, b.energyKcal100g);
@@ -207,7 +207,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
               return s + (b.energyKcal100g ? (b.energyKcal100g / 100) * g : 0);
             }, 0);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
                 <span>Brote gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsBasis)}</span>
                 <span className="text-right">{kcalRow(totalKcalBasis)}</span>
@@ -218,7 +218,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
           {/* ── Belag ── */}
           {state.toppings.filter((t) => t.sharePercent > 0).length > 0 && (
-            <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Belag</div>
+            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Belag</div>
           )}
           {state.toppings.filter((t) => t.sharePercent > 0).map((t) => {
             const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g);
@@ -240,7 +240,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
               return s + (t.energyKcal100g ? (t.energyKcal100g / 100) * g : 0);
             }, 0);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
                 <span>Belag gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsTopping)}</span>
                 <span className="text-right">{kcalRow(totalKcalTopping)}</span>
@@ -251,7 +251,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
           {/* ── Streichfett ── */}
           {state.fatSelections.filter((f) => f.sharePercent > 0 && f.ingredientId > 0).length > 0 && (
-            <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Streichfett</div>
+            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Streichfett</div>
           )}
           {state.fatSelections.filter((f) => f.sharePercent > 0 && f.ingredientId > 0).map((f) => {
             const grams = (f.sharePercent / 100) * FAT_GRAMS_PER_PERSON;
@@ -276,7 +276,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
               return s + (f.energyKcal100g / 100) * g;
             }, 0);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
                 <span>Streichfett gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsFat)}</span>
                 <span className="text-right">{kcalRow(totalKcalFat)}</span>
@@ -287,7 +287,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
           {/* ── Warme Gerichte & Extras ── */}
           {hasExtras && (
-            <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Warme Gerichte & Extras</div>
+            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Warme Gerichte & Extras</div>
           )}
           {state.warmDishRecipeIds.map((recipeId) => {
             const recipe = catalog?.warm_meal_recipes.find((r) => r.id === recipeId);
@@ -304,7 +304,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
             );
           })}
           {warmKcal > 0 && state.warmDishRecipeIds.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
               <span>Warme Gerichte gesamt</span>
               <span className="text-right">—</span>
               <span className="text-right">{kcalRow(warmKcal)}</span>
@@ -317,7 +317,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
               <div key={`extra-${ingId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{state.extraIngredientNames[ingId] ?? `Zutat #${ingId}`}</span>
                 <span className="text-right">{gramsRow(grams)}</span>
-                <span className="text-right text-muted-foreground text-xs">kcal wird geladen…</span>
+                <span className="text-right text-muted-foreground text-caption">kcal wird geladen…</span>
                 <span className="text-right">—</span>
               </div>
             ))}
@@ -333,7 +333,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
           {/* ── Getränke ── */}
           {hasDrinks && (
             <div className="border-t border-border">
-              <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">
+              <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">
                 Getränke
               </div>
               {state.drinkRecipes.filter((d) => d.sharePercent > 0 && d.recipeId > 0).map((drink) => {
@@ -359,7 +359,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
           {/* ── Milch & Säfte section */}
           {state.drinkIngredients.some((d) => d.sharePercent > 0 && d.ingredientId > 0) && (
             <div className="border-t border-border">
-              <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">
+              <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">
                 Milch & Säfte
               </div>
               {state.drinkIngredients.filter((d) => d.sharePercent > 0 && d.ingredientId > 0).map((ingredient) => {

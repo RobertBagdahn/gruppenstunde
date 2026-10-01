@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { API_BASE_URL } from '@/lib/api';
+import { Icon } from '@/components/ui/icon';
 
 interface RecipeMobileActionBarProps {
   onOpenShoppingList: () => void;
@@ -89,18 +90,18 @@ export default function RecipeMobileActionBar({
         type="button"
         onClick={onOpenShoppingList}
         aria-label="Einkaufsliste erstellen"
-        className="flex-1 flex items-center justify-center gap-2 h-10 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        className="flex-1 flex items-center justify-center gap-2 h-10 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
       >
-        <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
+        <Icon name="shopping_cart" size={20} />
         Einkaufsliste
       </button>
       <button
         type="button"
         onClick={onOpenPortions}
         aria-label="Portionen skalieren"
-        className="flex-1 flex items-center justify-center gap-2 h-10 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
+        className="flex-1 flex items-center justify-center gap-2 h-10 text-body font-medium border rounded-lg hover:bg-muted transition-colors"
       >
-        <span className="material-symbols-outlined text-[18px]">restaurant</span>
+        <Icon name="restaurant" size={20} />
         Portionen
       </button>
 
@@ -112,7 +113,7 @@ export default function RecipeMobileActionBar({
           aria-label="Weitere Aktionen"
           className="flex items-center justify-center w-10 h-10 rounded-lg border hover:bg-muted transition-colors"
         >
-          <span className="material-symbols-outlined text-[20px]">more_vert</span>
+          <Icon name="more_vert" size={20} />
         </button>
 
         {menuOpen && (
@@ -120,25 +121,25 @@ export default function RecipeMobileActionBar({
             <button
               type="button"
               onClick={() => { handleStartCooking(); setMenuOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">skillet</span>
+              <Icon name="skillet" size={20} />
               Kochen starten
             </button>
             <button
               type="button"
               onClick={() => { setPdfDialogOpen(true); setMenuOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">print</span>
+              <Icon name="print" size={20} />
               Als PDF öffnen
             </button>
             <button
               type="button"
               onClick={handleShare}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">share</span>
+              <Icon name="share" size={20} />
               Teilen
             </button>
           </div>

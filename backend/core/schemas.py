@@ -57,10 +57,20 @@ class AuthUserOut(Schema):
 
 
 class SessionOut(Schema):
-    """Session state; always returned with HTTP 200, also for anonymous visitors."""
+    """Session state; always returned with HTTP 200, also for anonymous visitors.
+
+    The top-level user fields are a temporary compatibility bridge for the
+    previous frontend revision during a rolling deployment.
+    """
 
     is_authenticated: bool
     user: AuthUserOut | None = None
+    id: int | None = None
+    email: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    is_staff: bool | None = None
+    is_superuser: bool | None = None
 
 
 class AuthProviderOut(Schema):

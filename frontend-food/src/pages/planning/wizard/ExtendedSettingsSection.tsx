@@ -1,5 +1,6 @@
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealPlanWizardState } from '@/schemas/mealPlan';
+import { formatNumber } from '@/lib/format';
 
 interface ExtendedSettingsSectionProps {
   state: MealPlanWizardState;
@@ -28,21 +29,21 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
 
   return (
     <div className="border border-border rounded-xl bg-card/50 p-4 sm:p-5 space-y-5">
-      <h4 className="font-display font-bold text-sm text-foreground">Erweiterte Einstellungen</h4>
+      <h4 className="font-display font-bold text-body text-foreground">Erweiterte Einstellungen</h4>
 
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Beschreibung</label>
+        <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Beschreibung</label>
         <textarea
           value={state.description}
           onChange={(e) => onChange({ description: e.target.value })}
           rows={2}
-          className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+          className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Reservefaktor</label>
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Reservefaktor</label>
           <input
             type="number"
             min={1.0}
@@ -50,11 +51,11 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
             step={0.05}
             value={state.reserve_factor}
             onChange={(e) => onChange({ reserve_factor: Number(e.target.value) })}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Budget (€/Person/Tag)</label>
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Budget (€/Person/Tag)</label>
           <input
             type="number"
             min={0}
@@ -62,15 +63,15 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
             value={state.budget_per_person_per_day ?? ''}
             onChange={(e) => onChange({ budget_per_person_per_day: e.target.value === '' ? null : Number(e.target.value) })}
             placeholder="z.B. 8.00"
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Sichtbarkeit</label>
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Sichtbarkeit</label>
           <select
             value={state.visibility}
             onChange={(e) => onChange({ visibility: e.target.value as MealPlanWizardState['visibility'] })}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           >
             <option value="private">Privat</option>
             <option value="group">Gruppe</option>
@@ -85,19 +86,19 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
           type="checkbox"
           checked={state.is_template}
           onChange={(e) => onChange({ is_template: e.target.checked })}
-          className="rounded border-border text-primary focus:ring-primary/50"
+          className="rounded-lg border-border text-primary focus:ring-primary/50"
         />
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
           Als Vorlage markieren
         </span>
       </label>
 
       <div>
-        <h5 className="font-display font-bold text-xs text-foreground mb-2">Tagesanteil-Faktoren</h5>
+        <h5 className="font-display font-bold text-caption text-foreground mb-2">Tagesanteil-Faktoren</h5>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {mealTypes.map((type) => (
             <div key={type}>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 capitalize">
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1 capitalize">
                 {MEAL_TYPE_LABELS[type] || type}
               </label>
               <input
@@ -107,28 +108,28 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
                 step={0.01}
                 value={state.day_part_factors[type] ?? 0.25}
                 onChange={(e) => updateFactor(type, Number(e.target.value))}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-2 font-medium">
+        <p className="text-caption text-muted-foreground mt-2 font-medium">
           Summe:{' '}
           <span className={Math.abs(factorsSum - 1.0) < 0.001 ? 'text-primary font-bold' : 'text-accent font-bold'}>
-            {factorsSum.toFixed(2)}
+            {formatNumber(factorsSum, { maxDecimals: 2 })}
           </span>
           {' '}(Sollte idealerweise 1,00 ergeben)
         </p>
       </div>
 
       <div>
-        <h5 className="font-display font-bold text-xs text-foreground mb-2">Standard-Uhrzeiten</h5>
+        <h5 className="font-display font-bold text-caption text-foreground mb-2">Standard-Uhrzeiten</h5>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {mealTypes.map((type) => {
             const times = state.meal_default_times[type] || ['08:00', '09:00'];
             return (
               <div key={type} data-testid={`meal-time-group-${type}`} className="min-w-0">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 capitalize">
+                <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1 capitalize">
                   {MEAL_TYPE_LABELS[type] || type}
                 </label>
                 <div className="flex min-w-0 gap-1.5 sm:gap-2">
@@ -136,13 +137,13 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
                     type="time"
                     value={times[0] || '08:00'}
                     onChange={(e) => updateTime(type, 0, e.target.value)}
-                    className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                    className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-caption sm:text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   />
                   <input
                     type="time"
                     value={times[1] || '09:00'}
                     onChange={(e) => updateTime(type, 1, e.target.value)}
-                    className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                    className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-caption sm:text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   />
                 </div>
               </div>

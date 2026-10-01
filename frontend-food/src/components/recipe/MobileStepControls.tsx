@@ -59,16 +59,16 @@ export default function MobileStepControls({
       <button
         onClick={onMoveUp}
         disabled={!canMoveUp}
-        className="flex items-center justify-center w-8 h-8 rounded border border-gray-300 hover:bg-gray-100 disabled:bg-gray-50 disabled:border-gray-200 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-lg border border-border hover:bg-muted disabled:bg-muted disabled:border-border disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
         title="Schritt nach oben verschieben"
         aria-label="Move step up"
       >
-        <ArrowUp size={16} className="text-gray-600" />
+        <ArrowUp size={16} className="text-muted-foreground" />
       </button>
 
       {/* Step indicator (optional) */}
       {stepNumber !== undefined && totalSteps !== undefined && (
-        <div className="text-xs font-medium text-gray-500 min-w-[2.5rem] text-center">
+        <div className="text-caption font-medium text-muted-foreground min-w-[2.5rem] text-center">
           {stepNumber}/{totalSteps}
         </div>
       )}
@@ -77,11 +77,11 @@ export default function MobileStepControls({
       <button
         onClick={onMoveDown}
         disabled={!canMoveDown}
-        className="flex items-center justify-center w-8 h-8 rounded border border-gray-300 hover:bg-gray-100 disabled:bg-gray-50 disabled:border-gray-200 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-lg border border-border hover:bg-muted disabled:bg-muted disabled:border-border disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
         title="Schritt nach unten verschieben"
         aria-label="Move step down"
       >
-        <ArrowDown size={16} className="text-gray-600" />
+        <ArrowDown size={16} className="text-muted-foreground" />
       </button>
     </div>
   );

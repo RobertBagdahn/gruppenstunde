@@ -74,7 +74,6 @@ class TestUserSearch:
 
     def test_page_size_validation_error(self, client: Client):
         """page_size > 50 returns 422 validation error."""
-        client.login(username="user00@test.de", password="pass1234")
         resp = self._search(client, page_size=100)
         assert resp.status_code == 422
 

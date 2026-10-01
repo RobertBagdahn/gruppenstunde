@@ -220,7 +220,7 @@ const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEd
         aiDisabledHint={ai.disabled ? ai.hint : undefined}
       />
 
-      {storeError && <div className="rounded-lg bg-destructive/10 p-4 text-destructive text-sm">{storeError}</div>}
+      {storeError && <div className="rounded-lg bg-destructive/10 p-4 text-destructive text-body">{storeError}</div>}
 
       <DndContext
         sensors={sensors}

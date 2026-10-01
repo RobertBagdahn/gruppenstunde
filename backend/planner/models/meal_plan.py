@@ -5,6 +5,7 @@ import datetime as dt
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -426,7 +427,32 @@ class Meal(models.Model):
                 condition=models.Q(is_reference=True),
                 name="unique_ref_meal_per_plan_and_type",
             ),
+            models.CheckConstraint(
+                condition=models.Q(is_reference=False)
+                | models.Q(start_datetime__isnull=True, end_datetime__isnull=True),
+                name="meal_reference_without_datetime",
+                violation_error_message=_("Eine Referenz-Mahlzeit darf kein Datum haben."),
+            ),
+            models.UniqueConstraint(
+                TruncDate("start_datetime"),
+                "meal_plan",
+                "meal_type",
+                condition=models.Q(is_reference=False) & ~models.Q(meal_type=MealTypeChoices.SNACK),
+                name="unique_regular_meal_per_day_and_type",
+                violation_error_message=_("Es existiert bereits eine Mahlzeit dieses Typs an diesem Tag."),
+            ),
         ]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        # Remember the persisted start_datetime so `clean()` can tell a genuine
+        # date change (which must stay within the plan's range) apart from an
+        # unrelated save of an existing out-of-range meal.
+        self._original_start_datetime = self.start_datetime
+
+    def refresh_from_db(self, *args, **kwargs) -> None:
+        super().refresh_from_db(*args, **kwargs)
+        self._original_start_datetime = self.start_datetime
 
     def __str__(self) -> str:
         if self.is_reference:
@@ -454,6 +480,8 @@ class Meal(models.Model):
                 raise ValidationError(_("Ein RefMeal kann nicht auf ein anderes RefMeal verweisen."))
             if self.is_synced:
                 raise ValidationError(_("Ein RefMeal kann nicht synchronisiert sein."))
+            if self.start_datetime is not None or self.end_datetime is not None:
+                raise ValidationError(_("Eine Referenz-Mahlzeit darf kein Datum haben."))
         else:
             # Regular meal: validate date uniqueness (snack can have multiple per day)
             if self.meal_type != MealTypeChoices.SNACK and self.start_datetime and self.meal_plan_id:
@@ -469,6 +497,18 @@ class Meal(models.Model):
                 if qs.exists():
                     raise ValidationError(_("Es existiert bereits eine Mahlzeit dieses Typs an diesem Tag."))
 
+            # Range check: only on creation or when the date actually changes, so an
+            # existing out-of-range meal stays editable as long as its date is untouched.
+            is_new_date = self.pk is None or self.start_datetime != self._original_start_datetime
+            if is_new_date and self.start_datetime and self.meal_plan_id:
+                meal_date = self.start_datetime.date()
+                plan_start = self.meal_plan.start_datetime.date() if self.meal_plan.start_datetime else None
+                plan_end = self.meal_plan.end_datetime.date() if self.meal_plan.end_datetime else None
+                too_early = plan_start and meal_date < plan_start
+                too_late = plan_end and meal_date > plan_end
+                if too_early or too_late:
+                    raise ValidationError(_("Die Mahlzeit liegt außerhalb des Planzeitraums."))
+
         # ref_meal must point to a reference meal
         if self.ref_meal and not self.ref_meal.is_reference:
             raise ValidationError(_("ref_meal muss auf ein RefMeal verweisen."))
@@ -480,6 +520,7 @@ class Meal(models.Model):
     def save(self, *args, **kwargs) -> None:
         self.clean()
         super().save(*args, **kwargs)
+        self._original_start_datetime = self.start_datetime
 
     def delete(self, *args, **kwargs):
         if self.is_reference:

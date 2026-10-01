@@ -182,8 +182,8 @@ export default function NutrientBalanceChart({
                 }
 
                 return (
-                  <div className="bg-background border border-border p-3 rounded-lg shadow-md text-xs space-y-1.5 font-sans">
-                    <p className="font-semibold text-foreground text-sm">{name}</p>
+                  <div className="bg-background border border-border p-3 rounded-lg shadow-md text-caption space-y-1.5 font-sans">
+                    <p className="font-semibold text-foreground text-body">{name}</p>
                     <div className="flex justify-between gap-6">
                       <span className="text-muted-foreground">Ist (geplant):</span>
                       <span className="font-medium text-foreground">{Ist} g</span>
@@ -203,13 +203,13 @@ export default function NutrientBalanceChart({
           <Legend
             verticalAlign="bottom"
             content={() => (
-              <div className="flex items-center justify-center gap-4 mt-2 text-xs text-muted-foreground font-sans">
+              <div className="flex items-center justify-center gap-4 mt-2 text-caption text-muted-foreground font-sans">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-sm bg-muted-foreground/60" />
+                  <span className="w-3 h-3 rounded-lg bg-muted-foreground/60" />
                   <span>Ist (geplant)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-sm border border-dashed border-muted-foreground/60 bg-muted-foreground/10" />
+                  <span className="w-3 h-3 rounded-lg border border-dashed border-muted-foreground/60 bg-muted-foreground/10" />
                   <span>Soll (DGE-Richtwert)</span>
                 </div>
               </div>

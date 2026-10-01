@@ -29,48 +29,47 @@ def shopping_list(user):
 
 
 # ---------------------------------------------------------------------------
-# resolve_display_quantity Tests
+# resolve_piece_equivalent / resolve_portion_options / resolve_package_options
+#
+# The API returns structured data (count + portion_name), not a formatted
+# string; the frontend formats it (quantity-display-formatting spec).
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-class TestResolveDisplayQuantity:
-    """Test the ShoppingListItemOut.resolve_display_quantity resolver."""
+class TestResolvePieceEquivalent:
+    """Test the ShoppingListItemOut.resolve_piece_equivalent resolver."""
 
-    def test_no_ingredient_shows_only_grams(self, shopping_list):
-        """When no ingredient is attached, should show only grams."""
+    def test_no_ingredient_returns_none(self, shopping_list):
+        """When no ingredient is attached, there is no piece equivalent."""
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             name="Custom Item",
             quantity_g=250,
             unit="g",
         )
-        # Call the resolver directly from the schema
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        assert result == "250g"
+        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
 
-    def test_non_gram_unit_preserves_unit(self, shopping_list):
-        """When unit is not 'g', should show quantity with original unit."""
+    def test_non_gram_unit_returns_none(self, shopping_list):
+        """When unit is not 'g', piece equivalents (computed from gram weights) don't apply."""
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             name="Milk",
             quantity_g=1000,
             unit="ml",
         )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        assert result == "1000 ml"
+        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
 
     def test_single_named_portion_preferred(self, shopping_list):
-        """Ingredient with named portion should show: 'Xg · ≈ Y Portion'."""
-        # Create ingredient with 1 named portion (e.g., Scheibe)
+        """Ingredient with a named portion returns {count, portion_name}."""
         ingredient = make_ingredient(name="Bauernbrot", energy_kcal=265)
-        portion = make_portion(
+        make_portion(
             ingredient=ingredient,
             name="Scheibe",
             quantity=1,
             weight_g=50,
             weight_status="confirmed",
-            rank=1,  # Primary portion
+            rank=1,
         )
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
@@ -79,22 +78,37 @@ class TestResolveDisplayQuantity:
             unit="g",
             ingredient=ingredient,
         )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        # Should show "150g · ≈ 3 Scheibe" (or similar format)
-        assert "150g" in result
-        assert "≈" in result
-        assert "3" in result
+        result = ShoppingListItemOut.resolve_piece_equivalent(item)
+        assert result == {"count": 3, "portion_name": "Scheibe"}
 
-    def test_dual_named_portions_displayed(self, shopping_list):
-        """Ingredient with 2 distinct named portions should show both in display_quantity."""
-        # Note: Testing the actual dual-portion case with the Portion model constraints
-        # is complex, so we test the component behaviors separately.
-        # The key is that if compute_portion_options returns multiple options,
-        # they are formatted into display_quantity.
-        ingredient = make_ingredient(name="Bauernbrot", energy_kcal=265)
+    def test_empty_quantity_returns_none(self, shopping_list):
+        """Quantity of 0 returns no piece equivalent."""
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            name="Empty Item",
+            quantity_g=0,
+            unit="g",
+        )
+        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
 
-        # Create one primary portion
-        scheibe = make_portion(
+    def test_ingredient_without_named_portions_falls_back_to_base_gram_unit(self, shopping_list):
+        """Every ingredient has an auto-created base "g" portion (weight_g=1,
+        see supply.signals.ensure_ingredient_gram_portion); with no other
+        portion defined, that's what the piece equivalent resolves to."""
+        ingredient = make_ingredient(name="No Portions")
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            name="No Portions",
+            quantity_g=500,
+            unit="g",
+            ingredient=ingredient,
+        )
+        assert ShoppingListItemOut.resolve_piece_equivalent(item) == {"count": 500, "portion_name": "g"}
+
+    def test_rounding_to_one_decimal_place(self, shopping_list):
+        """Fractional counts are rounded to 1 decimal (frontend formats the comma)."""
+        ingredient = make_ingredient(name="Bread")
+        make_portion(
             ingredient=ingredient,
             name="Scheibe",
             quantity=1,
@@ -102,51 +116,49 @@ class TestResolveDisplayQuantity:
             weight_status="confirmed",
             rank=1,
         )
-
-        # For this test, just verify that a named portion is shown
-        # Full dual-portion testing happens in supply.tests for compute_portion_options
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
-            name="Bauernbrot",
-            quantity_g=450,
+            name="Bread",
+            quantity_g=85,  # 1.7 slices
             unit="g",
             ingredient=ingredient,
         )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        # Should show grams and portion hint
-        assert "450g" in result
-        assert "Scheibe" in result
+        result = ShoppingListItemOut.resolve_piece_equivalent(item)
+        assert result == {"count": 1.7, "portion_name": "Scheibe"}
 
-    def test_empty_quantity_returns_empty_string(self, shopping_list):
-        """Quantity of 0 or null should return empty string."""
+    def test_portion_priority_ranking_respected(self, shopping_list):
+        """The primary portion (rank 1) is preferred as the piece equivalent."""
+        ingredient = make_ingredient(name="Test")
+        make_portion(ingredient=ingredient, name="B", weight_g=100, rank=2)
+        make_portion(ingredient=ingredient, name="A", weight_g=100, rank=1)
+        make_portion(ingredient=ingredient, name="C", weight_g=100, rank=3)
+
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
-            name="Empty Item",
-            quantity_g=0,
+            name="Test",
+            quantity_g=200,
             unit="g",
+            ingredient=ingredient,
         )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        assert result == ""
+        result = ShoppingListItemOut.resolve_piece_equivalent(item)
+        assert result["portion_name"] == "A"
 
-    def test_portion_with_weight_zero_not_included(self, shopping_list):
-        """Portions with weight_g=0 should not be shown (filtered by compute_portion_options)."""
+
+@pytest.mark.django_db
+class TestResolvePortionOptions:
+    """Test the ShoppingListItemOut.resolve_portion_options resolver."""
+
+    def test_untrusted_weight_portion_is_excluded(self, shopping_list):
+        """An unconfirmed piece-like weight (e.g. AI-proposed, never trusted per
+        resolve_trusted_weight) is filtered out of the options."""
         ingredient = make_ingredient(name="Test Ingredient")
-
-        # Valid portion
-        valid_portion = make_portion(
+        make_portion(ingredient=ingredient, name="Valid", quantity=1, weight_g=100, rank=1)
+        make_portion(
             ingredient=ingredient,
-            name="Valid",
+            name="Stück",
             quantity=1,
-            weight_g=100,
-            rank=1,
-        )
-
-        # Invalid portion with no weight
-        invalid_portion = make_portion(
-            ingredient=ingredient,
-            name="Invalid",
-            quantity=1,
-            weight_g=0,
+            weight_g=150,
+            weight_status="ai_proposed",
             rank=2,
         )
 
@@ -157,90 +169,68 @@ class TestResolveDisplayQuantity:
             unit="g",
             ingredient=ingredient,
         )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        # Should only show the valid portion
-        assert "Valid" in result
-        assert "Invalid" not in result
+        names = [o["name"] for o in ShoppingListItemOut.resolve_portion_options(item)]
+        assert "Valid" in names
+        assert "Stück" not in names
 
     def test_below_threshold_portion_not_shown(self, shopping_list):
-        """Portions with count < 0.1 should not be shown in the main hint."""
+        """A portion whose count would be < 0.5 is excluded from the options
+        (the always-present base "g" unit still qualifies, since 50/1 >> 0.5)."""
         ingredient = make_ingredient(name="Großformat")
-        portion = make_portion(
-            ingredient=ingredient,
-            name="Portion",
-            quantity=1,
-            weight_g=1000,  # Large portion
-            rank=1,
-        )
+        make_portion(ingredient=ingredient, name="Portion", quantity=1, weight_g=1000, rank=1)
 
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             name="Großformat",
-            quantity_g=50,  # Much less than 1 portion
+            quantity_g=50,  # 0.05 of the 1000g portion — below the 0.5 threshold
             unit="g",
             ingredient=ingredient,
         )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        # Should show grams. May have fallback package display if available
-        assert "50g" in result
+        names = [o["name"] for o in ShoppingListItemOut.resolve_portion_options(item)]
+        assert "Portion" not in names
 
-    def test_ingredient_without_portions_shows_grams_only(self, shopping_list):
-        """Ingredient with no named portions should fall back to grams (or package display)."""
-        ingredient = make_ingredient(name="No Portions")
-        # Don't create any meaningful portions for this ingredient
 
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="No Portions",
-            quantity_g=500,
-            unit="g",
-            ingredient=ingredient,
-        )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        # Should at least show the grams
-        assert "500g" in result
+@pytest.mark.django_db
+class TestResolvePackagesAndLiquids:
+    """Persistent shopping-list items: package need and ml display for liquids."""
 
-    def test_rounding_to_one_decimal_place(self, shopping_list):
-        """Portion counts should be rounded to 1 decimal place (German formatting)."""
-        ingredient = make_ingredient(name="Bread")
-        portion = make_portion(
-            ingredient=ingredient,
-            name="Scheibe",
-            quantity=1,
-            weight_g=50,
-            weight_status="confirmed",
-            rank=1,
+    def _item(self, shopping_list, ingredient, quantity_g: float, unit: str = "g") -> ShoppingListItem:
+        return ShoppingListItem.objects.create(
+            shopping_list=shopping_list, name=ingredient.name, quantity_g=quantity_g, unit=unit, ingredient=ingredient
         )
 
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Bread",
-            quantity_g=85,  # 1.7 slices
-            unit="g",
-            ingredient=ingredient,
-        )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        # Should contain "1.7" or "1,7" (German locale comma)
-        assert "85g" in result
-        # The exact format depends on compute_portion_options implementation
-        assert "1.7" in result or "1,7" in result
+    def test_package_need_with_tolerance(self, shopping_list):
+        from supply.models import Package
 
-    def test_portion_priority_ranking_respected(self, shopping_list):
-        """Portions should be sorted by rank; lowest rank is primary."""
-        ingredient = make_ingredient(name="Test")
+        ing = make_ingredient(name="Spaghetti")
+        Package.objects.create(ingredient=ing, name="Packung", weight_g=500, rank=1)
+        item = self._item(shopping_list, ing, 1020)
+        assert ShoppingListItemOut.resolve_package_options(item) == [
+            {"count": 2, "package_name": "Packung", "weight_g": 500}
+        ]
+        assert ShoppingListItemOut.resolve_package_surplus_g(item) == -20.0
 
-        # Create portions with explicit ranks
-        p2 = make_portion(ingredient=ingredient, name="B", weight_g=100, rank=2)
-        p1 = make_portion(ingredient=ingredient, name="A", weight_g=100, rank=1)
-        p3 = make_portion(ingredient=ingredient, name="C", weight_g=100, rank=3)
+    def test_package_surplus(self, shopping_list):
+        from supply.models import Package
 
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Test",
-            quantity_g=200,
-            unit="g",
-            ingredient=ingredient,
-        )
-        result = ShoppingListItemOut.resolve_display_quantity(item)
-        # Primary portion "A" (rank 1) should be shown
-        assert "A" in result
+        ing = make_ingredient(name="Butter")
+        Package.objects.create(ingredient=ing, name="Stück", weight_g=250, rank=1)
+        item = self._item(shopping_list, ing, 700)
+        assert ShoppingListItemOut.resolve_package_options(item)[0]["count"] == 3
+        assert ShoppingListItemOut.resolve_package_surplus_g(item) == 50.0
+
+    def test_without_package(self, shopping_list):
+        ing = make_ingredient(name="Salz")
+        item = self._item(shopping_list, ing, 3)
+        assert ShoppingListItemOut.resolve_package_options(item) == []
+        assert ShoppingListItemOut.resolve_package_surplus_g(item) is None
+
+    def test_milk_in_ml(self, shopping_list):
+        milk = make_ingredient(name="Milch", physical_viscosity="beverage", physical_density=1.03)
+        out = ShoppingListItemOut.from_orm(self._item(shopping_list, milk, 9400))
+        assert (out.quantity, out.unit, out.quantity_g) == (9126, "ml", 9400)
+
+    def test_solid_stays_in_grams(self, shopping_list):
+        flour = make_ingredient(name="Mehl")
+        out = ShoppingListItemOut.from_orm(self._item(shopping_list, flour, 1500))
+        assert (out.quantity, out.unit) == (1500, "g")

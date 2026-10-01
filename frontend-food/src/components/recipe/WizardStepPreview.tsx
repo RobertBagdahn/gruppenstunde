@@ -41,8 +41,8 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-display font-bold">Vorschau & Speichern</h2>
-        <p className="text-sm text-muted-foreground mt-2">
+        <h2 className="text-section font-display font-bold">Vorschau & Speichern</h2>
+        <p className="text-body text-muted-foreground mt-2">
           Überprüfe dein Rezept und schließe die Erstellung ab.
         </p>
       </div>
@@ -50,7 +50,7 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
       <div className="bg-card rounded-xl border p-6 space-y-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-2xl font-display font-bold">{recipe.title}</h3>
+            <h3 className="text-title font-display font-bold">{recipe.title}</h3>
             {recipeTypeLabel && (
               <Badge variant="secondary">{recipeTypeLabel}</Badge>
             )}
@@ -67,7 +67,7 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
           {recipe.tags && recipe.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-3">
               {recipe.tags.map((tag: { id: string; name: string; slug: string }) => (
-                <Badge key={tag.id} variant="secondary" className="text-xs">{tag.name}</Badge>
+                <Badge key={tag.id} variant="secondary" className="text-caption">{tag.name}</Badge>
               ))}
             </div>
           )}
@@ -79,8 +79,8 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
 
         {recipe.description && (
           <div>
-            <h4 className="text-sm font-semibold mb-2">Beschreibung</h4>
-            <div className="prose prose-sm max-w-none text-sm text-muted-foreground leading-relaxed">
+            <h4 className="text-body font-semibold mb-2">Beschreibung</h4>
+            <div className="prose prose-sm max-w-none text-body text-muted-foreground leading-relaxed">
               <MarkdownRenderer content={recipe.description} />
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
 
         {recipe.recipe_items && recipe.recipe_items.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-3">
+            <h4 className="text-body font-semibold mb-3">
               Zutaten ({recipe.recipe_items.length})
             </h4>
             <RecipeIngredientsTable
@@ -100,10 +100,10 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
 
         {steps && steps.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-2">
+            <h4 className="text-body font-semibold mb-2">
               Schritte ({steps.length})
             </h4>
-            <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+            <ol className="list-decimal list-inside space-y-2 text-body text-muted-foreground">
               {steps.map((step: { id: number; instruction: string; sort_order: number }) => (
                 <li key={step.id}>{step.instruction}</li>
               ))}

@@ -284,6 +284,7 @@ class IngredientDetailOut(Schema):
     # Physical
     physical_density: float
     physical_viscosity: str
+    viscosity_source: Literal["", "ai", "manual"] = ""
     durability_in_days: int | None
     max_storage_temperature: int | None
 

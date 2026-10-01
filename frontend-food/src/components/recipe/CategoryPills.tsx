@@ -39,7 +39,7 @@ export default function CategoryPills({ selected, onChange, showAll = true }: Ca
       {showAll && (
         <button
           onClick={() => onChange(new Set())}
-          className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+          className={`shrink-0 px-2.5 py-1 rounded-full text-caption font-medium transition-colors border ${
             allSelected
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-card text-muted-foreground border-border hover:bg-muted'
@@ -54,7 +54,7 @@ export default function CategoryPills({ selected, onChange, showAll = true }: Ca
           <button
             key={value}
             onClick={() => toggle(value)}
-            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+            className={`shrink-0 px-2.5 py-1 rounded-full text-caption font-medium transition-colors border ${
               active
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-card text-muted-foreground border-border hover:bg-muted'

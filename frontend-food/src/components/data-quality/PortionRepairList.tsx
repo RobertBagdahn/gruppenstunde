@@ -86,10 +86,10 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
   if (isLoading)
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin text-2xl text-muted-foreground" />
+        <Loader2 className="animate-spin text-title text-muted-foreground" />
       </div>
     );
-  if (error) return <div className="text-red-500 py-4">Fehler beim Laden: {error.message}</div>;
+  if (error) return <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>;
   const items = data?.items ?? [];
   const totalPages = data?.total_pages ?? 1;
   const readyItems = items.filter((finding) => finding.status === 'ready');
@@ -169,7 +169,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
               setCurrentPage(1);
             }}
             className={cn(
-              'px-3 py-1.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
+              'px-3 py-1.5 text-body font-medium whitespace-nowrap border-b-2 transition-colors',
               statusFilter === filter.key
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -181,7 +181,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
-        <span className="w-full text-xs text-muted-foreground">
+        <span className="w-full text-caption text-muted-foreground">
           Bereit bedeutet: technisch konsistent. Vor der Anwendung muss jeder Befund ausdrücklich freigegeben werden.
         </span>
         <Button size="sm" variant="outline" onClick={handleScan} disabled={scanMutation.isPending}>
@@ -190,7 +190,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
         <Button size="sm" variant="outline" onClick={handleEvaluate} disabled={evaluateMutation.isPending}>
           KI-Vorschläge bewerten
         </Button>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-caption text-muted-foreground">
           {readyItems.length} bereit · {approvedReadyItems.length} freigegeben
         </span>
         <Button size="sm" variant="ghost" onClick={selectAllReady} disabled={readyItems.length === 0}>
@@ -242,7 +242,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
                     <div>
                     <span className="font-medium">{finding.ingredient_name}</span>
                     <span className="text-muted-foreground"> · {finding.portion_name}</span>
-                    <div className="text-xs text-muted-foreground mt-0.5">
+                    <div className="text-caption text-muted-foreground mt-0.5">
                       {REASON_LABELS[finding.detection_reason] ?? finding.detection_reason} ·{' '}
                       {finding.recipe_item_ids.length} Rezept-Zutat(en) · Konfidenz:{' '}
                       {finding.confidence != null ? `${Math.round(finding.confidence * 100)}%` : '–'}
@@ -251,11 +251,11 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
                   </div>
                   <span
                     className={cn(
-                      'text-xs px-2 py-1 rounded-full whitespace-nowrap',
-                      finding.status === 'applied' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40',
-                      finding.status === 'pending_review' && 'bg-amber-100 text-amber-700 dark:bg-amber-950/40',
-                      finding.status === 'ready' && 'bg-sky-100 text-sky-700 dark:bg-sky-950/40',
-                      finding.status === 'rejected' && 'bg-red-100 text-red-700 dark:bg-red-950/40',
+                      'text-caption px-2 py-1 rounded-full whitespace-nowrap',
+                      finding.status === 'applied' && 'bg-success-soft text-success',
+                      finding.status === 'pending_review' && 'bg-warning-soft text-warning',
+                      finding.status === 'ready' && 'bg-info-soft text-info',
+                      finding.status === 'rejected' && 'bg-danger-soft text-danger',
                       finding.status === 'skipped' && 'bg-muted text-muted-foreground',
                       finding.status === 'candidate' && 'bg-muted text-muted-foreground'
                     )}
@@ -265,7 +265,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
                 </div>
 
                 {proposal && Object.keys(proposal).length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 text-body">
                     <span className="text-muted-foreground line-through">
                       {finding.portion_name} · {formatWeight(beforeWeight)}
                     </span>
@@ -274,13 +274,13 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
                       {proposal.proposed_name || finding.portion_name} · {formatWeight(afterWeight)}
                     </span>
                     {proposal.rationale && (
-                      <span className="text-xs text-muted-foreground">({proposal.rationale})</span>
+                      <span className="text-caption text-muted-foreground">({proposal.rationale})</span>
                     )}
                   </div>
                 )}
 
                 {finding.status === 'applied' && (
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                  <div className="flex items-center gap-1.5 text-caption text-success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {finding.moved_recipe_item_ids.length} Zutat(en) umgestellt,{' '}
                     {finding.affected_recipe_ids.length} Rezept(e) neu berechnet
@@ -296,7 +296,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
                       </Button>
                     )}
                     {finding.status === 'ready' && finding.approved_at != null && (
-                      <span className="text-xs text-emerald-700 self-center">Freigegeben</span>
+                      <span className="text-caption text-success self-center">Freigegeben</span>
                     )}
                     <Button
                       variant="ghost"
@@ -325,7 +325,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
             <ChevronLeft className="h-4 w-4 mr-1" />
             Zurück
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-body text-muted-foreground">
             Seite {currentPage} / {totalPages}
           </span>
           <Button

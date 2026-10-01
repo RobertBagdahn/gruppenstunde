@@ -7,6 +7,7 @@ import { parseRecipeSteps } from '@/lib/parseRecipeSteps';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { Button } from '@/components/ui/button';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { roundToDecimals } from '@/lib/format';
 
 interface RecipeCookingModeProps {
   recipe: RecipeDetail;
@@ -158,7 +159,7 @@ export default function RecipeCookingMode({
 
       {/* Ingredients panel (left on desktop, top on mobile) */}
       <div className="lg:w-80 lg:border-r border-border overflow-y-auto p-4 lg:p-6 shrink-0 max-h-[40vh] lg:max-h-full">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        <h2 className="text-body font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Zutaten
         </h2>
         <div className="space-y-2">
@@ -171,20 +172,20 @@ export default function RecipeCookingMode({
             return (
               <label
                 key={item.id}
-                className="flex items-start gap-2 p-2 rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                className="flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
               >
                 <input
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => toggleIngredientCheck(item.id)}
-                  className="w-4 h-4 mt-1 rounded border-2 border-muted-foreground accent-primary"
+                  className="w-4 h-4 mt-1 rounded-lg border-2 border-muted-foreground accent-primary"
                   aria-label={`Mark ${item.ingredient_name} as done`}
                 />
                 <div className={`flex-1 min-w-0 ${isChecked ? 'opacity-50 line-through' : ''}`}>
-                  <div className="font-medium text-sm">
-                    {scaledQty % 1 === 0 ? scaledQty : parseFloat(scaledQty.toFixed(2))} {item.measuring_unit_name}
+                  <div className="font-medium text-body">
+                    {scaledQty % 1 === 0 ? scaledQty : roundToDecimals(scaledQty, 2)} {item.measuring_unit_name}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-caption text-muted-foreground">
                     {item.ingredient_name}
                     {item.note && <span className="italic ml-1">({item.note.trim().replace(/^\((.*)\)$/, '$1').trim()})</span>}
                   </div>
@@ -198,7 +199,7 @@ export default function RecipeCookingMode({
       {/* Step content (right on desktop, bottom on mobile) */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Step indicator */}
-        <div className="px-6 pt-4 pb-2 text-sm text-muted-foreground font-medium">
+        <div className="px-6 pt-4 pb-2 text-body text-muted-foreground font-medium">
           Schritt {currentStep + 1} / {steps.length}
         </div>
 
@@ -208,7 +209,7 @@ export default function RecipeCookingMode({
             <>
               {/* Step section tag (if structured) */}
               {step.section && (
-                <div className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
+                <div className="text-caption font-semibold text-primary uppercase tracking-wide mb-3">
                   {step.section}
                 </div>
               )}
@@ -216,18 +217,18 @@ export default function RecipeCookingMode({
               {/* Step instruction */}
               <MarkdownRenderer
                 content={step.content}
-                className="text-xl lg:text-2xl leading-relaxed"
+                className="text-section lg:text-title leading-relaxed"
               />
 
               {/* Duration (if structured) */}
               {step.durationMinutes && (
-                <div className="mt-4 pt-4 border-t border-border text-sm text-muted-foreground">
+                <div className="mt-4 pt-4 border-t border-border text-body text-muted-foreground">
                   ⏱ ca. {step.durationMinutes} min
                 </div>
               )}
             </>
           ) : (
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-emphasis">
               Keine Zubereitungsschritte vorhanden.
             </p>
           )}

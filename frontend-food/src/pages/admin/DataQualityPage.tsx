@@ -24,8 +24,8 @@ export default function DataQualityPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold font-display">Datenqualität</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-title font-bold font-display">Datenqualität</h1>
+        <p className="text-body text-muted-foreground">
           Werkzeuge zur Verbesserung der Datenqualität von Zutaten und Rezepten
         </p>
       </div>
@@ -36,7 +36,7 @@ export default function DataQualityPage() {
             key={tab.key}
             onClick={() => navigate(`/admin/data-quality/${tab.key}`)}
             className={cn(
-              'px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
+              'px-4 py-2 text-body font-medium whitespace-nowrap border-b-2 transition-colors',
               activeTab === tab.key
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'

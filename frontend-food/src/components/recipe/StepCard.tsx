@@ -85,7 +85,7 @@ export default function StepCard({
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded-lg touch-none"
           title="Ziehen zum Verschieben"
         >
           <GripVertical size={18} className="text-muted-foreground" />
@@ -93,19 +93,19 @@ export default function StepCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-foreground">Schritt {index + 1}</span>
+            <span className="text-body font-semibold text-foreground">Schritt {index + 1}</span>
             {step.section && (
-              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+              <span className="text-caption bg-muted text-muted-foreground px-2 py-1 rounded-lg">
                 {step.section}
               </span>
             )}
             {step.duration_minutes && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-caption text-muted-foreground">
                 {step.duration_minutes} min
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
+          <p className="text-body text-muted-foreground line-clamp-1 mt-1">
             {step.instruction || '<Anweisung eingeben>'}
           </p>
         </div>
@@ -115,7 +115,7 @@ export default function StepCard({
             e.stopPropagation();
             setIsExpanded(!isExpanded);
           }}
-          className="p-1 hover:bg-muted rounded"
+          className="p-1 hover:bg-muted rounded-lg"
         >
           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
@@ -125,7 +125,7 @@ export default function StepCard({
             e.stopPropagation();
             setShowToneSelector(true);
           }}
-          className="p-1 text-primary hover:bg-primary/10 rounded"
+          className="p-1 text-primary hover:bg-primary/10 rounded-lg"
           title="Anweisung mit KI umschreiben"
         >
           <Wand2 size={18} />
@@ -136,7 +136,7 @@ export default function StepCard({
             e.stopPropagation();
             onDelete();
           }}
-          className="p-1 text-destructive hover:bg-destructive/10 rounded"
+          className="p-1 text-destructive hover:bg-destructive/10 rounded-lg"
           title="Schritt löschen"
         >
           <Trash2 size={18} />

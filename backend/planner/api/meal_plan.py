@@ -4,6 +4,7 @@ import datetime as dt
 import logging
 from typing import Any, cast
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from django.db.models import BooleanField, Case, Count, Prefetch, Q, Value, When
 from django.shortcuts import get_object_or_404
@@ -60,7 +61,6 @@ from planner.schemas import (
     MealUpdateIn,
     NutritionalTagScanOut,
     NutritionSummaryOut,
-    PlanCheckAlertOut,
     PlanCheckResponseOut,
     PopularRecipesResponseOut,
     RecentlyUsedRecipesResponseOut,
@@ -70,6 +70,8 @@ from planner.schemas import (
     ShoppingItemPortionOptionOut,
     ShoppingItemSourceOut,
     ShoppingListItemOut,
+    ShoppingPackageOptionOut,
+    ShoppingPieceEquivalentOut,
     WizardItemsBulkIn,
     WizardItemsBulkOut,
     WizardItemsIn,
@@ -149,6 +151,18 @@ def _require_admin(meal_plan: MealPlan, user) -> str:
     if role not in ("owner", MealPlanCollaboratorRole.ADMIN):
         raise HttpError(403, "Nur Admins und Besitzer können das ändern")
     return role
+
+
+def _save_meal_or_400(meal: Meal) -> Meal:
+    """Save a Meal, translating Meal.clean() ValidationErrors (duplicate meal
+    type on a day, meal outside the plan's date range, invalid reference-meal
+    state) into an HTTP 400 with the original German message instead of
+    letting them surface as an uncaught 500."""
+    try:
+        meal.save()
+    except DjangoValidationError as exc:
+        raise HttpError(400, "; ".join(exc.messages)) from exc
+    return meal
 
 
 # ==========================================================================
@@ -702,7 +716,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                 display_name=meal.display_name,
                 override_portions=meal.override_portions,
             )
-            new_meal.save()
+            _save_meal_or_400(new_meal)
             meals_copied += 1
 
             for item in meal.items.all():
@@ -883,7 +897,7 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
         timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
     )
 
-    meal = Meal.objects.create(
+    meal = Meal(
         meal_plan=meal_plan,
         start_datetime=start_dt,
         end_datetime=end_dt,
@@ -891,7 +905,7 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
         day_part_factor=day_part_factor,
         display_name=payload.display_name or "",
     )
-    return meal
+    return _save_meal_or_400(meal)
 
 
 @meal_plan_router.post("/{meal_plan_id}/meals/reorder/", response=MealPlanDetailOut)
@@ -949,8 +963,8 @@ def reorder_meals(request, meal_plan_id: int, payload: MealReorderIn):
                 target_meal.external_cost_per_person,
                 source_meal.external_cost_per_person,
             )
-            source_meal.save()
-            target_meal.save()
+            _save_meal_or_400(source_meal)
+            _save_meal_or_400(target_meal)
         else:
             for it in source_meal.items.all():
                 it.meal = target_meal
@@ -961,8 +975,8 @@ def reorder_meals(request, meal_plan_id: int, payload: MealReorderIn):
             if source_meal.display_name and not target_meal.display_name:
                 target_meal.display_name = source_meal.display_name
                 source_meal.display_name = ""
-            source_meal.save()
-            target_meal.save()
+            _save_meal_or_400(source_meal)
+            _save_meal_or_400(target_meal)
     elif payload.target_date:
         current_date = source_meal.start_datetime.date() if source_meal.start_datetime else payload.target_date
         delta_days = (payload.target_date - current_date).days
@@ -972,7 +986,7 @@ def reorder_meals(request, meal_plan_id: int, payload: MealReorderIn):
             source_meal.end_datetime += dt.timedelta(days=delta_days)
         if payload.target_meal_type:
             source_meal.meal_type = payload.target_meal_type
-        source_meal.save()
+        _save_meal_or_400(source_meal)
 
     return get_meal_plan(request, meal_plan_id)
 
@@ -1293,7 +1307,7 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
     if meal.start_datetime is not None and meal.end_datetime is not None and meal.end_datetime <= meal.start_datetime:
         raise HttpError(400, "Die Endzeit muss nach der Startzeit liegen.")
 
-    meal.save()
+    _save_meal_or_400(meal)
     return meal
 
 
@@ -1414,117 +1428,13 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
 
 @meal_plan_router.get("/{meal_plan_id}/plan-check/", response=PlanCheckResponseOut)
 def plan_check(request, meal_plan_id: int):
-    """Analyze meal plan for empty slots, budget excess, and allergen/nutritional issues."""
+    """Analyze accessible plans for empty/mismatched slots, budget, allergens and integrity."""
+    from planner.services.plan_check import build_plan_check_alerts
+
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _require_access(meal_plan, request.user)
+    role = _require_access(meal_plan, request.user)
 
-    alerts: list[PlanCheckAlertOut] = []
-
-    meals = (
-        Meal.objects.filter(meal_plan=meal_plan, is_reference=False)
-        .prefetch_related(
-            "items__recipe__nutritional_tags",
-            "items__ingredient__nutritional_tags",
-            "items__recipe__recipe_items__portion__ingredient",
-            "items__ingredient__portions",
-            "items__measuring_unit",
-            "items__overrides",
-        )
-        .order_by("start_datetime")
-    )
-
-    # 1. Check for empty scheduled meal slots
-    for meal in meals:
-        if not meal.start_datetime:
-            continue
-        if not meal.is_external and meal.items.count() == 0:
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
-            alerts.append(
-                PlanCheckAlertOut(
-                    id=f"empty-slot-{meal.id}",
-                    type="empty_slot",
-                    severity="warning",
-                    title=f"{meal.get_meal_type_display()} ist noch leer",
-                    description=f"Am {meal.start_datetime.strftime('%d.%m.')} ist noch kein Gericht für {meal.get_meal_type_display()} hinterlegt.",
-                    date=date_str,
-                    meal_id=meal.id,
-                    meal_type=meal.meal_type,
-                    action_label="Gericht vorschlagen",
-                    action_type="suggest_recipe",
-                    action_payload={
-                        "meal_id": meal.id,
-                        "meal_type": meal.meal_type,
-                        "date": date_str,
-                    },
-                )
-            )
-
-    # 2. Check for daily budget exceedance
-    if meal_plan.budget_per_person_per_day and meal_plan.budget_per_person_per_day > 0:
-        budget_limit = meal_plan.budget_per_person_per_day
-        day_totals: dict[str, float] = {}
-        for meal in meals:
-            if not meal.start_datetime:
-                continue
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
-            eff = meal.effective_portions or 1.0
-            cost_eur = MealOut.resolve_total_cost_eur(meal)
-            cost_p = (cost_eur / eff) if eff > 0 else 0.0
-            day_totals[date_str] = day_totals.get(date_str, 0.0) + cost_p
-
-        for date_str, day_cost in sorted(day_totals.items()):
-            if day_cost > float(budget_limit):
-                excess = day_cost - float(budget_limit)
-                alerts.append(
-                    PlanCheckAlertOut(
-                        id=f"budget-excess-{date_str}",
-                        type="budget_excess",
-                        severity="warning",
-                        title=f"Budget am {date_str} überschritten",
-                        description=f"Geplant sind {day_cost:.2f} € / Person ({excess:.2f} € über dem Budget von {budget_limit:.2f} €).",
-                        date=date_str,
-                        meal_id=None,
-                        meal_type=None,
-                        action_label="Budget ansehen",
-                        action_type="open_budget",
-                        action_payload={"date": date_str},
-                    )
-                )
-
-    # 3. Check for nutritional tag conflicts
-    plan_tag_ids = {tag.id for tag in meal_plan.nutritional_tags.all()}
-    if plan_tag_ids:
-        for meal in meals:
-            if not meal.start_datetime:
-                continue
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
-            for item in meal.items.all():
-                item_tags = set()
-                if item.recipe:
-                    for tag in item.recipe.nutritional_tags.all():
-                        item_tags.add(tag)
-                if item.ingredient:
-                    for tag in item.ingredient.nutritional_tags.all():
-                        item_tags.add(tag)
-
-                for tag in item_tags:
-                    if tag.id in plan_tag_ids:
-                        alerts.append(
-                            PlanCheckAlertOut(
-                                id=f"tag-conflict-{meal.id}-{item.id}-{tag.id}",
-                                type="allergen_conflict",
-                                severity="error",
-                                title=f"Einschränkung verletzt bei {meal.get_meal_type_display()}",
-                                description=f"«{item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else 'Unbekannt')}» enthält «{tag.name}».",
-                                date=date_str,
-                                meal_id=meal.id,
-                                meal_type=meal.meal_type,
-                                action_label="Gericht ansehen",
-                                action_type="open_slot",
-                                action_payload={"meal_id": meal.id},
-                            )
-                        )
-
+    alerts = build_plan_check_alerts(meal_plan, role)
     return PlanCheckResponseOut(total_issues=len(alerts), alerts=alerts)
 
 
@@ -1902,12 +1812,14 @@ def shopping_list(request, meal_plan_id: int):
             total_quantity_g=item.total_quantity_g,
             net_quantity_g=item.net_quantity_g,
             reserve_quantity_g=item.reserve_quantity_g,
+            quantity=item.quantity,
             unit=item.unit,
             retail_section=item.retail_section,
             estimated_price_eur=item.estimated_price_eur,
-            display_quantity=item.display_quantity,
-            natural_portions=item.natural_portions,
+            piece_equivalent=ShoppingPieceEquivalentOut(**item.piece_equivalent) if item.piece_equivalent else None,
             portion_options=[ShoppingItemPortionOptionOut(**po) for po in (item.portion_options or [])],
+            package_options=[ShoppingPackageOptionOut(**pk) for pk in (item.package_options or [])],
+            package_surplus_g=item.package_surplus_g,
             sources=[ShoppingItemSourceOut.model_validate(s) for s in (item.sources or [])],
         )
         for item in items

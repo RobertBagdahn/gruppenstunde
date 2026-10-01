@@ -45,7 +45,7 @@ function BadgePill({ value, selected, onChange, icon, label }: BadgePillProps) {
   return (
     <button
       onClick={() => onChange(selected === value ? 'all' : value)}
-      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-medium transition-colors border ${
         selected === value
           ? 'bg-primary text-primary-foreground border-primary'
           : 'bg-card text-muted-foreground border-border hover:bg-muted'
@@ -235,7 +235,7 @@ export default function RecipeSearchDialog({
         ) : (
           <>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-display">
+            <DialogTitle className="flex items-center gap-2 text-section font-display">
               {ingredientOnly || isIngredientMode ? (
                 <><Apple className="w-5 h-5 text-primary" /> Zutat hinzufügen</>
               ) : (
@@ -249,7 +249,7 @@ export default function RecipeSearchDialog({
             <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 w-fit">
               <button
                 onClick={() => { setShowSuggestions(true); setSearchQuery(''); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-lg transition-colors ${
                   showSuggestions
                     ? 'bg-card text-foreground shadow-sm border border-border'
                     : 'text-muted-foreground hover:text-foreground'
@@ -260,7 +260,7 @@ export default function RecipeSearchDialog({
               </button>
               <button
                 onClick={() => setShowSuggestions(false)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-lg transition-colors ${
                   !showSuggestions
                     ? 'bg-card text-foreground shadow-sm border border-border'
                     : 'text-muted-foreground hover:text-foreground'
@@ -294,7 +294,7 @@ export default function RecipeSearchDialog({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={ingredientOnly || isIngredientMode ? "Zutat suchen..." : "Rezept oder Zutat suchen..."}
-                className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full pl-9 pr-8 py-2 text-body rounded-xl border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               {searchQuery.length > 0 && (
                 <button
@@ -312,7 +312,7 @@ export default function RecipeSearchDialog({
             <div className="space-y-2">
               <CategoryPills selected={selectedTypes} onChange={setSelectedTypes} />
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground shrink-0">Quelle:</span>
+                <span className="text-caption text-muted-foreground shrink-0">Quelle:</span>
                 <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
                   <BadgePill
                     value="all"
@@ -343,7 +343,7 @@ export default function RecipeSearchDialog({
           {/* Ernährungsweise-Filter — nur im Rezept-Modus */}
           {!ingredientOnly && quickFilterTags.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
+              <span className="text-caption text-muted-foreground shrink-0 flex items-center gap-1">
                 <Leaf className="w-3 h-3" />
                 Ernährung:
               </span>
@@ -357,7 +357,7 @@ export default function RecipeSearchDialog({
                         ? includeTagIds.filter((id) => id !== tag.id)
                         : [...includeTagIds, tag.id]
                     )}
-                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-medium transition-colors border ${
                       isSelected
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-card text-muted-foreground border-border hover:bg-muted'
@@ -372,12 +372,12 @@ export default function RecipeSearchDialog({
 
           {/* Ernährungs-Ausschluss — nur im Rezept-Modus */}
           {!ingredientOnly && nutritionalTagIds && nutritionalTagIds.length > 0 && (
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-muted-foreground select-none bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border/50 w-fit">
+            <label className="flex items-center gap-2 cursor-pointer text-caption font-semibold text-muted-foreground select-none bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border/50 w-fit">
               <input
                 type="checkbox"
                 checked={excludeDietaryTags}
                 onChange={(e) => setExcludeDietaryTags(e.target.checked)}
-                className="rounded border-muted-foreground accent-primary"
+                className="rounded-lg border-muted-foreground accent-primary"
               />
               <span>{nutritionalTagNames?.join(', ') ?? nutritionalTagIds.join(', ')} ausschließen</span>
             </label>
@@ -390,7 +390,7 @@ export default function RecipeSearchDialog({
 
           {/* Fallback-Hinweis */}
           {fallbackApplied && (
-            <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 px-3 py-1.5 rounded-md">
+            <p className="text-caption text-warning bg-warning-soft px-3 py-1.5 rounded-lg">
               Nicht genug Rezepte für diesen Typ — zeige auch andere
             </p>
           )}
@@ -446,8 +446,8 @@ export default function RecipeSearchDialog({
                     key={`recipe-excluded-${r.id}`}
                     className="w-full text-left px-3 py-2.5 flex items-center gap-2.5 opacity-50 pointer-events-none bg-muted/30"
                   >
-                    <span className="text-sm font-medium truncate flex-1">{r.title}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                    <span className="text-body font-medium truncate flex-1">{r.title}</span>
+                    <span className="text-caption px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
                       Bereits enthalten
                     </span>
                   </div>
@@ -459,7 +459,7 @@ export default function RecipeSearchDialog({
                   >
                     <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{ing.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                    <span className="text-caption px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
                       Bereits enthalten
                     </span>
                   </div>
@@ -479,7 +479,7 @@ export default function RecipeSearchDialog({
                     >
                       <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
                       <span className="flex-1">{ing.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                      <span className="text-caption px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
                         Bereits enthalten
                       </span>
                     </div>
@@ -487,11 +487,11 @@ export default function RecipeSearchDialog({
                     <button
                       key={`ing-${ing.id}`}
                       onClick={() => setIngredientDialog(ing)}
-                      className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
+                      className="w-full text-left px-3 py-2.5 text-emphasis hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
                     >
                       <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
                       <span className="flex-1">{ing.name}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+                      <span className="text-caption px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
                         Zutat
                       </span>
                     </button>
@@ -503,13 +503,13 @@ export default function RecipeSearchDialog({
             {((!ingredientOnly && !isIngredientMode && recipes.length === 0 && ingredients.length === 0) ||
              ((ingredientOnly || isIngredientMode) && ingredients.length === 0)) && (
               <div className="p-4 text-center space-y-2">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Keine {ingredientOnly || isIngredientMode ? 'Zutaten' : 'Ergebnisse'} gefunden
                 </p>
                 {!(ingredientOnly || isIngredientMode) && (
                   <a
                     href="/recipes/new"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-caption text-primary hover:underline"
                   >
                     <Plus className="w-3 h-3" />
                     Neues Rezept erstellen
@@ -555,27 +555,27 @@ function IngredientQuantityInline({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 text-lg font-display font-bold mb-4">
+      <div className="flex items-center gap-2 text-section font-display font-bold mb-4">
         <Egg className="w-5 h-5 text-primary" />
         {ingredient.name} hinzufügen
       </div>
 
       <div className="flex-1 space-y-4">
         <div>
-          <label className="text-sm font-medium">Menge</label>
+          <label className="text-body font-medium">Menge</label>
           <input
             type="number"
             min={0.1}
             step={0.5}
             value={quantity}
             onChange={(e) => setQuantity(Math.max(0.1, parseFloat(e.target.value) || 1))}
-            className="w-full mt-1 rounded-lg border px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full mt-1 rounded-lg border px-3 py-2.5 text-emphasis focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
 
         {ingredient.portions.length > 0 && (
           <div>
-            <label className="text-sm font-medium">Einheit</label>
+            <label className="text-body font-medium">Einheit</label>
             <Select value={selectedPortionId} onValueChange={setSelectedPortionId}>
               <SelectTrigger className="w-full mt-1">
                 <SelectValue placeholder="Portion wählen" />
@@ -594,7 +594,7 @@ function IngredientQuantityInline({
         )}
 
         {totalWeightG && selectedPortion?.weight_g && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
           </p>
         )}
@@ -603,13 +603,13 @@ function IngredientQuantityInline({
       <div className="flex gap-2 justify-end pt-3 border-t mt-3">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+          className="px-4 py-2 text-body rounded-lg border hover:bg-muted transition-colors"
         >
           Abbrechen
         </button>
         <button
           onClick={() => onConfirm(ingredient.id, selectedPortion, quantity)}
-          className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Hinzufügen
         </button>

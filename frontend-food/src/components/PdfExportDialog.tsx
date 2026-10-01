@@ -158,7 +158,7 @@ export function PdfExportDialog({
                 />
                 <Label
                   htmlFor={`pdf-opt-${opt.key}`}
-                  className="text-sm cursor-pointer"
+                  className="text-body cursor-pointer"
                 >
                   {opt.label}
                 </Label>
@@ -170,7 +170,7 @@ export function PdfExportDialog({
         {isRecipeExport && (
           <div className="space-y-2 py-2">
             <div className="flex items-center gap-3">
-              <Label htmlFor="pdf-servings" className="text-sm">
+              <Label htmlFor="pdf-servings" className="text-body">
                 Personenzahl:
               </Label>
               <Input
@@ -185,12 +185,12 @@ export function PdfExportDialog({
                 className="w-24"
               />
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               Mengen und Nährwerte werden auf die gewählte Personenzahl skaliert.
               Die gespeicherten Rezeptdaten bleiben unverändert.
             </p>
             {!servingsValid && (
-              <p className="text-xs text-destructive" data-testid="pdf-servings-error">
+              <p className="text-caption text-destructive" data-testid="pdf-servings-error">
                 Bitte eine Zahl zwischen {SERVINGS_MIN} und {SERVINGS_MAX} eingeben.
               </p>
             )}
@@ -198,7 +198,7 @@ export function PdfExportDialog({
         )}
 
         <div className="flex items-center gap-3 py-2">
-          <Label htmlFor="pdf-page-format" className="text-sm">
+          <Label htmlFor="pdf-page-format" className="text-body">
             Seitenformat:
           </Label>
           <Select value={pageFormat} onValueChange={setPageFormat}>

@@ -20,6 +20,7 @@ import {
 import type { IngredientPriceProposal } from '@/schemas/supply';
 import { toast } from 'sonner';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import { formatNumber } from '@/lib/format';
 
 interface PriceProposalCardProps {
   ingredient: {
@@ -39,7 +40,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function formatPrice(price: number | null | undefined): string {
   if (price == null) return '–';
-  return `${price.toFixed(2).replace('.', ',')} €/kg`;
+  return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} €/kg`;
 }
 
 export default function PriceProposalCard({ ingredient }: PriceProposalCardProps) {
@@ -92,9 +93,9 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
   return (
     <div className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">Preis</h3>
+        <h3 className="text-body font-semibold text-foreground">Preis</h3>
         <span
-          className={`text-[11px] px-2 py-0.5 rounded-full font-medium border ${
+          className={`text-caption px-2 py-0.5 rounded-full font-medium border ${
             ingredient.price_source === 'ai_accepted'
               ? 'bg-primary/10 border-primary/20 text-primary'
               : ingredient.price_source === 'missing'
@@ -106,7 +107,7 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
         </span>
       </div>
 
-      <p className="text-lg font-medium text-foreground">
+      <p className="text-emphasis font-medium text-foreground">
         {ingredient.price_source === 'missing' || !hasPositivePrice
           ? 'Kein Preis hinterlegt'
           : formatPrice(ingredient.price_per_kg)}
@@ -114,18 +115,18 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
 
       {pending && (
         <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+          <div className="flex items-center gap-1.5 text-caption font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             Vorschlag ausstehend
           </div>
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-body font-semibold text-foreground">
             {formatPrice(pending.proposed_price_per_kg)}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
+            <span className="ml-2 text-caption font-normal text-muted-foreground">
               Konfidenz {Math.round(pending.confidence * 100)} %
             </span>
           </p>
           {pending.rationale && (
-            <p className="text-xs text-muted-foreground leading-relaxed">{pending.rationale}</p>
+            <p className="text-caption text-muted-foreground leading-relaxed">{pending.rationale}</p>
           )}
 
           {canManage && (
@@ -137,7 +138,7 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
                     checked={replaceExisting}
                     onCheckedChange={(checked) => setReplaceExisting(checked === true)}
                   />
-                  <Label htmlFor="replace-existing-price" className="text-xs text-muted-foreground">
+                  <Label htmlFor="replace-existing-price" className="text-caption text-muted-foreground">
                     Bestehenden Preis ersetzen
                   </Label>
                 </div>
@@ -192,7 +193,7 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
       )}
 
       {!pending && !hasPositivePrice && !canManage && (
-        <p className="text-xs text-muted-foreground">Kein Preis vorhanden.</p>
+        <p className="text-caption text-muted-foreground">Kein Preis vorhanden.</p>
       )}
     </div>
   );

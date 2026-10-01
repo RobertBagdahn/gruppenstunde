@@ -2,34 +2,16 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store } from 'lucide-react';
 import { useShoppingList, useIngredientScan } from '@/api/mealPlans';
-import type { NutritionalTagViolation } from '@/schemas/mealPlan';
+import type { NutritionalTagViolation, ShoppingListItem } from '@/schemas/mealPlan';
 import { useCurrentUser } from '@/api/auth';
 import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
+import { formatEuro, formatWeight } from '@/lib/format';
+import { formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
-interface PortionOption {
-  name: string;
-  display: string;
-  is_default: boolean;
-}
-
-interface TransientShoppingItem {
-  ingredient_name: string;
-  ingredient_slug?: string;
-  total_quantity_g: number;
-  net_quantity_g?: number;
-  reserve_quantity_g?: number;
-  unit: string;
-  retail_section: string;
-  estimated_price_eur: number | null;
-  display_quantity?: string;
-  display_text?: string;
-  natural_portions?: string;
-  portion_options?: PortionOption[];
-  sources?: Array<{ recipe_id?: number | null; ingredient_id?: number | null; meal_id?: number | null; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
-}
+type TransientShoppingItem = ShoppingListItem;
 
 function ShoppingItemWithSources({
   item,
@@ -72,49 +54,54 @@ function ShoppingItemWithSources({
           {item.ingredient_slug ? (
             <Link
               to={`/ingredients/${item.ingredient_slug}`}
-              className="text-sm hover:text-primary transition-colors"
+              className="text-body hover:text-primary transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               {item.ingredient_name}
             </Link>
           ) : (
-            <span className="text-sm">{item.ingredient_name}</span>
+            <span className="text-body">{item.ingredient_name}</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
+        <div className="flex items-center gap-3 text-body text-muted-foreground shrink-0">
           <span>
-            {item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g || 0)} ${item.unit}`}
+            {formatShoppingQuantity(
+              item.quantity || item.total_quantity_g || 0,
+              item.unit,
+              item.piece_equivalent,
+              item.package_options[0],
+            )}
             {showReserve && (item.reserve_quantity_g || 0) > 0 && (
-              <span className="text-xs text-muted-foreground/70">
-                {' '}(inkl. Reserve {Math.round(item.reserve_quantity_g || 0)} {item.unit})
+              <span className="text-caption text-muted-foreground/70">
+                {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
+              </span>
+            )}
+            {formatPackageReserve(item.package_surplus_g) && (
+              <span className="block text-caption text-muted-foreground/70 text-right">
+                {formatPackageReserve(item.package_surplus_g)}
               </span>
             )}
           </span>
-          {item.natural_portions && (
+          {hasPortionOptions && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (hasPortionOptions) {
-                  setPortionsExpanded(!portionsExpanded);
-                }
+                setPortionsExpanded(!portionsExpanded);
               }}
-              className={`inline-flex items-center gap-1 text-xs transition-colors ${
-                hasPortionOptions ? 'cursor-pointer hover:text-muted-foreground' : ''
-              }`}
+              aria-expanded={portionsExpanded}
+              aria-label="Portionsgrößen anzeigen"
+              className="inline-flex items-center gap-1 text-caption transition-colors cursor-pointer hover:text-muted-foreground"
             >
-              {hasPortionOptions && (
-                <ChevronDown className={`w-3 h-3 transition-transform ${portionsExpanded ? 'rotate-180' : ''}`} />
-              )}
-              {item.natural_portions}
+              <ChevronDown className={`w-3 h-3 transition-transform ${portionsExpanded ? 'rotate-180' : ''}`} />
             </button>
           )}
           {item.estimated_price_eur !== null ? (
             <span className="text-foreground font-medium">
-              {item.estimated_price_eur.toFixed(2)} EUR
+              {formatEuro(item.estimated_price_eur)}
             </span>
           ) : (
-            <span className="text-red-400 text-xs">kein Preis</span>
+            <span className="text-danger text-caption">kein Preis</span>
           )}
         </div>
       </div>
@@ -124,14 +111,14 @@ function ShoppingItemWithSources({
           {item.portion_options!.map((opt, idx) => (
             <div
               key={idx}
-              className={`flex items-center gap-2 text-xs ${
+              className={`flex items-center gap-2 text-caption ${
                 opt.is_default ? 'text-muted-foreground font-semibold' : 'text-muted-foreground/60'
               }`}
             >
               <span className="text-muted-foreground/40">&#8226;</span>
-              <span>{opt.display}</span>
+              <span>{formatPortionOption(opt)}</span>
               {opt.is_default && (
-                <span className="text-[10px] text-muted-foreground/40 font-normal">(Standard)</span>
+                <span className="text-caption text-muted-foreground/40 font-normal">(Standard)</span>
               )}
             </div>
           ))}
@@ -140,7 +127,7 @@ function ShoppingItemWithSources({
       {expanded && hasSources && (
         <div className="pl-10 pr-4 pb-2 space-y-1">
           {item.sources!.map((source, idx) => (
-            <div key={idx} className="flex items-center justify-between text-xs text-muted-foreground">
+            <div key={idx} className="flex items-center justify-between text-caption text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="text-muted-foreground/60">&#8226;</span>
                 {source.recipe_slug ? (
@@ -157,7 +144,7 @@ function ShoppingItemWithSources({
                   <span className="text-muted-foreground/60">({source.meal_label})</span>
                 )}
               </div>
-              <span>{Math.round(source.quantity_g || 0)} g</span>
+              <span>{formatWeight(source.quantity_g || 0)}</span>
             </div>
           ))}
         </div>
@@ -203,7 +190,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
         <button
           type="button"
           onClick={() => setShowReserve(!showReserve)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+          className="text-caption text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
         >
           {showReserve ? 'Reserve-Anteil ausblenden' : 'Reserve-Anteil anzeigen'}
         </button>
@@ -224,7 +211,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
                 toast.error('Fehler', { description: err.message }),
             });
           }}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50 font-semibold"
+          className="flex items-center gap-2 px-4 py-2.5 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50 font-semibold"
         >
           {createFromMealPlan.isPending ? (
             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -240,7 +227,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       {Object.entries(grouped).map(([section, items]) => (
         <div key={section} className="rounded-xl border bg-card overflow-hidden">
           <div className="px-4 py-2.5 bg-muted/50 border-b">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
+            <h3 className="font-semibold text-body flex items-center gap-2">
               <Store className="w-4 h-4 text-muted-foreground" />
               {section}
             </h3>
@@ -257,7 +244,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       {totalPrice > 0 && (
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center justify-between">
           <span className="font-semibold">Geschätzter Gesamtpreis</span>
-          <span className="font-bold text-lg">{totalPrice.toFixed(2)} EUR</span>
+          <span className="font-bold text-section">{formatEuro(totalPrice)}</span>
         </div>
       )}
     </div>

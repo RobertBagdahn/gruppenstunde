@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import type { VerifyStatus } from '@/schemas/recipe';
+import { Icon } from '@/components/ui/icon';
 
 interface VerifyDialogProps {
   open: boolean;
@@ -16,28 +17,28 @@ export default function VerifyDialog({ open, onOpenChange, status, isVerifying, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="material-symbols-outlined text-primary">verified</span>
+          <DialogTitle className="flex items-center gap-2 text-emphasis">
+            <Icon name="verified" size={24} className="text-primary" />
             Rezept verifizieren
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-body text-muted-foreground">
             Überprüfe das Rezept auf Vollständigkeit und Regelkonformität.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">
+            <span className="text-body font-medium">
               {status.rules_passed} / {status.rules_total} Regeln erfüllt
             </span>
           </div>
           {status.warnings.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-sm font-semibold text-amber-800 mb-2">
+            <div className="bg-warning-soft border border-warning-border rounded-lg p-3">
+              <p className="text-body font-semibold text-warning mb-2">
                 {status.warnings.length} Warnung{status.warnings.length !== 1 ? 'en' : ''}:
               </p>
               <ul className="space-y-1">
                 {status.warnings.map((w, i) => (
-                  <li key={i} className="text-xs text-amber-700 flex items-start gap-1">
+                  <li key={i} className="text-caption text-warning flex items-start gap-1">
                     <span className="mt-0.5 shrink-0">•</span>
                     <span>{String(w.rule_description || w.rule_name || w.message || '')}</span>
                   </li>
@@ -46,8 +47,8 @@ export default function VerifyDialog({ open, onOpenChange, status, isVerifying, 
             </div>
           )}
           {status.warnings.length === 0 && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-              <p className="text-sm font-semibold text-emerald-800">
+            <div className="bg-success-soft border border-success-border rounded-lg p-3">
+              <p className="text-body font-semibold text-success">
                 Alle Regeln erfüllt
               </p>
             </div>
@@ -57,7 +58,7 @@ export default function VerifyDialog({ open, onOpenChange, status, isVerifying, 
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
+            className="px-4 py-2 border rounded-lg text-body hover:bg-muted transition"
           >
             Abbrechen
           </button>
@@ -65,11 +66,11 @@ export default function VerifyDialog({ open, onOpenChange, status, isVerifying, 
             type="button"
             onClick={onVerify}
             disabled={isVerifying}
-            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
           >
             {isVerifying ? (
               <>
-                <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                <Icon name="progress_activity" size={20} className="animate-spin" />
                 Wird verifiziert...
               </>
             ) : status.warnings.length > 0 ? (

@@ -45,4 +45,13 @@ def auth_user_out(user: Any) -> AuthUserOut:
 def session_out(user: Any) -> SessionOut:
     if user is None or not user.is_authenticated:
         return SessionOut(is_authenticated=False, user=None)
-    return SessionOut(is_authenticated=True, user=auth_user_out(user))
+    return SessionOut(
+        is_authenticated=True,
+        user=auth_user_out(user),
+        id=user.id,
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        is_staff=user.is_staff,
+        is_superuser=user.is_superuser,
+    )

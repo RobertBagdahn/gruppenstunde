@@ -40,7 +40,7 @@ export function PortionPersonsInput({
   };
 
   return (
-    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-card text-xs">
+    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-xl border border-border bg-card text-caption">
       <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
       <span className="text-muted-foreground whitespace-nowrap">Portionen für</span>
       <input
@@ -55,7 +55,7 @@ export function PortionPersonsInput({
             e.currentTarget.blur();
           }
         }}
-        className="w-12 px-1 py-0.5 text-center font-bold text-foreground bg-muted/40 border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+        className="w-12 px-1 py-0.5 text-center font-bold text-foreground bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
       />
       <span className="text-muted-foreground">Personen</span>
     </div>

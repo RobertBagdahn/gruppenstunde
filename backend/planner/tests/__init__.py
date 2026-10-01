@@ -86,11 +86,21 @@ def make_meal_plan(created_by=None, **kwargs) -> MealPlan:
 
         User = get_user_model()
         created_by = baker.make(User)
+    today = datetime.date.today()
     defaults = {
         "name": "Sommerlager Essensplan",
         "description": "Essensplan für das Sommerlager 2026",
         "norm_portions": 10,
         "reserve_factor": 1.1,
+        # Wide, deterministic range containing "today" (and the hardcoded
+        # example dates used throughout the test suite) so callers don't have
+        # to align make_meal()'s date with make_meal_plan()'s by hand.
+        "start_datetime": timezone.make_aware(
+            datetime.datetime.combine(today - datetime.timedelta(days=3 * 365), datetime.time(0, 0))
+        ),
+        "end_datetime": timezone.make_aware(
+            datetime.datetime.combine(today + datetime.timedelta(days=3 * 365), datetime.time(23, 59))
+        ),
     }
     event = kwargs.pop("event", None)
     defaults.update(kwargs)

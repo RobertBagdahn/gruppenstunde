@@ -66,19 +66,19 @@ export function AddPersonDialog({ open, onOpenChange, onSubmit, isPending }: Pro
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground">Name</label>
+            <label className="text-body font-medium text-foreground">Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Optional, Pflicht bei Allergien"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm mt-1"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-body mt-1"
             />
           </div>
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-sm font-medium text-foreground">Alter *</label>
+              <label className="text-body font-medium text-foreground">Alter *</label>
               <input
                 type="number"
                 value={age}
@@ -86,16 +86,16 @@ export function AddPersonDialog({ open, onOpenChange, onSubmit, isPending }: Pro
                 min={0}
                 max={120}
                 required
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm mt-1"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-body mt-1"
               />
             </div>
 
             <div className="flex-1">
-              <label className="text-sm font-medium text-foreground">Geschlecht</label>
+              <label className="text-body font-medium text-foreground">Geschlecht</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value as typeof gender)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm mt-1"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-body mt-1"
               >
                 <option value="no_answer">Keine Angabe</option>
                 <option value="male">Männlich</option>
@@ -115,14 +115,14 @@ export function AddPersonDialog({ open, onOpenChange, onSubmit, isPending }: Pro
               type="button"
               onClick={() => onOpenChange(false)}
               disabled={isPending}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted/50 disabled:opacity-50"
+              className="rounded-lg border border-border px-4 py-2 text-body font-medium hover:bg-muted/50 disabled:opacity-50"
             >
               Abbrechen
             </button>
             <button
               type="submit"
               disabled={isPending || !age}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
               Hinzufügen

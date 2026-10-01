@@ -130,22 +130,22 @@ export default function RecipeMaterialSuggestionsDialog({
                     )}
                     <span className="flex-1 min-w-0">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium">{suggestion.suggested_name}</span>
+                        <span className="text-body font-medium">{suggestion.suggested_name}</span>
                         {isMatched ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                          <span className="text-caption px-2 py-0.5 rounded-full bg-success-soft text-success">
                             Gefunden: {suggestion.matched_name}
                           </span>
                         ) : (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          <span className="text-caption px-2 py-0.5 rounded-full bg-warning-soft text-warning">
                             Noch nicht im Material-Katalog
                           </span>
                         )}
                       </span>
                       {suggestion.quantity && (
-                        <span className="block text-xs text-muted-foreground mt-0.5">{suggestion.quantity}</span>
+                        <span className="block text-caption text-muted-foreground mt-0.5">{suggestion.quantity}</span>
                       )}
                       {!isMatched && (
-                        <span className="block text-xs text-muted-foreground mt-0.5">
+                        <span className="block text-caption text-muted-foreground mt-0.5">
                           Lege das Material zuerst im Material-Katalog an.
                         </span>
                       )}

@@ -5,6 +5,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import type { Bucket } from '@/schemas/recipe';
+import { formatNumber } from '@/lib/format';
 
 interface RecipeHistogramProps {
   /** Histogram buckets from API */
@@ -28,7 +29,7 @@ export default function RecipeHistogram({
 }: RecipeHistogramProps) {
   if (!buckets || buckets.length === 0) {
     return (
-      <div className="text-xs text-muted-foreground p-4 text-center">
+      <div className="text-caption text-muted-foreground p-4 text-center">
         Nicht genug Rezepte für Vergleich
       </div>
     );
@@ -36,10 +37,10 @@ export default function RecipeHistogram({
 
   // Format data for Recharts
   const data = buckets.map((b) => ({
-    min: Number(b.min.toFixed(1)),
-    max: Number(b.max.toFixed(1)),
+    min: Number(formatNumber(b.min, { maxDecimals: 1 })),
+    max: Number(formatNumber(b.max, { maxDecimals: 1 })),
     count: b.count,
-    name: `${Number(b.min.toFixed(1))}-${Number(b.max.toFixed(1))} ${unit}`,
+    name: `${Number(formatNumber(b.min, { maxDecimals: 1 }))}-${Number(formatNumber(b.max, { maxDecimals: 1 }))} ${unit}`,
   }));
 
   // Find the bucket label that contains the current recipe value
@@ -49,18 +50,18 @@ export default function RecipeHistogram({
       (b) => recipeValue >= b.min && (b.max == null || recipeValue < b.max),
     );
     if (match) {
-      refLabel = `${Number(match.min.toFixed(1))}-${Number(match.max.toFixed(1))} ${unit}`;
+      refLabel = `${Number(formatNumber(match.min, { maxDecimals: 1 }))}-${Number(formatNumber(match.max, { maxDecimals: 1 }))} ${unit}`;
     }
   }
 
   return (
     <div className={className}>
       <div className="mb-3">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+        <h4 className="text-caption font-semibold text-muted-foreground uppercase tracking-wide mb-1">
           {label}
         </h4>
-        <p className="text-sm font-bold text-foreground">
-          {Number(recipeValue.toFixed(1))} {unit}
+        <p className="text-body font-bold text-foreground">
+          {Number(formatNumber(recipeValue, { maxDecimals: 1 }))} {unit}
         </p>
       </div>
       <ResponsiveContainer width="100%" height={200}>

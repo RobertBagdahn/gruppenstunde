@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTags } from '@/api/tags';
+import { Icon } from '@/components/ui/icon';
 
 interface TagMultiSelectProps {
   selectedSlugs: string[];
@@ -38,18 +39,16 @@ export default function TagMultiSelect({ selectedSlugs, onToggle, valueKey = 'sl
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-muted border border-border rounded-lg hover:bg-border transition-colors whitespace-nowrap"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-caption font-medium bg-muted border border-border rounded-lg hover:bg-border transition-colors whitespace-nowrap"
       >
-        <span className="material-symbols-outlined text-[14px]">label</span>
+        <Icon name="label" size={16} />
         Tags
         {selectedSlugs.length > 0 && (
-          <span className="inline-flex items-center justify-center min-w-[18px] h-4 rounded-full bg-primary text-white text-[10px] px-1 font-bold">
+          <span className="inline-flex items-center justify-center min-w-[18px] h-4 rounded-full bg-primary text-white text-caption px-1 font-bold">
             {selectedSlugs.length}
           </span>
         )}
-        <span className={`material-symbols-outlined text-[14px] transition-transform ${open ? 'rotate-180' : ''}`}>
-          expand_more
-        </span>
+        <Icon name="expand_more" size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-card border border-border rounded-xl shadow-lg p-2 max-h-80 overflow-hidden flex flex-col">
@@ -58,27 +57,27 @@ export default function TagMultiSelect({ selectedSlugs, onToggle, valueKey = 'sl
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tag suchen..."
-            className="w-full px-3 py-2 mb-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full px-3 py-2 mb-2 text-body bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
             autoFocus
           />
           <div className="overflow-y-auto flex-1 -mx-2 px-2">
             {filtered.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-2 py-4 text-center">
+              <p className="text-body text-muted-foreground px-2 py-4 text-center">
                 Keine Tags gefunden
               </p>
             ) : (
               filtered.map((tag) => (
                 <label
                   key={tag.id}
-                  className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-sm hover:bg-muted rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-body hover:bg-muted rounded-lg transition-colors"
                 >
                   <input
                     type="checkbox"
                   checked={selectedSlugs.includes(valueKey === 'id' ? tag.id : tag.slug)}
                   onChange={() => onToggle(valueKey === 'id' ? tag.id : tag.slug)}
-                    className="rounded border-muted-foreground accent-primary"
+                    className="rounded-lg border-muted-foreground accent-primary"
                   />
-                  {tag.icon && <span className="material-symbols-outlined text-[16px]">{tag.icon}</span>}
+                  {tag.icon && <Icon name={tag.icon} size={16} />}
                   {tag.name}
                 </label>
               ))

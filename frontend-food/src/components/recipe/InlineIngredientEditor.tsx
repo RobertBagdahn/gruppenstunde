@@ -143,14 +143,13 @@ export interface InlineIngredientEditorHandle {
  *  - Add ingredient flows (handleAddIngredient, handleAddFromDialog, handleSelectAlternative)
  */
 
-/** Formats a gram value compactly for inline display next to a portion unit,
- *  e.g. "125g" or "1,3kg". Used in the AI-Mengenschätzung preview table so the
- *  gram equivalent is always visible regardless of the portion unit shown. */
-import { formatGramsShort, formatPortionOptionLabel, isDirectMetricPortion } from '@/lib/portionLabels';
-export { formatGramsShort, formatPortionOptionLabel };
+import { formatPortionOptionLabel, isDirectMetricPortion } from '@/lib/portionLabels';
+import { formatWeight } from '@/lib/format';
+export { formatPortionOptionLabel };
 
 export { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
 import { BASE_METRIC_UNIT_NAMES } from '@/lib/portionLabels';
+import { Icon } from '@/components/ui/icon';
 
 type EditablePortion = EditableItem['ingredient_portions'][number];
 
@@ -489,7 +488,7 @@ function IngredientRow({
       data-testid={`recipe-ingredient-row-${item.id}`}
       key={item.id}
       className={`flex flex-col bg-card transition-colors ${
-        isAlt ? 'border-l-4 border-l-amber-400 pl-9 bg-muted/20' : isSource ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-transparent'
+        isAlt ? 'border-l-4 border-l-warning pl-9 bg-muted/20' : isSource ? 'border-l-4 border-l-warning' : 'border-l-4 border-l-transparent'
       } ${
         isAlt && !isLastInGroup ? 'border border-b-0 border-t-0' : ''
       } ${
@@ -510,7 +509,7 @@ function IngredientRow({
         onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
         onBlur={() => handleQuantityBlur(item.id)}
         data-testid={`item-quantity-${item.id}`}
-        className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
+        className="w-20 px-2 py-1.5 text-body text-right border rounded-lg"
       />
       <PortionPicker
         portions={item.ingredient_portions.map((p) => ({
@@ -529,7 +528,7 @@ function IngredientRow({
         onSelectStandardMeasure={(measure) => handleSelectStandardMeasure(item.id, measure)}
         onSelectGrams={() => handleSelectGrams(item.id)}
       />
-      <span className="text-xs text-muted-foreground min-w-[4rem] text-right tabular-nums">
+      <span className="text-caption text-muted-foreground min-w-[4rem] text-right tabular-nums">
         {(() => {
           const currentPortion = item.ingredient_portions.find((portion) => portion.id === item.portion_id);
           const weightG = getItemWeightG(item);
@@ -537,10 +536,10 @@ function IngredientRow({
           if (weightUnknown) {
             return (
               <span
-                className="inline-flex items-center gap-0.5 text-amber-600"
+                className="inline-flex items-center gap-0.5 text-warning"
                 title="Das Portionsgewicht muss bestätigt werden."
               >
-                <span className="material-symbols-outlined text-[14px]">warning_amber</span>
+                <Icon name="warning_amber" size={16} />
                 Gewicht unbekannt
               </span>
             );
@@ -548,14 +547,14 @@ function IngredientRow({
           return `= ${Math.round(weightG * 10) / 10} g`;
         })()}
       </span>
-      <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
+      <span className="flex-1 text-body font-medium truncate">{item.ingredient_name}</span>
       {expandedNotes.has(item.id) || item.note ? (
         <input
           type="text"
           value={item.note}
           onChange={(e) => handleNoteChange(item.id, e.target.value)}
           placeholder="Notiz"
-          className="w-24 px-2 py-1.5 text-xs border rounded-md text-muted-foreground"
+          className="w-24 px-2 py-1.5 text-caption border rounded-lg text-muted-foreground"
         />
       ) : (
         <button
@@ -564,7 +563,7 @@ function IngredientRow({
           className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
           title="Notiz hinzufügen"
         >
-          <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
+          <Icon name="sticky_note_2" size={20} />
         </button>
       )}
       {/* Optional toggle (task 9.3) — disabled when in exchange group or unsaved */}
@@ -589,11 +588,9 @@ function IngredientRow({
             },
           );
         }}
-        className={`p-1.5 transition-colors rounded ${item.is_optional ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
+        className={`p-1.5 transition-colors rounded-lg ${item.is_optional ? 'text-warning hover:text-warning' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
       >
-        <span className="material-symbols-outlined text-[20px]">
-          {item.is_optional ? 'toggle_on' : 'toggle_off'}
-        </span>
+        <Icon name={item.is_optional ? 'toggle_on' : 'toggle_off'} size={20} />
       </button>
       {/* Alternative hinzufügen (tasks 9.1, 9.2) — only when not optional */}
       <button
@@ -601,9 +598,9 @@ function IngredientRow({
         disabled={item.is_optional || item.isNew}
         title={item.isNew ? 'Bitte zuerst speichern' : 'Alternative hinzufügen'}
         onClick={() => setAlternativeTargetId(item.id)}
-        className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+        className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
+        <Icon name="swap_horiz" size={20} />
       </button>
       <button
         type="button"
@@ -629,7 +626,7 @@ function IngredientRow({
         title="Entfernen"
         data-testid="recipe-ingredient-delete"
       >
-        <span className="material-symbols-outlined text-[20px]">close</span>
+        <Icon name="close" size={20} />
       </button>
       {/* Verify button (staff only) */}
       {user?.is_staff && (
@@ -652,14 +649,14 @@ function IngredientRow({
               },
             );
           }}
-          className="p-1.5 text-green-600/70 hover:text-green-600 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 text-success/70 hover:text-success transition-colors rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <span className="material-symbols-outlined text-[20px]" title="Verify">verified</span>
+          <Icon name="verified" size={20} label="Verify" />
         </button>
       )}
       </div>
       {item.currentPortion && (
-        <div className="flex items-center justify-between gap-2 px-3 pb-2 pl-[3.75rem] text-xs text-amber-700">
+        <div className="flex items-center justify-between gap-2 px-3 pb-2 pl-[3.75rem] text-caption text-warning">
           <span className="flex items-center gap-1.5">
             <RefreshCw className="w-3.5 h-3.5 shrink-0" />
             Veraltete Portion
@@ -676,7 +673,7 @@ function IngredientRow({
             type="button"
             onClick={() => onAdoptCurrentPortion(item.id)}
             disabled={isAdoptingCurrentPortion}
-            className="shrink-0 font-medium text-amber-800 hover:text-amber-950 underline disabled:opacity-50"
+            className="shrink-0 font-medium text-warning hover:text-warning underline disabled:opacity-50"
           >
             Aktualisieren
           </button>
@@ -1551,7 +1548,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
   return (
     <div className="space-y-4" data-testid="recipe-ingredient-editor">
       <div
-        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        className="rounded-xl border border-warning-border bg-warning-soft px-3 py-2 text-body text-warning"
         data-testid="recipe-serving-context-summary"
       >
         Gesamtmengen für <strong>{scale} {scale === 1 ? 'Person' : 'Personen'}</strong>. Beim Speichern werden sie auf
@@ -1559,8 +1556,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       </div>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 border border-border rounded-lg">
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <span className="material-symbols-outlined text-[18px]">edit</span>
+        <div className="flex items-center gap-2 text-body font-medium text-foreground">
+          <Icon name="edit" size={20} />
           Bearbeitungsmodus
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1585,11 +1582,11 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
             data-testid="ai-estimate-trigger"
           >
-            <span className="material-symbols-outlined text-[16px] mr-1.5">auto_fix_high</span>
+            <Icon name="auto_fix_high" size={16} className="mr-1.5" />
             {estimateQuantities.isPending ? 'Schätze...' : 'Mengen schätzen'}
           </Button>
           <Button type="button" size="sm" onClick={handleSave} disabled={isSaving} data-testid="ingredient-editor-save">
-            <span className="material-symbols-outlined text-[16px] mr-1.5">save</span>
+            <Icon name="save" size={16} className="mr-1.5" />
             {isSaving ? 'Speichert...' : 'Speichern'}
           </Button>
       <Button type="button" variant="outline" size="sm" onClick={onClose}>
@@ -1612,7 +1609,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const outdatedCount = activeItems.filter((i) => i.currentPortion).length;
         if (outdatedCount <= 1) return null;
         return (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-body text-warning">
             <span className="flex items-center gap-1.5">
               <RefreshCw className="w-4 h-4" />
               {outdatedCount} Zutaten mit veralteten Portionen
@@ -1623,7 +1620,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
               size="sm"
               onClick={handleAdoptAllCurrentPortions}
               disabled={adoptCurrentPortions.isPending}
-              className="border-amber-300 text-amber-900 hover:bg-amber-100"
+              className="border-warning-border text-warning hover:bg-warning-soft"
             >
               Alle aktualisieren ({outdatedCount})
             </Button>
@@ -1743,14 +1740,14 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       {showEstimate && estimateResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">auto_fix_high</span>
+            <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
+              <Icon name="auto_fix_high" size={24} className="text-primary" />
               AI-Mengenschätzung
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-body text-muted-foreground mb-4">
               Geschätzte Mengen pro Person:
             </p>
-            <table className="w-full text-sm">
+            <table className="w-full text-body">
               <thead>
                 <tr className="text-left text-muted-foreground border-b">
                   <th className="pb-2 w-8">
@@ -1764,7 +1761,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                           setSelectedEstimates(new Set());
                         }
                       }}
-                      className="rounded border-input"
+                      className="rounded-lg border-input"
                       title="Alle auswählen"
                     />
                   </th>
@@ -1786,17 +1783,17 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                       ? ` (${currentItem.quantity} ${currentItem.measuring_unit_name})`
                       : '';
                   const altValue = currentItem && currentItemGrams > 0
-                    ? `${formatGramsShort(currentItemGrams)}${altPortionContext}`
+                    ? `${formatWeight(currentItemGrams)}${altPortionContext}`
                     : '—';
                   const newPortionContext = est.unit && est.unit !== 'g' && est.unit !== 'Gramm'
                     ? ` (${est.quantity_per_portion} ${est.unit})`
                     : '';
-                  const newValue = `${formatGramsShort(est.grams_total)}${newPortionContext}`;
+                  const newValue = `${formatWeight(est.grams_total)}${newPortionContext}`;
                   const hasChange = !currentItem || Math.abs(currentItemGrams - est.grams_total) > 0.05;
                   return (
                     <tr
                       key={est.item_id}
-                      className={`border-b last:border-0 ${hasChange ? 'bg-amber-50/50' : ''}`}
+                      className={`border-b last:border-0 ${hasChange ? 'bg-warning-soft/50' : ''}`}
                     >
                       <td className="py-2">
                         <input
@@ -1813,7 +1810,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                               return next;
                             });
                           }}
-                          className="rounded border-input"
+                          className="rounded-lg border-input"
                         />
                       </td>
                       <td className="py-2">{est.ingredient_name}</td>
@@ -1836,7 +1833,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                   setEstimateResult(null);
                   setSelectedEstimates(new Set());
                 }}
-                className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+                className="px-4 py-2 text-body border rounded-lg hover:bg-muted transition-colors"
               >
                 Verwerfen
               </button>
@@ -1845,7 +1842,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                 onClick={handleApplyEstimate}
                 disabled={selectedEstimates.size === 0}
                 data-testid="ai-estimate-apply"
-                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Übernehmen ({selectedEstimates.size})
               </button>
@@ -1858,11 +1855,11 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       {aiSuggestions && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
               KI-Vorschläge
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-body text-muted-foreground mb-4">
               Folgende Zutaten wurden vorgeschlagen:
             </p>
 
@@ -1873,7 +1870,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                 <>
                   {replacementCandidates.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                      <p className="text-caption font-semibold text-muted-foreground uppercase mb-2">
                         Ersetzungen
                       </p>
                       <div className="space-y-2">
@@ -1887,18 +1884,18 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                               className="flex items-center gap-3 p-3 border border-primary/30 bg-primary/5 rounded-lg"
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-foreground text-sm">
+                                <p className="font-medium text-foreground text-body">
                                   {s.ingredient_name}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-caption text-muted-foreground mt-1">
                                   {s.replacement_reason ?? `Ersetzt ${sourceName}`}: {sourceName} →{' '}
                                   {s.ingredient_name}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-caption text-muted-foreground mt-1">
                                   Zielportion: {s.quantity} {s.portion_name ?? ''}
                                 </p>
                                 {s.replacement_confidence != null && (
-                                  <p className="text-xs text-muted-foreground mt-1">
+                                  <p className="text-caption text-muted-foreground mt-1">
                                     Sicherheit: {Math.round(s.replacement_confidence * 100)}%
                                   </p>
                                 )}
@@ -1908,7 +1905,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                                 disabled={replaceItem.isPending || s.portion_id == null}
                                 title={s.portion_id == null ? 'Keine Portion verfügbar' : `${sourceName} ersetzen`}
                                 onClick={() => handleApplyReplacement(s)}
-                                className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                className="px-3 py-1.5 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                               >
                                 Ersetzen
                               </button>
@@ -1920,7 +1917,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                   )}
 
                   {addCandidates.length > 0 && (
-                    <table className="w-full text-sm">
+                    <table className="w-full text-body">
                       <thead>
                         <tr className="text-left text-muted-foreground border-b">
                           <th className="pb-2 w-8">
@@ -1936,7 +1933,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                                   setSelectedAiSuggestions(new Set());
                                 }
                               }}
-                              className="rounded border-input"
+                              className="rounded-lg border-input"
                               title="Alle auswählen"
                             />
                           </th>
@@ -1962,7 +1959,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                                     return next;
                                   });
                                 }}
-                                className="rounded border-input"
+                                className="rounded-lg border-input"
                               />
                             </td>
                             <td className="py-2 font-medium">{s.ingredient_name}</td>
@@ -1980,7 +1977,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
 
             <div className="flex items-center justify-between mt-6">
               {aiSuggestInteractionId && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 text-caption text-muted-foreground">
                   <span>Hilfreich?</span>
                   <AiVoteButtons interactionId={aiSuggestInteractionId} />
                 </div>
@@ -1993,7 +1990,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                     setSelectedAiSuggestions(new Set());
                     setAiSuggestInteractionId(null);
                   }}
-                  className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+                  className="px-4 py-2 text-body border rounded-lg hover:bg-muted transition-colors"
                 >
                   Verwerfen
                 </button>
@@ -2001,7 +1998,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
                   type="button"
                   onClick={handleApplyAiSuggestions}
                   disabled={selectedAiSuggestions.size === 0}
-                  className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Übernehmen ({selectedAiSuggestions.size})
                 </button>

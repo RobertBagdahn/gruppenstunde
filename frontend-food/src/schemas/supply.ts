@@ -9,6 +9,17 @@ import { z } from 'zod';
 
 import { TagSchema } from './content';
 
+// --- Physical viscosity (backend: supply.choices.PhysicalViscosityChoices) ---
+
+export const PHYSICAL_VISCOSITY_LABELS: Record<string, string> = {
+  solid: 'Fest',
+  beverage: 'Getränk',
+  liquid: 'Flüssig',
+};
+
+/** Viscosities whose quantities are shown as a volume (ml/l). */
+export const LIQUID_VISCOSITIES: ReadonlySet<string> = new Set(['beverage', 'liquid']);
+
 // --- Material Category Options ---
 
 export const MATERIAL_CATEGORY_OPTIONS = [
@@ -319,6 +330,7 @@ export const IngredientDetailSchema = z.object({
   // Physical
   physical_density: z.number(),
   physical_viscosity: z.string(),
+  viscosity_source: z.enum(['', 'ai', 'manual']).default(''),
   durability_in_days: z.number().nullable(),
   max_storage_temperature: z.number().nullable(),
 

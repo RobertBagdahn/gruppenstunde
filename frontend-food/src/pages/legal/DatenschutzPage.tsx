@@ -16,8 +16,8 @@ export default function DatenschutzPage() {
             alt="Inspi Baby Keks"
             className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-lg"
           />
-          <h1 className="text-3xl md:text-5xl font-display font-bold">Datenschutz</h1>
-          <p className="mt-4 text-lg text-white/85 max-w-2xl mx-auto">
+          <h1 className="text-title md:text-title font-display font-bold">Datenschutz</h1>
+          <p className="mt-4 text-emphasis text-white/85 max-w-2xl mx-auto">
             Informationen zum Schutz deiner persönlichen Daten
           </p>
         </div>
@@ -34,8 +34,8 @@ export default function DatenschutzPage() {
                 <Shield className="w-5 h-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-foreground">Meine Daten & Datenschutz</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-body font-bold text-foreground">Meine Daten & Datenschutz</p>
+                <p className="text-caption text-muted-foreground mt-0.5">
                   Sieh dir an, welche Daten wir über dich gespeichert haben, exportiere sie oder lösche dein Konto.
                 </p>
               </div>
@@ -48,7 +48,7 @@ export default function DatenschutzPage() {
       <section className="container py-12 md:py-16">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">1. Datenschutz auf einen Blick</h3>
+            <h3 className="text-section font-display font-bold text-foreground">1. Datenschutz auf einen Blick</h3>
             <h4 className="mt-4 font-medium text-foreground">Allgemeine Hinweise</h4>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren
@@ -58,7 +58,7 @@ export default function DatenschutzPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">2. Verantwortliche Stelle</h3>
+            <h3 className="text-section font-display font-bold text-foreground">2. Verantwortliche Stelle</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Die verantwortliche Stelle für die Datenverarbeitung auf dieser Website ist:
             </p>
@@ -73,7 +73,7 @@ export default function DatenschutzPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">3. Datenerfassung auf dieser Website</h3>
+            <h3 className="text-section font-display font-bold text-foreground">3. Datenerfassung auf dieser Website</h3>
             <h4 className="mt-4 font-medium text-foreground">Cookies</h4>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               Diese Website verwendet Cookies. Dabei handelt es sich um kleine Textdateien, die
@@ -93,7 +93,7 @@ export default function DatenschutzPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">4. Registrierung und Nutzerkonto</h3>
+            <h3 className="text-section font-display font-bold text-foreground">4. Registrierung und Nutzerkonto</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Sie können sich auf unserer Website registrieren, um zusätzliche Funktionen
               nutzen zu können. Die dazu eingegebenen Daten verwenden wir nur zum Zwecke
@@ -109,7 +109,7 @@ export default function DatenschutzPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">5. Ihre Rechte</h3>
+            <h3 className="text-section font-display font-bold text-foreground">5. Ihre Rechte</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Sie haben jederzeit das Recht, unentgeltlich Auskunft über Herkunft, Empfänger und
               Zweck Ihrer gespeicherten personenbezogenen Daten zu erhalten. Sie haben außerdem
@@ -124,7 +124,7 @@ export default function DatenschutzPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-display font-bold text-foreground">6. Analyse-Tools und Werbung</h3>
+            <h3 className="text-section font-display font-bold text-foreground">6. Analyse-Tools und Werbung</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Diese Website verwendet keine Analyse-Tools und keine Werbung. Es werden keine
               personenbezogenen Daten an Dritte weitergegeben.

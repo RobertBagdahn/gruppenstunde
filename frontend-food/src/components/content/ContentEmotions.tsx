@@ -36,7 +36,7 @@ export default function ContentEmotions({
             title={label}
             className={`
               inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5
-              text-sm font-semibold transition-all duration-200
+              text-body font-semibold transition-all duration-200
               disabled:opacity-50 disabled:cursor-not-allowed
               ${
                 isActive
@@ -45,7 +45,7 @@ export default function ContentEmotions({
               }
             `}
           >
-            <span className="text-base">{icon}</span>
+            <span className="text-emphasis">{icon}</span>
             {count > 0 && <span className="tabular-nums">{count}</span>}
           </button>
         );

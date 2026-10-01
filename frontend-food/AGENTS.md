@@ -12,10 +12,11 @@ Für projektweite Regeln siehe `../AGENTS.md`. Fachliche Anforderungen gehören 
 
 ## Design-System
 
-- Farben und Flächen über HSL-CSS-Variablen und semantische Theme-Tokens steuern; keine hartcodierten Tailwind-Palettenfarben.
+- Farben und Flächen über HSL-CSS-Variablen und semantische Theme-Tokens steuern; keine hartcodierten Tailwind-Palettenfarben. Status nur über `success`, `warning`, `danger`, `info` (mit `-soft`, `-border`, `-foreground`); `chart-*` nur in Diagrammen.
+- Genau fünf Schriftgrößen: `text-caption` (12 px), `text-body` (14), `text-emphasis` (16), `text-section` (20), `text-title` (28); keine freien Werte (`text-[…]`).
+- Genau drei Radien: `rounded-lg` (8 px, Bedienelemente), `rounded-xl` (12 px, Karten und Dialoge), `rounded-full` (Pills, Badges, Avatare).
 - Überschriften mit `Plus Jakarta Sans`, Fließtext mit `Inter`.
-- Lucide für Standard-UI-Aktionen, Navigation, Status und Inline-Symbole verwenden.
-- Material Symbols nur für illustrative oder bereits etablierte große Feature-Symbole verwenden.
+- Icons: nur Lucide, über `Icon` aus `@/components/ui/icon` oder Lucide-Komponenten, Größen 16/20/24/48 px, Strichstärke 2 (16 im Fließtext und in kleinen Buttons, 20 in Buttons und Navigation, 24 in Kopfzeilen, 48 nur in Leerzuständen). Keine Material Symbols und keine Icon-Schrift. Neue Namen für `Icon name="…"` in `ICONS` ergänzen.
 - Tabellenzeilen als `CardTable`/`DataCardRow` umsetzen und auf kleinen Viewports stapeln.
 - Rezeptbilder ausschließlich mit `RecipeThumbnail` und dem Backend-Feld `image_url` darstellen.
 

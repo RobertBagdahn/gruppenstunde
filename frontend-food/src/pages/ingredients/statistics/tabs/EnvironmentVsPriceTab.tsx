@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useIngredientScatter } from '@/api/supplies';
 import HeatmapExplorer from '../components/HeatmapExplorer';
 import TabFilters from '../components/TabFilters';
+import { formatNumber } from '@/lib/format';
 
 export default function EnvironmentVsPriceTab() {
   const [searchParams] = useSearchParams();
@@ -10,7 +11,7 @@ export default function EnvironmentVsPriceTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Sind umweltfreundlichere Zutaten teurer? Die Heatmap zeigt die Dichte der Datenpunkte.
       </p>
       <TabFilters showRetailSection />
@@ -20,8 +21,8 @@ export default function EnvironmentVsPriceTab() {
         <HeatmapExplorer
           data={data}
           xLabel="Umweltfreundlichkeit" yLabel="Preis" xUnit="pts" yUnit="€"
-          formatX={(v) => v.toFixed(1)}
-          formatY={(v) => v < 1 ? `${(v * 100).toFixed(0)}ct` : `€${v.toFixed(2)}`}
+          formatX={(v) => formatNumber(v, { maxDecimals: 1 })}
+          formatY={(v) => v < 1 ? `${formatNumber((v * 100), { maxDecimals: 0 })}ct` : `€${formatNumber(v, { maxDecimals: 2 })}`}
         />
       ) : null}
     </div>

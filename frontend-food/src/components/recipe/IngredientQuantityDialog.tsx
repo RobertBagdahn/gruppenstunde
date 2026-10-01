@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
 import type { Portion } from '@/schemas/supply';
+import { formatExactWeight, formatWeight } from '@/lib/format';
 
 interface IngredientQuantityDialogProps {
   ingredient: { id: number; name: string; slug: string; portions: Portion[] };
@@ -74,7 +75,7 @@ export default function IngredientQuantityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-display">
+          <DialogTitle className="flex items-center gap-2 text-section font-display">
             <Egg className="w-5 h-5 text-primary" />
             {ingredient.name} hinzufügen
           </DialogTitle>
@@ -82,20 +83,20 @@ export default function IngredientQuantityDialog({
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Menge</label>
+            <label className="text-body font-medium">Menge</label>
             <input
               type="number"
               min={0.1}
               step={0.5}
               value={quantity}
               onChange={(e) => setQuantity(Math.max(0.1, parseFloat(e.target.value) || 1))}
-              className="w-full mt-1 rounded-lg border px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full mt-1 rounded-lg border px-3 py-2.5 text-emphasis focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
           {ingredient.portions.length > 0 && (
             <div>
-              <label className="text-sm font-medium">Einheit</label>
+              <label className="text-body font-medium">Einheit</label>
               <div className="mt-1">
                 <PortionPicker
                   portions={ingredient.portions.map((p) => ({
@@ -118,21 +119,21 @@ export default function IngredientQuantityDialog({
           )}
 
           {totalWeightG && selectedPortion?.weight_g && (
-            <p className="text-xs text-muted-foreground">
-              {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
+            <p className="text-caption text-muted-foreground">
+              {quantity} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
             </p>
           )}
 
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+              className="px-4 py-2 text-body rounded-lg border hover:bg-muted transition-colors"
             >
               Abbrechen
             </button>
             <button
               onClick={handleConfirm}
-              className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               {confirmLabel}
             </button>

@@ -17,6 +17,8 @@ import AiLockBadge from '@/components/auth/AiLockBadge';
 import { useAiAccess } from '@/hooks/useAiAccess';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import type { Improvement, LlmSuggestion, RecipeItemNutrition } from '@/schemas/recipe';
+import { formatNumber } from '@/lib/format';
+import { Icon } from '@/components/ui/icon';
 
 interface HintDetailModalProps {
   open: boolean;
@@ -76,10 +78,10 @@ function SuggestionCard({
     <div className="rounded-xl border bg-card p-4 space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
-          <p className="font-medium text-sm">
+          <p className="font-medium text-body">
             {suggestion.ingredient_name}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {suggestion.recommended_amount} {suggestion.unit}
           </p>
         </div>
@@ -89,13 +91,13 @@ function SuggestionCard({
           onClick={() => onApply(suggestion)}
           className="shrink-0"
         >
-          <span className="material-symbols-outlined text-sm mr-1">add</span>
+          <Icon name="add" size={16} className="mr-1" />
           Hinzufügen
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">{suggestion.reasoning}</p>
-      <p className="text-xs text-green-700">
-        <span className="material-symbols-outlined text-xs align-middle mr-0.5">trending_up</span>
+      <p className="text-caption text-muted-foreground">{suggestion.reasoning}</p>
+      <p className="text-caption text-success">
+        <Icon name="trending_up" size={16} className="align-middle mr-0.5" />
         {suggestion.expected_improvement}
       </p>
     </div>
@@ -157,9 +159,7 @@ export default function HintDetailModal({
       <SheetContent side="right" className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-amber-600">
-              lightbulb
-            </span>
+            <Icon name="lightbulb" size={24} className="text-warning" />
             {improvement.parameter_label}
           </SheetTitle>
           <SheetDescription>
@@ -169,11 +169,9 @@ export default function HintDetailModal({
 
         {/* Recommendation text */}
         {improvement.recommendation_text && (
-          <div className="mt-4 p-3 rounded-lg bg-green-50 border border-green-200 text-sm text-green-800 whitespace-pre-line">
+          <div className="mt-4 p-3 rounded-lg bg-success-soft border border-success-border text-body text-success whitespace-pre-line">
             <div className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-base text-green-600 mt-0.5">
-                tips_and_updates
-              </span>
+              <Icon name="tips_and_updates" size={16} className="text-success mt-0.5" />
               <p>{improvement.recommendation_text}</p>
             </div>
           </div>
@@ -182,22 +180,22 @@ export default function HintDetailModal({
         {/* Ingredient contribution analysis */}
         {contributors.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base">analytics</span>
+            <h3 className="text-body font-semibold mb-3 flex items-center gap-1.5">
+              <Icon name="analytics" size={16} />
               Zutat-Beiträge ({parameter.replace('_', ' ')})
             </h3>
             <div className="space-y-2">
               {contributors.map((c) => (
                 <div key={c.name} className="flex items-center gap-2">
-                  <span className="text-xs flex-1 truncate">{c.name}</span>
+                  <span className="text-caption flex-1 truncate">{c.name}</span>
                   <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary rounded-full"
                       style={{ width: `${Math.min(c.pct, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-muted-foreground w-12 text-right">
-                    {c.pct.toFixed(1)}%
+                  <span className="text-caption text-muted-foreground w-12 text-right">
+                    {formatNumber(c.pct, { maxDecimals: 1 })}%
                   </span>
                 </div>
               ))}
@@ -207,8 +205,8 @@ export default function HintDetailModal({
 
         {/* LLM Suggestions section */}
         <div className="mt-6 border-t pt-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-base">auto_awesome</span>
+          <h3 className="text-body font-semibold mb-3 flex items-center gap-1.5">
+            <Icon name="auto_awesome" size={16} />
             KI-Vorschläge
           </h3>
 
@@ -231,13 +229,13 @@ export default function HintDetailModal({
 
           {llmMutation.isPending && (
             <div className="flex items-center justify-center gap-2 p-6 text-muted-foreground">
-              <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-              <span className="text-sm">KI analysiert Rezept...</span>
+              <Icon name="progress_activity" size={20} className="animate-spin" />
+              <span className="text-body">KI analysiert Rezept...</span>
             </div>
           )}
 
           {llmMutation.isError && (
-            <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+            <div className="p-3 rounded-lg bg-danger-soft text-danger text-body">
               <p>Fehler beim Laden der Vorschläge.</p>
               <Button
                 variant="ghost"
@@ -253,7 +251,7 @@ export default function HintDetailModal({
           {llmMutation.data && (
             <div className="space-y-3">
               {llmMutation.data.ai_interaction_id && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-caption text-muted-foreground">
                   <span>Waren die Vorschläge hilfreich?</span>
                   <AiVoteButtons interactionId={llmMutation.data.ai_interaction_id} />
                 </div>

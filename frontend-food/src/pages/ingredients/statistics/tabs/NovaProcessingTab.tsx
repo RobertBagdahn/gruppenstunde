@@ -1,12 +1,13 @@
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIngredientScores } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
+import { formatNumber } from '@/lib/format';
 
 const NOVA_COLORS: Record<number, string> = {
-  1: 'bg-green-600',
-  2: 'bg-lime-500',
-  3: 'bg-yellow-400',
-  4: 'bg-red-600',
+  1: 'bg-success',
+  2: 'bg-success',
+  3: 'bg-warning',
+  4: 'bg-danger',
 };
 
 const NOVA_LABELS: Record<number, string> = {
@@ -23,7 +24,7 @@ export default function NovaProcessingTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         Verteilung der NOVA-Verarbeitungsgrade (1–4) über alle verifizierten Zutaten.
       </p>
       <TabFilters showRetailSection />
@@ -34,27 +35,27 @@ export default function NovaProcessingTab() {
           <div className="flex flex-wrap gap-3">
             {data.classes.map((cls) => (
               <div key={cls.class_value} className="flex-1 min-w-[100px] rounded-xl border border-border bg-card p-4 text-center">
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-lg font-bold text-white mb-2 ${NOVA_COLORS[cls.class_value] ?? 'bg-muted'}`}>
+                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-section font-bold text-white mb-2 ${NOVA_COLORS[cls.class_value] ?? 'bg-muted'}`}>
                   {cls.class_label}
                 </div>
-                <p className="text-xs text-muted-foreground mb-1">{NOVA_LABELS[cls.class_value] ?? ''}</p>
-                <p className="text-2xl font-bold font-display">{cls.count}</p>
-                <p className="text-xs text-muted-foreground">{cls.percentage}%</p>
+                <p className="text-caption text-muted-foreground mb-1">{NOVA_LABELS[cls.class_value] ?? ''}</p>
+                <p className="text-title font-bold font-display">{cls.count}</p>
+                <p className="text-caption text-muted-foreground">{cls.percentage}%</p>
               </div>
             ))}
           </div>
 
           {data.classes.map((cls) => (
             <div key={cls.class_value} className="space-y-2">
-              <h4 className="text-sm font-semibold">
+              <h4 className="text-body font-semibold">
                 NOVA {cls.class_label} ({NOVA_LABELS[cls.class_value]}) – Top-3 (nach Energie)
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {cls.top.map((item) => (
                   <Link key={item.id} to={`/ingredients/${item.slug}`}
-                    className="rounded-lg border border-border bg-card p-3 hover:bg-muted/30 transition-colors">
-                    <p className="text-sm font-medium text-primary">{item.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.value?.toFixed(0) ?? '–'} kcal</p>
+                    className="rounded-xl border border-border bg-card p-3 hover:bg-muted/30 transition-colors">
+                    <p className="text-body font-medium text-primary">{item.name}</p>
+                    <p className="text-caption text-muted-foreground mt-0.5">{formatNumber(item.value, { maxDecimals: 0 }) ?? '–'} kcal</p>
                   </Link>
                 ))}
               </div>

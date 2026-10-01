@@ -46,8 +46,8 @@ export default function IngredientScanView({
           <Settings className="w-6 h-6 text-muted-foreground" />
         </div>
         <div className="space-y-1">
-          <h3 className="font-display font-bold text-lg text-foreground">Keine Ernährungstags konfiguriert</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          <h3 className="font-display font-bold text-section text-foreground">Keine Ernährungstags konfiguriert</h3>
+          <p className="text-body text-muted-foreground max-w-md mx-auto">
             Konfiguriere in den Einstellungen die Ernährungseinschränkungen deiner Gruppenmitglieder, um diesen Essensplan automatisch scannen und überwachen zu lassen.
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function IngredientScanView({
           <button
             type="button"
             onClick={onOpenSettings}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-soft"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all shadow-soft"
           >
             <Settings className="w-4 h-4" />
             Einstellungen öffnen
@@ -68,13 +68,13 @@ export default function IngredientScanView({
   // Scenario 2: Configured, but no violations found!
   if (violations.length === 0) {
     return (
-      <div className="rounded-xl border border-primary/20 bg-emerald-500/5 p-6 text-center space-y-3 shadow-soft">
-        <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-          <ShieldCheck className="w-6 h-6 text-emerald-600" />
+      <div className="rounded-xl border border-primary/20 bg-success-soft p-6 text-center space-y-3 shadow-soft">
+        <div className="mx-auto w-12 h-12 rounded-full bg-success-soft flex items-center justify-center">
+          <ShieldCheck className="w-6 h-6 text-success" />
         </div>
         <div className="space-y-1">
-          <h3 className="font-display font-bold text-lg text-emerald-800">Zutaten-Radar: Keine Verstöße!</h3>
-          <p className="text-sm text-emerald-700/80 max-w-md mx-auto">
+          <h3 className="font-display font-bold text-section text-success">Zutaten-Radar: Keine Verstöße!</h3>
+          <p className="text-body text-success/80 max-w-md mx-auto">
             Keine Verstöße gefunden ✓. Alle Rezepte und Zutaten in deinem Essensplan passen zu den {nutritionalTagsCount} konfigurierten Einschränkungen.
           </p>
         </div>
@@ -109,10 +109,10 @@ export default function IngredientScanView({
       <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 flex gap-3 shadow-soft">
         <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <h4 className="font-display font-bold text-sm text-destructive">
+          <h4 className="font-display font-bold text-body text-destructive">
             Ernährungswarnungen ({summary.total_violations})
           </h4>
-          <p className="text-xs text-destructive/80 font-medium">
+          <p className="text-caption text-destructive/80 font-medium">
             Es wurden {summary.total_violations} potentielle Verstöße bei insgesamt{' '}
             {summary.unique_tags} Tags gefunden. Bitte überprüfe die betroffenen Mahlzeiten.
           </p>
@@ -121,7 +121,7 @@ export default function IngredientScanView({
 
       {/* Accordion List */}
       <div className="space-y-3">
-        <h3 className="font-display font-bold text-base text-foreground pl-1">Gefundene Konflikte</h3>
+        <h3 className="font-display font-bold text-emphasis text-foreground pl-1">Gefundene Konflikte</h3>
 
         <div className="space-y-3">
           {Object.entries(groupedViolations).map(([tagIdStr, group]) => {
@@ -141,10 +141,10 @@ export default function IngredientScanView({
                   className="w-full flex items-center justify-between p-4 bg-muted/25 hover:bg-muted/40 transition-colors text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-caption font-bold bg-destructive/10 text-destructive border border-destructive/20">
                       {group.tag.name}
                     </span>
-                    <span className="text-sm font-semibold text-muted-foreground">
+                    <span className="text-body font-semibold text-muted-foreground">
                       ({violationCount} {violationCount === 1 ? 'Verstoß' : 'Verstöße'})
                     </span>
                   </div>
@@ -170,10 +170,10 @@ export default function IngredientScanView({
                               <AlertTriangle className="w-4 h-4 text-destructive" />
                             </div>
                             <div>
-                              <p className="text-xs font-semibold text-muted-foreground">
+                              <p className="text-caption font-semibold text-muted-foreground">
                                 {formatDate(violation.date)} {mealName}
                               </p>
-                              <p className="font-display font-bold text-sm text-foreground">
+                              <p className="font-display font-bold text-body text-foreground">
                                 {violation.recipe_title}
                               </p>
                             </div>

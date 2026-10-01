@@ -14,6 +14,7 @@ from content.models import SoftDeleteModel, Tag
 from ..choices import (
     AiReviewVerdictChoices,
     IngredientStatusChoices,
+    PhysicalPropertiesSourceChoices,
     PhysicalViscosityChoices,
     PortionWeightSource,
     PortionWeightStatus,
@@ -73,6 +74,14 @@ class Ingredient(SoftDeleteModel):
         choices=PhysicalViscosityChoices.choices,
         default=PhysicalViscosityChoices.SOLID,
         verbose_name=_("Aggregatzustand"),
+    )
+    viscosity_source = models.CharField(
+        max_length=10,
+        choices=PhysicalPropertiesSourceChoices.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Herkunft von Aggregatzustand und Dichte"),
+        help_text=_("Manuell gepflegte Werte werden von KI-Vorschlägen nicht überschrieben."),
     )
     durability_in_days = models.IntegerField(
         null=True,

@@ -43,7 +43,7 @@ export default function DataQualityIngredientsPage() {
               key={tab.key}
               onClick={() => handleTabChange(tab.key)}
               className={cn(
-                'px-3 py-1.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors inline-flex items-center gap-1.5',
+                'px-3 py-1.5 text-body font-medium whitespace-nowrap border-b-2 transition-colors inline-flex items-center gap-1.5',
                 activeTab === tab.key
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -51,7 +51,7 @@ export default function DataQualityIngredientsPage() {
             >
               <span>{tab.label}</span>
               {isPlausibility && plausibilityCount != null && plausibilityCount > 0 && (
-                <span className="text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.2 rounded-full">
+                <span className="text-caption font-semibold bg-danger-soft text-danger px-1.5 py-0.2 rounded-full">
                   {plausibilityCount}
                 </span>
               )}

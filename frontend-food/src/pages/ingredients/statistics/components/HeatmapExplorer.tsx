@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ScatterOut } from '@/schemas/supply';
+import { formatNumber } from '@/lib/format';
 
 interface HeatmapExplorerProps {
   data: ScatterOut;
@@ -26,7 +27,7 @@ const MARGIN = { top: 16, right: 16, bottom: 48, left: 56 };
 const CELL_GAP = 1;
 
 function defaultFormat(v: number): string {
-  return v < 1 ? v.toFixed(2) : v.toFixed(1);
+  return v < 1 ? formatNumber(v, { maxDecimals: 2 }) : formatNumber(v, { maxDecimals: 1 });
 }
 
 export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, formatX, formatY }: HeatmapExplorerProps) {
@@ -117,23 +118,23 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-4 text-sm flex-wrap">
+      <div className="flex items-center gap-4 text-body flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">Pearson r:</span>
           <span className={`font-bold ${data.pearson_r !== null && Math.abs(data.pearson_r) > 0.5 ? 'text-primary' : 'text-foreground'}`}>
-            {data.pearson_r?.toFixed(4) ?? '—'}
+            {formatNumber(data.pearson_r, { maxDecimals: 4 }) ?? '—'}
           </span>
         </div>
         {data.linear_fit && (
           <>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">R²:</span>
-              <span className="font-bold">{data.linear_fit.r_squared.toFixed(4)}</span>
+              <span className="font-bold">{formatNumber(data.linear_fit.r_squared, { maxDecimals: 4 })}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Fit:</span>
-              <span className="font-mono text-xs">
-                y = {data.linear_fit.slope.toFixed(4)}x + {data.linear_fit.intercept.toFixed(2)}
+              <span className="font-mono text-caption">
+                y = {formatNumber(data.linear_fit.slope, { maxDecimals: 4 })}x + {formatNumber(data.linear_fit.intercept, { maxDecimals: 2 })}
               </span>
             </div>
           </>
@@ -238,7 +239,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
 
         {tooltip && (
           <div
-            className="absolute pointer-events-none bg-popover text-popover-foreground rounded-lg border shadow-md px-3 py-2 text-xs space-y-1 z-50"
+            className="absolute pointer-events-none bg-popover text-popover-foreground rounded-lg border shadow-md px-3 py-2 text-caption space-y-1 z-50"
             style={{
               left: Math.min(tooltip.x / width * 100, 75) + '%',
               top: Math.max(tooltip.y / height * 100 - 10, 0) + '%',

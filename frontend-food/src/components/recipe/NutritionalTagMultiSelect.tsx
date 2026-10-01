@@ -1,36 +1,37 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNutritionalTags } from '@/api/supplies';
+import { Icon } from '@/components/ui/icon';
 
 const TAG_COLOR_MAP: Record<string, string> = {
-  'Tierbestandteile (nicht Vegetarisch)': 'bg-red-100 text-red-700 border-red-200',
-  'Tierische Produkte (nicht Vegan)': 'bg-red-100 text-red-700 border-red-200',
-  'Gluten (Zöliakie)': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Laktose': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Erdnüsse': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Fisch': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Soja, Sojaerzeugnisse': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Sellerie, Sellerieerzeugnisse': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Senf': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Sesam': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Lupinen': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Histamin': 'bg-purple-100 text-purple-700 border-purple-200',
-  'Fructose': 'bg-purple-100 text-purple-700 border-purple-200',
-  'Koffeinhaltig': 'bg-purple-100 text-purple-700 border-purple-200',
-  'Halal': 'bg-green-100 text-green-700 border-green-200',
-  'Koscher': 'bg-green-100 text-green-700 border-green-200',
-  'Gluten (nicht zöliakie)': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Weizen': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Roggen': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Gerste': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Hafer': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Dinkel': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Kamut': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Alkohol': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Scharf': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Schwefeldioxid und Sulfide': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Hülsenfrüchte': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Knoblauch': 'bg-sky-100 text-sky-700 border-sky-200',
+  'Tierbestandteile (nicht Vegetarisch)': 'bg-danger-soft text-danger border-danger-border',
+  'Tierische Produkte (nicht Vegan)': 'bg-danger-soft text-danger border-danger-border',
+  'Gluten (Zöliakie)': 'bg-warning-soft text-warning border-warning-border',
+  'Laktose': 'bg-warning-soft text-warning border-warning-border',
+  'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-warning-soft text-warning border-warning-border',
+  'Erdnüsse': 'bg-warning-soft text-warning border-warning-border',
+  'Fisch': 'bg-warning-soft text-warning border-warning-border',
+  'Soja, Sojaerzeugnisse': 'bg-warning-soft text-warning border-warning-border',
+  'Sellerie, Sellerieerzeugnisse': 'bg-warning-soft text-warning border-warning-border',
+  'Senf': 'bg-warning-soft text-warning border-warning-border',
+  'Sesam': 'bg-warning-soft text-warning border-warning-border',
+  'Lupinen': 'bg-warning-soft text-warning border-warning-border',
+  'Histamin': 'bg-info-soft text-info border-info-border',
+  'Fructose': 'bg-info-soft text-info border-info-border',
+  'Koffeinhaltig': 'bg-info-soft text-info border-info-border',
+  'Halal': 'bg-success-soft text-success border-success-border',
+  'Koscher': 'bg-success-soft text-success border-success-border',
+  'Gluten (nicht zöliakie)': 'bg-muted text-foreground border-border',
+  'Weizen': 'bg-muted text-foreground border-border',
+  'Roggen': 'bg-muted text-foreground border-border',
+  'Gerste': 'bg-muted text-foreground border-border',
+  'Hafer': 'bg-muted text-foreground border-border',
+  'Dinkel': 'bg-muted text-foreground border-border',
+  'Kamut': 'bg-muted text-foreground border-border',
+  'Alkohol': 'bg-info-soft text-info border-info-border',
+  'Scharf': 'bg-info-soft text-info border-info-border',
+  'Schwefeldioxid und Sulfide': 'bg-info-soft text-info border-info-border',
+  'Hülsenfrüchte': 'bg-info-soft text-info border-info-border',
+  'Knoblauch': 'bg-info-soft text-info border-info-border',
 };
 
 function getTagColorClass(name: string): string {
@@ -39,35 +40,35 @@ function getTagColorClass(name: string): string {
 
 function getTagDotColor(name: string): string {
   const colorMap: Record<string, string> = {
-    'Tierbestandteile (nicht Vegetarisch)': 'bg-red-500',
-    'Tierische Produkte (nicht Vegan)': 'bg-red-500',
-    'Gluten (Zöliakie)': 'bg-amber-500',
-    'Laktose': 'bg-amber-500',
-    'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-amber-500',
-    'Erdnüsse': 'bg-amber-500',
-    'Fisch': 'bg-amber-500',
-    'Soja, Sojaerzeugnisse': 'bg-amber-500',
-    'Sellerie, Sellerieerzeugnisse': 'bg-amber-500',
-    'Senf': 'bg-amber-500',
-    'Sesam': 'bg-amber-500',
-    'Lupinen': 'bg-amber-500',
-    'Histamin': 'bg-purple-500',
-    'Fructose': 'bg-purple-500',
-    'Koffeinhaltig': 'bg-purple-500',
-    'Halal': 'bg-green-500',
-    'Koscher': 'bg-green-500',
-    'Gluten (nicht zöliakie)': 'bg-stone-500',
-    'Weizen': 'bg-stone-500',
-    'Roggen': 'bg-stone-500',
-    'Gerste': 'bg-stone-500',
-    'Hafer': 'bg-stone-500',
-    'Dinkel': 'bg-stone-500',
-    'Kamut': 'bg-stone-500',
-    'Alkohol': 'bg-sky-500',
-    'Scharf': 'bg-sky-500',
-    'Schwefeldioxid und Sulfide': 'bg-sky-500',
-    'Hülsenfrüchte': 'bg-sky-500',
-    'Knoblauch': 'bg-sky-500',
+    'Tierbestandteile (nicht Vegetarisch)': 'bg-danger',
+    'Tierische Produkte (nicht Vegan)': 'bg-danger',
+    'Gluten (Zöliakie)': 'bg-warning',
+    'Laktose': 'bg-warning',
+    'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-warning',
+    'Erdnüsse': 'bg-warning',
+    'Fisch': 'bg-warning',
+    'Soja, Sojaerzeugnisse': 'bg-warning',
+    'Sellerie, Sellerieerzeugnisse': 'bg-warning',
+    'Senf': 'bg-warning',
+    'Sesam': 'bg-warning',
+    'Lupinen': 'bg-warning',
+    'Histamin': 'bg-info',
+    'Fructose': 'bg-info',
+    'Koffeinhaltig': 'bg-info',
+    'Halal': 'bg-success',
+    'Koscher': 'bg-success',
+    'Gluten (nicht zöliakie)': 'bg-muted-foreground',
+    'Weizen': 'bg-muted-foreground',
+    'Roggen': 'bg-muted-foreground',
+    'Gerste': 'bg-muted-foreground',
+    'Hafer': 'bg-muted-foreground',
+    'Dinkel': 'bg-muted-foreground',
+    'Kamut': 'bg-muted-foreground',
+    'Alkohol': 'bg-info',
+    'Scharf': 'bg-info',
+    'Schwefeldioxid und Sulfide': 'bg-info',
+    'Hülsenfrüchte': 'bg-info',
+    'Knoblauch': 'bg-info',
   };
   return colorMap[name] ?? 'bg-muted-foreground';
 }
@@ -109,17 +110,15 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium bg-muted border border-border rounded-lg hover:bg-border transition-colors whitespace-nowrap"
+        className="flex items-center gap-1.5 h-8 px-2.5 text-caption font-medium bg-muted border border-border rounded-lg hover:bg-border transition-colors whitespace-nowrap"
       >
         <span>Ernährungstags</span>
         {selectedTagIds.length > 0 && (
-          <span className="inline-flex items-center justify-center min-w-[18px] h-4 rounded-full bg-primary text-white text-[10px] px-1 font-bold">
+          <span className="inline-flex items-center justify-center min-w-[18px] h-4 rounded-full bg-primary text-white text-caption px-1 font-bold">
             {selectedTagIds.length}
           </span>
         )}
-        <span className={`material-symbols-outlined text-[14px] transition-transform ${open ? 'rotate-180' : ''}`}>
-          expand_more
-        </span>
+        <Icon name="expand_more" size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-card border border-border rounded-xl shadow-lg p-2 max-h-80 overflow-hidden flex flex-col">
@@ -128,12 +127,12 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Suchen..."
-            className="w-full px-3 py-2 mb-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full px-3 py-2 mb-2 text-body bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
             autoFocus
           />
           <div className="overflow-y-auto flex-1 -mx-2 px-2">
             {filtered.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-2 py-4 text-center">
+              <p className="text-body text-muted-foreground px-2 py-4 text-center">
                 Keine Einträge gefunden
               </p>
             ) : (
@@ -142,13 +141,13 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
                 return (
                   <label
                     key={tag.id}
-                    className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-sm hover:bg-muted rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-2 py-1.5 cursor-pointer text-body hover:bg-muted rounded-lg transition-colors"
                   >
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => onToggle(tag.id)}
-                      className="rounded border-muted-foreground accent-primary"
+                      className="rounded-lg border-muted-foreground accent-primary"
                     />
                     <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getTagDotColor(tag.name)}`} />
                     {tag.name}
@@ -167,10 +166,10 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
             <button
               key={tag.id}
               onClick={() => onToggle(tag.id)}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full border font-medium transition-colors ${getTagColorClass(tag.name)}`}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 text-caption rounded-full border font-medium transition-colors ${getTagColorClass(tag.name)}`}
             >
               {tag.name}
-              <span className="material-symbols-outlined text-[12px]">close</span>
+              <Icon name="close" size={16} />
             </button>
           ))}
         </div>

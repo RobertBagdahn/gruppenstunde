@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { AiInteractionItem } from '@/schemas/aiInteraction';
 import { AiContextChoices } from '@/lib/aiContextLabels';
+import { formatNumber } from '@/lib/format';
 
 function formatEur(value: number | null): string {
   if (value === null || value === 0) return '—';
@@ -19,7 +20,7 @@ function formatEur(value: number | null): string {
 function formatDuration(ms: number | null): string {
   if (ms === null) return '—';
   if (ms >= 1_000) {
-    return `${(ms / 1_000).toFixed(1).replace('.', ',')} s`;
+    return `${formatNumber((ms / 1_000), { maxDecimals: 1 }).replace('.', ',')} s`;
   }
   return `${new Intl.NumberFormat('de-DE').format(ms)} ms`;
 }
@@ -74,7 +75,7 @@ export default function AiUserCallsModal({ open, onClose, userId, userName }: Pr
           )}
           {data && items.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-body">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-2 pr-3">Datum</th>
@@ -101,7 +102,7 @@ export default function AiUserCallsModal({ open, onClose, userId, userName }: Pr
                       <td className="py-2 pr-3">
                         {AiContextChoices[item.context] || item.context}
                       </td>
-                      <td className="py-2 pr-3 text-xs text-muted-foreground">{item.model}</td>
+                      <td className="py-2 pr-3 text-caption text-muted-foreground">{item.model}</td>
                       <td className="py-2 pr-3 text-right">
                         {item.total_tokens !== null
                           ? new Intl.NumberFormat('de-DE').format(item.total_tokens)

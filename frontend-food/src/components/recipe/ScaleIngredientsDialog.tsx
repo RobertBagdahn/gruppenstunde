@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/icon';
 
 interface ScaleIngredientsDialogProps {
   open: boolean;
@@ -64,8 +65,8 @@ export default function ScaleIngredientsDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="material-symbols-outlined text-rose-500">scale</span>
+          <DialogTitle className="flex items-center gap-2 text-emphasis">
+            <Icon name="scale" size={24} className="text-danger" />
             Zutaten skalieren
           </DialogTitle>
           <DialogDescription>
@@ -83,9 +84,9 @@ export default function ScaleIngredientsDialog({
                 type="button"
                 onClick={() => setFactorInput(String(preset.value).replace('.', ','))}
                 className={cn(
-                  'px-3 py-1.5 text-sm font-medium border rounded-lg transition-colors',
+                  'px-3 py-1.5 text-body font-medium border rounded-lg transition-colors',
                   parsedFactor === preset.value
-                    ? 'border-rose-300 bg-rose-50 text-rose-700'
+                    ? 'border-danger-border bg-danger-soft text-danger'
                     : 'hover:bg-muted',
                 )}
               >
@@ -110,7 +111,7 @@ export default function ScaleIngredientsDialog({
               autoFocus
             />
             {!isValid && factorInput.trim() !== '' && (
-              <p className="text-xs text-destructive">
+              <p className="text-caption text-destructive">
                 Bitte einen positiven Faktor eingeben.
               </p>
             )}

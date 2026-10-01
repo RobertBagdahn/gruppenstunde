@@ -12,11 +12,12 @@ import { cn } from '@/lib/utils';
 import { useRetailSections } from '@/api/supplies';
 import { UnknownIngredientDialog } from './UnknownIngredientDialog';
 import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
+import { roundToDecimals } from '@/lib/format';
 
 const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 function formatNum(v: number | null | undefined): string {
-  return v != null ? parseFloat(v.toFixed(1)) + 'g' : '';
+  return v != null ? roundToDecimals(v, 1) + 'g' : '';
 }
 
 function isMobileTouchViewport(): boolean {
@@ -271,7 +272,7 @@ export function IngredientAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoFocus={autoFocus}
-          className="relative z-10 flex h-11 w-full rounded-lg border border-input bg-transparent pl-11 pr-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50"
+          className="relative z-10 flex h-11 w-full rounded-lg border border-input bg-transparent pl-11 pr-3.5 py-2 text-body ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50"
           role="combobox"
           aria-expanded={isOpen}
           aria-autocomplete="list"
@@ -287,7 +288,7 @@ export function IngredientAutocomplete({
               onPointerDown={handleRetailSectionPointerDown}
               onClick={() => handleRetailSectionChange(null)}
               className={cn(
-                'shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors border',
+                'shrink-0 px-3 py-1 rounded-full text-caption font-medium transition-colors border',
                 selectedRetailSection === null
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card text-muted-foreground border-border hover:bg-muted',
@@ -302,7 +303,7 @@ export function IngredientAutocomplete({
                 onPointerDown={handleRetailSectionPointerDown}
                 onClick={() => handleRetailSectionChange(rs.id)}
                 className={cn(
-                  'shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors border',
+                  'shrink-0 px-3 py-1 rounded-full text-caption font-medium transition-colors border',
                   selectedRetailSection === rs.id
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-card text-muted-foreground border-border hover:bg-muted',
@@ -323,7 +324,7 @@ export function IngredientAutocomplete({
           role="listbox"
         >
           {hasFallenBack && selectedRetailSection != null && (
-            <div className="px-3.5 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+            <div className="px-3.5 py-2 text-caption text-muted-foreground border-b bg-muted/30">
               Keine Treffer in dieser Abteilung — zeige alle Ergebnisse
             </div>
           )}
@@ -339,7 +340,7 @@ export function IngredientAutocomplete({
               <button
                 key={s.id}
                 className={cn(
-                  'flex w-full items-center gap-3 px-3.5 py-3 text-sm text-left border-l-2 border-transparent hover:bg-muted transition-colors',
+                  'flex w-full items-center gap-3 px-3.5 py-3 text-body text-left border-l-2 border-transparent hover:bg-muted transition-colors',
                   i === activeIndex && 'bg-primary/5 border-l-primary'
                 )}
                 role="option"
@@ -354,7 +355,7 @@ export function IngredientAutocomplete({
                 {nutriLabel && nutriColors ? (
                   <span
                     className={cn(
-                      'inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold shrink-0',
+                      'inline-flex items-center justify-center w-6 h-6 rounded-lg text-caption font-bold shrink-0',
                       nutriColors.bg,
                       nutriColors.text
                     )}
@@ -369,12 +370,12 @@ export function IngredientAutocomplete({
                     {s.name}
                   </span>
                   {s.retail_section_name && (
-                    <span className="text-xs text-muted-foreground truncate block">
+                    <span className="text-caption text-muted-foreground truncate block">
                       {s.retail_section_name}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 shrink-0 text-caption text-muted-foreground">
                   {s.energy_kcal != null && (
                     <span>{Math.round(s.energy_kcal)} kcal</span>
                   )}
@@ -390,7 +391,7 @@ export function IngredientAutocomplete({
                 </div>
                 {/* Nutritional info */}
                 {(s.protein_g != null || s.fat_g != null || s.carbohydrate_g != null) && (
-                  <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground border-l pl-2.5">
+                  <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-caption text-muted-foreground border-l pl-2.5">
                     {s.protein_g != null && <span>E {formatNum(s.protein_g)}</span>}
                     {s.fat_g != null && <span>F {formatNum(s.fat_g)}</span>}
                     {s.carbohydrate_g != null && <span>KH {formatNum(s.carbohydrate_g)}</span>}
@@ -405,7 +406,7 @@ export function IngredientAutocomplete({
           )}
           <button
             className={cn(
-              'flex w-full items-center gap-3 px-3.5 py-3 text-sm text-left border-l-2 border-transparent hover:bg-muted transition-colors',
+              'flex w-full items-center gap-3 px-3.5 py-3 text-body text-left border-l-2 border-transparent hover:bg-muted transition-colors',
               suggestions.length === 0 && activeIndex === -1 && 'bg-primary/5 border-l-primary'
             )}
             role="option"

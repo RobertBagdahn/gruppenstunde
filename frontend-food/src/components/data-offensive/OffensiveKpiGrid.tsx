@@ -24,8 +24,8 @@ export default function OffensiveKpiGrid({ summary, activeIssue, onSelectIssue }
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-lg font-bold">Zustand der Zutaten</h2>
-        <p className="text-xs text-muted-foreground">
+        <h2 className="font-display text-section font-bold">Zustand der Zutaten</h2>
+        <p className="text-caption text-muted-foreground">
           {summary.total.toLocaleString('de-DE')} Zutaten · {published.toLocaleString('de-DE')} veröffentlicht
         </p>
       </div>
@@ -45,13 +45,13 @@ export default function OffensiveKpiGrid({ summary, activeIssue, onSelectIssue }
             >
               <p
                 className={cn(
-                  'font-display text-xl font-bold tabular-nums',
+                  'font-display text-section font-bold tabular-nums',
                   tile.count === 0 ? 'text-muted-foreground' : tile.critical ? 'text-destructive' : 'text-foreground'
                 )}
               >
                 {tile.count.toLocaleString('de-DE')}
               </p>
-              <p className="text-xs text-muted-foreground leading-tight">{tile.label}</p>
+              <p className="text-caption text-muted-foreground leading-tight">{tile.label}</p>
             </button>
           );
         })}

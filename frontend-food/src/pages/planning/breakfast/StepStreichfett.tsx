@@ -44,14 +44,14 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
   }, [catalog, state.fatSelections.length, initFats]);
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground p-4">Lade Streichfette…</div>;
+    return <div className="text-body text-muted-foreground p-4">Lade Streichfette…</div>;
   }
 
   if (!catalog?.fat_ingredients?.length && state.fatSelections.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="font-display font-semibold text-base">Streichfett</h3>
-        <p className="text-sm text-muted-foreground">
+        <h3 className="font-display font-semibold text-emphasis">Streichfett</h3>
+        <p className="text-body text-muted-foreground">
           Keine Streichfette verfügbar — lege Zutaten mit dem Tag breakfast-fat an.
         </p>
       </div>
@@ -61,8 +61,8 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
   return (
     <div className="space-y-6">
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="font-display font-semibold text-base">Streichfett-Verteilung</h3>
-        <p className="text-xs text-muted-foreground">
+        <h3 className="font-display font-semibold text-emphasis">Streichfett-Verteilung</h3>
+        <p className="text-caption text-muted-foreground">
           Welche Streichfette sollen verwendet werden? {FAT_GRAMS_PER_PERSON}g pro Person, feste Portion.
         </p>
       </div>
@@ -70,11 +70,11 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
       {state.fatSelections.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-base">Verteilung</h3>
+            <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
             <button
               type="button"
               onClick={() => wiz.openCreateModal('ingredient', 'breakfast-fat')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
             >
               + Neues Streichfett erstellen
             </button>

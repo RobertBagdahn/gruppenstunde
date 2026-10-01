@@ -273,12 +273,13 @@ def rewe_export_report(request, token: str, payload: ReweReportRequest):
 def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
     """Compute the order quantity and display unit for REWE export.
 
-    Uses the ingredient's purchasable package to calculate how many
-    packages are needed (rounding up). Small cooking sub-portions
-    (e.g. 1 TL = 5g) are NOT used as package units to avoid runaway
-    order quantities; the export falls back to raw grams instead.
+    Uses the ingredient's standard package (rank=1) with the same 5 %
+    tolerance as the shopping list (`compute_package_need`). Without a
+    package, a shopping-relevant portion is used (rounding up). Small cooking
+    sub-portions (e.g. 1 TL = 5g) are NOT used as package units to avoid
+    runaway order quantities; the export falls back to raw grams instead.
     """
-    from supply.utils import format_weight, get_shopping_portion
+    from supply.utils import compute_package_need, format_exact_weight, format_weight, get_shopping_portion
 
     quantity_g = item.quantity_g or 0
     if not quantity_g or quantity_g <= 0:
@@ -289,6 +290,10 @@ def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
 
     # Prefer the ingredient's rank=1 Package (a real purchasable unit).
     package = get_shopping_portion(item.ingredient)
+    need = compute_package_need(quantity_g, package.weight_g) if package else None
+    if package and need:
+        return float(need[0]), f"{package.name or 'Packung'} ({format_exact_weight(package.weight_g or 0)})"
+
     portion: Portion | None = None
     if package is None:
         # Fall back to a shopping-relevant Portion only. Small cooking

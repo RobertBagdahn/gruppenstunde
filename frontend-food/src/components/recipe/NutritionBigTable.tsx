@@ -4,6 +4,7 @@
  */
 
 import type { RecipeDetail } from '@/schemas/recipe';
+import { formatNumber, roundToDecimals } from '@/lib/format';
 
 interface NutritionBigTableProps {
   recipe: RecipeDetail;
@@ -23,7 +24,7 @@ export default function NutritionBigTable({ recipe, portions }: NutritionBigTabl
 
   return (
     <div className="rounded-lg border divide-y">
-      <div className="grid grid-cols-5 gap-4 p-4 bg-muted/30 text-xs font-semibold text-muted-foreground">
+      <div className="grid grid-cols-5 gap-4 p-4 bg-muted/30 text-caption font-semibold text-muted-foreground">
         <div>Nährstoff</div>
         <div className="text-right">Pro 100g</div>
         <div className="text-right">Pro Portion</div>
@@ -38,17 +39,17 @@ export default function NutritionBigTable({ recipe, portions }: NutritionBigTabl
           const dgePct = (total / nut.dge) * 100;
 
           return (
-            <div key={nut.key} className="grid grid-cols-5 gap-4 p-4 text-sm">
+            <div key={nut.key} className="grid grid-cols-5 gap-4 p-4 text-body">
               <div className="font-medium">{nut.label}</div>
               <div className="text-right text-muted-foreground">
-                {nut.unit === 'kcal' ? Math.round(per100g) : parseFloat(per100g.toFixed(1))} {nut.unit}
+                {nut.unit === 'kcal' ? Math.round(per100g) : roundToDecimals(per100g, 1)} {nut.unit}
               </div>
-              <div className="text-right">{nut.unit === 'kcal' ? Math.round(perPortion) : parseFloat(perPortion.toFixed(1))} {nut.unit}</div>
-              <div className="text-right font-semibold">{nut.unit === 'kcal' ? Math.round(total) : parseFloat(total.toFixed(1))} {nut.unit}</div>
+              <div className="text-right">{nut.unit === 'kcal' ? Math.round(perPortion) : roundToDecimals(perPortion, 1)} {nut.unit}</div>
+              <div className="text-right font-semibold">{nut.unit === 'kcal' ? Math.round(total) : roundToDecimals(total, 1)} {nut.unit}</div>
               <div className="text-right">
                 {dgePct > 0 && (
-                  <span className={dgePct > 100 ? 'text-orange-600' : 'text-green-600'}>
-                    {dgePct.toFixed(0)}%
+                  <span className={dgePct > 100 ? 'text-warning' : 'text-success'}>
+                    {formatNumber(dgePct, { maxDecimals: 0 })}%
                   </span>
                 )}
               </div>

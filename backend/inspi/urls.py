@@ -158,7 +158,7 @@ def sitemap_xml(request):
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(urls) + "\n</urlset>"
     )
-    return HttpResponse(xml, content_type="application/xml")
+    return HttpResponse(xml.encode("utf-8"), content_type="application/xml")
 
 
 def robots_txt(request):
@@ -176,7 +176,7 @@ def robots_txt(request):
         "",
         f"Sitemap: {scheme}://{domain}/sitemap.xml",
     ]
-    return HttpResponse("\n".join(lines), content_type="text/plain")
+    return HttpResponse("\n".join(lines).encode("utf-8"), content_type="text/plain")
 
 
 urlpatterns = [

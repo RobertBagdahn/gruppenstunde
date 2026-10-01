@@ -35,7 +35,7 @@ export function SortablePortionItem({ portion, children, isDragging, canEdit = f
       ref={setNodeRef}
       style={style}
       className={`flex items-center gap-3 p-4 rounded-lg border transition-colors ${
-        isStandard ? 'bg-emerald-50 border-emerald-200' : 'bg-card border-border hover:bg-muted/50'
+        isStandard ? 'bg-success-soft border-success-border' : 'bg-card border-border hover:bg-muted/50'
       }`}
     >
       {portion.name !== 'g' && canEdit && (

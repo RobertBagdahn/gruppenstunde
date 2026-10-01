@@ -14,8 +14,9 @@ import {
   Plus,
   ChevronDown,
 } from 'lucide-react';
-import type { Meal } from '@/schemas/mealPlan';
-import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes, effectivePortions, formatMealTime } from '@/schemas/mealPlan';
+import type { Meal, RefMeal } from '@/schemas/mealPlan';
+import { RefMealChips } from '@/components/planning/RefMealChips';
+import { compareMealsByTime, MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes, effectivePortions, formatMealTime } from '@/schemas/mealPlan';
 import { useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
 import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
+import { formatNumber } from '@/lib/format';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,7 @@ const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: s
 
 interface TableViewProps {
   meals: Meal[];
+  refMeals?: RefMeal[];
   normPortions: number;
   budgetPerPersonPerDay?: number | null;
   canEdit?: boolean;
@@ -78,6 +81,7 @@ interface TableViewProps {
 
 export default function TableView({
   meals,
+  refMeals = [],
   normPortions,
   budgetPerPersonPerDay,
   canEdit = false,
@@ -152,6 +156,13 @@ export default function TableView({
       }
       grid[meal.meal_type][date].push(meal);
     }
+    // Multiple meals of the same type on the same day (e.g. several snacks)
+    // are sorted by time of day.
+    for (const type of MEAL_TYPE_ORDER) {
+      for (const date of dates) {
+        grid[type][date]?.sort(compareMealsByTime);
+      }
+    }
 
     return { dates, grid };
   }, [meals]);
@@ -216,11 +227,12 @@ export default function TableView({
 
   return (
     <div className="space-y-4 font-sans">
+      <RefMealChips mealPlanId={mealPlanId} refMeals={refMeals} canEdit={canEdit} />
       <div className="w-full overflow-x-auto rounded-xl border border-border shadow-soft bg-card">
         <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>
             <tr>
-              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-4 py-3.5 font-display font-semibold text-base shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[180px]">
+              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-4 py-3.5 font-display font-semibold text-emphasis shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[180px]">
                 Mahlzeit
               </th>
               {dates.map((date) => {
@@ -228,10 +240,10 @@ export default function TableView({
                 return (
                   <th
                     key={date}
-                    className="px-4 py-3.5 text-left font-display font-semibold text-base border-b border-border min-w-[270px]"
+                    className="px-4 py-3.5 text-left font-display font-semibold text-emphasis border-b border-border min-w-[270px]"
                   >
                     <div className="font-bold text-foreground">{weekday}</div>
-                    <div className="text-sm text-muted-foreground font-medium">{day}</div>
+                    <div className="text-body text-muted-foreground font-medium">{day}</div>
                   </th>
                 );
               })}
@@ -244,7 +256,7 @@ export default function TableView({
                 <tr key={mealType}>
                   <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm border-r border-b border-border px-4 py-4 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-middle">
                     <div className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-bold shadow-sm",
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-body font-bold shadow-sm",
                       MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
                       MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
                       MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
@@ -268,7 +280,7 @@ export default function TableView({
                         return (
                           <td key={date} className="border-b border-r border-border p-3 align-top min-h-[120px] bg-muted/30">
                             <div className="flex items-center justify-center h-full min-h-[80px]">
-                              <span className="text-[10px] text-muted-foreground/40 italic">{hint}</span>
+                              <span className="text-caption text-muted-foreground/40 italic">{hint}</span>
                             </div>
                           </td>
                         );
@@ -281,11 +293,11 @@ export default function TableView({
                             className="border-b border-r border-border p-3 align-top min-h-[120px] bg-card hover:bg-muted/5 transition-colors"
                           >
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
+                              <span className="text-caption font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
                                 {normPortions} Port.
                               </span>
                               {isCreatingSlot === `${date}_${mealType}` ? (
-                                <div className="text-xs text-muted-foreground/60 animate-pulse">
+                                <div className="text-caption text-muted-foreground/60 animate-pulse">
                                   Wird erstellt...
                                 </div>
                               ) : (
@@ -293,7 +305,7 @@ export default function TableView({
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <button
-                                        className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
+                                        className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
                                         title="Aktionen"
                                       >
                                         <MoreVertical className="w-4 h-4" />
@@ -343,7 +355,7 @@ export default function TableView({
                                     }
                                   }}
                                   disabled={isCreatingSlot !== null}
-                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors text-xs font-semibold cursor-pointer"
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors text-caption font-semibold cursor-pointer"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                   <span>Rezept hinzufügen</span>
@@ -364,14 +376,14 @@ export default function TableView({
                                     }
                                   }}
                                   disabled={isCreatingSlot !== null}
-                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-border text-muted-foreground bg-muted/20 hover:bg-muted/50 hover:text-foreground transition-colors text-xs font-semibold cursor-pointer"
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-border text-muted-foreground bg-muted/20 hover:bg-muted/50 hover:text-foreground transition-colors text-caption font-semibold cursor-pointer"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                   <span>Zutat hinzufügen</span>
                                 </button>
                               </div>
                             ) : (
-                              <div className="text-sm text-muted-foreground/40 italic py-2">—</div>
+                              <div className="text-body text-muted-foreground/40 italic py-2">—</div>
                             )}
                           </td>
                         );
@@ -395,21 +407,21 @@ export default function TableView({
                                 <div key={meal.id} className={cn(mealIdx > 0 && "pt-3")}>
                                   <div className="flex items-center justify-between gap-2 mb-2">
                                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                                      <span className="text-xs font-bold text-foreground truncate max-w-[120px]">
+                                      <span className="text-caption font-bold text-foreground truncate max-w-[120px]">
                                         {meal.display_name || MEAL_TYPE_LABELS[mealType] || mealType}
                                       </span>
                                       {(meal.start_datetime || meal.end_datetime) && (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full">
+                                        <span className="inline-flex items-center gap-1 text-caption font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full">
                                           <Clock className="w-3 h-3 shrink-0" />
                                           {formatMealTime(meal.start_datetime)}–{formatMealTime(meal.end_datetime)}
                                         </span>
                                       )}
-                                      <span className="text-[11px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full shrink-0">
+                                      <span className="text-caption font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full shrink-0">
                                         {portions} Port.
                                       </span>
                                     </div>
                                     {isCreatingSlot === `${date}_${mealType}` ? (
-                                      <div className="text-xs text-muted-foreground/60 animate-pulse">
+                                      <div className="text-caption text-muted-foreground/60 animate-pulse">
                                         Wird erstellt...
                                       </div>
                                     ) : (
@@ -469,7 +481,7 @@ export default function TableView({
                                             >
                                               {/* Line 1: Title (left) & Portion / Quantity (right) */}
                                               <div className="flex items-start justify-between gap-1.5 min-w-0">
-                                                <div className="min-w-0 flex-1 flex items-center gap-1 font-bold text-xs text-foreground" title={name}>
+                                                <div className="min-w-0 flex-1 flex items-center gap-1 font-bold text-caption text-foreground" title={name}>
                                                   {item.recipe_id && item.recipe_slug ? (
                                                     <Link
                                                       to={`/recipes/${item.recipe_slug}`}
@@ -493,7 +505,7 @@ export default function TableView({
                                                 {portionLabel && (
                                                   <span
                                                     className={cn(
-                                                      "text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground shrink-0 max-w-[130px] truncate",
+                                                      "text-caption font-semibold px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground shrink-0 max-w-[130px] truncate",
                                                        item.has_missing_weight && "text-destructive"
                                                     )}
                                                     title={portionLabel}
@@ -504,11 +516,11 @@ export default function TableView({
                                               </div>
 
                                               {/* Line 2: Calories & Cost (left) & Stepper/Delete (right) */}
-                                              <div className="flex items-center justify-between gap-1 text-[11px] text-muted-foreground pt-0.5">
+                                              <div className="flex items-center justify-between gap-1 text-caption text-muted-foreground pt-0.5">
                                                 <div className="flex items-center gap-1 font-medium min-w-0 truncate">
                                                   {kcal != null && <span>{kcal} kcal</span>}
                                                   {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
-                                                  {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
+                                                  {cost != null && <span>{formatNumber(cost, { maxDecimals: 2 }).replace('.', ',')} €</span>}
                                                 </div>
 
                                                 <div className="flex items-center gap-1 shrink-0">
@@ -520,8 +532,8 @@ export default function TableView({
                                                     )
                                                   ) : (
                                                     item.factor !== 1.0 && (
-                                                      <span className="text-[10px] font-bold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
-                                                        &times;{item.factor.toFixed(1).replace('.', ',')}
+                                                      <span className="text-caption font-bold text-muted-foreground px-1 py-0.5 rounded-lg bg-muted/60">
+                                                        &times;{formatNumber(item.factor, { maxDecimals: 1 }).replace('.', ',')}
                                                       </span>
                                                     )
                                                   )}
@@ -529,7 +541,7 @@ export default function TableView({
                                                   {canEdit && !meal.is_synced && (
                                                     <button
                                                       onClick={() => handleDeleteItemWithUndo(meal.id, item)}
-                                                      className="p-1 rounded text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                      className="p-1 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
                                                       title="Entfernen"
                                                       aria-label="Item entfernen"
                                                     >
@@ -551,30 +563,30 @@ export default function TableView({
                                         if (isBuffetCandidate && !isBuffetExpanded) {
                                           const summary = getBreakfastSummary(regularItems, effPortions);
                                           cells.push(
-                                            <div key="buffet-summary" className="p-2.5 rounded-lg bg-card border border-border shadow-xs space-y-2">
+                                            <div key="buffet-summary" className="p-2.5 rounded-xl bg-card border border-border shadow-xs space-y-2">
                                               <div className="flex items-center justify-between gap-1">
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                   <Coffee className="w-4 h-4 text-primary shrink-0" />
-                                                  <span className="text-xs font-bold text-foreground truncate">
+                                                  <span className="text-caption font-bold text-foreground truncate">
                                                     Frühstücksbuffet ({summary.itemsCount} Zutaten)
                                                   </span>
                                                 </div>
                                                 <button
                                                   onClick={() => toggleBuffet(meal.id)}
-                                                  className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline px-1.5 py-0.5 rounded hover:bg-primary/5 transition-colors shrink-0"
+                                                  className="inline-flex items-center gap-0.5 text-caption font-semibold text-primary hover:underline px-1.5 py-0.5 rounded-lg hover:bg-primary/5 transition-colors shrink-0"
                                                 >
                                                   Details
                                                   <ChevronDown className="w-3.5 h-3.5" />
                                                 </button>
                                               </div>
 
-                                              <div className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                                              <div className="text-caption text-muted-foreground font-medium flex items-center justify-between">
                                                 <span>{summary.totalKcalPerPerson} kcal</span>
-                                                <span>{summary.totalCostPerPerson.toFixed(2).replace('.', ',')} € / P.</span>
+                                                <span>{formatNumber(summary.totalCostPerPerson, { maxDecimals: 2 }).replace('.', ',')} € / P.</span>
                                               </div>
 
                                               {summary.previewNames.length > 0 && (
-                                                <div className="text-[10px] text-muted-foreground/80 line-clamp-2">
+                                                <div className="text-caption text-muted-foreground/80 line-clamp-2">
                                                   {summary.previewNames.join(', ')}
                                                   {summary.itemsCount > summary.previewNames.length && (
                                                     <span className="text-muted-foreground/50"> +{summary.itemsCount - summary.previewNames.length} weitere</span>
@@ -586,14 +598,14 @@ export default function TableView({
                                         } else {
                                           if (isBuffetCandidate && isBuffetExpanded) {
                                             cells.push(
-                                              <div key="buffet-collapse-bar" className="flex items-center justify-between px-2 py-1 rounded bg-primary/5 text-primary text-xs font-semibold">
+                                              <div key="buffet-collapse-bar" className="flex items-center justify-between px-2 py-1 rounded-lg bg-primary/5 text-primary text-caption font-semibold">
                                                 <span className="flex items-center gap-1">
                                                   <Coffee className="w-3.5 h-3.5" />
                                                   Frühstücksbuffet ({regularItems.length} Zutaten)
                                                 </span>
                                                 <button
                                                   onClick={() => toggleBuffet(meal.id)}
-                                                  className="inline-flex items-center gap-0.5 text-[11px] hover:underline"
+                                                  className="inline-flex items-center gap-0.5 text-caption hover:underline"
                                                 >
                                                   Einklappen
                                                   <ChevronDown className="w-3.5 h-3.5 rotate-180" />
@@ -615,7 +627,7 @@ export default function TableView({
 
                                           cells.push(
                                             <div key={groupId} className="p-2 rounded-lg bg-muted/40 border border-border/50 space-y-1.5">
-                                              <div className="text-xs font-bold text-foreground truncate flex items-center gap-1" title={first.recipe_title}>
+                                              <div className="text-caption font-bold text-foreground truncate flex items-center gap-1" title={first.recipe_title}>
                                                 {first.recipe_id && first.recipe_slug ? (
                                                   <Link
                                                     to={`/recipes/${first.recipe_slug}`}
@@ -632,26 +644,26 @@ export default function TableView({
                                                 {variants.map((v) => {
                                                   const kcal = v.energy_kcal != null ? Math.round(v.energy_kcal / effPortions) : null;
                                                   return (
-                                                    <div key={v.id} className="flex items-center justify-between gap-1 pl-2 group text-[11px]">
+                                                    <div key={v.id} className="flex items-center justify-between gap-1 pl-2 group text-caption">
                                                       <span className="text-muted-foreground truncate flex-1">
                                                         {v.display_name || v.recipe_title}
                                                       </span>
                                                       <div className="flex items-center gap-1 shrink-0">
-                                                        {kcal != null && <span className="text-[10px] text-muted-foreground">{kcal} kcal</span>}
+                                                        {kcal != null && <span className="text-caption text-muted-foreground">{kcal} kcal</span>}
                                                         {canEdit && !meal.is_synced ? (
                                                           <FactorInput
                                                             value={v.factor}
                                                             onChange={(f) => onUpdateItemFactor?.(v.id, f)}
                                                           />
                                                         ) : (
-                                                          <span className="text-[10px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
-                                                            &times;{v.factor.toFixed(2).replace('.', ',')}
+                                                          <span className="text-caption font-extrabold text-muted-foreground px-1 py-0.5 rounded-lg bg-muted/60">
+                                                            &times;{formatNumber(v.factor, { maxDecimals: 2 }).replace('.', ',')}
                                                           </span>
                                                         )}
                                                         {canEdit && !meal.is_synced && (
                                                           <button
                                                             onClick={() => handleDeleteItemWithUndo(meal.id, v)}
-                                                            className="p-1 rounded text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                            className="p-1 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
                                                             title="Entfernen"
                                                           >
                                                             <X className="w-3.5 h-3.5" />
@@ -670,7 +682,7 @@ export default function TableView({
                                       })()}
                                     </div>
                                   ) : (
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-xs uppercase tracking-wider mb-2">
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-caption uppercase tracking-wider mb-2">
                                       <AlertCircle className="w-3.5 h-3.5" />
                                       Mahlzeit leer
                                     </div>
@@ -684,7 +696,7 @@ export default function TableView({
                                           setSearchDialogIngredientOnly(false);
                                           setSearchDialogMeal(meal);
                                         }}
-                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline py-0.5"
+                                        className="inline-flex items-center gap-1 text-caption font-semibold text-primary hover:underline py-0.5"
                                       >
                                         <Plus className="w-3 h-3" />
                                         <span>Rezept</span>
@@ -695,7 +707,7 @@ export default function TableView({
                                           setSearchDialogIngredientOnly(true);
                                           setSearchDialogMeal(meal);
                                         }}
-                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:underline py-0.5"
+                                        className="inline-flex items-center gap-1 text-caption font-semibold text-muted-foreground hover:text-foreground hover:underline py-0.5"
                                       >
                                         <Plus className="w-3 h-3" />
                                         <span>Zutat</span>
@@ -724,7 +736,7 @@ export default function TableView({
                                         }}
                                         placeholder="Notiz..."
                                         autoFocus
-                                        className="w-full px-2 py-1 text-xs border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
+                                        className="w-full px-2 py-1 text-caption border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
                                       />
                                     ) : meal.note ? (
                                       <div
@@ -735,7 +747,7 @@ export default function TableView({
                                           }
                                         }}
                                         className={cn(
-                                          "text-xs text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
+                                          "text-caption text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
                                           canEdit && "cursor-pointer"
                                         )}
                                         title={meal.note}
@@ -768,7 +780,7 @@ export default function TableView({
                                    }
                                 }}
                                 disabled={isCreatingSlot !== null}
-                                className="text-xs font-semibold text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer shadow-none"
+                                className="text-caption font-semibold text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer shadow-none"
                               >
                                 {isCreatingSlot === `${date}_${mealType}_add` ? 'Wird hinzugefügt...' : '+ Weiterer Snack'}
                               </button>
@@ -783,7 +795,7 @@ export default function TableView({
           </tbody>
           <tfoot>
             <tr>
-              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-4 py-4 font-bold text-sm text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
+              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-4 py-4 font-bold text-body text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
                 Tagesbilanz
               </td>
               {dates.map((date) => {
@@ -810,16 +822,16 @@ export default function TableView({
                 const kcalPercent = dailyTotal.targetKcal > 0 ? Math.min(100, Math.round((kcalPerPerson / dailyTotal.targetKcal) * 100)) : 0;
                 const costPercent = dailyTotal.targetCost > 0 ? Math.min(100, Math.round((costPerPerson / dailyTotal.targetCost) * 100)) : 0;
                 const barColor = (status: 'green' | 'yellow' | 'red' | 'overplanned') =>
-                  status === 'green' ? 'bg-primary' : status === 'yellow' ? 'bg-[hsl(var(--chart-4))]' : 'bg-destructive';
+                  status === 'green' ? 'bg-primary' : status === 'yellow' ? 'bg-warning' : 'bg-destructive';
 
                 return (
-                  <td key={date} className="border-t border-r border-border bg-muted/40 p-3.5 text-sm align-top">
+                  <td key={date} className="border-t border-r border-border bg-muted/40 p-3.5 text-body align-top">
                     <div className="flex flex-col gap-3 font-sans">
                       {/* Coverage Badge — the one number that matters at a glance */}
                       <div className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full border w-fit shadow-xs",
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 text-caption font-bold rounded-full border w-fit shadow-xs",
                         badge.status === 'green' && "bg-primary/10 text-primary border-primary/20",
-                        badge.status === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
+                        badge.status === 'yellow' && "bg-warning-soft text-warning border-warning-border",
                         (badge.status === 'red' || badge.status === 'overplanned') && "bg-destructive/10 text-destructive border-destructive/20"
                       )}>
                         <TrendingUp className="w-3.5 h-3.5" />
@@ -828,7 +840,7 @@ export default function TableView({
 
                       {/* Kcal progress bar */}
                       <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                        <div className="flex items-center justify-between text-caption text-muted-foreground font-medium">
                           <span>Kalorien</span>
                           <span className="font-semibold text-foreground">{kcalPerPerson} / {dailyTotal.targetKcal} kcal</span>
                         </div>
@@ -840,17 +852,17 @@ export default function TableView({
                       {/* Cost progress bar */}
                       {hasBudget && (
                         <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                          <div className="flex items-center justify-between text-caption text-muted-foreground font-medium">
                             <span>Kosten</span>
-                            <span className="font-semibold text-foreground">{costPerPerson.toFixed(2).replace('.', ',')} € / {dailyTotal.targetCost.toFixed(2).replace('.', ',')} €</span>
+                            <span className="font-semibold text-foreground">{formatNumber(costPerPerson, { maxDecimals: 2 }).replace('.', ',')} € / {formatNumber(dailyTotal.targetCost, { maxDecimals: 2 }).replace('.', ',')} €</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                             <div className={cn("h-full rounded-full transition-all", barColor(budgetStatus))} style={{ width: `${costPercent}%` }} />
                           </div>
-                          <div className={cn("text-xs font-semibold", diff >= 0 ? "text-primary" : "text-destructive")}>
+                          <div className={cn("text-caption font-semibold", diff >= 0 ? "text-primary" : "text-destructive")}>
                             {diff >= 0
-                              ? `noch ${diff.toFixed(2).replace('.', ',')} €`
-                              : `${Math.abs(diff).toFixed(2).replace('.', ',')} € über Budget`
+                              ? `noch ${formatNumber(diff, { maxDecimals: 2 }).replace('.', ',')} €`
+                              : `${formatNumber(Math.abs(diff), { maxDecimals: 2 }).replace('.', ',')} € über Budget`
                             }
                           </div>
                         </div>

@@ -18,3 +18,7 @@ Production has no OAuth clients yet; every account is an e-mail/password account
 
 - [No brute-force protection on the login endpoint, as before] → unchanged from the old system; tracked separately.
 - [Allauth wipes the password when an unverified local address is linked via e-mail authentication] → only after a user logs in with a provider using the same e-mail; that user then logs in via the provider.
+
+## Rollout-Kompatibilität
+
+Während des Rolling Deployments liefert `/api/auth/me/` die alten Top-Level-Userfelder zusätzlich zum neuen Session-Envelope. So kann das alte Frontend angemeldete Sessions weiter erkennen, bis beide Frontends aktualisiert sind. Für anonyme Nutzer bleiben `id` und `email` null; es wird keine Scheinidentität ausgegeben.

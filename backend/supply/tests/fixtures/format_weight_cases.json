@@ -1,0 +1,35 @@
+{
+  "format_weight": [
+    { "grams": 0, "expected": "0 g" },
+    { "grams": -5, "expected": "0 g" },
+    { "grams": 0.05, "expected": "50 mg" },
+    { "grams": 0.3, "expected": "300 mg" },
+    { "grams": 0.5, "expected": "500 mg" },
+    { "grams": 1, "expected": "1 g" },
+    { "grams": 2.5, "expected": "3 g" },
+    { "grams": 3.7, "expected": "4 g" },
+    { "grams": 12, "expected": "12 g" },
+    { "grams": 47, "expected": "47 g" },
+    { "grams": 49.5, "expected": "50 g" },
+    { "grams": 50, "expected": "50 g" },
+    { "grams": 55, "expected": "55 g" },
+    { "grams": 57, "expected": "55 g" },
+    { "grams": 97.5, "expected": "100 g" },
+    { "grams": 99, "expected": "100 g" },
+    { "grams": 100, "expected": "100 g" },
+    { "grams": 145, "expected": "150 g" },
+    { "grams": 999.5, "expected": "1000 g" },
+    { "grams": 1000, "expected": "1,0 kg" },
+    { "grams": 1500, "expected": "1,5 kg" },
+    { "grams": 9400, "expected": "9,4 kg" }
+  ],
+  "format_exact_weight": [
+    { "grams": 0, "expected": "0 g" },
+    { "grams": 0.3, "expected": "300 mg" },
+    { "grams": 1, "expected": "1 g" },
+    { "grams": 125, "expected": "125 g" },
+    { "grams": 125.5, "expected": "125,5 g" },
+    { "grams": 1000, "expected": "1 kg" },
+    { "grams": 1500, "expected": "1,5 kg" }
+  ]
+}

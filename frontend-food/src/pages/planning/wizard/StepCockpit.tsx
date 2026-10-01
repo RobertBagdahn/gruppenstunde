@@ -1,5 +1,6 @@
 import { Calendar, Users, Sparkles, Copy, FileText, DollarSign, Tag } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@/schemas/mealPlan';
+import { formatNumber } from '@/lib/format';
 
 interface StepCockpitProps {
   state: MealPlanWizardState;
@@ -44,7 +45,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-soft">
-        <h3 className="font-display font-bold text-lg text-foreground">Zusammenfassung</h3>
+        <h3 className="font-display font-bold text-section text-foreground">Zusammenfassung</h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex items-center gap-2.5">
@@ -52,8 +53,8 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
               <FileText className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Name</p>
-              <p className="text-sm font-semibold text-foreground">{state.name || '—'}</p>
+              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Name</p>
+              <p className="text-body font-semibold text-foreground">{state.name || '—'}</p>
             </div>
           </div>
 
@@ -62,8 +63,8 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
               <Users className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Personen</p>
-              <p className="text-sm font-semibold text-foreground">{state.norm_portions}</p>
+              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Personen</p>
+              <p className="text-body font-semibold text-foreground">{state.norm_portions}</p>
             </div>
           </div>
 
@@ -72,8 +73,8 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
               <Calendar className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Zeitraum</p>
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Zeitraum</p>
+              <p className="text-body font-semibold text-foreground">
                 {formatDateRange(state.start_datetime, state.end_datetime)}
                 {daysCount > 0 && <span className="text-muted-foreground"> ({daysCount} Tage)</span>}
               </p>
@@ -85,8 +86,8 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
               <Tag className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ernährung</p>
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Ernährung</p>
+              <p className="text-body font-semibold text-foreground">
                 {nutritionalTagNames.length > 0 ? nutritionalTagNames.join(', ') : 'Keine Einschränkungen'}
               </p>
             </div>
@@ -98,8 +99,8 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
                 <DollarSign className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Budget</p>
-                <p className="text-sm font-semibold text-foreground">{state.budget_per_person_per_day.toFixed(2)} €/Person/Tag</p>
+                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Budget</p>
+                <p className="text-body font-semibold text-foreground">{formatNumber(state.budget_per_person_per_day, { maxDecimals: 2 })} €/Person/Tag</p>
               </div>
             </div>
           )}
@@ -107,7 +108,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 space-y-3 shadow-soft">
-        <h4 className="font-display font-bold text-sm text-foreground flex items-center gap-2">
+        <h4 className="font-display font-bold text-body text-foreground flex items-center gap-2">
           {state.strategy === 'ai' ? (
             <Sparkles className="w-4 h-4 text-primary" />
           ) : state.strategy === 'reference' ? (
@@ -117,10 +118,10 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
           )}
           Befüllungs-Strategie
         </h4>
-        <p className="text-sm font-semibold text-foreground">{strategyLabel}</p>
+        <p className="text-body font-semibold text-foreground">{strategyLabel}</p>
 
         {state.strategy === 'empty' && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Der Plan wird mit leeren Mahlzeiten erstellt. Du kannst später Rezepte zuordnen.
           </p>
         )}
@@ -129,7 +130,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
           <div className="space-y-2 mt-2">
             {(state.ai_suggestions as AiSuggestOut).days.map((day) => (
               <div key={day.date} className="border border-border rounded-lg p-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   {new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE', {
                     weekday: 'short',
                     day: '2-digit',
@@ -138,7 +139,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {day.meals.map((meal, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                    <span key={idx} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-caption font-semibold text-primary">
                       <span className="opacity-70 font-normal">{MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}:</span> {meal.recipe_title}
                     </span>
                   ))}
@@ -153,7 +154,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
         type="button"
         onClick={onCreate}
         disabled={!state.name.trim() || isPending}
-        className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+        className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-body font-bold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
       >
         {isPending ? 'Erstelle...' : 'Essensplan erstellen'}
       </button>

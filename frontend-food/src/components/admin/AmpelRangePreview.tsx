@@ -25,7 +25,7 @@ export default function AmpelRangePreview({
 
   if (values.length === 0) {
     return (
-      <div className="text-xs text-muted-foreground italic">Keine Schwellwerte</div>
+      <div className="text-caption text-muted-foreground italic">Keine Schwellwerte</div>
     );
   }
 
@@ -43,30 +43,30 @@ export default function AmpelRangePreview({
 
   if (minYellow != null && minGreen != null) {
     // Red zone: left edge to minYellow
-    zones.push({ left: 0, width: pct(minYellow), color: 'bg-red-200' });
+    zones.push({ left: 0, width: pct(minYellow), color: 'bg-danger-soft' });
     // Yellow zone: minYellow to minGreen
-    zones.push({ left: pct(minYellow), width: pct(minGreen) - pct(minYellow), color: 'bg-yellow-200' });
+    zones.push({ left: pct(minYellow), width: pct(minGreen) - pct(minYellow), color: 'bg-warning-soft' });
   } else if (minGreen != null) {
     // Yellow zone from edge to minGreen
-    zones.push({ left: 0, width: pct(minGreen), color: 'bg-yellow-200' });
+    zones.push({ left: 0, width: pct(minGreen), color: 'bg-warning-soft' });
   } else if (minYellow != null) {
-    zones.push({ left: 0, width: pct(minYellow), color: 'bg-red-200' });
+    zones.push({ left: 0, width: pct(minYellow), color: 'bg-danger-soft' });
   }
 
   // Green zone
   const greenStart = minGreen != null ? pct(minGreen) : minYellow != null ? pct(minYellow) : 0;
   const greenEnd = maxGreen != null ? pct(maxGreen) : maxYellow != null ? pct(maxYellow) : 100;
-  zones.push({ left: greenStart, width: greenEnd - greenStart, color: 'bg-green-200' });
+  zones.push({ left: greenStart, width: greenEnd - greenStart, color: 'bg-success-soft' });
 
   if (maxGreen != null && maxYellow != null) {
     // Yellow zone: maxGreen to maxYellow
-    zones.push({ left: pct(maxGreen), width: pct(maxYellow) - pct(maxGreen), color: 'bg-yellow-200' });
+    zones.push({ left: pct(maxGreen), width: pct(maxYellow) - pct(maxGreen), color: 'bg-warning-soft' });
     // Red zone: maxYellow to right edge
-    zones.push({ left: pct(maxYellow), width: 100 - pct(maxYellow), color: 'bg-red-200' });
+    zones.push({ left: pct(maxYellow), width: 100 - pct(maxYellow), color: 'bg-danger-soft' });
   } else if (maxGreen != null) {
-    zones.push({ left: pct(maxGreen), width: 100 - pct(maxGreen), color: 'bg-yellow-200' });
+    zones.push({ left: pct(maxGreen), width: 100 - pct(maxGreen), color: 'bg-warning-soft' });
   } else if (maxYellow != null) {
-    zones.push({ left: pct(maxYellow), width: 100 - pct(maxYellow), color: 'bg-red-200' });
+    zones.push({ left: pct(maxYellow), width: 100 - pct(maxYellow), color: 'bg-danger-soft' });
   }
 
   return (
@@ -80,7 +80,7 @@ export default function AmpelRangePreview({
           />
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-muted-foreground">
+      <div className="flex justify-between text-caption text-muted-foreground">
         {minYellow != null && <span>{minYellow}{unit}</span>}
         {minGreen != null && <span>{minGreen}{unit}</span>}
         {maxGreen != null && <span className="ml-auto">{maxGreen}{unit}</span>}

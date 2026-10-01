@@ -63,14 +63,14 @@ function MyProfileSkeleton() {
       <div className="flex items-center gap-4">
         <div className="w-20 h-20 rounded-full bg-muted" />
         <div className="space-y-2 flex-1">
-          <div className="h-6 w-40 bg-muted rounded" />
-          <div className="h-4 w-24 bg-muted rounded" />
+          <div className="h-6 w-40 bg-muted rounded-lg" />
+          <div className="h-4 w-24 bg-muted rounded-lg" />
         </div>
       </div>
       {[1, 2, 3].map((i) => (
         <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
-          <div className="h-5 w-32 bg-muted rounded" />
-          <div className="h-10 w-full bg-muted rounded" />
+          <div className="h-5 w-32 bg-muted rounded-lg" />
+          <div className="h-10 w-full bg-muted rounded-lg" />
         </div>
       ))}
     </div>
@@ -227,10 +227,10 @@ export default function MyProfilePage() {
           onChange={handlePictureUpload}
         />
         <div className="text-center">
-          <h1 className="font-display font-bold text-2xl text-foreground">
+          <h1 className="font-display font-bold text-title text-foreground">
             {profile.scout_name || profile.first_name}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {user.email}
           </p>
         </div>
@@ -239,7 +239,7 @@ export default function MyProfilePage() {
       {/* View Mode: Personal Data */}
       <section className="rounded-xl border border-border bg-card p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-foreground">Persönliche Daten</h2>
+          <h2 className="font-display font-bold text-section text-foreground">Persönliche Daten</h2>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -256,7 +256,7 @@ export default function MyProfilePage() {
                   <Label htmlFor="scout_name">Pfadfindername</Label>
                   <Input id="scout_name" {...form.register('scout_name')} />
                   {form.formState.errors.scout_name && (
-                    <p className="text-xs text-destructive">{form.formState.errors.scout_name.message}</p>
+                    <p className="text-caption text-destructive">{form.formState.errors.scout_name.message}</p>
                   )}
                 </div>
 
@@ -265,14 +265,14 @@ export default function MyProfilePage() {
                     <Label htmlFor="first_name">Vorname</Label>
                     <Input id="first_name" {...form.register('first_name')} />
                     {form.formState.errors.first_name && (
-                      <p className="text-xs text-destructive">{form.formState.errors.first_name.message}</p>
+                      <p className="text-caption text-destructive">{form.formState.errors.first_name.message}</p>
                     )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last_name">Nachname</Label>
                     <Input id="last_name" {...form.register('last_name')} />
                     {form.formState.errors.last_name && (
-                      <p className="text-xs text-destructive">{form.formState.errors.last_name.message}</p>
+                      <p className="text-caption text-destructive">{form.formState.errors.last_name.message}</p>
                     )}
                   </div>
                 </div>
@@ -316,14 +316,14 @@ export default function MyProfilePage() {
                     placeholder="Erzähle etwas über dich..."
                   />
                   {form.formState.errors.about_me && (
-                    <p className="text-xs text-destructive">{form.formState.errors.about_me.message}</p>
+                    <p className="text-caption text-destructive">{form.formState.errors.about_me.message}</p>
                   )}
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="is_public" className="font-medium">Profil öffentlich</Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-body text-muted-foreground">
                       Für andere sichtbar machen
                     </p>
                   </div>
@@ -350,29 +350,29 @@ export default function MyProfilePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Pfadfindername</p>
+            <p className="text-body text-muted-foreground">Pfadfindername</p>
             <p className="text-foreground font-medium">{profile.scout_name || '—'}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Vorname</p>
+            <p className="text-body text-muted-foreground">Vorname</p>
             <p className="text-foreground font-medium">{profile.first_name || '—'}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Nachname</p>
+            <p className="text-body text-muted-foreground">Nachname</p>
             <p className="text-foreground font-medium">{profile.last_name || '—'}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Geschlecht</p>
+            <p className="text-body text-muted-foreground">Geschlecht</p>
             <p className="text-foreground font-medium">{genderLabels[profile.gender] || profile.gender || '—'}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Geburtstag</p>
+            <p className="text-body text-muted-foreground">Geburtstag</p>
             <p className="text-foreground font-medium">{formatDate(profile.birthday)}</p>
           </div>
         </div>
 
         <div>
-          <p className="text-sm text-muted-foreground">Über mich</p>
+          <p className="text-body text-muted-foreground">Über mich</p>
           <p className="text-foreground font-medium whitespace-pre-wrap">{profile.about_me || '—'}</p>
         </div>
       </section>
@@ -381,12 +381,12 @@ export default function MyProfilePage() {
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display font-bold text-lg text-foreground">Sichtbarkeit</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="font-display font-bold text-section text-foreground">Sichtbarkeit</h2>
+            <p className="text-body text-muted-foreground">
               Dein Profil mit Rezepten, Essensplänen und Einkaufslisten für andere sichtbar machen.
             </p>
           </div>
-          <span className={`text-sm font-medium ${profile.is_public ? 'text-primary' : 'text-muted-foreground'}`}>
+          <span className={`text-body font-medium ${profile.is_public ? 'text-primary' : 'text-muted-foreground'}`}>
             {profile.is_public ? 'Öffentlich' : 'Privat'}
           </span>
         </div>
@@ -394,7 +394,7 @@ export default function MyProfilePage() {
 
       {/* Meine Daten */}
       <section className="space-y-4">
-        <h2 className="font-display font-bold text-lg text-foreground flex items-center gap-2">
+        <h2 className="font-display font-bold text-section text-foreground flex items-center gap-2">
           Meine Daten
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -406,10 +406,10 @@ export default function MyProfilePage() {
               <BookOpen className="w-5 h-5 text-primary" />
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
-            <p className="text-2xl font-extrabold font-display text-foreground">
+            <p className="text-title font-extrabold font-display text-foreground">
               {myRecipes?.total ?? '-'}
             </p>
-            <p className="text-sm text-muted-foreground">Rezepte</p>
+            <p className="text-body text-muted-foreground">Rezepte</p>
           </Link>
 
           <Link
@@ -420,10 +420,10 @@ export default function MyProfilePage() {
               <Utensils className="w-5 h-5 text-primary" />
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
-            <p className="text-2xl font-extrabold font-display text-foreground">
+            <p className="text-title font-extrabold font-display text-foreground">
               {myMealPlans?.length ?? '-'}
             </p>
-            <p className="text-sm text-muted-foreground">Essenspläne</p>
+            <p className="text-body text-muted-foreground">Essenspläne</p>
           </Link>
 
           <Link
@@ -434,10 +434,10 @@ export default function MyProfilePage() {
               <ShoppingCart className="w-5 h-5 text-primary" />
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
-            <p className="text-2xl font-extrabold font-display text-foreground">
+            <p className="text-title font-extrabold font-display text-foreground">
               {myShoppingLists?.total ?? '-'}
             </p>
-            <p className="text-sm text-muted-foreground">Einkaufslisten</p>
+            <p className="text-body text-muted-foreground">Einkaufslisten</p>
           </Link>
         </div>
       </section>

@@ -64,7 +64,7 @@ export default function NutritionPieChart({ proteinG, fatG, carbsG }: NutritionP
             verticalAlign="bottom"
             iconType="circle"
             formatter={(value: string) => (
-              <span className="text-sm text-foreground">{value}</span>
+              <span className="text-body text-foreground">{value}</span>
             )}
           />
         </PieChart>

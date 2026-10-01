@@ -6,6 +6,7 @@ import Pagination from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, TrendingDown, HelpCircle, Sparkles, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatNumber } from '@/lib/format';
 
 const ANOMALY_TYPE_OPTIONS = [
   { value: '', label: 'Alle Typen' },
@@ -19,25 +20,25 @@ function anomalyBadge(type: PriceAnomaly['anomaly_type']) {
   switch (type) {
     case 'high':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+        <span className="inline-flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-caption font-medium text-danger">
           <TrendingUp className="h-3 w-3" />Zu hoch
         </span>
       );
     case 'low':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+        <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-caption font-medium text-warning">
           <TrendingDown className="h-3 w-3" />Zu niedrig
         </span>
       );
     case 'missing':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
           <HelpCircle className="h-3 w-3" />Fehlt
         </span>
       );
     case 'pending':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-medium text-primary">
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-caption font-medium text-primary">
           <Sparkles className="h-3 w-3" />Vorschlag ausstehend
         </span>
       );
@@ -48,7 +49,7 @@ function formatPrice(val: string | null | undefined): string {
   if (val == null) return '–';
   const num = parseFloat(val);
   if (isNaN(num)) return '–';
-  return num.toFixed(2) + ' €/kg';
+  return formatNumber(num, { maxDecimals: 2 }) + ' €/kg';
 }
 
 export default function PriceAnalysisTable() {
@@ -156,7 +157,7 @@ export default function PriceAnalysisTable() {
         <select
           value={anomalyType}
           onChange={(e) => { setAnomalyType(e.target.value); setPage(1); }}
-          className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="rounded-lg border border-input bg-background px-3 py-1.5 text-body focus:outline-none focus:ring-2 focus:ring-ring"
         >
           {ANOMALY_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -216,17 +217,17 @@ export default function PriceAnalysisTable() {
       {/* Loading / Error */}
       {isLoading && (
         <div className="flex justify-center py-12">
-          <Loader2 className="animate-spin text-2xl text-muted-foreground" />
+          <Loader2 className="animate-spin text-title text-muted-foreground" />
         </div>
       )}
-      {error && <div className="text-red-500 py-4">Fehler beim Laden: {error.message}</div>}
+      {error && <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>}
 
       {/* Comparison Table (after AI evaluation) */}
       {showComparison && suggestions.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold">KI-Bewertung</h3>
+          <h3 className="text-body font-semibold">KI-Bewertung</h3>
           <div className="rounded-xl border border-border overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-body">
               <thead>
                 <tr className="bg-muted/50">
                   <th className="text-left px-4 py-2.5 font-medium">Zutat</th>
@@ -248,7 +249,7 @@ export default function PriceAnalysisTable() {
                       <td className="px-4 py-2.5 text-muted-foreground max-w-[200px] truncate">{s.reasoning}</td>
                       <td className="px-4 py-2.5 text-right">
                         {isApplied ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                          <span className="inline-flex items-center gap-1 text-caption text-success">
                             <Check className="h-3 w-3" />Übernommen
                           </span>
                         ) : s.suggested_price != null ? (
@@ -260,7 +261,7 @@ export default function PriceAnalysisTable() {
                             Übernehmen
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Kein Vorschlag</span>
+                          <span className="text-caption text-muted-foreground">Kein Vorschlag</span>
                         )}
                       </td>
                     </tr>
@@ -276,7 +277,7 @@ export default function PriceAnalysisTable() {
       {!showComparison && data && data.items.length > 0 && (
         <>
           <div className="rounded-xl border border-border overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-body">
               <thead>
                 <tr className="bg-muted/50">
                   <th className="w-10 px-3 py-2.5">
@@ -284,7 +285,7 @@ export default function PriceAnalysisTable() {
                       type="checkbox"
                       checked={data.items.every((i) => selected.has(i.id))}
                       onChange={toggleSelectAll}
-                      className="rounded border-border"
+                      className="rounded-lg border-border"
                     />
                   </th>
                   <th className="text-left px-4 py-2.5 font-medium">Name</th>
@@ -306,7 +307,7 @@ export default function PriceAnalysisTable() {
                           type="checkbox"
                           checked={selected.has(item.id)}
                           onChange={() => toggleSelect(item.id)}
-                          className="rounded border-border"
+                          className="rounded-lg border-border"
                         />
                       </td>
                       <td className="px-4 py-2.5">
@@ -319,15 +320,15 @@ export default function PriceAnalysisTable() {
                       </td>
                       <td className="px-4 py-2.5">{formatPrice(item.price_per_kg)}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{item.retail_section ?? '–'}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-xs">
-                        {item.z_score != null ? item.z_score.toFixed(2) : '–'}
+                      <td className="px-4 py-2.5 text-right font-mono text-caption">
+                        {item.z_score != null ? formatNumber(item.z_score, { maxDecimals: 2 }) : '–'}
                       </td>
                       <td className="px-4 py-2.5">{anomalyBadge(item.anomaly_type)}</td>
                       <td className="px-4 py-2.5 text-right">
                         {item.anomaly_type === 'pending' ? (
                           <a
                             href={`/ingredients/${item.slug}`}
-                            className="inline-flex h-7 items-center rounded-md px-2 text-xs font-medium text-primary hover:bg-primary/10"
+                            className="inline-flex h-7 items-center rounded-lg px-2 text-caption font-medium text-primary hover:bg-primary/10"
                             title="Vorschlag auf der Zutatenseite prüfen"
                           >
                             <Sparkles className="h-3.5 w-3.5 mr-1" />
@@ -341,7 +342,7 @@ export default function PriceAnalysisTable() {
                               size="sm"
                               onClick={() => handleEvaluate([item.id])}
                               disabled={evaluateMutation.isPending}
-                              className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              className="h-7 px-2 text-caption gap-1 text-primary hover:text-primary hover:bg-primary/10"
                               title="Fehlenden oder 0er-Preis mit KI schätzen"
                             >
                               {evaluateMutation.isPending ? (

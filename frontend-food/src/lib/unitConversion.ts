@@ -131,7 +131,7 @@ export function mlToGrams(ml: number, density: number): number {
  * Format a quantity in grams to the best display unit based on ingredient properties.
  *
  * @param grams - The quantity in grams
- * @param viscosity - "solid" or "beverage" — determines default unit type
+ * @param viscosity - "solid", "beverage" or "liquid" — beverages/liquids are shown as a volume
  * @param density - Physical density (g/ml) for volume conversion, null if unavailable
  */
 export function formatQuantity(

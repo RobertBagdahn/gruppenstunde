@@ -10,7 +10,7 @@ describe('formatItemDisplay', () => {
     expect(formatQuantityNumber(16.7)).toBe('16,7');
   });
 
-  it('strips redundant ingredient name from portion_display', () => {
+  it('formats a gram-unit item from quantity_g without duplicating the unit', () => {
     const item: MealItem = {
       id: 1,
       recipe_id: null,
@@ -33,7 +33,6 @@ describe('formatItemDisplay', () => {
       ingredient_tags: [],
       recipe_type: '',
       overrides: [],
-      portion_display: '16,7 Gramm Emmentaler Hartkäse (17g)',
       has_missing_weight: false,
       is_per_norm_person: true,
       buffet_role: '',
@@ -41,12 +40,12 @@ describe('formatItemDisplay', () => {
     };
 
     const label = formatItemPortion(item);
-    // Should NOT contain "Emmentaler Hartkäse"
+    // Should NOT contain the ingredient name
     expect(label).not.toContain('Emmentaler');
-    expect(label).toBe('16,7 g (17g) / P.');
+    expect(label).toBe('16,7 Gramm / P.');
   });
 
-  it('handles item without portion_display using quantity and unit', () => {
+  it('formats a named-portion item using quantity and unit', () => {
     const item: MealItem = {
       id: 2,
       recipe_id: null,
@@ -69,7 +68,6 @@ describe('formatItemDisplay', () => {
       ingredient_tags: [],
       recipe_type: '',
       overrides: [],
-      portion_display: '',
       has_missing_weight: false,
       is_per_norm_person: true,
       buffet_role: '',
@@ -104,7 +102,6 @@ describe('formatItemDisplay', () => {
         ingredient_tags: [],
         recipe_type: '',
         overrides: [],
-        portion_display: '',
         has_missing_weight: false,
         is_per_norm_person: true,
       buffet_role: '',
@@ -132,7 +129,6 @@ describe('formatItemDisplay', () => {
         ingredient_tags: [],
         recipe_type: '',
         overrides: [],
-        portion_display: '',
         has_missing_weight: false,
         is_per_norm_person: true,
       buffet_role: '',

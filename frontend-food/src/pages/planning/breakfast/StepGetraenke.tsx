@@ -72,14 +72,14 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
   }, [catalog, state.drinkIngredients.length, initDrinkIngredients]);
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground p-4">Lade Getränke…</div>;
+    return <div className="text-body text-muted-foreground p-4">Lade Getränke…</div>;
   }
 
   if (!catalog?.drink_recipes?.length && state.drinkRecipes.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="font-display font-semibold text-base">Getränke</h3>
-        <p className="text-sm text-muted-foreground">
+        <h3 className="font-display font-semibold text-emphasis">Getränke</h3>
+        <p className="text-body text-muted-foreground">
           Keine Getränke-Rezepte verfügbar — lege Rezepte mit dem Tag breakfast-drink an.
         </p>
       </div>
@@ -90,8 +90,8 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
     <div className="space-y-6">
       {/* Getränke-Rezepte */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="font-display font-semibold text-base">Getränke</h3>
-        <p className="text-xs text-muted-foreground">
+        <h3 className="font-display font-semibold text-emphasis">Getränke</h3>
+        <p className="text-caption text-muted-foreground">
           Wähle Getränke-Rezepte aus — Kalorien kommen aus dem Rezept.
         </p>
       </div>
@@ -99,11 +99,11 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
       {state.drinkRecipes.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-base">Verteilung</h3>
+            <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
             <button
               type="button"
               onClick={() => wiz.openCreateModal('recipe', undefined, 'drink')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
             >
               + Neues Getränk-Rezept erstellen
             </button>
@@ -134,14 +134,14 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
 
       {/* Milch & Säfte */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="font-display font-semibold text-base">Milch & Säfte</h3>
-        <p className="text-xs text-muted-foreground">Zum Trinken oder für Kaffee/Kakao (optional)</p>
+        <h3 className="font-display font-semibold text-emphasis">Milch & Säfte</h3>
+        <p className="text-caption text-muted-foreground">Zum Trinken oder für Kaffee/Kakao (optional)</p>
       </div>
 
       {state.drinkIngredients.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-base">Verteilung</h3>
+            <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
           </div>
           <div className="space-y-4">
             {state.drinkIngredients.map((d, i) => {

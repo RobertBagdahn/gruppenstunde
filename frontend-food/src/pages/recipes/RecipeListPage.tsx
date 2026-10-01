@@ -25,6 +25,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { Icon } from '@/components/ui/icon';
 
 type RecipeListState = z.infer<typeof RecipeListStateSchema>;
 type ViewMode = 'grid' | 'table';
@@ -125,7 +126,7 @@ export default function RecipeListPage() {
         icon="menu_book"
         gradientClasses="gradient-primary"
         totalCount={data?.total}
-        countLabel="Rezept"
+        countLabel={{ one: 'Rezept', other: 'Rezepte' }}
         countIcon="restaurant"
       />
 
@@ -151,18 +152,18 @@ export default function RecipeListPage() {
           <div className="flex items-center justify-between mb-4">
             <Link
               to="/recipes/new"
-              className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-all"
+              className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-body font-semibold transition-all"
             >
-              <span className="material-symbols-outlined text-[16px]">add_circle</span>
+              <Icon name="add_circle" size={16} />
               Neues Rezept
             </Link>
             <div className="flex items-center gap-2 ml-auto">
               <div className="flex items-center gap-2 bg-secondary border border-border px-3 py-1.5 rounded-lg">
-                <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
+                <Icon name="sort" size={20} className="text-primary" />
                 <select
                   value={filters.sort ?? 'use_count'}
                   onChange={(e) => handleFilterChange('sort', e.target.value)}
-                  className="px-2 py-1 rounded-md border text-sm bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium"
+                  className="px-2 py-1 rounded-xl border text-body bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium"
                 >
                   {RECIPE_SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -174,17 +175,17 @@ export default function RecipeListPage() {
               <div className="flex items-center bg-secondary border border-border rounded-lg p-1 gap-0.5">
                 <button
                   onClick={() => toggleView('grid')}
-                  className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Kacheln"
                 >
-                  <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                  <Icon name="grid_view" size={20} />
                 </button>
                 <button
                   onClick={() => toggleView('table')}
-                  className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Tabelle"
                 >
-                  <span className="material-symbols-outlined text-[18px]">view_list</span>
+                  <Icon name="view_list" size={20} />
                 </button>
               </div>
             </div>
@@ -256,22 +257,22 @@ export default function RecipeListPage() {
       <Dialog open={!!cloneTarget} onOpenChange={(open) => { if (!open) setCloneTarget(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <span className="material-symbols-outlined text-primary">content_copy</span>
+            <DialogTitle className="flex items-center gap-2 text-emphasis">
+              <Icon name="content_copy" size={24} className="text-primary" />
               Rezept clonen
             </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-body text-muted-foreground">
               Erstelle eine persönliche Kopie dieses Rezepts. Du kannst sie danach frei bearbeiten.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <label className="block text-sm font-medium">Name für die Kopie</label>
+            <label className="block text-body font-medium">Name für die Kopie</label>
             <input
               type="text"
               value={cloneTitle}
               onChange={(e) => setCloneTitle(e.target.value)}
               placeholder="Name des Rezepts"
-              className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border bg-background px-3 py-2.5 text-body focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
             />
           </div>
@@ -279,7 +280,7 @@ export default function RecipeListPage() {
             <button
               type="button"
               onClick={() => setCloneTarget(null)}
-              className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
+              className="px-4 py-2 border rounded-lg text-body hover:bg-muted transition"
             >
               Abbrechen
             </button>
@@ -302,11 +303,11 @@ export default function RecipeListPage() {
                   },
                 );
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
             >
               {forkRecipe.isPending ? (
                 <>
-                  <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                  <Icon name="progress_activity" size={20} className="animate-spin" />
                   Wird geklont...
                 </>
               ) : (
@@ -362,10 +363,10 @@ function RecipeTableSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 p-3 rounded-xl border bg-muted border-border animate-pulse">
           <div className="w-12 h-12 rounded-lg bg-muted-foreground/20 shrink-0" />
-          <div className="flex-1 h-4 bg-muted-foreground/20 rounded" />
-          <div className="w-16 h-4 bg-muted-foreground/20 rounded hidden sm:block" />
-          <div className="w-12 h-4 bg-muted-foreground/20 rounded hidden md:block" />
-          <div className="w-10 h-4 bg-muted-foreground/20 rounded hidden md:block" />
+          <div className="flex-1 h-4 bg-muted-foreground/20 rounded-lg" />
+          <div className="w-16 h-4 bg-muted-foreground/20 rounded-lg hidden sm:block" />
+          <div className="w-12 h-4 bg-muted-foreground/20 rounded-lg hidden md:block" />
+          <div className="w-10 h-4 bg-muted-foreground/20 rounded-lg hidden md:block" />
         </div>
       ))}
     </div>

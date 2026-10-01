@@ -14,6 +14,7 @@ import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/ap
 import type { Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
 import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
+import { roundToDecimals } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Nutriscore Badge
@@ -22,13 +23,13 @@ import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
 const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 function NutriscoreBadge({ nutriClass }: { nutriClass: number | null | undefined }) {
-  if (!nutriClass) return <span className="text-muted-foreground text-xs">–</span>;
+  if (!nutriClass) return <span className="text-muted-foreground text-caption">–</span>;
   const label = ['A', 'B', 'C', 'D', 'E'][nutriClass - 1] ?? '?';
   const colors = NUTRI_SCORE_COLORS[label];
   return (
     <span
       className={cn(
-        'inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold shrink-0',
+        'inline-flex items-center justify-center w-6 h-6 rounded-lg text-caption font-bold shrink-0',
         colors?.bg ?? 'bg-muted',
         colors?.text ?? 'text-muted-foreground',
       )}
@@ -68,7 +69,7 @@ function FilterPill({ label, active, onClick }: FilterPillProps) {
     <button
       onClick={onClick}
       className={cn(
-        'shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border',
+        'shrink-0 px-2.5 py-1 rounded-full text-caption font-medium transition-colors border',
         active
           ? 'bg-primary text-primary-foreground border-primary'
           : 'bg-card text-muted-foreground border-border hover:bg-muted',
@@ -97,7 +98,7 @@ interface IngredientRowProps {
 }
 
 function formatNum(v: number | null): string {
-  return v != null ? parseFloat(v.toFixed(1)) + 'g' : '–';
+  return v != null ? roundToDecimals(v, 1) + 'g' : '–';
 }
 
 function IngredientRow({
@@ -120,20 +121,20 @@ function IngredientRow({
       <NutriscoreBadge nutriClass={nutriClass} />
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{name}</p>
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="text-body font-medium truncate">{name}</p>
+        <p className="text-caption text-muted-foreground truncate">
           {[retailSectionName, ...groupNames].filter(Boolean).join(' · ') || '\u00a0'}
         </p>
       </div>
 
-      <div className="hidden sm:flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+      <div className="hidden sm:flex items-center gap-3 shrink-0 text-caption text-muted-foreground">
         <span>{energyKcal != null ? `${Math.round(energyKcal)} kcal` : '–'}</span>
         <span>{formatNum(proteinG)} E</span>
         <span>{formatNum(fatG)} F</span>
         <span>{formatNum(carbohydrateG)} KH</span>
       </div>
 
-      <span className="text-xs font-medium text-foreground shrink-0 ml-2">
+      <span className="text-caption font-medium text-foreground shrink-0 ml-2">
         {pricePerKg != null
           ? `${pricePerKg.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/kg`
           : '–'}
@@ -269,7 +270,7 @@ export default function IngredientDetailSearchDialog({
       <Dialog open={open && !quantityDialogIngredient} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-3">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-display">
+            <DialogTitle className="flex items-center gap-2 text-section font-display">
               <SlidersHorizontal className="w-5 h-5 text-primary" />
               <span className="flex-1">Zutat suchen</span>
               <button
@@ -279,7 +280,7 @@ export default function IngredientDetailSearchDialog({
                   navigate(`/ingredients/new?redirectTo=${encodeURIComponent(currentUrl)}`);
                   onOpenChange(false);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors text-sm font-medium text-primary"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors text-body font-medium text-primary"
                 title="Neue Zutat anlegen"
               >
                 <Plus className="w-4 h-4" />
@@ -297,14 +298,14 @@ export default function IngredientDetailSearchDialog({
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Nach Zutat suchen..."
               autoFocus
-              className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-emphasis focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
           {/* Abteilungs-Filter */}
           {retailSections.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground shrink-0">Abteilung:</span>
+              <span className="text-caption text-muted-foreground shrink-0">Abteilung:</span>
               <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
                 <FilterPill
                   label="Alle"
@@ -328,7 +329,7 @@ export default function IngredientDetailSearchDialog({
           {/* Gruppen-Filter */}
           {ingredientGroups.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground shrink-0">Gruppe:</span>
+              <span className="text-caption text-muted-foreground shrink-0">Gruppe:</span>
               <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
                 <FilterPill
                   label="Alle"
@@ -352,7 +353,7 @@ export default function IngredientDetailSearchDialog({
           {/* Diät-Tag-Filter */}
           {nutritionalTags.length > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground shrink-0">Diät:</span>
+              <span className="text-caption text-muted-foreground shrink-0">Diät:</span>
               <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
                 {nutritionalTags.map((tag) => (
                   <FilterPill
@@ -368,7 +369,7 @@ export default function IngredientDetailSearchDialog({
 
           {/* Sortierung */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground shrink-0">Sortierung:</span>
+            <span className="text-caption text-muted-foreground shrink-0">Sortierung:</span>
             <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
               {ORDERING_OPTIONS.map((opt) => (
                 <FilterPill
@@ -389,7 +390,7 @@ export default function IngredientDetailSearchDialog({
                 return tag ? (
                   <span
                     key={tagId}
-                    className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+                    className="flex items-center gap-1 text-caption bg-primary/10 text-primary px-2 py-0.5 rounded-full"
                   >
                     {tag.name}
                     <button onClick={() => toggleNutritionalTag(tagId)}>
@@ -398,7 +399,7 @@ export default function IngredientDetailSearchDialog({
                   </span>
                 ) : null;
               })}
-              <span className="text-xs text-muted-foreground">
+              <span className="text-caption text-muted-foreground">
                 (mehrere Tags werden als UND-Filter angewendet)
               </span>
             </div>
@@ -407,11 +408,11 @@ export default function IngredientDetailSearchDialog({
           {/* Ergebnisliste */}
           <div className="flex-1 overflow-y-auto rounded-lg border divide-y min-h-0">
             {isFetching && items.length === 0 && (
-              <div className="p-6 text-center text-sm text-muted-foreground">Suche läuft…</div>
+              <div className="p-6 text-center text-body text-muted-foreground">Suche läuft…</div>
             )}
 
             {!isFetching && items.length === 0 && (
-              <div className="p-6 text-center text-sm text-muted-foreground">
+              <div className="p-6 text-center text-body text-muted-foreground">
                 Keine Zutaten gefunden
               </div>
             )}
@@ -435,7 +436,7 @@ export default function IngredientDetailSearchDialog({
             ))}
 
             {loadingPortionsFor && (
-              <div className="p-3 text-center text-xs text-muted-foreground">
+              <div className="p-3 text-center text-caption text-muted-foreground">
                 Portionen werden geladen…
               </div>
             )}
@@ -444,14 +445,14 @@ export default function IngredientDetailSearchDialog({
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-1">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-caption text-muted-foreground">
                 Seite {page} von {totalPages}
               </span>
               <div className="flex gap-2">
                 {page > 1 && (
                   <button
                     onClick={() => setPage((p) => p - 1)}
-                    className="text-xs px-3 py-1.5 rounded-md border hover:bg-muted transition-colors"
+                    className="text-caption px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors"
                   >
                     Zurück
                   </button>
@@ -459,7 +460,7 @@ export default function IngredientDetailSearchDialog({
                 {page < totalPages && (
                   <button
                     onClick={() => setPage((p) => p + 1)}
-                    className="text-xs px-3 py-1.5 rounded-md border hover:bg-muted transition-colors"
+                    className="text-caption px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors"
                   >
                     Mehr laden
                   </button>

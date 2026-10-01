@@ -68,6 +68,7 @@ import { PriceTab } from '@/components/recipe/PriceTab';
 import { NutritionTab } from '@/components/recipe/NutritionTab';
 import { HealthTab } from '@/components/recipe/HealthTab';
 import { WeightTab } from '@/components/recipe/WeightTab';
+import { Icon } from '@/components/ui/icon';
 
 // --- Collapsible Section Component ---
 function AnalysisSection({
@@ -92,17 +93,13 @@ function AnalysisSection({
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
       >
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          <span className={`material-symbols-outlined text-[18px] ${accentColor}`}>{icon}</span>
+        <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
+          <Icon name={icon} size={20} className={accentColor} />
           {title}
         </h2>
         <div className="flex items-center gap-3">
           {preview && <div className="shrink-0">{preview}</div>}
-          <span
-            className={`material-symbols-outlined text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          >
-            expand_more
-          </span>
+          <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
       {open && <div className="px-5 pb-5 pt-0">{children}</div>}
@@ -315,10 +312,10 @@ export default function RecipeDetailPage() {
     return (
       <div className="container py-8">
         <div className="animate-pulse space-y-4 max-w-3xl mx-auto">
-          <div className="h-8 bg-muted rounded w-2/3" />
-          <div className="h-64 bg-muted rounded" />
-          <div className="h-4 bg-muted rounded w-full" />
-          <div className="h-4 bg-muted rounded w-3/4" />
+          <div className="h-8 bg-muted rounded-lg w-2/3" />
+          <div className="h-64 bg-muted rounded-lg" />
+          <div className="h-4 bg-muted rounded-lg w-full" />
+          <div className="h-4 bg-muted rounded-lg w-3/4" />
         </div>
       </div>
     );
@@ -423,10 +420,10 @@ export default function RecipeDetailPage() {
       {/* Title + Summary + Actions */}
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{recipe.title}</h1>
+          <h1 className="text-title md:text-title font-bold tracking-tight mb-2">{recipe.title}</h1>
           {/* Compact Summary */}
           {recipe.summary && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-body text-muted-foreground line-clamp-2">
               {recipe.summary}
             </p>
           )}
@@ -473,9 +470,9 @@ export default function RecipeDetailPage() {
             href={recipe.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+            className="inline-flex items-center gap-1 text-body text-muted-foreground hover:text-primary transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]">link</span>
+            <Icon name="link" size={16} />
             Originalrezept
           </a>
         </div>
@@ -483,7 +480,7 @@ export default function RecipeDetailPage() {
 
       {/* Fork hint */}
       {recipe.forked_from_title && (
-        <div className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <div className="mt-2 flex items-center gap-1.5 text-body text-muted-foreground">
           <GitFork className="w-3.5 h-3.5 shrink-0" />
           {recipe.forked_from_slug ? (
             <>
@@ -517,16 +514,16 @@ export default function RecipeDetailPage() {
 
       {/* Modification Indicator (10.5) + Save Buttons */}
       {isDirty && (
-        <div className="mt-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 space-y-3">
+        <div className="mt-4 rounded-xl border-2 border-warning bg-warning-soft p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-amber-600">edit_note</span>
-              <span className="text-sm font-medium text-amber-800">Rezept modifiziert</span>
+              <Icon name="edit_note" size={24} className="text-warning" />
+              <span className="text-body font-medium text-warning">Rezept modifiziert</span>
             </div>
             <button
               type="button"
               onClick={resetModifications}
-              className="text-xs font-medium text-amber-700 hover:text-amber-900 underline"
+              className="text-caption font-medium text-warning hover:text-warning underline"
             >
               Zurücksetzen
             </button>
@@ -573,9 +570,9 @@ export default function RecipeDetailPage() {
                     },
                   );
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-warning px-4 py-2.5 text-body font-medium text-white hover:bg-warning transition-colors disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                <Icon name="content_copy" size={20} />
                 {forkAndSaveRecipe.isPending ? 'Wird gespeichert...' : 'Als neue Version speichern'}
               </button>
             )}
@@ -622,21 +619,21 @@ export default function RecipeDetailPage() {
                     },
                   );
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-body font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
-                <span className="material-symbols-outlined text-[18px]">save</span>
+                <Icon name="save" size={20} />
                 {updateRecipe.isPending ? 'Wird gespeichert...' : 'Rezept aktualisieren'}
               </button>
             )}
           </div>
 
-          <div className="border-t border-amber-200 pt-3">
+          <div className="border-t border-warning-border pt-3">
             <button
               type="button"
               onClick={() => setScaleDialogOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors"
+              className="flex items-center gap-1.5 text-caption font-medium text-warning hover:text-warning transition-colors"
             >
-              <span className="material-symbols-outlined text-[16px]">scale</span>
+              <Icon name="scale" size={16} />
               Zutaten skalieren
             </button>
           </div>
@@ -667,14 +664,14 @@ export default function RecipeDetailPage() {
         if (ratio > 1.5) {
           const normFactor = expectedEnergyKcal / perServingEnergyKcal;
           return (
-            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-orange-300 bg-orange-50 p-4">
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-soft p-4">
               <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-orange-600 mt-0.5">warning</span>
+                <Icon name="warning" size={24} className="text-warning mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-orange-800">
+                  <p className="text-body font-medium text-warning">
                     Diese Portion ist größer als eine Normportion
                   </p>
-                  <p className="text-xs text-orange-600 mt-0.5">
+                  <p className="text-caption text-warning mt-0.5">
                     Energie pro Portion: {Math.round(perServingEnergyKcal)} kcal (Referenz: {Math.round(expectedEnergyKcal)} kcal)
                   </p>
                 </div>
@@ -682,7 +679,7 @@ export default function RecipeDetailPage() {
               <button
                 type="button"
                 onClick={() => scaleToNormPortion(normFactor)}
-                className="shrink-0 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
+                className="shrink-0 rounded-lg bg-warning px-3 py-1.5 text-caption font-medium text-white hover:bg-warning transition-colors"
               >
                 Auf Normportion skalieren
               </button>
@@ -705,8 +702,8 @@ export default function RecipeDetailPage() {
       {/* Topic Tags */}
       {topicTags.length > 0 && (
         <section className="mt-6 bg-card rounded-xl border p-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">label</span>
+          <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            <Icon name="label" size={20} />
             Themen
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -731,15 +728,15 @@ export default function RecipeDetailPage() {
               <UtensilsCrossed className="w-5 h-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-xl font-semibold leading-tight">Zutaten</h2>
+              <h2 className="text-section font-semibold leading-tight">Zutaten</h2>
               {!isInlineEditMode && (
                 isDirty ? (
-                  <p className="text-sm text-muted-foreground leading-tight mt-0.5">
+                  <p className="text-body text-muted-foreground leading-tight mt-0.5">
                     {`für ${displayedPortions} ${displayedPortions === 1 ? 'Portion' : 'Portionen'}`}
                   </p>
                 ) : (
                   // View-only scaling: changes the displayed amounts, never the stored recipe.
-                  <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <div className="mt-1 flex items-center gap-1.5 text-body text-muted-foreground">
                     <span>für</span>
                     <div className="inline-flex items-center rounded-full border bg-background">
                       <button
@@ -844,12 +841,12 @@ export default function RecipeDetailPage() {
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-                <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+                <Icon name="inventory_2" size={20} />
               </span>
               <div className="min-w-0">
-                <h2 className="flex items-center gap-2 text-xl font-semibold leading-tight">
+                <h2 className="flex items-center gap-2 text-section font-semibold leading-tight">
                   Materialien
-                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium leading-none text-muted-foreground">
+                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-caption font-medium leading-none text-muted-foreground">
                     {recipe.materials.length} {recipe.materials.length === 1 ? 'Material' : 'Materialien'}
                   </span>
                 </h2>
@@ -875,11 +872,11 @@ export default function RecipeDetailPage() {
                 key={material.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-3"
               >
-                <span className="text-sm font-medium">{material.material_name}</span>
+                <span className="text-body font-medium">{material.material_name}</span>
                 {material.quantity ? (
-                  <span className="text-sm text-muted-foreground">{material.quantity}</span>
+                  <span className="text-body text-muted-foreground">{material.quantity}</span>
                 ) : (
-                  <span className="text-xs text-muted-foreground italic">Menge nicht angegeben</span>
+                  <span className="text-caption text-muted-foreground italic">Menge nicht angegeben</span>
                 )}
               </li>
             ))}
@@ -890,15 +887,15 @@ export default function RecipeDetailPage() {
       {/* Nutritional Tags */}
       {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
         <section className="mt-6 bg-card rounded-xl border p-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">nutrition</span>
+          <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            <Icon name="nutrition" size={20} />
             Ernährungstags
           </h2>
           <div className="flex flex-wrap gap-2">
             {recipe.nutritional_tags?.map((nt) => (
               <span
                 key={nt.id}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--chart-2))]/10 text-[hsl(var(--chart-2))] border border-[hsl(var(--chart-2))]/20 px-3 py-1 text-sm font-medium"
+                className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft text-warning border border-warning-border px-3 py-1 text-body font-medium"
               >
                 {nt.name}
               </span>
@@ -911,11 +908,11 @@ export default function RecipeDetailPage() {
       {showShoppingExport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl" data-testid="recipe-shopping-export-dialog">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">shopping_cart</span>
+            <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
+              <Icon name="shopping_cart" size={24} className="text-primary" />
               Einkaufsliste erstellen
             </h3>
-            <label className="block text-sm text-muted-foreground mb-1">
+            <label className="block text-body text-muted-foreground mb-1">
               Anzahl Portionen
             </label>
             <div className="flex items-center gap-3 mb-6">
@@ -924,7 +921,7 @@ export default function RecipeDetailPage() {
                 onClick={() => setExportPortions(Math.max(1, exportPortions - 1))}
                 className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
               >
-                <span className="material-symbols-outlined text-[20px]">remove</span>
+                <Icon name="remove" size={20} />
               </button>
               <input
                 type="number"
@@ -933,14 +930,14 @@ export default function RecipeDetailPage() {
                 value={exportPortions}
                 onChange={(e) => setExportPortions(Math.max(1, parseInt(e.target.value) || 1))}
                 data-testid="recipe-shopping-export-portions"
-                className="w-20 text-center text-lg font-semibold border rounded-lg py-2 bg-background"
+                className="w-20 text-center text-section font-semibold border rounded-lg py-2 bg-background"
               />
               <button
                 type="button"
                 onClick={() => setExportPortions(exportPortions + 1)}
                 className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
               >
-                <span className="material-symbols-outlined text-[20px]">add</span>
+                <Icon name="add" size={20} />
               </button>
             </div>
             <div className="flex gap-2">
@@ -962,14 +959,14 @@ export default function RecipeDetailPage() {
                     },
                   );
                 }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {createFromRecipe.isPending ? 'Erstelle...' : 'Erstellen'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowShoppingExport(false)}
-                className="px-4 py-2.5 text-sm border rounded-lg hover:bg-muted transition-colors"
+                className="px-4 py-2.5 text-body border rounded-lg hover:bg-muted transition-colors"
               >
                 Abbrechen
               </button>
@@ -982,22 +979,22 @@ export default function RecipeDetailPage() {
       <Dialog open={showCloneDialog} onOpenChange={(open) => { if (!open) setShowCloneDialog(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <span className="material-symbols-outlined text-primary">content_copy</span>
+            <DialogTitle className="flex items-center gap-2 text-emphasis">
+              <Icon name="content_copy" size={24} className="text-primary" />
               Rezept clonen
             </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-body text-muted-foreground">
               Erstelle eine persönliche Kopie dieses Rezepts. Du kannst sie danach frei bearbeiten.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <label className="block text-sm font-medium">Name für die Kopie</label>
+            <label className="block text-body font-medium">Name für die Kopie</label>
             <input
               type="text"
               value={cloneTitle}
               onChange={(e) => setCloneTitle(e.target.value)}
               placeholder="Name des Rezepts"
-              className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border bg-background px-3 py-2.5 text-body focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
             />
           </div>
@@ -1005,7 +1002,7 @@ export default function RecipeDetailPage() {
             <button
               type="button"
               onClick={() => setShowCloneDialog(false)}
-              className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
+              className="px-4 py-2 border rounded-lg text-body hover:bg-muted transition"
             >
               Abbrechen
             </button>
@@ -1027,11 +1024,11 @@ export default function RecipeDetailPage() {
                   },
                 );
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-body font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
             >
               {forkRecipe.isPending ? (
                 <>
-                  <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                  <Icon name="progress_activity" size={20} className="animate-spin" />
                   Wird geklont...
                 </>
               ) : (
@@ -1045,15 +1042,15 @@ export default function RecipeDetailPage() {
       {/* Visibility UI for recipe owner (13.6) */}
       {recipe.is_owner && recipe.visibility && (
         <div className="mt-6 bg-card rounded-xl border p-5">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            <span className="material-symbols-outlined text-[18px]">visibility</span>
+          <h3 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            <Icon name="visibility" size={20} />
             Sichtbarkeit
           </h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <select
               value={recipe.visibility}
               onChange={(e) => setShowVisibilityConfirm(e.target.value)}
-              className="w-full sm:w-auto rounded-lg border bg-background px-3 py-2 text-sm"
+              className="w-full sm:w-auto rounded-lg border bg-background px-3 py-2 text-body"
             >
               <option value="private">Privat – nur für mich</option>
               <option value="group">Gruppe – für meine Gruppe</option>
@@ -1065,7 +1062,7 @@ export default function RecipeDetailPage() {
                 Öffentlich – für alle sichtbar
               </option>
             </select>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-caption text-muted-foreground">
               {recipe.visibility === 'private' && 'Nur du kannst dieses Rezept sehen.'}
               {recipe.visibility === 'group' && 'Mitglieder deiner Gruppe können dieses Rezept sehen.'}
               {recipe.visibility === 'public' && 'Dieses Rezept ist für alle sichtbar.'}
@@ -1122,7 +1119,7 @@ export default function RecipeDetailPage() {
             defaultOpen={!recipe.description}
             accentColor="text-primary"
             preview={
-              <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">
+              <div className="text-caption font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">
                 <span>{timeLabel || 'Ausführlich'}</span>
                 {recipe.description && (
                   <>
@@ -1138,7 +1135,7 @@ export default function RecipeDetailPage() {
             {recipe.description ? (
               <MarkdownRenderer content={recipe.description} />
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Noch keine Beschreibung hinterlegt. Ergänze sie über das Stift-Symbol.
               </p>
             )}
@@ -1152,14 +1149,14 @@ export default function RecipeDetailPage() {
           icon="format_list_numbered"
           title="Zubereitungsschritte"
           defaultOpen={mode === 'steps'}
-          accentColor="text-blue-600"
+          accentColor="text-info"
           preview={
             recipe.steps_count ? (
-              <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+              <div className="text-caption font-medium bg-info-soft text-info px-2.5 py-1 rounded-full">
                 {recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}
               </div>
             ) : (
-              <span className="text-xs text-muted-foreground">Noch keine Schritte – hier anlegen</span>
+              <span className="text-caption text-muted-foreground">Noch keine Schritte – hier anlegen</span>
             )
           }
         >
@@ -1181,14 +1178,14 @@ export default function RecipeDetailPage() {
             icon="format_list_numbered"
             title="Zubereitungsschritte"
             defaultOpen={mode === 'steps'}
-            accentColor="text-blue-600"
+            accentColor="text-info"
             preview={
               recipe.steps_count ? (
-                <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
+                <div className="text-caption font-medium bg-info-soft text-info px-2.5 py-1 rounded-full">
                   {recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground">Keine strukturierten Schritte</span>
+                <span className="text-caption text-muted-foreground">Keine strukturierten Schritte</span>
               )
             }
           >
@@ -1202,14 +1199,14 @@ export default function RecipeDetailPage() {
 
       {/* Analyse-Tabs + Rezeptregeln */}
       {recipe.price_coverage != null && recipe.price_coverage.missing_ingredients > 0 && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-[hsl(var(--chart-4))]/30 bg-[hsl(var(--chart-4))]/10 px-3 py-2 text-sm text-[hsl(var(--chart-4))]">
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-body text-warning">
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
           <span>
             {recipe.price_coverage.priced_ingredients === 0
               ? 'Keine Preise für dieses Rezept hinterlegt.'
               : `Nur ${recipe.price_coverage.priced_ingredients} von ${recipe.price_coverage.total_ingredients} Zutaten haben einen Preis – der angezeigte Preis ist unvollständig.`}
             {recipe.price_coverage.affected_items.length > 0 && (
-              <span className="block mt-1 text-xs">
+              <span className="block mt-1 text-caption">
                 Betroffen: {recipe.price_coverage.affected_items.map((item) => String(item.ingredient_name ?? '')).filter(Boolean).join(', ')}
               </span>
             )}
@@ -1287,7 +1284,7 @@ export default function RecipeDetailPage() {
       {/* Similar Recipes */}
       {(recipe.next_best_recipes?.length ?? 0) > 0 && (
         <section className="mt-8">
-          <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+          <h2 className="flex items-center gap-2 text-section font-semibold mb-4">
             <Sparkles className="w-5 h-5 text-primary" />
             Ähnliche Rezepte
           </h2>
@@ -1298,7 +1295,7 @@ export default function RecipeDetailPage() {
                 to={`/recipes/${similar.slug}`}
                 className="group block rounded-xl bg-card border p-4 hover:border-primary/40 hover:shadow-md transition-all"
               >
-                <h3 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2">
+                <h3 className="font-semibold text-body group-hover:text-primary transition-colors line-clamp-2">
                   {similar.title}
                 </h3>
               </Link>
@@ -1316,7 +1313,7 @@ export default function RecipeDetailPage() {
 
       {/* Emotions */}
       <section className="mt-8 bg-card rounded-xl border p-6">
-        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+        <h2 className="flex items-center gap-2 text-section font-semibold mb-4">
           <Smile className="w-5 h-5 text-accent" />
           Wie findest du dieses Rezept?
         </h2>

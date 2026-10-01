@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { API_BASE_URL } from '@/lib/api';
+import { formatNumber } from '@/lib/format';
 
 function formatTime(isoString: string): string {
   try {
@@ -27,10 +28,10 @@ function formatDate(dateStr: string): string {
 function AllergenChip({ name, isDangerous }: { name: string; isDangerous?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-caption font-bold border ${
         isDangerous
           ? 'bg-destructive/10 text-destructive border-destructive/20'
-          : 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20'
+          : 'bg-warning-soft text-warning border-warning-border'
       }`}
     >
       {isDangerous && <AlertTriangle className="w-3.5 h-3.5 mr-1" />}
@@ -42,12 +43,12 @@ function AllergenChip({ name, isDangerous }: { name: string; isDangerous?: boole
 function StepView({ steps }: { steps: CookingScheduleStep[] }) {
   if (!steps || steps.length === 0) return null;
   return (
-    <ol className="list-decimal list-inside space-y-1.5 text-sm text-muted-foreground leading-relaxed">
+    <ol className="list-decimal list-inside space-y-1.5 text-body text-muted-foreground leading-relaxed">
       {steps.map((step, i) => (
         <li key={i} className="pl-1">
           <span className="whitespace-pre-line">{step.text.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '')}</span>
           {step.timer && (
-            <span className="inline-flex items-center gap-0.5 ml-1.5 text-xs font-medium text-primary">
+            <span className="inline-flex items-center gap-0.5 ml-1.5 text-caption font-medium text-primary">
               <Clock className="w-3.5 h-3.5" />
               {step.timer} Min.
             </span>
@@ -70,7 +71,7 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
       <div className="grid gap-4 md:grid-cols-2">
         {hasIngredients && (
           <div>
-            <h4 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            <h4 className="flex items-center gap-1.5 text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               <UtensilsCrossed className="w-3.5 h-3.5" />
               Zutaten ({item.portions} Port.)
             </h4>
@@ -81,11 +82,11 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
                 return (
                   <span
                     key={`${ing.name}-${i}`}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-caption font-medium border
                       ${ing.is_optional ? 'bg-muted text-muted-foreground border-border italic' : 'bg-primary/5 text-foreground border-primary/10'}`}
                   >
                     {parts.join(' ')}{detail}
-                    {ing.is_optional && <span className="text-[10px]">(optional)</span>}
+                    {ing.is_optional && <span className="text-caption">(optional)</span>}
                   </span>
                 );
               })}
@@ -96,14 +97,14 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
         <div className={hasIngredients ? '' : 'md:col-span-2'}>
           {hasSteps && (
             <>
-              <h4 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <h4 className="flex items-center gap-1.5 text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 <ListChecks className="w-3.5 h-3.5" />
                 Zubereitung
               </h4>
               {item.steps_parsed.length > 0 ? (
                 <StepView steps={item.steps_parsed} />
               ) : (
-                <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                <div className="text-body text-muted-foreground whitespace-pre-line leading-relaxed">
                   {item.steps}
                 </div>
               )}
@@ -117,17 +118,17 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
           <AllergenChip key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
         ))}
         {hasCost && (
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="text-caption text-muted-foreground font-medium">
             {item.total_cost_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
           </span>
         )}
         {hasNutrition && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {Math.round(item.total_energy_kcal / item.portions)} kcal/Port.
           </span>
         )}
         {item.meal_note && (
-          <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--chart-4))] italic">
+          <span className="inline-flex items-center gap-1 text-caption text-warning italic">
             <StickyNote className="w-3.5 h-3.5 shrink-0" />
             {item.meal_note}
           </span>
@@ -153,16 +154,16 @@ function TimelineItem({ item }: { item: CookingScheduleItem }) {
           disabled={!hasDetails}
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="font-bold text-sm text-primary tabular-nums shrink-0 w-12">
+            <span className="font-bold text-body text-primary tabular-nums shrink-0 w-12">
               {formatTime(item.start_time)}
             </span>
-            <span className="text-xs text-muted-foreground shrink-0">
+            <span className="text-caption text-muted-foreground shrink-0">
               {formatTime(item.serving_time)}
             </span>
             <div className="min-w-0 flex-1">
               <a
                 href={`/recipes/${item.recipe_slug}`}
-                className="font-semibold text-sm hover:text-primary transition-colors line-clamp-1 block"
+                className="font-semibold text-body hover:text-primary transition-colors line-clamp-1 block"
                 onClick={(e) => e.stopPropagation()}
               >
                 {item.recipe_title}
@@ -173,14 +174,14 @@ function TimelineItem({ item }: { item: CookingScheduleItem }) {
                     <AllergenChip key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
                   ))}
                   {item.nutritional_tags.length > 3 && (
-                    <span className="text-[10px] text-muted-foreground">+{item.nutritional_tags.length - 3}</span>
+                    <span className="text-caption text-muted-foreground">+{item.nutritional_tags.length - 3}</span>
                   )}
                 </div>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-muted-foreground">{item.lead_minutes} Min.</span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground border border-border">
+              <span className="text-caption text-muted-foreground">{item.lead_minutes} Min.</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-caption font-medium bg-muted text-muted-foreground border border-border">
                 {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
               </span>
             </div>
@@ -238,10 +239,10 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
     <section className="mb-8">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-3 pt-2 border-b border-border">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-display font-bold text-foreground">
+          <h2 className="text-section font-display font-bold text-foreground">
             {formatDate(day.date)}
           </h2>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 text-body text-muted-foreground">
             <span className="font-semibold flex items-center gap-1.5">
               <Users className="w-4 h-4" /> {day.portions} Personen
             </span>
@@ -270,7 +271,7 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
           if (!items || items.length === 0) return null;
           return (
             <div key={mealType} className="mb-4">
-              <h3 className={`flex items-center gap-2 text-base font-display font-bold mb-2 px-3 py-1.5 rounded-lg transition-colors group hover:bg-muted/30 ${MEAL_TYPE_COLORS[mealType]?.text ?? 'text-foreground'}`}>
+              <h3 className={`flex items-center gap-2 text-emphasis font-display font-bold mb-2 px-3 py-1.5 rounded-lg transition-colors group hover:bg-muted/30 ${MEAL_TYPE_COLORS[mealType]?.text ?? 'text-foreground'}`}>
                 {(() => {
                   const IconComponent = MEAL_TYPE_ICONS_LUCIDE[mealType];
                   if (!IconComponent) return null;
@@ -330,17 +331,17 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
             <ChefHat className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h2 className="font-display font-bold text-foreground text-xl">Kochplan</h2>
+            <h2 className="font-display font-bold text-foreground text-section">Kochplan</h2>
             {plan && (
-              <p className="text-sm text-muted-foreground">{plan.name}</p>
+              <p className="text-body text-muted-foreground">{plan.name}</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground font-semibold">
+        <div className="flex items-center gap-4 text-body text-muted-foreground font-semibold">
           {plan && (
             <>
               <span className="inline-flex items-center gap-1.5">
-                <Users className="w-4 h-4" /> {plan.norm_portions.toFixed(1)} Personen
+                <Users className="w-4 h-4" /> {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Personen
               </span>
               {totalCost > 0 && (
                 <span className="inline-flex items-center gap-1.5">
@@ -352,7 +353,7 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
           <button
             type="button"
             onClick={() => setPdfDialogOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-body font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
           >
             <Printer className="w-4 h-4" />
             Als PDF öffnen
@@ -362,7 +363,7 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
 
       {/* Warning Banner */}
       {schedule.excluded_meal_count > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-[hsl(var(--chart-4))]/20 bg-[hsl(var(--chart-4))]/10 px-4 py-3 text-sm text-[hsl(var(--chart-4))]">
+        <div className="flex items-start gap-3 rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-body text-warning">
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
           <span>
             {schedule.excluded_meal_count}{' '}
@@ -376,7 +377,7 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
         <div className="text-center py-16 text-muted-foreground space-y-2">
           <ChefHat className="w-12 h-12 mx-auto opacity-30" />
           <p className="font-medium">Keine Rezepte im Kochplan</p>
-          <p className="text-sm">
+          <p className="text-body">
             Plane Mahlzeiten mit Servierzeit, damit der Kochplan berechnet werden kann.
           </p>
         </div>

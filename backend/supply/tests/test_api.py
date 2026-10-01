@@ -284,6 +284,32 @@ class TestIngredientUpdate:
         assert resp.status_code == 200
         assert resp.json()["name"] == "Weizenmehl Typ 405"
 
+    def test_manual_viscosity_is_marked_as_manual(self, auth_client, ingredient):
+        ingredient.created_by = auth_client._user
+        ingredient.status = "draft"
+        ingredient.save()
+        resp = auth_client.patch(
+            f"/api/ingredients/{ingredient.slug}/",
+            data=json.dumps({"physical_viscosity": "liquid", "physical_density": 0.92}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        ingredient.refresh_from_db()
+        assert ingredient.physical_viscosity == "liquid"
+        assert ingredient.viscosity_source == "manual"
+
+    def test_other_fields_keep_viscosity_source(self, auth_client, ingredient):
+        ingredient.created_by = auth_client._user
+        ingredient.status = "draft"
+        ingredient.save()
+        auth_client.patch(
+            f"/api/ingredients/{ingredient.slug}/",
+            data=json.dumps({"name": "Weizenmehl Typ 550"}),
+            content_type="application/json",
+        )
+        ingredient.refresh_from_db()
+        assert ingredient.viscosity_source == ""
+
 
 # ===========================================================================
 # Portions API Tests (under ingredient slug)

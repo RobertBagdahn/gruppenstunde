@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api';
 import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/lib/mealPlanDateTime';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
+import { formatNumber } from '@/lib/format';
 
 interface SettingsPanelProps {
   planId: number;
@@ -99,28 +100,28 @@ export default function SettingsPanel({
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <label htmlFor="meal-plan-settings-name" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>
+          <label htmlFor="meal-plan-settings-name" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>
           <input
             type="text"
             id="meal-plan-settings-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Beschreibung</label>
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Beschreibung</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
           <label
             htmlFor={isEventLinked ? undefined : 'norm-portions-input'}
-            className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1"
+            className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1"
           >
             Normportionen
           </label>
@@ -128,10 +129,10 @@ export default function SettingsPanel({
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2.5">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">
+                  <p className="text-body font-semibold text-foreground">
                     {manualNormPortions ? 'Manuell festgelegt' : 'Automatisch berechnet'}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     {manualNormPortions
                       ? 'Der Wert bleibt bei Änderungen der Teilnehmenden erhalten.'
                       : 'Aus den Teilnehmenden und dem Aktivitätsfaktor berechnet.'}
@@ -151,18 +152,18 @@ export default function SettingsPanel({
                   value={portions}
                   onChange={(e) => setPortions(Number(e.target.value))}
                   aria-label="Manuelle Normportionen"
-                  className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 />
               ) : (
-                <div className="rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-sm font-semibold">
-                  {plan.norm_portions.toFixed(1)} Normportionen
+                <div className="rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-body font-semibold">
+                  {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Normportionen
                 </div>
               )}
               {manualNormPortions && !hasValidManualNormPortions ? (
-                <p className="text-xs text-destructive">Bitte eine positive ganze Zahl eingeben.</p>
+                <p className="text-caption text-destructive">Bitte eine positive ganze Zahl eingeben.</p>
               ) : null}
               {!manualNormPortions && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   {plan.group_members_count ?? 0} {(plan.group_members_count ?? 0) === 1 ? 'Person' : 'Personen'} · Umschalten aktiviert die manuelle Eingabe.
                 </p>
               )}
@@ -175,16 +176,16 @@ export default function SettingsPanel({
               step={0.5}
               value={portions}
               onChange={(e) => setPortions(Number(e.target.value))}
-              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
             />
           )}
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">PAL (Aktivitätsfaktor)</label>
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">PAL (Aktivitätsfaktor)</label>
           <select
             value={activityFactor}
             onChange={(e) => setActivityFactor(Number(e.target.value))}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           >
             <option value={1.2}>1.2 — wenig aktiv (Büro)</option>
             <option value={1.5}>1.5 — normal (Standard)</option>
@@ -193,7 +194,7 @@ export default function SettingsPanel({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Reservefaktor</label>
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Reservefaktor</label>
           <input
             type="number"
             min={1.0}
@@ -201,11 +202,11 @@ export default function SettingsPanel({
             step={0.05}
             value={reserve}
             onChange={(e) => setReserve(Number(e.target.value))}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Budget (€/Person/Tag)</label>
+          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Budget (€/Person/Tag)</label>
           <input
             type="number"
             min={0}
@@ -213,30 +214,30 @@ export default function SettingsPanel({
             value={budget}
             onChange={(e) => setBudget(e.target.value === '' ? '' : Number(e.target.value))}
             placeholder="z.B. 8.00"
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label htmlFor="start-datetime-input" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
+          <label htmlFor="start-datetime-input" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
           <input
             id="start-datetime-input"
             type="datetime-local"
             value={startDatetime}
             onChange={(e) => setStartDatetime(e.target.value)}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label htmlFor="end-datetime-input" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
+          <label htmlFor="end-datetime-input" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
           <input
             id="end-datetime-input"
             type="datetime-local"
             value={endDatetime}
             onChange={(e) => setEndDatetime(e.target.value)}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
           {!hasValidDateRange && (
-            <p className="mt-1 text-xs text-destructive">
+            <p className="mt-1 text-caption text-destructive">
               {startDatetime ? 'Das Ende muss nach dem Start liegen.' : 'Bitte einen Startzeitpunkt angeben.'}
             </p>
           )}
@@ -244,11 +245,11 @@ export default function SettingsPanel({
       </div>
 
       <div className="border-t border-border pt-5">
-        <h4 className="font-display font-bold text-sm text-foreground mb-3">Tagesanteil-Faktoren für Mahlzeiten</h4>
+        <h4 className="font-display font-bold text-body text-foreground mb-3">Tagesanteil-Faktoren für Mahlzeiten</h4>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {Object.entries(factors).map(([key, value]) => (
             <div key={key}>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
                 {MEAL_TYPE_LABELS[key] || key}
               </label>
               <input
@@ -261,25 +262,25 @@ export default function SettingsPanel({
                   const newval = Number(e.target.value);
                   setFactors(prev => ({ ...prev, [key]: newval }));
                 }}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-3 font-medium">
+        <p className="text-caption text-muted-foreground mt-3 font-medium">
           Summe der Faktoren:{' '}
           <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-primary font-bold" : "text-accent font-bold"}>
-            {Object.values(factors).reduce((a, b) => a + b, 0).toFixed(2)}
+            {formatNumber(Object.values(factors).reduce((a, b) => a + b, 0), { maxDecimals: 2 })}
           </span> (Sollte idealerweise 1,00 ergeben).
         </p>
       </div>
 
       <div className="border-t border-border pt-5">
-        <h4 className="font-display font-bold text-sm text-foreground mb-3">Standard-Uhrzeiten pro Mahlzeit</h4>
+        <h4 className="font-display font-bold text-body text-foreground mb-3">Standard-Uhrzeiten pro Mahlzeit</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {Object.entries(mealTimes).map(([key, [start, end]]) => (
             <div key={key} data-testid={`meal-time-group-${key}`} className="min-w-0">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
+              <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
                 {MEAL_TYPE_LABELS[key] || key}
               </label>
               <div className="flex min-w-0 gap-1.5 sm:gap-2">
@@ -287,13 +288,13 @@ export default function SettingsPanel({
                   type="time"
                   value={start}
                   onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [e.target.value, prev[key][1]] }))}
-                  className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-caption sm:text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 />
                 <input
                   type="time"
                   value={end}
                   onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [prev[key][0], e.target.value] }))}
-                  className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-caption sm:text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 />
               </div>
             </div>
@@ -302,20 +303,20 @@ export default function SettingsPanel({
       </div>
 
       <div className="border-t border-border pt-5">
-        <h4 className="font-display font-bold text-sm text-foreground mb-3">Ernährungseinschränkungen</h4>
+        <h4 className="font-display font-bold text-body text-foreground mb-3">Ernährungseinschränkungen</h4>
         <NutritionalTagMultiSelect selectedTagIds={nutritionalTagIds} onToggle={toggleTag} />
       </div>
 
       <div className="border-t border-border pt-5">
-        <h4 className="font-display font-bold text-sm text-foreground mb-3">Kontext-Tags</h4>
-        <p className="text-xs text-muted-foreground mb-3">
+        <h4 className="font-display font-bold text-body text-foreground mb-3">Kontext-Tags</h4>
+        <p className="text-caption text-muted-foreground mb-3">
           Tags helfen der KI, bessere Rezeptvorschläge zu machen (z.B. sommerlager, lagerfeuer, wenig_küche)
         </p>
         <div className="flex flex-wrap gap-2 mb-3">
           {tags.map((tag: MealPlanTag) => (
             <span
               key={tag.id}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-caption font-semibold"
             >
               {tag.name}
               <button
@@ -339,7 +340,7 @@ export default function SettingsPanel({
               }
             }}
             placeholder="Tag eingeben..."
-            className="flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className="flex-1 rounded-xl border border-border bg-card px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
           <button
             onClick={() => {
@@ -349,7 +350,7 @@ export default function SettingsPanel({
               }
             }}
             disabled={!tagInput.trim() || createTag.isPending}
-            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -373,7 +374,7 @@ export default function SettingsPanel({
             nutritional_tag_ids: nutritionalTagIds,
           })}
           disabled={isPending || !hasValidDateRange || (isEventLinked && manualNormPortions && !hasValidManualNormPortions)}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
         >
           {isPending ? 'Speichern...' : 'Speichern'}
         </button>

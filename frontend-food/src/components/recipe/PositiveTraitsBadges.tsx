@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/icon';
 /**
  * Positive health trait badges for recipe detail page.
  * Renders green chips for positive nutritional properties.
@@ -27,9 +28,9 @@ export function PositiveTraitsBadges({ traits }: PositiveTraitsBadgesProps) {
         return (
           <span
             key={trait}
-            className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1 text-sm flex items-center gap-1.5"
+            className="bg-success-soft text-success border border-success-border rounded-full px-3 py-1 text-body flex items-center gap-1.5"
           >
-            <span className="material-symbols-outlined text-[16px]">{config.icon}</span>
+            <Icon name={config.icon} size={16} />
             {config.label}
           </span>
         );

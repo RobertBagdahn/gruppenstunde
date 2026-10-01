@@ -14,7 +14,7 @@ export function StandardPortionBadge({ isStandard }: StandardPortionBadgeProps) 
   }
 
   return (
-    <Badge variant="default" className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600">
+    <Badge variant="default" className="flex items-center gap-1 bg-success hover:bg-success">
       <Star className="h-3 w-3" />
       Standard
     </Badge>

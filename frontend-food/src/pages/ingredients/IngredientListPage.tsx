@@ -14,6 +14,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import { IngredientListStateSchema, type INGREDIENT_SORT_VALUES } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import { parseIngredientStatus } from '@/lib/ingredientStatus';
+import { Icon } from '@/components/ui/icon';
 
 const SORT_OPTIONS: { value: (typeof INGREDIENT_SORT_VALUES)[number]; label: string }[] = [
   { value: 'newest', label: 'Neueste' },
@@ -73,7 +74,7 @@ export default function IngredientListPage() {
         icon="egg_alt"
         gradientClasses="gradient-primary"
         totalCount={data?.total}
-        countLabel="Zutat"
+        countLabel={{ one: 'Zutat', other: 'Zutaten' }}
         countIcon="egg_alt"
       />
 
@@ -104,25 +105,25 @@ export default function IngredientListPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate('/ingredients/statistics')}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-foreground text-sm font-medium hover:bg-muted transition-all"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-foreground text-body font-medium hover:bg-muted transition-all"
               >
-                <span className="material-symbols-outlined text-[16px]">analytics</span>
+                <Icon name="analytics" size={16} />
                 Statistiken
               </button>
               <button
                 onClick={() => navigate('/ingredients/new')}
-                className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all shadow-soft"
+                className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-primary/90 transition-all shadow-soft"
               >
-                <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                <Icon name="add_circle" size={16} />
                 Neue Zutat
               </button>
             </div>
             <div className="flex items-center gap-2 ml-auto">
-              <span className="material-symbols-outlined text-muted-foreground text-[18px]">sort</span>
+              <Icon name="sort" size={20} className="text-muted-foreground" />
               <select
                 value={sort}
                 onChange={(e) => patch({ sort: SORT_OPTIONS.find((opt) => opt.value === e.target.value)?.value, page: undefined })}
-                className="px-3 py-1.5 rounded-xl border border-border text-sm bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium shadow-sm transition-all"
+                className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium shadow-sm transition-all"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -140,7 +141,7 @@ export default function IngredientListPage() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl border border-border bg-muted/40 animate-pulse h-40"
+                  className="rounded-xl border border-border bg-muted/40 animate-pulse h-40"
                 />
               ))}
             </div>
