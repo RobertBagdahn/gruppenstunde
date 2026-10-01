@@ -448,6 +448,7 @@ class IngredientDetailOut(Schema):
                 "icon": t.icon,
                 "group": t.group,
                 "sort_order": t.sort_order,
+                "parent_id": t.parent_id,
             }
             for t in obj.tags.all()
         ]

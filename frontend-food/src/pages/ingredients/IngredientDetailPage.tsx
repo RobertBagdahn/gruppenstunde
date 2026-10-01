@@ -764,6 +764,7 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
       {!isLoading && !error && data && data.items.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {data.items.map((recipe) => (
+            // SAFETY: The paginated endpoint validates these as RecipeListItems; duplicate Zod type instances trigger TS2719.
             <RecipeCard key={recipe.id} recipe={recipe as unknown as import('@/schemas/recipe').RecipeListItem} />
           ))}
         </div>
@@ -1112,12 +1113,13 @@ export default function IngredientDetailPage() {
   }
 
   if (error || !ingredient) {
+    const isNotFound = !ingredient && (!error || /\b404\b|Not Found/i.test(error.message));
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
         <ErrorDisplay
           error={error}
-          title="Zutat nicht gefunden"
-          description="Die Zutat existiert nicht oder wurde entfernt."
+          title={isNotFound ? 'Zutat nicht gefunden' : undefined}
+          description={isNotFound ? 'Die Zutat existiert nicht oder wurde entfernt.' : undefined}
           onBack={() => navigate('/ingredients')}
           backLabel="Zurück zur Übersicht"
           onRetry={() => refetch()}
