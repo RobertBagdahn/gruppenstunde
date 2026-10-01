@@ -265,6 +265,17 @@ class TestScaleAndCopyAPI:
         assert response.status_code == 404
         assert "Essensplan nicht gefunden" in response.json()["detail"]
 
+    def test_staff_origin_mine_only_returns_plans_created_by_staff_user(self):
+        staff_user = baker.make(User, is_staff=True)
+        own_plan = make_meal_plan(created_by=staff_user, name="Eigener Plan")
+        make_meal_plan(created_by=baker.make(User), name="Fremder Plan")
+
+        self.client.force_login(staff_user)
+        response = self.client.get("/api/meal-plans/?origin=mine")
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.json()] == [own_plan.id]
+
     def test_list_meal_plans_search_by_name(self):
         """Searching meal plans by name should return matching plans."""
         make_meal_plan(created_by=self.user, name="Sommerlager", description="")
