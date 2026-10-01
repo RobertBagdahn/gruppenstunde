@@ -50,6 +50,19 @@ class TestResolvePieceEquivalent:
         )
         assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
 
+    def test_liquid_ingredient_does_not_show_piece_equivalent(self, shopping_list):
+        oil = make_ingredient(name="Olivenöl", physical_viscosity="liquid")
+        make_portion(ingredient=oil, name="Stück", quantity=1, weight_g=1000, rank=1)
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            name=oil.name,
+            quantity_g=1000,
+            unit="g",
+            ingredient=oil,
+        )
+
+        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
+
     def test_non_gram_unit_returns_none(self, shopping_list):
         """When unit is not 'g', piece equivalents (computed from gram weights) don't apply."""
         item = ShoppingListItem.objects.create(

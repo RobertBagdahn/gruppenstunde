@@ -17,3 +17,8 @@ Wenn ein Einkaufslisteneintrag einer Zutat zugeordnet ist, SHALL die Anzeige ein
 - **GIVEN** ein Freitext-Eintrag kann mehreren Zutaten zugeordnet werden
 - **WHEN** das System keinen eindeutigen Match bestimmen kann
 - **THEN** SHALL es den Eintrag als Freitext erhalten und darf keine falsche Zutat automatisch auswählen
+
+#### Scenario: Flüssige Zutat erhält keine Stück-Äquivalenz
+- **GIVEN** ein verknüpfter flüssiger Artikel wie Olivenöl hat eine fehlerhafte oder unpassende Stück-Portion
+- **WHEN** die Einkaufsliste Mengen-Äquivalenzen berechnet
+- **THEN** SHALL sie die Menge über Dichte als ml anzeigen und keine Stück-Äquivalenz ausgeben

@@ -2315,6 +2315,14 @@ def search_recipes(
                     output_field=IntegerField(),
                 )
             )
+        qs = qs.annotate(
+            title_match_rank=Case(
+                When(title__iexact=q, then=Value(0)),
+                When(title__istartswith=q, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            )
+        )
         has_search_rank = True
 
     # Determine recipe_type filter: explicit list > meal_type mapping > all
@@ -2340,7 +2348,7 @@ def search_recipes(
 
     recipe_order = ["-is_own", "-usage_count", "cached_price_total", "id"]
     if has_search_rank:
-        recipe_order.insert(0, "-rank")
+        recipe_order[0:0] = ["-rank", "title_match_rank"]
 
     if type_filter:
         primary_qs = qs.filter(recipe_type__in=type_filter)

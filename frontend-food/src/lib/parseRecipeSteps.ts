@@ -6,6 +6,25 @@
  * 2. Else if numbered list (1. , 2. , …) → each list item = one step
  * 3. Else fallback → entire block = single step
  */
+export function parsePreparationSteps(markdown: string): string[] {
+  const headings = [...markdown.matchAll(/^#{1,6}\s+(.+?)\s*$/gm)];
+  const preparationHeading = headings.find((heading) => {
+    const title = (heading[1] ?? '').replace(/[:：]+$/, '').trim().toLocaleLowerCase('de-DE');
+    return /^(zubereitung(?:sschritte)?|zubereitungsanleitung|anleitung)$/.test(title);
+  });
+
+  if (preparationHeading?.index != null) {
+    const sectionStart = preparationHeading.index + preparationHeading[0].length;
+    const nextHeading = headings.find((heading) => (heading.index ?? 0) > preparationHeading.index!);
+    const sectionEnd = nextHeading?.index ?? markdown.length;
+    return parseRecipeSteps(markdown.slice(sectionStart, sectionEnd).trim());
+  }
+
+  const firstNumberedStep = markdown.search(/^\s*\d+[.)]\s+/m);
+  if (firstNumberedStep >= 0) return parseRecipeSteps(markdown.slice(firstNumberedStep).trim());
+  return [];
+}
+
 export function parseRecipeSteps(markdown: string): string[] {
   if (!markdown || !markdown.trim()) {
     return [];
@@ -33,6 +52,6 @@ export function parseRecipeSteps(markdown: string): string[] {
     }
   }
 
-  // Strategy 3: Fallback — entire block as one step
+  // Strategy 3: Fallback — entire block = one step
   return [trimmed];
 }

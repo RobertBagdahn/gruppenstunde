@@ -228,6 +228,104 @@ class TestAddItem:
         assert data["name"] == "Butter"
         assert data["quantity_g"] == 250
 
+    def test_manual_exact_mass_text_links_ingredient_and_normalizes_quantity(self, client_alice, shopping_list):
+        ingredient = make_ingredient(name="Zimt", owner=None)
+
+        response = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "2 kg Zimt"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        item = response.json()
+        assert item["name"] == "Zimt"
+        assert item["ingredient_id"] == ingredient.id
+        assert item["quantity_g"] == pytest.approx(2000)
+        assert item["unit"] == "g"
+        assert item["retail_section_id"] == ingredient.retail_section_id
+
+    def test_manual_volume_text_uses_matched_ingredient_density_once(self, client_alice, shopping_list):
+        ingredient = make_ingredient(
+            name="Sojamilch",
+            owner=None,
+            physical_density=1.03,
+            physical_viscosity="liquid",
+        )
+
+        response = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "1 l Sojamilch"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        item = response.json()
+        assert item["ingredient_id"] == ingredient.id
+        assert item["quantity_g"] == pytest.approx(1030)
+        assert (item["quantity"], item["unit"]) == (1000, "ml")
+
+    def test_manual_typed_amount_merges_into_one_unchecked_manual_ingredient_row(self, client_alice, shopping_list):
+        ingredient = make_ingredient(name="Zimt", owner=None)
+        existing = ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            ingredient=ingredient,
+            name=ingredient.name,
+            quantity_g=500,
+            unit="g",
+            retail_section=ingredient.retail_section,
+        )
+
+        response = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "2 kg Zimt"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        assert response.json()["id"] == existing.id
+        assert response.json()["quantity_g"] == pytest.approx(2500)
+        assert shopping_list.items.count() == 1
+
+    def test_manual_typed_amount_links_and_merges_existing_exact_free_text(self, client_alice, shopping_list):
+        ingredient = make_ingredient(name="Zimt", owner=None)
+        existing = ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            name="Zimt",
+            quantity_g=200,
+            unit="g",
+        )
+
+        response = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "2 kg Zimt"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        assert response.json()["id"] == existing.id
+        assert response.json()["ingredient_id"] == ingredient.id
+        assert response.json()["quantity_g"] == pytest.approx(2200)
+        assert shopping_list.items.count() == 1
+
+    def test_ambiguous_manual_text_is_preserved_as_free_text(self, client_alice, shopping_list):
+        from supply.models import IngredientAlias
+
+        make_ingredient(name="Zimt", owner=None)
+        alias_target = make_ingredient(name="Zimtstange", owner=None)
+        IngredientAlias.objects.create(ingredient=alias_target, name="Zimt")
+
+        response = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "2 kg Zimt"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        item = response.json()
+        assert item["name"] == "2 kg Zimt"
+        assert item["ingredient_id"] is None
+
     def test_viewer_cannot_add_item(self, client_bob, shopping_list, other_user):
         ShoppingListCollaborator.objects.create(
             shopping_list=shopping_list, user=other_user, role=CollaboratorRole.VIEWER

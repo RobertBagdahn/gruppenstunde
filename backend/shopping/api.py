@@ -475,19 +475,56 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     from supply.models.reference import RetailSection
 
     data = payload.dict(exclude={"ingredient_id", "retail_section_id"})
+    ingredient = None
+    retail_section = None
+    matched_from_text = False
+
+    # A uniquely matching typed amount is safer and more useful when stored as
+    # a linked ingredient than as an opaque free-text row.
+    if payload.ingredient_id is None and payload.quantity_g == 0 and payload.unit == "g":
+        from shopping.services.item_matching import parse_manual_ingredient_quantity
+
+        parsed = parse_manual_ingredient_quantity(payload.name, request.user)
+        if parsed is not None:
+            ingredient = parsed.ingredient
+            matched_from_text = True
+            data.update(name=parsed.name, quantity_g=parsed.quantity_g, unit="g")
+            if payload.retail_section_id is None:
+                retail_section = parsed.ingredient.retail_section
 
     # Resolve optional FKs
-    ingredient = None
     if payload.ingredient_id:
         ingredient = Ingredient.objects.filter(id=payload.ingredient_id).first()
         if ingredient is None:
             raise HttpError(422, "Zutat nicht gefunden")
 
-    retail_section = None
     if payload.retail_section_id:
         retail_section = RetailSection.objects.filter(id=payload.retail_section_id).first()
         if retail_section is None:
             raise HttpError(422, "Supermarkt-Abteilung nicht gefunden")
+
+    if matched_from_text and ingredient is not None:
+        merge_candidates = (
+            ShoppingListItem.objects.filter(
+                shopping_list=shopping_list,
+                unit="g",
+                is_checked=False,
+                sources__isnull=True,
+            )
+            .filter(Q(ingredient=ingredient) | Q(ingredient__isnull=True, name__iexact=data["name"]))
+            .distinct()
+        )
+        if merge_candidates.count() == 1:
+            item = merge_candidates.get()
+            item.ingredient = ingredient
+            item.name = data["name"]
+            item.quantity_g += data["quantity_g"]
+            update_fields = ["ingredient", "name", "quantity_g", "updated_at"]
+            if item.retail_section_id is None and retail_section is not None:
+                item.retail_section = retail_section
+                update_fields.append("retail_section")
+            item.save(update_fields=update_fields)
+            return item
 
     item = ShoppingListItem.objects.create(
         shopping_list=shopping_list,

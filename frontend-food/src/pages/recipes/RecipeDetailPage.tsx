@@ -58,6 +58,7 @@ import RecipeUsageInMealPlans from '@/components/recipe/RecipeUsageInMealPlans';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
 import StepEditor from '@/components/recipe/StepEditor';
 import RecipeStepsReadOnly from '@/components/recipe/RecipeStepsReadOnly';
+import { parsePreparationSteps } from '@/lib/parseRecipeSteps';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
 import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
@@ -118,6 +119,10 @@ export default function RecipeDetailPage() {
 
   const { data: recipe, isLoading, error, refetch } = useRecipeBySlug(slug ?? '');
   const recipeId = recipe?.id ?? 0;
+  const legacyPreparationSteps = useMemo(
+    () => parsePreparationSteps(recipe?.description ?? ''),
+    [recipe?.description],
+  );
 
   const { data: comments } = useRecipeComments(recipeId);
   const createComment = useCreateRecipeComment(recipeId);
@@ -1151,15 +1156,24 @@ export default function RecipeDetailPage() {
           defaultOpen={mode === 'steps'}
           accentColor="text-info"
           preview={
-            recipe.steps_count ? (
+            recipe.steps_count || legacyPreparationSteps.length ? (
               <div className="text-caption font-medium bg-info-soft text-info px-2.5 py-1 rounded-full">
-                {recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}
+                {recipe.steps_count || legacyPreparationSteps.length} {((recipe.steps_count || legacyPreparationSteps.length) === 1) ? 'Schritt' : 'Schritte'}
               </div>
             ) : (
               <span className="text-caption text-muted-foreground">Noch keine Schritte – hier anlegen</span>
             )
           }
         >
+          {recipe.steps.length === 0 && legacyPreparationSteps.length > 0 && (
+            <div className="mb-5 rounded-lg border border-info-border bg-info-soft p-4">
+              <p className="mb-3 text-body font-semibold text-info">Zubereitung aus der Beschreibung</p>
+              <RecipeStepsReadOnly steps={[]} fallbackInstructions={legacyPreparationSteps} />
+              <p className="mt-3 text-caption text-muted-foreground">
+                Diese älteren Schritte stehen noch in der Beschreibung. Du kannst sie dort bearbeiten oder unten als strukturierte Schritte neu anlegen.
+              </p>
+            </div>
+          )}
           <StepEditor
             recipeSlug={recipe.slug}
             availableRecipeItems={recipe.recipe_items}
@@ -1173,16 +1187,16 @@ export default function RecipeDetailPage() {
           />
         </AnalysisSection>
       ) : (
-        (recipe.steps.length > 0 || recipe.has_structured_steps) && (
+        (recipe.steps.length > 0 || recipe.has_structured_steps || legacyPreparationSteps.length > 0) && (
           <AnalysisSection
             icon="format_list_numbered"
             title="Zubereitungsschritte"
             defaultOpen={mode === 'steps'}
             accentColor="text-info"
             preview={
-              recipe.steps_count ? (
+              recipe.steps_count || legacyPreparationSteps.length ? (
                 <div className="text-caption font-medium bg-info-soft text-info px-2.5 py-1 rounded-full">
-                  {recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}
+                  {recipe.steps_count || legacyPreparationSteps.length} {((recipe.steps_count || legacyPreparationSteps.length) === 1) ? 'Schritt' : 'Schritte'}
                 </div>
               ) : (
                 <span className="text-caption text-muted-foreground">Keine strukturierten Schritte</span>
@@ -1191,6 +1205,7 @@ export default function RecipeDetailPage() {
           >
             <RecipeStepsReadOnly
               steps={recipe.steps}
+              fallbackInstructions={legacyPreparationSteps}
               scale={(recipe.portions ?? 1) > 0 ? portionsMultiplier / (recipe.portions ?? 1) : 1}
             />
           </AnalysisSection>

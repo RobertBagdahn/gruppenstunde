@@ -23,6 +23,19 @@ describe('RecipeStepsReadOnly', () => {
     expect(screen.getByText('Keine Zubereitungsschritte vorhanden.')).toBeInTheDocument();
   });
 
+  it('renders legacy markdown instructions when structured steps are absent', () => {
+    render(
+      <RecipeStepsReadOnly
+        steps={[]}
+        fallbackInstructions={['1. Mehl und Milch verrühren.', '2. In der Pfanne ausbacken.']}
+      />,
+    );
+
+    expect(screen.getByText('Mehl und Milch verrühren.')).toBeInTheDocument();
+    expect(screen.getByText('In der Pfanne ausbacken.')).toBeInTheDocument();
+    expect(screen.queryByText('Keine Zubereitungsschritte vorhanden.')).toBeNull();
+  });
+
   it('renders numbered instructions with durations', () => {
     render(
       <RecipeStepsReadOnly

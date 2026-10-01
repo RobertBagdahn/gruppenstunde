@@ -4,6 +4,7 @@ import { formatNumber } from '@/lib/format';
 
 interface RecipeStepsReadOnlyProps {
   steps: RecipeStep[];
+  fallbackInstructions?: string[];
   scale?: number;
 }
 
@@ -15,12 +16,33 @@ function formatQuantity(value: number): string {
   return formatNumber(rounded, { maxDecimals: 1 }).replace('.', ',');
 }
 
-export default function RecipeStepsReadOnly({ steps, scale = 1 }: RecipeStepsReadOnlyProps) {
+export default function RecipeStepsReadOnly({
+  steps,
+  fallbackInstructions = [],
+  scale = 1,
+}: RecipeStepsReadOnlyProps) {
   if (steps.length === 0) {
+    if (fallbackInstructions.length === 0) {
+      return (
+        <p className="text-body text-muted-foreground">
+          Keine Zubereitungsschritte vorhanden.
+        </p>
+      );
+    }
+
     return (
-      <p className="text-body text-muted-foreground">
-        Keine Zubereitungsschritte vorhanden.
-      </p>
+      <ol className="space-y-4 list-none p-0" data-testid="recipe-steps-readonly">
+        {fallbackInstructions.map((instruction, index) => (
+          <li key={`legacy-step-${index}`} className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-info-soft text-info text-caption font-semibold">
+              {index + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <MarkdownRenderer content={instruction.replace(/^\d+[.)]\s+/, '')} />
+            </div>
+          </li>
+        ))}
+      </ol>
     );
   }
 

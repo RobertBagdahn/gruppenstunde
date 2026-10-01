@@ -84,10 +84,12 @@ Datenhinweise aus der lokalen Prüfung (vor der Freigabe ansehen):
 Enthält die Migration `planner.0008_mealitem_portion` (nullable Spalte `portion_id`, kein Backfill).
 Cloud Build führt sie beim Deploy automatisch aus; sie ist rein additiv und sperrt nichts.
 
-- [ ] Vor dem Deploy: `uv run python manage.py sqlmigrate planner 0008` gegen Prod-Stand prüfen
+- [x] Vor dem Deploy: `uv run python manage.py sqlmigrate planner 0008` geprüft
       (nur `ADD COLUMN … NULL` und `CREATE INDEX`)
-- [ ] Deploy: Backend vor Frontend (neue optionale Felder und Parameter sind abwärtskompatibel)
-- [ ] Nach dem Deploy, nur lesen: Einzelzutaten im Plan, die vor der Änderung mit der Einheit „Gramm“
+- [x] Deploy: 2026-10-01, Commit `70409580`; Backend `inspi-backend-00072-zmg`, Migration-Job
+      `inspi-migrate-bbw22`, Food-Frontend `inspi-frontend-food-00066-w2m`.
+      Das Haupt-Frontend (`inspi-frontend-00015-f96`) wurde ebenfalls aktualisiert.
+- [ ] Nach dem Deploy, nur lesen: Einzelzutaten im Plan, die vor der Änderung mit der Einheit „Gramm"
       und sehr kleiner Menge gespeichert wurden (wirkten wie „1 g Toastbrot“ statt „1 Scheibe“).
       Ausgabe Robert zeigen; Korrektur nur nach seinem OK und von Hand im Plan:
 
@@ -98,6 +100,7 @@ Cloud Build führt sie beim Deploy automatisch aus; sie ist rein additiv und spe
           measuring_unit__name__iexact="Gramm", quantity__lte=5,
       ).values_list("id", "meal__meal_plan_id", "ingredient__name", "quantity")
       ```
+- [x] Stichprobe: Produktions-Endpunkte Backend, Haupt- und Food-Frontend antworten mit HTTP 200.
 - [ ] Stichprobe: Einkaufsliste eines Plans mit Honig zeigt dieselbe Menge (ml) wie der Einkaufen-Tab;
       bestehende, schon erzeugte Listen werden beim Lesen korrekt umgerechnet (keine Datenkorrektur nötig)
 - [ ] Stichprobe: Rezeptliste „Zufällig“ und „Meiste Likes“ durchblättern (keine doppelten oder

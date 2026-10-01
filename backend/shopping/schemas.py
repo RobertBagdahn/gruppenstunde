@@ -177,7 +177,15 @@ class ShoppingListItemOut(Schema):
 
     @staticmethod
     def resolve_piece_equivalent(obj) -> dict | None:
-        if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0 or obj.unit != "g":
+        from supply.choices import LIQUID_VISCOSITIES
+
+        if (
+            not obj.ingredient
+            or obj.ingredient.physical_viscosity in LIQUID_VISCOSITIES
+            or not obj.quantity_g
+            or obj.quantity_g <= 0
+            or obj.unit != "g"
+        ):
             return None
         portions = list(obj.ingredient.portions.order_by("rank", "name"))
         if not portions:

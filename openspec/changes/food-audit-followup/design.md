@@ -32,6 +32,7 @@ Shopping item display SHALL use the linked ingredient and stored canonical quant
 ## API and schema changes
 
 - `GET /api/ingredients/`: existing search endpoint. Confirm or extend search/status eligibility filters; keep pagination parameters and response envelope. Update the matching Pydantic ingredient-list filter/response schema and `frontend-food/src/schemas/supply.ts` Zod schema/query hook together.
+- `GET /api/ingredients/{slug}/standard-measures/`: keep the route and add nullable `volume_ml` to Pydantic `StandardMeasureOut` and the matching Zod `StandardMeasureSchema`, so the picker can distinguish standard volume from ingredient portion weight.
 - `GET /api/meal-plans/`: keep the existing endpoint and response envelope. Ensure the “mine” filter means `owner=request.user`; update the planner Pydantic and `frontend-food/src/schemas/mealPlan.ts` only if response/query contracts change.
 - Shopping-list APIs: no route change is assumed. If matching metadata or display fields change, update Pydantic `ShoppingListItemOut` / source schemas and matching `frontend-food` Zod schemas.
 - Recipe detail API: preserve its current endpoint. If step-source fields need to change, update the recipe Pydantic schema and its Zod counterpart in the same change.

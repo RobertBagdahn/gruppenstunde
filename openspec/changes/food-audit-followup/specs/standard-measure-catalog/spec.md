@@ -1,5 +1,18 @@
 ## MODIFIED Requirements
 
+### Requirement: Standardmaß-API liefert Volumen zur eindeutigen Beschriftung
+Das Response-Schema `StandardMeasureOut` SHALL für volumenbasierte Standardmaße zusätzlich `volume_ml` als Zahl und für reine Massenmaße `null` liefern. Das entsprechende Zod-Schema SHALL dasselbe Feld und dieselbe Null-Semantik verwenden.
+
+#### Scenario: Tasse sichtbar von Zutaten-Portion unterscheiden
+- **GIVEN** der Katalog liefert die Standardtasse mit 200 ml und eine Zutaten-Portion heißt ebenfalls „Tasse“
+- **WHEN** beide Auswahloptionen angezeigt werden
+- **THEN** die Standardmenge SHALL „1 Tasse (200 ml)“ und die Zutaten-Portion SHALL ihren eigenen Namen und ihr Gewicht zeigen
+
+#### Scenario: Massenmaß ohne Volumen
+- **GIVEN** ein Standardmaß ist massenbasiert und hat kein Volumen
+- **WHEN** die API es serialisiert
+- **THEN** SHALL `volume_ml` null sein
+
 ### Requirement: Standardmaß und Zutaten-Portion verwenden eine nachvollziehbare gemeinsame Umrechnung
 Das System SHALL bei der Umrechnung zwischen Standardmaß und Zutaten-Portion denselben zugrunde liegenden Grammwert verwenden. Eine Umrechnung SHALL die physische Menge erhalten; unterschiedliche Bezeichnungen oder Portionsgrößen dürfen keine unerklärte Mengenänderung erzeugen. Gleichzeitig angebotene Optionen mit gleicher Bezeichnung und unterschiedlichen Grammwerten MUST entweder fachlich unterscheidbar beschriftet oder als Duplikat entfernt werden.
 
