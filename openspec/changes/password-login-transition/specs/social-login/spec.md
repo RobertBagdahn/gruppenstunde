@@ -31,3 +31,30 @@ Das System SHALL Nutzer über OAuth-Anbieter via `django-allauth` (`allauth.soci
 - **WHEN** ein Besucher `POST /api/auth/register/` mit gültiger E-Mail und zwei gleichen, ausreichend starken Passwörtern aufruft
 - **THEN** werden `User` und `UserProfile` angelegt, der Besucher ist angemeldet und erhält HTTP 201 mit `needs_onboarding: true`
 - **AND** bei bereits vergebener E-Mail antwortet das System mit HTTP 400 und `code: "email_taken"`, bei schwachem Passwort mit `code: "weak_password"`
+
+### Requirement: Automatische Kontoanlage und -verknüpfung
+
+Beim ersten Social Login SHALL das System ohne weiteres Formular automatisch ein Konto anlegen (`auto signup`). Social Accounts SHALL NOT automatisch mit bestehenden lokalen Konten per E-Mail verknüpft oder zur Authentifizierung verwendet werden, damit Allauth ein bestehendes Passwort nicht unbemerkt ungültig macht. Hat die beim Anbieter verwendete E-Mail bereits ein lokales Konto, SHALL das System auf `/login?error=email_conflict` leiten. Der Nutzer kann sich mit seinem bestehenden Login anmelden und den Anbieter danach im authentifizierten Konto-Bereich explizit verbinden. Beim Anlegen eines neuen Social-Kontos SHALL ein `UserProfile` erzeugt und mit Vor- und Nachname des Anbieters vorbelegt werden.
+
+#### Scenario: Bestehender Passwortnutzer meldet sich erstmals mit Google an
+- **GIVEN** ein bestehendes Passwortkonto mit `max@example.org` ohne verknüpften Social Account
+- **WHEN** Max sich mit einem Google-Konto mit verifizierter Adresse `max@example.org` anmeldet
+- **THEN** wird das Konto nicht automatisch verknüpft
+- **AND** das System leitet auf `/login?error=email_conflict` mit einer Erklärung, sich mit dem bestehenden Login anzumelden und Google anschließend im Konto-Bereich zu verbinden
+- **AND** das bisherige Passwort bleibt gültig
+
+#### Scenario: Nutzer verbindet Google nach Passwort-Login
+- **GIVEN** Max ist mit seinem bestehenden Passwortkonto angemeldet
+- **WHEN** er Google über „Konto & Anmeldung“ explizit verbindet
+- **THEN** wird der Google-Account mit seinem bestehenden Nutzerkonto verbunden
+- **AND** das Passwort bleibt gültig
+
+#### Scenario: Neuer Nutzer
+- **WHEN** sich eine unbekannte Person erstmals mit Microsoft anmeldet
+- **THEN** werden `User` und `UserProfile` angelegt
+- **AND** die Session-Antwort enthält `needs_onboarding: true`
+
+#### Scenario: Social E-Mail eines bestehenden Kontos wird nicht verknüpft
+- **WHEN** ein Social-Anbieter eine E-Mail-Adresse liefert, die bereits einem lokalen Konto gehört
+- **THEN** SHALL das System nicht automatisch verknüpfen oder anmelden
+- **AND** es leitet auf `/login?error=email_conflict` weiter

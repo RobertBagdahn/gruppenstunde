@@ -163,6 +163,16 @@ class TestSocialAdapter:
             RequestFactory().get("/"), _sociallogin("neu@example.org", verified=True)
         )
 
+    def test_existing_password_account_is_not_auto_linked_or_wiped(self, user: object) -> None:
+        user.set_password("bleibt-geheim-123")
+        user.save(update_fields=["password"])
+        sociallogin = _sociallogin("max@example.org", verified=True, provider="google")
+        with pytest.raises(ImmediateHttpResponse) as exc:
+            SocialAccountAdapter().pre_social_login(RequestFactory().get("/"), sociallogin)
+        assert "error=email_conflict" in exc.value.response["Location"]
+        user.refresh_from_db()
+        assert user.check_password("bleibt-geheim-123")
+
     def test_local_signup_closed(self) -> None:
         assert NoPasswordAccountAdapter().is_open_for_signup(RequestFactory().get("/")) is False
 

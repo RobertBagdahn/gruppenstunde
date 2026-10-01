@@ -76,6 +76,15 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         ):
             raise ImmediateHttpResponse(login_error_redirect("connected_other", base=settings.FRONTEND_ACCOUNT_URL))
 
+        # Never auto-link by email: allauth may invalidate a legacy password when
+        # the local EmailAddress is unverified/missing. Require password login first,
+        # then the authenticated user can explicitly connect the provider.
+        if process != "connect" and not sociallogin.is_existing:
+            emails = [address.email for address in sociallogin.email_addresses if address.email]
+            user_model = get_user_model()
+            if emails and user_model.objects.filter(email__iexact=emails[0]).exists():
+                raise ImmediateHttpResponse(login_error_redirect("email_conflict", _state_next(sociallogin)))
+
     def is_auto_signup_allowed(self, request: HttpRequest, sociallogin: SocialLogin) -> bool:
         # Reached only when no linked account and no verified-email match exists.
         next_path = _state_next(sociallogin)
