@@ -7,6 +7,7 @@
  */
 import { create } from 'zustand';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
+import { formatExactWeight, formatNumber } from '@/lib/format';
 
 /** A modification entry for the change log */
 export interface Modification {
@@ -83,7 +84,7 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
           ...state.modifications,
           {
             type: 'add',
-            description: `${item.ingredient_name} hinzugefügt (${item.weight_g}g)`,
+            description: `${item.ingredient_name} hinzugefügt (${formatExactWeight(item.weight_g)})`,
             timestamp: Date.now(),
           },
         ],
@@ -174,7 +175,7 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
           ...state.modifications,
           {
             type: 'scale',
-            description: `Auf Normportion skaliert (Faktor: ${factor.toFixed(2)})`,
+            description: `Auf Normportion skaliert (Faktor: ${formatNumber(factor, { maxDecimals: 2 })})`,
             timestamp: Date.now(),
           },
         ],

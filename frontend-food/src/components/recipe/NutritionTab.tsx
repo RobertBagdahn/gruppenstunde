@@ -88,53 +88,53 @@ export function NutritionTab({ nb, recipeType }: Props) {
         </h3>
         {(Object.keys(nb.dge_reference).length > 0) && (
           <p className="text-caption text-muted-foreground mb-2">
-            DGE-Referenzwerte (25 Jahre, männlich)
+            Anteil am Tagesbedarf laut DGE (25 Jahre, männlich), bezogen auf das ganze Rezept
           </p>
         )}
         <div className="space-y-3 bg-muted/30 rounded-xl p-4">
           <MacroBar
             label="Protein"
-            value={nb.per_100g_protein_g ?? 0}
-            max={Math.max(nb.per_100g_protein_g ?? 0, nb.per_100g_fat_g ?? 0, nb.per_100g_carbohydrate_g ?? 0)}
+            value={nb.total_protein_g ?? 0}
+            max={Math.max(nb.total_protein_g ?? 0, nb.total_fat_g ?? 0, nb.total_carbohydrate_g ?? 0)}
             color="bg-danger"
             dgeRef={nb.dge_reference.protein_g}
             dgeCoverage={nb.dge_coverage.protein_g}
           />
           <MacroBar
             label="Fett"
-            value={nb.per_100g_fat_g ?? 0}
-            max={Math.max(nb.per_100g_protein_g ?? 0, nb.per_100g_fat_g ?? 0, nb.per_100g_carbohydrate_g ?? 0)}
+            value={nb.total_fat_g ?? 0}
+            max={Math.max(nb.total_protein_g ?? 0, nb.total_fat_g ?? 0, nb.total_carbohydrate_g ?? 0)}
             color="bg-warning"
             dgeRef={nb.dge_reference.fat_g}
             dgeCoverage={nb.dge_coverage.fat_g}
           />
           <MacroBar
             label="davon gesättigt"
-            value={nb.per_100g_fat_sat_g ?? 0}
-            max={nb.per_100g_fat_g ?? 1}
+            value={nb.total_fat_sat_g ?? 0}
+            max={nb.total_fat_g ?? 1}
             color="bg-warning"
             dgeRef={nb.dge_reference.fat_sat_g}
             dgeCoverage={nb.dge_coverage.fat_sat_g}
           />
           <MacroBar
             label="Kohlenhydrate"
-            value={nb.per_100g_carbohydrate_g ?? 0}
-            max={Math.max(nb.per_100g_protein_g ?? 0, nb.per_100g_fat_g ?? 0, nb.per_100g_carbohydrate_g ?? 0)}
+            value={nb.total_carbohydrate_g ?? 0}
+            max={Math.max(nb.total_protein_g ?? 0, nb.total_fat_g ?? 0, nb.total_carbohydrate_g ?? 0)}
             color="bg-success"
             dgeRef={nb.dge_reference.carbohydrate_g}
             dgeCoverage={nb.dge_coverage.carbohydrate_g}
           />
           <MacroBar
             label="davon Zucker"
-            value={nb.per_100g_sugar_g ?? 0}
-            max={nb.per_100g_carbohydrate_g ?? 1}
+            value={nb.total_sugar_g ?? 0}
+            max={nb.total_carbohydrate_g ?? 1}
             color="bg-success"
             dgeRef={nb.dge_reference.sugar_g}
             dgeCoverage={nb.dge_coverage.sugar_g}
           />
           <MacroBar
             label="Ballaststoffe"
-            value={nb.per_100g_fibre_g ?? 0}
+            value={nb.total_fibre_g ?? 0}
             max={nb.dge_reference.fibre_g ?? 30}
             color="bg-success"
             dgeRef={nb.dge_reference.fibre_g}
@@ -142,7 +142,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
           />
           <MacroBar
             label="Salz"
-            value={nb.per_100g_salt_g ?? 0}
+            value={nb.total_salt_g ?? 0}
             max={nb.dge_reference.salt_g ?? 6}
             color="bg-info"
             dgeRef={nb.dge_reference.salt_g}

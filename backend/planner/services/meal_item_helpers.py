@@ -57,7 +57,8 @@ def _resolve_ingredient_weight_g(
 ) -> float:
     """Resolve the total weight in grams for an ingredient-based MealItem.
 
-    Supports three paths:
+    Supports four paths:
+    0. If a portion was chosen → portion weight × quantity (portion count)
     1. If measuring_unit name is "g" → quantity directly (grams)
     2. If measuring_unit name is "ml" → quantity × density (fallback: 1 g/ml)
     3. Otherwise → portion lookup (weight_g × quantity)
@@ -69,7 +70,17 @@ def _resolve_ingredient_weight_g(
             queries are made for the portion lookup (avoids N+1 in callers
             that already batch-load portions).
     """
-    if not item.quantity or not item.measuring_unit:
+    if not item.quantity:
+        return 0.0
+
+    # An explicitly chosen portion wins: quantity is the portion count per person.
+    chosen_portion = getattr(item, "portion", None)
+    if chosen_portion is not None and getattr(chosen_portion, "deleted_at", None) is None:
+        chosen_weight = resolve_trusted_weight(chosen_portion)
+        if chosen_weight is not None:
+            return chosen_weight * float(item.quantity)
+
+    if not item.measuring_unit:
         return 0.0
 
     name_lower = item.measuring_unit.name.lower()

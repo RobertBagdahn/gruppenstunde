@@ -24,6 +24,8 @@ from recipe.services.url_import_service import (
     _merge_steps,
 )
 
+MISSING_QUANTITY_REASON = "Menge fehlt – bitte Menge und Portion festlegen."
+
 
 def _source_label(source: RecipeImportSourceIn) -> str:
     if source.type == "url":
@@ -51,7 +53,7 @@ def _portion_for_ingredient(ingredient_id: int) -> ReviewPortionOut | None:
         return None
     return ReviewPortionOut(
         id=portion.id,
-        name=str(portion),
+        name=portion.name,
         quantity=portion.quantity,
         weight_g=resolve_trusted_weight(portion),
         measuring_unit_id=portion.measuring_unit_id,
@@ -216,6 +218,12 @@ def preview_recipe_ingredients(
                         ingredient.quantity, ingredient.unit, best_candidate.id, user, conversion_memo
                     )
 
+            # A matched row without a quantity cannot be confirmed as-is: mark it
+            # open with an actionable reason instead of a silent "—".
+            quantity_missing = match.ingredient_id is not None and selected_portion is not None and quantity is None
+            reason = MISSING_QUANTITY_REASON if quantity_missing else match.reason
+            is_unresolved = match.ingredient_id is None or selected_portion is None or quantity_missing
+
             source_output = _source_reference(source)
             rows.append(
                 IngredientReviewRowOut(
@@ -231,7 +239,7 @@ def preview_recipe_ingredients(
                     suggested_portion=selected_portion,
                     quantity=quantity,
                     suggested_quantity=suggested_quantity,
-                    reason=match.reason,
+                    reason=reason,
                     technical_details=ReviewTechnicalDetailsOut(
                         method=match.matched_via,
                         confidence=match.confidence,
@@ -239,17 +247,29 @@ def preview_recipe_ingredients(
                     ),
                     conflicts=[],
                     new_ingredient_draft=draft,
-                    status="unresolved" if match.ingredient_id is None or selected_portion is None else "open",
+                    status="unresolved" if is_unresolved else "open",
                 )
             )
             row_index += 1
 
-    grouped: dict[str, IngredientReviewRowOut] = {}
+    # Merge the same ingredient text only across *different* sources, at most
+    # once per source. Two "Mehl" lines of one recipe (dough and crumble) stay
+    # separate rows with their own quantities.
+    grouped: list[IngredientReviewRowOut] = []
     for row in rows:
         group_key = row.source_text.strip().lower()
-        existing = grouped.get(group_key)
+        row_source_values = {source.value for source in row.sources}
+        existing = next(
+            (
+                candidate
+                for candidate in grouped
+                if candidate.source_text.strip().lower() == group_key
+                and not row_source_values & {source.value for source in candidate.sources}
+            ),
+            None,
+        )
         if existing is None:
-            grouped[group_key] = row
+            grouped.append(row)
             continue
         if existing.quantity != row.quantity:
             existing.conflicts.append(
@@ -262,7 +282,7 @@ def preview_recipe_ingredients(
             existing.status = "unresolved"
 
     return IngredientReviewPreviewOut(
-        rows=list(grouped.values()),
+        rows=grouped,
         sources=source_outputs,
         ai_interaction_id=interaction_ids[0] if interaction_ids else None,
         recipe_draft=recipe_draft or RecipeDraftOut(title="Unbenanntes Rezept"),

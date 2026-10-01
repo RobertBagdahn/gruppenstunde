@@ -25,7 +25,7 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border bg-card p-3 space-y-2">
+        <div className="min-w-0 rounded-xl border bg-card p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-body font-semibold">{junk.length} unsinnige Rezepte</p>
             <Button
@@ -69,7 +69,7 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
           )}
         </div>
 
-        <div className="rounded-xl border bg-card p-3 space-y-2">
+        <div className="min-w-0 rounded-xl border bg-card p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-body font-semibold">Rezeptkategorien prüfen</p>
             <Button

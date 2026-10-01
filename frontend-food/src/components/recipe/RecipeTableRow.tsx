@@ -7,7 +7,8 @@ import {
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
 import RecipeThumbnail from './RecipeThumbnail';
-import { formatNumber } from '@/lib/format';
+import { formatEuro } from '@/lib/format';
+import { recipePricePerPortion } from '@/lib/recipeCostRanges';
 import { Icon } from '@/components/ui/icon';
 
 interface RecipeTableRowProps {
@@ -21,9 +22,8 @@ export default function RecipeTableRow({ recipe, searchQuery, onDelete, onClone 
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
   const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
-  const costsLabel = recipe.cached_price_total != null
-    ? `${formatNumber(recipe.cached_price_total, { maxDecimals: 2 }).replace('.', ',')} €`
-    : '—';
+  const pricePerPortion = recipePricePerPortion(recipe);
+  const costsLabel = pricePerPortion != null ? `${formatEuro(pricePerPortion)} / P.` : '—';
 
   const isDraft = recipe.status === 'draft';
 

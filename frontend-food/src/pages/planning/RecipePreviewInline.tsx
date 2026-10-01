@@ -53,8 +53,8 @@ export default function RecipePreviewInline({
     : null;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <h3 className="text-section font-display font-bold">{recipe.title}</h3>
         <button
           onClick={onCancel}
@@ -64,7 +64,7 @@ export default function RecipePreviewInline({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
         <RecipeThumbnail
           imageUrl={recipe.image_url}
           title={recipe.title}
@@ -150,7 +150,7 @@ export default function RecipePreviewInline({
         )}
       </div>
 
-      <div className="flex gap-2 justify-end pt-3 border-t mt-3">
+      <div className="mt-3 flex shrink-0 justify-end gap-2 border-t bg-card pt-3">
         <button
           onClick={onCancel}
           className="px-4 py-2 text-body rounded-lg border hover:bg-muted transition-colors"

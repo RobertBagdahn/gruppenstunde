@@ -156,3 +156,56 @@ class TestReviewCandidatesAndQuantities:
         row = result.rows[0]
         assert row.new_ingredient_draft is not None
         assert row.new_ingredient_draft.quantity == 1
+
+
+@pytest.mark.django_db
+class TestReviewMissingQuantityAndGrouping:
+    def test_matched_row_without_quantity_is_unresolved_with_reason(self, django_user_model):
+        user = django_user_model.objects.create_user(username="r-missing", password="x")
+        ing = make_ingredient(name="Zimt")
+        make_portion(ing, name="1 TL Zimt", quantity=1.0, weight_g=5.0, rank=1)
+
+        extraction = _extraction([GeminiIngredientMatch(original_name="Zimt", quantity=0, unit="")])
+        result = _preview(extraction, [ImportedIngredient(name="Zimt", quantity="", unit="")], user)
+
+        row = result.rows[0]
+        assert row.selected_ingredient_id == ing.id
+        assert row.quantity is None
+        assert row.status == "unresolved"
+        assert row.reason == "Menge fehlt – bitte Menge und Portion festlegen."
+
+    def test_same_ingredient_twice_in_one_source_stays_two_rows(self, django_user_model):
+        user = django_user_model.objects.create_user(username="r-twice", password="x")
+        ing = make_ingredient(name="Mehl")
+        make_portion(ing, name="100g Mehl", quantity=1.0, weight_g=100.0, rank=1)
+
+        extraction = _extraction(
+            [
+                GeminiIngredientMatch(original_name="Mehl", quantity=250, unit="g"),
+                GeminiIngredientMatch(original_name="Mehl", quantity=50, unit="g"),
+            ]
+        )
+        result = _preview(
+            extraction,
+            [
+                ImportedIngredient(name="250 g Mehl", quantity="250", unit="g"),
+                ImportedIngredient(name="50 g Mehl", quantity="50", unit="g"),
+            ],
+            user,
+        )
+
+        assert len(result.rows) == 2
+        assert sorted(row.quantity for row in result.rows) == [0.5, 2.5]
+        assert all(not row.conflicts for row in result.rows)
+
+    def test_portion_name_is_plain_portion_name(self, django_user_model):
+        user = django_user_model.objects.create_user(username="r-name", password="x")
+        ing = make_ingredient(name="Weizenmehl Type 405")
+        make_portion(ing, name="Tasse Mehl", quantity=1.0, weight_g=100.0, rank=1)
+
+        extraction = _extraction([GeminiIngredientMatch(original_name="Weizenmehl Type 405", quantity=200, unit="g")])
+        result = _preview(
+            extraction, [ImportedIngredient(name="200 g Weizenmehl Type 405", quantity="200", unit="g")], user
+        )
+
+        assert result.rows[0].selected_portion.name == "Tasse Mehl"

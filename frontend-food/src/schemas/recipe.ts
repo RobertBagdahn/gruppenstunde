@@ -266,6 +266,7 @@ export const PaginatedRecipesSchema = z.object({
   page: z.number(),
   page_size: z.number(),
   total_pages: z.number(),
+  seed: z.number().nullable().optional(),
 });
 export type PaginatedRecipes = z.infer<typeof PaginatedRecipesSchema>;
 
@@ -289,9 +290,12 @@ export const RecipeFilterSchema = z.object({
   difficulty: z.array(z.string()).optional(),
   costs_min: z.number().optional(),
   costs_max: z.number().optional(),
+  // UI-only: selected price ranges (costs_min/costs_max are derived from them).
+  cost: z.array(z.string()).optional(),
   execution_time: z.array(z.string()).optional(),
   origin: z.array(z.string()).optional(), // ["verified"] | ["community"] | ["mine"] or combinations
   sort: z.string().default('use_count'),
+  seed: z.number().int().optional(),
   page: z.number().default(1),
   page_size: z.number().default(20),
 });

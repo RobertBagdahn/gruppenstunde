@@ -458,12 +458,12 @@ function MealPlanListPageInner() {
               icon="restaurant_menu"
               title="Keine Essenspläne gefunden"
               description={
-                searchQuery
-                  ? 'Keine Essenspläne für diese Suche gefunden.'
+                activeCount > 0
+                  ? 'Mit dieser Suche und diesen Filtern gibt es keine Treffer.'
                   : 'Erstelle deinen ersten Essensplan für eine Fahrt oder den Gruppenalltag.'
               }
-              ctaLabel="Neuen Essensplan erstellen"
-              onCtaClick={() => navigate('/meal-plans/new')}
+              ctaLabel={activeCount > 0 ? 'Filter zurücksetzen' : 'Neuen Essensplan erstellen'}
+              onCtaClick={activeCount > 0 ? reset : () => navigate('/meal-plans/new')}
             />
           ) : (
             <>

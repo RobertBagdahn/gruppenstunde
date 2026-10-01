@@ -448,6 +448,7 @@ class IngredientDetailOut(Schema):
                 "icon": t.icon,
                 "group": t.group,
                 "sort_order": t.sort_order,
+                "parent_id": t.parent_id,
             }
             for t in obj.tags.all()
         ]
@@ -759,5 +760,6 @@ class StandardMeasureOut(Schema):
     key: str
     name: str
     grams: float
+    volume_ml: float | None = None
     unit_name: str = "g"
     is_approx: bool = True

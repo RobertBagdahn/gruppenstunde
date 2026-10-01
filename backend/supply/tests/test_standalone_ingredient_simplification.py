@@ -188,8 +188,8 @@ class TestSearchEndpointStandaloneType:
         for ing in data["ingredients"]:
             assert "standalone_type" not in ing, "standalone_type should be removed from API response"
 
-    def test_search_endpoint_filters_only_by_is_standalone_food(self):
-        """Search only includes is_standalone_food=True ingredients."""
+    def test_search_without_query_keeps_standalone_suggestions(self):
+        """An empty search keeps the compact standalone-food suggestion list."""
         user = baker.make(User)
         plan = make_meal_plan()
 
@@ -208,6 +208,45 @@ class TestSearchEndpointStandaloneType:
 
         assert standalone.id in ing_ids
         assert non_standalone.id not in ing_ids
+
+    def test_named_search_includes_verified_non_standalone_and_excludes_drafts_and_deleted(self):
+        from django.utils import timezone
+
+        user = baker.make(User)
+        active = make_ingredient(name="Sojamilch", is_standalone_food=False)
+        draft = make_ingredient(name="Sojamilch Entwurf", is_standalone_food=False, status="draft")
+        deleted = make_ingredient(name="Sojamilch gelöscht", is_standalone_food=False)
+        deleted.deleted_at = timezone.now()
+        deleted.save(update_fields=["deleted_at"])
+
+        client = Client()
+        client.force_login(user)
+        response = client.get(
+            "/api/meal-plans/recipes/search/",
+            {"q": "Sojamilch", "recipe_types": "ingredient"},
+        )
+
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["ingredients"]]
+        assert active.id in ids
+        assert draft.id not in ids
+        assert deleted.id not in ids
+
+    def test_named_search_orders_exact_ingredient_before_prefix_match(self):
+        user = baker.make(User)
+        exact = make_ingredient(name="Zimt", is_standalone_food=False, usage_count=0)
+        prefix = make_ingredient(name="Zimt gemahlen", is_standalone_food=False, usage_count=100)
+
+        client = Client()
+        client.force_login(user)
+        response = client.get(
+            "/api/meal-plans/recipes/search/",
+            {"q": "Zimt", "recipe_types": "ingredient"},
+        )
+
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["ingredients"]]
+        assert ids[:2] == [exact.id, prefix.id]
 
 
 @pytest.mark.django_db

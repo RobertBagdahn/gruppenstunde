@@ -21,6 +21,7 @@ import CategoryPills from '@/components/recipe/CategoryPills';
 import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 import IntelligentSuggestionsGrid from '@/components/recipe/IntelligentSuggestionsGrid';
+import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
 export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
@@ -217,7 +218,7 @@ export default function RecipeSearchDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-3xl max-h-[85vh] min-h-[60vh] max-[640px]:min-h-[80vh] flex flex-col gap-3"
+        className="max-w-3xl h-[min(760px,85dvh)] max-h-[85dvh] min-h-0 overflow-hidden flex flex-col gap-3"
         onEscapeKeyDown={handleEscapeKeyDown}
       >
         {previewRecipe ? (
@@ -427,10 +428,6 @@ export default function RecipeSearchDialog({
                     }
                   }
 
-                  availableItems.sort(
-                    (a, b) => ((b.data.usage_count ?? 0) - (a.data.usage_count ?? 0))
-                  );
-
                   return availableItems.map((item) => (
                     <SearchResultCard
                       key={`${item.kind}-${item.data.id}`}
@@ -554,13 +551,13 @@ function IngredientQuantityInline({
     : null;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-1 min-h-0 flex-col">
       <div className="flex items-center gap-2 text-section font-display font-bold mb-4">
         <Egg className="w-5 h-5 text-primary" />
         {ingredient.name} hinzufügen
       </div>
 
-      <div className="flex-1 space-y-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
         <div>
           <label className="text-body font-medium">Menge</label>
           <input
@@ -585,7 +582,7 @@ function IngredientQuantityInline({
                   <SelectItem key={p.id} value={String(p.id)}>
                     {p.name}
                     {p.measuring_unit ? ` (${p.measuring_unit})` : ''}
-                    {p.weight_g ? ` — ${p.weight_g}g` : ''}
+                    {p.weight_g ? ` — ${formatExactWeight(p.weight_g)}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -595,12 +592,12 @@ function IngredientQuantityInline({
 
         {totalWeightG && selectedPortion?.weight_g && (
           <p className="text-caption text-muted-foreground">
-            {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
+            {formatNumber(quantity, { maxDecimals: 2 })} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
           </p>
         )}
       </div>
 
-      <div className="flex gap-2 justify-end pt-3 border-t mt-3">
+      <div className="mt-3 flex shrink-0 justify-end gap-2 border-t bg-card pt-3">
         <button
           onClick={onCancel}
           className="px-4 py-2 text-body rounded-lg border hover:bg-muted transition-colors"

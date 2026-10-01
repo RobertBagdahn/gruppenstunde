@@ -5,8 +5,8 @@ import logging
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError
-from django.db.models import BooleanField, Case, Count, Prefetch, Q, Value, When
+from django.db import IntegrityError, connection
+from django.db.models import BooleanField, Case, Count, IntegerField, Prefetch, Q, QuerySet, Value, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Router, Status
@@ -243,6 +243,20 @@ def _require_defined_unit(ingredient, measuring_unit_id: int | None) -> None:
         raise HttpError(422, f"Einheit {unit.name} ist für {ingredient.name} nicht definiert.")
 
 
+def _resolve_chosen_portion(ingredient, portion_id: int | None):
+    """Return the active portion chosen for a single ingredient, or None.
+
+    The portion must belong to the ingredient; otherwise the request is
+    rejected instead of silently falling back to another weight.
+    """
+    if ingredient is None or not portion_id:
+        return None
+    portion = ingredient.portions.active().filter(id=portion_id).select_related("measuring_unit").first()
+    if portion is None:
+        raise HttpError(422, "Die Portion gehört nicht zu dieser Zutat")
+    return portion
+
+
 def _attach_warnings(item: MealItem) -> MealItem:
     """Attach plausibility warnings for the response (never blocks saving)."""
     from planner.services.quantity_plausibility import check_item
@@ -276,6 +290,29 @@ def check_duplicates_in_input(items: list) -> dict[str, list[int]]:
 # ==========================================================================
 # MealPlan CRUD
 # ==========================================================================
+
+
+def _meal_plan_ingredient_search_queryset(request: Any, query: str) -> QuerySet[Ingredient]:
+    """Return visible, verified ingredients in relevance order for meal search."""
+    from content.services.food_access import visible_ingredient_queryset
+    from supply.choices import IngredientStatusChoices
+
+    queryset = visible_ingredient_queryset(request.user).filter(
+        status=IngredientStatusChoices.VERIFIED,
+        deleted_at__isnull=True,
+    )
+    if query and len(query) >= 2:
+        queryset = queryset.filter(name__icontains=query).annotate(
+            search_rank=Case(
+                When(name__iexact=query, then=Value(0)),
+                When(name__istartswith=query, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            )
+        )
+        return queryset.order_by("search_rank", "-usage_count", "name", "id")
+
+    return queryset.filter(is_standalone_food=True).order_by("-usage_count", "name", "id")
 
 
 @meal_plan_router.get("/", response=list[MealPlanOut])
@@ -341,10 +378,7 @@ def list_meal_plans(
     elif origin == "community":
         qs = qs.filter(owner__isnull=False, visibility=MealPlanVisibility.PUBLIC)
     elif origin == "mine":
-        if request.user.is_staff:
-            qs = qs.all()
-        else:
-            qs = qs.filter(created_by=request.user)
+        qs = qs.filter(created_by=request.user)
     else:
         # "all" — show what user has access to
         if request.user.is_staff:
@@ -378,9 +412,9 @@ def list_meal_plans(
         "name_desc": "-name",
     }
     if sort and sort in sort_map:
-        qs = qs.order_by(sort_map[sort], "-created_at")
+        qs = qs.order_by(sort_map[sort], "-created_at", "-id")
     else:
-        qs = qs.order_by("-start_datetime", "-created_at")
+        qs = qs.order_by("-start_datetime", "-created_at", "-id")
 
     items = list(qs)
     for plan in items:
@@ -1035,12 +1069,16 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
 
         ingredient = get_visible_ingredient_or_404(request.user, payload.ingredient_id, allow_system_draft=True)
 
+    chosen_portion = _resolve_chosen_portion(ingredient, payload.portion_id)
+
     item = _create_meal_item(
         meal=meal,
         recipe=recipe,
         ingredient=ingredient,
         quantity=payload.quantity,
-        measuring_unit_id=payload.measuring_unit_id,
+        # The portion's own unit wins so all views agree on what "1 Scheibe" means.
+        measuring_unit_id=chosen_portion.measuring_unit_id if chosen_portion else payload.measuring_unit_id,
+        portion=chosen_portion,
         display_name=payload.display_name,
         factor=payload.factor,
     )
@@ -2187,6 +2225,7 @@ def search_recipes(
 
     limit = min(limit, 50)
     fallback_applied = False
+    has_search_rank = False
 
     # Parse recipe_types early
     parsed_types: list[str] = []
@@ -2196,13 +2235,10 @@ def search_recipes(
     # 'ingredient' mode: only standalone ingredients, no recipes
     if parsed_types == ["ingredient"]:
         recipes_data: list[dict] = []
-        from supply.models import Ingredient, Portion
+        from supply.models import Portion
         from supply.models.reference import NutritionalTag
 
-        ing_qs = Ingredient.objects.filter(is_standalone_food=True)
-
-        if q and len(q) >= 2:
-            ing_qs = ing_qs.filter(name__icontains=q)
+        ing_qs = _meal_plan_ingredient_search_queryset(request, q)
 
         if nutritional_tag_ids:
             tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
@@ -2213,6 +2249,7 @@ def search_recipes(
             exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
             if exclude_tag_ids:
                 ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
+        ing_qs = ing_qs.distinct()
 
         ing_list_only: list[dict[str, Any]] = [
             dict(row)
@@ -2284,10 +2321,26 @@ def search_recipes(
 
         search_query = SearchQuery(q, config="german")
         qs_fts = qs.filter(search_vector=search_query).annotate(rank=SearchRank("search_vector", search_query))
-        if qs_fts.exists():
-            qs = qs_fts.order_by("-rank")
+        if connection.vendor == "postgresql" and qs_fts.exists():
+            qs = qs_fts
         else:
-            qs = qs.filter(title__icontains=q)
+            qs = qs.filter(title__icontains=q).annotate(
+                rank=Case(
+                    When(title__iexact=q, then=Value(3)),
+                    When(title__istartswith=q, then=Value(2)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            )
+        qs = qs.annotate(
+            title_match_rank=Case(
+                When(title__iexact=q, then=Value(0)),
+                When(title__istartswith=q, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            )
+        )
+        has_search_rank = True
 
     # Determine recipe_type filter: explicit list > meal_type mapping > all
     if recipe_types:
@@ -2310,21 +2363,23 @@ def search_recipes(
         if exclude_tag_ids:
             qs = qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
+    recipe_order = ["-is_own", "-usage_count", "cached_price_total", "id"]
+    if has_search_rank:
+        recipe_order[0:0] = ["-rank", "title_match_rank"]
+
     if type_filter:
         primary_qs = qs.filter(recipe_type__in=type_filter)
-        primary_recipes = list(primary_qs.order_by("-is_own", "-usage_count", "cached_price_total")[:limit])
+        primary_recipes = list(primary_qs.order_by(*recipe_order)[:limit])
         if len(primary_recipes) < limit:
             fallback_applied = True
             seen_ids = {r.id for r in primary_recipes}
             remaining = limit - len(primary_recipes)
-            fallback_qs = qs.exclude(id__in=seen_ids).order_by("-is_own", "-usage_count", "cached_price_total")[
-                :remaining
-            ]
+            fallback_qs = qs.exclude(id__in=seen_ids).order_by(*recipe_order)[:remaining]
             recipes_qs = primary_recipes + list(fallback_qs)
         else:
             recipes_qs = primary_recipes
     else:
-        recipes_qs = list(qs.order_by("-is_own", "-usage_count", "cached_price_total")[:limit])
+        recipes_qs = list(qs.order_by(*recipe_order)[:limit])
 
     # Fetch related data
     recipe_ids = [r.id for r in recipes_qs]
@@ -2392,12 +2447,9 @@ def search_recipes(
         )
 
     # --- Standalone Ingredients ---
-    from supply.models import Ingredient, Portion
+    from supply.models import Portion
 
-    ing_qs = Ingredient.objects.filter(is_standalone_food=True)
-
-    if q and len(q) >= 2:
-        ing_qs = ing_qs.filter(name__icontains=q)
+    ing_qs = _meal_plan_ingredient_search_queryset(request, q)
 
     if nutritional_tag_ids:
         tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
@@ -2408,6 +2460,7 @@ def search_recipes(
         exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
         if exclude_tag_ids:
             ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
+    ing_qs = ing_qs.distinct()
 
     ing_list: list[dict[str, Any]] = [
         dict(row)

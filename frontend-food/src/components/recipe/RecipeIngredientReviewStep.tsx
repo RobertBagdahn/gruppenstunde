@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Check, ChevronDown, Plus, Search, Scale, Sparkles } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Check, ChevronDown, Plus, Scale, Search, Sparkles, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -10,11 +11,12 @@ import type { IngredientReviewRow, ReviewPortion } from '@/schemas/ingredientRev
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import { useIngredientPortions } from '@/api/supplies';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   isIngredientReviewRowComplete,
   useRecipeIngredientReviewStore,
 } from '@/store/useRecipeIngredientReviewStore';
-import { formatExactWeight, formatWeight } from '@/lib/format';
+import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
 
 interface RecipeIngredientReviewStepProps {
   onAddIngredient?: () => void;
@@ -212,14 +214,18 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [alternativesOpen, setAlternativesOpen] = useState(false);
   const [newIngredientOpen, setNewIngredientOpen] = useState(false);
+  const [removeLastOpen, setRemoveLastOpen] = useState(false);
   const [quantityIngredient, setQuantityIngredient] = useState<{
     id: number;
     name: string;
     slug: string;
   } | null>(null);
   const confirmRow = useRecipeIngredientReviewStore((state) => state.confirmRow);
+  const removeRow = useRecipeIngredientReviewStore((state) => state.removeRow);
+  const restoreRow = useRecipeIngredientReviewStore((state) => state.restoreRow);
   const complete = isIngredientReviewRowComplete(row);
   const updateRow = useRecipeIngredientReviewStore((state) => state.updateRow);
+  const searchRef = useRef<HTMLDivElement>(null);
   // The quantity dialog must always offer the portions of the ingredient it was
   // opened for — not those of the row's previous selection.
   const {
@@ -244,22 +250,78 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
     });
   };
 
-  const openQuantityDialogFor = (id: number, name: string, slug: string) => {
+  // A different ingredient invalidates portion and quantity; the dialog then
+  // asks for both again.
+  const selectIngredient = (id: number, name: string, slug: string) => {
     setQuantityIngredient({ id, name, slug });
     updateRow(row.key, {
       selected_ingredient_id: id,
       selected_ingredient_name: name,
       selected_ingredient_slug: slug,
       selected_portion: null,
+      quantity: null,
       status: 'changed',
       reason: 'Die Zutat wurde vom Menschen ausgewählt. Bitte prüfe noch die Portion.',
     });
   };
 
+  // Re-opening the dialog for the current ingredient must not touch the row:
+  // cancelling keeps portion and quantity.
+  const openQuantityDialog = () => {
+    if (row.selected_ingredient_id === null) return;
+    setQuantityIngredient({
+      id: row.selected_ingredient_id,
+      name: row.selected_ingredient_name,
+      slug: row.selected_ingredient_slug,
+    });
+  };
+
   const selectCandidate = (id: number, name: string, slug: string) => {
-    openQuantityDialogFor(id, name, slug);
+    selectIngredient(id, name, slug);
     setAlternativesOpen(false);
   };
+
+  const focusSearch = () => searchRef.current?.querySelector('input')?.focus();
+
+  const handleNameChange = (value: string) => {
+    const current = useRecipeIngredientReviewStore.getState().rows.find((candidate) => candidate.key === row.key);
+    if (!current || value === current.selected_ingredient_name) return;
+    if (current.selected_ingredient_id === null) {
+      updateRow(row.key, { selected_ingredient_name: value });
+      return;
+    }
+    // Typing over a selected ingredient without picking a result: the name and the
+    // saved ingredient must never differ, so the row becomes unresolved.
+    updateRow(row.key, {
+      selected_ingredient_id: null,
+      selected_ingredient_slug: '',
+      selected_ingredient_name: value,
+      selected_portion: null,
+      quantity: null,
+      status: 'unresolved',
+      reason: 'Bitte wähle eine Zutat aus der Suche.',
+    });
+  };
+
+  const removeNow = () => {
+    const removed = removeRow(row.key);
+    if (!removed) return;
+    toast('Zeile entfernt', {
+      description: row.source_text,
+      action: { label: 'Rückgängig', onClick: () => restoreRow(removed.row, removed.index) },
+    });
+  };
+
+  // Removing the last row also removes the review step, so ask first.
+  const handleRemove = () => {
+    if (useRecipeIngredientReviewStore.getState().rows.length <= 1) {
+      setRemoveLastOpen(true);
+      return;
+    }
+    removeNow();
+  };
+
+  const missingQuantity = row.selected_ingredient_id !== null && row.quantity === null;
 
   const handleQuantityConfirm = (portionId: number | null, _measuringUnitId: number | null, quantity: number) => {
     if (!quantityIngredient) return;
@@ -314,18 +376,37 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <p className="text-caption font-medium text-muted-foreground">Vorgeschlagene Zutat</p>
+          <div ref={searchRef}>
           <IngredientAutocomplete
             value={row.selected_ingredient_name || row.suggested_ingredient_name}
-            onChange={(value) => updateRow(row.key, { selected_ingredient_name: value })}
-            onSelect={(ingredient) => openQuantityDialogFor(ingredient.id, ingredient.name, ingredient.slug)}
-            onCreateNew={() => updateRow(row.key, {
-              selected_ingredient_id: null,
-              selected_ingredient_name: '',
-              status: 'unresolved',
-              reason: 'Eine neue Zutat muss im Zutateneditor vollständig geprüft werden.',
-            })}
+            onChange={handleNameChange}
+            onSelect={(ingredient) => selectIngredient(ingredient.id, ingredient.name, ingredient.slug)}
+            onCreateNew={(name) => {
+              // "No existing ingredient fits": start a new-ingredient draft from the
+              // typed name; the draft dialog completes values, portion and quantity.
+              const draftName = (name || row.source_text).trim();
+              updateRow(row.key, {
+                selected_ingredient_id: null,
+                selected_ingredient_slug: '',
+                selected_ingredient_name: draftName,
+                selected_portion: null,
+                quantity: null,
+                new_ingredient_draft: row.new_ingredient_draft ?? {
+                  name: draftName,
+                  description: '',
+                  status: 'draft',
+                  values: {},
+                  portions: [],
+                  quantity: null,
+                },
+                status: 'unresolved',
+                reason: 'Neue Zutat: bitte Nährwerte, Portion und Menge prüfen.',
+              });
+              setNewIngredientOpen(true);
+            }}
             placeholder="Zutat suchen..."
           />
+          </div>
           <p className="text-caption text-muted-foreground mt-1">{row.reason || 'Manuelle Zuordnung erforderlich'}</p>
 
           {/* Candidate alternatives */}
@@ -402,17 +483,27 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
         </div>
         <div className="text-body sm:text-right">
           <p className="text-caption font-medium text-muted-foreground">Menge und Portion</p>
-          <p>{row.quantity ?? '—'} {row.selected_portion?.name ?? '—'}</p>
+          {row.quantity === null ? (
+            <p className="font-medium text-warning">Menge fehlt</p>
+          ) : (
+            <p className="text-emphasis font-semibold">
+              {formatNumber(row.quantity, { maxDecimals: 2 })} × {row.selected_portion?.name ?? '—'}
+              {row.selected_portion?.weight_g ? (
+                <span className="block text-caption font-normal text-muted-foreground">
+                  à {formatExactWeight(row.selected_portion.weight_g)}
+                </span>
+              ) : null}
+            </p>
+          )}
           {row.suggested_quantity !== row.quantity && row.suggested_quantity !== null && (
-            <p className="text-caption text-muted-foreground">AI-Menge: {row.suggested_quantity}</p>
+            <p className="text-caption text-muted-foreground">
+              KI-Menge: {formatNumber(row.suggested_quantity, { maxDecimals: 2 })}
+            </p>
           )}
           {row.selected_ingredient_id !== null && (
             <button
               type="button"
-              onClick={() => {
-                if (row.selected_ingredient_id === null) return;
-                openQuantityDialogFor(row.selected_ingredient_id, row.selected_ingredient_name || '', row.selected_ingredient_slug);
-              }}
+              onClick={openQuantityDialog}
               className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted"
             >
               <Scale className="h-4 w-4" />
@@ -430,18 +521,43 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
+        <button type="button" onClick={focusSearch} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Search className="h-4 w-4" />
           Zutat ändern
         </button>
         <button
           type="button"
-          onClick={() => confirmRow(row.key)}
-          disabled={!complete || row.status === 'confirmed'}
+          onClick={() => {
+            if (complete) {
+              confirmRow(row.key);
+            } else if (row.selected_ingredient_id !== null) {
+              openQuantityDialog();
+            } else if (draft) {
+              setNewIngredientOpen(true);
+            } else {
+              focusSearch();
+            }
+          }}
+          disabled={row.status === 'confirmed'}
           className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-body text-primary-foreground disabled:opacity-50"
         >
           <Check className="h-4 w-4" />
-          {row.status === 'confirmed' ? 'Bestätigt' : 'Vorschlag bestätigen'}
+          {row.status === 'confirmed'
+            ? 'Bestätigt'
+            : complete
+              ? 'Vorschlag bestätigen'
+              : missingQuantity || row.selected_ingredient_id !== null
+                ? 'Menge festlegen'
+                : 'Zutat wählen'}
+        </button>
+        <button
+          type="button"
+          onClick={handleRemove}
+          aria-label="Zeile entfernen"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-body text-muted-foreground hover:bg-muted hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+          Entfernen
         </button>
         <button type="button" onClick={() => setDetailsOpen((open) => !open)} className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-body text-muted-foreground hover:bg-muted">
           Details <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
@@ -468,10 +584,23 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
             if (!isOpen) setQuantityIngredient(null);
           }}
           onConfirm={handleQuantityConfirm}
-          initialQuantity={row.suggested_quantity ?? 1}
+          initialPortionId={row.selected_portion?.id ?? null}
+          initialQuantity={row.selected_portion ? (row.quantity ?? 1) : (row.suggested_quantity ?? 1)}
           confirmLabel="Übernehmen"
         />
       )}
+
+      <ConfirmDialog
+        open={removeLastOpen}
+        onConfirm={() => {
+          setRemoveLastOpen(false);
+          removeNow();
+        }}
+        onCancel={() => setRemoveLastOpen(false)}
+        title="Letzte Zeile entfernen?"
+        description="Danach gibt es nichts mehr zu prüfen, und das Rezept wird ohne importierte Zutaten angelegt."
+        confirmLabel="Entfernen"
+      />
 
       {/* Full AI draft review for new ingredients */}
       <NewIngredientDialog row={row} open={newIngredientOpen} onOpenChange={setNewIngredientOpen} />
@@ -483,6 +612,7 @@ export default function RecipeIngredientReviewStep({ onAddIngredient }: RecipeIn
   const rows = useRecipeIngredientReviewStore((state) => state.rows);
   const error = useRecipeIngredientReviewStore((state) => state.error);
   const confirmCompleteRows = useRecipeIngredientReviewStore((state) => state.confirmCompleteRows);
+  const addEmptyRow = useRecipeIngredientReviewStore((state) => state.addEmptyRow);
 
   return (
     <section className="space-y-5" aria-labelledby="ingredient-review-title">
@@ -495,7 +625,7 @@ export default function RecipeIngredientReviewStep({ onAddIngredient }: RecipeIn
         <button type="button" onClick={confirmCompleteRows} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Check className="h-4 w-4" /> Alle Vorschläge übernehmen
         </button>
-        <button type="button" onClick={onAddIngredient} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
+        <button type="button" onClick={() => { addEmptyRow(); onAddIngredient?.(); }} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Plus className="h-4 w-4" /> Zutat hinzufügen
         </button>
       </div>

@@ -27,10 +27,11 @@ def test_standard_measure_out_contract_fields():
         "key": "el",
         "name": "1 EL",
         "grams": 12.0,
+        "volume_ml": None,
         "unit_name": "g",
         "is_approx": True,
     }
-    assert set(["key", "name", "grams", "unit_name", "is_approx"]) <= set(StandardMeasureOut.model_fields)
+    assert set(["key", "name", "grams", "volume_ml", "unit_name", "is_approx"]) <= set(StandardMeasureOut.model_fields)
 
 
 def test_portion_out_piece_like_resolution():

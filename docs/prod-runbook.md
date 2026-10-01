@@ -79,10 +79,39 @@ Datenhinweise aus der lokalen Prüfung (vor der Freigabe ansehen):
   (z. B. Blütenhonig → erscheint in Litern). Aggregatzustand korrigieren.
 - Portionsnamen wie „100 ml“ ergeben unschöne Stückangaben („≈ 36,5 100 ml“).
 
+## 6. food-audit-bugfixes — vor und nach dem Deploy
+
+Enthält die Migration `planner.0008_mealitem_portion` (nullable Spalte `portion_id`, kein Backfill).
+Cloud Build führt sie beim Deploy automatisch aus; sie ist rein additiv und sperrt nichts.
+
+- [x] Vor dem Deploy: `uv run python manage.py sqlmigrate planner 0008` geprüft
+      (nur `ADD COLUMN … NULL` und `CREATE INDEX`)
+- [x] Deploy: 2026-10-01, Commit `70409580`; Backend `inspi-backend-00072-zmg`, Migration-Job
+      `inspi-migrate-bbw22`, Food-Frontend `inspi-frontend-food-00066-w2m`.
+      Das Haupt-Frontend (`inspi-frontend-00015-f96`) wurde ebenfalls aktualisiert.
+- [ ] Nach dem Deploy, nur lesen: Einzelzutaten im Plan, die vor der Änderung mit der Einheit „Gramm"
+      und sehr kleiner Menge gespeichert wurden (wirkten wie „1 g Toastbrot“ statt „1 Scheibe“).
+      Ausgabe Robert zeigen; Korrektur nur nach seinem OK und von Hand im Plan:
+
+      ```python
+      from planner.models import MealItem
+      MealItem.objects.filter(
+          ingredient__isnull=False, portion__isnull=True,
+          measuring_unit__name__iexact="Gramm", quantity__lte=5,
+      ).values_list("id", "meal__meal_plan_id", "ingredient__name", "quantity")
+      ```
+- [x] Stichprobe: Produktions-Endpunkte Backend, Haupt- und Food-Frontend antworten mit HTTP 200.
+- [ ] Stichprobe: Einkaufsliste eines Plans mit Honig zeigt dieselbe Menge (ml) wie der Einkaufen-Tab;
+      bestehende, schon erzeugte Listen werden beim Lesen korrekt umgerechnet (keine Datenkorrektur nötig)
+- [ ] Stichprobe: Rezeptliste „Zufällig“ und „Meiste Likes“ durchblättern (keine doppelten oder
+      fehlenden Rezepte), Einkaufslisten-Übersicht „Neueste“ zeigt die zuletzt erzeugte Liste oben
+
 ## Rollback
 
 - Planner-Constraints: Reverse-Migration entfernt die Constraints; die entfernten Datumswerte
   von Referenzmahlzeiten werden nicht wiederhergestellt (fachlich bedeutungslos).
+- `planner.0008_mealitem_portion`: Reverse-Migration entfernt nur die Spalte `portion_id`; Einträge behalten
+  Menge und Einheit (Bedeutung dann wieder wie vor der Änderung).
 - Packungsvorschläge: übernommene Packungen sind normale `Package`-Zeilen und lassen sich in der
   Zutatenpflege löschen; Vorschläge selbst ändern keine Daten.
 - Im Zweifel: DB-Snapshot aus Schritt 0 zurückspielen.

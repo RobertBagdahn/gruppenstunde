@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+from django.utils import timezone
+
 from content.choices import ExecutionTimeChoices, PreparationTimeChoices
 from supply.services.price_service import is_missing_price, price_or_none
 
@@ -29,6 +31,15 @@ PREPARATION_TIME_MINUTES: dict[str, int] = {
     PreparationTimeChoices.BETWEEN_30_60: 60,
     PreparationTimeChoices.MORE_60: 90,
 }
+
+
+def local_time(value: dt.datetime) -> dt.datetime:
+    """Plan time (settings.TIME_ZONE) of a stored timestamp.
+
+    Days and clock times of a cooking schedule must follow the wall clock of the
+    camp, not UTC, or a meal just after midnight lands on the previous day.
+    """
+    return timezone.localtime(value) if timezone.is_aware(value) else value
 
 
 @dataclass
@@ -557,7 +568,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
             excluded_meal_count += 1
             continue
 
-        day = meal.start_datetime.date()
+        day = local_time(meal.start_datetime).date()
         meals_by_day.setdefault(day, []).append(meal)
 
         # Group meal items by (recipe_id, variant_group_id) to form recipe blocks
@@ -712,8 +723,8 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
 
         if first_start and last_serving:
             duration = int((last_serving - first_start).total_seconds() / 60)
-            day_start = first_start.strftime("%H:%M")
-            day_end = last_serving.strftime("%H:%M")
+            day_start = local_time(first_start).strftime("%H:%M")
+            day_end = local_time(last_serving).strftime("%H:%M")
         else:
             duration = 0
             day_start = ""

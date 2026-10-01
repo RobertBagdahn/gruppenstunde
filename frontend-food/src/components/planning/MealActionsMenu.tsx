@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { MEAL_TYPE_LABELS, formatMealTime } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
+import { planDateKey } from '@/lib/mealPlanDateTime';
 
 interface MealActionsMenuProps {
   meal: Meal;
@@ -90,7 +91,7 @@ export function MealActionsMenu({
   const [showSettings, setShowSettings] = useState(false);
   const [showTimeEdit, setShowTimeEdit] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
-  const [targetDate, setTargetDate] = useState(meal.start_datetime ? meal.start_datetime.slice(0, 10) : '');
+  const [targetDate, setTargetDate] = useState(meal.start_datetime ? planDateKey(meal.start_datetime) : '');
   const [targetMealType, setTargetMealType] = useState(meal.meal_type);
   const [moveMode, setMoveMode] = useState<'move' | 'swap'>('move');
   const [startTime, setStartTime] = useState('');
@@ -175,6 +176,7 @@ export function MealActionsMenu({
           <button
             className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
             title="Aktionen"
+            aria-label="Aktionen"
           >
             <MoreVertical className="w-4.5 h-4.5" />
           </button>

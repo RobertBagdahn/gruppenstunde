@@ -1,6 +1,7 @@
 """Unit → gram conversion for imported ingredient quantities.
 
-Direct conversion for metric units (g/kg/ml/l — Liter via physical density),
+Direct conversion for mass units (g/kg, never density-scaled) and volume units
+(ml/l via physical density),
 fixed standard measures (EL, TL, Tasse, Prise, Msp), and Gemini estimation
 for container units (Dose, Glas, Becher, Packung, …). The gram amount is
 converted to a portion count via the ingredient's trusted rank-1 portion.
@@ -54,9 +55,14 @@ STANDARD_MEASURE_KEYS: dict[str, str] = {
     "messerspitze": "msp",
 }
 
-METRIC_GRAMS_PER_UNIT: dict[str, float] = {
+# Mass units are already grams — density must never be applied to them.
+MASS_GRAMS_PER_UNIT: dict[str, float] = {
     "g": 1.0,
     "kg": 1000.0,
+}
+
+# Volume units are converted to grams via the ingredient's density.
+VOLUME_ML_PER_UNIT: dict[str, float] = {
     "ml": 1.0,
     "l": 1000.0,
     "liter": 1000.0,
@@ -133,9 +139,13 @@ class UnitGramConverter:
         if not unit_key:
             return None
 
-        metric_factor = METRIC_GRAMS_PER_UNIT.get(unit_key)
-        if metric_factor is not None:
-            return quantity * metric_factor * _density(ingredient)
+        mass_factor = MASS_GRAMS_PER_UNIT.get(unit_key)
+        if mass_factor is not None:
+            return quantity * mass_factor
+
+        volume_factor = VOLUME_ML_PER_UNIT.get(unit_key)
+        if volume_factor is not None:
+            return quantity * volume_factor * _density(ingredient)
 
         standard_key = STANDARD_MEASURE_KEYS.get(unit_key)
         if standard_key is not None:

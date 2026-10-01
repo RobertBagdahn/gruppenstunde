@@ -41,7 +41,7 @@ function ShoppingItemWithSources({
   return (
     <div>
       <div
-        className={`flex items-center justify-between px-4 py-2 hover:bg-muted/30 transition-colors ${
+        className={`flex items-center justify-between gap-3 px-4 py-2 hover:bg-muted/30 transition-colors ${
           isViolating ? 'border-l-4 border-l-destructive bg-destructive/5' : ''
         }`}
         onClick={() => hasSources && setExpanded(!expanded)}
@@ -63,7 +63,7 @@ function ShoppingItemWithSources({
             <span className="text-body">{item.ingredient_name}</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-body text-muted-foreground shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-0.5 text-body text-muted-foreground min-w-0">
           <span>
             {formatShoppingQuantity(
               item.quantity || item.total_quantity_g || 0,

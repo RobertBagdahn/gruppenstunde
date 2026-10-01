@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import type { RecipeDetail } from '@/schemas/recipe';
 import type { RecipeStep } from '@/schemas/recipeStep';
-import { parseRecipeSteps } from '@/lib/parseRecipeSteps';
+import { parsePreparationSteps } from '@/lib/parseRecipeSteps';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { Button } from '@/components/ui/button';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -63,7 +63,7 @@ export default function RecipeCookingMode({
       );
     } else {
       // Fallback: parse from description
-      const parsedSteps = parseRecipeSteps(recipe.description);
+      const parsedSteps = parsePreparationSteps(recipe.description);
       cookingSteps.push(
         ...parsedSteps.map((content, index) => ({
           id: index,

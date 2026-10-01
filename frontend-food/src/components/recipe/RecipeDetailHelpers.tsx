@@ -3,7 +3,7 @@ import { EntityLink } from '@/components/shared/EntityLink';
 import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
-import { formatNumber, roundToDecimals } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 
 export { NUTRI_SCORE_COLORS_BY_LETTER as NUTRI_SCORE_COLORS } from '@/schemas/supply';
@@ -69,7 +69,7 @@ export function MacroBar({
       <div className="flex justify-between text-caption">
         <span className="font-medium">{label}</span>
         <span className="text-muted-foreground">
-        {unit === 'kcal' ? Math.round(value) : roundToDecimals(value, 1)} {unit}
+        {formatNumber(unit === 'kcal' ? Math.round(value) : value, { maxDecimals: 1 })} {unit}
           {dgeRef != null && dgeRef > 0 && (
             <span className="ml-2 text-caption text-muted-foreground">
               Referenz: {formatNumber(dgeRef, { maxDecimals: 1 })} {unit}

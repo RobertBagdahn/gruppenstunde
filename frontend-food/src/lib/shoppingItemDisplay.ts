@@ -24,9 +24,19 @@ interface PackageOptionLike {
   weight_g: number;
 }
 
-/** "≈ 2,5 Scheiben" */
+/**
+ * "≈ 2,5 Scheiben". A portion that names its own count ("6 Eier", "1 mittelgroße
+ * Kartoffel") is resolved into the real piece count: 1,1 × "6 Eier" → "≈ 6,6 Eier".
+ */
 export function formatPieceEquivalent(pe: PieceEquivalentLike): string {
-  return `≈ ${formatNumber(pe.count, { maxDecimals: 1 })} ${pe.portion_name}`;
+  // "100g Gemüsebrühe" names a weight, not a piece count: keep it as a multiplier.
+  if (/^\d+(?:[.,]\d+)?\s?(?:g|kg|ml|l)\b/i.test(pe.portion_name.trim())) {
+    return `≈ ${formatNumber(pe.count, { maxDecimals: pe.count >= 10 ? 0 : 1 })} × ${pe.portion_name}`;
+  }
+  const named = pe.portion_name.trim().match(/^(\d+(?:[.,]\d+)?)\s+(\D.*)$/);
+  const pieces = named ? pe.count * Number.parseFloat(named[1].replace(',', '.')) : pe.count;
+  const label = named ? named[2] : pe.portion_name;
+  return `≈ ${formatNumber(pieces, { maxDecimals: pieces >= 10 ? 0 : 1 })} ${label}`;
 }
 
 /** "2,5 × Scheibe (à 25 g)" */

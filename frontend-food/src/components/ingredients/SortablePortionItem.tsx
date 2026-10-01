@@ -48,7 +48,7 @@ export function SortablePortionItem({ portion, children, isDragging, canEdit = f
         </div>
       )}
 
-      <div className="flex-1">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
 
       <StandardPortionBadge isStandard={isStandard} />
     </div>

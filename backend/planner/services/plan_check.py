@@ -52,6 +52,17 @@ def _meals_qs(meal_plan: MealPlan):
     )
 
 
+def _german_date(iso_date: str) -> str:
+    """ "2026-12-12" -> "12.12.2026"."""
+    year, month, day = iso_date.split("-")
+    return f"{day}.{month}.{year}"
+
+
+def _german_euro(value: float) -> str:
+    """4.37 -> "4,37 €" (comma decimals; plain space before the sign)."""
+    return f"{value:,.2f}".replace(",", "\u0000").replace(".", ",").replace("\u0000", ".") + " €"
+
+
 def _check_empty_slots(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
     alerts: list[PlanCheckAlertOut] = []
     for meal in meals:
@@ -104,8 +115,11 @@ def _check_budget_excess(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanChe
                     id=f"budget-excess-{date_str}",
                     type="budget_excess",
                     severity="warning",
-                    title=f"Budget am {date_str} überschritten",
-                    description=f"Geplant sind {day_cost:.2f} € / Person ({excess:.2f} € über dem Budget von {budget_limit:.2f} €).",
+                    title=f"Budget am {_german_date(date_str)} überschritten",
+                    description=(
+                        f"Geplant sind {_german_euro(day_cost)} / Person "
+                        f"({_german_euro(excess)} über dem Budget von {_german_euro(float(budget_limit))})."
+                    ),
                     date=date_str,
                     meal_id=None,
                     meal_type=None,

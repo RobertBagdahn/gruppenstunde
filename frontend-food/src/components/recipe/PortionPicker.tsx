@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { useStandardMeasures } from '@/api/supplies';
 import { type PortionLabelInput } from '@/lib/portionLabels';
-import { formatExactWeight } from '@/lib/format';
+import { formatExactWeight, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export interface PortionPickerPortion extends PortionLabelInput {
@@ -30,6 +30,7 @@ export interface PickerStandardMeasure {
   key: string;
   name: string;
   grams: number;
+  volume_ml?: number | null;
   is_approx?: boolean;
 }
 
@@ -160,7 +161,9 @@ export default function PortionPicker({
                     }}
                     className="w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left hover:bg-muted text-foreground"
                   >
-                    <span className="truncate">{measure.name}</span>
+                    <span className="truncate">
+                      {measure.name}{measure.volume_ml != null ? ` (${formatNumber(measure.volume_ml, { maxDecimals: 1 })} ml)` : ''}
+                    </span>
                     <span className="text-caption text-muted-foreground shrink-0 tabular-nums">
                       {formatExactWeight(measure.grams)}{measure.is_approx ? ' (ca.)' : ''}
                     </span>

@@ -204,6 +204,7 @@ export const StandardMeasureSchema = z.object({
   key: z.string(),
   name: z.string(),
   grams: z.number(),
+  volume_ml: z.number().nullable().default(null),
   unit_name: z.string().default('g'),
   is_approx: z.boolean().default(true),
 });

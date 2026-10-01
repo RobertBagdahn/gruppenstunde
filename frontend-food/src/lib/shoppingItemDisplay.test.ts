@@ -28,6 +28,9 @@ describe('shoppingItemDisplay', () => {
 
   it('uses a German comma for fractional piece equivalents', () => {
     expect(formatPieceEquivalent({ count: 2.5, portion_name: 'Stück' })).toBe('≈ 2,5 Stück');
+    expect(formatPieceEquivalent({ count: 51.8, portion_name: '1 mittelgroße Kartoffel' })).toBe('≈ 52 mittelgroße Kartoffel');
+    expect(formatPieceEquivalent({ count: 1.1, portion_name: '6 Eier' })).toBe('≈ 6,6 Eier');
+    expect(formatPieceEquivalent({ count: 14.6, portion_name: '100g Gemüsebrühe' })).toBe('≈ 15 × 100g Gemüsebrühe');
   });
 
   it('formats portion and package options with exact weights', () => {

@@ -13,6 +13,7 @@ import { useAiMealPlanSuggest, useApplyAiSuggestions } from '@/api/mealPlans';
 import type { MealPlanWizardStrategy } from '@/schemas/mealPlan';
 import { useRequireLogin } from '@/hooks/useRequireLogin';
 
+import { validateBasics } from './validateBasics';
 import { useMealPlanWizardState, WIZARD_STEPS, STEP_LABELS } from './useMealPlanWizardState';
 import StepBasicSettings from './StepBasicSettings';
 import StepStrategy from './StepStrategy';
@@ -153,8 +154,13 @@ export default function MealPlanWizardPage() {
     );
   }
 
+  // The AI prompt step only exists for the AI strategy; count only steps the user sees.
+  const shownSteps = WIZARD_STEPS.filter((s) => s !== 'ai-prompt' || state.strategy === 'ai');
   const isStepValid = () => {
-    if (step === 'basics') return state.name.trim().length > 0;
+    if (step === 'basics') {
+      const errors = validateBasics(state);
+      return state.name.trim().length > 0 && !errors.portions && !errors.period;
+    }
     if (step === 'strategy') {
       if (state.strategy === 'reference') return state.reference_plan_id !== null;
       return true;
@@ -168,7 +174,7 @@ export default function MealPlanWizardPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-display font-bold text-title text-foreground">Neuen Essensplan erstellen</h1>
-        <p className="text-body text-muted-foreground mt-1">Schritt {currentStepIndex + 1} von {WIZARD_STEPS.length - (state.strategy !== 'ai' ? 1 : 0)}</p>
+        <p className="text-body text-muted-foreground mt-1">Schritt {shownSteps.indexOf(step) + 1} von {shownSteps.length}</p>
       </div>
 
       {/* Step progress */}

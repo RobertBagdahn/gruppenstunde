@@ -9,6 +9,8 @@ import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
 import RecipeThumbnail from './RecipeThumbnail';
+import { formatEuro } from '@/lib/format';
+import { recipePricePerPortion } from '@/lib/recipeCostRanges';
 import { Icon } from '@/components/ui/icon';
 
 const TAG_COLORS = [
@@ -34,12 +36,8 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
   const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
-  const pricePerPortion = recipe.cached_price_total != null
-    ? (recipe.portions && recipe.portions > 1 ? recipe.cached_price_total / recipe.portions : recipe.cached_price_total)
-    : null;
-  const costsLabel = pricePerPortion != null
-    ? `${pricePerPortion.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
-    : null;
+  const pricePerPortion = recipePricePerPortion(recipe);
+  const costsLabel = pricePerPortion != null ? formatEuro(pricePerPortion) : null;
 
   const hasActions = (canEdit && onEdit) || (canDelete && onDelete) || onClone;
   const nutriClass = recipe.cached_nutri_class;

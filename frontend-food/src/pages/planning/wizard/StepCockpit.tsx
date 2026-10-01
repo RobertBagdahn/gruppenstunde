@@ -76,7 +76,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
               <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Zeitraum</p>
               <p className="text-body font-semibold text-foreground">
                 {formatDateRange(state.start_datetime, state.end_datetime)}
-                {daysCount > 0 && <span className="text-muted-foreground"> ({daysCount} Tage)</span>}
+                {daysCount > 0 && <span className="text-muted-foreground"> ({daysCount} {daysCount === 1 ? 'Tag' : 'Tage'})</span>}
               </p>
             </div>
           </div>

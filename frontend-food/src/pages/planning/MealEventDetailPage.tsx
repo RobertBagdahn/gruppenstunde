@@ -7,6 +7,8 @@ import { BackButton } from '@/components/shared/BackButton';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { PlanCheckFlyout } from '@/components/planning/PlanCheckFlyout';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
+import { mealTargetLabel } from '@/lib/mealTargetLabel';
+import { useOmnibarShortcut } from '@/hooks/useOmnibarShortcut';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/lib/api';
 import { toast } from 'sonner';
@@ -126,6 +128,17 @@ export default function MealPlanDetailPage() {
     if (!omnibarMealId || !plan) return null;
     return plan.meals.find((m) => m.id === omnibarMealId) || null;
   }, [omnibarMealId, plan]);
+
+  // Cmd/Ctrl+K opens exactly one search dialog, for the meal the user touched last
+  // (otherwise the first meal of the plan). Slots report their activity via onActivateMeal.
+  const [lastActiveMealId, setLastActiveMealId] = useState<number | null>(null);
+  useOmnibarShortcut({
+    enabled: !!plan?.can_edit && activeTab === 'plan',
+    meals: plan?.meals ?? [],
+    lastActiveMealId,
+    openMealId: omnibarMealId,
+    onOpenMeal: setOmnibarMealId,
+  });
 
   // Variant dialog state
   const [variantDialog, setVariantDialog] = useState<{
@@ -333,9 +346,16 @@ export default function MealPlanDetailPage() {
     );
   };
 
-  const handleAddIngredient = (mealId: number, ingredientId: number, _portionId: number | null, measuringUnitId: number | null, quantity: number) => {
+  const handleAddIngredient = (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => {
     addMealItemMutation.mutate(
-      { mealId, ingredient_id: ingredientId, measuring_unit_id: measuringUnitId ?? undefined, quantity },
+      {
+        mealId,
+        ingredient_id: ingredientId,
+        // The chosen portion defines what "1" means; the backend stores it with the item.
+        portion_id: portionId ?? undefined,
+        measuring_unit_id: measuringUnitId ?? undefined,
+        quantity,
+      },
       {
         onSuccess: () => {
           toast.success('Zutat hinzugefügt');
@@ -409,7 +429,7 @@ export default function MealPlanDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start">
+        <div className="flex flex-wrap items-center gap-2 self-start">
           <PlanCheckFlyout
             mealPlanId={mealPlanId}
             canEdit={plan.can_edit}
@@ -592,6 +612,7 @@ export default function MealPlanDetailPage() {
               mealPlanId={mealPlanId}
               dayGroups={dayGroups}
               canEdit={plan.can_edit}
+              onActivateMeal={setLastActiveMealId}
               hasTimeframe={!!(plan.start_datetime && plan.end_datetime)}
               normPortions={plan.norm_portions}
               budgetPerPersonPerDay={plan.budget_per_person_per_day}
@@ -640,7 +661,7 @@ export default function MealPlanDetailPage() {
 
       {activeTab === 'shopping' && (
         <div className="space-y-4">
-          <div className="flex gap-2 border-b border-border pb-2">
+          <div className="flex flex-wrap gap-2 border-b border-border pb-2">
             <button
               type="button"
               onClick={() => {
@@ -698,7 +719,7 @@ export default function MealPlanDetailPage() {
 
       {activeTab === 'cooking' && (
         <div className="space-y-4">
-          <div className="flex gap-2 border-b border-border pb-2">
+          <div className="flex flex-wrap gap-2 border-b border-border pb-2">
             <button
               type="button"
               onClick={() => {
@@ -818,6 +839,7 @@ export default function MealPlanDetailPage() {
           }}
           mealType={omnibarMeal.meal_type}
           mealId={omnibarMeal.id}
+          targetLabel={mealTargetLabel(omnibarMeal)}
           normPortions={effectivePortions(omnibarMeal, plan.norm_portions)}
           onSelectRecipe={(recipeId) => {
             handleAddRecipe(omnibarMeal.id, recipeId);

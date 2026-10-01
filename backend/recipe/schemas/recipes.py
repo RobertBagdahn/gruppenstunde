@@ -437,6 +437,8 @@ class RecipeFilterIn(Schema):
     execution_time: list[str] | None = None
     origin: list[str] | None = None  # ["verified"] | ["community"] | ["mine"] or combinations
     sort: str = "use_count"
+    # Stable shuffle for ``sort=random``; the same seed yields the same order on every page.
+    seed: int | None = None
     page: int = 1
     page_size: int = 20
 
@@ -477,6 +479,8 @@ class PaginatedRecipeOut(Schema):
     page: int
     page_size: int
     total_pages: int
+    # Seed of the random order (only set for ``sort=random``).
+    seed: int | None = None
 
 
 class PaginatedRecipeSimilarOut(Schema):

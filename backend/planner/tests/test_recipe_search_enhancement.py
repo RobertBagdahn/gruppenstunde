@@ -155,6 +155,21 @@ class TestSearchEndpoint:
             assert "fallback_applied" in data
             assert "recipes" in data
 
+    def test_search_preserves_exact_match_relevance_over_popularity(self):
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(username="ranked-search-user", password="pass")
+        exact = make_recipe(title="Pfannkuchen", usage_count=0)
+        partial = make_recipe(title="Herzhafte Pfannkuchen", usage_count=1000)
+
+        client = Client()
+        client.force_login(user)
+        response = client.get("/api/meal-plans/recipes/search/?q=Pfannkuchen")
+
+        assert response.status_code == 200
+        ids = [item["id"] for item in response.json()["recipes"]]
+        assert ids.index(exact.id) < ids.index(partial.id)
+
 
 @pytest.mark.django_db
 class TestRecipeSearchContracts:

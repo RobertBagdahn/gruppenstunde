@@ -215,6 +215,24 @@ describe('RecipeWizard step model', () => {
     expect(searchParams().get('step')).toBe('ingredients');
   });
 
+  it('falls back to "basis" when the last review row is removed, not to "input"', async () => {
+    renderWizard();
+    await analyzeText(makePreview(1));
+    confirmServings();
+    clickNext();
+    await screen.findByTestId('recipe-wizard-step-review');
+
+    act(() => {
+      const { rows, removeRow } = useRecipeIngredientReviewStore.getState();
+      removeRow(rows[0].key);
+    });
+
+    await screen.findByTestId('recipe-wizard-step-basis');
+    expect(screen.queryByTestId('recipe-wizard-indicator-review')).toBeNull();
+    await waitFor(() => expect(searchParams().get('step')).toBe('basis'));
+    expect(mocks.createRecipe).not.toHaveBeenCalled();
+  });
+
   it('sends review totals with input_servings instead of dividing them', async () => {
     renderWizard();
     await analyzeText(makePreview(1));
@@ -254,7 +272,8 @@ describe('RecipeWizard step model', () => {
     expect(screen.queryByTestId('recipe-wizard-indicator-review')).toBeNull();
 
     clickNext();
-    await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith('Bitte gib einen Titel ein.'));
+    expect(await screen.findByText('Bitte gib einen Titel ein.')).toBeInTheDocument();
+    expect(mocks.toast.error).not.toHaveBeenCalled();
     expect(screen.getByTestId('recipe-wizard-step-basis')).toBeTruthy();
 
     fireEvent.change(screen.getByTestId('recipe-basis-title'), { target: { value: 'Stockbrot' } });

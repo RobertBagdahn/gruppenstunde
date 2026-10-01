@@ -28,6 +28,7 @@ export function DayPlanView({
   onDeleteMeal,
   onAddRecipe,
   onAddIngredient,
+  onActivateMeal,
   onDeleteItem,
   onUpdateItemFactor,
   onUpdateItemQuantity,
@@ -53,6 +54,7 @@ export function DayPlanView({
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  onActivateMeal?: (mealId: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
   onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
@@ -138,12 +140,12 @@ export function DayPlanView({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
                       <Icon name="local_fire_department" size={16} />
-                      <span>Kcal: Soll {formatCount(dayTargetKcal)} / {formatCount(dayActualKcal)} kcal</span>
+                      <span>Energie: Ist {formatCount(dayActualKcal)} / Soll {formatCount(dayTargetKcal)} kcal</span>
                     </span>
                     {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
                       <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
                         <Icon name="payments" size={16} />
-                        <span>Preis: Soll {formatNumber(dayTargetCost, { maxDecimals: 2 })} € / Ist {formatNumber(dayActualCost, { maxDecimals: 2 })} €</span>
+                        <span>Preis: Ist {formatNumber(dayActualCost, { maxDecimals: 2 })} € / Soll {formatNumber(dayTargetCost, { maxDecimals: 2 })} €</span>
                       </span>
                     )}
                   </div>
@@ -226,6 +228,7 @@ export function DayPlanView({
                       onDeleteMeal={onDeleteMeal}
                       onAddRecipe={onAddRecipe}
                       onAddIngredient={onAddIngredient}
+                      onActivate={onActivateMeal}
                       onDeleteItem={onDeleteItem}
                       onUpdateItemFactor={onUpdateItemFactor}
                       onUpdateItemQuantity={onUpdateItemQuantity}

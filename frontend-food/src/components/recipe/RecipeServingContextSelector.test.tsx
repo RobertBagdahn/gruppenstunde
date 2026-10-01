@@ -20,6 +20,17 @@ describe('RecipeServingContextSelector', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
+  it('shows a field-level person-count validation error accessibly', () => {
+    render(
+      <RecipeServingContextSelector value={null} onChange={vi.fn()} error="Bitte gib eine Personenzahl ein." />,
+    );
+
+    const input = screen.getByRole('spinbutton', { name: 'Personenzahl' });
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'recipe-serving-context-error');
+    expect(screen.getByRole('alert')).toHaveTextContent('Bitte gib eine Personenzahl ein.');
+  });
+
   it('shows the selected value as a fixed editor summary after confirmation', () => {
     render(
       <RecipeServingContextSelector value={4} onChange={vi.fn()} onConfirm={vi.fn()} />,

@@ -76,8 +76,11 @@ describe('food API contracts', () => {
     // Mirrors StandardMeasureOut (Pydantic) — field names, types and defaults
     // must stay in sync (see backend/supply/tests/test_contract_schemas.py).
     const parsed = StandardMeasureSchema.parse({ key: 'el', name: '1 EL', grams: 12 });
-    expect(parsed).toEqual({ key: 'el', name: '1 EL', grams: 12, unit_name: 'g', is_approx: true });
-    expect(StandardMeasureSchema.parse({ key: 'tl', name: '1 TL', grams: 4, is_approx: false }).is_approx).toBe(false);
+    expect(parsed).toEqual({ key: 'el', name: '1 EL', grams: 12, volume_ml: null, unit_name: 'g', is_approx: true });
+    expect(StandardMeasureSchema.parse({ key: 'tl', name: '1 TL', grams: 4, volume_ml: 5, is_approx: false })).toMatchObject({
+      volume_ml: 5,
+      is_approx: false,
+    });
   });
 
   it('requires server permission and synchronised visibility fields', () => {

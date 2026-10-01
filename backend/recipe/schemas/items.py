@@ -81,7 +81,7 @@ class RecipeItemOut(Schema):
     @staticmethod
     def resolve_portion_name(obj) -> str | None:
         if obj.portion:
-            return str(obj.portion)
+            return cast(str, obj.portion.name)
         return None
 
     @staticmethod

@@ -10,6 +10,7 @@ interface RecipeServingContextSelectorProps {
   onConfirm?: () => void;
   description?: string;
   confirmLabel?: string;
+  error?: string;
 }
 
 export default function RecipeServingContextSelector({
@@ -18,6 +19,7 @@ export default function RecipeServingContextSelector({
   onConfirm,
   description = 'Lege fest, für wie viele Personen du die Gesamtmengen eingeben möchtest.',
   confirmLabel = 'Zutaten bearbeiten',
+  error,
 }: RecipeServingContextSelectorProps) {
   const [inputValue, setInputValue] = useState(value === null ? '' : String(value));
 
@@ -56,9 +58,12 @@ export default function RecipeServingContextSelector({
               onChange={(event) => handleChange(event.target.value)}
               onBlur={handleBlur}
               aria-label="Personenzahl"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? 'recipe-serving-context-error' : undefined}
               data-testid="recipe-serving-context-input"
               className="mt-1 block w-24 rounded-lg border border-warning-border bg-white px-3 py-2 text-center text-emphasis font-semibold text-warning focus:outline-none focus:ring-2 focus:ring-warning"
             />
+            {error && <span id="recipe-serving-context-error" role="alert" className="mt-1 block max-w-48 text-caption text-danger-foreground">{error}</span>}
           </label>
           {onConfirm && (
             <Button type="button" onClick={onConfirm} data-testid="recipe-serving-context-confirm">

@@ -20,6 +20,11 @@ interface RecipeHistogramProps {
   className?: string;
 }
 
+/** "0,5–1 €" in German number format. */
+export function bucketLabel(bucket: Pick<Bucket, 'min' | 'max'>, unit: string): string {
+  return `${formatNumber(bucket.min, { maxDecimals: 1 })}–${formatNumber(bucket.max, { maxDecimals: 1 })} ${unit}`;
+}
+
 export default function RecipeHistogram({
   buckets,
   recipeValue,
@@ -36,11 +41,12 @@ export default function RecipeHistogram({
   }
 
   // Format data for Recharts
+  // formatNumber returns German text ("0,5"); never parse it back into a number.
   const data = buckets.map((b) => ({
-    min: Number(formatNumber(b.min, { maxDecimals: 1 })),
-    max: Number(formatNumber(b.max, { maxDecimals: 1 })),
+    min: b.min,
+    max: b.max,
     count: b.count,
-    name: `${Number(formatNumber(b.min, { maxDecimals: 1 }))}-${Number(formatNumber(b.max, { maxDecimals: 1 }))} ${unit}`,
+    name: bucketLabel(b, unit),
   }));
 
   // Find the bucket label that contains the current recipe value
@@ -50,7 +56,7 @@ export default function RecipeHistogram({
       (b) => recipeValue >= b.min && (b.max == null || recipeValue < b.max),
     );
     if (match) {
-      refLabel = `${Number(formatNumber(match.min, { maxDecimals: 1 }))}-${Number(formatNumber(match.max, { maxDecimals: 1 }))} ${unit}`;
+      refLabel = bucketLabel(match, unit);
     }
   }
 
@@ -61,7 +67,7 @@ export default function RecipeHistogram({
           {label}
         </h4>
         <p className="text-body font-bold text-foreground">
-          {Number(formatNumber(recipeValue, { maxDecimals: 1 }))} {unit}
+          {formatNumber(recipeValue, { maxDecimals: 1 })} {unit}
         </p>
       </div>
       <ResponsiveContainer width="100%" height={200}>

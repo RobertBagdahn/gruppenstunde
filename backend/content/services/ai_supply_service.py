@@ -281,7 +281,7 @@ def match_ingredients_to_database(suggestions: list[dict[str, Any]]) -> list[dic
 
             if selected:
                 portion_id = selected.id
-                portion_name = str(selected)
+                portion_name = selected.name
 
         enriched.append(
             {

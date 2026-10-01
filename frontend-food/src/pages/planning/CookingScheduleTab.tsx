@@ -235,6 +235,18 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
     groupedItems[item.meal_type].push(item);
   }
 
+  // Meal groups follow the clock (a 15:00 snack comes before the 18:00 dinner);
+  // the fixed type order only breaks ties.
+  const servingTime = (mealType: string) =>
+    groupedItems[mealType].reduce((earliest, item) => (item.serving_time < earliest ? item.serving_time : earliest), groupedItems[mealType][0].serving_time);
+  const typeRank = (mealType: string) => {
+    const index = MEAL_TYPE_ORDER.indexOf(mealType as (typeof MEAL_TYPE_ORDER)[number]);
+    return index === -1 ? MEAL_TYPE_ORDER.length : index;
+  };
+  const orderedMealTypes = Object.keys(groupedItems).sort(
+    (a, b) => servingTime(a).localeCompare(servingTime(b)) || typeRank(a) - typeRank(b),
+  );
+
   return (
     <section className="mb-8">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-3 pt-2 border-b border-border">
@@ -266,7 +278,7 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
       </div>
 
       <div className="mt-4">
-        {MEAL_TYPE_ORDER.map((mealType) => {
+        {orderedMealTypes.map((mealType) => {
           const items = groupedItems[mealType];
           if (!items || items.length === 0) return null;
           return (

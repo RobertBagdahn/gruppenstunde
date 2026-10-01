@@ -1,12 +1,15 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, ChefHat, Carrot, Layers, Sparkles, Check, X, Users, Euro, AlertCircle, Plus, BadgeCheck, Flame, Utensils } from 'lucide-react';
+import { Fragment, useState, useEffect, useRef, useMemo } from 'react';
+import { Search, ChefHat, Carrot, Sparkles, Check, X, Users, Euro, AlertCircle, Plus, BadgeCheck, Flame, Utensils } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRecipeSearch } from '@/api/mealPlans';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/format';
 
-type FilterPill = 'all' | 'recipes' | 'ingredients' | 'bundles';
+type FilterPill = 'all' | 'recipes' | 'ingredients';
+
+/** In the `Alle` pill each group shows only its best matches. */
+const ALL_GROUP_LIMIT = 5;
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -30,6 +33,8 @@ export interface MealOmnibarDialogProps {
   onOpenChange: (open: boolean) => void;
   mealType?: string;
   mealId?: number;
+  /** Names the meal the selection is added to, e.g. "Abendessen · Fr., 11.12.". */
+  targetLabel?: string;
   normPortions?: number;
   onSelectRecipe: (recipeId: number, title?: string) => void;
   onSelectIngredient?: (
@@ -48,6 +53,7 @@ export function MealOmnibarDialog({
   open,
   onOpenChange,
   mealType,
+  targetLabel,
   normPortions = 10,
   onSelectRecipe,
   onSelectIngredient,
@@ -64,22 +70,11 @@ export function MealOmnibarDialog({
   useEffect(() => {
     if (open) {
       setQuery('');
+      setFilter('all');
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
-
-  // Global Cmd+K trigger listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        onOpenChange(!open);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onOpenChange]);
 
   const { data: searchResults, isLoading } = useRecipeSearch({
     q: query,
@@ -99,57 +94,24 @@ export function MealOmnibarDialog({
     return list.filter((ing) => !excludedIngredientIds.has(ing.id));
   }, [searchResults?.ingredients, excludedIngredientIds]);
 
-  // Sample quick sets/bundles for breakfast or quick meal setups
-  const sampleBundles = useMemo(() => {
-    if (mealType === 'breakfast') {
-      return [
-        {
-          id: -1,
-          title: 'Klassisches Lager-Frühstück (Set)',
-          description: 'Mischbrot, Butter, Gouda, Marmelade, Äpfel & Tee',
-          price_per_serving: 1.45,
-          recipe_type: 'bundle',
-        },
-        {
-          id: -2,
-          title: 'Süßes Müsli & Obst-Buffet (Set)',
-          description: 'Haferflocken, Milch, Joghurt, Bananen & Honig',
-          price_per_serving: 1.3,
-          recipe_type: 'bundle',
-        },
-      ];
-    }
-    return [
-      {
-        id: -10,
-        title: 'Schnelles Vesper-Paket (Set)',
-        description: 'Brot, Aufschnitt, Gurken & Obst für unterwegs',
-        price_per_serving: 1.8,
-        recipe_type: 'bundle',
-      },
-    ];
-  }, [mealType]);
-
   const displayedItems = useMemo(() => {
     const result: Array<
       | { type: 'recipe'; data: RecipeSearchResult }
       | { type: 'ingredient'; data: IngredientSearchResult }
-      | { type: 'bundle'; data: (typeof sampleBundles)[0] }
     > = [];
 
+    const recipeLimit = filter === 'all' ? ALL_GROUP_LIMIT : recipes.length;
+    const ingredientLimit = filter === 'all' ? ALL_GROUP_LIMIT : ingredients.length;
     if (filter === 'all' || filter === 'recipes') {
-      recipes.forEach((r) => result.push({ type: 'recipe', data: r }));
+      recipes.slice(0, recipeLimit).forEach((r) => result.push({ type: 'recipe', data: r }));
     }
     if (filter === 'all' || filter === 'ingredients') {
-      ingredients.forEach((ing) => result.push({ type: 'ingredient', data: ing }));
-    }
-    if (filter === 'all' || filter === 'bundles') {
-      sampleBundles.forEach((b) => result.push({ type: 'bundle', data: b }));
+      ingredients.slice(0, ingredientLimit).forEach((ing) => result.push({ type: 'ingredient', data: ing }));
     }
     return result;
-  }, [filter, recipes, ingredients, sampleBundles]);
+  }, [filter, recipes, ingredients]);
 
-  const activeItem = displayedItems[selectedIndex] || displayedItems[0] || null;
+  const activeItem = displayedItems[selectedIndex] ?? displayedItems[0] ?? null;
 
   // Keyboard navigation within list
   const handleInputKeyDown = (e: React.KeyboardEvent) => {
@@ -182,15 +144,18 @@ export function MealOmnibarDialog({
         );
       }
       onOpenChange(false);
-    } else if (item.type === 'bundle') {
-      // Future bundle action: trigger bundle fill
-      onOpenChange(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[min(760px,90vh)] p-0 overflow-hidden shadow-2xl border-border">
+      <DialogContent className="max-w-5xl h-[min(760px,90dvh)] max-h-[90dvh] min-h-0 p-0 overflow-hidden shadow-2xl border-border flex flex-col gap-0">
+        {targetLabel && (
+          <p className="px-4 pt-3 text-caption text-muted-foreground">
+            Hinzufügen zu: <span className="font-semibold text-foreground">{targetLabel}</span>
+          </p>
+        )}
+
         {/* Top Search Omnibar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
           <Search className="w-5 h-5 text-muted-foreground shrink-0" />
@@ -203,7 +168,7 @@ export function MealOmnibarDialog({
               setSelectedIndex(0);
             }}
             onKeyDown={handleInputKeyDown}
-            placeholder="Gericht, Zutat oder Set suchen... (z. B. Spaghetti, Haferflocken)"
+            placeholder="Gericht oder Zutat suchen... (z. B. Spaghetti, Haferflocken)"
             className="min-w-0 w-full text-emphasis font-sans bg-transparent border-0 focus:outline-none placeholder:text-muted-foreground"
           />
           {query && (
@@ -236,7 +201,7 @@ export function MealOmnibarDialog({
             )}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Alle ({recipes.length + ingredients.length + sampleBundles.length})
+            Alle ({recipes.length + ingredients.length})
           </button>
           <button
             type="button"
@@ -270,28 +235,12 @@ export function MealOmnibarDialog({
             <Carrot className="w-3.5 h-3.5" />
             Zutaten ({ingredients.length})
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFilter('bundles');
-              setSelectedIndex(0);
-            }}
-            className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold transition-all',
-              filter === 'bundles'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            )}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            Sets & Bundles ({sampleBundles.length})
-          </button>
         </div>
 
         {/* 2-Column Area: List on left, Live Preview on right */}
-        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[420px] max-h-[620px]">
+        <div className="grid grid-cols-1 grid-rows-[minmax(0,1fr)] md:grid-cols-12 flex-1 min-h-0 md:min-h-[420px] md:max-h-[620px]">
           {/* List Area */}
-          <div className="md:col-span-7 overflow-y-auto border-r border-border p-3 space-y-1">
+          <div className="md:col-span-7 min-h-0 overflow-y-auto overscroll-contain md:border-r border-border p-3 space-y-1">
             {isLoading && (
               <p className="text-caption text-muted-foreground py-10 text-center">Suche läuft...</p>
             )}
@@ -306,16 +255,23 @@ export function MealOmnibarDialog({
 
             {displayedItems.map((item, idx) => {
               const isSelected = idx === selectedIndex;
+              const startsGroup = filter === 'all' && (idx === 0 || displayedItems[idx - 1].type !== item.type);
+              const endsGroup = filter === 'all' && (idx === displayedItems.length - 1 || displayedItems[idx + 1].type !== item.type);
+              const groupTotal = item.type === 'recipe' ? recipes.length : ingredients.length;
               return (
-                <div
-                  key={`${item.type}-${item.data.id}`}
-                  onClick={() => {
-                    setSelectedIndex(idx);
-                    handleConfirmSelection(item);
-                  }}
+                <Fragment key={`${item.type}-${item.data.id}`}>
+                {startsGroup && (
+                  <p className="px-1 pt-2 pb-1 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+                    {item.type === 'recipe' ? 'Rezepte' : 'Zutaten'}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedIndex(idx)}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={cn(
-                    'p-3 rounded-xl cursor-pointer flex items-start gap-3 transition-colors text-caption',
+                    'w-full p-3 rounded-xl cursor-pointer flex items-start gap-3 transition-colors text-caption text-left',
                     isSelected
                       ? 'bg-primary/10 border border-primary/30 text-foreground'
                       : 'hover:bg-muted/40 text-muted-foreground hover:text-foreground'
@@ -329,11 +285,6 @@ export function MealOmnibarDialog({
                   {item.type === 'ingredient' && (
                     <div className="w-9 h-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0">
                       <Carrot className="w-4 h-4" />
-                    </div>
-                  )}
-                  {item.type === 'bundle' && (
-                    <div className="w-9 h-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
-                      <Layers className="w-4 h-4" />
                     </div>
                   )}
 
@@ -350,18 +301,30 @@ export function MealOmnibarDialog({
                         </>
                       )}
                       {item.type === 'ingredient' && <span>Einzelzutat</span>}
-                      {item.type === 'bundle' && <span className="break-words">{item.data.description}</span>}
                     </div>
                   </div>
 
                   {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
-                </div>
+                </button>
+                {endsGroup && groupTotal > ALL_GROUP_LIMIT && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter(item.type === 'recipe' ? 'recipes' : 'ingredients');
+                      setSelectedIndex(0);
+                    }}
+                    className="w-full rounded-lg px-3 py-1.5 text-left text-caption font-semibold text-primary hover:bg-primary/5"
+                  >
+                    Alle {groupTotal} {item.type === 'recipe' ? 'Rezepte' : 'Zutaten'} anzeigen
+                  </button>
+                )}
+                </Fragment>
               );
             })}
           </div>
 
           {/* Details Panel on Right */}
-          <div className="md:col-span-5 p-5 flex flex-col justify-between bg-muted/10 overflow-y-auto">
+          <div className="hidden md:col-span-5 p-5 md:flex flex-col justify-between bg-muted/10 overflow-y-auto">
             {activeItem ? (
               <div className="space-y-5">
                 {activeItem.type === 'recipe' && (
@@ -429,22 +392,6 @@ export function MealOmnibarDialog({
                     </div>
                   </div>
                 )}
-
-                {activeItem.type === 'bundle' && (
-                  <div className="space-y-3 py-4 text-center">
-                    <div className="w-14 h-14 rounded-xl bg-info-soft text-info flex items-center justify-center mx-auto">
-                      <Layers className="w-7 h-7" />
-                    </div>
-                    <div>
-                      <h3 className="font-display font-bold text-emphasis text-foreground">
-                        {activeItem.data.title}
-                      </h3>
-                      <p className="text-caption text-muted-foreground mt-1">
-                        {activeItem.data.description}
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="py-20 text-center text-caption text-muted-foreground">
@@ -463,15 +410,37 @@ export function MealOmnibarDialog({
                   <span>
                     {activeItem.type === 'recipe'
                       ? `Gericht hinzufügen (${normPortions} P.)`
-                      : activeItem.type === 'ingredient'
-                        ? 'Zutat hinzufügen'
-                        : 'Set übernehmen'}
+                      : 'Zutat hinzufügen'}
                   </span>
                 </button>
               </div>
             )}
           </div>
         </div>
+
+        {/* Phones have no detail column: keep the confirm action in view below the list. */}
+        {activeItem && (
+          <div className="md:hidden shrink-0 border-t border-border bg-card p-3 space-y-2">
+            <div className="min-w-0">
+              <p className="text-caption text-muted-foreground truncate">
+                Vorschau: <span className="font-semibold text-foreground">{activeItem.type === 'ingredient' ? activeItem.data.name : activeItem.data.title}</span>
+              </p>
+              <p className="text-caption text-muted-foreground truncate">
+                {activeItem.type === 'ingredient'
+                  ? `Einzelzutat · ${normPortions} Personen`
+                  : `${recipeTypeLabel(activeItem.data.recipe_type)}${activeItem.data.price_per_serving == null ? '' : ` · ${formatNumber(activeItem.data.price_per_serving * normPortions, { maxDecimals: 2 })} € gesamt`}`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleConfirmSelection(activeItem)}
+              className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-caption bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              {activeItem.type === 'recipe' ? `Gericht hinzufügen (${normPortions} P.)` : 'Zutat hinzufügen'}
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

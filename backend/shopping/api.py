@@ -2,9 +2,11 @@
 
 import math
 from datetime import timedelta
+from typing import Literal
 
 from django.db import transaction
 from django.db.models import Count, Q
+from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Query, Router
@@ -116,8 +118,15 @@ def list_shopping_lists(
     page: int = 1,
     page_size: int = 20,
     q: str = "",
+    sort: Literal["newest", "oldest", "name_asc"] = "newest",
+    mine: bool = False,
 ):
-    """List all shopping lists the user owns or collaborates on."""
+    """List shopping lists the user owns or collaborates on.
+
+    ``sort`` orders the whole result (not just one page) and ``mine`` limits it to
+    lists owned by the user. Every order ends in ``id`` so paging never skips or
+    repeats a list.
+    """
     require_login(request)
     qs = (
         ShoppingList.objects.filter(Q(owner=request.user) | Q(collaborators__user=request.user))
@@ -131,6 +140,14 @@ def list_shopping_lists(
     )
     if q:
         qs = qs.filter(name__icontains=q)
+    if mine:
+        qs = qs.filter(owner=request.user)
+    ordering = {
+        "newest": ("-updated_at", "-id"),
+        "oldest": ("updated_at", "id"),
+        "name_asc": (Lower("name"), "id"),
+    }[sort]
+    qs = qs.order_by(*ordering)
     result = paginate_queryset(qs, page, page_size)
     for item in result["items"]:
         if item.owner_id == request.user.id:
@@ -454,19 +471,56 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     from supply.models.reference import RetailSection
 
     data = payload.dict(exclude={"ingredient_id", "retail_section_id"})
+    ingredient = None
+    retail_section = None
+    matched_from_text = False
+
+    # A uniquely matching typed amount is safer and more useful when stored as
+    # a linked ingredient than as an opaque free-text row.
+    if payload.ingredient_id is None and payload.quantity_g == 0 and payload.unit == "g":
+        from shopping.services.item_matching import parse_manual_ingredient_quantity
+
+        parsed = parse_manual_ingredient_quantity(payload.name, request.user)
+        if parsed is not None:
+            ingredient = parsed.ingredient
+            matched_from_text = True
+            data.update(name=parsed.name, quantity_g=parsed.quantity_g, unit="g")
+            if payload.retail_section_id is None:
+                retail_section = parsed.ingredient.retail_section
 
     # Resolve optional FKs
-    ingredient = None
     if payload.ingredient_id:
         ingredient = Ingredient.objects.filter(id=payload.ingredient_id).first()
         if ingredient is None:
             raise HttpError(422, "Zutat nicht gefunden")
 
-    retail_section = None
     if payload.retail_section_id:
         retail_section = RetailSection.objects.filter(id=payload.retail_section_id).first()
         if retail_section is None:
             raise HttpError(422, "Supermarkt-Abteilung nicht gefunden")
+
+    if matched_from_text and ingredient is not None:
+        merge_candidates = (
+            ShoppingListItem.objects.filter(
+                shopping_list=shopping_list,
+                unit="g",
+                is_checked=False,
+                sources__isnull=True,
+            )
+            .filter(Q(ingredient=ingredient) | Q(ingredient__isnull=True, name__iexact=data["name"]))
+            .distinct()
+        )
+        if merge_candidates.count() == 1:
+            item = merge_candidates.get()
+            item.ingredient = ingredient
+            item.name = data["name"]
+            item.quantity_g += data["quantity_g"]
+            update_fields = ["ingredient", "name", "quantity_g", "updated_at"]
+            if item.retail_section_id is None and retail_section is not None:
+                item.retail_section = retail_section
+                update_fields.append("retail_section")
+            item.save(update_fields=update_fields)
+            return item
 
     item = ShoppingListItem.objects.create(
         shopping_list=shopping_list,
@@ -775,7 +829,8 @@ def create_from_meal_plan(request, meal_plan_id: int):
                 ingredient=ingredient,
                 name=ti.ingredient_name,
                 quantity_g=ti.total_quantity_g,
-                unit=ti.unit,
+                # quantity_g is grams; the display unit is derived from it on read.
+                unit="g",
                 note=ti.display_text if not ti.total_quantity_g and ti.display_text else "",
                 retail_section=retail_section,
                 sort_order=sort_idx,

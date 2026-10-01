@@ -3,11 +3,26 @@ import json
 import pytest
 from django.contrib.auth import get_user_model
 
+from content.models import Tag
 from planner.tests import make_meal, make_meal_plan
 from recipe.tests import make_recipe
 from supply.tests import make_ingredient, make_portion
 
 User = get_user_model()
+
+
+@pytest.mark.django_db
+def test_ingredient_detail_includes_parent_id_for_tags(api_client):
+    parent = Tag.objects.create(name="Käse", slug="kaese")
+    child = Tag.objects.create(name="Geriebener Käse", slug="geriebener-kaese", parent=parent)
+    ingredient = make_ingredient(name="Edamer Käse, geriebener")
+    ingredient.tags.add(child)
+    assert ingredient.tags.count() == 1
+
+    response = api_client.get(f"/api/ingredients/{ingredient.slug}/")
+
+    assert response.status_code == 200
+    assert response.json()["tags"][0]["parent_id"] == str(parent.id)
 
 
 @pytest.mark.django_db

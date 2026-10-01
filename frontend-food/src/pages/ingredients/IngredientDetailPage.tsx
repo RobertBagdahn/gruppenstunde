@@ -765,6 +765,7 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
       {!isLoading && !error && data && data.items.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {data.items.map((recipe) => (
+            // SAFETY: The paginated endpoint validates these as RecipeListItems; duplicate Zod type instances trigger TS2719.
             <RecipeCard key={recipe.id} recipe={recipe as unknown as import('@/schemas/recipe').RecipeListItem} />
           ))}
         </div>
@@ -891,8 +892,8 @@ function PortionsSection({
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-4">
+        <div className="min-w-0">
           <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
             <Icon name="scale" size={24} className="text-primary" />
             Portionen
@@ -903,7 +904,7 @@ function PortionsSection({
           </p>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <button
               onClick={onOpenMagicWand}
               disabled={isOpeningMagicWand || !!aiDisabledHint}
@@ -1117,12 +1118,13 @@ export default function IngredientDetailPage() {
   }
 
   if (error || !ingredient) {
+    const isNotFound = !ingredient && (!error || /\b404\b|Not Found/i.test(error.message));
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
         <ErrorDisplay
           error={error}
-          title="Zutat nicht gefunden"
-          description="Die Zutat existiert nicht oder wurde entfernt."
+          title={isNotFound ? 'Zutat nicht gefunden' : undefined}
+          description={isNotFound ? 'Die Zutat existiert nicht oder wurde entfernt.' : undefined}
           onBack={() => navigate('/ingredients')}
           backLabel="Zurück zur Übersicht"
           onRetry={() => refetch()}

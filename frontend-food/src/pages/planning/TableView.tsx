@@ -25,13 +25,14 @@ import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
 import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
-import { formatNumber } from '@/lib/format';
+import { formatCount, formatNumber } from '@/lib/format';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { planDateKey } from '@/lib/mealPlanDateTime';
 
 const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   breakfast: Coffee,
@@ -135,7 +136,7 @@ export default function TableView({
     const dateSet = new Set<string>();
     for (const meal of meals) {
       if (meal.start_datetime) {
-        dateSet.add(meal.start_datetime.slice(0, 10));
+        dateSet.add(planDateKey(meal.start_datetime));
       }
     }
     const dates = [...dateSet].sort();
@@ -147,7 +148,7 @@ export default function TableView({
     }
     for (const meal of meals) {
       if (!meal.start_datetime) continue;
-      const date = meal.start_datetime.slice(0, 10);
+      const date = planDateKey(meal.start_datetime);
       if (!grid[meal.meal_type]) {
         grid[meal.meal_type] = {};
       }
@@ -842,7 +843,7 @@ export default function TableView({
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-caption text-muted-foreground font-medium">
                           <span>Kalorien</span>
-                          <span className="font-semibold text-foreground">{kcalPerPerson} / {dailyTotal.targetKcal} kcal</span>
+                          <span className="font-semibold text-foreground">Ist {formatCount(kcalPerPerson)} / Soll {formatCount(dailyTotal.targetKcal)} kcal</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                           <div className={cn("h-full rounded-full transition-all", barColor(badge.status))} style={{ width: `${kcalPercent}%` }} />
@@ -854,7 +855,7 @@ export default function TableView({
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-caption text-muted-foreground font-medium">
                             <span>Kosten</span>
-                            <span className="font-semibold text-foreground">{formatNumber(costPerPerson, { maxDecimals: 2 }).replace('.', ',')} € / {formatNumber(dailyTotal.targetCost, { maxDecimals: 2 }).replace('.', ',')} €</span>
+                            <span className="font-semibold text-foreground">Ist {formatNumber(costPerPerson, { maxDecimals: 2 })} € / Soll {formatNumber(dailyTotal.targetCost, { maxDecimals: 2 })} €</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                             <div className={cn("h-full rounded-full transition-all", barColor(budgetStatus))} style={{ width: `${costPercent}%` }} />
