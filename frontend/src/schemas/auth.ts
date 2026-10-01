@@ -33,6 +33,8 @@ export type AuthProvider = z.infer<typeof AuthProviderSchema>;
 export const AuthProvidersSchema = z.object({
   providers: z.array(AuthProviderSchema),
   dev_login: z.boolean(),
+  /** Transition period: e-mail/password accounts keep working. */
+  password_login: z.boolean(),
 });
 export type AuthProviders = z.infer<typeof AuthProvidersSchema>;
 
@@ -50,6 +52,24 @@ export const DevLoginSchema = z.object({
   email: z.string().email('Ungültige E-Mail-Adresse'),
 });
 export type DevLoginInput = z.infer<typeof DevLoginSchema>;
+
+export const PasswordLoginSchema = z.object({
+  email: z.string().email('Ungültige E-Mail-Adresse'),
+  password: z.string().min(1, 'Bitte gib dein Passwort ein'),
+});
+export type PasswordLoginInput = z.infer<typeof PasswordLoginSchema>;
+
+export const PasswordRegisterSchema = z
+  .object({
+    email: z.string().email('Ungültige E-Mail-Adresse'),
+    password1: z.string().min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein'),
+    password2: z.string(),
+  })
+  .refine((data) => data.password1 === data.password2, {
+    message: 'Die Passwörter stimmen nicht überein',
+    path: ['password2'],
+  });
+export type PasswordRegisterInput = z.infer<typeof PasswordRegisterSchema>;
 
 export const OnboardingSchema = z.object({
   first_name: z.string().max(100).optional(),

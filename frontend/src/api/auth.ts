@@ -12,6 +12,8 @@ import {
   type AuthProviders,
   type DevLoginInput,
   type OnboardingInput,
+  type PasswordLoginInput,
+  type PasswordRegisterInput,
   type SocialConnection,
   type User,
 } from '@/schemas/auth';
@@ -81,6 +83,35 @@ export function useDevLogin() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
+      return parseApiResponse(res, UserSchema);
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(SESSION_QUERY_KEY, user);
+      queryClient.invalidateQueries();
+    },
+  });
+}
+
+/** Transitional e-mail/password login (only while `password_login` is announced). */
+export function usePasswordLogin() {
+  const queryClient = useQueryClient();
+  return useMutation<User, Error, PasswordLoginInput>({
+    mutationFn: async (payload) => {
+      const res = await fetchWithCsrf(`${API_BASE}/login/`, { method: 'POST', body: JSON.stringify(payload) });
+      return parseApiResponse(res, UserSchema);
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(SESSION_QUERY_KEY, user);
+      queryClient.invalidateQueries();
+    },
+  });
+}
+
+export function usePasswordRegister() {
+  const queryClient = useQueryClient();
+  return useMutation<User, Error, PasswordRegisterInput>({
+    mutationFn: async (payload) => {
+      const res = await fetchWithCsrf(`${API_BASE}/register/`, { method: 'POST', body: JSON.stringify(payload) });
       return parseApiResponse(res, UserSchema);
     },
     onSuccess: (user) => {

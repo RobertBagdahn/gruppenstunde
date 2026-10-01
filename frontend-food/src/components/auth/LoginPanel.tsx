@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { useAuthProviders, useDevLogin } from '@/api/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PasswordLoginForm from '@/components/auth/PasswordLoginForm';
 import { getApiErrorMessage } from '@/lib/api';
 import { startSocialLogin, type SocialLoginProcess } from '@/lib/socialLogin';
 
@@ -19,6 +20,8 @@ interface LoginPanelProps {
   onDevLoginSuccess?: () => void;
   /** Providers already linked (connect mode hides them). */
   excludeProviders?: string[];
+  /** Start the e-mail form in registration mode (/register). */
+  initialPasswordMode?: 'login' | 'register';
 }
 
 const PROVIDER_LABEL_PREFIX: Record<SocialLoginProcess, string> = {
@@ -32,6 +35,7 @@ export default function LoginPanel({
   onBeforeRedirect,
   onDevLoginSuccess,
   excludeProviders = [],
+  initialPasswordMode = 'login',
 }: LoginPanelProps) {
   const { data, isLoading, isError } = useAuthProviders();
   const devLogin = useDevLogin();
@@ -83,7 +87,20 @@ export default function LoginPanel({
         </Button>
       ))}
 
-      {providers.length === 0 && !data?.dev_login && (
+      {data?.password_login && process === 'login' && (
+        <>
+          {providers.length > 0 && (
+            <div className="flex items-center gap-3 py-1 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              oder mit E-Mail
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          )}
+          <PasswordLoginForm initialMode={initialPasswordMode} onSuccess={onDevLoginSuccess} />
+        </>
+      )}
+
+      {providers.length === 0 && !data?.dev_login && !data?.password_login && (
         <p className="text-sm text-muted-foreground">
           Aktuell ist keine Anmeldung verfügbar. Bitte versuche es später erneut.
         </p>

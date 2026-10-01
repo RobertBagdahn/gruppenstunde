@@ -243,6 +243,10 @@ for _provider_config in SOCIALACCOUNT_PROVIDERS.values():
 # Dev login (local + tests only). production.py refuses to start if enabled.
 AUTH_DEV_LOGIN_ENABLED = env.bool("AUTH_DEV_LOGIN_ENABLED", default=False)
 
+# Transition period: existing e-mail/password accounts keep working next to social
+# login. Switch off via env once all users have linked a provider.
+AUTH_PASSWORD_LOGIN_ENABLED = env.bool("AUTH_PASSWORD_LOGIN_ENABLED", default=True)
+
 # Email Configuration
 EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")

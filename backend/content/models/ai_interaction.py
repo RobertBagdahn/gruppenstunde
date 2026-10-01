@@ -31,9 +31,15 @@ class AiInteraction(models.Model):
     cost_eur = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     pricing_model = models.CharField(max_length=100, blank=True, default="")
     is_background = models.BooleanField(default=False)
-    tier = models.CharField(max_length=10, choices=AiTierChoices.choices, default=AiTierChoices.USER)
+    # db_default keeps inserts from the previous release working during a rolling deploy.
+    tier = models.CharField(
+        max_length=10,
+        choices=AiTierChoices.choices,
+        default=AiTierChoices.USER,
+        db_default=AiTierChoices.USER,
+    )
     # HMAC of IP + user agent with a daily rotating key; never a raw IP.
-    anon_key = models.CharField(max_length=64, blank=True, default="")
+    anon_key = models.CharField(max_length=64, blank=True, default="", db_default="")
     # Worst-case estimate held against the budget until `cost_eur` is known.
     reserved_cost_eur = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     vote = models.CharField(

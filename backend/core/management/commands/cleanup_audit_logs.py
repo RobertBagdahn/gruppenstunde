@@ -13,7 +13,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--days", type=int, default=90, help="Delete entries older than this many days")
-        parser.add_argument("--staff-days", type=int, default=30, help="Delete Staff Food access entries older than this many days")
+        parser.add_argument(
+            "--staff-days", type=int, default=30, help="Delete Staff Food access entries older than this many days"
+        )
 
     def handle(self, *args, **options):
         days = options["days"]
@@ -29,7 +31,5 @@ class Command(BaseCommand):
             StaffFoodAccessLog.objects.filter(id__in=ids).delete()
             staff_deleted += len(ids)
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Deleted {deleted} audit log entries and {staff_deleted} Staff Food access entries"
-            )
+            self.style.SUCCESS(f"Deleted {deleted} audit log entries and {staff_deleted} Staff Food access entries")
         )

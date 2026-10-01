@@ -72,6 +72,18 @@ class AuthProviderOut(Schema):
 class AuthProvidersOut(Schema):
     providers: list[AuthProviderOut]
     dev_login: bool
+    password_login: bool
+
+
+class PasswordLoginIn(Schema):
+    email: str
+    password: str
+
+
+class PasswordRegisterIn(Schema):
+    email: str
+    password1: str
+    password2: str
 
 
 class SocialConnectionOut(Schema):

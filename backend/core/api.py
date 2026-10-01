@@ -6,11 +6,12 @@ from datetime import UTC, datetime
 
 from allauth.socialaccount.models import SocialAccount
 from django.conf import settings
-from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import Http404, HttpResponse
 from django.middleware.csrf import get_token
 from ninja import Query, Router, Status
 
+from core.auth.passwords import register_password_user
 from core.auth.providers import configured_providers, provider_name, user_connections
 from core.auth.session import auth_user_out, session_out
 from core.errors import ApiError
@@ -22,6 +23,8 @@ from core.schemas import (
     DevLoginIn,
     MessageOut,
     PaginatedUserOut,
+    PasswordLoginIn,
+    PasswordRegisterIn,
     SessionOut,
     SocialConnectionOut,
     UserSimpleOut,
@@ -58,7 +61,33 @@ def list_providers(request):
     return AuthProvidersOut(
         providers=[AuthProviderOut(id=p.id, name=p.name, login_url=p.login_url) for p in configured_providers()],
         dev_login=settings.AUTH_DEV_LOGIN_ENABLED,
+        password_login=settings.AUTH_PASSWORD_LOGIN_ENABLED,
     )
+
+
+# --- Transitional e-mail/password login (AUTH_PASSWORD_LOGIN_ENABLED) ---
+
+
+@auth_router.post("/login/", response=AuthUserOut)
+def password_login(request, payload: PasswordLoginIn):
+    """Log in with e-mail and password while the transition period is active."""
+    if not settings.AUTH_PASSWORD_LOGIN_ENABLED:
+        raise Http404
+    user = authenticate(request, username=payload.email.strip().lower(), password=payload.password)
+    if user is None:
+        raise ApiError(400, "invalid_credentials", "E-Mail-Adresse oder Passwort ist falsch.")
+    login(request, user)
+    return auth_user_out(user)
+
+
+@auth_router.post("/register/", response={201: AuthUserOut})
+def password_register(request, payload: PasswordRegisterIn):
+    """Create an e-mail/password account while the transition period is active."""
+    if not settings.AUTH_PASSWORD_LOGIN_ENABLED:
+        raise Http404
+    user = register_password_user(payload.email, payload.password1, payload.password2)
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return Status(201, auth_user_out(user))
 
 
 @auth_router.post("/logout/", response=MessageOut)

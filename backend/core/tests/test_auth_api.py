@@ -66,10 +66,15 @@ class TestSessionEndpoints:
         ]
         assert body["dev_login"] is True
 
+    @override_settings(AUTH_PASSWORD_LOGIN_ENABLED=False)
     @pytest.mark.parametrize("path", ["/api/auth/login/", "/api/auth/register/"])
-    def test_password_endpoints_are_gone(self, api_client: Client, path: str) -> None:
-        response = api_client.post(path, data={}, content_type="application/json")
-        assert response.status_code in (404, 405)
+    def test_password_endpoints_disabled_after_transition(self, api_client: Client, path: str) -> None:
+        response = api_client.post(
+            path,
+            data={"email": "a@b.de", "password": "x", "password1": "x", "password2": "x"},
+            content_type="application/json",
+        )
+        assert response.status_code == 404
 
     def test_logout_is_idempotent(self, api_client: Client) -> None:
         assert api_client.post("/api/auth/logout/").status_code == 200
@@ -260,3 +265,57 @@ class TestOnboarding:
         response = _logged_in(fresh).post("/api/profile/me/onboarding/", data={}, content_type="application/json")
         assert response.status_code == 200
         assert UserProfile.objects.get(user=fresh).onboarded_at is not None
+
+
+@pytest.mark.django_db
+class TestPasswordTransition:
+    """Existing e-mail/password accounts keep working during the transition period."""
+
+    def test_providers_announce_password_login(self, api_client: Client) -> None:
+        assert api_client.get("/api/auth/providers/").json()["password_login"] is True
+
+    def test_existing_password_user_can_log_in(self, api_client: Client) -> None:
+        User.objects.create_user(username="alt@example.org", email="alt@example.org", password="geheim-12345")
+        response = api_client.post(
+            "/api/auth/login/",
+            data={"email": "Alt@Example.org", "password": "geheim-12345"},
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        assert api_client.get("/api/auth/me/").json()["user"]["email"] == "alt@example.org"
+
+    def test_wrong_password_is_rejected(self, api_client: Client) -> None:
+        User.objects.create_user(username="alt@example.org", email="alt@example.org", password="geheim-12345")
+        response = api_client.post(
+            "/api/auth/login/",
+            data={"email": "alt@example.org", "password": "falsch"},
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+        assert response.json()["code"] == "invalid_credentials"
+
+    def test_register_creates_user_and_profile(self, api_client: Client) -> None:
+        response = api_client.post(
+            "/api/auth/register/",
+            data={"email": "neu@example.org", "password1": "Lagerfeuer-2026!", "password2": "Lagerfeuer-2026!"},
+            content_type="application/json",
+        )
+        assert response.status_code == 201
+        assert response.json()["needs_onboarding"] is True
+        assert UserProfile.objects.filter(user__email="neu@example.org").exists()
+
+    def test_register_rejects_duplicate_and_weak_password(self, api_client: Client) -> None:
+        User.objects.create_user(username="da@example.org", email="da@example.org", password="x")
+        taken = api_client.post(
+            "/api/auth/register/",
+            data={"email": "da@example.org", "password1": "Lagerfeuer-2026!", "password2": "Lagerfeuer-2026!"},
+            content_type="application/json",
+        )
+        assert taken.json()["code"] == "email_taken"
+        weak = api_client.post(
+            "/api/auth/register/",
+            data={"email": "neu2@example.org", "password1": "123", "password2": "123"},
+            content_type="application/json",
+        )
+        assert weak.status_code == 400
+        assert weak.json()["code"] == "weak_password"

@@ -9,6 +9,7 @@ export default function LoginPage() {
   const { data: user } = useCurrentUser();
   const next = safeNextPath(searchParams.get('next'));
   const errorCode = searchParams.get('error');
+  const initialPasswordMode = searchParams.get('mode') === 'register' ? 'register' : 'login';
 
   if (user) return <Navigate to={next} replace />;
 
@@ -21,7 +22,7 @@ export default function LoginPage() {
           </div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Anmelden</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Mit einem Klick über ein Konto, das du schon hast. Ein eigenes Passwort brauchst du nicht.
+            Mit einem Klick über ein Konto, das du schon hast – oder wie gewohnt mit E-Mail und Passwort.
           </p>
         </div>
 
@@ -32,7 +33,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <LoginPanel next={next} />
+        <LoginPanel next={next} initialPasswordMode={initialPasswordMode} />
       </div>
     </div>
   );

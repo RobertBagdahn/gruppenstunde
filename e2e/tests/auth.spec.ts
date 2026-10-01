@@ -18,16 +18,31 @@ test.describe('Authentication (social login only)', () => {
     expect(await response.json()).toEqual({ is_authenticated: false, user: null });
   });
 
-  test('Password endpoints no longer exist', async ({ request }) => {
-    const response = await request.post(`${FOOD_URL}/api/auth/login/`, { data: {} });
-    expect([403, 404, 405]).toContain(response.status());
-  });
-
-  test('Login page offers providers and the dev login locally', async ({ page }) => {
+  test('Login page offers providers, e-mail login (transition) and the dev login locally', async ({ page }) => {
     await page.goto(`${FOOD_URL}/login`);
     await expect(page.getByRole('heading', { name: 'Anmelden' })).toBeVisible();
     await expect(page.getByLabel('Entwicklungs-Login (nur lokal)')).toBeVisible();
-    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+    await expect(page.getByLabel('Passwort', { exact: true })).toBeVisible();
+  });
+
+  test('Existing e-mail/password accounts can still log in (transition period)', async ({ page }) => {
+    await page.goto(`${FOOD_URL}/login`);
+    await page.getByLabel('E-Mail-Adresse').fill(SEED_USER.email);
+    await page.getByLabel('Passwort', { exact: true }).fill(process.env.FOOD_E2E_PASSWORD ?? 'admin');
+    await page.getByRole('button', { name: 'Mit E-Mail anmelden' }).click();
+    await page.waitForURL('**/', { timeout: 10000 });
+    const me = await (await page.request.get(`${FOOD_URL}/api/auth/me/`)).json();
+    expect(me.user.email).toBe(SEED_USER.email);
+  });
+
+  test('Wrong password gives a German error', async ({ request }) => {
+    const csrf = await (await request.get(`${FOOD_URL}/api/auth/csrf/`)).json();
+    const response = await request.post(`${FOOD_URL}/api/auth/login/`, {
+      data: { email: SEED_USER.email, password: 'falsch' },
+      headers: { 'X-CSRFToken': csrf.csrfToken, Referer: `${FOOD_URL}/` },
+    });
+    expect(response.status()).toBe(400);
+    expect((await response.json()).code).toBe('invalid_credentials');
   });
 
   test('Dev login creates a session and logout ends it', async ({ page }) => {
