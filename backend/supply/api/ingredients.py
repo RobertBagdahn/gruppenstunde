@@ -310,6 +310,7 @@ def list_standard_measures(request, slug: str):
                 key=measure.key,
                 name=measure.name,
                 grams=grams,
+                volume_ml=measure.volume_ml,
                 unit_name=measure.unit_name,
                 is_approx=is_approx,
             )

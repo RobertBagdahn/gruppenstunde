@@ -149,7 +149,7 @@ export function MealOmnibarDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[min(760px,90vh)] p-0 overflow-hidden shadow-2xl border-border flex flex-col gap-0">
+      <DialogContent className="max-w-5xl h-[min(760px,90dvh)] max-h-[90dvh] min-h-0 p-0 overflow-hidden shadow-2xl border-border flex flex-col gap-0">
         {targetLabel && (
           <p className="px-4 pt-3 text-caption text-muted-foreground">
             Hinzufügen zu: <span className="font-semibold text-foreground">{targetLabel}</span>
@@ -238,9 +238,9 @@ export function MealOmnibarDialog({
         </div>
 
         {/* 2-Column Area: List on left, Live Preview on right */}
-        <div className="grid grid-cols-1 md:grid-cols-12 flex-1 min-h-0 md:min-h-[420px] md:max-h-[620px]">
+        <div className="grid grid-cols-1 grid-rows-[minmax(0,1fr)] md:grid-cols-12 flex-1 min-h-0 md:min-h-[420px] md:max-h-[620px]">
           {/* List Area */}
-          <div className="md:col-span-7 min-h-0 overflow-y-auto md:border-r border-border p-3 space-y-1">
+          <div className="md:col-span-7 min-h-0 overflow-y-auto overscroll-contain md:border-r border-border p-3 space-y-1">
             {isLoading && (
               <p className="text-caption text-muted-foreground py-10 text-center">Suche läuft...</p>
             )}
@@ -265,14 +265,13 @@ export function MealOmnibarDialog({
                     {item.type === 'recipe' ? 'Rezepte' : 'Zutaten'}
                   </p>
                 )}
-                <div
-                  onClick={() => {
-                    setSelectedIndex(idx);
-                    handleConfirmSelection(item);
-                  }}
+                <button
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedIndex(idx)}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={cn(
-                    'p-3 rounded-xl cursor-pointer flex items-start gap-3 transition-colors text-caption',
+                    'w-full p-3 rounded-xl cursor-pointer flex items-start gap-3 transition-colors text-caption text-left',
                     isSelected
                       ? 'bg-primary/10 border border-primary/30 text-foreground'
                       : 'hover:bg-muted/40 text-muted-foreground hover:text-foreground'
@@ -306,7 +305,7 @@ export function MealOmnibarDialog({
                   </div>
 
                   {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
-                </div>
+                </button>
                 {endsGroup && groupTotal > ALL_GROUP_LIMIT && (
                   <button
                     type="button"
@@ -422,9 +421,16 @@ export function MealOmnibarDialog({
         {/* Phones have no detail column: keep the confirm action in view below the list. */}
         {activeItem && (
           <div className="md:hidden shrink-0 border-t border-border bg-card p-3 space-y-2">
-            <p className="text-caption text-muted-foreground truncate">
-              Ausgewählt: <span className="font-semibold text-foreground">{activeItem.type === 'ingredient' ? activeItem.data.name : activeItem.data.title}</span>
-            </p>
+            <div className="min-w-0">
+              <p className="text-caption text-muted-foreground truncate">
+                Vorschau: <span className="font-semibold text-foreground">{activeItem.type === 'ingredient' ? activeItem.data.name : activeItem.data.title}</span>
+              </p>
+              <p className="text-caption text-muted-foreground truncate">
+                {activeItem.type === 'ingredient'
+                  ? `Einzelzutat · ${normPortions} Personen`
+                  : `${recipeTypeLabel(activeItem.data.recipe_type)}${activeItem.data.price_per_serving == null ? '' : ` · ${formatNumber(activeItem.data.price_per_serving * normPortions, { maxDecimals: 2 })} € gesamt`}`}
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => handleConfirmSelection(activeItem)}

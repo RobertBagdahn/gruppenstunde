@@ -395,12 +395,6 @@ export default function RecipeWizard() {
     setSearchParams(new URLSearchParams({ step: 'input' }), { replace: true });
   }, [resetReview, setBasics, setSearchParams]);
 
-  const setTitle = useCallback((title: string) => setBasics((current) => ({ ...current, title })), [setBasics]);
-  const setRecipeType = useCallback(
-    (recipeType: string | null) => setBasics((current) => ({ ...current, recipeType })),
-    [setBasics],
-  );
-
   if (draftNotFound) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4" data-testid="recipe-wizard-draft-not-found">
@@ -461,11 +455,6 @@ export default function RecipeWizard() {
           <WizardStepIngredients
             recipeId={draft.id}
             recipeSlug={draft.slug}
-            title={basics.title}
-            recipeType={basics.recipeType}
-            onTitleChange={setTitle}
-            onRecipeTypeChange={setRecipeType}
-            saveRecipe={saveRecipe}
           />
         );
       case 'materials':

@@ -40,9 +40,12 @@ class TestStandardMeasuresEndpoint:
         by_key = {m["key"]: m for m in items}
         assert set(by_key) == {"el", "tl", "tasse", "prise", "msp"}
         assert by_key["el"]["grams"] == pytest.approx(12.0)  # 15 ml × 0.8
+        assert by_key["el"]["volume_ml"] == pytest.approx(15.0)
         assert by_key["el"]["is_approx"] is False
         assert by_key["tl"]["grams"] == pytest.approx(4.0)
+        assert by_key["tl"]["volume_ml"] == pytest.approx(5.0)
         assert by_key["tasse"]["grams"] == pytest.approx(160.0)
+        assert by_key["tasse"]["volume_ml"] == pytest.approx(200.0)
         assert by_key["prise"]["grams"] == pytest.approx(0.5)
         assert by_key["prise"]["is_approx"] is True
 
@@ -53,6 +56,7 @@ class TestStandardMeasuresEndpoint:
         assert by_key["el"]["grams"] == pytest.approx(15.0)
         assert by_key["el"]["is_approx"] is True
         assert by_key["tasse"]["grams"] == pytest.approx(200.0)
+        assert by_key["tasse"]["volume_ml"] == pytest.approx(200.0)
 
     def test_unknown_slug_returns_404(self, api_client):
         resp = api_client.get("/api/ingredients/gibt-es-nicht/standard-measures/")

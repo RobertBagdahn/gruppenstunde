@@ -246,7 +246,8 @@ describe('RecipeWizard step model', () => {
     expect(screen.queryByTestId('recipe-wizard-indicator-review')).toBeNull();
 
     clickNext();
-    await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith('Bitte gib einen Titel ein.'));
+    expect(await screen.findByText('Bitte gib einen Titel ein.')).toBeInTheDocument();
+    expect(mocks.toast.error).not.toHaveBeenCalled();
     expect(screen.getByTestId('recipe-wizard-step-basis')).toBeTruthy();
 
     fireEvent.change(screen.getByTestId('recipe-basis-title'), { target: { value: 'Stockbrot' } });

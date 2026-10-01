@@ -759,5 +759,6 @@ class StandardMeasureOut(Schema):
     key: str
     name: str
     grams: float
+    volume_ml: float | None = None
     unit_name: str = "g"
     is_approx: bool = True

@@ -10,9 +10,9 @@ import PortionPicker, { type PortionPickerPortion } from '@/components/recipe/Po
 vi.mock('@/api/supplies', () => ({
   useStandardMeasures: vi.fn(() => ({
     data: [
-      { key: 'el', name: '1 EL', grams: 12, unit_name: 'g', is_approx: false },
-      { key: 'tl', name: '1 TL', grams: 4, unit_name: 'g', is_approx: false },
-      { key: 'tasse', name: '1 Tasse', grams: 160, unit_name: 'g', is_approx: false },
+      { key: 'el', name: '1 EL', grams: 12, volume_ml: 15, unit_name: 'g', is_approx: false },
+      { key: 'tl', name: '1 TL', grams: 4, volume_ml: 5, unit_name: 'g', is_approx: false },
+      { key: 'tasse', name: '1 Tasse', grams: 160, volume_ml: 200, unit_name: 'g', is_approx: false },
       { key: 'prise', name: '1 Prise', grams: 0.5, unit_name: 'g', is_approx: true },
       { key: 'msp', name: '1 Msp', grams: 0.2, unit_name: 'g', is_approx: true },
     ],
@@ -52,6 +52,7 @@ describe('PortionPicker', () => {
     fireEvent.click(screen.getByLabelText('Portion wählen'));
     expect(screen.getByText('Zutat')).toBeTruthy();
     expect(screen.getByText('Standardmengen')).toBeTruthy();
+    expect(screen.getByText('1 Tasse (200 ml)')).toBeTruthy();
     expect(screen.getByText('freie Menge')).toBeTruthy();
   });
 
@@ -96,7 +97,7 @@ describe('PortionPicker', () => {
   it('fires onSelectStandardMeasure with the catalog entry', () => {
     const { onSelectStandardMeasure } = renderPicker();
     fireEvent.click(screen.getByLabelText('Portion wählen'));
-    fireEvent.click(screen.getByText('1 EL'));
+    fireEvent.click(screen.getByRole('option', { name: /^1 EL/ }));
     expect(onSelectStandardMeasure).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'el', name: '1 EL', grams: 12 }),
     );

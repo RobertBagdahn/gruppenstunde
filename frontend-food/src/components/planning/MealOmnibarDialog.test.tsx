@@ -40,7 +40,7 @@ describe('MealOmnibarDialog', () => {
     expect(screen.getByRole('button', { name: /Zutaten/i })).toBeDefined();
   });
 
-  it('selects recipe and triggers callback on button click', () => {
+  it('selects a result by touch and adds it from the reachable preview action', () => {
     const handleSelectRecipe = vi.fn();
     const handleOpenChange = vi.fn();
 
@@ -53,9 +53,14 @@ describe('MealOmnibarDialog', () => {
       />
     );
 
-    // Click recipe in list
+    // Touch selects the row so the preview and its explicit action are available.
     const recipeItem = screen.getAllByText('Spaghetti Bolognese')[0];
     fireEvent.click(recipeItem);
+
+    expect(handleSelectRecipe).not.toHaveBeenCalled();
+    expect(screen.getAllByText(/Vorschau:/).length).toBeGreaterThan(0);
+    const addButtons = screen.getAllByRole('button', { name: /Gericht hinzufügen \(25 P\.\)/ });
+    fireEvent.click(addButtons[addButtons.length - 1]);
 
     expect(handleSelectRecipe).toHaveBeenCalledWith(101, 'Spaghetti Bolognese');
     expect(handleOpenChange).toHaveBeenCalledWith(false);
