@@ -21,6 +21,7 @@ import CategoryPills from '@/components/recipe/CategoryPills';
 import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 import IntelligentSuggestionsGrid from '@/components/recipe/IntelligentSuggestionsGrid';
+import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
 export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
@@ -585,7 +586,7 @@ function IngredientQuantityInline({
                   <SelectItem key={p.id} value={String(p.id)}>
                     {p.name}
                     {p.measuring_unit ? ` (${p.measuring_unit})` : ''}
-                    {p.weight_g ? ` — ${p.weight_g}g` : ''}
+                    {p.weight_g ? ` — ${formatExactWeight(p.weight_g)}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -595,7 +596,7 @@ function IngredientQuantityInline({
 
         {totalWeightG && selectedPortion?.weight_g && (
           <p className="text-caption text-muted-foreground">
-            {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
+            {formatNumber(quantity, { maxDecimals: 2 })} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
           </p>
         )}
       </div>

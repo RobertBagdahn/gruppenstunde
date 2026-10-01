@@ -21,7 +21,7 @@ function GroupCard({ group, onNotify }: { group: DuplicateGroup; onNotify: Dupli
   const sources = group.items.filter((item) => item.id !== targetId && included.has(item.id));
 
   return (
-    <div className="rounded-xl border bg-card p-3 space-y-2">
+    <div className="min-w-0 rounded-xl border bg-card p-3 space-y-2">
       <ul className="space-y-1">
         {group.items.map((item) => (
           <li key={item.id} className="flex items-center gap-2 text-body">

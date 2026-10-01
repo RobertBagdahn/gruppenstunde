@@ -176,6 +176,7 @@ export function MealActionsMenu({
           <button
             className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
             title="Aktionen"
+            aria-label="Aktionen"
           >
             <MoreVertical className="w-4.5 h-4.5" />
           </button>

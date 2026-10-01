@@ -29,6 +29,7 @@ import type { Meal, RecipeSearchResult } from '@/schemas/mealPlan';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
 import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
 import { mealTargetLabel } from '@/lib/mealTargetLabel';
+import { tagDisplayName } from '@/lib/tagLabels';
 import { BUFFET_ROLE_ORDER, buffetRoleName, itemBuffetRole } from '@/lib/buffetRoles';
 import RecipePreviewDialog from './RecipePreviewDialog';
 import { FactorInput } from './FactorInput';
@@ -109,6 +110,8 @@ export function MealSlot({
     for (const item of meal.items) {
       if (item.ingredient_tags && item.ingredient_tags.length > 0) {
         for (const t of item.ingredient_tags) {
+          // Buffet roles are shown as groups below; as header badges they would repeat.
+          if ((BUFFET_ROLE_ORDER as readonly string[]).includes(t)) continue;
           if (!tags.includes(t) && tags.length < 4) tags.push(t);
         }
       } else if (item.ingredient_name && !tags.includes(item.ingredient_name) && tags.length < 4) {
@@ -425,7 +428,7 @@ export function MealSlot({
                   key={tag}
                   className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground text-caption"
                 >
-                  {tag}
+                  {tagDisplayName(tag)}
                 </span>
               ))}
             </div>

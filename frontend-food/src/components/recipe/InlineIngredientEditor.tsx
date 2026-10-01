@@ -229,7 +229,7 @@ export function applyEstimateToItem(
     portion_id: estimate.portion_id,
     measuring_unit_name: estimate.unit,
     quantity: displayedQty,
-    quantityInput: String(displayedQty),
+    quantityInput: toQuantityInput(displayedQty),
     baseWeightG: estimate.grams_total,
     baseQuantity: estimate.quantity_per_portion,
     aiExpectedGramsTotal: displayedGrams,
@@ -244,6 +244,11 @@ export function applyEstimateToItem(
  * Never returns 0/NaN/Infinity — the result is guarded and falls back to 1
  * (one portion) so invalid values cannot reach the backend (which rejects
  * them with 422 or, historically, crashed with a 500). */
+/** Text shown in a quantity field: German decimal comma ("67,35"); parsing accepts both separators. */
+export function toQuantityInput(value: number): string {
+  return String(value).replace('.', ',');
+}
+
 export function toPersistedRecipeItemQuantity(item: EditableItem, scale: number): number {
   const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
   const isMetric = isDirectMetricPortion(currentPortion, item.measuring_unit_name);
@@ -289,7 +294,7 @@ export function applyPortionChange(item: EditableItem, newPortion: EditablePorti
     portion_id: newPortion.id,
     measuring_unit_name: label,
     quantity: newQty,
-    quantityInput: String(newQty),
+    quantityInput: toQuantityInput(newQty),
     baseWeightG: nextBaseWeightG,
     baseQuantity: nextBaseQuantity,
     isDirty: true,
@@ -347,7 +352,7 @@ export function normalizeItems(
       ingredient_name: item.ingredient_name,
       ingredient_slug: item.ingredient_slug ?? null,
       quantity: qty,
-      quantityInput: String(qty),
+      quantityInput: toQuantityInput(qty),
       measuring_unit_name: label,
       note: item.note,
       sort_order: item.sort_order,
@@ -814,7 +819,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const sanitized = item.quantityInput.replace(',', '.');
         const parsed = parseFloat(sanitized);
         const valid = sanitized !== '' && !isNaN(parsed) && parsed > 0;
-        return { ...item, quantityInput: String(valid ? parsed : item.quantity) };
+        return { ...item, quantityInput: toQuantityInput(valid ? parsed : item.quantity) };
       }),
     );
   }, []);
@@ -850,7 +855,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           portion_id: gramPortion?.id ?? null,
           measuring_unit_name: 'Gramm',
           quantity: measure.grams,
-          quantityInput: String(measure.grams),
+          quantityInput: toQuantityInput(measure.grams),
           baseWeightG: measure.grams,
           baseQuantity: measure.grams,
           isDirty: true,
@@ -872,7 +877,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           portion_id: gramPortion?.id ?? null,
           measuring_unit_name: 'Gramm',
           quantity: baseQuantity,
-          quantityInput: String(baseQuantity),
+          quantityInput: toQuantityInput(baseQuantity),
           baseWeightG: baseQuantity,
           baseQuantity,
           isDirty: true,
@@ -928,7 +933,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             ingredient_name: ingredient.name,
             ingredient_slug: ingredient.slug,
             quantity: displayedQuantity,
-            quantityInput: String(displayedQuantity),
+            quantityInput: toQuantityInput(displayedQuantity),
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
@@ -1051,7 +1056,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             ingredient_name: ingredientName,
             ingredient_slug: ingredientSlug,
             quantity: displayedQuantity,
-            quantityInput: String(displayedQuantity),
+            quantityInput: toQuantityInput(displayedQuantity),
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
@@ -1278,7 +1283,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             ingredient_name: ingredientName,
             ingredient_slug: ingredientSlug,
             quantity: displayedAlternativeQuantity,
-            quantityInput: String(displayedAlternativeQuantity),
+            quantityInput: toQuantityInput(displayedAlternativeQuantity),
             measuring_unit_name: portionDisplayLabel(bestPortion),
             note: '',
             sort_order: maxSort + 1,

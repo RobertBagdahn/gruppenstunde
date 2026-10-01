@@ -429,7 +429,7 @@ export default function MealPlanDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start">
+        <div className="flex flex-wrap items-center gap-2 self-start">
           <PlanCheckFlyout
             mealPlanId={mealPlanId}
             canEdit={plan.can_edit}
@@ -661,7 +661,7 @@ export default function MealPlanDetailPage() {
 
       {activeTab === 'shopping' && (
         <div className="space-y-4">
-          <div className="flex gap-2 border-b border-border pb-2">
+          <div className="flex flex-wrap gap-2 border-b border-border pb-2">
             <button
               type="button"
               onClick={() => {
@@ -719,7 +719,7 @@ export default function MealPlanDetailPage() {
 
       {activeTab === 'cooking' && (
         <div className="space-y-4">
-          <div className="flex gap-2 border-b border-border pb-2">
+          <div className="flex flex-wrap gap-2 border-b border-border pb-2">
             <button
               type="button"
               onClick={() => {

@@ -187,10 +187,10 @@ export default function SettingsPanel({
             onChange={(e) => setActivityFactor(Number(e.target.value))}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           >
-            <option value={1.2}>1.2 — wenig aktiv (Büro)</option>
-            <option value={1.5}>1.5 — normal (Standard)</option>
-            <option value={1.75}>1.75 — aktiv (Lager)</option>
-            <option value={2.0}>2.0 — sehr aktiv (Hajk)</option>
+            <option value={1.2}>1,2 — wenig aktiv (Büro)</option>
+            <option value={1.5}>1,5 — normal (Standard)</option>
+            <option value={1.75}>1,75 — aktiv (Lager)</option>
+            <option value={2.0}>2,0 — sehr aktiv (Hajk)</option>
           </select>
         </div>
         <div>

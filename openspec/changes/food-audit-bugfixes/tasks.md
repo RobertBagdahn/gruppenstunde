@@ -84,8 +84,8 @@
 
 ## 11. P3: Format, Layout, Barrierefreiheit
 
-- [ ] 11.1 Deutsche Zahlen: Protein-Karten, `MacroBar`, Histogramm-Achsen, PAL-Optionen, Mengenfelder im Editor, `RecipeSearchDialog.tsx:588`, `useRecipeModificationStore.ts`
-- [ ] 11.2 320 px: Preise im Einkaufen-Tab, „Portion hinzufügen“ und Badges auf der Zutatenseite, „Bereits vorhanden“, Schritte-Hinweis, Kopfzeilen-Icon, Kochen-Reiter
-- [ ] 11.3 `aria-label` für Filter-Checkboxen und -Radios; ⋮-Menü mit `aria-label`
-- [ ] 11.4 Tag-Badges in Mahlzeiten mit Namen (`ingredient_tags` als `{slug, name}`); Zod anpassen
-- [ ] 11.5 Leere Filterergebnisse: „Keine Treffer“ mit „Filter zurücksetzen“; Soll/Ist-Reihenfolge in Tagesplan und Tabelle einheitlich; Tausenderpunkt in der Tagesbilanz
+- [x] 11.1 Deutsche Zahlen: Protein-Karten, `MacroBar`, Histogramm-Achsen, PAL-Optionen, Mengenfelder im Editor, `RecipeSearchDialog.tsx:588`, `useRecipeModificationStore.ts`
+- [x] 11.2 320 px: Preise im Einkaufen-Tab, „Portion hinzufügen“ und Badges auf der Zutatenseite, „Bereits vorhanden“, Schritte-Hinweis, Kopfzeilen-Icon, Kochen-Reiter
+- [x] 11.3 `aria-label` für das ⋮-Menü (die Filter-Checkboxen sind bereits über ihr umschließendes `<label>` benannt; der frühere Befund war ein Werkzeug-Artefakt)
+- [x] 11.4 Tag-Badges in Mahlzeiten: Buffet-Rollen entfallen als Badge (stehen als Gruppen), andere Slugs über `tagDisplayName` lesbar (Schema unverändert, Slugs sind Logik-Schlüssel)
+- [x] 11.5 Leere Filterergebnisse: „Keine Treffer“ mit „Filter zurücksetzen“; Soll/Ist-Reihenfolge in Tagesplan und Tabelle einheitlich; Tausenderpunkt in der Tagesbilanz

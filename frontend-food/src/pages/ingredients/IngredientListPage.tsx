@@ -158,17 +158,23 @@ export default function IngredientListPage() {
               ))}
             </div>
           ) : data?.items.length === 0 ? (
-            <EmptyState
-              icon="egg_alt"
-              title="Keine Zutaten gefunden"
-              description={
-                name || retailSection || status
-                  ? 'Versuch es mit anderen Suchbegriffen oder Filtern.'
-                  : 'Erstelle deine erste Zutat für die Datenbank.'
-              }
-              ctaLabel="Erste Zutat erstellen"
-              ctaHref="/ingredients/new"
-            />
+            activeCount > 0 ? (
+              <EmptyState
+                icon="egg_alt"
+                title="Keine Zutaten gefunden"
+                description="Mit diesen Suchbegriffen und Filtern gibt es keine Treffer."
+                ctaLabel="Filter zurücksetzen"
+                onCtaClick={handleReset}
+              />
+            ) : (
+              <EmptyState
+                icon="egg_alt"
+                title="Noch keine Zutaten"
+                description="Erstelle deine erste Zutat für die Datenbank."
+                ctaLabel="Erste Zutat erstellen"
+                ctaHref="/ingredients/new"
+              />
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {data?.items.map((ingredient) => (

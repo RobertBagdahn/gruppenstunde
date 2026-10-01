@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { Icon } from '@/components/ui/icon';
+import { formatExactWeight } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -324,14 +325,14 @@ function formatListValue(value: unknown): string {
   // Handle single object (e.g. a portion suggestion)
   if (typeof value === 'object' && !Array.isArray(value) && value !== null && 'name' in value) {
     const obj = value as { name: string; weight_g?: number };
-    return obj.weight_g ? `${obj.name} (${obj.weight_g}g)` : obj.name;
+    return obj.weight_g ? `${obj.name} (${formatExactWeight(obj.weight_g)})` : obj.name;
   }
   if (!Array.isArray(value)) return '\u2014';
   if (value.length === 0) return '\u2014';
   // Handle portion suggestions (objects with name)
   if (typeof value[0] === 'object' && value[0] !== null && 'name' in value[0]) {
     return value.map((v: { name: string; weight_g?: number }) =>
-      v.weight_g ? `${v.name} (${v.weight_g}g)` : v.name
+      v.weight_g ? `${v.name} (${formatExactWeight(v.weight_g)})` : v.name
     ).join(', ');
   }
   // Plain strings

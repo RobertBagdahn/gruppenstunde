@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { IngredientListItem } from '@/schemas/supply';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
-import { formatNumber, roundToDecimals } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 
 interface IngredientCardProps {
@@ -53,7 +53,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
         )}
         {ingredient.protein_g !== null && (
           <span className="inline-flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-lg">
-            {roundToDecimals(ingredient.protein_g, 1)}g Protein
+            {formatNumber(ingredient.protein_g, { maxDecimals: 1 })} g Protein
           </span>
         )}
         {formatPrice(ingredient.price_per_kg) && (

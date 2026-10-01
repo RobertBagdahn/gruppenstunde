@@ -102,7 +102,7 @@ export default function KitchenReminderSection() {
                       {/* Label */}
                       <span
                         className={cn(
-                          'flex-1 text-body font-medium',
+                          'min-w-0 flex-1 break-words text-body font-medium',
                           checked.has(reminder.id) && 'line-through text-muted-foreground',
                           available.has(reminder.id) && 'text-muted-foreground',
                           reminder.is_own_suggestion && !reminder.is_published && 'italic text-muted-foreground'

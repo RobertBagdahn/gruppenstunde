@@ -91,14 +91,14 @@ function AnalysisSection({
     <section className="mt-6 bg-card rounded-xl border overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center justify-between gap-3 p-4 sm:p-5 text-left hover:bg-muted/50 transition-colors"
       >
-        <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
+        <h2 className="flex shrink-0 items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
           <Icon name={icon} size={20} className={accentColor} />
           {title}
         </h2>
-        <div className="flex items-center gap-3">
-          {preview && <div className="shrink-0">{preview}</div>}
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          {preview && <div className="min-w-0 text-right">{preview}</div>}
           <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>

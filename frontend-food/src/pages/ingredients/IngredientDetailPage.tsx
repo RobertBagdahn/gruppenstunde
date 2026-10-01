@@ -887,8 +887,8 @@ function PortionsSection({
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-4">
+        <div className="min-w-0">
           <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
             <Icon name="scale" size={24} className="text-primary" />
             Portionen
@@ -899,7 +899,7 @@ function PortionsSection({
           </p>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <button
               onClick={onOpenMagicWand}
               disabled={isOpeningMagicWand}

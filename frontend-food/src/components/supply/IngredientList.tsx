@@ -123,7 +123,7 @@ function PortionPill({
 
 function Fact({ icon: Icon, children, className }: { icon: LucideIcon; children: ReactNode; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap tabular-nums', className)}>
+    <span className={cn('inline-flex items-center gap-1 sm:whitespace-nowrap tabular-nums', className)}>
       <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
       {children}
     </span>
