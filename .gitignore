@@ -45,3 +45,4 @@ cloud-sql-proxy
 
 # sql dump
 *.sql
+backend/backup_prod/

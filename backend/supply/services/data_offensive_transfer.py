@@ -196,7 +196,7 @@ def apply_package(package: dict[str, Any], *, apply: bool) -> ApplyReport:
             if recipe.recipe_type != recipe_type:
                 report.recipe_types_changed += 1
                 if apply:
-                    Recipe.objects.filter(id=recipe.id).update(recipe_type=recipe_type)
+                    Recipe.objects.filter(slug=recipe.slug).update(recipe_type=recipe_type)
 
         if not apply:
             transaction.set_rollback(True)

@@ -2,7 +2,7 @@
 
 ## 1. Backend-Grundlagen
 - [x] 1.1 Katalog v2 (`supply/data/retail_sections.py`), Legacy-Aliase, Fixture `supply_retailsection.json`
-- [x] 1.2 Migrationen `0016_ingredient_data_review_fields`, `0017_retail_sections_v2`
+- [x] 1.2 Migrationen `0016_ingredient_data_review_fields`, `0017_retail_sections_v2`, `0018_unique_system_ingredient_name`
 - [x] 1.3 Kopfwort-Klassifikator + `reclassify_retail_sections`; Mapping-Service nutzt Klassifikator
 - [x] 1.4 Nährwert-Regelwerk + deterministische Reparatur + `repair_ingredient_nutrition`; Qualitäts-Score berücksichtigt Plausibilität
 - [x] 1.5 Batch-KI-Review-Service mit konservativer Übernahmelogik
@@ -27,4 +27,4 @@
 - [x] 4.2 Tests: Klassifikator, Katalog, Mapping, Plausibilität, KI-Übernahme, API, Transfer
 - [ ] 4.3 Produktion: `migrate` → `food_offensive_apply --apply` → Embeddings
 - [ ] 4.4 Offene Freigaben im Cockpit: 69 Umbenennungen, 82 Duplikatverdachte, 7 Nicht-Zutaten, Namensvarianten
-- [ ] 4.5 Folgearbeiten aus design.md D5/D6 (Unique-Index auf Namen, Import-Gate, product_form)
+- [ ] 4.5 Folgearbeiten aus design.md D5/D6 (Import-Gate, product_form)
