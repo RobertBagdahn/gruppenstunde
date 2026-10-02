@@ -367,7 +367,7 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
     from content.models import AiInteraction
 
     include_background = request.GET.get("include_background", "").lower() == "true"
-    today = timezone.now().date()
+    today = timezone.localdate()
 
     base_qs = AiInteraction.objects.all()
     if not include_background:
