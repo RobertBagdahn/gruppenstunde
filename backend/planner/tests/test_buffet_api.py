@@ -81,7 +81,7 @@ class TestBuffetEndpoint:
         assert MealItem.objects.filter(meal=meal, recipe=manual_recipe).exists()
         assert MealItem.objects.filter(meal=meal, ingredient=ingredient, buffet_role="buffet-bread").exists()
 
-    def test_selection_outside_role_returns_422(self, auth_client, gram_unit):
+    def test_selection_without_role_tag_is_accepted(self, auth_client, gram_unit):
         meal_plan = make_meal_plan(created_by=auth_client._user)
         meal = make_meal(meal_plan=meal_plan, override_portions=4)
         template = make_buffet_template(roles={"buffet-bread": (100, "g", True)})
@@ -97,7 +97,9 @@ class TestBuffetEndpoint:
                 "dry_run": True,
             },
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 200
+        assert resp.json()["saved"] is False
+        assert resp.json()["items"][0]["name"] == "Ohne Rolle"
 
     def test_system_draft_ingredient_allowed(self, auth_client, gram_unit):
         meal_plan = make_meal_plan(created_by=auth_client._user)
@@ -198,4 +200,15 @@ class TestBuffetEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert data["template_id"] == template.id
-        assert data["selections"] == [{"role_slug": "buffet-bread", "ingredient_id": ingredient.id, "recipe_id": None}]
+        assert data["selections"] == [
+            {
+                "role_slug": "buffet-bread",
+                "ingredient_id": ingredient.id,
+                "recipe_id": None,
+                "kind": "ingredient",
+                "name": "Brot",
+                "energy_kcal_per_100g": ingredient.energy_kcal,
+                "price_per_kg": None,
+                "weight_per_serving_g": None,
+            }
+        ]

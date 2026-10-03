@@ -46,6 +46,30 @@ class MergeResult:
     aliases_added: int
 
 
+def preview_ingredient_merge(source: Any, target: Any) -> dict[str, Any]:
+    """Return the references and nutrition affected by a merge without writing."""
+    from planner.models import MealItem
+    from recipe.models import RecipeItem
+    from supply.models import Portion, UnitConversion
+
+    return {
+        "source_id": source.id,
+        "source_name": source.name,
+        "target_id": target.id,
+        "target_name": target.name,
+        "affected_recipe_items": RecipeItem.objects.filter(portion__ingredient=source).count(),
+        "affected_meal_items": MealItem.objects.filter(ingredient=source).count(),
+        "affected_portions": Portion.objects.filter(ingredient=source).count(),
+        "affected_unit_conversions": UnitConversion.objects.filter(ingredient=source).count(),
+        "source_aliases": list(source.aliases.values_list("name", flat=True)),
+        "target_aliases": list(target.aliases.values_list("name", flat=True)),
+        "nutrition_comparison": {
+            "source": {"energy_kcal": source.energy_kcal, "protein_g": source.protein_g},
+            "target": {"energy_kcal": target.energy_kcal, "protein_g": target.protein_g},
+        },
+    }
+
+
 def merge_ingredient(source: Any, target: Any, *, user: Any | None = None) -> MergeResult:
     """Merge ``source`` into ``target`` (source is soft-deleted afterwards)."""
     from content.models import ContentLink

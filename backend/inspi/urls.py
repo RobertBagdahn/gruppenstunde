@@ -8,6 +8,7 @@ from blog.api import router as blog_router
 from content.admin_api import router as admin_router
 from content.api import router as content_router
 from content.api.admin_tags import admin_tags_router
+from content.api.buffet_data_quality import router as buffet_data_quality_router
 from content.api.collaborators import router as content_collaborators_router
 from content.api.data_quality import admin_router as dq_admin_router
 from content.api.data_quality import public_router as dq_public_router
@@ -69,6 +70,7 @@ api.add_router("/ai/", ai_router)
 api.add_router("/admin/", admin_router)
 api.add_router("/admin/tags/", admin_tags_router)
 # Specific staff-only routes must precede the catch-all data-quality router.
+api.add_router("/admin/data-quality/buffet-catalog/", buffet_data_quality_router)
 api.add_router("/admin/data-quality/portion-repair/", portion_repair_router)
 api.add_router("/admin/data-quality/offensive/", data_offensive_router)
 api.add_router("/admin/data-quality/", dq_admin_router)

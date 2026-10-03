@@ -1,6 +1,6 @@
 /**
  * TanStack Query hooks for data quality API endpoints.
- * MUST stay in sync with backend/content/api/data_quality.py
+ * MUST stay in sync with backend/content/api/data_quality.py and buffet_data_quality.py
  */
 import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
@@ -36,6 +36,23 @@ import {
   NutriScoreDistributionSchema,
   ImpactSchema,
   type Impact,
+  PaginatedBuffetCandidateSchema,
+  BuffetDataQualityReportSchema,
+  PaginatedBuffetProposalSchema,
+  BuffetProposalSchema,
+  BuffetProposalSuggestionSchema,
+  BuffetProposalPreviewSchema,
+  BuffetProposalExportSchema,
+  type BuffetCandidate,
+  type BuffetDataQualityReport,
+  type BuffetProposal,
+  type BuffetProposalCreateRequest,
+  type BuffetProposalUpdateRequest,
+  type BuffetProposalSuggestionRequest,
+  type BuffetProposalReviewRequest,
+  type BuffetProposalSuggestion,
+  type BuffetProposalPreview,
+  type BuffetProposalExport,
 } from '@/schemas/dataQuality';
 import { PaginatedListSchema } from '@/schemas/dataQuality';
 
@@ -95,6 +112,7 @@ async function deleteJson(url: string): Promise<void> {
 
 const ADMIN_DQ = `${API_BASE_URL}/api/admin/data-quality`;
 const PUBLIC_DQ = `${API_BASE_URL}/api/data-quality`;
+const BUFFET_DQ = `${ADMIN_DQ}/buffet-catalog`;
 
 // ============================================================================
 // Price Analysis
@@ -508,6 +526,131 @@ export function useRecipeCalorieDistribution(params: { recipe_type?: string } = 
     queryFn: async () => {
       const data = await fetchJson(`${PUBLIC_DQ}/recipes/distribution/calories/?${searchParams}`);
       return EnergyDistributionSchema.parse(data);
+    },
+  });
+}
+
+export function useBuffetDataQualityReport(params: { page?: number; page_size?: number } = {}) {
+  const searchParams = new URLSearchParams();
+  searchParams.set('page', String(params.page ?? 1));
+  searchParams.set('page_size', String(params.page_size ?? 20));
+  return useQuery({
+    queryKey: ['buffet-data-quality-report', params] as const,
+    queryFn: async (): Promise<BuffetDataQualityReport> => {
+      const data = await fetchJson(`${BUFFET_DQ}/report/?${searchParams}`);
+      return BuffetDataQualityReportSchema.parse(data);
+    },
+  });
+}
+
+export function useBuffetCandidates(
+  params: {
+    q?: string;
+    action?: BuffetCandidate['action'] | 'all';
+    kind?: BuffetCandidate['item_kind'] | 'all';
+    role_slug?: string;
+    page?: number;
+    page_size?: number;
+  } = {},
+) {
+  const searchParams = new URLSearchParams();
+  const query = params.q?.trim();
+  if (query) searchParams.set('q', query);
+  if (params.action && params.action !== 'all') searchParams.set('action', params.action);
+  if (params.kind && params.kind !== 'all') searchParams.set('kind', params.kind);
+  if (params.role_slug) searchParams.set('role_slug', params.role_slug);
+  searchParams.set('page', String(params.page ?? 1));
+  searchParams.set('page_size', String(params.page_size ?? 20));
+  return useQuery({
+    queryKey: ['buffet-candidates', params] as const,
+    queryFn: async () => {
+      const data = await fetchJson(`${BUFFET_DQ}/candidates/?${searchParams}`);
+      return PaginatedBuffetCandidateSchema.parse(data);
+    },
+  });
+}
+
+export function useBuffetDataProposals(
+  params: {
+    status?: BuffetProposal['status'] | 'all';
+    action?: BuffetProposal['action'] | 'all';
+    kind?: BuffetProposal['item_kind'] | 'all';
+    page?: number;
+    page_size?: number;
+  } = {},
+) {
+  const searchParams = new URLSearchParams();
+  if (params.status && params.status !== 'all') searchParams.set('status', params.status);
+  if (params.action && params.action !== 'all') searchParams.set('action', params.action);
+  if (params.kind && params.kind !== 'all') searchParams.set('kind', params.kind);
+  searchParams.set('page', String(params.page ?? 1));
+  searchParams.set('page_size', String(params.page_size ?? 20));
+  return useQuery({
+    queryKey: ['buffet-proposals', params] as const,
+    queryFn: async () => {
+      const data = await fetchJson(`${BUFFET_DQ}/proposals/?${searchParams}`);
+      return PaginatedBuffetProposalSchema.parse(data);
+    },
+  });
+}
+
+export function useCreateBuffetProposal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: BuffetProposalCreateRequest) =>
+      postJson(`${BUFFET_DQ}/proposals/`, request).then((data) => BuffetProposalSchema.parse(data)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buffet-proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['buffet-candidates'] });
+    },
+  });
+}
+
+export function useUpdateBuffetProposal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, update }: { id: number; update: BuffetProposalUpdateRequest }) =>
+      patchJson(`${BUFFET_DQ}/proposals/${id}/`, update).then((data) => BuffetProposalSchema.parse(data)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['buffet-proposals'] }),
+  });
+}
+
+export function useSuggestBuffetItem() {
+  return useMutation({
+    meta: AI_META,
+    mutationFn: (request: BuffetProposalSuggestionRequest): Promise<BuffetProposalSuggestion> =>
+      postJson(`${BUFFET_DQ}/proposals/suggest/`, request).then((data) => BuffetProposalSuggestionSchema.parse(data)),
+  });
+}
+
+export function usePreviewBuffetProposal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (proposalId: number): Promise<BuffetProposalPreview> =>
+      postJson(`${BUFFET_DQ}/proposals/${proposalId}/preview/`, {}).then((data) =>
+        BuffetProposalPreviewSchema.parse(data),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['buffet-proposals'] }),
+  });
+}
+
+export function useReviewBuffetProposal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, review }: { id: number; review: BuffetProposalReviewRequest }) =>
+      postJson(`${BUFFET_DQ}/proposals/${id}/review/`, review).then((data) => BuffetProposalSchema.parse(data)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buffet-proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['buffet-candidates'] });
+    },
+  });
+}
+
+export function useExportBuffetProposals() {
+  return useMutation({
+    mutationFn: async (): Promise<BuffetProposalExport> => {
+      const data = await fetchJson(`${BUFFET_DQ}/proposals/export/`);
+      return BuffetProposalExportSchema.parse(data);
     },
   });
 }

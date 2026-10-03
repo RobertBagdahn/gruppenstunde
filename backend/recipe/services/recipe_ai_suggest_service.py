@@ -175,19 +175,14 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
     return suggestion
 
 
-@transaction.atomic
-def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
-    """Create a complete recipe from a free-text prompt using Gemini + Search Grounding.
-
-    Creates Recipe, matches/creates Ingredients, creates RecipeItems.
-    Returns the created Recipe instance.
-    """
+def generate_recipe_draft(
+    prompt: str,
+    user: User | None = None,
+) -> tuple[RecipeAiCreateSchema, str | None]:
+    """Generate a structured recipe draft without creating recipes or ingredients."""
     from google.genai import types
 
-    from recipe.models import Recipe, RecipeItem
-
     prompt_text = f"Erstelle ein vollständiges Rezept zu dieser Beschreibung: {prompt}"
-
     prompt_context = build_prompt_context(user, include_pantry=True)
     if prompt_context:
         prompt_text = f"{prompt_text}\n\n{prompt_context}"
@@ -197,7 +192,6 @@ def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
         response_schema=RecipeAiCreateSchema,
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
-
     response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
@@ -205,13 +199,24 @@ def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
         config=config,
         context="recipe_ai_create",
     )
-
     if response is None:
         from ninja.errors import HttpError
 
         raise HttpError(503, "KI nicht verfügbar")
 
-    data = RecipeAiCreateSchema.model_validate_json(response.text)
+    return RecipeAiCreateSchema.model_validate_json(response.text), str(interaction_id) if interaction_id else None
+
+
+@transaction.atomic
+def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
+    """Create a complete recipe from a free-text prompt using Gemini + Search Grounding.
+
+    Creates Recipe, matches/creates Ingredients, creates RecipeItems.
+    Returns the created Recipe instance.
+    """
+    from recipe.models import Recipe, RecipeItem
+
+    data, interaction_id = generate_recipe_draft(prompt, user)
 
     # Generate unique slug
     base_slug = slugify(data.title)

@@ -77,10 +77,21 @@ export const IngredientStatsStateSchema = lenient({
   tag: z.string(),
 });
 
-export const DATA_QUALITY_TABS = ['price', 'duplicates', 'completeness', 'missing', 'plausibility'] as const;
+export const DATA_QUALITY_TABS = ['price', 'duplicates', 'completeness', 'missing', 'plausibility', 'buffet'] as const;
 
 export const DataQualityIngredientsStateSchema = lenient({
   tab: z.enum(DATA_QUALITY_TABS),
+});
+
+export const DataQualityBuffetStateSchema = lenient({
+  q: z.string(),
+  action: z.enum(['all', 'add', 'untag', 'merge_into', 'create']),
+  kind: z.enum(['all', 'ingredient', 'recipe']),
+  role_slug: z.string(),
+  status: z.enum(['all', 'pending', 'approved', 'rejected']),
+  candidate_page: z.coerce.number().int().min(1),
+  proposal_page: z.coerce.number().int().min(1),
+  report_page: z.coerce.number().int().min(1),
 });
 
 export const MealPlanDetailStateSchema = lenient({

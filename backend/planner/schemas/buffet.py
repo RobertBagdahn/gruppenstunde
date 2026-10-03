@@ -17,6 +17,18 @@ class QuantityWarningOut(Schema):
     message: str
 
 
+class BuffetWarningOut(Schema):
+    code: str
+    message: str
+    ingredient_name: str | None = None
+    meal_item_id: int | None = None
+    meal_id: int | None = None
+    per_person_value: float | None = None
+    per_person_unit: str | None = None
+    total_value: float | None = None
+    total_unit: str | None = None
+
+
 class BuffetRoleOut(Schema):
     slug: str
     name: str
@@ -87,17 +99,22 @@ class BuffetResultOut(Schema):
     saved: bool
     portions: float
     items: list[BuffetResultItemOut] = []
-    energy_kcal_per_person: float
+    energy_kcal_per_person: float | None = None
     target_kcal_per_person: float
-    cost_per_person: float
-    cost_total: float
-    warnings: list[QuantityWarningOut] = []
+    cost_per_person: float | None = None
+    cost_total: float | None = None
+    warnings: list[BuffetWarningOut] = []
 
 
 class BuffetStateSelectionOut(Schema):
     role_slug: str
     ingredient_id: int | None = None
     recipe_id: int | None = None
+    kind: Literal["ingredient", "recipe"]
+    name: str
+    energy_kcal_per_100g: float | None = None
+    price_per_kg: float | None = None
+    weight_per_serving_g: float | None = None
 
 
 class BuffetStateOut(Schema):

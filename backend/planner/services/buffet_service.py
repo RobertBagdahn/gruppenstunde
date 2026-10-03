@@ -8,7 +8,7 @@ other meal item and never go into ``quantity``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from decimal import Decimal
 from typing import Any
 
@@ -47,14 +47,30 @@ class BuffetResultItem:
 
 
 @dataclass
+class BuffetWarning:
+    code: str
+    message: str
+    ingredient_name: str | None = None
+    meal_item_id: int | None = None
+    meal_id: int | None = None
+    per_person_value: float | None = None
+    per_person_unit: str | None = None
+    total_value: float | None = None
+    total_unit: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
 class BuffetResult:
     portions: float
     items: list[BuffetResultItem] = field(default_factory=list)
-    energy_kcal_per_person: float = 0.0
+    energy_kcal_per_person: float | None = 0.0
     target_kcal_per_person: float = 0.0
-    cost_per_person: float = 0.0
-    cost_total: float = 0.0
-    warnings: list[QuantityWarning] = field(default_factory=list)
+    cost_per_person: float | None = 0.0
+    cost_total: float | None = 0.0
+    warnings: list[BuffetWarning] = field(default_factory=list)
 
 
 def _unit_by_name(name: str) -> Any:
@@ -95,7 +111,7 @@ def _recipe_values(recipe: Any, factor: float) -> tuple[float | None, float | No
 
 
 def validate_selections(template: BuffetTemplate, selections: list[BuffetSelection]) -> None:
-    """Roles must belong to the template; items must carry the role tag and appear once."""
+    """Roles must belong to the template; visible items may be assigned freely once."""
     role_slugs = set(template.roles.values_list("role__slug", flat=True))
     seen: set[tuple[str, int]] = set()
     for selection in selections:
@@ -104,11 +120,64 @@ def validate_selections(template: BuffetTemplate, selections: list[BuffetSelecti
         obj = selection.ingredient or selection.recipe
         kind = "ingredient" if selection.ingredient is not None else "recipe"
         name = obj.name if kind == "ingredient" else obj.title
-        if not obj.tags.filter(slug=selection.role_slug).exists():
-            raise BuffetError(f"{name} hat nicht die Buffet-Rolle {selection.role_slug}.")
         if (kind, obj.id) in seen:
             raise BuffetError(f"{name} ist mehrfach ausgewählt.")
         seen.add((kind, obj.id))
+
+
+def _selection_name(selection: BuffetSelection) -> str:
+    item = selection.ingredient if selection.ingredient is not None else selection.recipe
+    return item.name if selection.ingredient is not None else item.title
+
+
+def _missing_data_warnings(selections: list[BuffetSelection]) -> list[BuffetWarning]:
+    from supply.services.price_service import price_or_none
+
+    warnings: list[BuffetWarning] = []
+    for selection in selections:
+        name = _selection_name(selection)
+        if selection.ingredient is not None:
+            ingredient = selection.ingredient
+            if ingredient.energy_kcal is None:
+                warnings.append(BuffetWarning("missing_energy", f"{name}: Nährwertangabe fehlt.", name))
+            if price_or_none(ingredient.price_per_kg) is None:
+                warnings.append(BuffetWarning("missing_price", f"{name}: Preisangabe fehlt.", name))
+            continue
+
+        recipe = selection.recipe
+        if recipe.cached_energy_total_kcal is None:
+            warnings.append(BuffetWarning("missing_energy", f"{name}: Nährwertangabe fehlt.", name))
+        if recipe.cached_price_total is None:
+            warnings.append(BuffetWarning("missing_price", f"{name}: Preisangabe fehlt.", name))
+        if recipe_weight_per_serving_g(recipe) is None:
+            warnings.append(
+                BuffetWarning(
+                    "missing_recipe_weight",
+                    f"{name}: Portionsgewicht fehlt; es wird eine gleichmäßige Ersatzmenge verwendet.",
+                    name,
+                )
+            )
+    return warnings
+
+
+def _buffet_quantity_warning(warning: QuantityWarning) -> BuffetWarning:
+    return BuffetWarning(
+        code="quantity_plausibility",
+        message=warning.message,
+        ingredient_name=warning.ingredient_name,
+        meal_item_id=warning.meal_item_id,
+        meal_id=warning.meal_id,
+        per_person_value=warning.per_person_value,
+        per_person_unit=warning.per_person_unit,
+        total_value=warning.total_value,
+        total_unit=warning.total_unit,
+    )
+
+
+def _sum_if_complete(values: list[float | None]) -> float | None:
+    if any(value is None for value in values):
+        return None
+    return sum(value for value in values if value is not None)
 
 
 def compute_buffet(
@@ -121,7 +190,13 @@ def compute_buffet(
     validate_selections(template, selections)
     role_amounts = role_amounts or {}
     portions = float(meal.effective_portions or 1)
-    result = BuffetResult(portions=portions, target_kcal_per_person=NORM_PERSON_DAILY_KCAL * meal.day_part_factor)
+    result = BuffetResult(
+        portions=portions,
+        target_kcal_per_person=NORM_PERSON_DAILY_KCAL * meal.day_part_factor,
+        warnings=_missing_data_warnings(selections),
+    )
+    kcal_values: list[float | None] = []
+    cost_values: list[float | None] = []
 
     template_roles = {role.role.slug: role for role in template.roles.select_related("role")}
     by_role: dict[str, list[BuffetSelection]] = {}
@@ -178,11 +253,13 @@ def compute_buffet(
                     cost_total=cost * portions if cost is not None else None,
                 )
             result.items.append(item)
-            result.energy_kcal_per_person += item.energy_kcal_per_person or 0.0
-            result.cost_per_person += item.cost_per_person or 0.0
+            kcal_values.append(item.energy_kcal_per_person)
+            cost_values.append(item.cost_per_person)
 
-    result.cost_total = result.cost_per_person * portions
-    result.warnings = check(preview_items, portions)
+    result.energy_kcal_per_person = _sum_if_complete(kcal_values)
+    result.cost_per_person = _sum_if_complete(cost_values)
+    result.cost_total = result.cost_per_person * portions if result.cost_per_person is not None else None
+    result.warnings.extend(_buffet_quantity_warning(warning) for warning in check(preview_items, portions))
     return result
 
 
@@ -231,5 +308,6 @@ def save_buffet(
         .filter(ingredient__isnull=False)
         .select_related("ingredient", "measuring_unit")
     )
-    result.warnings = check(saved_items, result.portions)
+    result.warnings = [warning for warning in result.warnings if warning.code != "quantity_plausibility"]
+    result.warnings.extend(_buffet_quantity_warning(warning) for warning in check(saved_items, result.portions))
     return result

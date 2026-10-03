@@ -546,17 +546,9 @@ def recipe_merge_preview(request, source_id: int, target_id: int):
     if source_id == target_id:
         raise HttpError(400, "Quell- und Ziel-Rezept dürfen nicht identisch sein")
 
-    from planner.models import MealItem
+    from recipe.services.recipe_merge import preview_recipe_merge
 
-    affected_meal_count = MealItem.objects.filter(recipe=source).count()
-
-    return RecipeMergePreviewOut(
-        source_id=source.id,
-        source_name=source.title,
-        target_id=target.id,
-        target_name=target.title,
-        affected_meal_count=affected_meal_count,
-    )
+    return RecipeMergePreviewOut(**preview_recipe_merge(source, target))
 
 
 @admin_router.post("/recipes/merge/")
@@ -624,22 +616,18 @@ def merge_preview(request, source_id: int, target_id: int):
     except Ingredient.DoesNotExist:
         raise HttpError(404, "Zutat nicht gefunden")
 
-    from recipe.models import RecipeItem
+    from supply.services.ingredient_merge import preview_ingredient_merge
 
-    affected = RecipeItem.objects.filter(portion__ingredient=source).count()
-
+    preview = preview_ingredient_merge(source, target)
     return MergePreviewOut(
-        source_id=source.id,
-        source_name=source.name,
-        target_id=target.id,
-        target_name=target.name,
-        affected_recipe_items=affected,
-        source_aliases=[a.name for a in source.aliases.all()],
-        target_aliases=[a.name for a in target.aliases.all()],
-        nutrition_comparison={
-            "source": {"energy_kcal": source.energy_kcal, "protein_g": source.protein_g},
-            "target": {"energy_kcal": target.energy_kcal, "protein_g": target.protein_g},
-        },
+        source_id=preview["source_id"],
+        source_name=preview["source_name"],
+        target_id=preview["target_id"],
+        target_name=preview["target_name"],
+        affected_recipe_items=preview["affected_recipe_items"],
+        source_aliases=preview["source_aliases"],
+        target_aliases=preview["target_aliases"],
+        nutrition_comparison=preview["nutrition_comparison"],
     )
 
 

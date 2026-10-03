@@ -80,7 +80,7 @@ class Command(BaseCommand):
                 self._seed_content(users)
                 call_command("seed_buffet_catalog")
                 call_command("seed_breakfast_recipes")
-                call_command("seed_buffet_templates")
+                call_command("seed_buffet_templates", "--apply")
             if only in (None, "recipes"):
                 self._seed_recipes(users)
             if only in (None, "events"):

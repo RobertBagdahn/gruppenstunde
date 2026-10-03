@@ -5,8 +5,9 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 
 from planner.tests import make_buffet_roles, make_buffet_template
-from recipe.tests import make_recipe
-from supply.tests import make_ingredient
+from recipe.tests import make_recipe, make_recipe_item
+from supply.models import IngredientAlias
+from supply.tests import make_ingredient, make_retail_section
 
 User = get_user_model()
 
@@ -43,12 +44,12 @@ class TestBuffetCatalogRoleOrder:
         resp = client.get("/api/supply/buffet-catalog/?template=does-not-exist")
         assert resp.status_code == 404
 
-    def test_without_template_lists_all_nine_roles(self):
+    def test_without_template_lists_all_nineteen_roles(self):
         make_buffet_roles()
         client, _ = _client_with_user()
         resp = client.get("/api/supply/buffet-catalog/")
         assert resp.status_code == 200
-        assert len(resp.json()["roles"]) == 9
+        assert len(resp.json()["roles"]) == 19
 
 
 @pytest.mark.django_db
@@ -107,6 +108,117 @@ class TestBuffetCatalogVisibility:
         resp = client.get(f"/api/supply/buffet-catalog/?template={template.slug}")
         items = resp.json()["roles"][0]["items"]
         assert len(items) == 15
+
+
+@pytest.mark.django_db
+class TestBuffetCatalogSearch:
+    @pytest.fixture(autouse=True)
+    def _roles(self, db):
+        make_buffet_roles()
+
+    def test_search_matches_umlaut_transliterations_and_aliases(self):
+        ingredient = make_ingredient(name="Käse", is_standalone_food=True)
+        IngredientAlias.objects.create(ingredient=ingredient, name="Kaese")
+
+        client, _ = _client_with_user()
+        response = client.get("/api/supply/buffet-catalog/search/?q=Kaese&role=buffet-cheese&meal_type=snack")
+
+        assert response.status_code == 200
+        assert [item["name"] for item in response.json()] == ["Käse"]
+
+    def test_search_ranks_favorites_then_standalone_then_relevant_recipes(self):
+        roles = make_buffet_roles()
+        favorite = make_ingredient(name="Chips Favorit", is_standalone_food=False)
+        favorite.tags.add(roles["buffet-salty-snack"])
+        standalone = make_ingredient(name="Chips Snack", is_standalone_food=True)
+        recipe = make_recipe(title="Chips Rezept", recipe_type="snack")
+
+        client, _ = _client_with_user()
+        response = client.get("/api/supply/buffet-catalog/search/?q=Chips&role=buffet-salty-snack&meal_type=snack")
+
+        assert response.status_code == 200
+        items = response.json()
+        assert [item["name"] for item in items] == ["Chips Favorit", "Chips Snack", "Chips Rezept"]
+        assert items[0]["is_favorite"] is True
+        assert items[1]["is_favorite"] is False
+        assert items[2]["recipe_type"] == "snack"
+
+    def test_non_standalone_filter_is_off_by_default_and_can_be_expanded(self):
+        ingredient = make_ingredient(name="Mehl", is_standalone_food=False)
+        client, _ = _client_with_user()
+
+        default_response = client.get("/api/supply/buffet-catalog/search/?q=Mehl&role=buffet-fresh&meal_type=lunch")
+        expanded_response = client.get(
+            "/api/supply/buffet-catalog/search/?q=Mehl&role=buffet-fresh&meal_type=lunch&include_non_standalone=true"
+        )
+
+        assert default_response.status_code == expanded_response.status_code == 200
+        assert default_response.json() == []
+        assert [item["id"] for item in expanded_response.json()] == [ingredient.id]
+
+    def test_alcohol_filter_is_opt_in_and_alcohol_is_never_a_favorite(self):
+        roles = make_buffet_roles()
+        alcohol_section = make_retail_section(name="Alkoholische Getränke")
+        beer = make_ingredient(
+            name="Bier",
+            retail_section=alcohol_section,
+            is_standalone_food=True,
+        )
+        beer.tags.add(roles["buffet-drink"])
+        client, _ = _client_with_user()
+
+        default_response = client.get("/api/supply/buffet-catalog/search/?q=Bier&role=buffet-drink&meal_type=drinks")
+        filtered_response = client.get(
+            "/api/supply/buffet-catalog/search/?q=Bier&role=buffet-drink&meal_type=drinks&exclude_alcohol=true"
+        )
+        drink_template = make_buffet_template(roles={"buffet-drink": (300, "ml", True)})
+        role_catalog = client.get(f"/api/supply/buffet-catalog/?template={drink_template.slug}")
+
+        assert default_response.status_code == filtered_response.status_code == role_catalog.status_code == 200
+        assert default_response.json()[0]["id"] == beer.id
+        assert default_response.json()[0]["is_favorite"] is False
+        assert filtered_response.json() == []
+        assert all(item["name"] != "Bier" for role in role_catalog.json()["roles"] for item in role["items"])
+
+    def test_exclude_alcohol_filters_recipes_containing_alcohol(self):
+        alcohol_section = make_retail_section(name="Alkoholische Getränke")
+        beer = make_ingredient(name="Bier", retail_section=alcohol_section, is_standalone_food=True)
+        recipe = make_recipe(title="Biersauce", recipe_type="warm_meal")
+        make_recipe_item(recipe=recipe, ingredient=beer)
+        client, _ = _client_with_user()
+
+        response = client.get(
+            "/api/supply/buffet-catalog/search/?q=Biersauce&role=buffet-dish&meal_type=dinner&kind=recipe&exclude_alcohol=true"
+        )
+
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_search_filters_kind_and_recipe_type_and_rejects_short_queries(self):
+        make_ingredient(name="Tee Zutat", is_standalone_food=True)
+        make_recipe(title="Tee Rezept", recipe_type="drink")
+        make_recipe(title="Tee Snack", recipe_type="snack")
+        client, _ = _client_with_user()
+
+        response = client.get(
+            "/api/supply/buffet-catalog/search/?q=Tee&role=buffet-drink&meal_type=drinks&kind=recipe&recipe_type=drink"
+        )
+        short_response = client.get("/api/supply/buffet-catalog/search/?q=T&role=buffet-drink&meal_type=drinks")
+
+        assert response.status_code == short_response.status_code == 200
+        assert [item["name"] for item in response.json()] == ["Tee Rezept"]
+        assert short_response.json() == []
+
+    def test_search_does_not_expose_another_users_private_ingredient(self):
+        other_user = User.objects.create_user(username="private-search-owner", password="x")
+        make_ingredient(name="Private Cocktailtomaten", owner=other_user, visibility="private", is_standalone_food=True)
+
+        response = Client().get(
+            "/api/supply/buffet-catalog/search/?q=Cocktailtomaten&role=buffet-fresh&meal_type=snack"
+        )
+
+        assert response.status_code == 200
+        assert response.json() == []
 
 
 @pytest.mark.django_db

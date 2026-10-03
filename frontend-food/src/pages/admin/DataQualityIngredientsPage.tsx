@@ -4,6 +4,7 @@ import MissingClassificationList from '@/components/data-quality/MissingClassifi
 import NutritionPlausibilityList from '@/components/data-quality/NutritionPlausibilityList';
 import PriceAnalysisTable from '@/components/data-quality/PriceAnalysisTable';
 import DuplicateDetectionList from '@/components/data-quality/DuplicateDetectionList';
+import BuffetCatalogProposalPanel from '@/components/data-quality/BuffetCatalogProposalPanel';
 import { useNutritionPlausibility } from '@/api/dataQuality';
 import { DataQualityIngredientsStateSchema, type DATA_QUALITY_TABS } from '@/schemas/listState';
 import { usePersistedListState } from '@/hooks/usePersistedListState';
@@ -16,6 +17,7 @@ const SUB_TABS: readonly { key: (typeof DATA_QUALITY_TABS)[number]; label: strin
   { key: 'completeness', label: 'Vollständigkeit' },
   { key: 'missing', label: 'Fehlende Klassifikation' },
   { key: 'plausibility', label: 'Nährwert-Plausibilität' },
+  { key: 'buffet', label: 'Buffet-Vorschläge' },
 ];
 
 export default function DataQualityIngredientsPage() {
@@ -65,6 +67,7 @@ export default function DataQualityIngredientsPage() {
       {activeTab === 'completeness' && <CompletenessGrid />}
       {activeTab === 'missing' && <MissingClassificationList />}
       {activeTab === 'plausibility' && <NutritionPlausibilityList />}
+      {activeTab === 'buffet' && <BuffetCatalogProposalPanel />}
     </div>
   );
 }

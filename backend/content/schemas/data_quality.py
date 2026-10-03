@@ -1,7 +1,7 @@
 """Schemas for data quality features."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from ninja import Schema
 
@@ -349,3 +349,159 @@ class PaginatedAuditLogOut(Schema):
 class ImpactOut(Schema):
     recipe_count: int
     meal_plan_count: int
+
+
+# ---------------------------------------------------------------------------
+# Buffet catalog proposals
+# ---------------------------------------------------------------------------
+
+
+class BuffetCandidateOut(Schema):
+    candidate_key: str
+    action: Literal["add", "untag", "merge_into", "create"]
+    item_kind: Literal["ingredient", "recipe"]
+    source_id: int | None = None
+    source_name: str
+    target_id: int | None = None
+    target_name: str | None = None
+    role_slugs: list[str] = []
+    retail_section: str | None = None
+    recipe_type: str | None = None
+    is_standalone_food: bool | None = None
+    similarity: float | None = None
+    candidate_status: Literal["available", "stale", "already_tagged", "existing_match"] = "available"
+    rationale: str = ""
+
+
+class PaginatedBuffetCandidateOut(Schema):
+    items: list[BuffetCandidateOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class BuffetDataProposalOut(Schema):
+    id: int
+    action: str
+    item_kind: str
+    source_id: int | None = None
+    source_expected_name: str = ""
+    target_id: int | None = None
+    target_expected_name: str = ""
+    role_slugs: list[str] = []
+    proposed_data: dict[str, Any] = {}
+    origin: str
+    ai_confidence: float | None = None
+    rationale: str = ""
+    status: str
+    created_by_name: str | None = None
+    reviewed_by_name: str | None = None
+    review_note: str = ""
+    preview_current: bool = False
+    preview_result: dict[str, Any] = {}
+    created_at: datetime
+    updated_at: datetime
+    reviewed_at: datetime | None = None
+
+
+class PaginatedBuffetDataProposalOut(Schema):
+    items: list[BuffetDataProposalOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class BuffetDataProposalCreateIn(Schema):
+    action: Literal["add", "untag", "merge_into", "create"]
+    item_kind: Literal["ingredient", "recipe"]
+    source_id: int | None = None
+    source_expected_name: str = ""
+    target_id: int | None = None
+    target_expected_name: str = ""
+    role_slugs: list[str] = []
+    proposed_data: dict[str, Any] = {}
+    origin: Literal["manual", "ai", "mixed"] = "manual"
+    ai_confidence: float | None = None
+    rationale: str = ""
+
+
+class BuffetDataProposalUpdateIn(Schema):
+    source_id: int | None = None
+    source_expected_name: str | None = None
+    target_id: int | None = None
+    target_expected_name: str | None = None
+    role_slugs: list[str] | None = None
+    proposed_data: dict[str, Any] | None = None
+    rationale: str | None = None
+
+
+class BuffetDataProposalSuggestionIn(Schema):
+    item_kind: Literal["ingredient", "recipe"]
+    name: str
+    recipe_type: str | None = None
+    role_slugs: list[str] = []
+
+
+class BuffetDataProposalSuggestionOut(Schema):
+    item_kind: Literal["ingredient", "recipe"]
+    name: str
+    proposed_data: dict[str, Any]
+    ai_confidence: float | None = None
+    rationale: str = ""
+    ai_interaction_id: str | None = None
+
+
+class BuffetDataProposalPreviewOut(Schema):
+    proposal_id: int
+    fingerprint: str
+    can_approve: bool
+    blockers: list[str] = []
+    warnings: list[str] = []
+    plan: list[dict[str, Any]] = []
+    affected_references: dict[str, int] = {}
+    previewed_at: datetime
+
+
+class BuffetDataProposalReviewIn(Schema):
+    decision: Literal["approve", "reject"]
+    note: str = ""
+
+
+class BuffetDataProposalMappingOut(Schema):
+    action: str
+    item_kind: str
+    source_id: int | None = None
+    source_name: str = ""
+    target_id: int | None = None
+    target_name: str = ""
+    role_slugs: list[str] = []
+    proposed_data: dict[str, Any] = {}
+
+
+class BuffetDataProposalExportOut(Schema):
+    items: list[BuffetDataProposalMappingOut]
+    exported_at: datetime
+
+
+class BuffetDataQualityIssueOut(Schema):
+    item_kind: Literal["ingredient", "recipe"]
+    id: int
+    name: str
+    slug: str
+    role_slugs: list[str] = []
+    legacy_breakfast_tag_slugs: list[str] = []
+    status: str
+    missing_fields: list[str] = []
+    retail_section: str | None = None
+    is_standalone_food: bool | None = None
+
+
+class BuffetDataQualityReportOut(Schema):
+    items: list[BuffetDataQualityIssueOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    summary: dict[str, int]

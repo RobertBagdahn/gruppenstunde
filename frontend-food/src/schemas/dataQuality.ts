@@ -337,6 +337,169 @@ export const ImpactSchema = z.object({
 });
 export type Impact = z.infer<typeof ImpactSchema>;
 
+// --- Buffet catalog proposals ---
+
+export const BuffetCandidateSchema = z.object({
+  candidate_key: z.string(),
+  action: z.enum(['add', 'untag', 'merge_into', 'create']),
+  item_kind: z.enum(['ingredient', 'recipe']),
+  source_id: z.number().nullable(),
+  source_name: z.string(),
+  target_id: z.number().nullable().optional(),
+  target_name: z.string().nullable().optional(),
+  role_slugs: z.array(z.string()),
+  retail_section: z.string().nullable().optional(),
+  recipe_type: z.string().nullable().optional(),
+  is_standalone_food: z.boolean().nullable().optional(),
+  similarity: z.number().nullable().optional(),
+  candidate_status: z.enum(['available', 'stale', 'already_tagged', 'existing_match']),
+  rationale: z.string(),
+});
+export type BuffetCandidate = z.infer<typeof BuffetCandidateSchema>;
+
+export const PaginatedBuffetCandidateSchema = z.object({
+  items: z.array(BuffetCandidateSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedBuffetCandidate = z.infer<typeof PaginatedBuffetCandidateSchema>;
+
+export const BuffetDataQualityIssueSchema = z.object({
+  item_kind: z.enum(['ingredient', 'recipe']),
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  role_slugs: z.array(z.string()),
+  legacy_breakfast_tag_slugs: z.array(z.string()),
+  status: z.string(),
+  missing_fields: z.array(z.string()),
+  retail_section: z.string().nullable().optional(),
+  is_standalone_food: z.boolean().nullable().optional(),
+});
+export type BuffetDataQualityIssue = z.infer<typeof BuffetDataQualityIssueSchema>;
+
+export const BuffetDataQualityReportSchema = z.object({
+  items: z.array(BuffetDataQualityIssueSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+  summary: z.record(z.string(), z.number()),
+});
+export type BuffetDataQualityReport = z.infer<typeof BuffetDataQualityReportSchema>;
+
+export const BuffetProposalSchema = z.object({
+  id: z.number(),
+  action: z.enum(['add', 'untag', 'merge_into', 'create']),
+  item_kind: z.enum(['ingredient', 'recipe']),
+  source_id: z.number().nullable().optional(),
+  source_expected_name: z.string(),
+  target_id: z.number().nullable().optional(),
+  target_expected_name: z.string(),
+  role_slugs: z.array(z.string()),
+  proposed_data: z.record(z.string(), z.unknown()),
+  origin: z.enum(['manual', 'ai', 'mixed']),
+  ai_confidence: z.number().nullable().optional(),
+  rationale: z.string(),
+  status: z.enum(['pending', 'approved', 'rejected']),
+  created_by_name: z.string().nullable().optional(),
+  reviewed_by_name: z.string().nullable().optional(),
+  review_note: z.string(),
+  preview_current: z.boolean(),
+  preview_result: z.record(z.string(), z.unknown()),
+  created_at: z.string(),
+  updated_at: z.string(),
+  reviewed_at: z.string().nullable().optional(),
+});
+export type BuffetProposal = z.infer<typeof BuffetProposalSchema>;
+
+export const PaginatedBuffetProposalSchema = z.object({
+  items: z.array(BuffetProposalSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+
+export const BuffetProposalCreateRequestSchema = z.object({
+  action: z.enum(['add', 'untag', 'merge_into', 'create']),
+  item_kind: z.enum(['ingredient', 'recipe']),
+  source_id: z.number().nullable().optional(),
+  source_expected_name: z.string().default(''),
+  target_id: z.number().nullable().optional(),
+  target_expected_name: z.string().default(''),
+  role_slugs: z.array(z.string()).default([]),
+  proposed_data: z.record(z.string(), z.unknown()).default({}),
+  origin: z.enum(['manual', 'ai', 'mixed']).default('manual'),
+  ai_confidence: z.number().nullable().optional(),
+  rationale: z.string().default(''),
+});
+export type BuffetProposalCreateRequest = z.infer<typeof BuffetProposalCreateRequestSchema>;
+
+export const BuffetProposalUpdateRequestSchema = z.object({
+  source_id: z.number().nullable().optional(),
+  source_expected_name: z.string().nullable().optional(),
+  target_id: z.number().nullable().optional(),
+  target_expected_name: z.string().nullable().optional(),
+  role_slugs: z.array(z.string()).nullable().optional(),
+  proposed_data: z.record(z.string(), z.unknown()).nullable().optional(),
+  rationale: z.string().nullable().optional(),
+});
+export type BuffetProposalUpdateRequest = z.infer<typeof BuffetProposalUpdateRequestSchema>;
+
+export const BuffetProposalSuggestionRequestSchema = z.object({
+  item_kind: z.enum(['ingredient', 'recipe']),
+  name: z.string().min(2),
+  recipe_type: z.string().nullable().optional(),
+  role_slugs: z.array(z.string()).default([]),
+});
+export type BuffetProposalSuggestionRequest = z.infer<typeof BuffetProposalSuggestionRequestSchema>;
+
+export const BuffetProposalSuggestionSchema = z.object({
+  item_kind: z.enum(['ingredient', 'recipe']),
+  name: z.string(),
+  proposed_data: z.record(z.string(), z.unknown()),
+  ai_confidence: z.number().nullable().optional(),
+  rationale: z.string(),
+  ai_interaction_id: z.string().nullable().optional(),
+});
+export type BuffetProposalSuggestion = z.infer<typeof BuffetProposalSuggestionSchema>;
+
+export const BuffetProposalPreviewSchema = z.object({
+  proposal_id: z.number(),
+  fingerprint: z.string(),
+  can_approve: z.boolean(),
+  blockers: z.array(z.string()),
+  warnings: z.array(z.string()),
+  plan: z.array(z.record(z.string(), z.unknown())),
+  affected_references: z.record(z.string(), z.number()),
+  previewed_at: z.string(),
+});
+export type BuffetProposalPreview = z.infer<typeof BuffetProposalPreviewSchema>;
+
+export const BuffetProposalReviewRequestSchema = z.object({
+  decision: z.enum(['approve', 'reject']),
+  note: z.string().default(''),
+});
+export type BuffetProposalReviewRequest = z.infer<typeof BuffetProposalReviewRequestSchema>;
+
+export const BuffetProposalExportSchema = z.object({
+  items: z.array(z.object({
+    action: z.string(),
+    item_kind: z.string(),
+    source_id: z.number().nullable().optional(),
+    source_name: z.string(),
+    target_id: z.number().nullable().optional(),
+    target_name: z.string(),
+    role_slugs: z.array(z.string()),
+    proposed_data: z.record(z.string(), z.unknown()),
+  })),
+  exported_at: z.string(),
+});
+export type BuffetProposalExport = z.infer<typeof BuffetProposalExportSchema>;
+
 // --- Paginated list wrapper (generic for misc dashboard endpoints) ---
 
 export const PaginatedListSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>

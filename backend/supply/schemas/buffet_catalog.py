@@ -34,3 +34,15 @@ class BuffetCatalogOut(Schema):
     roles: list[BuffetCatalogRoleOut] = []
     gram_unit_id: int | None = None
     ml_unit_id: int | None = None
+
+
+class BuffetCatalogSearchItemOut(Schema):
+    kind: Literal["ingredient", "recipe"]
+    id: int
+    name: str
+    energy_kcal_per_100g: float | None = None
+    price_per_kg: float | None = None
+    weight_per_serving_g: float | None = None
+    recipe_type: str | None = None
+    is_favorite: bool
+    role_slugs: list[str] = []

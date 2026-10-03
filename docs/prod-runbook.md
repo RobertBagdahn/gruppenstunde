@@ -55,7 +55,7 @@ Lokaler Referenzlauf (28.09.2026): 0 Dubletten, 0 Referenzmahlzeiten mit Datum,
 - [x] `uv run python manage.py seed_buffet_templates` (nicht nötig: Vorlagen `breakfast`, `baguettes`, `supper` existieren auf Prod bereits)
 - [x] Trockenlauf: `uv run python manage.py migrate_buffet_roles --dry-run` — „manuell prüfen“-Liste
       muss leer sein (Prod 29.09.2026: 0 Änderungen, „manuell prüfen“ leer nach Verifizierung der Tomate)
-- [x] Echtlauf: `uv run python manage.py migrate_buffet_roles` (nicht nötig: Trockenlauf zeigt 0 Änderungen, Migration war bereits gelaufen)
+- [x] Echtlauf nur mit ausdrücklichem `--apply`: `uv run python manage.py migrate_buffet_roles --apply` (nicht nötig: Trockenlauf zeigte 0 Änderungen, Migration war bereits gelaufen; ohne `--apply` ist der Command schreibfrei)
 - [ ] Optional von Hand: alte Rollen-Tags an drei Einträgen umstellen — breakfast-base an „Erdnussmus fein“ (#663),
       breakfast-topping an „Edamer“ (#7616), breakfast-drink an Rezept „Tschai einfach/günstig“ (#155).
       8 übersprungene Fälle betreffen gelöschte/zusammengeführte Einträge (kein Handlungsbedarf).
@@ -105,6 +105,24 @@ Cloud Build führt sie beim Deploy automatisch aus; sie ist rein additiv und spe
       bestehende, schon erzeugte Listen werden beim Lesen korrekt umgerechnet (keine Datenkorrektur nötig)
 - [ ] Stichprobe: Rezeptliste „Zufällig“ und „Meiste Likes“ durchblättern (keine doppelten oder
       fehlenden Rezepte), Einkaufslisten-Übersicht „Neueste“ zeigt die zuletzt erzeugte Liste oben
+
+## 7. buffet-free-selection — noch nicht für Prod freigegeben
+
+Die Bestandsaufnahme `docs/buffet-expansion-strategy.md` ist auf den 03.10.2026 datiert,
+liegt damit nach dem aktuellen Systemdatum 01.10.2026 und wurde nicht gegen die aktuelle
+Prod-Datenbank verifiziert. Alle darin enthaltenen IDs, Namen und vorgeschlagenen Merges
+bleiben Review-Kandidaten. Für diesen Change wurde kein Prod-Dry-Run und kein Prod-Apply
+ausgeführt.
+
+Vor einem späteren Prod-Lauf müssen IDs, Namen und Merge-Richtungen frisch gegen die
+Zielumgebung geprüft werden. Den vollständigen Dry-Run-Output einschließlich übersprungener
+IDs, Alt-Tags und Qualitätswarnungen sichern und fachlich prüfen. Ein `--apply` ist erst nach
+einem zweiten, separaten dokumentierten Okay zulässig; die UI-Freigabe eines Vorschlags allein
+gibt keinen Prod-Lauf frei.
+
+Der Template-Seed für diesen Change ist ebenfalls standardmäßig schreibfrei. Vor dem Anlegen
+neuer Vorlagen zuerst `uv run python manage.py seed_buffet_templates --dry-run` ausführen und
+Ausgabe prüfen; die Vorlagen erst nach separatem Okay mit `--apply` anlegen.
 
 ## Rollback
 

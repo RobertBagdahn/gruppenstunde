@@ -80,7 +80,12 @@ class TestMigrateBuffetRoles:
         source.refresh_from_db()
         mapping = (
             RoleMapping(
-                action="merge_into", kind="ingredient", id=source.id, name="Brötchen (ganzes)", target_id=target.id
+                action="merge_into",
+                kind="ingredient",
+                id=source.id,
+                name="Brötchen (ganzes)",
+                target_id=target.id,
+                target_name="Brötchen",
             ),
         )
 
@@ -101,7 +106,14 @@ class TestMigrateBuffetRoles:
         target = make_ingredient(name="Ziel", owner=None)
         source = make_ingredient(name="Quelle", owner=owner)
         mapping = (
-            RoleMapping(action="merge_into", kind="ingredient", id=source.id, name="Quelle", target_id=target.id),
+            RoleMapping(
+                action="merge_into",
+                kind="ingredient",
+                id=source.id,
+                name="Quelle",
+                target_id=target.id,
+                target_name="Ziel",
+            ),
         )
 
         report = migrate_buffet_roles(dry_run=True, mapping=mapping)
@@ -142,6 +154,20 @@ class TestMigrateBuffetRoles:
 
         assert any("Margarine" in line and "Nährwerte fehlen" in line for line in report.manual_review)
         assert any("Hummus" in line and "Entwurf" in line for line in report.manual_review)
+
+    def test_zero_kcal_water_is_not_reported_as_missing(self):
+        from supply.models import Ingredient
+
+        water = make_ingredient(name="Mineralwasser", owner=None, status="verified")
+        Ingredient.objects.filter(id=water.id).update(energy_kcal=0)
+        water.refresh_from_db()
+        mapping = (
+            RoleMapping(action="keep", kind="ingredient", id=water.id, name="Mineralwasser", role="buffet-drink"),
+        )
+
+        report = migrate_buffet_roles(dry_run=True, mapping=mapping)
+
+        assert not any("Mineralwasser" in line for line in report.manual_review)
 
     def test_manual_review_excludes_already_verified_by_predecessor(self):
         from supply.models import Ingredient

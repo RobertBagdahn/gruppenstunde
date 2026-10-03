@@ -5,6 +5,7 @@ import { BuffetBuilder } from './BuffetBuilder';
 import {
   useBuffetTemplates,
   useBuffetCatalog,
+  useBuffetCatalogSearch,
   useBuffetState,
   useBuffetPreview,
   useSaveBuffet,
@@ -14,6 +15,7 @@ import type { BuffetTemplate, BuffetCatalog, BuffetState, BuffetResult } from '@
 vi.mock('@/api/buffet', () => ({
   useBuffetTemplates: vi.fn(),
   useBuffetCatalog: vi.fn(),
+  useBuffetCatalogSearch: vi.fn(),
   useBuffetState: vi.fn(),
   useBuffetPreview: vi.fn(),
   useSaveBuffet: vi.fn(),
@@ -101,6 +103,13 @@ beforeEach(() => {
     data: makeCatalog(),
     isLoading: false,
   } as unknown as ReturnType<typeof useBuffetCatalog>);
+  vi.mocked(useBuffetCatalogSearch).mockReturnValue({
+    data: [],
+    isLoading: false,
+    isFetching: false,
+    error: null,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useBuffetCatalogSearch>);
   vi.mocked(useBuffetPreview).mockReturnValue({
     preview: previewFn,
     result: makeResult(),
@@ -186,8 +195,8 @@ describe('BuffetBuilder', () => {
     expect(chip).not.toHaveClass('border-primary');
   });
 
-  it('shows a search field only when a role has more than 8 items', () => {
-    const manyItems = Array.from({ length: 9 }, (_, i) => ({
+  it('always shows the search field for an expanded role', () => {
+    const manyItems = Array.from({ length: 2 }, (_, i) => ({
       kind: 'ingredient' as const,
       id: 100 + i,
       name: `Zutat ${i}`,
@@ -210,14 +219,23 @@ describe('BuffetBuilder', () => {
 
     renderBuilder();
 
-    expect(screen.getByPlaceholderText('Suchen...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Weitere hinzufügen…')).toBeInTheDocument();
   });
 
   it('restores the saved selection and amounts when reopening', () => {
     vi.mocked(useBuffetState).mockReturnValue({
       data: {
         template_id: 1,
-        selections: [{ role_slug: 'buffet-sweet', ingredient_id: 20, recipe_id: null }],
+        selections: [{
+          role_slug: 'buffet-sweet',
+          ingredient_id: 20,
+          recipe_id: null,
+          kind: 'ingredient',
+          name: 'Nutella',
+          energy_kcal_per_100g: 540,
+          price_per_kg: 8,
+          weight_per_serving_g: null,
+        }],
         role_amounts: { 'buffet-sweet': 35 },
       },
     } as unknown as ReturnType<typeof useBuffetState>);
@@ -229,6 +247,62 @@ describe('BuffetBuilder', () => {
     const nutellaChip = screen.getByText('Nutella').closest('button');
     expect(nutellaChip).toHaveClass('border-primary');
     expect(screen.getByLabelText('Menge pro Person für Belag süß')).toHaveValue(35);
+  });
+
+  it('restores a free selection that is no longer in the role catalog', () => {
+    vi.mocked(useBuffetState).mockReturnValue({
+      data: {
+        template_id: 1,
+        selections: [{
+          role_slug: 'buffet-bread',
+          ingredient_id: 77,
+          recipe_id: null,
+          kind: 'ingredient',
+          name: 'Freie Tomaten',
+          energy_kcal_per_100g: 18,
+          price_per_kg: null,
+          weight_per_serving_g: null,
+        }],
+        role_amounts: {},
+      },
+    } as unknown as ReturnType<typeof useBuffetState>);
+
+    renderBuilder();
+
+    expect(screen.getByText('Freie Tomaten')).toBeInTheDocument();
+    expect(screen.getByText('Eigene')).toBeInTheDocument();
+    expect(screen.getByText('Freie Tomaten').closest('button')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('adds a visible search result as a free selection', async () => {
+    vi.mocked(useBuffetCatalogSearch).mockReturnValue({
+      data: [{
+        kind: 'ingredient',
+        id: 77,
+        name: 'Cocktailtomaten',
+        energy_kcal_per_100g: 18,
+        price_per_kg: 5,
+        weight_per_serving_g: null,
+        recipe_type: null,
+        is_favorite: false,
+        role_slugs: [],
+      }],
+      isLoading: false,
+      isFetching: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useBuffetCatalogSearch>);
+
+    renderBuilder();
+    fireEvent.change(screen.getByPlaceholderText('Weitere hinzufügen…'), { target: { value: 'Cocktail' } });
+
+    const result = await screen.findByText('Cocktailtomaten');
+    fireEvent.click(result.closest('button')!);
+
+    await waitFor(() => {
+      const call = previewFn.mock.calls[previewFn.mock.calls.length - 1]?.[0];
+      expect(call.selections).toContainEqual({ role_slug: 'buffet-bread', ingredient_id: 77, recipe_id: null });
+    });
   });
 
   it('saves with the current selection and amounts', () => {
@@ -246,10 +320,83 @@ describe('BuffetBuilder', () => {
     );
   });
 
+  it('falls back to the free template when no template matches the meal type', async () => {
+    const freeTemplate: BuffetTemplate = {
+      id: 9,
+      name: 'Freies Buffet',
+      slug: 'free',
+      description: '',
+      meal_types: ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'],
+      sort_order: 100,
+      roles: [],
+    };
+    vi.mocked(useBuffetTemplates).mockReturnValue({
+      data: [freeTemplate],
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useBuffetTemplates>);
+    vi.mocked(useBuffetCatalog).mockReturnValue({
+      data: makeCatalog({ template_slug: 'free' }),
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useBuffetCatalog>);
+
+    renderBuilder({ mealType: 'snack' });
+
+    await waitFor(() => expect(useBuffetCatalog).toHaveBeenLastCalledWith('free', { enabled: true }));
+    expect(screen.getByText('Brot & Gebäck')).toBeInTheDocument();
+    expect(screen.queryByText('Lade Buffet-Katalog…')).not.toBeInTheDocument();
+  });
+
+  it('keeps breakfast as the preferred template mode', async () => {
+    vi.mocked(useBuffetTemplates).mockReturnValue({
+      data: [
+        { ...breakfastTemplate, sort_order: 10 },
+        { id: 3, name: 'Freies Buffet', slug: 'free', description: '', meal_types: ['breakfast'], sort_order: 100, roles: [] },
+      ],
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useBuffetTemplates>);
+
+    renderBuilder({ mealType: 'breakfast' });
+
+    await waitFor(() => expect(useBuffetCatalog).toHaveBeenLastCalledWith('breakfast', { enabled: true }));
+  });
+
+  it('shows a retry state when template loading fails', () => {
+    const retry = vi.fn();
+    vi.mocked(useBuffetTemplates).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch: retry,
+    } as unknown as ReturnType<typeof useBuffetTemplates>);
+
+    renderBuilder();
+
+    expect(screen.getByText('Die Buffet-Vorlagen konnten nicht geladen werden.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Lade Buffet-Katalog…')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state instead of loading when no templates exist', () => {
+    vi.mocked(useBuffetTemplates).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useBuffetTemplates>);
+
+    renderBuilder({ mealType: 'snack' });
+
+    expect(screen.getByText('Für diesen Mahlzeitentyp gibt es noch keine Buffet-Vorlage.')).toBeInTheDocument();
+    expect(screen.queryByText('Lade Buffet-Katalog…')).not.toBeInTheDocument();
+  });
+
   it('shows warnings from the preview', () => {
     vi.mocked(useBuffetPreview).mockReturnValue({
       preview: previewFn,
-      result: makeResult({ warnings: [{ ingredient_name: 'Baguette', per_person_value: 2000, per_person_unit: 'g', total_value: 8, total_unit: 'kg', message: 'Baguette: 2000 g pro Person – bitte prüfen.' }] }),
+      result: makeResult({ warnings: [{ code: 'quantity_plausibility', ingredient_name: 'Baguette', per_person_value: 2000, per_person_unit: 'g', total_value: 8, total_unit: 'kg', message: 'Baguette: 2000 g pro Person – bitte prüfen.' }] }),
       isPending: false,
       error: null,
       reset: vi.fn(),

@@ -25,6 +25,19 @@ class RecipeMergeResult:
     meal_items_moved: int
 
 
+def preview_recipe_merge(source: Any, target: Any) -> dict[str, Any]:
+    """Return affected references for a merge without changing either recipe."""
+    from planner.models import MealItem
+
+    return {
+        "source_id": source.id,
+        "source_name": source.title,
+        "target_id": target.id,
+        "target_name": target.title,
+        "affected_meal_count": MealItem.objects.filter(recipe=source).count(),
+    }
+
+
 def merge_recipe(source: Any, target: Any, *, user: Any | None = None) -> RecipeMergeResult:
     """Merge ``source`` into ``target`` (source is soft-deleted afterwards)."""
     from content.models import ContentLink

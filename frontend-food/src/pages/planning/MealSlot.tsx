@@ -263,16 +263,14 @@ export function MealSlot({
       />
 
       {/* Buffet Builder */}
-      {meal.meal_type !== 'drinks' && (
-        <BuffetBuilder
-          open={showBuffetBuilder}
-          onOpenChange={setShowBuffetBuilder}
-          mealPlanId={mealPlanId}
-          mealId={meal.id}
-          mealType={meal.meal_type}
-          normPortions={effPortions}
-        />
-      )}
+      <BuffetBuilder
+        open={showBuffetBuilder}
+        onOpenChange={setShowBuffetBuilder}
+        mealPlanId={mealPlanId}
+        mealId={meal.id}
+        mealType={meal.meal_type}
+        normPortions={effPortions}
+      />
 
       {/* Random Recipe Preview */}
       <RecipePreviewDialog
@@ -332,16 +330,14 @@ export function MealSlot({
                   <PlusCircle className="w-4 h-4" />
                   Gericht hinzufügen
                 </button>
-                {meal.meal_type !== 'drinks' && (
-                  <button
-                    type="button"
-                    onClick={handleOpenWizard}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border bg-warning-soft text-warning hover:bg-warning-soft transition-all"
-                  >
-                    <LayoutGrid className="w-3.5 h-3.5" />
-                    Buffet zusammenstellen
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleOpenWizard}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border bg-warning-soft text-warning hover:bg-warning-soft transition-all"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  Buffet zusammenstellen
+                </button>
                 <button
                   type="button"
                   onClick={handleRandomSuggest}
@@ -709,16 +705,14 @@ export function MealSlot({
                 <PlusCircle className="w-3.5 h-3.5" />
                 Weiteres Gericht oder Zutat hinzufügen
               </button>
-              {meal.meal_type !== 'drinks' && (
-                <button
-                  type="button"
-                  onClick={handleOpenWizard}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border text-warning hover:bg-warning-soft transition-colors"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  Im Buffet-Builder bearbeiten
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleOpenWizard}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border text-warning hover:bg-warning-soft transition-colors"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Im Buffet-Builder bearbeiten
+              </button>
             </div>
           )}
         </div>

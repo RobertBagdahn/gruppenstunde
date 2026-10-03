@@ -166,13 +166,37 @@ class TestComputeBuffet:
         with pytest.raises(BuffetError):
             compute_buffet(template, [BuffetSelection(role_slug="buffet-savory", ingredient=ingredient)], None, meal)
 
-    def test_rejects_item_without_role_tag(self, gram_unit):
+    def test_accepts_visible_item_without_role_tag(self, gram_unit):
         template = make_buffet_template(roles={"buffet-bread": (80, "g", True)})
-        ingredient = make_ingredient(name="Ohne Rolle")
+        ingredient = make_ingredient(name="Freie Zutat")
         meal = make_meal(override_portions=1)
 
-        with pytest.raises(BuffetError):
-            compute_buffet(template, [BuffetSelection(role_slug="buffet-bread", ingredient=ingredient)], None, meal)
+        result = compute_buffet(
+            template, [BuffetSelection(role_slug="buffet-bread", ingredient=ingredient)], None, meal
+        )
+
+        assert result.items[0].name == "Freie Zutat"
+        assert result.items[0].amount_per_person == 80
+        assert any(warning.code == "missing_price" for warning in result.warnings)
+
+    def test_unknown_nutrition_and_price_make_totals_null_and_warn(self, gram_unit):
+        template = make_buffet_template(roles={"buffet-bread": (80, "g", True)})
+        ingredient = _tagged_ingredient(
+            template.roles.get(role__slug="buffet-bread").role,
+            name="Unvollständige Zutat",
+            energy_kcal=None,
+            price_per_kg=None,
+        )
+        meal = make_meal(override_portions=2)
+
+        result = compute_buffet(
+            template, [BuffetSelection(role_slug="buffet-bread", ingredient=ingredient)], None, meal
+        )
+
+        assert result.energy_kcal_per_person is None
+        assert result.cost_per_person is None
+        assert result.cost_total is None
+        assert {warning.code for warning in result.warnings} == {"missing_energy", "missing_price"}
 
     def test_rejects_duplicate_selection(self, gram_unit):
         template = make_buffet_template(roles={"buffet-bread": (80, "g", True)})

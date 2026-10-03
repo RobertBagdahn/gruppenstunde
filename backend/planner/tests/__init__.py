@@ -175,11 +175,21 @@ BUFFET_ROLE_NAMES = {
     "buffet-cereal": "Müsli & Joghurt",
     "buffet-drink": "Getränke",
     "buffet-dish": "Gerichte",
+    "buffet-cheese": "Käse",
+    "buffet-salty-snack": "Knabbereien",
+    "buffet-sweet-snack": "Süßes & Kekse",
+    "buffet-nuts": "Nüsse & Trockenobst",
+    "buffet-dip": "Dips",
+    "buffet-salad": "Salate",
+    "buffet-carb": "Beilagen",
+    "buffet-main": "Hauptkomponente",
+    "buffet-soup": "Suppen & Eintöpfe",
+    "buffet-topping": "Toppings & Extras",
 }
 
 
 def make_buffet_roles() -> dict:
-    """The nine buffet role tags (migrations are disabled in tests)."""
+    """All buffet role tags (migrations are disabled in tests)."""
     from content.models import Tag
 
     parent, _ = Tag.objects.get_or_create(slug="buffet", defaults={"name": "Buffet", "group": "buffet"})

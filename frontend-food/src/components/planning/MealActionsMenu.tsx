@@ -214,7 +214,7 @@ export function MealActionsMenu({
               <span>Aus anderem Plan kopieren</span>
             </DropdownMenuItem>
           )}
-          {meal.meal_type !== 'drinks' && onOpenBuffetBuilder && (
+          {onOpenBuffetBuilder && (
             <DropdownMenuItem onClick={onOpenBuffetBuilder}>
               <LayoutGrid className="mr-2 h-4 w-4 text-primary" />
               <span>Buffetassistent</span>

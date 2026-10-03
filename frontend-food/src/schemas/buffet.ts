@@ -89,6 +89,19 @@ export const BuffetCatalogSchema = z.object({
 });
 export type BuffetCatalog = z.infer<typeof BuffetCatalogSchema>;
 
+export const BuffetCatalogSearchItemSchema = z.object({
+  kind: z.enum(['ingredient', 'recipe']),
+  id: z.number(),
+  name: z.string(),
+  energy_kcal_per_100g: z.number().nullable(),
+  price_per_kg: z.number().nullable(),
+  weight_per_serving_g: z.number().nullable(),
+  recipe_type: z.string().nullable(),
+  is_favorite: z.boolean(),
+  role_slugs: z.array(z.string()),
+});
+export type BuffetCatalogSearchItem = z.infer<typeof BuffetCatalogSearchItemSchema>;
+
 // ==========================================================================
 // Buffet save / preview
 // ==========================================================================
@@ -123,15 +136,28 @@ export const BuffetResultItemSchema = z.object({
 });
 export type BuffetResultItem = z.infer<typeof BuffetResultItemSchema>;
 
+export const BuffetWarningSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  ingredient_name: z.string().nullable().optional(),
+  meal_item_id: z.number().nullable().optional(),
+  meal_id: z.number().nullable().optional(),
+  per_person_value: z.number().nullable().optional(),
+  per_person_unit: z.string().nullable().optional(),
+  total_value: z.number().nullable().optional(),
+  total_unit: z.string().nullable().optional(),
+});
+export type BuffetWarning = z.infer<typeof BuffetWarningSchema>;
+
 export const BuffetResultSchema = z.object({
   saved: z.boolean(),
   portions: z.number(),
   items: z.array(BuffetResultItemSchema).default([]),
-  energy_kcal_per_person: z.number(),
+  energy_kcal_per_person: z.number().nullable(),
   target_kcal_per_person: z.number(),
-  cost_per_person: z.number(),
-  cost_total: z.number(),
-  warnings: z.array(QuantityWarningSchema).default([]),
+  cost_per_person: z.number().nullable(),
+  cost_total: z.number().nullable(),
+  warnings: z.array(BuffetWarningSchema).default([]),
 });
 export type BuffetResult = z.infer<typeof BuffetResultSchema>;
 
@@ -139,6 +165,11 @@ export const BuffetStateSelectionSchema = z.object({
   role_slug: z.string(),
   ingredient_id: z.number().nullable().optional(),
   recipe_id: z.number().nullable().optional(),
+  kind: z.enum(['ingredient', 'recipe']),
+  name: z.string(),
+  energy_kcal_per_100g: z.number().nullable(),
+  price_per_kg: z.number().nullable(),
+  weight_per_serving_g: z.number().nullable(),
 });
 export type BuffetStateSelection = z.infer<typeof BuffetStateSelectionSchema>;
 

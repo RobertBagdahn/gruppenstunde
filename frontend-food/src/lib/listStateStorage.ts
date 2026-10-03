@@ -11,6 +11,7 @@ export type ListKey =
   | 'shopping-lists'
   | 'ingredient-stats'
   | 'data-quality-ingredients'
+  | 'data-quality-buffet-catalog'
   | 'meal-plan-detail';
 
 export type StoredListState = Record<string, string | string[]>;

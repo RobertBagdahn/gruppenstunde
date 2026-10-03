@@ -153,7 +153,7 @@ describe('MealSlot buffet grouping', () => {
     expect(screen.getAllByText('Kartoffeln').length).toBeGreaterThan(0);
   });
 
-  it('offers "Buffet zusammenstellen" for lunch but not for drinks', () => {
+  it('offers "Buffet zusammenstellen" for lunch', () => {
     const lunch = makeMeal([makeItem({ id: 1, buffet_role: 'buffet-bread' })], { meal_type: 'lunch' });
     renderMealSlot(lunch);
     openDetails();
@@ -207,6 +207,12 @@ describe('MealSlot buffet builder trigger', () => {
   it('opens the buffet builder from an empty meal (regression: dialog was not rendered)', () => {
     renderMealSlot(makeMeal([], { meal_type: 'snack' }));
     expect(screen.queryByTestId('buffet-builder-open')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Buffet zusammenstellen'));
+    expect(screen.getByTestId('buffet-builder-open')).toBeInTheDocument();
+  });
+
+  it('opens the buffet builder from an empty drinks meal', () => {
+    renderMealSlot(makeMeal([], { meal_type: 'drinks' }));
     fireEvent.click(screen.getByText('Buffet zusammenstellen'));
     expect(screen.getByTestId('buffet-builder-open')).toBeInTheDocument();
   });

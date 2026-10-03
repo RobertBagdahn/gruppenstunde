@@ -1,6 +1,9 @@
 """Buffet templates and the buffet builder endpoint of a meal."""
 
-from django.http import Http404
+from typing import Any
+
+from django.db.models import QuerySet
+from django.http import Http404, HttpRequest
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -25,7 +28,7 @@ from planner.services.buffet_service import (
 buffet_router = Router(tags=["buffet"])
 
 
-def _template_out(template: BuffetTemplate) -> dict:
+def _template_out(template: BuffetTemplate) -> dict[str, Any]:
     return {
         "id": template.id,
         "name": template.name,
@@ -48,14 +51,14 @@ def _template_out(template: BuffetTemplate) -> dict:
     }
 
 
-def active_templates():
+def active_templates() -> QuerySet[BuffetTemplate]:
     return BuffetTemplate.objects.filter(is_active=True).prefetch_related(
         "roles__role", "roles__default_ingredients", "roles__default_recipes"
     )
 
 
 @buffet_router.get("/buffet-templates/", response=list[BuffetTemplateOut], auth=None)
-def list_buffet_templates(request, meal_type: str | None = None):
+def list_buffet_templates(request: HttpRequest, meal_type: str | None = None) -> list[dict[str, Any]]:
     """Active buffet templates, optionally for one meal type. Readable without login."""
     templates = list(active_templates())
     if meal_type:
@@ -63,20 +66,22 @@ def list_buffet_templates(request, meal_type: str | None = None):
     return [_template_out(template) for template in templates]
 
 
-def _result_out(result: BuffetResult, *, saved: bool) -> dict:
+def _result_out(result: BuffetResult, *, saved: bool) -> dict[str, Any]:
     return {
         "saved": saved,
         "portions": result.portions,
         "items": [vars(item) for item in result.items],
-        "energy_kcal_per_person": round(result.energy_kcal_per_person, 1),
+        "energy_kcal_per_person": (
+            round(result.energy_kcal_per_person, 1) if result.energy_kcal_per_person is not None else None
+        ),
         "target_kcal_per_person": round(result.target_kcal_per_person, 1),
-        "cost_per_person": round(result.cost_per_person, 2),
-        "cost_total": round(result.cost_total, 2),
+        "cost_per_person": round(result.cost_per_person, 2) if result.cost_per_person is not None else None,
+        "cost_total": round(result.cost_total, 2) if result.cost_total is not None else None,
         "warnings": [warning.as_dict() for warning in result.warnings],
     }
 
 
-def _get_meal(meal_plan_id: int, meal_id: int, request, *, edit: bool) -> Meal:
+def _get_meal(meal_plan_id: int, meal_id: int, request: HttpRequest, *, edit: bool) -> Meal:
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     if edit:
         _require_edit(meal_plan, request.user)
@@ -86,14 +91,49 @@ def _get_meal(meal_plan_id: int, meal_id: int, request, *, edit: bool) -> Meal:
 
 
 @buffet_router.get("/{meal_plan_id}/meals/{meal_id}/buffet/", response=BuffetStateOut)
-def get_buffet_state(request, meal_plan_id: int, meal_id: int):
+def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> dict[str, Any]:
     """Saved template, selection and role amounts of a meal's buffet."""
     require_login(request)
     meal = _get_meal(meal_plan_id, meal_id, request, edit=False)
-    selections = [
-        {"role_slug": item.buffet_role, "ingredient_id": item.ingredient_id, "recipe_id": item.recipe_id}
-        for item in meal.items.exclude(buffet_role="").order_by("id")
-    ]
+    from content.services.food_access import get_visible_ingredient_or_404, get_visible_recipe_or_404
+    from supply.services.buffet_catalog import recipe_price_per_kg, recipe_weight_per_serving_g
+    from supply.services.price_service import price_or_none
+
+    selections = []
+    saved_items = meal.items.exclude(buffet_role="").select_related("ingredient", "recipe").order_by("id")
+    for item in saved_items:
+        try:
+            if item.ingredient_id is not None:
+                ingredient = get_visible_ingredient_or_404(request.user, item.ingredient_id, allow_system_draft=True)
+                price = price_or_none(ingredient.price_per_kg)
+                selections.append(
+                    {
+                        "role_slug": item.buffet_role,
+                        "ingredient_id": ingredient.id,
+                        "recipe_id": None,
+                        "kind": "ingredient",
+                        "name": ingredient.name,
+                        "energy_kcal_per_100g": ingredient.energy_kcal,
+                        "price_per_kg": float(price) if price is not None else None,
+                        "weight_per_serving_g": None,
+                    }
+                )
+            elif item.recipe_id is not None:
+                recipe = get_visible_recipe_or_404(request.user, item.recipe_id, allow_system_draft=True)
+                selections.append(
+                    {
+                        "role_slug": item.buffet_role,
+                        "ingredient_id": None,
+                        "recipe_id": recipe.id,
+                        "kind": "recipe",
+                        "name": recipe.title,
+                        "energy_kcal_per_100g": recipe.cached_energy_kcal,
+                        "price_per_kg": recipe_price_per_kg(recipe),
+                        "weight_per_serving_g": recipe_weight_per_serving_g(recipe),
+                    }
+                )
+        except Http404:
+            raise HttpError(404, "Zutat oder Rezept nicht gefunden") from None
     return {
         "template_id": meal.buffet_template_id,
         "selections": selections,
@@ -102,7 +142,7 @@ def get_buffet_state(request, meal_plan_id: int, meal_id: int):
 
 
 @buffet_router.post("/{meal_plan_id}/meals/{meal_id}/buffet/", response=BuffetResultOut)
-def save_meal_buffet(request, meal_plan_id: int, meal_id: int, payload: BuffetSaveIn):
+def save_meal_buffet(request: HttpRequest, meal_plan_id: int, meal_id: int, payload: BuffetSaveIn) -> dict[str, Any]:
     """Preview (``dry_run``) or save a buffet; quantities are computed here only."""
     from content.services.food_access import get_visible_ingredient_or_404, get_visible_recipe_or_404
 

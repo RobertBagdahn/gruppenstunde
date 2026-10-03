@@ -92,23 +92,288 @@ BUFFET_TEMPLATE_SEEDS: tuple[TemplateSeed, ...] = (
             RoleSeed("buffet-dish", 150, enabled=False),
         ),
     ),
+    TemplateSeed(
+        slug="snack-platter",
+        name="Snackplatte",
+        meal_types=("snack",),
+        sort_order=40,
+        roles=(
+            RoleSeed("buffet-fresh", 150),
+            RoleSeed("buffet-dip", 40),
+            RoleSeed("buffet-cheese", 30),
+            RoleSeed("buffet-salty-snack", 25),
+            RoleSeed("buffet-drink", 250, unit="ml"),
+            RoleSeed("buffet-nuts", 20, enabled=False),
+            RoleSeed("buffet-bread", 40, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="cheese-platter",
+        name="Käseplatte",
+        meal_types=("snack",),
+        sort_order=41,
+        roles=(
+            RoleSeed("buffet-cheese", 80),
+            RoleSeed("buffet-bread", 50),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-nuts", 20),
+            RoleSeed("buffet-dip", 20),
+            RoleSeed("buffet-drink", 250, unit="ml"),
+            RoleSeed("buffet-sweet", 15, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="salty-snacks",
+        name="Salzgebäck & Chips",
+        meal_types=("snack",),
+        sort_order=42,
+        roles=(
+            RoleSeed("buffet-salty-snack", 60),
+            RoleSeed("buffet-dip", 40),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+            RoleSeed("buffet-nuts", 25, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="nachos",
+        name="Nachos mit Soßen",
+        meal_types=("snack",),
+        sort_order=43,
+        roles=(
+            RoleSeed("buffet-salty-snack", 60),
+            RoleSeed("buffet-cheese", 40),
+            RoleSeed("buffet-dip", 60),
+            RoleSeed("buffet-topping", 25),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+            RoleSeed("buffet-fresh", 50, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="sweet-buffet",
+        name="Süßes Buffet",
+        meal_types=("snack",),
+        sort_order=44,
+        roles=(
+            RoleSeed("buffet-sweet-snack", 50),
+            RoleSeed("buffet-fresh", 100),
+            RoleSeed("buffet-drink", 250, unit="ml"),
+            RoleSeed("buffet-nuts", 20, enabled=False),
+            RoleSeed("buffet-cereal", 80, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="fruit-nuts",
+        name="Obst & Nüsse",
+        meal_types=("snack",),
+        sort_order=45,
+        roles=(
+            RoleSeed("buffet-fresh", 150),
+            RoleSeed("buffet-nuts", 30),
+            RoleSeed("buffet-cereal", 100),
+            RoleSeed("buffet-drink", 250, unit="ml"),
+            RoleSeed("buffet-sweet-snack", 20, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="campfire-snack",
+        name="Lagerfeuer-Snack",
+        meal_types=("snack",),
+        sort_order=46,
+        roles=(
+            RoleSeed("buffet-dish", 120),
+            RoleSeed("buffet-sweet-snack", 30),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+        ),
+    ),
+    TemplateSeed(
+        slug="wrap-bar",
+        name="Wrap-Bar",
+        meal_types=("lunch", "dinner"),
+        sort_order=50,
+        roles=(
+            RoleSeed("buffet-bread", 120),
+            RoleSeed("buffet-savory", 70),
+            RoleSeed("buffet-fresh", 100),
+            RoleSeed("buffet-dip", 40),
+            RoleSeed("buffet-cheese", 30),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+            RoleSeed("buffet-salad", 80, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="salad-bar",
+        name="Salatbuffet",
+        meal_types=("lunch",),
+        sort_order=51,
+        roles=(
+            RoleSeed("buffet-salad", 150),
+            RoleSeed("buffet-fresh", 100),
+            RoleSeed("buffet-bread", 60),
+            RoleSeed("buffet-cheese", 40),
+            RoleSeed("buffet-dip", 30),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+            RoleSeed("buffet-main", 80, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="vesper",
+        name="Brotzeit",
+        meal_types=("lunch", "dinner"),
+        sort_order=52,
+        roles=(
+            RoleSeed("buffet-bread", 130),
+            RoleSeed("buffet-fat", 10),
+            RoleSeed("buffet-savory", 60),
+            RoleSeed("buffet-cheese", 40),
+            RoleSeed("buffet-fresh", 100),
+            RoleSeed("buffet-topping", 20),
+            RoleSeed("buffet-drink", 250, unit="ml"),
+            RoleSeed("buffet-sweet", 20, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="pasta-bar",
+        name="Pasta-Bar",
+        meal_types=("lunch", "dinner"),
+        sort_order=53,
+        roles=(
+            RoleSeed("buffet-carb", 120),
+            RoleSeed("buffet-dish", 150),
+            RoleSeed("buffet-topping", 15),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+            RoleSeed("buffet-bread", 40, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="baked-potato",
+        name="Kartoffelbuffet",
+        meal_types=("lunch", "dinner"),
+        sort_order=54,
+        roles=(
+            RoleSeed("buffet-carb", 250),
+            RoleSeed("buffet-dip", 60),
+            RoleSeed("buffet-cheese", 30),
+            RoleSeed("buffet-fresh", 100),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+            RoleSeed("buffet-main", 80, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="soup-bread",
+        name="Suppe & Brot",
+        meal_types=("lunch", "dinner"),
+        sort_order=55,
+        roles=(
+            RoleSeed("buffet-soup", 350, unit="ml"),
+            RoleSeed("buffet-bread", 70),
+            RoleSeed("buffet-topping", 15),
+            RoleSeed("buffet-drink", 250, unit="ml"),
+            RoleSeed("buffet-cheese", 30, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="rice-curry",
+        name="Reis- & Curry-Bar",
+        meal_types=("lunch", "dinner"),
+        sort_order=56,
+        roles=(
+            RoleSeed("buffet-carb", 120),
+            RoleSeed("buffet-dish", 200),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-topping", 15),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+        ),
+    ),
+    TemplateSeed(
+        slug="burger-bar",
+        name="Burger- & Hotdog-Bar",
+        meal_types=("lunch", "dinner"),
+        sort_order=57,
+        roles=(
+            RoleSeed("buffet-bread", 80),
+            RoleSeed("buffet-main", 120),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-dip", 30),
+            RoleSeed("buffet-topping", 20),
+            RoleSeed("buffet-cheese", 20),
+            RoleSeed("buffet-drink", 300, unit="ml"),
+            RoleSeed("buffet-carb", 150, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="grill",
+        name="Grillabend",
+        meal_types=("dinner",),
+        sort_order=58,
+        roles=(
+            RoleSeed("buffet-main", 200),
+            RoleSeed("buffet-bread", 60),
+            RoleSeed("buffet-salad", 120),
+            RoleSeed("buffet-dip", 40),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-drink", 400, unit="ml"),
+            RoleSeed("buffet-carb", 150, enabled=False),
+        ),
+    ),
+    TemplateSeed(
+        slug="drinks-bar",
+        name="Getränkebuffet",
+        meal_types=("drinks", "snack"),
+        sort_order=90,
+        roles=(RoleSeed("buffet-drink", 300, unit="ml"),),
+    ),
+    TemplateSeed(
+        slug="free",
+        name="Freies Buffet",
+        meal_types=("breakfast", "lunch", "dinner", "snack", "drinks"),
+        sort_order=999,
+        roles=(
+            RoleSeed("buffet-bread", 60),
+            RoleSeed("buffet-fat", 5, enabled=False),
+            RoleSeed("buffet-savory", 40),
+            RoleSeed("buffet-sweet", 15, enabled=False),
+            RoleSeed("buffet-condiment", 10, enabled=False),
+            RoleSeed("buffet-fresh", 80),
+            RoleSeed("buffet-cereal", 50, enabled=False),
+            RoleSeed("buffet-drink", 250, unit="ml"),
+            RoleSeed("buffet-dish", 100, enabled=False),
+            RoleSeed("buffet-cheese", 30, enabled=False),
+            RoleSeed("buffet-salty-snack", 30, enabled=False),
+            RoleSeed("buffet-sweet-snack", 20, enabled=False),
+            RoleSeed("buffet-nuts", 15, enabled=False),
+            RoleSeed("buffet-dip", 30, enabled=False),
+            RoleSeed("buffet-salad", 80, enabled=False),
+            RoleSeed("buffet-carb", 100, enabled=False),
+            RoleSeed("buffet-main", 120, enabled=False),
+            RoleSeed("buffet-soup", 250, enabled=False, unit="ml"),
+            RoleSeed("buffet-topping", 15, enabled=False),
+        ),
+    ),
 )
 
 
 @dataclass
 class SeedReport:
+    dry_run: bool = False
     created: list[str] = field(default_factory=list)
     existing: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
 
 
-def seed_buffet_templates(seeds: tuple[TemplateSeed, ...] = BUFFET_TEMPLATE_SEEDS) -> SeedReport:
+def seed_buffet_templates(
+    seeds: tuple[TemplateSeed, ...] = BUFFET_TEMPLATE_SEEDS,
+    *,
+    dry_run: bool = False,
+) -> SeedReport:
     from content.models import Tag
     from planner.models import BuffetTemplate, BuffetTemplateRole
     from recipe.models import Recipe
     from supply.models import Ingredient
 
-    report = SeedReport()
+    report = SeedReport(dry_run=dry_run)
     roles = {tag.slug: tag for tag in Tag.objects.filter(slug__in=BUFFET_ROLE_SLUGS)}
     with transaction.atomic():
         for seed in seeds:
@@ -148,4 +413,6 @@ def seed_buffet_templates(seeds: tuple[TemplateSeed, ...] = BUFFET_TEMPLATE_SEED
                     else:
                         template_role.default_recipes.add(recipe)
             report.created.append(seed.name)
+        if dry_run:
+            transaction.set_rollback(True)
     return report

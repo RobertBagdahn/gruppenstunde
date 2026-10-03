@@ -10,9 +10,11 @@ import { invalidateMealPlanQueries } from '@/api/mealPlans';
 import {
   BuffetTemplateSchema,
   BuffetCatalogSchema,
+  BuffetCatalogSearchItemSchema,
   BuffetStateSchema,
   BuffetResultSchema,
   BuffetSaveInSchema,
+  type BuffetCatalogSearchItem,
   type BuffetResult,
   type BuffetSaveIn,
 } from '@/schemas/buffet';
@@ -79,6 +81,40 @@ export function useBuffetCatalog(templateSlug: string | null, options: { enabled
 // ==========================================================================
 // Buffet state (saved selection for a meal)
 // ==========================================================================
+
+export interface BuffetCatalogSearchInput {
+  q: string;
+  role: string;
+  mealType: string;
+  kind: 'all' | 'ingredient' | 'recipe';
+  recipeType?: string;
+  includeNonStandalone: boolean;
+  excludeAlcohol: boolean;
+}
+
+export function useBuffetCatalogSearch(
+  input: BuffetCatalogSearchInput,
+  options: { enabled?: boolean } = {},
+) {
+  const query = input.q.trim();
+  const params = new URLSearchParams({
+    q: query,
+    role: input.role,
+    meal_type: input.mealType,
+    kind: input.kind,
+    include_non_standalone: String(input.includeNonStandalone),
+    exclude_alcohol: String(input.excludeAlcohol),
+    limit: '30',
+  });
+  if (input.recipeType) params.set('recipe_type', input.recipeType);
+
+  return useQuery({
+    queryKey: ['buffet-catalog-search', { ...input, q: query }] as const,
+    queryFn: async (): Promise<BuffetCatalogSearchItem[]> =>
+      fetchJson(`${SUPPLY_BASE}/buffet-catalog/search/?${params.toString()}`, z.array(BuffetCatalogSearchItemSchema)),
+    enabled: (options.enabled ?? true) && query.length >= 2,
+  });
+}
 
 export function useBuffetState(planId: number, mealId: number, options: { enabled?: boolean } = {}) {
   return useQuery({

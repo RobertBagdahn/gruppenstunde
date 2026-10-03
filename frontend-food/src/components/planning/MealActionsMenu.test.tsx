@@ -80,7 +80,7 @@ describe('MealActionsMenu', () => {
     expect(await screen.findByText('Buffetassistent')).toBeInTheDocument();
   });
 
-  it('does not display Buffetassistent for drink meals', async () => {
+  it('displays Buffetassistent for drink meals', async () => {
     const drinkMeal: Meal = { ...baseMeal, id: 103, meal_type: 'drinks' };
     render(
       <MealActionsMenu
@@ -97,7 +97,7 @@ describe('MealActionsMenu', () => {
     const trigger = screen.getByRole('button');
     fireEvent.pointerDown(trigger);
 
-    expect(screen.queryByText('Buffetassistent')).not.toBeInTheDocument();
+    expect(await screen.findByText('Buffetassistent')).toBeInTheDocument();
   });
 
   it('does not display Buffetassistent when no handler is passed', async () => {
