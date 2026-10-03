@@ -1,4 +1,4 @@
-.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-frontend-food build-backend push-frontend push-frontend-food push-backend deploy-frontend deploy-frontend-food deploy-backend migrate-cloud kill-port smoke-test
+.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-frontend-food build-backend push-frontend push-frontend-food push-backend deploy-frontend deploy-frontend-food deploy-backend migrate-cloud kill-port smoke-test verify-release
 
 # ============================================================
 # Inspi – Makefile for local development
@@ -10,9 +10,13 @@ PODMAN := podman compose
 
 # GCP settings – override via environment or .env
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
-GCP_REGION ?= europe-west3                # Artifact Registry + Cloud Build region
-GCP_RUN_REGION ?= europe-west1            # Cloud Run deployment region (west1, was west3)
+# Artifact Registry and Cloud Build region.
+GCP_REGION ?= europe-west3
+# Cloud Run deployment region.
+GCP_RUN_REGION ?= europe-west1
 GCP_FOOD_REGION ?= europe-west1
+BACKEND_MAX_INSTANCES ?= 2
+BACKEND_CONCURRENCY ?= 2
 BACKEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/backend
 FRONTEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend
 FRONTEND_FOOD_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend-food
@@ -32,7 +36,7 @@ help: ## Show this help
 install: install-backend install-frontend install-food ## Install all dependencies
 
 install-backend: ## Install backend dependencies with uv
-	cd backend && $(UV) sync
+	cd backend && $(UV) sync --extra dev
 
 install-frontend: ## Install frontend dependencies
 	cd frontend && npm install
@@ -138,7 +142,7 @@ smoke-test: ## Run Playwright end-to-end smoke tests
 # -----------------------------------------------
 
 test: ## Run all tests
-	cd backend && $(UV) run pytest
+	cd backend && $(UV) run --extra dev pytest
 
 test-cov: ## Run tests with coverage report
 	cd backend && $(UV) run pytest --cov --cov-report=html
@@ -148,18 +152,23 @@ test-fast: ## Run fast tests only (skip slow)
 	cd backend && $(UV) run pytest -m "not slow" -x -q
 
 lint: ## Run ruff linter
-	cd backend && $(UV) run ruff check .
+	cd backend && $(UV) run --extra dev ruff check .
 
 lint-fix: ## Run ruff linter with auto-fix
-	cd backend && $(UV) run ruff check --fix .
+	cd backend && $(UV) run --extra dev ruff check --fix .
 
 format: ## Format code with ruff
-	cd backend && $(UV) run ruff format .
+	cd backend && $(UV) run --extra dev ruff format .
 
-typecheck: ## Run mypy type checking
-	cd backend && $(UV) run mypy .
+typecheck: ## Run mypy checks for release-touched backend modules
+	cd backend && sh scripts/check_release_types.sh
 
 check: lint typecheck test-fast ## Run all checks (lint + types + fast tests)
+
+verify-release: ## Run backend, Food frontend and mocked Food E2E release checks
+	cd backend && $(UV) sync --extra dev && $(UV) run ruff check . && sh scripts/check_release_format.sh && sh scripts/check_release_types.sh && $(UV) run pytest --tb=short -q
+	cd frontend-food && npm ci && sh scripts/lint-release-check.sh && npx tsc --noEmit && npm test -- --run && npm run build
+	bash e2e/food-release-check.sh
 
 pre-commit: ## Run all pre-commit hooks
 	pre-commit run --all-files
@@ -247,12 +256,15 @@ push-frontend: build-frontend ## Push frontend image to Artifact Registry
 push-frontend-food: build-frontend-food ## Push food frontend image to Artifact Registry
 	@echo "Food frontend image was pushed by Cloud Build."
 
-deploy-backend: push-backend ## Deploy backend to Cloud Run (west1)
+deploy-backend: verify-release push-backend ## Deploy backend to Cloud Run (west1)
 	gcloud run deploy inspi-backend \
 		--image $(BACKEND_IMAGE):latest \
 		--region $(GCP_RUN_REGION) \
 		--add-cloudsql-instances $(CLOUD_SQL_CONNECTION_NAME) \
-		--project $(GCP_PROJECT)
+		--project $(GCP_PROJECT) \
+		--max=$(BACKEND_MAX_INSTANCES) \
+		--concurrency=$(BACKEND_CONCURRENCY) \
+		--update-env-vars=BACKEND_MAX_INSTANCES=$(BACKEND_MAX_INSTANCES),BACKEND_CONCURRENCY=$(BACKEND_CONCURRENCY),GUNICORN_WORKERS=2,GUNICORN_THREADS=4,BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8
 
 migrate-cloud: ## Run Django migrations via Cloud Run job (west3, connects to west1 DB)
 	gcloud run jobs execute inspi-migrate --region europe-west3 --wait
@@ -263,13 +275,13 @@ deploy-frontend: push-frontend ## Deploy frontend to Cloud Run (west1)
 		--region $(GCP_RUN_REGION) \
 		--project $(GCP_PROJECT)
 
-deploy-frontend-food: push-frontend-food ## Deploy food frontend to Cloud Run (west1)
+deploy-frontend-food: verify-release push-frontend-food ## Deploy food frontend to Cloud Run (west1)
 	gcloud run deploy inspi-frontend-food \
 		--image $(FRONTEND_FOOD_IMAGE):latest \
 		--region $(GCP_RUN_REGION) \
 		--project $(GCP_PROJECT)
 
-deploy: deploy-backend migrate-cloud deploy-frontend deploy-frontend-food ## Deploy everything (backend first, migrations, then frontends)
+deploy: verify-release deploy-backend migrate-cloud deploy-frontend deploy-frontend-food ## Deploy everything (backend first, migrations, then frontends)
 
 # -----------------------------------------------
 # Cleanup

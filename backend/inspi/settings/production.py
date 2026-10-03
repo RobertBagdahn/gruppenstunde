@@ -10,7 +10,7 @@ from .base import *  # noqa: F403
 # ("change-me-in-production") must never reach a live deployment.
 if SECRET_KEY == "change-me-in-production":
     raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY is not configured. " "Set the environment variable before deploying to production."
+        "DJANGO_SECRET_KEY is not configured. Set the environment variable before deploying to production."
     )
 
 DEBUG = env("DEBUG", default="False").lower() in ("true", "1")
@@ -74,7 +74,7 @@ DATABASES = {
         "PASSWORD": env("DB_PASSWORD", default=""),
         "HOST": env("DB_HOST", default=""),
         "PORT": env("DB_PORT", default="5432"),
-        "CONN_MAX_AGE": 60,
+        "CONN_MAX_AGE": 0,
     }
 }
 
@@ -91,6 +91,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://shop.rewe.de",
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ["X-Request-ID"]
 
 # Logging – send ALL Django errors to stderr (visible in Cloud Logging)
 LOGGING = {

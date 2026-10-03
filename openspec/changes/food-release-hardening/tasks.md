@@ -1,0 +1,42 @@
+## 1. Audit and define runtime budgets
+
+- [ ] 1.1 Inspect the deployed Cloud SQL `max_connections`, Cloud Run concurrency/scaling, Gunicorn worker/thread counts, and per-process background workers; document the calculated safe connection ceiling and reserved headroom.
+- [ ] 1.2 Audit existing RecipeItems and exchange-group members for null, inactive, or mismatched Portions using a report-only command or query; do not modify production data.
+- [x] 1.3 Identify the authoritative production Cloud Build triggers and current ownership/drift behavior for Cloud Run settings before changing deployment configuration (active project has only a push-to-main deploy trigger; the PR trigger is not deployed).
+
+## 2. Bound backend connection and memory use
+
+- [ ] 2.1 Align Terraform/deployment configuration, Cloud Run concurrency/scaling, Gunicorn capacity, Django connection lifetime, and background worker capacity with the approved Cloud SQL connection budget.
+- [x] 2.2 Add automated validation/tests for the connection-budget calculation and ensure relevant deployed settings have one source of truth.
+- [x] 2.3 Refactor ingredient-statistics distribution processing to avoid repeated full-dataset materialization while preserving response behavior.
+- [x] 2.4 Add statistics parity tests and a representative concurrent-load/resource test; configure operational signals for connection saturation and memory pressure.
+
+## 3. Make recipe alternatives safe for draft ingredients
+
+- [x] 3.1 Add a typed backend API operation that atomically creates or reuses the exchange group, assigns member positions, and creates the alternative RecipeItem.
+- [x] 3.2 Validate recipe edit permission, Ingredient visibility independent of draft status, active Portion ownership, positive quantity, and rollback behavior; add API tests for success and each failure case.
+- [x] 3.3 Update Pydantic and Zod contracts for the alternative operation and ensure the response contains the persisted Ingredient name and Portion.
+- [x] 3.4 Switch the Food recipe editor to the atomic operation, handle portion-request failures using the shared API error type, and preserve the pending selection on retry.
+- [x] 3.5 Make embedding generation safe for legacy/direct-gram RecipeItems without a Portion, and add tests proving one malformed/portionless row cannot abort recipe embedding construction.
+- [ ] 3.6 Run a report-only audit of existing exchange data and document whether any separate production data repair or migration is needed.
+
+## 4. Surface Food API server errors safely
+
+- [x] 4.1 Implement the standard safe Food API error response with stable error code and request correlation ID; keep tracebacks and SQL details only in server logs.
+- [x] 4.2 Add backend tests for 4xx/5xx error serialization and correlation between the response reference and server log entry.
+- [x] 4.3 Add a typed frontend API error that preserves HTTP status, code, and request ID even when the body is empty, malformed, or non-JSON.
+- [x] 4.4 Update Food query/mutation UI to show German status-aware errors, safe retries for reads, explicit retries for mutations, and preserve user input after failure.
+- [x] 4.5 Add frontend tests for JSON and non-JSON 500 responses, visible retry controls, and no automatic duplicate mutation retry.
+
+## 5. Restore and test the Buffet workflow
+
+- [x] 5.1 Trace both Buffet entry points through MealSlot and MealActionsMenu: both call the same open handler, and the builder receives the selected meal's plan and ID.
+- [x] 5.2 Add explicit loading, empty, catalog-error, and retry states; keep template, selections, and role amounts after a failed save and close only on success.
+- [x] 5.3 Add component tests for direct/menu entry wiring and error recovery, plus deterministic browser tests for Buffet persistence and draft-alternative retry/reload.
+
+## 6. Make Food checks release-blocking
+
+- [x] 6.1 Extend the authoritative PR Cloud Build trigger to lint release-touched `frontend-food` files, and run TypeScript, Vitest, and production build checks.
+- [x] 6.2 Add deterministic mocked Playwright coverage for Buffet persistence, draft-Ingredient alternatives, and safe HTTP 500 feedback; ensure unexpected API errors fail tests.
+- [x] 6.3 Keep backend pytest and existing quality gates required, and verify the configured deploy trigger cannot bypass failed Food checks (the active push-to-main pipeline invokes the PR checks before any build or deployment).
+- [x] 6.4 Run backend tests, touched-file Food lint, TypeScript, Vitest, mocked Playwright, infrastructure validation, and strict OpenSpec validation; document that production capacity/audit checks remain blocked pending approved read-only access.

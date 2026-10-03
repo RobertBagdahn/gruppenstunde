@@ -6,6 +6,7 @@ export type ApiErrorBody = {
   errors?: unknown;
   error_code?: unknown;
   retry_after_seconds?: unknown;
+  request_id?: unknown;
 };
 
 export class ApiError extends Error {
@@ -13,16 +14,23 @@ export class ApiError extends Error {
   readonly code?: string;
   readonly details: unknown;
   readonly retryAfterSeconds?: number;
+  readonly requestId?: string;
 
-  // statusText is kept for call compatibility but never shown: users see German `detail` texts only.
-  constructor(status: number, _statusText: string, body: ApiErrorBody = {}) {
-    super(formatApiErrorBody(body) || `Ein Fehler ist aufgetreten (${status}).`);
+  constructor(status: number, _statusText: string, body: ApiErrorBody = {}, requestId?: string) {
+    const bodyRequestId = typeof body.request_id === 'string' ? body.request_id : undefined;
+    const resolvedRequestId = bodyRequestId ?? requestId;
+    const supportReference = resolvedRequestId ? ` Referenz: ${resolvedRequestId}` : '';
+    const message = status >= 500
+      ? `Serverfehler (HTTP ${status}). Bitte versuche es später erneut.${supportReference}`
+      : formatApiErrorBody(body) || `Ein Fehler ist aufgetreten (${status}).`;
+    super(message);
     this.name = 'ApiError';
     this.status = status;
     const code = typeof body.code === 'string' ? body.code : body.error_code;
     this.code = typeof code === 'string' ? code : undefined;
     this.details = body.errors;
     this.retryAfterSeconds = typeof body.retry_after_seconds === 'number' ? body.retry_after_seconds : undefined;
+    this.requestId = resolvedRequestId;
   }
 }
 
@@ -64,6 +72,7 @@ export async function parseApiResponse<T>(response: Response, schema?: { parse(d
       response.status,
       response.statusText,
       body && typeof body === 'object' ? body as ApiErrorBody : {},
+      response.headers.get('X-Request-ID') ?? undefined,
     );
   }
   return schema ? schema.parse(body) : body as T;

@@ -63,7 +63,7 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
   });
   await page.getByTestId('recipe-serving-context-confirm').click();
   await page.getByTestId('recipe-wizard-next').click();
-  await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible({
     timeout: 15000,
   });
   await expect(page.getByRole('combobox', { name: /Zutat/i }).first()).toBeVisible({
@@ -234,7 +234,7 @@ test.describe('Recipe ingredient autocomplete — mobile layout', () => {
 });
 
 test.describe('Recipe ingredient autocomplete — touch scrolling', () => {
-  test.use({ hasTouch: true, isMobile: true });
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 320, height: 568 } });
 
   test('scrolls the ingredient input into view on touch focus', async ({ page }) => {
     await login(page);

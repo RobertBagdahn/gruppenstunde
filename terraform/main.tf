@@ -31,6 +31,7 @@ resource "google_project_service" "apis" {
     "sqladmin.googleapis.com",
     "storage.googleapis.com",
     "iam.googleapis.com",
+    "monitoring.googleapis.com",
   ])
 
   project            = var.project_id
@@ -218,6 +219,8 @@ resource "google_cloud_run_v2_service" "backend" {
   }
 
   template {
+    max_instance_request_concurrency = var.backend_concurrency
+
     containers {
       image = "${local.backend_image}:latest"
 
@@ -252,6 +255,30 @@ resource "google_cloud_run_v2_service" "backend" {
       env {
         name  = "DB_USER"
         value = "inspi"
+      }
+      env {
+        name  = "BACKEND_MAX_INSTANCES"
+        value = tostring(var.backend_max_instances)
+      }
+      env {
+        name  = "BACKEND_CONCURRENCY"
+        value = tostring(var.backend_concurrency)
+      }
+      env {
+        name  = "GUNICORN_WORKERS"
+        value = "2"
+      }
+      env {
+        name  = "GUNICORN_THREADS"
+        value = "4"
+      }
+      env {
+        name  = "BACKGROUND_WORKERS_PER_PROCESS"
+        value = "1"
+      }
+      env {
+        name  = "DB_CONNECTION_RESERVE"
+        value = "8"
       }
       env {
         name = "DB_PASSWORD"
@@ -384,6 +411,74 @@ resource "google_project_iam_member" "cloudbuild_secret_accessor" {
 }
 
 # -----------------------------------------------
+# Operational capacity alerts
+# -----------------------------------------------
+
+resource "google_monitoring_alert_policy" "database_connection_pressure" {
+  project      = var.project_id
+  display_name = "${local.env_prefix} backend database connection pressure"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "Cloud SQL PostgreSQL connections approaching budget"
+
+    condition_threshold {
+      filter          = "resource.type = \"cloudsql_database\" AND resource.labels.database_id = \"${google_sql_database_instance.db.connection_name}\" AND metric.type = \"cloudsql.googleapis.com/database/postgresql/num_backends\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.database_connection_warning_threshold
+      duration        = "60s"
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_MAX"
+      }
+    }
+  }
+
+  notification_channels = var.monitoring_notification_channels
+
+  documentation {
+    mime_type = "text/markdown"
+    content   = "Backend request concurrency is budgeted for 8 application DB sessions. Inspect Cloud Run revisions and run `manage.py check_database_capacity` before increasing scaling limits."
+  }
+
+  depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
+}
+
+resource "google_monitoring_alert_policy" "backend_memory_pressure" {
+  project      = var.project_id
+  display_name = "${local.env_prefix} backend memory pressure"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "Cloud Run backend memory utilization above 85 percent"
+
+    condition_threshold {
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${local.env_prefix}-backend\" AND metric.type = \"run.googleapis.com/container/memory/utilizations\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.backend_memory_warning_threshold
+      duration        = "60s"
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_MAX"
+      }
+    }
+  }
+
+  notification_channels = var.monitoring_notification_channels
+
+  documentation {
+    mime_type = "text/markdown"
+    content   = "Inspect concurrent ingredient-statistics requests and Cloud Run revision memory limits before raising service capacity."
+  }
+
+  depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
+}
+
+# -----------------------------------------------
 # Cloud Build – Triggers
 # -----------------------------------------------
 
@@ -409,10 +504,12 @@ resource "google_cloudbuild_trigger" "deploy" {
   filename = "cloudbuild.yaml"
 
   substitutions = {
-    _REGION          = var.region
-    _ENVIRONMENT     = var.environment
-    _BACKEND_SERVICE = "${local.env_prefix}-backend"
-    _FRONTEND_BUCKET = google_storage_bucket.frontend.name
+    _REGION                = var.region
+    _ENVIRONMENT           = var.environment
+    _BACKEND_SERVICE       = "${local.env_prefix}-backend"
+    _FRONTEND_BUCKET       = google_storage_bucket.frontend.name
+    _BACKEND_MAX_INSTANCES = tostring(var.backend_max_instances)
+    _BACKEND_CONCURRENCY   = tostring(var.backend_concurrency)
   }
 
   depends_on = [google_project_service.apis["cloudbuild.googleapis.com"]]

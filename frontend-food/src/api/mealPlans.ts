@@ -111,9 +111,7 @@ async function deleteJson(url: string): Promise<void> {
     credentials: 'include',
     headers: { 'X-CSRFToken': getCsrfToken() },
   });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
+  if (!res.ok) await parseApiResponse(res);
 }
 
 // ==========================================================================

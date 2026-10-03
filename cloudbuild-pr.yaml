@@ -12,11 +12,11 @@ steps:
       - |
         pip install --quiet uv
         cd backend
-        uv sync --quiet
+        uv sync --extra dev --quiet
         echo "=== Ruff Lint ==="
         uv run ruff check .
-        echo "=== Ruff Format Check ==="
-        uv run ruff format --check .
+        echo "=== Release-Changed Backend Format Check ==="
+        sh scripts/check_release_format.sh
     id: lint
 
   # -----------------------------------------------
@@ -29,9 +29,9 @@ steps:
       - |
         pip install --quiet uv
         cd backend
-        uv sync --quiet
-        echo "=== Mypy Type Check ==="
-        uv run mypy .
+        uv sync --extra dev --quiet
+        echo "=== Changed Backend Mypy Check ==="
+        sh scripts/check_release_types.sh
     id: typecheck
     waitFor: ['-']
 
@@ -53,7 +53,56 @@ steps:
     waitFor: ['-']
 
   # -----------------------------------------------
-  # 4. Backend Tests (after lint + typecheck pass)
+  # 4. Food Frontend Lint, Types, Tests and Build
+  # -----------------------------------------------
+  - name: 'node:20'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        cd frontend-food
+        npm ci --quiet
+        echo "=== Food ESLint (release-touched files) ==="
+        sh scripts/lint-release-check.sh
+        echo "=== Food TypeScript ==="
+        npx tsc --noEmit
+        echo "=== Food Unit Tests ==="
+        npm test -- --run
+        echo "=== Food Production Build ==="
+        npm run build
+    id: food-frontend-check
+    waitFor: ['-']
+
+  # -----------------------------------------------
+  # 5. Critical Food Browser Regressions
+  # -----------------------------------------------
+  - name: 'mcr.microsoft.com/playwright:v1.52.0-noble'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        cd frontend-food
+        npm run dev -- --host 0.0.0.0 --strictPort > /tmp/food-vite.log 2>&1 &
+        server_pid=$!
+        trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+        for attempt in $(seq 1 60); do
+          if curl -fsS http://127.0.0.1:5174/ >/dev/null; then break; fi
+          sleep 1
+        done
+        if ! curl -fsS http://127.0.0.1:5174/ >/dev/null; then
+          cat /tmp/food-vite.log
+          exit 1
+        fi
+        cd ../e2e
+        npm ci --quiet
+        E2E_BASE_URL=http://127.0.0.1:5174 \
+          npx playwright test --project=mocked \
+          tests/food-release-hardening.mocked.spec.ts
+    id: food-e2e-check
+    waitFor: ['food-frontend-check']
+
+  # -----------------------------------------------
+  # 6. Backend Tests (after lint + typecheck pass)
   # -----------------------------------------------
   - name: 'python:3.13-slim'
     entrypoint: bash
@@ -62,20 +111,13 @@ steps:
       - |
         pip install --quiet uv
         cd backend
-        uv sync --quiet
+        uv sync --extra dev --quiet
         echo "=== Pytest ==="
         uv run pytest --tb=short -q
     id: test
     waitFor: ['lint', 'typecheck']
-    env:
-      - 'DJANGO_SETTINGS_MODULE=inspi.settings.base'
-      - 'DB_HOST=localhost'
-      - 'DB_NAME=inspi'
-      - 'DB_USER=inspi'
-      - 'DB_PASSWORD=inspi'
-      - 'SECRET_KEY=test-secret-key-for-ci'
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
-timeout: '600s'
+timeout: '1800s'

@@ -1,5 +1,8 @@
 """Buffet templates and the buffet builder endpoint of a meal."""
 
+# Pyright cannot resolve Django-generated fields/managers; mypy-django is the ORM type gate.
+# pyright: reportAttributeAccessIssue=false
+
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from ninja import Router
@@ -118,9 +121,11 @@ def save_meal_buffet(request, meal_plan_id: int, meal_id: int, payload: BuffetSa
                     request.user, selection.ingredient_id, allow_system_draft=True
                 )
                 selections.append(BuffetSelection(role_slug=selection.role_slug, ingredient=ingredient))
-            else:
+            elif selection.recipe_id is not None:
                 recipe = get_visible_recipe_or_404(request.user, selection.recipe_id, allow_system_draft=True)
                 selections.append(BuffetSelection(role_slug=selection.role_slug, recipe=recipe))
+            else:
+                raise HttpError(422, "Jede Buffet-Auswahl braucht eine Zutat oder ein Rezept")
         except Http404:
             raise HttpError(404, "Zutat oder Rezept nicht gefunden") from None
 

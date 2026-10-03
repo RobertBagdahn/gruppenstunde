@@ -1,11 +1,16 @@
 """RecipeItem CRUD endpoints."""
 
+# Pyright cannot resolve Django-generated fields/managers; mypy-django is the ORM type gate.
+# pyright: reportAttributeAccessIssue=false
+
 import hashlib
 import json
 import math
 from typing import cast
 
 from django.db import IntegrityError, transaction
+from django.db.models import Max
+from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from ninja import Router, Status
@@ -19,6 +24,8 @@ from recipe.schemas import (
     AiIngredientApplyIn,
     AiIngredientSuggestionsOut,
     EstimateQuantitiesOut,
+    RecipeDraftOut,
+    RecipeItemAlternativeCreateIn,
     RecipeItemCreateIn,
     RecipeItemExchangeGroupCreateIn,
     RecipeItemExchangeGroupOut,
@@ -114,8 +121,11 @@ def adopt_current_portions(request, recipe_id: int, payload: AdoptCurrentPortion
     updated_items = []
     with transaction.atomic():
         for item in items_qs:
-            successor = item.portion.superseded_by
-            if successor.deleted_at is not None or successor.superseded_by_id is not None:
+            portion = item.portion
+            if portion is None:
+                continue
+            successor = portion.superseded_by
+            if successor is None or successor.deleted_at is not None or successor.superseded_by_id is not None:
                 continue
             item.portion = successor
             item.save(update_fields=["portion"])
@@ -242,6 +252,100 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
         "portion__measuring_unit",
     ).get(id=item.id)
     return item
+
+
+@router.post(
+    "/{recipe_id}/recipe-items/{item_id}/alternatives/",
+    response={201: RecipeItemOut},
+)
+def create_recipe_item_alternative(
+    request: HttpRequest,
+    recipe_id: int,
+    item_id: int,
+    payload: RecipeItemAlternativeCreateIn,
+) -> Status | RecipeItem:
+    """Add an accessible ingredient alternative as one idempotent transaction."""
+    require_login(request)
+    request_key = payload.client_request_id.strip()
+    if not request_key:
+        raise HttpError(400, "Eine Request-ID ist erforderlich.")
+    if not math.isfinite(payload.quantity) or payload.quantity <= 0:
+        raise HttpError(422, "Menge muss größer als 0 sein.")
+
+    with transaction.atomic():
+        recipe = _get_visible_recipe_or_404(request, recipe_id)
+        recipe = Recipe.objects.select_for_update().get(pk=recipe.pk)
+        if not _can_edit_recipe(request, recipe):
+            raise HttpError(403, "Keine Berechtigung")
+
+        source = get_object_or_404(
+            RecipeItem.objects.select_for_update().select_related("exchange_group"),
+            id=item_id,
+            recipe=recipe,
+        )
+        if source.is_optional:
+            raise HttpError(400, "Optionale Zutaten können keine Austausch-Alternativen haben.")
+        if source.exchange_group_id is not None and source.exchange_position != 0:
+            raise HttpError(400, "Eine Alternative kann nur zu einer Standard-Zutat hinzugefügt werden.")
+
+        existing = RecipeItem.objects.filter(recipe=recipe, client_request_id=request_key).first()
+        if existing is not None:
+            if (
+                existing.portion_id != payload.portion_id
+                or existing.quantity != payload.quantity
+                or existing.exchange_group_id is None
+                or existing.exchange_group_id != source.exchange_group_id
+                or (existing.exchange_position or 0) <= 0
+            ):
+                raise HttpError(409, "Diese Request-ID wurde bereits für eine andere Alternative verwendet.")
+            return Status(201, existing)
+
+        if _recipe_item_has_active_variants(source):
+            raise HttpError(
+                409,
+                "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht geändert werden.",
+            )
+
+        portion = Portion.objects.active().select_related("ingredient").filter(id=payload.portion_id).first()
+        if portion is None or portion.ingredient_id is None:
+            raise HttpError(422, "Für die Alternative wurde keine gültige Portion gefunden.")
+        _require_weighted_portion(portion)
+
+        from content.services.food_access import get_ingredient_detail_or_404
+
+        ingredient = get_ingredient_detail_or_404(request.user, portion.ingredient.slug)
+        if ingredient.id != portion.ingredient_id:
+            raise HttpError(404, "Zutat nicht gefunden.")
+
+        if source.exchange_group_id is None:
+            group = RecipeItemExchangeGroup.objects.create(recipe=recipe)
+            source.exchange_group = group
+            source.exchange_position = 0
+            source.save(update_fields=["exchange_group", "exchange_position"])
+        else:
+            group = get_object_or_404(
+                RecipeItemExchangeGroup.objects.select_for_update(),
+                id=source.exchange_group_id,
+                recipe=recipe,
+            )
+
+        positions = group.items.exclude(id=source.id).values_list("exchange_position", flat=True)
+        next_position = max((position or 0 for position in positions), default=0) + 1
+        last_sort_order = recipe.recipe_items.aggregate(last=Max("sort_order"))["last"]
+        alternative = RecipeItem.objects.create(
+            recipe=recipe,
+            portion=portion,
+            quantity=payload.quantity,
+            sort_order=(last_sort_order if last_sort_order is not None else -1) + 1,
+            client_request_id=request_key,
+            exchange_group=group,
+            exchange_position=next_position,
+        )
+
+    alternative = RecipeItem.objects.select_related("portion", "portion__ingredient", "portion__measuring_unit").get(
+        id=alternative.id
+    )
+    return Status(201, alternative)
 
 
 @router.patch("/{recipe_id}/recipe-items/{item_id}/", response=RecipeItemOut)
@@ -396,10 +500,9 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
                         "Dieser Idempotency-Key wurde bereits für eine abweichende Ersetzung verwendet.",
                     )
                 already_applied = True
-                if record.recipe_item_id is not None:
-                    item = record.recipe_item
-                else:
+                if record.recipe_item is None:
                     raise HttpError(500, "Fehler beim Auflösen der idempotenten Ersetzung")
+                item = record.recipe_item
 
         if not already_applied:
             target_portion = (
@@ -419,6 +522,7 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
 
             from supply.services.portion_resolution import resolve_trusted_weight
 
+            source_weight: float | None
             if item.portion is None:
                 source_weight = 1.0
             else:
@@ -478,8 +582,9 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
                             409,
                             "Dieser Idempotency-Key wurde bereits für eine abweichende Ersetzung verwendet.",
                         )
-                    if record.recipe_item_id is not None:
-                        item = record.recipe_item
+                    if record.recipe_item is None:
+                        raise HttpError(500, "Fehler beim Auflösen der idempotenten Ersetzung")
+                    item = record.recipe_item
 
             # Recalculate denormalized nutrition/price caches
             from recipe.services.recipe_checks import recalculate_recipe_cache
@@ -696,14 +801,14 @@ def ai_suggest_ingredients_preview(request, recipe_id: int):
         rows=rows,
         sources=[],
         ai_interaction_id=interaction_id,
-        recipe_draft={
-            "title": recipe.title,
-            "description": recipe.description or "",
-            "summary": recipe.summary or "",
-            "servings": recipe.portions,
-            "recipe_type": recipe.recipe_type or "",
-            "steps": [],
-        },
+        recipe_draft=RecipeDraftOut(
+            title=recipe.title,
+            description=recipe.description or "",
+            summary=recipe.summary or "",
+            servings=recipe.portions,
+            recipe_type=recipe.recipe_type or "",
+            steps=[],
+        ),
     )
 
 
@@ -799,7 +904,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
                 )
         return portion, ingredient_id
 
-    created_items = []
+    created_items: list[RecipeItem] = []
     created_ingredient_ids: set[int] = set()
     with transaction.atomic():
         for item_in in payload:

@@ -15,7 +15,10 @@ vi.mock('@/api/mealPlans', () => ({
   useIngredientScan: () => ({ data: undefined }),
 }));
 
-vi.mock('@/components/buffet/BuffetBuilder', () => ({ BuffetBuilder: () => null }));
+vi.mock('@/components/buffet/BuffetBuilder', () => ({
+  BuffetBuilder: ({ open, mealId }: { open: boolean; mealId: number }) =>
+    open ? <div data-testid="buffet-builder-open">{mealId}</div> : null,
+}));
 vi.mock('@/components/planning/MealOmnibarDialog', () => ({ MealOmnibarDialog: () => null }));
 vi.mock('./RecipePreviewDialog', () => ({ default: () => null }));
 vi.mock('@/components/planning/MealActionsMenu', () => ({ MealActionsMenu: () => null }));
@@ -156,6 +159,15 @@ describe('MealSlot buffet grouping', () => {
     renderMealSlot(lunch);
     openDetails();
     expect(screen.getByText('Im Buffet-Builder bearbeiten')).toBeInTheDocument();
+  });
+
+  it('opens the builder for the selected meal from the direct buffet action', () => {
+    const meal = makeMeal([], { id: 19, meal_type: 'lunch' });
+    renderMealSlot(meal);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buffet zusammenstellen' }));
+
+    expect(screen.getByTestId('buffet-builder-open')).toHaveTextContent('19');
   });
 
   it('shows a warning icon on an item with plausibility warnings', () => {

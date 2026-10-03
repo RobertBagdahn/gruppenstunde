@@ -95,20 +95,25 @@ def _base_queryset(retail_section_id: str | None = None, tag: str | None = None)
     return qs
 
 
-def _get_field_values(qs, field: str, exclude_zero: bool = True):
-    """Return list of (id, name, slug, value) tuples for a given numeric field."""
+def _filtered_field_queryset(qs, field: str, exclude_zero: bool):
     qs = qs.exclude(**{f"{field}__isnull": True})
     if exclude_zero:
         qs = qs.exclude(**{field: 0})
+    return qs
 
-    results = []
-    for ing in qs:
-        value = getattr(ing, field)
-        if value is not None:
-            value = float(value)
-            results.append((ing.id, ing.name, ing.slug, value))
 
-    return results
+def _get_field_values(qs, field: str, exclude_zero: bool = True) -> list[tuple[int, str, str, float]]:
+    """Read only the columns needed by rankings and outlier analysis."""
+    rows = _filtered_field_queryset(qs, field, exclude_zero).values_list("id", "name", "slug", field)
+    return [
+        (ingredient_id, name, slug, float(value)) for ingredient_id, name, slug, value in rows.iterator(chunk_size=1000)
+    ]
+
+
+def _get_numeric_values(qs, field: str, exclude_zero: bool = True) -> list[float]:
+    """Read a single numeric column rather than hydrating full Ingredient rows."""
+    values = _filtered_field_queryset(qs, field, exclude_zero).values_list(field, flat=True)
+    return [float(value) for value in values.iterator(chunk_size=1000) if value is not None]
 
 
 def _compute_histogram(values: list[float], num_buckets: int = 20):
@@ -116,8 +121,9 @@ def _compute_histogram(values: list[float], num_buckets: int = 20):
     if not values:
         return [], DistributionStats(mean=None, median=None, p5=None, p95=None, count=0)
 
+    values.sort()
     n = len(values)
-    sorted_vals = sorted(values)
+    sorted_vals = values
     min_val = sorted_vals[0]
     max_val = sorted_vals[-1]
 
@@ -330,8 +336,7 @@ def _make_ranking_item_from_tuple(t: tuple) -> RankingItem:
 @ingredient_statistics_router.get("/distributions/", response=DistributionOut)
 def ingredient_distributions(request, field: str, retail_section_id: str | None = None, tag: str | None = None):
     qs = _base_queryset(retail_section_id=retail_section_id, tag=tag)
-    raw = _get_field_values(qs, field, exclude_zero=False)
-    values = [v[3] for v in raw if v[3] is not None]
+    values = _get_numeric_values(qs, field, exclude_zero=False)
 
     buckets, stats = _compute_histogram(values)
     return DistributionOut(buckets=buckets, stats=stats)
@@ -557,8 +562,7 @@ def ingredient_comparison(
     rest_qs = base_qs.exclude(nutritional_tags__name__iexact=group_by).distinct()
 
     def _make_group(qs, label_text):
-        raw = _get_field_values(qs, metric, exclude_zero=False)
-        values = [v[3] for v in raw if v[3] is not None]
+        values = _get_numeric_values(qs, metric, exclude_zero=False)
         buckets, stats = _compute_histogram(values)
         return ComparisonGroup(
             label=label_text,

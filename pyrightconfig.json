@@ -1,0 +1,13 @@
+{
+  "venvPath": "backend",
+  "venv": ".venv",
+  "pythonVersion": "3.13",
+  "include": ["backend"],
+  "exclude": ["backend/.venv", "backend/**/migrations"],
+  "executionEnvironments": [
+    {
+      "root": "backend",
+      "extraPaths": ["backend", "backend/.venv/lib/python3.13/site-packages"]
+    }
+  ]
+}

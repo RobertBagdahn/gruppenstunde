@@ -139,7 +139,14 @@ export const AiIngredientSuggestionsSchema = z.object({
 });
 export type AiIngredientSuggestions = z.output<typeof AiIngredientSuggestionsSchema>;
 
-// --- Recipe item replacement (POST /{recipe_id}/items/{item_id}/replace/) ---
+// --- Recipe item replacement and exchange alternative creation ---
+
+export const RecipeItemAlternativeCreateInSchema = z.object({
+  portion_id: z.number().int().positive(),
+  quantity: z.number().finite().positive(),
+  client_request_id: z.string().min(1).max(64),
+});
+export type RecipeItemAlternativeCreateIn = z.infer<typeof RecipeItemAlternativeCreateInSchema>;
 
 export const RecipeItemReplaceInSchema = z.object({
   portion_id: z.number(),

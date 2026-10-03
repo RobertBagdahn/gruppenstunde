@@ -6,13 +6,14 @@
  * Emotions are generic ContentEmotions (toggle returns counts dict).
  */
 import { AI_META } from '@/lib/queryMeta';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   PaginatedRecipesSchema,
   RecipeDetailSchema,
   RecipeItemSchema,
+  RecipeItemAlternativeCreateInSchema,
   AdoptCurrentPortionsOutSchema,
   RecipeItemExchangeGroupSchema,
   RecipeSimilarSchema,
@@ -27,6 +28,7 @@ import {
   VerifyStatusSchema,
   type RecipeFilter,
   type RecipeAiCreateIn,
+  type RecipeItemAlternativeCreateIn,
   type RecipeItemReplaceIn,
   type VerifyRequest,
 } from '@/schemas/recipe';
@@ -47,45 +49,7 @@ async function fetchJson<T extends z.ZodTypeAny>(
   schema: T,
 ): Promise<z.output<T>> {
   const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(
-      errBody.detail
-      || (Array.isArray(errBody)
-        ? errBody.map((e: { msg: string }) => e.msg).join(', ')
-        : `API error: ${res.status}`)
-    );
-  }
-  const data = await res.json();
-  return schema.parse(data);
-}
-
-function extractErrorMessage(errBody: unknown): string {
-  if (typeof errBody === 'string') {
-    return errBody;
-  }
-  if (typeof errBody === 'object' && errBody !== null) {
-    if ('detail' in errBody && typeof (errBody as Record<string, unknown>).detail === 'string') {
-      return (errBody as Record<string, unknown>).detail as string;
-    }
-    if (Array.isArray(errBody)) {
-      const messages = errBody
-        .map((item) => {
-          if (typeof item === 'string') return item;
-          if (typeof item === 'object' && item !== null) {
-            // Try to extract error message from various error formats
-            const record = item as Record<string, unknown>;
-            return record.msg || record.message || record.detail || record.error || JSON.stringify(item);
-          }
-          return String(item);
-        })
-        .filter((msg) => msg && msg !== 'undefined');
-      if (messages.length > 0) {
-        return messages.join(', ');
-      }
-    }
-  }
-  return `API error`;
+  return parseApiResponse(res, schema);
 }
 
 async function postJson<T extends z.ZodTypeAny>(
@@ -102,12 +66,7 @@ async function postJson<T extends z.ZodTypeAny>(
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(extractErrorMessage(errBody) || `API error: ${res.status}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse(res, schema);
 }
 
 async function patchJson<T extends z.ZodTypeAny>(
@@ -124,12 +83,7 @@ async function patchJson<T extends z.ZodTypeAny>(
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(extractErrorMessage(errBody) || `API error: ${res.status}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse(res, schema);
 }
 
 async function deleteJson(url: string): Promise<void> {
@@ -138,9 +92,7 @@ async function deleteJson(url: string): Promise<void> {
     credentials: 'include',
     headers: { 'X-CSRFToken': getCsrfToken() },
   });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
+  await parseApiResponse(res);
 }
 
 function buildFilterParams(filters: Partial<RecipeFilter>): string {
@@ -505,9 +457,8 @@ export function useRecipeEmotion(recipeId: number) {
         },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
       if (res.status === 204) return null;
-      return res.json();
+      return parseApiResponse(res);
     },
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);
@@ -572,8 +523,7 @@ export function useUploadRecipeImage(recipeId: number) {
         headers: { 'X-CSRFToken': getCsrfToken() },
         body: formData,
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      return res.json() as Promise<{ image_url: string }>;
+      return parseApiResponse<{ image_url: string }>(res);
     },
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);
@@ -590,8 +540,7 @@ export function useDeleteRecipeImage(recipeId: number) {
         credentials: 'include',
         headers: { 'X-CSRFToken': getCsrfToken() },
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      return res.json() as Promise<{ image_url: null }>;
+      return parseApiResponse<{ image_url: null }>(res);
     },
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);
@@ -612,8 +561,7 @@ export function useSetRecipeImageFromUrl(recipeId: number) {
         },
         body: JSON.stringify({ image_url: imageUrl }),
       });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      return res.json() as Promise<{ image_url: string }>;
+      return parseApiResponse<{ image_url: string }>(res);
     },
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);
@@ -751,6 +699,19 @@ export function useCreateExchangeGroup(recipeId: number) {
   });
 }
 
+export function useCreateRecipeAlternative(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, data }: { itemId: number; data: RecipeItemAlternativeCreateIn }) =>
+      postJson(
+        `${API_BASE}/${recipeId}/recipe-items/${itemId}/alternatives/`,
+        RecipeItemAlternativeCreateInSchema.parse(data),
+        RecipeItemSchema,
+      ),
+    onSuccess: () => invalidateRecipeData(queryClient, recipeId),
+  });
+}
+
 export function useDeleteExchangeGroup(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -760,12 +721,7 @@ export function useDeleteExchangeGroup(recipeId: number) {
         credentials: 'include',
         headers: { 'X-CSRFToken': getCsrfToken() },
       });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        const msg = errBody.detail || `API error: ${res.status}`;
-        // 409 = PROTECT: zutat in aktiven Essensplänen
-        throw Object.assign(new Error(msg), { status: res.status });
-      }
+      await parseApiResponse(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exchange-groups', recipeId] });
@@ -810,9 +766,7 @@ export function useRecipeTypeStats(recipeType: string) {
       const res = await fetch(url, { credentials: 'include' });
       // 404 = zu wenige Rezepte dieses Typs — kein Fehler, einfach kein Benchmarking
       if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
-      const data = await res.json();
-      return RecipeTypeStatsSchema.parse(data);
+      return parseApiResponse(res, RecipeTypeStatsSchema);
     },
     enabled: recipeType.length > 0,
     retry: false,

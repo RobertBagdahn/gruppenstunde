@@ -6,7 +6,7 @@ import { forwardRef, useState, useCallback, useEffect, useImperativeHandle, useR
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, ApiError, getApiErrorMessage, parseApiResponse } from '@/lib/api';
 import { Sparkles, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import {
   useUpdateRecipeItem,
@@ -14,7 +14,7 @@ import {
   useCreateRecipeItem,
   useEstimateQuantities,
   usePatchRecipeItem,
-  useCreateExchangeGroup,
+  useCreateRecipeAlternative,
   useReplaceRecipeItem,
   useAdoptCurrentPortions,
 } from '@/api/recipes';
@@ -28,6 +28,7 @@ import { normalizeServingContext, scaleQuantity, toBasePerServing } from '@/lib/
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { Button } from '@/components/ui/button';
 import type { RecipeItem } from '@/schemas/recipe';
+import { IngredientDetailSchema, PortionSchema } from '@/schemas/supply';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 import { AiIngredientSuggestionSchema, type AiIngredientSuggestion } from '@/schemas/recipe';
 
@@ -48,6 +49,7 @@ export interface EditableItem {
   is_optional: boolean;
   exchange_group_id: number | null;
   exchange_position: number | null;
+  alternativeTargetItemId?: number;
   ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number; is_weight_trusted?: boolean; is_piece_like?: boolean | null; weight_status?: string | null }[];
   /** Backend-computed weight (grams) for `baseQuantity` — authoritative, unlike
    *  the client-side `ingredient_portions[].weight_g` lookup (which can be
@@ -738,7 +740,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
   const createItem = useCreateRecipeItem(persistedRecipeId);
   const estimateQuantities = useEstimateQuantities(persistedRecipeId);
   const patchItem = usePatchRecipeItem(persistedRecipeId);
-  const createExchangeGroup = useCreateExchangeGroup(persistedRecipeId);
+  const createRecipeAlternative = useCreateRecipeAlternative(persistedRecipeId);
   const replaceItem = useReplaceRecipeItem(persistedRecipeId);
   const adoptCurrentPortions = useAdoptCurrentPortions(persistedRecipeId);
 
@@ -903,8 +905,11 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
 
       // Fetch portions for this ingredient and select smart default
       try {
-        const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredient.slug}/portions/`, { credentials: 'include' });
-        const portions = await res.json();
+        const response = await fetch(
+          `${API_BASE_URL}/api/ingredients/${encodeURIComponent(ingredient.slug)}/portions/`,
+          { credentials: 'include' },
+        );
+        const portions = await parseApiResponse(response, PortionSchema.array());
 
         // Smart default: lowest-rank portion with weight_g > 0 (4.1, 4.3)
         const bestPortion = [...portions]
@@ -937,7 +942,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number | null; is_weight_trusted?: boolean | null; is_piece_like?: boolean | null }) => ({
+            ingredient_portions: portions.map((p) => ({
               id: p.id,
               name: p.name,
               quantity: p.quantity,
@@ -959,8 +964,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             isDirty: true,
           },
         ]);
-      } catch {
-        toast.error('Fehler beim Laden der Portion');
+      } catch (error) {
+        toast.error('Fehler beim Laden der Portion', { description: getApiErrorMessage(error) });
       }
     },
     [editItems, scale],
@@ -984,21 +989,18 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
 
     async function handle() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/ingredients/${encodeURIComponent(newSlug)}/`, { credentials: 'include' });
-        if (!res.ok) {
-          if (res.status === 404 || res.status === 403) {
-            navigate(window.location.pathname, { replace: true });
-          }
-          return;
-        }
-        const ingredient = await res.json();
+        const response = await fetch(`${API_BASE_URL}/api/ingredients/${encodeURIComponent(newSlug)}/`, { credentials: 'include' });
+        const ingredient = await parseApiResponse(response, IngredientDetailSchema);
         if (cancelled) return;
 
-        handleAddIngredient({ id: ingredient.id, name: ingredient.name, slug: ingredient.slug });
-
+        await handleAddIngredient({ id: ingredient.id, name: ingredient.name, slug: ingredient.slug });
         navigate(window.location.pathname, { replace: true });
-      } catch {
-        navigate(window.location.pathname, { replace: true });
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 403 || error.status === 404)) {
+          navigate(window.location.pathname, { replace: true });
+          return;
+        }
+        toast.error('Neue Zutat konnte nicht geladen werden', { description: getApiErrorMessage(error) });
       }
     }
 
@@ -1022,8 +1024,11 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredientSlug}/portions/`, { credentials: 'include' });
-        const portions = await res.json();
+        const response = await fetch(
+          `${API_BASE_URL}/api/ingredients/${encodeURIComponent(ingredientSlug)}/portions/`,
+          { credentials: 'include' },
+        );
+        const portions = await parseApiResponse(response, PortionSchema.array());
 
         // The dialog always hands over a concrete portion. Never guess another one:
         // a silent fallback to the standard portion turned 250 g into 250 cups.
@@ -1060,7 +1065,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number; is_weight_trusted?: boolean | null; is_piece_like?: boolean | null }) => ({
+            ingredient_portions: portions.map((p) => ({
               id: p.id,
               name: p.name,
               quantity: p.quantity,
@@ -1082,8 +1087,8 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             isDirty: true,
           },
         ]);
-      } catch {
-        toast.error('Fehler beim Laden der Portion');
+      } catch (error) {
+        toast.error('Fehler beim Laden der Portion', { description: getApiErrorMessage(error) });
       }
     },
     [editItems],
@@ -1123,31 +1128,28 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     setIsAiSuggesting(true);
     setAiSuggestInteractionId(null);
     try {
-      const suggestRes = await fetch(`${API_BASE_URL}/api/recipes/${recipeId}/ai-suggest-ingredients/`, {
+      const suggestResponse = await fetch(`${API_BASE_URL}/api/recipes/${recipeId}/ai-suggest-ingredients/`, {
         method: 'POST',
         credentials: 'include',
       });
-      if (!suggestRes.ok) {
-        let detail = 'KI-Vorschläge konnten nicht generiert werden';
-        try {
-          const errorData = await suggestRes.json();
-          if (errorData.detail) detail = errorData.detail;
-        } catch {
-          // use default message if response body is not parseable
-        }
-        throw new Error(detail);
-      }
-      const data = await suggestRes.json();
+      const data = await parseApiResponse<unknown>(suggestResponse);
+      const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
+        ? data as Record<string, unknown>
+        : {};
 
       // Support both list response (legacy) and object response with interaction_id
       const rawItems: unknown[] = Array.isArray(data)
         ? data
-        : (data.items ?? data.suggestions ?? []);
+        : Array.isArray(dataRecord.items)
+          ? dataRecord.items
+          : Array.isArray(dataRecord.suggestions)
+            ? dataRecord.suggestions
+            : [];
       const suggestions = rawItems
         .map((raw) => AiIngredientSuggestionSchema.safeParse(raw))
         .filter((parsed) => parsed.success)
         .map((parsed) => (parsed as { data: AiIngredientSuggestion }).data);
-      const interactionId: string | null = !Array.isArray(data) ? (data.ai_interaction_id ?? null) : null;
+      const interactionId = typeof dataRecord.ai_interaction_id === 'string' ? dataRecord.ai_interaction_id : null;
 
       if (!suggestions || suggestions.length === 0) {
         toast.info('Keine weiteren Zutaten vorgeschlagen');
@@ -1158,7 +1160,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       setSelectedAiSuggestions(new Set(suggestions.map((_, i) => i)));
       setAiSuggestInteractionId(interactionId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'KI-Vorschläge konnten nicht generiert werden');
+      toast.error('KI-Vorschläge konnten nicht generiert werden', { description: getApiErrorMessage(err) });
     } finally {
       setIsAiSuggesting(false);
     }
@@ -1176,15 +1178,15 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildAiApplyPayload(selected)),
       });
-      if (!applyRes.ok) throw new Error('Anwenden fehlgeschlagen');
+      await parseApiResponse(applyRes);
 
       await queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
       toast.success(`${selected.length} Zutaten hinzugefügt`);
       setAiSuggestions(null);
       setSelectedAiSuggestions(new Set());
       onSaved();
-    } catch {
-      toast.error('Fehler beim Hinzufügen der Zutaten');
+    } catch (error) {
+      toast.error('Fehler beim Hinzufügen der Zutaten', { description: getApiErrorMessage(error) });
     }
   }, [aiSuggestions, selectedAiSuggestions, recipeId, queryClient, onSaved]);
 
@@ -1227,55 +1229,36 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       if (!targetItem) return;
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredientSlug}/portions/`, {
+        const response = await fetch(`${API_BASE_URL}/api/ingredients/${encodeURIComponent(ingredientSlug)}/portions/`, {
           credentials: 'include',
         });
-        const portions = await res.json();
-
-        // Use rank=1 (Normalportion) as the best portion for exchange groups
-        const sortedPortions = [...portions].sort(
-          (a: { rank?: number | null }, b: { rank?: number | null }) => (a.rank ?? 999) - (b.rank ?? 999),
-        );
-        const bestPortion = sortedPortions.find((p: { rank?: number | null; weight_g?: number | null }) =>
-          p.rank === 1 && (p.weight_g ?? 0) > 0
-        ) ?? sortedPortions[0] ?? portions[0];
+        const portions = await parseApiResponse(response, PortionSchema.array());
+        const bestPortion = [...portions].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
+          .find((portion) => portion.rank === 1 && (portion.weight_g ?? 0) > 0)
+          ?? portions.find((portion) => (portion.weight_g ?? 0) > 0)
+          ?? portions[0];
 
         if (!bestPortion) {
           toast.error('Keine Portion für diese Zutat gefunden');
           return;
         }
 
-        let groupId = targetItem.exchange_group_id;
-
-        if (!groupId) {
-          const group = await createExchangeGroup.mutateAsync('');
-          groupId = group.id;
-
-          await patchItem.mutateAsync({
-            itemId: targetItem.id,
-            data: { exchange_group_id: groupId, exchange_position: 0 },
-          });
-        }
-
+        const groupId = targetItem.exchange_group_id ?? -Date.now();
         const existingPositions = editItems
-          .filter((i) => i.exchange_group_id === groupId && i.id !== targetItem.id)
-          .map((i) => i.exchange_position ?? 0);
-        const nextPosition =
-          existingPositions.length > 0 ? Math.max(...existingPositions) + 1 : 1;
-
-        const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
-
+          .filter((item) => item.exchange_group_id === groupId && item.id !== targetItem.id)
+          .map((item) => item.exchange_position ?? 0);
+        const nextPosition = existingPositions.length > 0 ? Math.max(...existingPositions) + 1 : 1;
+        const maxSort = editItems.reduce((max, item) => Math.max(max, item.sort_order), 0);
         const alternativeWeightG = bestPortion.weight_g ?? 1;
         const isMetric = isDirectMetricPortion(bestPortion, '');
         const alternativeQuantity = isMetric ? alternativeWeightG : 1;
         const displayedAlternativeQuantity = scaleQuantity(alternativeQuantity, scale);
         const altKey = `ing-alt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        setEditItems((prev) => [
-          ...prev.map((i) =>
-            i.id === targetItem.id && !i.exchange_group_id
-              ? { ...i, exchange_group_id: groupId, exchange_position: 0 }
-              : i,
-          ),
+
+        setEditItems((previous) => [
+          ...previous.map((item) => item.id === targetItem.id
+            ? { ...item, exchange_group_id: groupId, exchange_position: 0 }
+            : item),
           {
             id: -Date.now(),
             portion_id: bestPortion.id,
@@ -1287,30 +1270,20 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             measuring_unit_name: portionDisplayLabel(bestPortion),
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map(
-              (p: {
-                id: number;
-                name: string;
-                quantity: number;
-                weight_g: number | null;
-                measuring_unit_name: string | null;
-                rank?: number | null;
-                is_weight_trusted?: boolean | null;
-                is_piece_like?: boolean | null;
-              }) => ({
-                id: p.id,
-                name: p.name,
-                quantity: p.quantity,
-                weight_g: p.weight_g,
-                measuring_unit_name: p.measuring_unit_name,
-                rank: p.rank ?? 999,
-                is_weight_trusted: p.is_weight_trusted,
-                is_piece_like: p.is_piece_like,
-              }),
-            ),
+            ingredient_portions: portions.map((portion) => ({
+              id: portion.id,
+              name: portion.name,
+              quantity: portion.quantity,
+              weight_g: portion.weight_g,
+              measuring_unit_name: portion.measuring_unit_name,
+              rank: portion.rank ?? 999,
+              is_weight_trusted: portion.is_weight_trusted,
+              is_piece_like: portion.is_piece_like,
+            })),
             is_optional: false,
             exchange_group_id: groupId,
             exchange_position: nextPosition,
+            alternativeTargetItemId: targetItem.id,
             baseWeightG: alternativeWeightG,
             baseQuantity: 1,
             currentPortion: null,
@@ -1323,11 +1296,13 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
 
         toast.success(`${ingredientName} als Alternative hinzugefügt`);
         setAlternativeTargetId(null);
-      } catch (err) {
-        toast.error('Fehler', { description: (err as Error).message });
+      } catch (error) {
+        toast.error('Fehler beim Laden der Portion', {
+          description: error instanceof Error ? error.message : undefined,
+        });
       }
     },
-    [alternativeTargetId, editItems, createExchangeGroup, patchItem, scale],
+    [alternativeTargetId, editItems, scale],
   );
 
   // --- Save ---
@@ -1387,6 +1362,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
 
       const promises: Promise<unknown>[] = [];
       const createdItems = new Map<number, RecipeItem>();
+      const createdGroupIds = new Map<number, number>();
 
       // Delete removed items — PROTECT: toast specific message if in active plans
       for (const item of editItems.filter((i) => i.isDeleted && !i.isNew)) {
@@ -1407,15 +1383,43 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         );
       }
 
-      // Create new items (convert metric grams to portion multiplier, keep non-metric portion count, then divide by scale)
+      // Create new items once and keep retries safe with stable client request IDs.
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
         const requestKey = item.clientRequestId || `ingredient-${item.id}`;
+        const quantity = toPersistedRecipeItemQuantity(item, scale);
+        if (item.alternativeTargetItemId !== undefined) {
+          if (item.portion_id === null) {
+            throw new Error('Für eine Alternative muss eine Portion ausgewählt sein.');
+          }
+          promises.push(
+            createRecipeAlternative.mutateAsync({
+              itemId: item.alternativeTargetItemId,
+              data: {
+                portion_id: item.portion_id,
+                quantity,
+                client_request_id: requestKey,
+              },
+            }).then((createdItem) => {
+              createdItems.set(item.id, createdItem);
+              const createdGroupId = createdItem.exchange_group_id;
+              if (
+                item.exchange_group_id !== null
+                && createdGroupId !== null
+                && createdGroupId !== undefined
+              ) {
+                createdGroupIds.set(item.exchange_group_id, createdGroupId);
+              }
+            }),
+          );
+          continue;
+        }
+
         const promise = createItem
           .mutateAsync({
             portion_id: item.portion_id,
             client_request_id: requestKey,
             idempotency_key: requestKey,
-            quantity: toPersistedRecipeItemQuantity(item, scale),
+            quantity,
             sort_order: item.sort_order,
             note: item.note,
             is_optional: item.is_optional,
@@ -1465,6 +1469,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             return {
               ...item,
               id: createdItem?.id ?? item.id,
+              exchange_group_id: createdItem?.exchange_group_id
+                ?? (item.exchange_group_id == null ? null : createdGroupIds.get(item.exchange_group_id) ?? item.exchange_group_id),
+              exchange_position: createdItem?.exchange_position ?? item.exchange_position,
+              alternativeTargetItemId: undefined,
               isNew: false,
               isDirty: false,
               aiExpectedGramsTotal: undefined,
@@ -1490,7 +1498,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     } finally {
       saveInFlightRef.current = null;
     }
-  }, [editItems, scale, deleteItem, createItem, updateItem, patchItem, onSave, onSaved, onCreateDraft, queryClient, recipeId, persistedRecipeId]);
+  }, [editItems, scale, deleteItem, createItem, createRecipeAlternative, updateItem, patchItem, onSave, onSaved, onCreateDraft, queryClient, recipeId, persistedRecipeId]);
 
   const confirmSave = useCallback(() => {
     setShowSaveConfirmation(false);

@@ -95,11 +95,20 @@ beforeEach(() => {
   vi.mocked(useBuffetTemplates).mockReturnValue({
     data: [baguetteTemplate, breakfastTemplate],
     isLoading: false,
+    error: null,
+    refetch: vi.fn(),
   } as unknown as ReturnType<typeof useBuffetTemplates>);
-  vi.mocked(useBuffetState).mockReturnValue({ data: emptyState } as unknown as ReturnType<typeof useBuffetState>);
+  vi.mocked(useBuffetState).mockReturnValue({
+    data: emptyState,
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useBuffetState>);
   vi.mocked(useBuffetCatalog).mockReturnValue({
     data: makeCatalog(),
     isLoading: false,
+    error: null,
+    refetch: vi.fn(),
   } as unknown as ReturnType<typeof useBuffetCatalog>);
   vi.mocked(useBuffetPreview).mockReturnValue({
     preview: previewFn,
@@ -244,6 +253,81 @@ describe('BuffetBuilder', () => {
       },
       expect.anything(),
     );
+  });
+
+  it('shows a retry control when buffet catalog loading fails', async () => {
+    const refetchTemplates = vi.fn();
+    const refetchState = vi.fn();
+    const refetchCatalog = vi.fn();
+    vi.mocked(useBuffetTemplates).mockReturnValue({
+      data: [baguetteTemplate, breakfastTemplate],
+      isLoading: false,
+      error: null,
+      refetch: refetchTemplates,
+    } as unknown as ReturnType<typeof useBuffetTemplates>);
+    vi.mocked(useBuffetState).mockReturnValue({
+      data: emptyState,
+      isLoading: false,
+      error: null,
+      refetch: refetchState,
+    } as unknown as ReturnType<typeof useBuffetState>);
+    vi.mocked(useBuffetCatalog).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Serverfehler (HTTP 500). Bitte versuche es später erneut.'),
+      refetch: refetchCatalog,
+    } as unknown as ReturnType<typeof useBuffetCatalog>);
+
+    renderBuilder();
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Serverfehler (HTTP 500)');
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    await waitFor(() => {
+      expect(refetchTemplates).toHaveBeenCalledTimes(1);
+      expect(refetchState).toHaveBeenCalledTimes(1);
+      expect(refetchCatalog).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('closes the builder after a successful save', () => {
+    const onOpenChange = vi.fn();
+    renderBuilder({ onOpenChange });
+
+    fireEvent.click(screen.getByTestId('buffet-save'));
+    const callbacks = saveMutate.mock.calls[0]?.[1] as { onSuccess?: () => void } | undefined;
+    callbacks?.onSuccess?.();
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('keeps the builder open and selected items intact after a save failure', () => {
+    const onOpenChange = vi.fn();
+    renderBuilder({ onOpenChange });
+
+    fireEvent.click(screen.getByTestId('buffet-save'));
+    const callbacks = saveMutate.mock.calls[0]?.[1] as { onError?: (error: Error) => void } | undefined;
+    callbacks?.onError?.(new Error('Serverfehler (HTTP 500). Bitte versuche es später erneut.'));
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    expect(screen.getByTestId('buffet-role-buffet-bread')).toBeInTheDocument();
+    expect(screen.getByText('Baguette').closest('button')).toHaveClass('border-primary');
+  });
+
+  it('shows a retry control for preview server errors', () => {
+    vi.mocked(useBuffetPreview).mockReturnValue({
+      preview: previewFn,
+      result: null,
+      isPending: false,
+      error: new Error('Serverfehler (HTTP 500). Bitte versuche es später erneut.'),
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof useBuffetPreview>);
+
+    renderBuilder();
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Serverfehler (HTTP 500)');
+    const callsBeforeRetry = previewFn.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    expect(previewFn).toHaveBeenCalledTimes(callsBeforeRetry + 1);
   });
 
   it('shows warnings from the preview', () => {

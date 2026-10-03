@@ -180,8 +180,10 @@ export function useSaveBuffet(planId: number, mealId: number) {
       return postJson(`${MEAL_PLANS_BASE}/${planId}/meals/${mealId}/buffet/`, payload, BuffetResultSchema);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['buffet-state', planId, mealId] });
-      return invalidateMealPlanQueries(queryClient, planId);
+      // Do not await refetches: their response can replace an empty MealSlot and unmount
+      // this dialog before its per-call onSuccess closes it.
+      void queryClient.invalidateQueries({ queryKey: ['buffet-state', planId, mealId] });
+      void invalidateMealPlanQueries(queryClient, planId);
     },
   });
 }

@@ -1,5 +1,8 @@
 """Tests for ingredient replacement mappings, matcher integration and the replace endpoint."""
 
+# Pyright cannot resolve Django-generated test model fields; mypy-django checks production modules.
+# pyright: reportAttributeAccessIssue=false
+
 from unittest.mock import patch
 
 import pytest
@@ -157,6 +160,7 @@ class TestMatcherReplacementContext:
         with patch.object(service, "suggest_ingredients", return_value=(ai_output, "interaction-1")):
             results, interaction_id = service.get_full_suggestions(recipe)
         assert interaction_id == "interaction-1"
+        assert results is not None
         assert len(results) == 1
         result = results[0]
         assert result.ingredient_id == jodsalz.id
@@ -311,7 +315,7 @@ class TestReplaceEndpoint:
         assert resp.status_code == 404
 
     def test_replace_item_of_other_recipe_404(self, auth_client, jodsalz, recipe_with_salz, db):
-        recipe, item = recipe_with_salz
+        _, item = recipe_with_salz
         user = auth_client._user
         other_recipe = Recipe.objects.create(title="Anderes Rezept", status=ContentStatus.DRAFT, created_by=user)
         target_portion = jodsalz.portions.first()

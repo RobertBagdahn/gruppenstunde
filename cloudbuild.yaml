@@ -4,6 +4,18 @@
 # are set by the Terraform-managed trigger.
 
 steps:
+  # Run required checks on the deploy commit. This trigger is also a release gate.
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - builds
+      - submit
+      - --config=cloudbuild-pr.yaml
+      - --region=${_REGION}
+      - --project=$PROJECT_ID
+      - .
+    id: release-checks
+    waitFor: ['-']
+
   # -----------------------------------------------
   # 1. Build Backend Container Image
   # -----------------------------------------------
@@ -18,12 +30,16 @@ steps:
       - Dockerfile.backend
       - .
     id: build-backend
+    waitFor: ['release-checks']
 
   # -----------------------------------------------
   # 2. Push Backend Image to Artifact Registry
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend']
+    args:
+      - push
+      - --all-tags
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend'
     id: push-backend
     waitFor: ['build-backend']
 
@@ -36,7 +52,7 @@ steps:
       - -c
       - cd frontend && npm ci && npm run build
     id: build-frontend
-    waitFor: ['-']  # parallel to backend build
+    waitFor: ['release-checks']
 
   # -----------------------------------------------
   # 4. Deploy Backend to Cloud Run
@@ -50,17 +66,25 @@ steps:
       - --region=${_REGION}
       - --port=8000
       - --allow-unauthenticated
-      - --update-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID
+      - --max=${_BACKEND_MAX_INSTANCES}
+      - --concurrency=${_BACKEND_CONCURRENCY}
+      - --update-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID,BACKEND_MAX_INSTANCES=${_BACKEND_MAX_INSTANCES},BACKEND_CONCURRENCY=${_BACKEND_CONCURRENCY},GUNICORN_WORKERS=2,GUNICORN_THREADS=4,BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8
     id: deploy-backend
-    waitFor: ['push-backend']
+    waitFor: ['push-backend', 'release-checks']
 
   # -----------------------------------------------
   # 5. Deploy Frontend to GCS
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['-m', 'rsync', '-r', '-d', 'frontend/dist/', 'gs://${_FRONTEND_BUCKET}/']
+    args:
+      - -m
+      - rsync
+      - -r
+      - -d
+      - frontend/dist/
+      - 'gs://${_FRONTEND_BUCKET}/'
     id: deploy-frontend
-    waitFor: ['build-frontend']
+    waitFor: ['build-frontend', 'release-checks']
 
   # -----------------------------------------------
   # 6. Run Django Migrations (after deploy)
@@ -79,6 +103,8 @@ substitutions:
   _ENVIRONMENT: dev
   _BACKEND_SERVICE: inspi-dev-backend
   _FRONTEND_BUCKET: inspi-dev-static
+  _BACKEND_MAX_INSTANCES: '2'
+  _BACKEND_CONCURRENCY: '2'
 
 images:
   - '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA'
@@ -87,4 +113,4 @@ images:
 options:
   logging: CLOUD_LOGGING_ONLY
 
-timeout: '1200s'
+timeout: '2400s'

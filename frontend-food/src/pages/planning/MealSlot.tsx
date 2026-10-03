@@ -339,6 +339,16 @@ export function MealSlot({
             }}
           />
         )}
+        {meal.meal_type !== 'drinks' && (
+          <BuffetBuilder
+            open={showBuffetBuilder}
+            onOpenChange={setShowBuffetBuilder}
+            mealPlanId={mealPlanId}
+            mealId={meal.id}
+            mealType={meal.meal_type}
+            normPortions={effPortions}
+          />
+        )}
       </div>
     );
   }

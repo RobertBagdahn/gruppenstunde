@@ -7,6 +7,7 @@ import pytest
 from content.services.embedding_service import (
     _text_hash,
     build_ingredient_embedding_text,
+    build_recipe_embedding_text,
     similarity_to_pct,
     update_ingredient_embedding,
 )
@@ -69,6 +70,59 @@ class TestBuildIngredientEmbeddingText:
         assert "kcal" not in result
         assert "Eiweiß" not in result
         assert "Fett" not in result
+
+
+class TestBuildRecipeEmbeddingText:
+    def test_portionless_recipe_items_do_not_abort_embedding_text(self) -> None:
+        recipe = Mock()
+        recipe.title = "Direktmenge Rezept"
+        recipe.summary = ""
+        recipe.description = ""
+        recipe.recipe_type = "warm_meal"
+        recipe.portions = 1
+        recipe.difficulty = "easy"
+        recipe.execution_time = None
+        recipe.tags.all.return_value = []
+        recipe.recipe_items.select_related.return_value.all.return_value = [
+            Mock(portion=None, note="Jackfruit nach Geschmack")
+        ]
+        for field in (
+            "cached_energy_kcal",
+            "cached_protein_g",
+            "cached_fat_g",
+            "cached_carbohydrate_g",
+            "cached_nutri_class",
+        ):
+            setattr(recipe, field, None)
+
+        result = build_recipe_embedding_text(recipe)
+
+        assert "Jackfruit nach Geschmack" in result
+        assert "Zutaten:" in result
+
+    def test_portionless_item_without_note_is_skipped(self) -> None:
+        recipe = Mock()
+        recipe.title = "Direktmenge Rezept"
+        recipe.summary = ""
+        recipe.description = ""
+        recipe.recipe_type = "warm_meal"
+        recipe.portions = 1
+        recipe.difficulty = "easy"
+        recipe.execution_time = None
+        recipe.tags.all.return_value = []
+        recipe.recipe_items.select_related.return_value.all.return_value = [Mock(portion=None, note="")]
+        for field in (
+            "cached_energy_kcal",
+            "cached_protein_g",
+            "cached_fat_g",
+            "cached_carbohydrate_g",
+            "cached_nutri_class",
+        ):
+            setattr(recipe, field, None)
+
+        result = build_recipe_embedding_text(recipe)
+
+        assert "Zutaten:" not in result
 
 
 class TestTextHash:

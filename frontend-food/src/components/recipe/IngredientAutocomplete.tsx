@@ -4,14 +4,13 @@
  * and displays nutritional info (protein, fat, carbs) in results.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, getApiErrorMessage, parseApiResponse } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { useRetailSections } from '@/api/supplies';
 import { UnknownIngredientDialog } from './UnknownIngredientDialog';
-import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
+import { NUTRI_SCORE_COLORS_BY_LETTER, PaginatedIngredientSchema } from '@/schemas/supply';
 import { roundToDecimals } from '@/lib/format';
 
 const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
@@ -39,19 +38,6 @@ interface IngredientSuggestion {
   nutri_class?: number | null;
   price_per_kg?: number | null;
 }
-
-const IngredientListItemSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  slug: z.string(),
-  energy_kcal: z.number().nullable().optional(),
-  protein_g: z.number().nullable().optional(),
-  fat_g: z.number().nullable().optional(),
-  carbohydrate_g: z.number().nullable().optional(),
-  nutri_class: z.number().nullable().optional(),
-  price_per_kg: z.number().nullable().optional(),
-  retail_section: z.object({ name: z.string() }).nullable().optional(),
-});
 
 interface IngredientAutocompleteProps {
   value: string;
@@ -96,7 +82,12 @@ export function IngredientAutocomplete({
 
   // Primary search (with optional retail_section filter)
   const primaryFilter = selectedRetailSection ?? undefined;
-  const { data: primaryResults = [] } = useQuery({
+  const {
+    data: primaryResults = [],
+    error: primaryError,
+    isFetching: primaryFetching,
+    refetch: refetchPrimary,
+  } = useQuery({
     queryKey: ['ingredient-autocomplete', debouncedQuery, primaryFilter] as const,
     queryFn: async (): Promise<IngredientSuggestion[]> => {
       const params = new URLSearchParams();
@@ -104,20 +95,18 @@ export function IngredientAutocomplete({
       params.set('page_size', '8');
       if (primaryFilter) params.set('retail_section', String(primaryFilter));
       const res = await fetch(`${API_BASE_URL}/api/ingredients/?${params}`, { credentials: 'include' });
-      if (!res.ok) return [];
-      const json = await res.json();
-      const items = z.array(IngredientListItemSchema).parse(json.items ?? []);
-      return items.map((i) => ({
-        id: i.id,
-        name: i.name,
-        slug: i.slug,
-        retail_section_name: i.retail_section?.name ?? undefined,
-        energy_kcal: i.energy_kcal ?? undefined,
-        protein_g: i.protein_g ?? undefined,
-        fat_g: i.fat_g ?? undefined,
-        carbohydrate_g: i.carbohydrate_g ?? undefined,
-        nutri_class: i.nutri_class ?? undefined,
-        price_per_kg: i.price_per_kg ?? undefined,
+      const response = await parseApiResponse(res, PaginatedIngredientSchema);
+      return response.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        retail_section_name: item.retail_section_name ?? undefined,
+        energy_kcal: item.energy_kcal,
+        protein_g: item.protein_g,
+        fat_g: item.fat_g,
+        carbohydrate_g: item.carbohydrate_g,
+        nutri_class: item.nutri_class,
+        price_per_kg: item.price_per_kg,
       }));
     },
     enabled: debouncedQuery.length >= 2,
@@ -125,37 +114,44 @@ export function IngredientAutocomplete({
   });
 
   // Fallback: retry without filter if primary returns no results and a filter is active
-  const primaryEmpty = primaryResults.length === 0;
-  const { data: fallbackResults = [] } = useQuery({
+  const primaryEmpty = primaryError === null && !primaryFetching && primaryResults.length === 0;
+  const {
+    data: fallbackResults = [],
+    error: fallbackError,
+    isFetching: fallbackFetching,
+    refetch: refetchFallback,
+  } = useQuery({
     queryKey: ['ingredient-autocomplete-fallback', debouncedQuery] as const,
     queryFn: async (): Promise<IngredientSuggestion[]> => {
       const params = new URLSearchParams();
       params.set('name', debouncedQuery);
       params.set('page_size', '8');
       const res = await fetch(`${API_BASE_URL}/api/ingredients/?${params}`, { credentials: 'include' });
-      if (!res.ok) return [];
-      const json = await res.json();
-      const items = z.array(IngredientListItemSchema).parse(json.items ?? []);
-      return items.map((i) => ({
-        id: i.id,
-        name: i.name,
-        slug: i.slug,
-        retail_section_name: i.retail_section?.name ?? undefined,
-        energy_kcal: i.energy_kcal ?? undefined,
-        protein_g: i.protein_g ?? undefined,
-        fat_g: i.fat_g ?? undefined,
-        carbohydrate_g: i.carbohydrate_g ?? undefined,
-        nutri_class: i.nutri_class ?? undefined,
-        price_per_kg: i.price_per_kg ?? undefined,
+      const response = await parseApiResponse(res, PaginatedIngredientSchema);
+      return response.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        retail_section_name: item.retail_section_name ?? undefined,
+        energy_kcal: item.energy_kcal,
+        protein_g: item.protein_g,
+        fat_g: item.fat_g,
+        carbohydrate_g: item.carbohydrate_g,
+        nutri_class: item.nutri_class,
+        price_per_kg: item.price_per_kg,
       }));
     },
     enabled: debouncedQuery.length >= 2 && primaryEmpty && selectedRetailSection != null,
     staleTime: 30_000,
   });
 
-  const suggestions = primaryEmpty && hasFallenBack && selectedRetailSection != null
-    ? fallbackResults
-    : primaryResults;
+  const usingFallback = primaryEmpty && hasFallenBack && selectedRetailSection != null;
+  const suggestions = usingFallback ? fallbackResults : primaryResults;
+  const searchError = usingFallback ? fallbackError : primaryError;
+  const isSearching = primaryFetching || fallbackFetching;
+  const retrySearch = () => {
+    void (usingFallback ? refetchFallback() : refetchPrimary());
+  };
 
   // Track fallback state
   useEffect(() => {
@@ -323,106 +319,116 @@ export function IngredientAutocomplete({
           className="absolute top-full z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg"
           role="listbox"
         >
-          {hasFallenBack && selectedRetailSection != null && (
-            <div className="px-3.5 py-2 text-caption text-muted-foreground border-b bg-muted/30">
-              Keine Treffer in dieser Abteilung — zeige alle Ergebnisse
-            </div>
-          )}
-          {suggestions.map((s, i) => {
-            const nutriLabel =
-              s.nutri_class != null
-                ? (['A', 'B', 'C', 'D', 'E'][s.nutri_class - 1] ?? '?')
-                : null;
-            const nutriColors = nutriLabel
-              ? NUTRI_SCORE_COLORS[nutriLabel]
-              : null;
-            return (
-              <button
-                key={s.id}
-                className={cn(
-                  'flex w-full items-center gap-3 px-3.5 py-3 text-body text-left border-l-2 border-transparent hover:bg-muted transition-colors',
-                  i === activeIndex && 'bg-primary/5 border-l-primary'
-                )}
-                role="option"
-                aria-selected={i === activeIndex}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  onSelect(s);
-                  onChange(s.name);
-                  setIsOpen(false);
-                }}
-              >
-                {nutriLabel && nutriColors ? (
-                  <span
-                    className={cn(
-                      'inline-flex items-center justify-center w-6 h-6 rounded-lg text-caption font-bold shrink-0',
-                      nutriColors.bg,
-                      nutriColors.text
-                    )}
-                  >
-                    {nutriLabel}
-                  </span>
-                ) : (
-                  <span className="w-6 shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium truncate block text-foreground">
-                    {s.name}
-                  </span>
-                  {s.retail_section_name && (
-                    <span className="text-caption text-muted-foreground truncate block">
-                      {s.retail_section_name}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0 text-caption text-muted-foreground">
-                  {s.energy_kcal != null && (
-                    <span>{Math.round(s.energy_kcal)} kcal</span>
-                  )}
-                  {s.price_per_kg != null && (
-                    <span className="text-foreground font-medium">
-                      {s.price_per_kg.toLocaleString('de-DE', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      €/kg
-                    </span>
-                  )}
-                </div>
-                {/* Nutritional info */}
-                {(s.protein_g != null || s.fat_g != null || s.carbohydrate_g != null) && (
-                  <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-caption text-muted-foreground border-l pl-2.5">
-                    {s.protein_g != null && <span>E {formatNum(s.protein_g)}</span>}
-                    {s.fat_g != null && <span>F {formatNum(s.fat_g)}</span>}
-                    {s.carbohydrate_g != null && <span>KH {formatNum(s.carbohydrate_g)}</span>}
-                  </div>
-                )}
+          {searchError ? (
+            <div role="alert" className="p-3 space-y-2 text-body text-danger-foreground">
+              <p>{getApiErrorMessage(searchError, 'Zutaten konnten nicht geladen werden.')}</p>
+              <button type="button" onClick={retrySearch} className="text-body font-semibold underline">
+                Erneut versuchen
               </button>
-            );
-          })}
-          {/* Create new ingredient item */}
-          {suggestions.length > 0 && debouncedQuery.length >= 2 && (
-            <div className="border-t mx-1" />
+            </div>
+          ) : (
+            <>
+              {hasFallenBack && selectedRetailSection != null && (
+                <div className="px-3.5 py-2 text-caption text-muted-foreground border-b bg-muted/30">
+                  Keine Treffer in dieser Abteilung — zeige alle Ergebnisse
+                </div>
+              )}
+              {isSearching && suggestions.length === 0 && (
+                <div className="p-3 text-caption text-muted-foreground">Suche läuft…</div>
+              )}
+              {suggestions.map((suggestion, index) => {
+                const nutriLabel = suggestion.nutri_class != null
+                  ? (['A', 'B', 'C', 'D', 'E'][suggestion.nutri_class - 1] ?? '?')
+                  : null;
+                const nutriColors = nutriLabel ? NUTRI_SCORE_COLORS[nutriLabel] : null;
+                return (
+                  <button
+                    key={suggestion.id}
+                    className={cn(
+                      'flex w-full items-center gap-3 px-3.5 py-3 text-body text-left border-l-2 border-transparent hover:bg-muted transition-colors',
+                      index === activeIndex && 'bg-primary/5 border-l-primary',
+                    )}
+                    role="option"
+                    aria-selected={index === activeIndex}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      onSelect(suggestion);
+                      onChange(suggestion.name);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {nutriLabel && nutriColors ? (
+                      <span
+                        className={cn(
+                          'inline-flex items-center justify-center w-6 h-6 rounded-lg text-caption font-bold shrink-0',
+                          nutriColors.bg,
+                          nutriColors.text,
+                        )}
+                      >
+                        {nutriLabel}
+                      </span>
+                    ) : (
+                      <span className="w-6 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium truncate block text-foreground">{suggestion.name}</span>
+                      {suggestion.retail_section_name && (
+                        <span className="text-caption text-muted-foreground truncate block">
+                          {suggestion.retail_section_name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 text-caption text-muted-foreground">
+                      {suggestion.energy_kcal != null && (
+                        <span>{Math.round(suggestion.energy_kcal)} kcal</span>
+                      )}
+                      {suggestion.price_per_kg != null && (
+                        <span className="text-foreground font-medium">
+                          {suggestion.price_per_kg.toLocaleString('de-DE', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          €/kg
+                        </span>
+                      )}
+                    </div>
+                    {(suggestion.protein_g != null || suggestion.fat_g != null || suggestion.carbohydrate_g != null) && (
+                      <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-caption text-muted-foreground border-l pl-2.5">
+                        {suggestion.protein_g != null && <span>E {formatNum(suggestion.protein_g)}</span>}
+                        {suggestion.fat_g != null && <span>F {formatNum(suggestion.fat_g)}</span>}
+                        {suggestion.carbohydrate_g != null && <span>KH {formatNum(suggestion.carbohydrate_g)}</span>}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              {suggestions.length > 0 && debouncedQuery.length >= 2 && (
+                <div className="border-t mx-1" />
+              )}
+              {!isSearching && suggestions.length === 0 && debouncedQuery.length >= 2 && (
+                <button
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center gap-3 px-3.5 py-3 text-body text-left border-l-2 border-transparent hover:bg-muted transition-colors',
+                    activeIndex === -1 && 'bg-primary/5 border-l-primary',
+                  )}
+                  role="option"
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    onCreateNew?.(debouncedQuery);
+                    setIsOpen(false);
+                  }}
+                >
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary shrink-0">
+                    <Plus className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1 text-primary font-medium">
+                    &ldquo;{debouncedQuery}&rdquo; neu anlegen
+                  </span>
+                </button>
+              )}
+            </>
           )}
-          <button
-            className={cn(
-              'flex w-full items-center gap-3 px-3.5 py-3 text-body text-left border-l-2 border-transparent hover:bg-muted transition-colors',
-              suggestions.length === 0 && activeIndex === -1 && 'bg-primary/5 border-l-primary'
-            )}
-            role="option"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              onCreateNew?.(debouncedQuery);
-              setIsOpen(false);
-            }}
-          >
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary shrink-0">
-              <Plus className="w-4 h-4" />
-            </span>
-            <span className="flex-1 text-primary font-medium">
-              &ldquo;{debouncedQuery}&rdquo; neu anlegen
-            </span>
-          </button>
         </div>
       )}
 

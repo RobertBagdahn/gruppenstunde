@@ -49,9 +49,48 @@ variable "cloudbuild_branch" {
 }
 
 variable "backend_max_instances" {
-  description = "Max Cloud Run instances for the backend"
+  description = "Maximum backend instances, bounded by the Cloud SQL connection budget"
   type        = number
-  default     = 10
+  default     = 2
+
+  validation {
+    condition     = var.backend_max_instances >= 1
+    error_message = "backend_max_instances must be at least 1."
+  }
+}
+
+variable "backend_concurrency" {
+  description = "Maximum simultaneous requests per backend instance"
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.backend_concurrency >= 1 && var.backend_concurrency <= 80
+    error_message = "backend_concurrency must be between 1 and 80."
+  }
+}
+
+variable "database_connection_warning_threshold" {
+  description = "Cloud SQL backend connection count that should raise an operator alert"
+  type        = number
+  default     = 7
+}
+
+variable "backend_memory_warning_threshold" {
+  description = "Cloud Run memory utilization ratio that should raise an operator alert"
+  type        = number
+  default     = 0.85
+
+  validation {
+    condition     = var.backend_memory_warning_threshold > 0 && var.backend_memory_warning_threshold < 1
+    error_message = "backend_memory_warning_threshold must be between 0 and 1."
+  }
+}
+
+variable "monitoring_notification_channels" {
+  description = "Optional Cloud Monitoring notification channel resource names"
+  type        = list(string)
+  default     = []
 }
 
 variable "backend_cpu" {

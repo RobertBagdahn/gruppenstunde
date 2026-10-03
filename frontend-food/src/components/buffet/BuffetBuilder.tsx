@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBuffetTemplates, useBuffetCatalog, useBuffetState, useBuffetPreview, useSaveBuffet } from '@/api/buffet';
+import { getApiErrorMessage } from '@/lib/api';
 import type { BuffetCatalogItem, BuffetCatalogRole } from '@/schemas/buffet';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
@@ -42,8 +43,18 @@ export function BuffetBuilder({
   normPortions = 1,
   onSaved,
 }: BuffetBuilderProps) {
-  const { data: allTemplates, isLoading: templatesLoading } = useBuffetTemplates(undefined, { enabled: open });
-  const { data: savedState } = useBuffetState(mealPlanId, mealId, { enabled: open });
+  const {
+    data: allTemplates,
+    isLoading: templatesLoading,
+    error: templatesError,
+    refetch: refetchTemplates,
+  } = useBuffetTemplates(undefined, { enabled: open });
+  const {
+    data: savedState,
+    isLoading: savedStateLoading,
+    error: savedStateError,
+    refetch: refetchState,
+  } = useBuffetState(mealPlanId, mealId, { enabled: open });
 
   const templatesForMealType = useMemo(
     () => (allTemplates ?? []).filter((t) => t.meal_types.includes(mealType)),
@@ -84,7 +95,12 @@ export function BuffetBuilder({
     () => (allTemplates ?? []).find((t) => t.id === templateId) ?? null,
     [allTemplates, templateId],
   );
-  const { data: catalog, isLoading: catalogLoading } = useBuffetCatalog(template?.slug ?? null, { enabled: open });
+  const {
+    data: catalog,
+    isLoading: catalogLoading,
+    error: catalogError,
+    refetch: refetchCatalog,
+  } = useBuffetCatalog(template?.slug ?? null, { enabled: open });
 
   // Seed role state from the catalog (default selections, amounts, expanded) once per template,
   // restoring the saved selection/amounts when they match this template.
@@ -117,7 +133,12 @@ export function BuffetBuilder({
     setRoleStates(next);
   }, [catalog, template, savedState]);
 
-  const { preview, result: previewResult, isPending: previewPending } = useBuffetPreview(mealPlanId, mealId);
+  const {
+    preview,
+    result: previewResult,
+    isPending: previewPending,
+    error: previewError,
+  } = useBuffetPreview(mealPlanId, mealId);
   const saveBuffet = useSaveBuffet(mealPlanId, mealId);
 
   const buildSelections = () => {
@@ -176,6 +197,12 @@ export function BuffetBuilder({
     });
   };
 
+  const handleRetryPreview = () => {
+    if (!template) return;
+    const { selections, roleAmounts } = buildSelections();
+    preview({ templateId: template.id, selections, roleAmounts });
+  };
+
   const handleSave = () => {
     if (!template) return;
     const { selections, roleAmounts } = buildSelections();
@@ -194,7 +221,11 @@ export function BuffetBuilder({
     );
   };
 
-  const isLoading = templatesLoading || catalogLoading;
+  const isLoading = templatesLoading || savedStateLoading || catalogLoading;
+  const loadError = templatesError ?? savedStateError ?? catalogError;
+  const handleRetryLoad = () => {
+    void Promise.all([refetchTemplates(), refetchState(), refetchCatalog()]);
+  };
   const kcalPercent = previewResult
     ? Math.round((previewResult.energy_kcal_per_person / Math.max(previewResult.target_kcal_per_person, 1)) * 100)
     : null;
@@ -234,8 +265,25 @@ export function BuffetBuilder({
           </div>
         </DialogHeader>
 
-        {isLoading || !catalog || !template ? (
+        {loadError ? (
+          <div role="alert" className="p-6 space-y-3 text-center">
+            <p className="text-body text-danger-foreground">
+              {getApiErrorMessage(loadError, 'Buffetdaten konnten nicht geladen werden.')}
+            </p>
+            <button
+              type="button"
+              onClick={handleRetryLoad}
+              className="px-4 py-2 rounded-lg border border-border text-body font-semibold hover:bg-muted"
+            >
+              Erneut versuchen
+            </button>
+          </div>
+        ) : isLoading ? (
           <div className="p-12 text-center text-caption text-muted-foreground">Lade Buffet-Katalog...</div>
+        ) : !template || !catalog ? (
+          <div className="p-8 text-center text-body text-muted-foreground">
+            Für diese Mahlzeit ist keine Buffet-Vorlage verfügbar.
+          </div>
         ) : (
           <div className="p-4 sm:p-6 space-y-4">
             {catalog.roles.map((role) => (
@@ -255,6 +303,14 @@ export function BuffetBuilder({
 
         {/* Live preview */}
         <div className="p-4 border-t border-border bg-muted/20 space-y-3">
+          {previewError && (
+            <div role="alert" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-body text-danger-foreground">
+              <span>{getApiErrorMessage(previewError)}</span>
+              <button type="button" onClick={handleRetryPreview} className="font-semibold underline">
+                Erneut versuchen
+              </button>
+            </div>
+          )}
           {previewResult && previewResult.warnings.length > 0 && (
             <div className="space-y-1">
               {previewResult.warnings.map((warning, index) => (
