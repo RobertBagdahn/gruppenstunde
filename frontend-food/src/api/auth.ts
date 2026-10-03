@@ -35,6 +35,9 @@ export function useCurrentUser() {
     },
     staleTime: 10 * 60 * 1000,
     retry: false,
+    // One session request per page load; login/logout update the cache explicitly.
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

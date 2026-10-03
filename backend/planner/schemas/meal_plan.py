@@ -244,6 +244,8 @@ class PlanCheckAlertOut(Schema):
         "missing_quantity",
         "meal_outside_range",
         "empty_day",
+        "duplicate_dish",
+        "portion_override",
         "info",
     ]
     severity: Literal["error", "warning", "info"]

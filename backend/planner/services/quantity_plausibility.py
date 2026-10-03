@@ -102,6 +102,45 @@ def check_item(item: Any, portions: float) -> QuantityWarning | None:
     )
 
 
+def check_recipe_item(item: Any, portions: float) -> list[QuantityWarning]:
+    """Warnings for recipe ingredients whose per-person amount is implausible.
+
+    Recipe amounts are scaled by ``portions / recipe.portions``; a wrong recipe
+    amount or portion weight shows up as an absurd per-person quantity.
+    """
+    from planner.services.calculation_context import active_recipe_items
+
+    recipe = item.recipe
+    if recipe is None or not recipe.portions:
+        return []
+    portions = max(float(portions or 1), 1.0)
+    warnings = []
+    for active in active_recipe_items(item):
+        ingredient = active.recipe_item.portion.ingredient if active.recipe_item.portion else None
+        if ingredient is None or not active.weight_g:
+            continue
+        grams = active.weight_g * item.factor / recipe.portions
+        if grams <= MAX_GRAMS_PER_PERSON:
+            continue
+        total_kg = grams * portions / 1000
+        warnings.append(
+            QuantityWarning(
+                meal_item_id=item.id,
+                meal_id=item.meal_id,
+                ingredient_name=ingredient.name,
+                per_person_value=grams,
+                per_person_unit="g",
+                total_value=total_kg,
+                total_unit="kg",
+                message=(
+                    f"{ingredient.name} in „{recipe.title}“: {_format_number(grams)} g pro Person "
+                    f"({_format_number(total_kg)} kg insgesamt) – bitte Rezeptmenge prüfen."
+                ),
+            )
+        )
+    return warnings
+
+
 def check(items: Iterable[Any], portions: float) -> list[QuantityWarning]:
     """Warnings for all implausible ingredient items of one meal."""
     warnings = []
@@ -118,4 +157,7 @@ def check_meals(meals: Iterable[Any]) -> list[QuantityWarning]:
     for meal in meals:
         items = meal.items.filter(ingredient__isnull=False).select_related("ingredient", "measuring_unit")
         warnings.extend(check(items, meal.effective_portions))
+        recipe_items = meal.items.filter(recipe__isnull=False).select_related("recipe")
+        for recipe_item in recipe_items:
+            warnings.extend(check_recipe_item(recipe_item, meal.effective_portions))
     return warnings

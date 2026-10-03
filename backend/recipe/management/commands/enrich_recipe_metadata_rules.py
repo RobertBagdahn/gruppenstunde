@@ -41,20 +41,20 @@ class Command(BaseCommand):
             description = recipe.description or ""
             step_count = len([line for line in description.split("\n") if line.strip()])
 
-            # Estimate execution_time
-            if num_ingredients <= 5:
+            # Ingredient count alone underrates long recipes; steps add effort too.
+            effort = num_ingredients + step_count
+            if effort <= 8:
                 execution_time = ExecutionTimeChoices.LESS_30
-            elif num_ingredients <= 10:
+            elif effort <= 16:
                 execution_time = ExecutionTimeChoices.BETWEEN_30_60
-            elif num_ingredients <= 15:
+            elif effort <= 24:
                 execution_time = ExecutionTimeChoices.BETWEEN_60_90
             else:
                 execution_time = ExecutionTimeChoices.MORE_90
 
-            # Estimate difficulty
-            if num_ingredients <= 5 and step_count <= 5:
+            if effort <= 10:
                 difficulty = DifficultyChoices.EASY
-            elif num_ingredients >= 12 or step_count >= 15:
+            elif effort >= 24:
                 difficulty = DifficultyChoices.HARD
             else:
                 difficulty = DifficultyChoices.MEDIUM

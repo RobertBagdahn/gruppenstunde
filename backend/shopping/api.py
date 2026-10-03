@@ -349,7 +349,21 @@ def get_shopping_list(request, shopping_list_id: int):
         CollaboratorRole.EDITOR,
     )
     shopping_list._is_owner = role == "owner"
+    shopping_list.quantity_warnings = _quantity_warnings(shopping_list)
     return shopping_list
+
+
+def _quantity_warnings(shopping_list: ShoppingList) -> list:
+    """Plausibility warnings of the source meal plan (empty for other sources)."""
+    if shopping_list.source_type != SourceType.MEAL_EVENT or not shopping_list.source_id:
+        return []
+    from planner.models import MealPlan
+    from planner.services.quantity_plausibility import check_meals
+
+    meal_plan = MealPlan.objects.filter(id=shopping_list.source_id).first()
+    if meal_plan is None:
+        return []
+    return check_meals(meal_plan.meals.filter(is_reference=False))
 
 
 @shopping_router.patch("/{shopping_list_id}/", response=ShoppingListOut)

@@ -151,6 +151,23 @@ ungeändert und benötigen eine aktualisierte Zuordnung sowie einen neuen Dry-Ru
 separaten Apply. Drei alte Frühstücks-Tags bleiben ebenfalls auf den oben genannten Items.
 Die Proposal-UI führt selbst keine Katalogänderungen aus.
 
+## 8. food-frontend-bugs — Datenkorrekturen nach dem Deploy
+
+Der Code-Fix enthält keine Migration. Die folgenden Befehle laufen erst nach dem Deploy, zuerst
+als Dry-Run; `--apply` nur nach Roberts ausdrücklichem OK, jeweils mit DB-Snapshot aus Schritt 0.
+
+- [ ] Warengruppen (Walnüsse unter „Fleisch“, Honig unter „Gewürze“ …):
+      `uv run python manage.py reclassify_retail_sections` (Dry-Run, zeigt Übergänge), danach
+      `fix_implausible_portions` (Dry-Run) für doppelte Warengruppen. Manuelle Zuordnungen bleiben unberührt.
+- [ ] Absurde Einkaufsmengen („66 kg Haferflocken“, „1 g Würstchen“): Ursache sind Altdaten aus dem Import
+      (Portionen mit 1 g, skalierte Rezeptmengen). Reihenfolge, jeweils Dry-Run zuerst:
+      `replace_untrusted_piece_portions`, danach `fix_recipe_quantities`.
+      Danach in den betroffenen Listen die neuen Mengen-Warnungen (Einkaufsliste öffnen) prüfen.
+- [ ] Schwierigkeit und Dauer (206/211 „Einfach“): `enrich_recipe_metadata_rules --all --dry-run`
+      (Regeln nutzen jetzt Zutaten + Arbeitsschritte). Ausgabe zeigen; `--all` überschreibt auch von Hand
+      gesetzte Werte, daher nur nach OK ohne `--dry-run`.
+- [ ] Stichprobe: Plan „Sifü-Planungstreffen“ → Kosten & Budget: „Pro Person“ liegt bei rund Gesamtkosten / Personen.
+
 ## Rollback
 
 - Planner-Constraints: Reverse-Migration entfernt die Constraints; die entfernten Datumswerte
