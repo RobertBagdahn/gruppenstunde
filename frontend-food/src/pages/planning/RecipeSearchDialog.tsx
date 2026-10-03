@@ -22,6 +22,8 @@ import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 import IntelligentSuggestionsGrid from '@/components/recipe/IntelligentSuggestionsGrid';
 import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
+import { HelpHint } from '@/components/ui/help-hint';
+import { SOURCE_BADGE_HELP } from '@/lib/sourceBadgeHelp';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
 export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
@@ -314,6 +316,11 @@ export default function RecipeSearchDialog({
               <CategoryPills selected={selectedTypes} onChange={setSelectedTypes} />
               <div className="flex items-center gap-1.5">
                 <span className="text-caption text-muted-foreground shrink-0">Quelle:</span>
+                <HelpHint label="Was bedeuten die Quellen?">
+                  <span className="block">{SOURCE_BADGE_HELP.verified}</span>
+                  <span className="mt-1 block">{SOURCE_BADGE_HELP.community}</span>
+                  <span className="mt-1 block">{SOURCE_BADGE_HELP.draft}</span>
+                </HelpHint>
                 <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
                   <BadgePill
                     value="all"

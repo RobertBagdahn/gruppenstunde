@@ -2315,7 +2315,7 @@ def search_recipes(
     if recipe_badge == "verified":
         qs = qs.filter(owner__isnull=True)
     elif recipe_badge == "community":
-        qs = qs.filter(owner__isnull=False, status="approved")
+        qs = qs.filter(owner__isnull=False, visibility="public", status="approved")
 
     if q and len(q) >= 2:
         from django.contrib.postgres.search import SearchQuery, SearchRank

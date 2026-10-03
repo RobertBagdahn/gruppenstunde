@@ -58,7 +58,10 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
         </h2>
         <div className="flex items-center gap-3">
           {/* Zähler-Ampel */}
-          <div className="flex items-center gap-2 text-caption font-medium bg-muted px-2.5 py-1 rounded-full shrink-0">
+          <div
+            className="flex items-center gap-2 text-caption font-medium bg-muted px-2.5 py-1 rounded-full shrink-0"
+            title={`${data.green_count} Regeln erfüllt (grün), ${data.yellow_count} leicht außerhalb des Zielbereichs (gelb), ${data.red_count} deutlich außerhalb (rot)`}
+          >
             <span className="flex items-center gap-0.5 text-success">
               <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
               {data.green_count}
@@ -77,6 +80,9 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
           <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
+      <p className="px-5 pb-3 -mt-2 text-caption text-muted-foreground flex items-center gap-1">
+        Die Zahlen zählen die Regeln: grün (im Zielbereich) · gelb (leicht außerhalb) · rot (deutlich außerhalb).
+      </p>
 
       {open && (
         <div className="px-5 pb-5 pt-0">

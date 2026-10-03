@@ -11,6 +11,8 @@ import {
 import TagMultiSelect from './TagMultiSelect';
 import { Icon } from '@/components/ui/icon';
 import { RECIPE_COST_RANGES } from '@/lib/recipeCostRanges';
+import { HelpHint } from '@/components/ui/help-hint';
+import { SOURCE_BADGE_HELP } from '@/lib/sourceBadgeHelp';
 
 function toggleArrayValue<T>(arr: T[], value: T): T[] {
   return arr.includes(value)
@@ -39,6 +41,17 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
   function toggleMulti(key: string, current: string[], value: string) {
     const next = toggleArrayValue(current, value);
     onFilterChange(key, next.length ? next : undefined);
+  }
+
+  // The default view shows verified recipes only. Picking another source from that untouched
+  // default switches to it instead of adding it, so "Community" really shows community recipes.
+  function toggleOrigin(value: string) {
+    const isDefaultView = selectedOrigin.length === 1 && selectedOrigin[0] === 'verified';
+    if (isDefaultView && value !== 'verified') {
+      onFilterChange('origin', [value]);
+      return;
+    }
+    toggleMulti('origin', selectedOrigin, value);
   }
 
   const hasActiveFilters =
@@ -123,7 +136,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                 return opt ? (
                   <button
                     key={val}
-                    onClick={() => toggleMulti('origin', selectedOrigin, val)}
+                    onClick={() => toggleOrigin(val)}
                     className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-caption font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
@@ -161,12 +174,23 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
           <TagMultiSelect selectedSlugs={selectedTagSlugs} onToggle={toggleTag} />
         </FilterGroup>
 
-        <FilterGroup title="Anzeigen" icon="visibility" color="var(--primary)">
+        <FilterGroup
+          title="Anzeigen"
+          icon="visibility"
+          color="var(--primary)"
+          hint={
+            <>
+              <span className="block">{SOURCE_BADGE_HELP.verified}</span>
+              <span className="mt-1 block">{SOURCE_BADGE_HELP.community}</span>
+              <span className="mt-1 block">Meine Rezepte: alle Rezepte, die du selbst erstellt hast (auch Entwürfe).</span>
+            </>
+          }
+        >
           {RECIPE_ORIGIN_OPTIONS.map((opt) => (
             <FilterCheckbox
               key={opt.value}
               checked={selectedOrigin.includes(opt.value)}
-              onChange={() => toggleMulti('origin', selectedOrigin, opt.value)}
+              onChange={() => toggleOrigin(opt.value)}
               icon={opt.icon}
               label={opt.label}
             />
@@ -225,11 +249,13 @@ function FilterGroup({
   title,
   icon,
   color,
+  hint,
   children,
 }: {
   title: string;
   icon: string;
   color: string;
+  hint?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -237,6 +263,7 @@ function FilterGroup({
       <h3 className="flex items-center gap-1.5 text-body font-semibold mb-3">
         <Icon name={icon} size={20} style={{ color }} />
         <span style={{ color }}>{title}</span>
+        {hint && <HelpHint label={`Was bedeutet ${title}?`}>{hint}</HelpHint>}
       </h3>
       <div className="space-y-1">{children}</div>
     </div>

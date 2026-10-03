@@ -51,6 +51,8 @@ _ALCOHOL_PATTERN = re.compile(
 )
 # Macro sums slightly above 100 g almost always come from US "total carbs" (incl. fibre).
 MACRO_SUM_CLAMP_LIMIT = 120.0
+# Physical limit of protein + fat + carbohydrates + fibre per 100 g (with rounding slack).
+MACRO_SUM_LIMIT = 100.5
 
 ISSUE_LABELS: dict[str, str] = {
     "broken_import": "Import-Fehler: Fett/Kohlenhydrate fehlen (0), Unterwerte vorhanden",
@@ -207,6 +209,40 @@ def detect_nutrition_issues(values: Mapping[str, float | None], *, name: str = "
     return issues
 
 
+def _energy_tolerance(expected: float) -> float:
+    return max(40.0, 0.25 * expected)
+
+
+def net_carbs_if_total(values: Mapping[str, float | None], name: str) -> float | None:
+    """Carbohydrates minus fibre when the stored value is US-style "total carbs" (incl. fibre).
+
+    EU labels list carbohydrates without fibre, so a fibre-rich food with total carbs
+    double counts the fibre. Only returns a value when the net value explains the data:
+    the macro sum exceeds 100 g and the net sum does not, and the stated energy (if any)
+    is at least as close to the Atwater energy of the net value as to the gross one.
+    """
+    protein, fat, carbs = (_num(values, f) for f in ("protein_g", "fat_g", "carbohydrate_g"))
+    fibre = _num(values, "fibre_g")
+    if protein is None or fat is None or carbs is None or not fibre or carbs < fibre:
+        return None
+    net = round(carbs - fibre, 1)
+    sugar = _num(values, "sugar_g")
+    if sugar is not None and sugar > net + 0.5:
+        return None
+    energy = _num(values, "energy_kcal")
+    before = atwater_kcal(values)
+    after = atwater_kcal({**values, "carbohydrate_g": net})
+    if before is None or after is None:
+        return None
+    energy_fits_net = energy is None or is_alcoholic(name) or abs(energy - after) <= abs(energy - before)
+    if protein + fat + carbs + fibre > MACRO_SUM_LIMIT >= protein + fat + net + fibre and energy_fits_net:
+        return net
+    if energy and not is_alcoholic(name):
+        if abs(energy - before) > _energy_tolerance(before) and abs(energy - after) <= _energy_tolerance(after):
+            return net
+    return None
+
+
 def propose_deterministic_repair(values: Mapping[str, float | None], *, name: str = "") -> dict[str, float | None]:
     """Return safe field changes. Never guesses values that need domain knowledge."""
     changes: dict[str, float | None] = {}
@@ -238,6 +274,10 @@ def propose_deterministic_repair(values: Mapping[str, float | None], *, name: st
             set_value("fat_g", None)
         if _num(current, "carbohydrate_g") == 0 and (_num(current, "sugar_g") or 0) > 0:
             set_value("carbohydrate_g", None)
+
+    net_carbs = net_carbs_if_total(current, name)
+    if net_carbs is not None:
+        set_value("carbohydrate_g", net_carbs)
 
     protein, fat, carbs = (_num(current, f) for f in ("protein_g", "fat_g", "carbohydrate_g"))
     fibre = _num(current, "fibre_g") or 0.0
