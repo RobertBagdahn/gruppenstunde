@@ -160,3 +160,24 @@ Die Proposal-UI führt selbst keine Katalogänderungen aus.
 - Packungsvorschläge: übernommene Packungen sind normale `Package`-Zeilen und lassen sich in der
   Zutatenpflege löschen; Vorschläge selbst ändern keine Daten.
 - Im Zweifel: DB-Snapshot aus Schritt 0 zurückspielen.
+
+## 8. food-data-quality-fixes — nach dem Deploy
+
+Command `fix_food_data_quality` (idempotent, Standard ist Dry-Run). Schritte: `water`, `duplicates`,
+`prices`, `nutrition`, `publish`. Auswahl mit `--steps`. Schreibfreier Dry-Run gegen Prod am 03.10.2026
+(Cloud SQL Proxy, nichts geändert):
+
+- [x] `uv run python manage.py fix_food_data_quality` — Ausgabe Robert zeigen. Erwartung (03.10.2026):
+  - Wasser ohne Preis: 4 (Gewürzgurkenwasser #7021, Gurkenwasser #6947, Heißes Wasser #6775, Nudelkochwasser #7178)
+  - Duplikate: „Basilikum, trocken“ #6648 und „Getrockneter Basilikum“ #7265 → „Basilikum, getrocknet“ #6875
+  - Preise: „Berglinsen (getrocknet)“ #7525 → 4,00 €/kg (wie die übrigen getrockneten Linsen)
+  - Nährwerte: 22 Zutaten (Basilikum und Gemahlene Vanille mit Referenzwerten; sonst Kohlenhydrate ohne
+    Ballaststoffe, wo Makrosumme > 100 g und die Energie zu den Netto-Kohlenhydraten passt)
+  - Entwürfe in Rezepten: 45 System-Entwürfe, 43 freigabefähig; „Balsamico“ #7583 und
+    „Kartoffelpüree-Pulver“ #4653 bleiben Entwurf (offene KI-Umbenennung, im Cockpit entscheiden)
+- [x] Erst nach OK: `uv run python manage.py fix_food_data_quality --apply` (03.10.2026, Snapshot `1791047902632`, eine Transaktion; Zahlen wie erwartet)
+- [x] Danach erneut ohne `--apply`: alle Zähler 0; es bleiben die 2 Entwürfe mit offener Umbenennung
+
+Hinweis zum Audit: Die „Kalorien passen nicht zu den Makros“-Funde (z. B. Flohsamenschalen 186 kcal) entstehen,
+wenn man nur 4/4/9 kcal/g rechnet. Ballaststoffe zählen mit 2 kcal/g; das Regelwerk
+(`nutrition_plausibility.atwater_kcal`) tut das bereits, deshalb sind diese Werte korrekt und bleiben unverändert.
