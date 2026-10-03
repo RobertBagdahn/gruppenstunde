@@ -40,6 +40,7 @@
 - [x] 6.1 Extend the authoritative PR Cloud Build trigger to lint release-touched `frontend-food` files, and run TypeScript, Vitest, and production build checks.
 - [x] 6.2 Add deterministic mocked Playwright coverage for Buffet persistence, draft-Ingredient alternatives, and safe HTTP 500 feedback; ensure unexpected API errors fail tests.
 - [x] 6.3 Keep backend pytest and existing quality gates required; inline the backend, frontend and Food checks in the active push-to-main pipeline before any build/deploy, avoiding a nested Cloud Build submission.
-- [x] 6.4 Run backend tests, touched-file Food lint, TypeScript, Vitest, mocked Playwright, infrastructure validation, and strict OpenSpec validation; document that rollout remains blocked by the over-budget current runtime and audited malformed exchange data.
+- [x] 6.4 Run backend tests, touched-file Food lint, TypeScript, Vitest, mocked Playwright, infrastructure validation, and strict OpenSpec validation; document production capacity, schema, IAM and migration-runner blockers. No deploy occurred.
 - [ ] 6.5 Verify and approve least-privilege Artifact Registry push and Cloud Run deploy permissions for the active trigger identity; validate the pipeline in a non-production trigger before relying on it.
-- [ ] 6.6 Review and approve the pending production schema migrations (`content.0016_ai_budget`, `content.0017_ai_budget_db_defaults`, profile/socialaccount migrations), with a backup and rollback plan, before deploying code that requires them.
+- [ ] 6.6 Enable/verify a restorable production backup, review the pending schema migrations, and configure a Cloud Run migration job with the correct DB connection/secret before applying migrations.
+- [ ] 6.7 After schema repair, obtain approval and regenerate/verify recipe 523's embedding; its post-delete refresh failed because the production `AiInteraction.tier` column is absent.

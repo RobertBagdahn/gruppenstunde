@@ -58,7 +58,8 @@ Extend `cloudbuild-pr.yaml` with Food frontend lint, TypeScript, Vitest, and pro
 - [Database-side percentile/histogram queries may differ from current Python calculations] → Add fixture-based parity tests for empty, single-value, duplicate, and outlier distributions before switching implementations.
 - [A new atomic alternative endpoint changes the frontend mutation path] → Keep the existing exchange API available for other callers until searches confirm it is unused; test all API clients and document the new Pydantic/Zod response contract.
 - [Some users may not have read access to a system draft] → Preserve existing access policy and distinguish “not readable” from “draft status”; do not broaden global ingredient search visibility.
-- [Existing exchange groups contain malformed data] → The authorized report-only audit found four groups and eight findings. After approval, only the three empty unnamed group rows were removed; a repeat report-only audit found the two portionless members remain. Their ingredient identity cannot be safely inferred. Do not modify those recipe items or add constraints until the content owner approves a mapping/removal plan.
+- [Audited exchange data was malformed] → After explicit approval, the three empty unnamed groups and two portionless members were removed in guarded transactions; there were no recipe-step links, and the repeated audit found zero exchange groups/issues. The deletion-triggered recipe embedding refresh failed because the production schema lacks the `AiInteraction.tier` column; a post-migration embedding refresh for recipe 523 is still needed and must be authorized because it invokes AI.
+- [Production schema is behind the deployed code] → Read-only `showmigrations` found pending `content.0016_ai_budget`, `content.0017_ai_budget_db_defaults`, `profiles.0003_userprofile_onboarded_at`, and `socialaccount.0001`–`0006`. Cloud SQL automated backups and point-in-time recovery are disabled. Do not deploy migration-dependent code until a backup/rollback plan and the migration runner are reviewed; the existing Cloud Build migration step lacks DB connection settings, and the existing `inspi-migrate` job has no command or environment configuration.
 
 ## Migration Plan
 
@@ -69,7 +70,7 @@ Extend `cloudbuild-pr.yaml` with Food frontend lint, TypeScript, Vitest, and pro
 5. Enable the expanded PR/release gates and verify the Buffet and draft-alternative E2E workflows.
 6. Roll back the frontend to the prior image if UI regressions occur. Keep the new backend endpoint additive during rollout. Revert Cloud Run limits only to a previously measured safe configuration; do not restore the known connection-exhausting settings.
 
-No database schema migration is planned. The three approved empty-group rows were removed in one guarded transaction that rechecked their emptiness; the remaining portionless members were not changed. Any further repair or constraint requires a trusted ingredient mapping, content-owner approval, and a separate rollback plan.
+This feature adds no schema migration. Production already has the listed migrations pending; running them requires a reviewed backup/rollback plan, an explicitly configured Cloud Run migration job with database access, and a post-migration verification. The approved empty groups and portionless exchange members have been removed; the post-cleanup audit is clean. Recipe 523's embedding refresh remains pending schema repair and explicit AI-cost approval.
 
 ## Open Questions
 
