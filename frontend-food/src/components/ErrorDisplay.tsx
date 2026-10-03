@@ -1,4 +1,5 @@
 import { Icon } from '@/components/ui/icon';
+import { ApiError } from '@/lib/api';
 /**
  * Shared error display component for consistent error UI across all pages.
  *
@@ -33,8 +34,10 @@ function getErrorInfo(error: Error | null | undefined): {
   icon: string;
 } {
   const message = error?.message ?? '';
+  // ApiError messages are German detail texts without the status code, so prefer the real status.
+  const status = error instanceof ApiError ? error.status : null;
 
-  if (message.includes('404') || message.includes('Not Found')) {
+  if (status === 404 || message.includes('404') || message.includes('Not Found')) {
     return {
       title: 'Nicht gefunden',
       description: 'Die angeforderte Ressource existiert nicht oder wurde entfernt.',
@@ -42,7 +45,7 @@ function getErrorInfo(error: Error | null | undefined): {
     };
   }
 
-  if (message.includes('403') || message.includes('Forbidden')) {
+  if (status === 403 || message.includes('403') || message.includes('Forbidden')) {
     return {
       title: 'Keine Berechtigung',
       description: 'Du hast keinen Zugriff auf diese Ressource. Bitte melde dich an.',
@@ -58,7 +61,7 @@ function getErrorInfo(error: Error | null | undefined): {
     };
   }
 
-  if (message.includes('500') || message.includes('Internal Server Error')) {
+  if ((status !== null && status >= 500) || message.includes('500') || message.includes('Internal Server Error')) {
     return {
       title: 'Serverfehler',
       description:
@@ -78,13 +81,16 @@ export default function ErrorDisplay({
   error,
   title,
   description,
-  onRetry,
+  onRetry: onRetryProp,
   onBack,
    backLabel = 'Zurück',
   variant = 'full',
   icon,
 }: ErrorDisplayProps) {
   const info = getErrorInfo(error);
+  // Retrying a missing resource never helps.
+  const isNotFound = error instanceof ApiError && error.status === 404;
+  const onRetry = isNotFound ? undefined : onRetryProp;
   const displayTitle = title ?? info.title;
   const displayDescription = description ?? info.description;
   const displayIcon = icon ?? info.icon;

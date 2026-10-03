@@ -66,6 +66,10 @@ import { formatNumber } from '@/lib/format';
 
 const MEAL_PLAN_DETAIL_DEFAULTS = { view: 'cards' } as const;
 
+function isNarrowViewport(): boolean {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches;
+}
+
 export default function MealPlanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const mealPlanId = Number(id) || 0;
@@ -116,6 +120,8 @@ export default function MealPlanDetailPage() {
     key: 'meal-plan-detail',
     schema: MealPlanDetailStateSchema,
     defaults: MEAL_PLAN_DETAIL_DEFAULTS,
+    // Only the plan tab uses the view; on phones the day view stays the default.
+    restore: activeTab === 'plan' && !isNarrowViewport(),
   });
   const planView = detailState.view;
   const shoppingSub = searchParams.get('sub') === 'costs' ? 'costs' : 'list';
@@ -399,7 +405,7 @@ export default function MealPlanDetailPage() {
       <div className="flex flex-wrap items-center gap-3">
         <BackButton to="/meal-plans/app" />
         <div className="border-l border-border pl-3 flex-1 min-w-[10rem]">
-          <h1 className="text-section sm:text-title font-display font-bold text-foreground truncate">{plan.name}</h1>
+          <h1 className="text-section sm:text-title font-display font-bold text-foreground line-clamp-2 break-words">{plan.name}</h1>
           <div className="flex flex-wrap gap-3 mt-1.5 text-caption font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
@@ -429,7 +435,7 @@ export default function MealPlanDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-start">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:self-start">
           <PlanCheckFlyout
             mealPlanId={mealPlanId}
             canEdit={plan.can_edit}
@@ -545,7 +551,7 @@ export default function MealPlanDetailPage() {
       />
 
       {/* Main 3-Pillar Tab Bar */}
-      <div className="flex gap-2 border-b border-border overflow-x-auto">
+      <div className="flex gap-1 sm:gap-2 border-b border-border overflow-x-auto">
         {[
           { key: 'plan' as const, label: 'Planen', icon: Calendar },
           { key: 'shopping' as const, label: 'Einkaufen', icon: ShoppingCart },
@@ -557,7 +563,7 @@ export default function MealPlanDetailPage() {
               key={tab.key}
               to={`/meal-plans/${mealPlanId}/${tab.key}`}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-5 py-3 text-body font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
+                `flex flex-1 sm:flex-none items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-3 text-body font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
                   isActive
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
@@ -752,7 +758,7 @@ export default function MealPlanDetailPage() {
               )}
             >
               <ShieldAlert className="w-3.5 h-3.5" />
-              Küchenhelfer & Allergene
+              Ernährungs-Check
             </button>
           </div>
           {cookingSub === 'schedule' && <CookingScheduleTab mealPlanId={mealPlanId} />}

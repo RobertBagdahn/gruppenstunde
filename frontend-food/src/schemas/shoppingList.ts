@@ -42,6 +42,7 @@ export const ShoppingPackageOptionSchema = z.object({
   count: z.number(),
   package_name: z.string(),
   weight_g: z.number(),
+  volume_ml: z.number().nullish(),
 });
 
 export type ShoppingPackageOption = z.output<typeof ShoppingPackageOptionSchema>;

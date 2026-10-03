@@ -55,6 +55,9 @@ import ProfilePage from './pages/profile/ProfilePage';
 import MyProfilePage from './pages/profile/MyProfilePage';
 import AccountPage from './pages/profile/AccountPage';
 
+// Fallback
+import NotFoundPage from './pages/NotFoundPage';
+
 // Auth
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -125,6 +128,9 @@ export default function App() {
 
         {/* Data Quality Distributions (public) */}
         <Route path="/data-quality/distributions" element={<DataDistributionsPage />} />
+
+        {/* Unknown URLs */}
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );

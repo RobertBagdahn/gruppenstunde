@@ -219,9 +219,28 @@ class TestResolvePackagesAndLiquids:
         Package.objects.create(ingredient=ing, name="Packung", weight_g=500, rank=1)
         item = self._item(shopping_list, ing, 1020)
         assert ShoppingListItemOut.resolve_package_options(item) == [
-            {"count": 2, "package_name": "Packung", "weight_g": 500}
+            {"count": 2, "package_name": "Packung", "weight_g": 500, "volume_ml": None}
         ]
         assert ShoppingListItemOut.resolve_package_surplus_g(item) == -20.0
+
+    def test_liquid_package_size_in_ml(self, shopping_list):
+        from supply.models import Package
+
+        milk = make_ingredient(name="Kuhmilch", physical_viscosity="beverage", physical_density=1.0)
+        Package.objects.create(ingredient=milk, name="1-kg-Flasche", weight_g=1000, rank=1)
+        item = self._item(shopping_list, milk, 2600)
+        assert ShoppingListItemOut.resolve_package_options(item)[0]["volume_ml"] == 1000
+
+    def test_retail_section_falls_back_to_ingredient(self, shopping_list):
+        from supply.models import RetailSection
+
+        section = RetailSection.objects.create(name="Gewürze & Trockenkräuter", rank=1)
+        ing = make_ingredient(name="Pfeffer")
+        ing.retail_section = section
+        ing.save()
+        item = self._item(shopping_list, ing, 10)
+        assert ShoppingListItemOut.resolve_retail_section_name(item) == "Gewürze & Trockenkräuter"
+        assert ShoppingListItemOut.resolve_retail_section_id(item) == section.id
 
     def test_package_surplus(self, shopping_list):
         from supply.models import Package

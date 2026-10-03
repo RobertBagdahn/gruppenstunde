@@ -233,7 +233,7 @@ export default function TableView({
         <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>
             <tr>
-              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-4 py-3.5 font-display font-semibold text-emphasis shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[180px]">
+              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-2 sm:px-4 py-3.5 font-display font-semibold text-emphasis shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[96px] sm:w-[180px] max-w-[96px] sm:max-w-none break-words">
                 Mahlzeit
               </th>
               {dates.map((date) => {
@@ -255,7 +255,7 @@ export default function TableView({
               const IconComponent = MEAL_TYPE_LUCIDE_ICONS[mealType] || Utensils;
               return (
                 <tr key={mealType}>
-                  <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm border-r border-b border-border px-4 py-4 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-middle">
+                  <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm border-r border-b border-border px-2 sm:px-4 py-4 w-[96px] sm:w-auto max-w-[96px] sm:max-w-none break-words shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-middle">
                     <div className={cn(
                       "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-body font-bold shadow-sm",
                       MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
@@ -796,7 +796,7 @@ export default function TableView({
           </tbody>
           <tfoot>
             <tr>
-              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-4 py-4 font-bold text-body text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
+              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-2 sm:px-4 py-4 max-w-[96px] sm:max-w-none break-words font-bold text-body text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
                 Tagesbilanz
               </td>
               {dates.map((date) => {

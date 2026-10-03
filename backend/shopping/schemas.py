@@ -91,6 +91,8 @@ class ShoppingPackageOptionOut(Schema):
     count: int
     package_name: str
     weight_g: float
+    # Package size in millilitres for liquids (shown in the same unit as the quantity).
+    volume_ml: float | None = None
 
 
 class ShoppingListItemOut(Schema):
@@ -145,10 +147,24 @@ class ShoppingListItemOut(Schema):
     sources: list[ShoppingItemSourceOut] = []
 
     @staticmethod
-    def resolve_retail_section_name(obj) -> str:
+    def _retail_section(obj):
+        # Items snapshot the section when created; a section assigned to the
+        # ingredient afterwards still applies unless the item has its own.
         if obj.retail_section:
-            return str(obj.retail_section.name)
-        return ""
+            return obj.retail_section
+        if obj.ingredient and obj.ingredient.retail_section:
+            return obj.ingredient.retail_section
+        return None
+
+    @staticmethod
+    def resolve_retail_section_id(obj) -> int | None:
+        section = ShoppingListItemOut._retail_section(obj)
+        return section.id if section else None
+
+    @staticmethod
+    def resolve_retail_section_name(obj) -> str:
+        section = ShoppingListItemOut._retail_section(obj)
+        return str(section.name) if section else ""
 
     @staticmethod
     def resolve_checked_by_username(obj) -> str | None:
@@ -225,7 +241,17 @@ class ShoppingListItemOut(Schema):
         package, need = ShoppingListItemOut._package_need(obj)
         if not package or not need:
             return []
-        return [{"count": need[0], "package_name": package.name, "weight_g": package.weight_g}]
+        from supply.utils import shopping_quantity
+
+        volume, unit = shopping_quantity(float(package.weight_g or 0), obj.ingredient)
+        return [
+            {
+                "count": need[0],
+                "package_name": package.name,
+                "weight_g": package.weight_g,
+                "volume_ml": volume if unit == "ml" else None,
+            }
+        ]
 
     @staticmethod
     def resolve_package_surplus_g(obj) -> float | None:
@@ -324,7 +350,7 @@ class ShoppingListDetailOut(Schema):
     @staticmethod
     def resolve_items(obj) -> list:
         return list(
-            obj.items.select_related("retail_section", "checked_by", "ingredient")
+            obj.items.select_related("retail_section", "checked_by", "ingredient", "ingredient__retail_section")
             .prefetch_related("sources", "ingredient__portions")
             .all()
         )

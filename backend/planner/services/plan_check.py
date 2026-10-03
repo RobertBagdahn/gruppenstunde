@@ -328,6 +328,75 @@ def _check_empty_days(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckA
     return alerts
 
 
+def _check_duplicate_dishes(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
+    """Hint when one recipe is planned in several meals of the same day."""
+    from collections import defaultdict
+
+    by_day: dict[str, dict[int, list[Meal]]] = defaultdict(lambda: defaultdict(list))
+    titles: dict[int, str] = {}
+    for meal in meals:
+        if not meal.start_datetime:
+            continue
+        day = meal.start_datetime.strftime("%Y-%m-%d")
+        for item in meal.items.all():
+            if item.recipe_id and item.recipe is not None:
+                titles[item.recipe_id] = item.recipe.title
+                if meal not in by_day[day][item.recipe_id]:
+                    by_day[day][item.recipe_id].append(meal)
+
+    alerts: list[PlanCheckAlertOut] = []
+    for day, recipes in sorted(by_day.items()):
+        for recipe_id, day_meals in recipes.items():
+            if len(day_meals) < 2:
+                continue
+            labels = ", ".join(m.get_meal_type_display() for m in day_meals)
+            alerts.append(
+                PlanCheckAlertOut(
+                    id=f"duplicate-dish-{day}-{recipe_id}",
+                    type="duplicate_dish",
+                    severity="info",
+                    title=f"„{titles[recipe_id]}“ mehrfach am {_german_date(day)}",
+                    description=f"Das Gericht steht am selben Tag in mehreren Mahlzeiten ({labels}).",
+                    date=day,
+                    meal_id=day_meals[0].id,
+                    meal_type=day_meals[0].meal_type,
+                    action_label="Mahlzeit ansehen",
+                    action_type="open_slot",
+                    action_payload={"meal_id": day_meals[0].id},
+                )
+            )
+    return alerts
+
+
+def _check_portion_overrides(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
+    """Hint when a meal is cooked for a different number of people than the plan."""
+    norm = float(meal_plan.norm_portions or 1)
+    alerts: list[PlanCheckAlertOut] = []
+    for meal in meals:
+        if meal.override_portions is None or not meal.items.all() or float(meal.override_portions) == norm:
+            continue
+        date_str = meal.start_datetime.strftime("%Y-%m-%d") if meal.start_datetime else None
+        alerts.append(
+            PlanCheckAlertOut(
+                id=f"portion-override-{meal.id}",
+                type="portion_override",
+                severity="info",
+                title=f"{meal.get_meal_type_display()}: {meal.override_portions:g} statt {norm:g} Personen",
+                description=(
+                    f"Diese Mahlzeit wird für {meal.override_portions:g} Personen gekocht, "
+                    f"der Plan rechnet sonst mit {norm:g}."
+                ),
+                date=date_str,
+                meal_id=meal.id,
+                meal_type=meal.meal_type,
+                action_label="Mahlzeit ansehen",
+                action_type="open_slot",
+                action_payload={"meal_id": meal.id},
+            )
+        )
+    return alerts
+
+
 _RULES = [
     _check_empty_slots,
     _check_budget_excess,
@@ -336,6 +405,8 @@ _RULES = [
     _check_missing_quantity,
     _check_meal_outside_range,
     _check_empty_days,
+    _check_duplicate_dishes,
+    _check_portion_overrides,
 ]
 
 

@@ -47,7 +47,7 @@ function IngredientList() {
   const { state } = usePersistedListState({
     key: 'ingredients',
     schema: IngredientListStateSchema,
-    defaults: { sort: 'newest', page: 1 } as const,
+    defaults: { sort: 'relevance', page: 1 } as const,
   });
   return <div data-testid="status">{state.status ?? 'alle'}</div>;
 }

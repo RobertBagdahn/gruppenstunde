@@ -287,6 +287,12 @@ def rewe_export_report(request, token: str, payload: ReweReportRequest):
     return {"success": True, "updated": len(successful), "ignored": len(ignored)}
 
 
+def _item_section_name(item: ShoppingListItem) -> str:
+    """Section of an item, falling back to the ingredient's current section."""
+    section = item.retail_section or (item.ingredient.retail_section if item.ingredient else None)
+    return section.name if section else ""
+
+
 def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
     """Compute the order quantity and display unit for REWE export.
 
@@ -343,7 +349,21 @@ def get_shopping_list(request, shopping_list_id: int):
         CollaboratorRole.EDITOR,
     )
     shopping_list._is_owner = role == "owner"
+    shopping_list.quantity_warnings = _quantity_warnings(shopping_list)
     return shopping_list
+
+
+def _quantity_warnings(shopping_list: ShoppingList) -> list:
+    """Plausibility warnings of the source meal plan (empty for other sources)."""
+    if shopping_list.source_type != SourceType.MEAL_EVENT or not shopping_list.source_id:
+        return []
+    from planner.models import MealPlan
+    from planner.services.quantity_plausibility import check_meals
+
+    meal_plan = MealPlan.objects.filter(id=shopping_list.source_id).first()
+    if meal_plan is None:
+        return []
+    return check_meals(meal_plan.meals.filter(is_reference=False))
 
 
 @shopping_router.patch("/{shopping_list_id}/", response=ShoppingListOut)
@@ -389,7 +409,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
     _require_access(shopping_list, request.user)
 
     items = (
-        shopping_list.items.select_related("ingredient", "retail_section")
+        shopping_list.items.select_related("ingredient", "retail_section", "ingredient__retail_section")
         .prefetch_related("sources")
         .order_by("retail_section__rank", "retail_section__name", "sort_order")
     )
@@ -404,7 +424,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
                     "name": item.ingredient.name if item.ingredient else item.name,
                     "total_quantity_g": 0.0,
                     "unit": item.unit or "g",
-                    "retail_section": item.retail_section.name if item.retail_section else "",
+                    "retail_section": _item_section_name(item),
                     "is_checked": True,
                     "items_count": 0,
                 }
@@ -446,7 +466,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
                     "name": item.ingredient.name if item.ingredient else item.name,
                     "quantity_g": float(item.quantity_g or 0),
                     "unit": item.unit or "g",
-                    "retail_section": item.retail_section.name if item.retail_section else "",
+                    "retail_section": _item_section_name(item),
                     "is_checked": item.is_checked,
                     "note": item.note or "",
                 }

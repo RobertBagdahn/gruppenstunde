@@ -47,8 +47,12 @@ export default function RecipeSidebar({
         // user cancelled
       }
     } else {
-      await navigator.clipboard.writeText(url);
-      toast.success('Link kopiert');
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link kopiert');
+      } catch {
+        toast.error('Der Link konnte nicht kopiert werden.');
+      }
     }
   };
 

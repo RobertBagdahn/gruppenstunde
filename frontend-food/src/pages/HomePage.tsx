@@ -28,7 +28,7 @@ const MODULES = [
     key: 'ingredients',
     label: 'Zutaten',
     icon: Egg,
-    description: 'Über 500 Zutaten mit exakten Nährwertangaben, Preisen und Portionsgrößen.',
+    description: 'Tausende Zutaten mit exakten Nährwertangaben, Preisen und Portionsgrößen.',
     href: '/ingredients',
     color: 'emerald',
   },
@@ -77,11 +77,14 @@ const COLOR_MAP: Record<string, { bg: string; text: string; ring: string }> = {
 function StatCard({
   label,
   value,
+  staticValue,
   icon: Icon,
   href,
 }: {
   label: string;
   value?: number;
+  /** Text shown instead of a count, for tiles that link to a page without a number. */
+  staticValue?: string;
   icon: React.ComponentType<{ className?: string }>;
   href: string;
 }) {
@@ -93,7 +96,9 @@ function StatCard({
       <div className="flex items-center gap-3">
         <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
         <div>
-          {value !== undefined ? (
+          {staticValue !== undefined ? (
+            <p className="text-title font-extrabold text-foreground font-display">{staticValue}</p>
+          ) : value !== undefined ? (
             <p className="text-title font-extrabold text-foreground font-display">
               {value.toLocaleString('de-DE')}
             </p>
@@ -163,7 +168,7 @@ export default function HomePage() {
           <StatCard label="Zutaten" value={data?.ingredient_count} icon={Egg} href="/ingredients" />
           <StatCard label="Essenspläne" value={data?.meal_plan_count} icon={Utensils} href="/meal-plans/app" />
           <StatCard label="Einkaufslisten" value={data?.shopping_list_count} icon={ShoppingCart} href="/shopping-lists" />
-          <StatCard label="Statistiken" icon={BarChart3} href="/ingredients/statistics" />
+          <StatCard label="Statistiken" staticValue="Ansehen" icon={BarChart3} href="/ingredients/statistics" />
         </div>
       </section>
 

@@ -22,6 +22,8 @@ interface PackageOptionLike {
   count: number;
   package_name: string;
   weight_g: number;
+  /** Package size in ml for liquids, so it matches the unit of the amount. */
+  volume_ml?: number | null;
 }
 
 /**
@@ -54,9 +56,19 @@ export function formatPackageLabel(option: Pick<PackageOptionLike, 'package_name
   return `${formatExactWeight(option.weight_g).replace(' ', '-')}-${name || 'Packung'}`;
 }
 
+/**
+ * Package label in the unit of the shopping amount: liquids ("2,6 l") show the
+ * package in ml/l too ("1-l-Flasche"), not as a weight ("1-kg-Flasche").
+ */
+function formatShoppingPackageLabel(option: PackageOptionLike): string {
+  if (option.volume_ml == null || option.volume_ml <= 0) return formatPackageLabel(option);
+  const bare = option.package_name.trim().replace(/^\d+(?:[.,]\d+)?[-\s]?(?:kg|g|ml|l)\b[-\s]?/i, '').trim();
+  return `${formatVolume(option.volume_ml).replace(' ', '-')}-${bare || 'Packung'}`;
+}
+
 /** "2 × 500-g-Packung" */
 export function formatPackageNeed(option: PackageOptionLike): string {
-  return `${option.count} × ${formatPackageLabel(option)}`;
+  return `${option.count} × ${formatShoppingPackageLabel(option)}`;
 }
 
 export const PACKAGE_RESERVE_HELP =

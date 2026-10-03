@@ -3,7 +3,7 @@ import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, Ale
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { EntityLink } from '@/components/shared/EntityLink';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, ApiError } from '@/lib/api';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { Button } from '@/components/ui/button';
 import { useBlocker } from '@/hooks/useBlocker';
@@ -331,7 +331,7 @@ export default function RecipeDetailPage() {
       <div className="container py-8">
         <ErrorDisplay
           error={error}
-          title="Rezept nicht gefunden"
+          title={!error || (error instanceof ApiError && error.status === 404) ? 'Rezept nicht gefunden' : undefined}
           onRetry={() => refetch()}
           onBack={() => navigate(-1)}
           backLabel="Zurück"

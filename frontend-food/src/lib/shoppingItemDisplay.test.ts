@@ -62,3 +62,15 @@ describe('shoppingItemDisplay', () => {
     expect(formatShoppingAmount(250, 'ml')).toBe('250 ml');
   });
 });
+
+describe('formatPackageNeed for liquids', () => {
+  it('shows the package in ml/l instead of grams', () => {
+    expect(formatPackageNeed({ count: 3, package_name: '1-kg-Flasche', weight_g: 1000, volume_ml: 970 })).toBe(
+      '3 × 970-ml-Flasche',
+    );
+  });
+
+  it('keeps the weight label for solids', () => {
+    expect(formatPackageNeed({ count: 2, package_name: 'Packung', weight_g: 500 })).toBe('2 × 500-g-Packung');
+  });
+});

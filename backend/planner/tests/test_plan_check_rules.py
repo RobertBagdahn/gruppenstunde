@@ -216,3 +216,33 @@ class TestPlanCheckPermissions:
         empty_slot_alerts = [a for a in data["alerts"] if a["type"] == "empty_slot"]
         assert len(empty_slot_alerts) == 1
         assert empty_slot_alerts[0]["action_label"] == "Gericht vorschlagen"
+
+
+@pytest.mark.django_db
+class TestDuplicateDishAndPortionOverrideRules:
+    def test_same_recipe_twice_on_one_day_is_flagged(self, client: Client, user, plan):
+        client.force_login(user)
+        dinner = make_meal(meal_plan=plan, meal_type=MealTypeChoices.DINNER, start_datetime=plan.start_datetime)
+        snack = make_meal(meal_plan=plan, meal_type=MealTypeChoices.SNACK, start_datetime=plan.start_datetime)
+        recipe = make_recipe(title="Obstsalat")
+        make_meal_item(meal=dinner, recipe=recipe)
+        make_meal_item(meal=snack, recipe=recipe)
+
+        alerts = _alerts(client, plan.id, "duplicate_dish")
+        assert len(alerts) == 1
+        assert "Obstsalat" in alerts[0]["title"]
+        assert alerts[0]["severity"] == "info"
+
+    def test_different_portions_are_flagged_only_for_filled_meals(self, client: Client, user, plan):
+        client.force_login(user)
+        filled = make_meal(
+            meal_plan=plan, meal_type=MealTypeChoices.DINNER, start_datetime=plan.start_datetime, override_portions=12
+        )
+        make_meal_item(meal=filled, recipe=make_recipe(title="Linsensuppe"))
+        make_meal(
+            meal_plan=plan, meal_type=MealTypeChoices.LUNCH, start_datetime=plan.start_datetime, override_portions=3
+        )
+
+        alerts = _alerts(client, plan.id, "portion_override")
+        assert [a["meal_id"] for a in alerts] == [filled.id]
+        assert "12 statt 10" in alerts[0]["title"]

@@ -510,7 +510,15 @@ def _enrich_display_fields(
         need = compute_package_need(item.total_quantity_g, package.weight_g) if package else None
         if package and need:
             count, surplus_g = need
-            item.package_options = [{"count": count, "package_name": package.name, "weight_g": package.weight_g}]
+            package_amount, package_unit = shopping_quantity(float(package.weight_g or 0), ing)
+            item.package_options = [
+                {
+                    "count": count,
+                    "package_name": package.name,
+                    "weight_g": package.weight_g,
+                    "volume_ml": package_amount if package_unit == "ml" else None,
+                }
+            ]
             item.package_surplus_g = surplus_g
 
 

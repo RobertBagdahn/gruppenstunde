@@ -51,9 +51,9 @@ export default function DatenschutzPage() {
             <h3 className="text-section font-display font-bold text-foreground">1. Datenschutz auf einen Blick</h3>
             <h4 className="mt-4 font-medium text-foreground">Allgemeine Hinweise</h4>
             <p className="mt-2 text-muted-foreground leading-relaxed">
-              Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren
-              personenbezogenen Daten passiert, wenn Sie diese Website besuchen. Personenbezogene
-              Daten sind alle Daten, mit denen Sie persönlich identifiziert werden können.
+              Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit deinen
+              personenbezogenen Daten passiert, wenn du diese Website besuchst. Personenbezogene
+              Daten sind alle Daten, mit denen du persönlich identifiziert werden kannst.
             </p>
           </div>
 
@@ -77,7 +77,7 @@ export default function DatenschutzPage() {
             <h4 className="mt-4 font-medium text-foreground">Cookies</h4>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               Diese Website verwendet Cookies. Dabei handelt es sich um kleine Textdateien, die
-              auf Ihrem Endgerät gespeichert werden. Wir verwenden ausschließlich technisch
+              auf deinem Endgerät gespeichert werden. Wir verwenden ausschließlich technisch
               notwendige Cookies, die für den Betrieb der Seite erforderlich sind (z.B.
               Session-Cookies für die Anmeldung).
             </p>
@@ -85,7 +85,7 @@ export default function DatenschutzPage() {
             <h4 className="mt-6 font-medium text-foreground">Server-Log-Dateien</h4>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               Der Provider der Seiten erhebt und speichert automatisch Informationen in
-              sogenannten Server-Log-Dateien, die Ihr Browser automatisch an uns übermittelt.
+              sogenannten Server-Log-Dateien, die dein Browser automatisch an uns übermittelt.
               Dies sind: Browsertyp und Browserversion, verwendetes Betriebssystem, Referrer-URL,
               Hostname des zugreifenden Rechners, Uhrzeit der Serveranfrage und IP-Adresse.
               Eine Zusammenführung dieser Daten mit anderen Datenquellen wird nicht vorgenommen.
@@ -95,7 +95,7 @@ export default function DatenschutzPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
             <h3 className="text-section font-display font-bold text-foreground">4. Registrierung und Nutzerkonto</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Sie können sich auf unserer Website registrieren, um zusätzliche Funktionen
+              Du kannst dich auf unserer Website registrieren, um zusätzliche Funktionen
               nutzen zu können. Die dazu eingegebenen Daten verwenden wir nur zum Zwecke
               der Nutzung des jeweiligen Angebotes. Die bei der Registrierung abgefragten
               Pflichtangaben müssen vollständig angegeben werden. Anderenfalls werden wir
@@ -109,17 +109,17 @@ export default function DatenschutzPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-section font-display font-bold text-foreground">5. Ihre Rechte</h3>
+            <h3 className="text-section font-display font-bold text-foreground">5. Deine Rechte</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Sie haben jederzeit das Recht, unentgeltlich Auskunft über Herkunft, Empfänger und
-              Zweck Ihrer gespeicherten personenbezogenen Daten zu erhalten. Sie haben außerdem
-              ein Recht, die Berichtigung oder Löschung dieser Daten zu verlangen. Wenn Sie eine
-              Einwilligung zur Datenverarbeitung erteilt haben, können Sie diese Einwilligung
-              jederzeit für die Zukunft widerrufen. Außerdem haben Sie das Recht, unter bestimmten
-              Umständen die Einschränkung der Verarbeitung Ihrer personenbezogenen Daten zu verlangen.
+              Du hast jederzeit das Recht, unentgeltlich Auskunft über Herkunft, Empfänger und
+              Zweck deiner gespeicherten personenbezogenen Daten zu erhalten. Du hast außerdem
+              ein Recht, die Berichtigung oder Löschung dieser Daten zu verlangen. Wenn du eine
+              Einwilligung zur Datenverarbeitung erteilt hast, kannst du diese Einwilligung
+              jederzeit für die Zukunft widerrufen. Außerdem hast du das Recht, unter bestimmten
+              Umständen die Einschränkung der Verarbeitung deiner personenbezogenen Daten zu verlangen.
             </p>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Des Weiteren steht Ihnen ein Beschwerderecht bei der zuständigen Aufsichtsbehörde zu.
+              Des Weiteren steht dir ein Beschwerderecht bei der zuständigen Aufsichtsbehörde zu.
             </p>
           </div>
 

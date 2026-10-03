@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { API_BASE_URL } from '@/lib/api';
@@ -70,7 +71,12 @@ export default function RecipeMobileActionBar({
         // user cancelled
       }
     } else {
-      await navigator.clipboard.writeText(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link kopiert');
+      } catch {
+        toast.error('Der Link konnte nicht kopiert werden.');
+      }
     }
     setMenuOpen(false);
   };

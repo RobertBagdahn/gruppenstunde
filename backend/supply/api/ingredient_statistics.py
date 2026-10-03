@@ -77,6 +77,19 @@ FIELD_LABELS = {
     "price_per_kg": ("Preis", "€"),
 }
 
+# Nutrients stored per 100 g: a value above 100 g is impossible.
+PER_100G_FIELDS = {
+    "protein_g",
+    "fat_g",
+    "fat_sat_g",
+    "carbohydrate_g",
+    "sugar_g",
+    "fibre_g",
+    "salt_g",
+    "fructose_g",
+    "lactose_g",
+}
+
 NUTRI_CLASS_LABELS = {1: "A", 2: "B", 3: "C", 4: "D", 5: "E"}
 
 
@@ -297,6 +310,10 @@ def _make_ranking_item(ing, value: float) -> RankingItem:
 def ingredient_rankings(request, field: str, retail_section_id: str | None = None, tag: str | None = None):
     qs = _base_queryset(retail_section_id=retail_section_id, tag=tag)
     values = _get_field_values(qs, field, exclude_zero=True)
+    if field in PER_100G_FIELDS:
+        # A nutrient cannot exceed 100 g per 100 g; such values are data errors that
+        # would stretch the chart axis so that all plausible bars look empty.
+        values = [v for v in values if v[3] <= 100]
 
     if not values:
         return RankingsOut(top=[], bottom=[], count=0)
@@ -304,11 +321,24 @@ def ingredient_rankings(request, field: str, retail_section_id: str | None = Non
     sorted_desc = sorted(values, key=lambda x: x[3], reverse=True)
     sorted_asc = sorted(values, key=lambda x: x[3])
 
-    top = [_make_ranking_item_from_tuple(v) for v in sorted_desc[:20]]
+    top_raw = sorted_desc[:20]
     bottom_raw = [v for v in sorted_asc[:20] if v[3] > 0]
-    bottom = [_make_ranking_item_from_tuple(v) for v in bottom_raw]
+    ingredients = Ingredient.objects.select_related("retail_section").in_bulk({v[0] for v in top_raw + bottom_raw})
 
-    return RankingsOut(top=top, bottom=bottom, count=len(values))
+    def to_item(t: tuple) -> RankingItem:
+        ing = ingredients.get(t[0])
+        if ing is None:
+            return _make_ranking_item_from_tuple(t)
+        return RankingItem(
+            id=ing.id,
+            name=ing.name,
+            slug=ing.slug,
+            value=round(t[3], 2),
+            nutri_class=ing.nutri_class,
+            retail_section_name=ing.retail_section.name if ing.retail_section else "Ohne Kategorie",
+        )
+
+    return RankingsOut(top=[to_item(v) for v in top_raw], bottom=[to_item(v) for v in bottom_raw], count=len(values))
 
 
 def _make_ranking_item_from_tuple(t: tuple) -> RankingItem:

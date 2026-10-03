@@ -34,6 +34,12 @@ export interface UsePersistedListStateOptions<S extends ListSchema, D extends Pa
   countExclude?: readonly (keyof z.infer<S>)[];
   /** Returns state from an older storage format once; the caller deletes it. */
   migrateLegacy?: () => StoredListState | null;
+  /**
+   * Whether stored state is restored into a URL without state params
+   * (default true). Disable it where the stored state does not apply, e.g.
+   * on other tabs of the same page, so it does not leak into their URLs.
+   */
+  restore?: boolean;
 }
 
 function unwrap(field: z.ZodTypeAny): z.ZodTypeAny {
@@ -56,7 +62,7 @@ function sameRaw(a: string | string[] | undefined, b: string | string[] | undefi
 export function usePersistedListState<S extends ListSchema, D extends Partial<z.infer<S>>>(
   options: UsePersistedListStateOptions<S, D>,
 ) {
-  const { key, schema, defaults, persistExclude = [], countExclude = [], migrateLegacy } = options;
+  const { key, schema, defaults, persistExclude = [], countExclude = [], migrateLegacy, restore = true } = options;
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const userId = user?.id ?? null;
@@ -149,14 +155,16 @@ export function usePersistedListState<S extends ListSchema, D extends Partial<z.
   useEffect(() => {
     if (userLoading) return;
     if (!hasStateParams) {
-      const legacy = migrateLegacyRef.current?.() ?? null;
-      const stored = { ...(legacy ?? {}), ...(readListState(userId, key) ?? {}) };
-      const restored = persistable(normalize(stored));
-      if (Object.keys(restored).length > 0) writeUrl(restored, true);
-      writeListState(userId, key, restored);
+      if (restore) {
+        const legacy = migrateLegacyRef.current?.() ?? null;
+        const stored = { ...(legacy ?? {}), ...(readListState(userId, key) ?? {}) };
+        const restored = persistable(normalize(stored));
+        if (Object.keys(restored).length > 0) writeUrl(restored, true);
+        writeListState(userId, key, restored);
+      }
     }
     setRestoreChecked(true);
-  }, [hasStateParams, key, normalize, persistable, userId, userLoading, writeUrl]);
+  }, [hasStateParams, key, normalize, persistable, restore, userId, userLoading, writeUrl]);
 
   const activeCount = useMemo(() => {
     const excluded = new Set<string>(countExclude as readonly string[]);

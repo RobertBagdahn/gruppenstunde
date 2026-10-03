@@ -46,10 +46,10 @@ export const RecipeListStateSchema = lenient({
   page: z.coerce.number().int().min(1),
 });
 
-export const INGREDIENT_SORT_VALUES = ['newest', 'oldest', 'name_asc', 'name_desc'] as const;
+export const INGREDIENT_SORT_VALUES = ['relevance', 'newest', 'oldest', 'name_asc', 'name_desc'] as const;
 
 export const IngredientListStateSchema = lenient({
-  name: z.string(),
+  q: z.string(),
   retail_section: z.coerce.number().int().positive(),
   status: IngredientStatusSchema,
   origin: z.enum(['mine']),

@@ -1660,7 +1660,7 @@ def cost_summary(request, meal_plan_id: int):
     # Aggregate costs per day and meal. ``per_person`` sums the per-meal
     # cost_per_person values so meals with differing effective_portions
     # (e.g. day guests) aggregate correctly.
-    day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "portions": Decimal("0"), "meals": []})
+    day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "per_person": Decimal("0"), "meals": []})
 
     # Aggregate costs per recipe:
     # total_cost   = sum of scaled cost across all meals this recipe appears in
@@ -1679,7 +1679,7 @@ def cost_summary(request, meal_plan_id: int):
                 meal_cost = Decimal(str(meal.external_cost_per_person)) * Decimal(str(effective_portions))
             cost_per_person = meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
             day_costs[str(meal_date)]["total"] += meal_cost
-            day_costs[str(meal_date)]["portions"] += Decimal(str(effective_portions))
+            day_costs[str(meal_date)]["per_person"] += cost_per_person
             day_costs[str(meal_date)]["meals"].append(
                 {
                     "meal_id": meal.id,
@@ -1760,7 +1760,7 @@ def cost_summary(request, meal_plan_id: int):
         cost_per_person = meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
 
         day_costs[str(meal_date)]["total"] += meal_cost
-        day_costs[str(meal_date)]["portions"] += Decimal(str(effective_portions))
+        day_costs[str(meal_date)]["per_person"] += cost_per_person
         day_costs[str(meal_date)]["meals"].append(
             MealCostOut(
                 meal_id=meal.id,
@@ -1775,8 +1775,9 @@ def cost_summary(request, meal_plan_id: int):
 
     # Build response
     total_cost = sum(d["total"] for d in day_costs.values())
-    total_effective_portions = sum(d["portions"] for d in day_costs.values())
-    cost_per_person = total_cost / total_effective_portions if total_effective_portions > 0 else Decimal("0")
+    # Cost per person over the whole plan = sum of every meal's cost per person
+    # (not total / summed portions, which would yield a per-meal average).
+    cost_per_person = sum((d["per_person"] for d in day_costs.values()), Decimal("0"))
     reserve_factor = meal_plan.reserve_factor or 1.0
     total_cost_with_reserve = total_cost * Decimal(str(reserve_factor))
 
@@ -1787,7 +1788,7 @@ def cost_summary(request, meal_plan_id: int):
             DayCostOut(
                 date=dt.date.fromisoformat(date_str),
                 total_cost=d["total"],
-                cost_per_person=(d["total"] / d["portions"] if d["portions"] > 0 else Decimal("0")),
+                cost_per_person=d["per_person"],
                 meals=d["meals"],
             )
         )

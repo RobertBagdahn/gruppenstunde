@@ -66,7 +66,9 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
       ? Math.round((data.priced_ingredients / data.total_ingredients) * 100)
       : 0;
   const isIncomplete = data.missing_ingredients > 0 || data.priced_ingredients < data.total_ingredients;
-  const numDays = data.days.length || 1;
+  // Only days with planned (priced) meals count; empty days would dilute the average.
+  const costedDays = data.days.filter((day) => day.total_cost > 0).length;
+  const numDays = costedDays || data.days.length || 1;
   const costPerPersonPerDay = data.cost_per_person / numDays;
 
   // Average coverage across all days
@@ -79,16 +81,17 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
           if (!groups[date]) groups[date] = [];
           groups[date].push(meal);
         }
-        const dates = Object.keys(groups);
-        if (dates.length === 0) return 1;
-        const totalCov = dates.reduce((sum, d) => sum + getDayCoverage(groups[d]), 0);
-        return totalCov / dates.length;
+        // Average only over days that have something planned.
+        const coverages = Object.values(groups).map(getDayCoverage).filter((cov) => cov > 0);
+        if (coverages.length === 0) return 1;
+        return coverages.reduce((sum, cov) => sum + cov, 0) / coverages.length;
       })()
     : 1;
   const effAvgCoverage = getEffectiveCoverage(avgDayCoverage);
 
   const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
-  const hasBudget = budget !== null && budget > 0;
+  // Without any cost there is nothing to compare with the budget.
+  const hasBudget = budget !== null && budget > 0 && data.total_cost > 0;
 
   const scaledBudget = hasBudget ? budget * effAvgCoverage : null;
 

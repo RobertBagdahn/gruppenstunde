@@ -37,7 +37,8 @@ const RECIPE_LIST_DEFAULTS = {
   view: 'grid',
   page: 1,
 } satisfies Partial<RecipeListState>;
-const PERSIST_EXCLUDE = ['page', 'seed'] as const;
+// The search text stays URL-only: restoring it silently led to empty lists ("0 Rezepte").
+const PERSIST_EXCLUDE = ['q', 'page', 'seed'] as const;
 const COUNT_EXCLUDE = ['page', 'view', 'seed'] as const;
 
 /** The view mode used to live in its own key; take it over once. */
@@ -164,7 +165,7 @@ export default function RecipeListPage() {
 
         <div className="flex-1">
           <ActiveFiltersHint activeCount={activeCount} onReset={handleReset} />
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <Link
               to="/recipes/new"
               className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-body font-semibold transition-all"
@@ -172,13 +173,13 @@ export default function RecipeListPage() {
               <Icon name="add_circle" size={16} />
               Neues Rezept
             </Link>
-            <div className="flex items-center gap-2 ml-auto">
-              <div className="flex items-center gap-2 bg-secondary border border-border px-3 py-1.5 rounded-lg">
+            <div className="flex flex-wrap items-center justify-end gap-2 ml-auto min-w-0">
+              <div className="flex items-center gap-2 bg-secondary border border-border px-3 py-1.5 rounded-lg min-w-0">
                 <Icon name="sort" size={20} className="text-primary" />
                 <select
                   value={filters.sort ?? 'use_count'}
                   onChange={(e) => handleFilterChange('sort', e.target.value)}
-                  className="px-2 py-1 rounded-xl border text-body bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium"
+                  className="min-w-0 px-2 py-1 rounded-xl border text-body bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium"
                 >
                   {RECIPE_SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -187,7 +188,7 @@ export default function RecipeListPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex items-center bg-secondary border border-border rounded-lg p-1 gap-0.5">
+              <div className="flex shrink-0 items-center bg-secondary border border-border rounded-lg p-1 gap-0.5">
                 <button
                   onClick={() => toggleView('grid')}
                   className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}

@@ -244,6 +244,8 @@ class PlanCheckAlertOut(Schema):
         "missing_quantity",
         "meal_outside_range",
         "empty_day",
+        "duplicate_dish",
+        "portion_override",
         "info",
     ]
     severity: Literal["error", "warning", "info"]
@@ -801,6 +803,7 @@ class ShoppingPackageOptionOut(Schema):
     count: int
     package_name: str
     weight_g: float
+    volume_ml: float | None = None
 
 
 class ShoppingListItemOut(Schema):

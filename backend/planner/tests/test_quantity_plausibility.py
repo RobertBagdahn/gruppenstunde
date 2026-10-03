@@ -6,7 +6,8 @@ import pytest
 
 from planner.models import MealItem
 from planner.services.quantity_plausibility import MAX_GRAMS_PER_PERSON, MAX_PIECES_PER_PERSON, check, check_item
-from planner.tests import make_meal, make_meal_plan
+from planner.tests import make_meal, make_meal_item, make_meal_plan
+from recipe.tests import make_recipe, make_recipe_item
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
@@ -164,3 +165,23 @@ class TestShoppingListWarnings:
         resp = auth_client.post(f"/api/shopping-lists/from-meal-plan/{meal_plan.id}/")
         assert resp.status_code == 200
         assert resp.json()["warnings"] == []
+
+
+@pytest.mark.django_db
+class TestRecipeItemPlausibility:
+    def test_warns_on_absurd_recipe_amount_per_person(self, gram_unit):
+        from planner.services.quantity_plausibility import check_meals
+
+        plan = make_meal_plan(norm_portions=8)
+        meal = make_meal(meal_plan=plan)
+        recipe = make_recipe(portions=1)
+        oats = make_ingredient(name="Haferflocken")
+        portion = make_portion(ingredient=oats, name="Menge", measuring_unit=gram_unit, weight_g=1.0, rank=1)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=2000)
+        make_meal_item(meal=meal, recipe=recipe, factor=1.0)
+
+        warnings = check_meals([meal])
+
+        assert [w.ingredient_name for w in warnings] == ["Haferflocken"]
+        assert warnings[0].per_person_value == 2000
+        assert warnings[0].total_value == 16

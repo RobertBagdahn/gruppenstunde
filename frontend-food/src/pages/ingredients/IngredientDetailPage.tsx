@@ -136,6 +136,7 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 import { formatExactWeight, formatNumber, roundToDecimals } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import { ApiError } from '@/lib/api';
 import { HelpHint } from '@/components/ui/help-hint';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -1127,7 +1128,7 @@ export default function IngredientDetailPage() {
   }
 
   if (error || !ingredient) {
-    const isNotFound = !ingredient && (!error || /\b404\b|Not Found/i.test(error.message));
+    const isNotFound = !ingredient && (!error || (error instanceof ApiError ? error.status === 404 : /\b404\b|Not Found/i.test(error.message)));
     return (
       <div className="max-w-3xl mx-auto px-4 py-6">
         <ErrorDisplay
@@ -1319,7 +1320,7 @@ export default function IngredientDetailPage() {
 
   const formatPrice = (price: number | null) => {
     if (price === null) return '\u2014';
-    return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} EUR`;
+    return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} €`;
   };
 
   const nutriColors = ingredient.nutri_class
