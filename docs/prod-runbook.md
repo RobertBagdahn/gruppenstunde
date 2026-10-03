@@ -166,9 +166,9 @@ als Dry-Run; `--apply` nur nach Roberts ausdrücklichem OK, jeweils mit DB-Snaps
       (Portionen mit 1 g, skalierte Rezeptmengen). Reihenfolge, jeweils Dry-Run zuerst:
       `replace_untrusted_piece_portions`, danach `fix_recipe_quantities`.
       Danach in den betroffenen Listen die neuen Mengen-Warnungen (Einkaufsliste öffnen) prüfen.
-- [ ] Schwierigkeit und Dauer (206/211 „Einfach“): `enrich_recipe_metadata_rules --all --dry-run`
-      (Regeln nutzen jetzt Zutaten + Arbeitsschritte). Ausgabe zeigen; `--all` überschreibt auch von Hand
-      gesetzte Werte, daher nur nach OK ohne `--dry-run`.
+- [ ] Schwierigkeit und Dauer (206/211 „Einfach“): `enrich_recipe_metadata_rules --all --only-defaults --dry-run`
+      (Regeln nutzen Zutaten + Arbeitsschritte; `--only-defaults` fasst nur Rezepte an, die noch auf
+      „Einfach“ und „< 30 Min“ stehen). Ausgabe zeigen; die Schätzung ist grob, ohne `--dry-run` nur nach OK.
 - [ ] Stichprobe: Plan „Sifü-Planungstreffen“ → Kosten & Budget: „Pro Person“ liegt bei rund Gesamtkosten / Personen.
 
 ## Rollback
