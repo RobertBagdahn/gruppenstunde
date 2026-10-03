@@ -17,6 +17,7 @@ import {
 import type { MealPlan } from '@/schemas/mealPlan';
 import { getPlanBadge, formatDateRange, getDaysCount } from '@/schemas/mealPlan';
 import { formatNumber } from '@/lib/format';
+import { sourceBadgeHelp } from '@/lib/sourceBadgeHelp';
 import { Icon } from '@/components/ui/icon';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -62,7 +63,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2.5">
           {badgeConfig && (
-            <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+            <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
               {badgeConfig.label}
             </span>
           )}

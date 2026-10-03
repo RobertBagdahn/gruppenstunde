@@ -3,6 +3,7 @@ import { Calendar, Users, Sparkles, Copy } from 'lucide-react';
 import type { MealPlan } from '@/schemas/mealPlan';
 import { getPlanBadge, formatDateRange } from '@/schemas/mealPlan';
 import { formatNumber } from '@/lib/format';
+import { sourceBadgeHelp } from '@/lib/sourceBadgeHelp';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   verified: {
@@ -56,7 +57,7 @@ export default function MealPlanCompactCard({
               {plan.name}
             </h3>
             {badgeConfig && (
-              <span className={`shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+              <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
                 {badgeConfig.label}
               </span>
             )}

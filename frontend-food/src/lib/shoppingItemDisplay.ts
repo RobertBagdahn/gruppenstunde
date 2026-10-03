@@ -59,6 +59,9 @@ export function formatPackageNeed(option: PackageOptionLike): string {
   return `${option.count} × ${formatPackageLabel(option)}`;
 }
 
+export const PACKAGE_RESERVE_HELP =
+  'Rest der Packung: Du kaufst ganze Packungen, daher bleibt über, was über den Bedarf hinausgeht. Das ist nicht der prozentuale Reservefaktor des Plans (z. B. +15 %), der den Bedarf selbst erhöht.';
+
 /** "+ 50 g Reserve" for a positive package surplus, otherwise empty. */
 export function formatPackageReserve(surplusG: number | null | undefined): string {
   return surplusG && surplusG > 0 ? `+ ${formatWeight(surplusG)} Reserve` : '';
