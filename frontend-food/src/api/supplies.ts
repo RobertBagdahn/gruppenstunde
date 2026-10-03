@@ -7,7 +7,7 @@
  * RetailSection hooks: /api/retail-sections/
  */
 import { AI_META } from '@/lib/queryMeta';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -52,11 +52,7 @@ function getCsrfToken(): string {
 
 async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse(res, schema);
 }
 
 async function postJsonRaw<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {

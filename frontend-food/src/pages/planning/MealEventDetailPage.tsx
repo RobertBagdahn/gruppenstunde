@@ -404,7 +404,7 @@ export default function MealPlanDetailPage() {
       {/* Wraps on narrow screens so the action buttons never squeeze the title to zero width. */}
       <div className="flex flex-wrap items-center gap-3">
         <BackButton to="/meal-plans/app" />
-        <div className="border-l border-border pl-3 flex-1 min-w-[10rem]">
+        <div className="basis-full sm:basis-0 sm:border-l sm:border-border sm:pl-3 sm:flex-1 sm:min-w-[10rem]">
           <h1 className="text-section sm:text-title font-display font-bold text-foreground line-clamp-2 break-words">{plan.name}</h1>
           <div className="flex flex-wrap gap-3 mt-1.5 text-caption font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -435,7 +435,7 @@ export default function MealPlanDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:self-start">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:self-start justify-between sm:justify-start">
           <PlanCheckFlyout
             mealPlanId={mealPlanId}
             canEdit={plan.can_edit}

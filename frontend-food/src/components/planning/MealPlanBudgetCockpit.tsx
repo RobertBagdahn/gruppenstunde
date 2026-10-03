@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Wallet, Flame, Users, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
-import { NORM_PERSON_DAILY_KCAL, effectivePortions } from '@/schemas/mealPlan';
+import { NORM_PERSON_DAILY_KCAL, effectivePortions, getDayCoverage, getEffectiveCoverage } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
 import { formatCount, formatNumber } from '@/lib/format';
 import { planDateKey } from '@/lib/mealPlanDateTime';
@@ -24,14 +24,21 @@ export function MealPlanBudgetCockpit({
   onNavigateToSuggestions,
 }: MealPlanBudgetCockpitProps) {
   const metrics = useMemo(() => {
-    // Unique days
-    const dateSet = new Set<string>();
+    // Only days with planned meals count; empty days would dilute every average.
+    const mealsByDay = new Map<string, Meal[]>();
     for (const meal of meals) {
-      if (meal.start_datetime) {
-        dateSet.add(planDateKey(meal.start_datetime));
-      }
+      if (!meal.start_datetime) continue;
+      const key = planDateKey(meal.start_datetime);
+      mealsByDay.set(key, [...(mealsByDay.get(key) ?? []), meal]);
     }
-    const numDays = Math.max(1, dateSet.size);
+    const plannedDays = [...mealsByDay.values()].filter((dayMeals) => getDayCoverage(dayMeals) > 0);
+    const hasPlanned = plannedDays.length > 0;
+    const numDays = Math.max(1, plannedDays.length);
+    // Targets scale with how much of a day is planned (breakfast only ≠ full day).
+    const avgCoverage = hasPlanned
+      ? plannedDays.reduce((sum, dayMeals) => sum + getDayCoverage(dayMeals), 0) / plannedDays.length
+      : 1;
+    const effCoverage = getEffectiveCoverage(avgCoverage);
 
     let totalCostSum = 0;
     let totalKcalSum = 0;
@@ -49,9 +56,11 @@ export function MealPlanBudgetCockpit({
 
     const actualCostPerPersonPerDay = totalCostSum / numDays;
     const actualKcalPerPersonPerDay = Math.round(totalKcalSum / numDays);
+    const kcalTarget = Math.round(NORM_PERSON_DAILY_KCAL * effCoverage);
 
-    const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
-    const hasBudget = budget !== null && budget > 0;
+    const fullBudget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
+    const budget = fullBudget !== null && fullBudget > 0 ? fullBudget * effCoverage : null;
+    const hasBudget = budget !== null && hasPlanned;
 
     let budgetStatus: 'green' | 'yellow' | 'red' = 'green';
     let budgetPercent = 0;
@@ -69,10 +78,13 @@ export function MealPlanBudgetCockpit({
       }
     }
 
-    const kcalPercent = Math.min(150, Math.round((actualKcalPerPersonPerDay / NORM_PERSON_DAILY_KCAL) * 100));
+    const kcalPercent = Math.min(150, Math.round((actualKcalPerPersonPerDay / kcalTarget) * 100));
 
     return {
       numDays,
+      hasPlanned,
+      effCoverage,
+      kcalTarget,
       hasBudget,
       budget,
       actualCostPerPersonPerDay,
@@ -86,6 +98,9 @@ export function MealPlanBudgetCockpit({
   }, [meals, normPortions, budgetPerPersonPerDay]);
 
   const {
+    hasPlanned,
+    effCoverage,
+    kcalTarget,
     hasBudget,
     budget,
     actualCostPerPersonPerDay,
@@ -138,7 +153,9 @@ export function MealPlanBudgetCockpit({
                 )}
               </span>
             ) : (
-              <span className="text-caption text-muted-foreground">Kein Budgetlimit</span>
+              <span className="text-caption text-muted-foreground">
+                {hasPlanned ? 'Kein Budgetlimit' : 'Noch nichts geplant'}
+              </span>
             )}
           </div>
 
@@ -201,11 +218,11 @@ export function MealPlanBudgetCockpit({
             <div className="text-emphasis sm:text-section font-bold text-foreground font-display">
               {formatCount(actualKcalPerPersonPerDay)}{' '}
               <span className="text-caption font-normal text-muted-foreground">
-                / {formatCount(NORM_PERSON_DAILY_KCAL)} kcal
+                / {formatCount(kcalTarget)} kcal
               </span>
             </div>
             <span className="text-caption text-muted-foreground flex items-center gap-0.5">
-              Ziel: {formatCount(NORM_PERSON_DAILY_KCAL)} <ArrowRight className="w-3 h-3" />
+              Ziel: {formatCount(kcalTarget)} <ArrowRight className="w-3 h-3" />
             </span>
           </div>
 
@@ -219,6 +236,12 @@ export function MealPlanBudgetCockpit({
             />
           </div>
         </div>
+
+        {hasPlanned && effCoverage < 1 && (
+          <p className="text-caption text-muted-foreground italic sm:col-span-2 lg:col-span-3">
+            Ziele skaliert auf {Math.round(effCoverage * 100)} % Tagesabdeckung der geplanten Tage.
+          </p>
+        )}
 
         {/* Meta / Plan Info */}
         <div className="flex items-center justify-between sm:justify-start lg:justify-between gap-4 p-2.5 rounded-lg border border-border/50 bg-muted/30 col-span-1 sm:col-span-2 lg:col-span-1">
