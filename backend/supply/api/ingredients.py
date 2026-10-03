@@ -58,6 +58,7 @@ from supply.schemas import (
 )
 from supply.services.portion_integrity import (
     is_referenced_by_recipe_items,
+    measure_violation,
     rebind_recipe_items_to_rank1,
     supersede_portion,
     validate_active_portion_weight,
@@ -624,9 +625,12 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     if is_piece_like_name(name) and (payload.weight_g is None or payload.weight_g <= 0):
         raise HttpError(422, "Stückportionen benötigen ein bestätigtes positives Gewicht.")
     try:
-        validate_active_portion_weight(portion)
+        resolved_weight = validate_active_portion_weight(portion)
     except ValueError as exc:
         raise HttpError(422, str(exc)) from exc
+    violation = measure_violation(name, resolved_weight)
+    if violation:
+        raise HttpError(422, f"Unplausibles Gewicht für '{name}': {violation}.")
     portion.weight_status = PortionWeightStatus.CONFIRMED
     portion.weight_source = PortionWeightSource.MANUAL
     try:

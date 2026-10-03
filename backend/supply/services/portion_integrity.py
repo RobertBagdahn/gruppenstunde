@@ -10,6 +10,7 @@ through the dedicated rebind helpers in this module.
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from django.db import transaction
@@ -22,6 +23,24 @@ if TYPE_CHECKING:
     from supply.models import Portion
 
 logger = logging.getLogger(__name__)
+
+# (pattern on portion name, min g, max g) — outside these bounds a measure is impossible.
+MEASURE_BOUNDS: list[tuple[re.Pattern[str], float, float]] = [
+    (re.compile(r"^(1\s*)?(el|esslöffel)\b", re.IGNORECASE), 3, 40),
+    (re.compile(r"^(1\s*)?(tl|teelöffel)\b", re.IGNORECASE), 0.8, 15),
+    (re.compile(r"gehäuft", re.IGNORECASE), 2, 40),
+    (re.compile(r"^(1\s*)?(tasse|tassen|becher)\b", re.IGNORECASE), 50, 400),
+    (re.compile(r"^(1\s*)?prise\b", re.IGNORECASE), 0.05, 1.5),
+    (re.compile(r"^(1\s*)?(dose|dosen|packung|glas|flasche)\b", re.IGNORECASE), 5, 5000),
+]
+
+
+def measure_violation(name: str, weight_g: float) -> str | None:
+    """Return a reason when a standard-measure portion name has an impossible weight."""
+    for pattern, low, high in MEASURE_BOUNDS:
+        if pattern.search(name.strip()) and not (low <= weight_g <= high):
+            return f"{weight_g:g} g liegt außerhalb {low:g}–{high:g} g"
+    return None
 
 
 def validate_active_portion_weight(portion, *, allow_unresolved: bool = False) -> float:
