@@ -43,18 +43,18 @@ class Command(BaseCommand):
 
             # Ingredient count alone underrates long recipes; steps add effort too.
             effort = num_ingredients + step_count
-            if effort <= 8:
+            if effort <= 12:
                 execution_time = ExecutionTimeChoices.LESS_30
-            elif effort <= 16:
+            elif effort <= 20:
                 execution_time = ExecutionTimeChoices.BETWEEN_30_60
-            elif effort <= 24:
+            elif effort <= 30:
                 execution_time = ExecutionTimeChoices.BETWEEN_60_90
             else:
                 execution_time = ExecutionTimeChoices.MORE_90
 
-            if effort <= 10:
+            if effort <= 14:
                 difficulty = DifficultyChoices.EASY
-            elif effort >= 24:
+            elif effort >= 30:
                 difficulty = DifficultyChoices.HARD
             else:
                 difficulty = DifficultyChoices.MEDIUM

@@ -233,7 +233,7 @@ export default function TableView({
         <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>
             <tr>
-              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-2 sm:px-4 py-3.5 font-display font-semibold text-emphasis shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[96px] sm:w-[180px] max-w-[96px] sm:max-w-none break-words">
+              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-2 sm:px-4 py-3.5 font-display font-semibold text-emphasis shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[104px] sm:w-[180px] max-w-[104px] sm:max-w-none break-words">
                 Mahlzeit
               </th>
               {dates.map((date) => {
@@ -255,15 +255,15 @@ export default function TableView({
               const IconComponent = MEAL_TYPE_LUCIDE_ICONS[mealType] || Utensils;
               return (
                 <tr key={mealType}>
-                  <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm border-r border-b border-border px-2 sm:px-4 py-4 w-[96px] sm:w-auto max-w-[96px] sm:max-w-none break-words shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-middle">
+                  <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm border-r border-b border-border px-2 sm:px-4 py-4 w-[104px] sm:w-auto max-w-[104px] sm:max-w-none break-words shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-middle">
                     <div className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-body font-bold shadow-sm",
+                      "inline-flex max-w-full flex-col sm:flex-row items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl sm:rounded-full border text-caption sm:text-body font-bold shadow-sm",
                       MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
                       MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
                       MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
                     )}>
                       <IconComponent className="w-4 h-4 shrink-0" />
-                      <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
+                      <span className="min-w-0 break-words">{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
                     </div>
                   </td>
                     {dates.map((date) => {
@@ -796,7 +796,7 @@ export default function TableView({
           </tbody>
           <tfoot>
             <tr>
-              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-2 sm:px-4 py-4 max-w-[96px] sm:max-w-none break-words font-bold text-body text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
+              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-2 sm:px-4 py-4 max-w-[104px] sm:max-w-none break-words font-bold text-body text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
                 Tagesbilanz
               </td>
               {dates.map((date) => {
