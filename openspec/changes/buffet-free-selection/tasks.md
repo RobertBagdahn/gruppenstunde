@@ -62,13 +62,13 @@
 - [x] 8.1 Backend-Regressionstests und Migration-Check mit `uv run` ausführen; geänderte API-Verträge gegen Food-Frontend-Types prüfen.
 - [ ] 8.2 Food-Frontend-Test-Suite, TypeScript-Prüfung und Lint ausführen.
 - [ ] 8.3 Integrierten Ablauf für jeden Mahlzeittyp einschließlich `breakfast`, `snack` und `drinks`, freie Suche, Filter, Vorschlagsprüfung, Vorschau, Speichern und erneutes Öffnen testen.
-- [ ] 8.4 Vor Prod-Apply finalen Dry-Run und explizite Freigabe gemäß Runbook einholen; keine Datenänderung auf Prod ohne dokumentierte Freigabe ausführen.
+- [x] 8.4 Vor Prod-Apply finalen Dry-Run und explizite Freigabe gemäß Runbook einholen; keine Datenänderung auf Prod ohne dokumentierte Freigabe ausführen.
 
 ## Offene Abnahmehinweise
 
 - 4.6 ist nach einem Prod-Preflight in einer Rollback-Transaktion abgeschlossen. Der Mapping-Dry-Run plante 0 Änderungen, übersprang 8 veraltete Zeilen und meldete drei verbleibende Alt-Tag-Träger; Details stehen in `docs/prod-runbook.md`. Es wurde nichts persistiert.
 - Die Mengen in `free` und `drinks-bar` wurden vom Nutzer bestätigt. Der Template-Preflight ergab 18 geplante Vorlagen, 3 vorhandene und 0 fehlende Abhängigkeiten.
-- 8.4 bleibt offen, bis der freigegebene Code gemergt und deployt ist; der separate Mapping-Apply ist nicht freigegeben oder erforderlich für diesen Deploy.
+- 8.4 ist nach Prod-Preflight, Merge/Deploy und Template-Seed abgeschlossen. `migrate_buffet_roles --apply` wurde wegen 8 veralteter, übersprungener Mapping-Zeilen nicht ausgeführt.
 - 6.3 ist noch nicht vollständig: Frontend-Tests decken Kandidatenvorschlag und Formularzugriff ab; UI-AI-Ablauf, vollständiges manuelles Speichern und Export sind noch nicht umfassend getestet.
 - 7.5 wurde implementiert, aber der 320-px-Layoutcheck wurde nicht manuell ausgeführt. 8.3 bleibt offen, weil kein vollständiger integrierter End-to-End-Ablauf ausgeführt wurde.
 - Die vollständigen Backend-Tests bestehen (3384 passed, 9 skipped); Food-Frontend-Tests und Build bestehen (752 Tests). `npm run lint` meldet 67 bestehende Verstöße in nicht geänderten Frontend-Dateien; ESLint auf den geänderten Food-Frontend-Dateien ist sauber.

@@ -106,36 +106,39 @@ Cloud Build führt sie beim Deploy automatisch aus; sie ist rein additiv und spe
 - [ ] Stichprobe: Rezeptliste „Zufällig“ und „Meiste Likes“ durchblättern (keine doppelten oder
       fehlenden Rezepte), Einkaufslisten-Übersicht „Neueste“ zeigt die zuletzt erzeugte Liste oben
 
-## 7. buffet-free-selection — Preflight abgeschlossen, Deploy noch offen
+## 7. buffet-free-selection — deployed
 
-Die Bestandsaufnahme `docs/buffet-expansion-strategy.md` ist auf den 03.10.2026 datiert,
-liegt damit nach dem im Runbook dokumentierten Systemdatum 01.10.2026. Die dortigen
-Dubletten-Kandidaten, die nicht zur freigegebenen Mapping-Tabelle gehören, werden weiterhin
-nicht automatisch zusammengeführt. Aktuelle Prod-Snapshot-ID: `1791007426360`.
+Die Bestandsaufnahme `docs/buffet-expansion-strategy.md` ist auf den 03.10.2026 datiert und
+liegt damit nach dem im Runbook dokumentierten Systemdatum 01.10.2026. Dubletten-Kandidaten
+außerhalb der freigegebenen Mapping-Tabelle bleiben ungeprüfte Vorschläge und werden nicht
+automatisch zusammengeführt. Als Wiederherstellungspunkt lag der Prod-Snapshot
+`1791007426360` vor.
 
-Für Commit `c2076fdb` wurde vor dem Deploy ein Prod-Preflight in einer äußeren
-Rollback-Transaktion ausgeführt. **Es wurden keine Änderungen persistiert.**
+### Preflight
 
-- Rollen: 0/10 neue Slugs waren vorhanden; die Migration simulierte 10 Anlegungen und wurde
-  zurückgerollt.
-- `migrate_buffet_roles --dry-run`: 0 geplante Änderungen, keine manuelle Prüfliste; 8 veraltete
-  Mapping-Zeilen übersprungen: Ziele 6925 (Zutat 7041 „Tomate frisch“) und 153 (Rezepte 155/215
-  „Tschai einfach/günstig“) fehlen; Quelle 191 „Glas Apfelsaft“ ist gelöscht und nicht mit 183
-  verknüpft; Quellen 7341 „Edamer“, 6925 „Tomaten“, 58 „frische Banane“ und Rezept 153
-  „Tschai einfach/günstig“ sind gelöscht. Die übersprungenen Zeilen werden **nicht angewendet**.
-- Alte Frühstücks-Tags bleiben vorerst auf drei Datensätzen: `breakfast-base` auf Zutat 663
+Für Commit `c2076fdb` wurde ein Prod-Preflight in einer äußeren Rollback-Transaktion ausgeführt;
+keine der simulierten Änderungen wurde persistiert.
+
+- 0/10 neue Buffet-Rollen waren vorhanden; Migration simulierte 10 Anlegungen.
+- `migrate_buffet_roles --dry-run`: 0 geplante Änderungen, keine manuelle Prüfliste. 8 veraltete
+  Mapping-Zeilen wurden übersprungen: Ziele 6925 (Zutat 7041 „Tomate frisch“) und 153 (Rezepte
+  155/215 „Tschai einfach/günstig“) fehlen; Quelle 191 „Glas Apfelsaft“ ist gelöscht und nicht mit
+  183 verknüpft; Quellen 7341 „Edamer“, 6925 „Tomaten“, 58 „frische Banane“ und Rezept 153
+  „Tschai einfach/günstig“ sind gelöscht.
+- Drei alte Frühstücks-Tag-Träger bleiben unverändert: `breakfast-base` auf Zutat 663
   „Erdnussmus fein“, `breakfast-topping` auf Zutat 7616 „Edamer“ und `breakfast-drink` auf Rezept
   155 „Tschai einfach/günstig“.
-- `seed_buffet_templates --dry-run`: 18 neue Vorlagen, 3 vorhandene, 0 fehlende Abhängigkeiten;
-  auch diese Simulation wurde zurückgerollt. Die bestätigten Mengen werden erst mit dem
-  separaten `--apply` geschrieben.
+- `seed_buffet_templates --dry-run`: 18 neue Vorlagen, 3 vorhandene, 0 fehlende Abhängigkeiten.
 
-Der Nutzer hat Merge und Prod-Deploy ausdrücklich freigegeben. Für den Release werden die
-additiven Rollen-/Proposal-Migrationen ausgerollt und die 18 geplanten Vorlagen nach dem
-erfolgreichen Preflight mit `seed_buffet_templates --apply` angelegt. **Kein**
-`migrate_buffet_roles --apply` wird ausgeführt: Der Preflight zeigte keine geplanten Änderungen
-und die 8 übersprungenen Zeilen bleiben ungeklärt. Die UI-Freigabe eines Vorschlags allein gibt
-einen Prod-Lauf nicht frei.
+### Deployment und Seed
+
+- Merge/Push auf `main`: Commit `287fb870` (`docs(prod): record buffet release preflight`; Feature-Commit `c2076fdb`).
+- Backend: `inspi-backend-00075-t7w`; Migration-Job `inspi-migrate-f8wt5` erfolgreich.
+- Food-Frontend: `inspi-frontend-food-00070-qwv`.
+- Template-Seed mit `--apply`: 18 Vorlagen angelegt, 3 vorhandene beibehalten; anschließend 21 Standardvorlagen samt Rollen verifiziert.
+- Smoke-Checks: Backend-API-Doku, Food-Frontend und Buffet-Suche antworteten mit HTTP 200; Vorlagen für `drinks` enthalten `drinks-bar` und `free`.
+
+`migrate_buffet_roles --apply` wurde **nicht** ausgeführt: Der Dry-Run zeigte 0 geplante Änderungen und 8 übersprungene veraltete Zeilen. Diese Einträge sowie die weiteren Dubletten-Kandidaten bleiben ungeändert und benötigen eine aktualisierte Zuordnung sowie einen neuen Dry-Run vor einem separaten Mapping-Apply. Die Proposal-UI führt selbst keine Katalogänderungen aus.
 
 ## Rollback
 
