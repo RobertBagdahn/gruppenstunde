@@ -19,6 +19,7 @@
 - [x] 3.4 Switch the Food recipe editor to the atomic operation, handle portion-request failures using the shared API error type, and preserve the pending selection on retry.
 - [x] 3.5 Make embedding generation safe for legacy/direct-gram RecipeItems without a Portion, and add tests proving one malformed/portionless row cannot abort recipe embedding construction.
 - [x] 3.6 Report-only production audit found 3 empty exchange groups and 2 exchange members without Portions. A separate reviewed data-repair plan is required; no repair or migration was run.
+- [ ] 3.7 Obtain content-owner approval for a row-level repair plan: review empty groups for removal and identify the two portionless members from a trusted source; never infer or fabricate their ingredients.
 
 ## 4. Surface Food API server errors safely
 
@@ -40,3 +41,4 @@
 - [x] 6.2 Add deterministic mocked Playwright coverage for Buffet persistence, draft-Ingredient alternatives, and safe HTTP 500 feedback; ensure unexpected API errors fail tests.
 - [x] 6.3 Keep backend pytest and existing quality gates required; inline the backend, frontend and Food checks in the active push-to-main pipeline before any build/deploy, avoiding a nested Cloud Build submission.
 - [x] 6.4 Run backend tests, touched-file Food lint, TypeScript, Vitest, mocked Playwright, infrastructure validation, and strict OpenSpec validation; document that rollout remains blocked by the over-budget current runtime and audited malformed exchange data.
+- [ ] 6.5 Verify and approve least-privilege Artifact Registry push and Cloud Run deploy permissions for the active trigger identity; validate the pipeline in a non-production trigger before relying on it.
