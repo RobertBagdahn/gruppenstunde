@@ -6,7 +6,7 @@
  * Emotions are generic ContentEmotions (toggle returns counts dict).
  */
 import { AI_META } from '@/lib/queryMeta';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -47,17 +47,8 @@ async function fetchJson<T extends z.ZodTypeAny>(
   schema: T,
 ): Promise<z.output<T>> {
   const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(
-      errBody.detail
-      || (Array.isArray(errBody)
-        ? errBody.map((e: { msg: string }) => e.msg).join(', ')
-        : `API error: ${res.status}`)
-    );
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  // ApiError keeps the HTTP status so pages can tell "not found" from other failures.
+  return parseApiResponse(res, schema);
 }
 
 function extractErrorMessage(errBody: unknown): string {

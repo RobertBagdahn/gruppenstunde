@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthOverlays from './components/auth/AuthOverlays';
+import { ApiError } from './lib/api';
 import { handleGlobalApiError } from './lib/apiErrorHandler';
 import './lib/queryMeta';
 import { AI_QUOTA_QUERY_KEY } from './api/ai';
@@ -33,7 +34,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      retry: 1,
+      // Client errors (404, 403 …) will not change on a retry; only transient failures are retried once.
+      retry: (failureCount, error) =>
+        !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failureCount < 1,
     },
   },
 });
