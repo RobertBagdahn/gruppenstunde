@@ -241,6 +241,52 @@ export function MealSlot({
     );
   };
 
+  // Rendered by both the empty-meal and the filled-meal layout so every trigger works in either state.
+  const dialogs = (
+    <>
+      {/* Unified Meal Omnibar Dialog */}
+      <MealOmnibarDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        mealType={meal.meal_type}
+        mealId={meal.id}
+        targetLabel={targetLabel}
+        normPortions={effPortions}
+        onSelectRecipe={(recipeId) => handleSelect(recipeId)}
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
+          onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity);
+          setDialogOpen(false);
+        }}
+        nutritionalTagIds={nutritionalTagIds}
+        excludedRecipeIds={excludedRecipeIds}
+        excludedIngredientIds={excludedIngredientIds}
+      />
+
+      {/* Buffet Builder */}
+      {meal.meal_type !== 'drinks' && (
+        <BuffetBuilder
+          open={showBuffetBuilder}
+          onOpenChange={setShowBuffetBuilder}
+          mealPlanId={mealPlanId}
+          mealId={meal.id}
+          mealType={meal.meal_type}
+          normPortions={effPortions}
+        />
+      )}
+
+      {/* Random Recipe Preview */}
+      <RecipePreviewDialog
+        recipe={randomPreviewRecipe}
+        open={!!randomPreviewRecipe}
+        onOpenChange={(open) => { if (!open) setRandomPreviewRecipe(null); }}
+        onConfirm={(recipeId) => {
+          handleSelect(recipeId);
+          setRandomPreviewRecipe(null);
+        }}
+      />
+    </>
+  );
+
   if (isEmpty && !meal.is_external) {
     return (
       <div
@@ -311,34 +357,7 @@ export function MealSlot({
           </div>
         </div>
 
-        {/* Dialogs */}
-        <MealOmnibarDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          mealType={meal.meal_type}
-          mealId={meal.id}
-          targetLabel={targetLabel}
-          normPortions={effPortions}
-          onSelectRecipe={handleSelect}
-          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
-            onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity);
-            setDialogOpen(false);
-          }}
-          nutritionalTagIds={nutritionalTagIds}
-          excludedRecipeIds={excludedRecipeIds}
-          excludedIngredientIds={excludedIngredientIds}
-        />
-        {randomPreviewRecipe && (
-          <RecipePreviewDialog
-            recipe={randomPreviewRecipe}
-            open={!!randomPreviewRecipe}
-            onOpenChange={(op) => { if (!op) setRandomPreviewRecipe(null); }}
-            onConfirm={(recId) => {
-              handleSelect(recId);
-              setRandomPreviewRecipe(null);
-            }}
-          />
-        )}
+        {dialogs}
       </div>
     );
   }
@@ -705,46 +724,7 @@ export function MealSlot({
         </div>
       )}
 
-      {/* Unified Meal Omnibar Dialog */}
-      <MealOmnibarDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        mealType={meal.meal_type}
-        mealId={meal.id}
-        targetLabel={targetLabel}
-        normPortions={effPortions}
-        onSelectRecipe={(recipeId) => handleSelect(recipeId)}
-        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
-          onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity);
-          setDialogOpen(false);
-        }}
-        nutritionalTagIds={nutritionalTagIds}
-        excludedRecipeIds={excludedRecipeIds}
-        excludedIngredientIds={excludedIngredientIds}
-      />
-
-      {/* Buffet Builder */}
-      {meal.meal_type !== 'drinks' && (
-        <BuffetBuilder
-          open={showBuffetBuilder}
-          onOpenChange={setShowBuffetBuilder}
-          mealPlanId={mealPlanId}
-          mealId={meal.id}
-          mealType={meal.meal_type}
-          normPortions={effPortions}
-        />
-      )}
-
-      {/* Random Recipe Preview */}
-      <RecipePreviewDialog
-        recipe={randomPreviewRecipe}
-        open={!!randomPreviewRecipe}
-        onOpenChange={(open) => { if (!open) setRandomPreviewRecipe(null); }}
-        onConfirm={(recipeId) => {
-          handleSelect(recipeId);
-          setRandomPreviewRecipe(null);
-        }}
-      />
+      {dialogs}
     </div>
   );
 }

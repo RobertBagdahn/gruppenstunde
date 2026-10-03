@@ -15,7 +15,9 @@ vi.mock('@/api/mealPlans', () => ({
   useIngredientScan: () => ({ data: undefined }),
 }));
 
-vi.mock('@/components/buffet/BuffetBuilder', () => ({ BuffetBuilder: () => null }));
+vi.mock('@/components/buffet/BuffetBuilder', () => ({
+  BuffetBuilder: ({ open }: { open: boolean }) => (open ? <div data-testid="buffet-builder-open" /> : null),
+}));
 vi.mock('@/components/planning/MealOmnibarDialog', () => ({ MealOmnibarDialog: () => null }));
 vi.mock('./RecipePreviewDialog', () => ({ default: () => null }));
 vi.mock('@/components/planning/MealActionsMenu', () => ({ MealActionsMenu: () => null }));
@@ -198,5 +200,21 @@ describe('MealSlot energy status', () => {
     expect(screen.queryByText(/Zu wenig Energie/)).toBeNull();
     openDetails();
     expect(screen.getByTitle('Energie ok')).toBeInTheDocument();
+  });
+});
+
+describe('MealSlot buffet builder trigger', () => {
+  it('opens the buffet builder from an empty meal (regression: dialog was not rendered)', () => {
+    renderMealSlot(makeMeal([], { meal_type: 'snack' }));
+    expect(screen.queryByTestId('buffet-builder-open')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Buffet zusammenstellen'));
+    expect(screen.getByTestId('buffet-builder-open')).toBeInTheDocument();
+  });
+
+  it('opens the buffet builder from a filled meal', () => {
+    renderMealSlot(makeMeal([makeItem({ id: 1, buffet_role: 'buffet-bread' })], { meal_type: 'lunch' }));
+    openDetails();
+    fireEvent.click(screen.getByText('Im Buffet-Builder bearbeiten'));
+    expect(screen.getByTestId('buffet-builder-open')).toBeInTheDocument();
   });
 });
