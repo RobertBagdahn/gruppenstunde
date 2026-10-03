@@ -5,7 +5,7 @@ import math
 from typing import cast
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -190,7 +190,9 @@ def list_ingredients(
 ):
     """List ingredients with pagination, filters, and ordering.
 
-    ``sort`` (newest, oldest, name_asc, name_desc) is the list page's order;
+    ``sort`` (relevance, newest, oldest, name_asc, name_desc) is the list page's order;
+    ``relevance`` ranks name matches (exact, prefix, word start, substring) before
+    alias/group matches and falls back to popularity;
     ``ordering`` keeps the price/nutrition orders of the search dialogs.
     ``origin=mine`` limits the list to the user's own ingredients.
     """
@@ -232,7 +234,18 @@ def list_ingredients(
 
     # ``-id`` as last key keeps paging stable when values tie.
     ordering = ordering or sort
-    if ordering in ordering_map:
+    if name and ordering in ("", "relevance"):
+        qs = qs.annotate(
+            match_rank=Case(
+                When(name__iexact=name, then=Value(0)),
+                When(name__istartswith=name, then=Value(1)),
+                When(name__icontains=f" {name}", then=Value(2)),
+                When(name__icontains=name, then=Value(3)),
+                default=Value(4),
+                output_field=IntegerField(),
+            )
+        ).order_by("match_rank", "-usage_count", "-id")
+    elif ordering in ordering_map:
         qs = qs.order_by(ordering_map[ordering], "-id")
     else:
         qs = qs.order_by("-usage_count", "-id")

@@ -801,6 +801,7 @@ class ShoppingPackageOptionOut(Schema):
     count: int
     package_name: str
     weight_g: float
+    volume_ml: float | None = None
 
 
 class ShoppingListItemOut(Schema):

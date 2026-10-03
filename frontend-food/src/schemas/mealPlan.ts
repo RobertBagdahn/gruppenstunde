@@ -330,6 +330,7 @@ export const ShoppingPackageOptionSchema = z.object({
   count: z.number(),
   package_name: z.string(),
   weight_g: z.number(),
+  volume_ml: z.number().nullish(),
 });
 export type ShoppingPackageOption = z.infer<typeof ShoppingPackageOptionSchema>;
 
@@ -758,11 +759,12 @@ function parseTimeToMinutes(datetimeStr: string): number {
 }
 
 /**
- * Sum of day_part_factors for meals on a day.
+ * Sum of day_part_factors for meals on a day that actually have content
+ * (dishes or an external meal); empty slots do not count as planned.
  * NOT capped: values > 1.0 represent overplanning and must stay visible.
  */
 export function getDayCoverage(meals: Meal[]): number {
-  return meals.reduce((sum, m) => sum + m.day_part_factor, 0);
+  return meals.reduce((sum, m) => (m.is_external || m.items.length > 0 ? sum + m.day_part_factor : sum), 0);
 }
 
 /**

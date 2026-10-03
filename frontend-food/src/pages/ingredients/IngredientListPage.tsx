@@ -17,14 +17,16 @@ import { parseIngredientStatus } from '@/lib/ingredientStatus';
 import { Icon } from '@/components/ui/icon';
 
 const SORT_OPTIONS: { value: (typeof INGREDIENT_SORT_VALUES)[number]; label: string }[] = [
+  { value: 'relevance', label: 'Relevanz' },
   { value: 'newest', label: 'Neueste' },
   { value: 'oldest', label: 'Älteste' },
   { value: 'name_asc', label: 'Name A-Z' },
   { value: 'name_desc', label: 'Name Z-A' },
 ];
 
-const INGREDIENT_LIST_DEFAULTS = { sort: 'newest', page: 1 } as const;
-const PERSIST_EXCLUDE = ['page'] as const;
+const INGREDIENT_LIST_DEFAULTS = { sort: 'relevance', page: 1 } as const;
+// The search text stays URL-only: restoring it silently led to empty lists.
+const PERSIST_EXCLUDE = ['q', 'page'] as const;
 const COUNT_EXCLUDE = ['page'] as const;
 
 export default function IngredientListPage() {
@@ -36,7 +38,7 @@ export default function IngredientListPage() {
     persistExclude: PERSIST_EXCLUDE,
     countExclude: COUNT_EXCLUDE,
   });
-  const { name, retail_section: retailSection, status, origin, sort, page } = state;
+  const { q: name, retail_section: retailSection, status, origin, sort, page } = state;
 
   const { data, isLoading, error, refetch } = useIngredients({
     page,
@@ -52,7 +54,7 @@ export default function IngredientListPage() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const search = useDebouncedSearchInput(name ?? '', (value) => {
-    patch({ name: value || undefined, page: undefined }, { replace: true });
+    patch({ q: value || undefined, page: undefined }, { replace: true });
   });
 
   const handleFilterChange = useCallback((key: string, value: unknown) => {

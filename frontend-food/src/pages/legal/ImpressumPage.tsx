@@ -23,7 +23,7 @@ export default function ImpressumPage() {
       <section className="container py-12 md:py-16">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <h3 className="text-section font-display font-bold text-foreground">Angaben gemäß § 5 TMG</h3>
+            <h3 className="text-section font-display font-bold text-foreground">Angaben gemäß § 5 DDG</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Robert Bagdahn<br />
               Rautenstrauchstr. 93<br />
@@ -45,7 +45,7 @@ export default function ImpressumPage() {
 
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
             <h3 className="text-section font-display font-bold text-foreground">
-              Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV
+              Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
             </h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Robert Bagdahn<br />
@@ -57,8 +57,8 @@ export default function ImpressumPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
             <h3 className="text-section font-display font-bold text-foreground">Haftung für Inhalte</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten
-              nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als
+              Als Diensteanbieter sind wir gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten
+              nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG sind wir als
               Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde
               Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige
               Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von

@@ -288,7 +288,9 @@ class TestShoppingPackagesAndLiquids:
         self._package(ing, package_g)
         [item] = generate_shopping_list(self._plan_with(ing, total_g / 10))
         assert item.total_quantity_g == pytest.approx(total_g)
-        assert item.package_options == [{"count": count, "package_name": "Packung", "weight_g": package_g}]
+        assert item.package_options == [
+            {"count": count, "package_name": "Packung", "weight_g": package_g, "volume_ml": None}
+        ]
         assert item.package_surplus_g == pytest.approx(surplus)
 
     def test_no_package_means_no_options(self):

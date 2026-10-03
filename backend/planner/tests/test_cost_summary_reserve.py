@@ -98,7 +98,8 @@ class TestMealPlanCostSummaryAPI:
         assert float(data["total_cost"]) == pytest.approx(170.0)
         assert data["days"][0]["meals"][0]["is_external"] is True
 
-    def test_cost_summary_uses_weighted_effective_portions(self):
+    def test_cost_summary_per_person_sums_per_meal_costs(self):
+        """Cost per person is the sum of each meal's cost per person, not a per-meal average."""
         plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.0)
         first_meal = make_meal(meal_plan=plan, meal_type="lunch")
         second_meal = make_meal(meal_plan=plan, meal_type="dinner", override_portions=20)
@@ -111,7 +112,10 @@ class TestMealPlanCostSummaryAPI:
         resp = self.client.get(f"/api/meal-plans/{plan.id}/costs/")
 
         assert resp.status_code == 200
-        assert float(resp.json()["cost_per_person"]) == pytest.approx(50 / 30)
+        data = resp.json()
+        # lunch: 10 EUR / 10 persons = 1.00; dinner: 40 EUR / 20 persons = 2.00
+        assert float(data["cost_per_person"]) == pytest.approx(3.0)
+        assert float(data["days"][0]["cost_per_person"]) == pytest.approx(3.0)
 
     def test_cost_summary_standalone_matches_shopping_list(self):
         """Cost summary and shopping list totals should match for same data."""
@@ -152,6 +156,6 @@ class TestMealPlanCostSummaryAPI:
         shop_total = sum(item.get("estimated_price_eur", 0) or 0 for item in shop_data)
 
         # With reserve_factor=1.0 both should match
-        assert float(cost_data["total_cost_with_reserve"]) == pytest.approx(shop_total, abs=0.01), (
-            f"Cost summary (with reserve): {cost_data['total_cost_with_reserve']}, Shopping list total: {shop_total}"
-        )
+        assert float(cost_data["total_cost_with_reserve"]) == pytest.approx(
+            shop_total, abs=0.01
+        ), f"Cost summary (with reserve): {cost_data['total_cost_with_reserve']}, Shopping list total: {shop_total}"

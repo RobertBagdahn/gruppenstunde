@@ -21,11 +21,16 @@ import { useLoginPrompt } from '@/store/loginPromptStore';
 const PRIVATE_PREFIXES = ['/profile', '/admin', '/recipes/my-recipes', '/recipes/folders', '/shopping-lists/'];
 
 export default function UserMenu() {
-  const { data: user } = useCurrentUser();
+  const { data: user, isLoading } = useCurrentUser();
   const logout = useLogout();
   const showLogin = useLoginPrompt((state) => state.show);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Do not flash "Anmelden" for logged-in users while the session is still loading.
+  if (isLoading) {
+    return <div className="h-9 w-28 animate-pulse rounded-lg bg-muted" aria-hidden="true" />;
+  }
 
   if (!user) {
     return (

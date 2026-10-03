@@ -1,25 +1,43 @@
 """Food Dashboard API — aggregated statistics for the homepage."""
 
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from ninja import Router
 
+from content.services.food_access import public_meal_plan_q, visible_ingredient_queryset, visible_recipe_queryset
 from planner.models import MealPlan
 from planner.models.meal_plan import Meal
 from recipe.models import Recipe
 from recipe.schemas.dashboard import DashboardInsightsOut, FoodDashboardOut, RecipeInsightOut
 from shopping.models import ShoppingList
-from supply.models import Ingredient
 
 router = Router(tags=["dashboard"])
 
 
 @router.get("/food/dashboard/", response=FoodDashboardOut)
 def get_food_dashboard(request) -> FoodDashboardOut:
-    """Public endpoint returning aggregated food module statistics."""
-    recipe_count = Recipe.objects.filter(status="approved").count()
-    ingredient_count = Ingredient.objects.count()
-    meal_plan_count = MealPlan.objects.count()
-    shopping_list_count = ShoppingList.objects.count()
+    """Public endpoint returning aggregated food module statistics.
+
+    The tile counts match what the visitor sees in the respective lists: only
+    visible recipes/ingredients, accessible meal plans and the visitor's own
+    shopping lists (anonymous visitors have none).
+    """
+    user = request.user
+    recipe_count = visible_recipe_queryset(user).count()
+    ingredient_count = visible_ingredient_queryset(user).count()
+    if not user.is_authenticated:
+        meal_plans = MealPlan.objects.filter(public_meal_plan_q())
+        shopping_list_count = 0
+    else:
+        if user.is_staff:
+            meal_plans = MealPlan.objects.all()
+        else:
+            meal_plans = MealPlan.objects.filter(
+                Q(created_by=user) | Q(collaborators__user=user) | public_meal_plan_q()
+            ).distinct()
+        shopping_list_count = (
+            ShoppingList.objects.filter(Q(owner=user) | Q(collaborators__user=user)).distinct().count()
+        )
+    meal_plan_count = meal_plans.count()
 
     # Insights
     avg_ingredients = (

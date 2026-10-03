@@ -55,3 +55,32 @@ class TestIngredientListSort:
 
         assert _names(client, "origin=mine") == ["Meins"]
         assert Ingredient.objects.count() == 3
+
+
+@pytest.mark.django_db
+class TestIngredientListRelevance:
+    def test_search_ranks_exact_and_prefix_matches_before_substring(self, client: Client, signed_in):
+        make_ingredient(name="Kuhmilch", status="verified", usage_count=100)
+        make_ingredient(name="Milchreis", status="verified", usage_count=5)
+        make_ingredient(name="Milch", status="verified", usage_count=1)
+
+        assert _names(client, "name=milch&sort=relevance") == ["Milch", "Milchreis", "Kuhmilch"]
+        # Without an explicit sort the search is relevance-ordered as well.
+        assert _names(client, "name=milch")[0] == "Milch"
+
+
+@pytest.mark.django_db
+class TestIngredientRankings:
+    def test_rankings_include_section_and_nutri_class_and_skip_impossible_values(self, client: Client):
+        section = baker.make("supply.RetailSection", name="Süßwaren")
+        make_ingredient(name="Zucker", status="verified", sugar_g=99.8, nutri_class=5, retail_section=section)
+        make_ingredient(name="Fehlerhaft", status="verified", sugar_g=2500)
+
+        response = client.get("/api/ingredient-statistics/rankings/?field=sugar_g")
+
+        assert response.status_code == 200, response.content
+        data = response.json()
+        assert [item["name"] for item in data["top"]] == ["Zucker"]
+        assert data["top"][0]["retail_section_name"] == "Süßwaren"
+        assert data["top"][0]["nutri_class"] == 5
+        assert data["count"] == 1

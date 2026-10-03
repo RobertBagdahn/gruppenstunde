@@ -336,7 +336,7 @@ export function PriceRow({
         />
       </div>
       <span className="text-caption font-semibold text-warning w-16 text-right">
-        {formatNumber(item.price_eur, { maxDecimals: 2 })} EUR
+        {formatNumber(item.price_eur, { maxDecimals: 2 })} €
       </span>
     </div>
   );

@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="border-t border-border/60 bg-white/80 backdrop-blur-xl">
       <div className="container flex items-center justify-between h-12 md:h-14 px-4">
         <p className="text-caption text-muted-foreground">
-          &copy; {new Date().getFullYear()} Gruppenstunde.de
+          &copy; {new Date().getFullYear()} essensplan.app
         </p>
         <nav className="flex items-center gap-4">
           <Link

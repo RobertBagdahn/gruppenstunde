@@ -66,9 +66,6 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
   const effectiveMax = Math.max(max, currentValue > 0 ? currentValue : max);
   const range = effectiveMax - effectiveMin;
   const positionPercent = range > 0 ? ((currentValue - effectiveMin) / range) * 100 : 50;
-  const percentile = range > 0
-    ? Math.round(((currentValue - effectiveMin) / range) * 100)
-    : 50;
 
   const formatVal = (v: number) =>
     metric === 'price' ? `${formatNumber(v, { maxDecimals: 2 })} ${cfg.unit}` : `${Math.round(v)} ${cfg.unit}`;
@@ -114,7 +111,7 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
 
       <p className="text-caption text-muted-foreground text-center">
         <span className="font-semibold text-foreground">{label}</span>
-        {' '}als geschätzt {percentile}% der {typeLabel}-Rezepte
+        {' '}als der Durchschnitt der {typeLabel}-Rezepte (Ø {formatVal(avg)})
       </p>
     </div>
   );
