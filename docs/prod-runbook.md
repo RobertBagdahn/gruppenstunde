@@ -132,11 +132,11 @@ keine der simulierten Änderungen wurde persistiert.
 
 ### Deployment und Seed
 
-- Merge/Push auf `main`: Commit `287fb870` (`docs(prod): record buffet release preflight`; Feature-Commit `c2076fdb`).
+- Merge/Push auf `main`: Commit `b1e2ab54` (`docs(prod): record buffet deployment`); Feature-Commit `c2076fdb`, Preflight-Dokumentation `287fb870`.
 - Backend: `inspi-backend-00075-t7w`; Migration-Job `inspi-migrate-f8wt5` erfolgreich.
 - Food-Frontend: `inspi-frontend-food-00070-qwv`.
 - Template-Seed mit `--apply`: 18 Vorlagen angelegt, 3 vorhandene beibehalten; anschließend 21 Standardvorlagen samt Rollen verifiziert.
-- Smoke-Checks: Backend-API-Doku, Food-Frontend und Buffet-Suche antworteten mit HTTP 200; Vorlagen für `drinks` enthalten `drinks-bar` und `free`.
+- Smoke-Checks: Backend-API-Doku, Food-Frontend und Buffet-Suche antworteten mit HTTP 200. `/api/meal-plans/buffet-templates/?meal_type=drinks` liefert `drinks-bar` und `free`; `template=free` liefert 19 Rollen einschließlich `buffet-drink`; eine anonyme Anfrage an den staff-only Datenqualitätsbericht wird mit HTTP 401 abgewiesen.
 
 `migrate_buffet_roles --apply` wurde **nicht** ausgeführt: Der Dry-Run zeigte 0 geplante Änderungen und 8 übersprungene veraltete Zeilen. Diese Einträge sowie die weiteren Dubletten-Kandidaten bleiben ungeändert und benötigen eine aktualisierte Zuordnung sowie einen neuen Dry-Run vor einem separaten Mapping-Apply. Die Proposal-UI führt selbst keine Katalogänderungen aus.
 
