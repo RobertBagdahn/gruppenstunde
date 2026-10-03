@@ -129,3 +129,14 @@ def test_command_dry_run_does_not_write():
     recipe.refresh_from_db()
     assert recipe.summary.startswith("Importiert aus Cooklang")
     assert recipe.description == "#Pfanne nutzen."
+
+
+@pytest.mark.django_db
+def test_empty_summary_is_filled():
+    recipe = make_recipe(summary="")
+    resp = _response({"items": [{"id": recipe.id, "summary": "Einfaches Gericht für die Gruppe."}]})
+    with patch.object(repair, "gemini_call", return_value=(resp, "x")):
+        result = repair.fix_placeholder_summaries(ids=None, apply=True)
+    recipe.refresh_from_db()
+    assert result.changed == 1
+    assert recipe.summary == "Einfaches Gericht für die Gruppe."

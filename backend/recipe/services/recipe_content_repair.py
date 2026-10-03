@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from pydantic import BaseModel, Field
 
 from content.choices import ContentStatus
@@ -125,7 +125,7 @@ def clean_cooklang_markers(*, ids: list[int] | None, apply: bool) -> RecipeBulkR
 
 
 def placeholder_summary_recipes(ids: list[int] | None = None) -> list[Recipe]:
-    queryset = _active_recipes().filter(summary__startswith=PLACEHOLDER_SUMMARY_PREFIX)
+    queryset = _active_recipes().filter(Q(summary__startswith=PLACEHOLDER_SUMMARY_PREFIX) | Q(summary=""))
     if ids:
         queryset = queryset.filter(id__in=ids)
     return list(queryset.prefetch_related("recipe_items__portion__ingredient").order_by("id"))
@@ -154,7 +154,7 @@ REZEPTE
 def fix_placeholder_summaries(
     *, ids: list[int] | None, apply: bool, user: Any | None = None, bypass_limits: bool = True
 ) -> RecipeBulkResult:
-    """Replace "Importiert aus Cooklang (…)" summaries with AI-written short descriptions."""
+    """Replace "Importiert aus Cooklang (…)" and empty summaries with AI-written short descriptions."""
     result = RecipeBulkResult()
     for batch in _batches(placeholder_summary_recipes(ids)):
         try:
@@ -322,7 +322,9 @@ def content_defect_counts() -> dict[str, int]:
     """Counts of recipes that still show each defect (for dry-run reporting)."""
     active = _active_recipes()
     return {
-        "placeholder_summaries": active.filter(summary__startswith=PLACEHOLDER_SUMMARY_PREFIX).count(),
+        "placeholder_summaries": active.filter(
+            Q(summary__startswith=PLACEHOLDER_SUMMARY_PREFIX) | Q(summary="")
+        ).count(),
         "without_steps": active.annotate(n=Count("steps")).filter(n=0).count(),
         "without_tags": active.annotate(n=Count("tags")).filter(n=0).count(),
     }
