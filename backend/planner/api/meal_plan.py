@@ -1103,8 +1103,22 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
     check_duplicates_in_input(payload.items)
 
     with transaction.atomic():
-        meal.items.all().delete()
+        if payload.manual_items_policy == "preserve":
+            managed_ids = set(payload.managed_item_ids)
+            meal.items.filter(Q(id__in=managed_ids) | Q(is_breakfast_assistant=True) | ~Q(buffet_role="")).delete()
+        else:
+            meal.items.all().delete()
 
+        existing_ingredient_ids = (
+            set(meal.items.filter(ingredient_id__isnull=False, buffet_role="").values_list("ingredient_id", flat=True))
+            if payload.manual_items_policy == "preserve"
+            else set()
+        )
+        existing_recipe_ids = (
+            set(meal.items.filter(recipe_id__isnull=False).values_list("recipe_id", flat=True))
+            if payload.manual_items_policy == "preserve"
+            else set()
+        )
         created_items = []
         for item_in in payload.items:
             recipe = None
@@ -1125,6 +1139,11 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
 
             _require_defined_unit(ingredient, item_in.measuring_unit_id)
 
+            if payload.manual_items_policy == "preserve" and (
+                item_in.ingredient_id in existing_ingredient_ids or item_in.recipe_id in existing_recipe_ids
+            ):
+                continue
+
             created_items.append(
                 _create_meal_item(
                     meal=meal,
@@ -1134,8 +1153,15 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
                     measuring_unit_id=item_in.measuring_unit_id,
                     display_name=item_in.display_name,
                     factor=item_in.factor,
+                    is_breakfast_assistant=meal.meal_type == "breakfast",
                 )
             )
+
+        if meal.meal_type == "breakfast":
+            meal.breakfast_profile = payload.breakfast_profile or ""
+            meal.buffet_template = None
+            meal.buffet_role_amounts = {}
+            meal.save(update_fields=["breakfast_profile", "buffet_template", "buffet_role_amounts"])
 
     from planner.services.quantity_plausibility import check
 
@@ -1187,8 +1213,27 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
 
     with transaction.atomic():
         for meal in meals:
-            meal.items.all().delete()
+            if payload.manual_items_policy == "preserve":
+                managed_ids = set(payload.managed_item_ids_by_meal.get(meal.id, []))
+                meal.items.filter(Q(id__in=managed_ids) | Q(is_breakfast_assistant=True) | ~Q(buffet_role="")).delete()
+                existing_ingredient_ids = set(
+                    meal.items.filter(ingredient_id__isnull=False, buffet_role="").values_list(
+                        "ingredient_id", flat=True
+                    )
+                )
+                existing_recipe_ids = set(
+                    meal.items.filter(recipe_id__isnull=False).values_list("recipe_id", flat=True)
+                )
+            else:
+                meal.items.all().delete()
+                existing_ingredient_ids = set()
+                existing_recipe_ids = set()
+
             for item_in, recipe, ingredient in resolved_items:
+                if payload.manual_items_policy == "preserve" and (
+                    item_in.ingredient_id in existing_ingredient_ids or item_in.recipe_id in existing_recipe_ids
+                ):
+                    continue
                 _create_meal_item(
                     meal=meal,
                     recipe=recipe,
@@ -1197,7 +1242,12 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
                     measuring_unit_id=item_in.measuring_unit_id,
                     display_name=item_in.display_name,
                     factor=item_in.factor,
+                    is_breakfast_assistant=True,
                 )
+            meal.breakfast_profile = payload.breakfast_profile or ""
+            meal.buffet_template = None
+            meal.buffet_role_amounts = {}
+            meal.save(update_fields=["breakfast_profile", "buffet_template", "buffet_role_amounts"])
     from planner.services.quantity_plausibility import check_meals
 
     return {

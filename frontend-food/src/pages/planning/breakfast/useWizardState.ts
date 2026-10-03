@@ -15,10 +15,11 @@ import {
 } from '@/schemas/breakfast';
 import { rebalanceShares } from '@/lib/breakfastCalc';
 
-export type WizardStep = 'basis' | 'fett' | 'belag' | 'extras' | 'getraenke' | 'cockpit';
+export type WizardStep = 'preset' | 'basis' | 'fett' | 'belag' | 'extras' | 'getraenke' | 'cockpit';
 export type UseWizardStateReturn = ReturnType<typeof useWizardState>;
 
 export const WIZARD_STEPS: WizardStep[] = [
+  'preset',
   'basis',
   'fett',
   'belag',
@@ -28,6 +29,7 @@ export const WIZARD_STEPS: WizardStep[] = [
 ];
 
 export const STEP_LABELS: Record<WizardStep, string> = {
+  preset: 'Frühstück wählen',
   basis: 'Basis',
   fett: 'Streichfett',
   belag: 'Belag',
@@ -47,12 +49,12 @@ export interface CreateModalState {
   error: string | null;
 }
 
-export function useWizardState(initialState?: Partial<WizardState>) {
+export function useWizardState(initialState?: Partial<WizardState>, initialStep: WizardStep = 'preset') {
   const [state, setState] = useState<WizardState>({
     ...defaultWizardState(),
     ...initialState,
   });
-  const [step, setStep] = useState<WizardStep>('basis');
+  const [step, setStep] = useState<WizardStep>(initialStep);
 
   useEffect(() => {
     if (initialState) {

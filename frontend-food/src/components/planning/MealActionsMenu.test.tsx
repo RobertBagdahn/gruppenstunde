@@ -25,6 +25,8 @@ describe('MealActionsMenu', () => {
     is_reference: false,
     ref_meal_id: null,
     is_synced: false,
+    buffet_template_id: null,
+    breakfast_profile: '',
     note: '',
     note_is_published: false,
     total_energy_kcal: 500,
@@ -33,7 +35,7 @@ describe('MealActionsMenu', () => {
     items: [],
   };
 
-  it('opens the buffet builder when Buffetassistent is clicked', async () => {
+  it('offers the Frühstücksassistent for breakfast meals', async () => {
     const onOpenBuffetBuilder = vi.fn();
     render(
       <MealActionsMenu
@@ -51,8 +53,8 @@ describe('MealActionsMenu', () => {
     const trigger = screen.getByRole('button');
     fireEvent.pointerDown(trigger);
 
-    // Find and click Buffetassistent
-    const wizardItem = await screen.findByText('Buffetassistent');
+    // Find and click the breakfast wizard action
+    const wizardItem = await screen.findByText('Frühstücksassistent');
     expect(wizardItem).toBeInTheDocument();
     fireEvent.click(wizardItem);
 

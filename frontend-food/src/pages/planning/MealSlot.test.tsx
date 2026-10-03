@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { MealSlot } from './MealSlot';
 import type { Meal, MealItem } from '@/schemas/mealPlan';
 
+const { mockNavigate } = vi.hoisted(() => ({ mockNavigate: vi.fn() }));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return { ...actual, useParams: () => ({ id: '1' }) };
+  return { ...actual, useParams: () => ({ id: '1' }), useNavigate: () => mockNavigate };
 });
 
 vi.mock('@/api/mealPlans', () => ({
@@ -49,6 +51,7 @@ function makeItem(overrides: Partial<MealItem> = {}): MealItem {
     has_missing_weight: false,
     is_per_norm_person: true,
     buffet_role: '',
+    is_breakfast_assistant: false,
     warnings: [],
     ...overrides,
   };
@@ -69,6 +72,7 @@ function makeMeal(items: MealItem[], overrides: Partial<Meal> = {}): Meal {
     ref_meal_id: null,
     is_synced: false,
     buffet_template_id: null,
+    breakfast_profile: '',
     is_external: false,
     external_energy_kcal: null,
     external_cost_per_person: null,
@@ -204,6 +208,15 @@ describe('MealSlot energy status', () => {
 });
 
 describe('MealSlot buffet builder trigger', () => {
+  beforeEach(() => mockNavigate.mockClear());
+
+  it('opens the breakfast wizard from an empty breakfast meal', () => {
+    renderMealSlot(makeMeal([], { meal_type: 'breakfast' }));
+    fireEvent.click(screen.getByText('Frühstücksassistent starten'));
+    expect(mockNavigate).toHaveBeenCalledWith('/meal-plans/1/meals/5/breakfast-wizard');
+    expect(screen.queryByTestId('buffet-builder-open')).not.toBeInTheDocument();
+  });
+
   it('opens the buffet builder from an empty meal (regression: dialog was not rendered)', () => {
     renderMealSlot(makeMeal([], { meal_type: 'snack' }));
     expect(screen.queryByTestId('buffet-builder-open')).not.toBeInTheDocument();

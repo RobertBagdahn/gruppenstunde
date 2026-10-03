@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { BuffetBuilder } from './BuffetBuilder';
 import {
   useBuffetTemplates,
@@ -55,8 +55,8 @@ function makeCatalog(overrides: Partial<BuffetCatalog> = {}): BuffetCatalog {
         unit: 'g',
         enabled_by_default: true,
         items: [
-          { kind: 'ingredient', id: 10, name: 'Baguette', default_selected: true, energy_kcal_per_100g: 250, price_per_kg: 3 },
-          { kind: 'ingredient', id: 11, name: 'Ciabatta', default_selected: false, energy_kcal_per_100g: 260, price_per_kg: 3.5 },
+          { kind: 'ingredient', id: 10, name: 'Baguette', is_favorite: true, is_template_default: true, role_slugs: ['buffet-bread'], default_selected: true, energy_kcal_per_100g: 250, price_per_kg: 3 },
+          { kind: 'ingredient', id: 11, name: 'Ciabatta', is_favorite: true, is_template_default: false, role_slugs: ['buffet-bread'], default_selected: false, energy_kcal_per_100g: 260, price_per_kg: 3.5 },
         ],
       },
       {
@@ -65,7 +65,7 @@ function makeCatalog(overrides: Partial<BuffetCatalog> = {}): BuffetCatalog {
         unit: 'g',
         enabled_by_default: false,
         items: [
-          { kind: 'ingredient', id: 20, name: 'Nutella', default_selected: false, energy_kcal_per_100g: 540, price_per_kg: 8 },
+          { kind: 'ingredient', id: 20, name: 'Nutella', is_favorite: true, is_template_default: false, role_slugs: ['buffet-sweet'], default_selected: false, energy_kcal_per_100g: 540, price_per_kg: 8 },
         ],
       },
     ],
@@ -73,7 +73,7 @@ function makeCatalog(overrides: Partial<BuffetCatalog> = {}): BuffetCatalog {
   };
 }
 
-const emptyState: BuffetState = { template_id: null, selections: [], role_amounts: {} };
+const emptyState: BuffetState = { template_id: null, selections: [], role_amounts: {}, manual_item_count: 0 };
 
 function makeResult(overrides: Partial<BuffetResult> = {}): BuffetResult {
   return {
@@ -137,19 +137,25 @@ function renderBuilder(props: Partial<Parameters<typeof BuffetBuilder>[0]> = {})
   );
 }
 
+function choosePreset(name = 'Belegte Baguettes') {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(name) }));
+}
+
 describe('BuffetBuilder', () => {
   it('preselects the template for the meal type and shows its roles with default items checked', () => {
     renderBuilder();
+    choosePreset();
 
     expect(screen.getByText('Brot & Gebäck')).toBeInTheDocument();
     expect(screen.getByText('Belag süß')).toBeInTheDocument();
     // enabled_by_default role starts expanded with its default item selected
-    const baguetteChip = screen.getByText('Baguette').closest('button');
+    const baguetteChip = within(screen.getByTestId('buffet-role-buffet-bread')).getByRole('button', { name: /Baguette/ });
     expect(baguetteChip).toHaveClass('border-primary');
   });
 
   it('collapses a role that is not enabled by default and has no selection', () => {
     renderBuilder();
+    choosePreset();
 
     // "Belag süß" is enabled_by_default: false -> collapsed, chips not shown
     expect(screen.queryByText('Nutella')).not.toBeInTheDocument();
@@ -157,6 +163,7 @@ describe('BuffetBuilder', () => {
 
   it('toggles item selection on click', () => {
     renderBuilder();
+    choosePreset();
 
     const ciabattaChip = screen.getByText('Ciabatta').closest('button')!;
     expect(ciabattaChip).not.toHaveClass('border-primary');
@@ -166,14 +173,42 @@ describe('BuffetBuilder', () => {
 
   it('sends a dry-run preview reflecting the current selection', async () => {
     renderBuilder();
+    choosePreset();
 
     await waitFor(() => expect(previewFn).toHaveBeenCalled());
     const lastCall = previewFn.mock.calls[previewFn.mock.calls.length - 1]?.[0];
     expect(lastCall.templateId).toBe(1);
-    expect(lastCall.selections).toEqual([{ role_slug: 'buffet-bread', ingredient_id: 10, recipe_id: null }]);
+    expect(lastCall.selections).toEqual([{ role_slug: 'buffet-bread', ingredient_id: 10, recipe_id: null, share_percent: 100 }]);
   });
 
-  it('shows no default selection when the template has none for a role', () => {
+  it('rebalances item shares and includes them in the preview request', async () => {
+    renderBuilder();
+    choosePreset();
+
+    const breadRole = within(screen.getByTestId('buffet-role-buffet-bread'));
+    fireEvent.click(breadRole.getByRole('button', { name: /Ciabatta/ }));
+
+    const baguetteSlider = breadRole.getByRole('slider', { name: 'Anteil für Baguette' });
+    const ciabattaSlider = breadRole.getByRole('slider', { name: 'Anteil für Ciabatta' });
+    expect(baguetteSlider).toHaveValue('50');
+    expect(ciabattaSlider).toHaveValue('50');
+
+    fireEvent.change(baguetteSlider, { target: { value: '70' } });
+    await waitFor(() => {
+      const lastCall = previewFn.mock.calls[previewFn.mock.calls.length - 1]?.[0];
+      expect(lastCall.selections).toEqual([
+        { role_slug: 'buffet-bread', ingredient_id: 10, recipe_id: null, share_percent: 70 },
+        { role_slug: 'buffet-bread', ingredient_id: 11, recipe_id: null, share_percent: 30 },
+      ]);
+    });
+
+    fireEvent.click(breadRole.getAllByTitle('Sperren')[0]);
+    fireEvent.change(ciabattaSlider, { target: { value: '50' } });
+    expect(baguetteSlider).toHaveValue('70');
+    expect(ciabattaSlider).toHaveValue('30');
+  });
+
+  it('preselects the first visible favorite when the template has no explicit default', () => {
     vi.mocked(useBuffetCatalog).mockReturnValue({
       data: makeCatalog({
         roles: [
@@ -182,7 +217,7 @@ describe('BuffetBuilder', () => {
             amount_per_person: 150,
             unit: 'g',
             enabled_by_default: true,
-            items: [{ kind: 'ingredient', id: 10, name: 'Baguette', default_selected: false }],
+            items: [{ kind: 'ingredient', id: 10, name: 'Baguette', is_favorite: true, is_template_default: false, role_slugs: ['buffet-bread'], default_selected: false }],
           },
         ],
       }),
@@ -190,9 +225,10 @@ describe('BuffetBuilder', () => {
     } as unknown as ReturnType<typeof useBuffetCatalog>);
 
     renderBuilder();
+    choosePreset();
 
-    const chip = screen.getByText('Baguette').closest('button');
-    expect(chip).not.toHaveClass('border-primary');
+    const chip = within(screen.getByTestId('buffet-role-buffet-bread')).getByRole('button', { name: /Baguette/ });
+    expect(chip).toHaveClass('border-primary');
   });
 
   it('always shows the search field for an expanded role', () => {
@@ -200,6 +236,9 @@ describe('BuffetBuilder', () => {
       kind: 'ingredient' as const,
       id: 100 + i,
       name: `Zutat ${i}`,
+      is_favorite: true,
+      is_template_default: false,
+      role_slugs: ['buffet-bread'],
       default_selected: false,
     }));
     vi.mocked(useBuffetCatalog).mockReturnValue({
@@ -218,6 +257,7 @@ describe('BuffetBuilder', () => {
     } as unknown as ReturnType<typeof useBuffetCatalog>);
 
     renderBuilder();
+    choosePreset();
 
     expect(screen.getByPlaceholderText('Weitere hinzufügen…')).toBeInTheDocument();
   });
@@ -231,6 +271,7 @@ describe('BuffetBuilder', () => {
           ingredient_id: 20,
           recipe_id: null,
           kind: 'ingredient',
+          share_percent: 100,
           name: 'Nutella',
           energy_kcal_per_100g: 540,
           price_per_kg: 8,
@@ -243,10 +284,10 @@ describe('BuffetBuilder', () => {
     renderBuilder();
 
     // The restored role is expanded (it has a selection) even though not enabled_by_default.
-    expect(screen.getByText('Nutella')).toBeInTheDocument();
-    const nutellaChip = screen.getByText('Nutella').closest('button');
+    const sweetRole = within(screen.getByTestId('buffet-role-buffet-sweet'));
+    const nutellaChip = sweetRole.getByRole('button', { name: /Nutella/ });
     expect(nutellaChip).toHaveClass('border-primary');
-    expect(screen.getByLabelText('Menge pro Person für Belag süß')).toHaveValue(35);
+    expect(sweetRole.getByRole('spinbutton', { name: 'Menge pro Person für Belag süß' })).toHaveValue(35);
   });
 
   it('restores a free selection that is no longer in the role catalog', () => {
@@ -258,6 +299,7 @@ describe('BuffetBuilder', () => {
           ingredient_id: 77,
           recipe_id: null,
           kind: 'ingredient',
+          share_percent: 100,
           name: 'Freie Tomaten',
           energy_kcal_per_100g: 18,
           price_per_kg: null,
@@ -269,9 +311,10 @@ describe('BuffetBuilder', () => {
 
     renderBuilder();
 
-    expect(screen.getByText('Freie Tomaten')).toBeInTheDocument();
-    expect(screen.getByText('Eigene')).toBeInTheDocument();
-    expect(screen.getByText('Freie Tomaten').closest('button')).toHaveAttribute('aria-pressed', 'true');
+    const breadRole = within(screen.getByTestId('buffet-role-buffet-bread'));
+    const freeTomatoes = breadRole.getByRole('button', { name: /Freie Tomaten/ });
+    expect(freeTomatoes).toHaveAttribute('aria-pressed', 'true');
+    expect(breadRole.getByText('Eigene')).toBeInTheDocument();
   });
 
   it('adds a visible search result as a free selection', async () => {
@@ -294,6 +337,7 @@ describe('BuffetBuilder', () => {
     } as unknown as ReturnType<typeof useBuffetCatalogSearch>);
 
     renderBuilder();
+    choosePreset();
     fireEvent.change(screen.getByPlaceholderText('Weitere hinzufügen…'), { target: { value: 'Cocktail' } });
 
     const result = await screen.findByText('Cocktailtomaten');
@@ -301,21 +345,55 @@ describe('BuffetBuilder', () => {
 
     await waitFor(() => {
       const call = previewFn.mock.calls[previewFn.mock.calls.length - 1]?.[0];
-      expect(call.selections).toContainEqual({ role_slug: 'buffet-bread', ingredient_id: 77, recipe_id: null });
+      expect(call.selections).toContainEqual({ role_slug: 'buffet-bread', ingredient_id: 77, recipe_id: null, share_percent: 50 });
     });
   });
 
   it('saves with the current selection and amounts', () => {
     renderBuilder();
+    choosePreset();
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
 
     fireEvent.click(screen.getByTestId('buffet-save'));
 
     expect(saveMutate).toHaveBeenCalledWith(
       {
         templateId: 1,
-        selections: [{ role_slug: 'buffet-bread', ingredient_id: 10, recipe_id: null }],
+        selections: [{ role_slug: 'buffet-bread', ingredient_id: 10, recipe_id: null, share_percent: 100 }],
         roleAmounts: { 'buffet-bread': 150 },
+        manualItemsPolicy: 'preserve',
       },
+      expect.anything(),
+    );
+  });
+
+  it('allows choosing to replace existing manual meal items before saving', () => {
+    vi.mocked(useBuffetState).mockReturnValue({
+      data: {
+        template_id: 1,
+        selections: [{
+          role_slug: 'buffet-bread',
+          ingredient_id: 10,
+          recipe_id: null,
+          kind: 'ingredient',
+          share_percent: 100,
+          name: 'Baguette',
+          energy_kcal_per_100g: 250,
+          price_per_kg: 3,
+          weight_per_serving_g: null,
+        }],
+        role_amounts: { 'buffet-bread': 150 },
+        manual_item_count: 2,
+      },
+    } as unknown as ReturnType<typeof useBuffetState>);
+
+    renderBuilder();
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
+    fireEvent.click(screen.getByLabelText('Manuelle Einträge durch das Buffet ersetzen'));
+    fireEvent.click(screen.getByTestId('buffet-save'));
+
+    expect(saveMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ manualItemsPolicy: 'replace' }),
       expect.anything(),
     );
   });
@@ -342,13 +420,44 @@ describe('BuffetBuilder', () => {
     } as unknown as ReturnType<typeof useBuffetCatalog>);
 
     renderBuilder({ mealType: 'snack' });
+    fireEvent.click(screen.getByTestId('buffet-free-preset'));
 
     await waitFor(() => expect(useBuffetCatalog).toHaveBeenLastCalledWith('free', { enabled: true }));
     expect(screen.getByText('Brot & Gebäck')).toBeInTheDocument();
     expect(screen.queryByText('Lade Buffet-Katalog…')).not.toBeInTheDocument();
   });
 
-  it('keeps breakfast as the preferred template mode', async () => {
+  it('shows at most six existing presets in configured order and keeps free separate', () => {
+    const snackTemplates: BuffetTemplate[] = Array.from({ length: 7 }, (_, index) => ({
+      id: 20 + index,
+      name: `Snack ${index + 1}`,
+      slug: `snack-${index + 1}`,
+      description: '',
+      meal_types: ['snack'],
+      sort_order: 7 - index,
+      roles: [],
+    }));
+    vi.mocked(useBuffetTemplates).mockReturnValue({
+      data: [
+        ...snackTemplates,
+        { id: 99, name: 'Freies Buffet', slug: 'free', description: '', meal_types: ['snack'], sort_order: 999, roles: [] },
+      ],
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useBuffetTemplates>);
+
+    renderBuilder({ mealType: 'snack' });
+
+    const featured = within(screen.getByTestId('buffet-featured-presets'));
+    expect(featured.getByRole('button', { name: /Snack 7/ })).toBeInTheDocument();
+    expect(featured.getByRole('button', { name: /Snack 2/ })).toBeInTheDocument();
+    expect(featured.queryByRole('button', { name: /Snack 1/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId('buffet-free-preset')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Weitere Vorlagen'));
+    expect(within(screen.getByTestId('buffet-other-presets')).getByRole('button', { name: /Snack 1/ })).toBeInTheDocument();
+  });
+
+  it('shows the breakfast preset first for the breakfast meal type', async () => {
     vi.mocked(useBuffetTemplates).mockReturnValue({
       data: [
         { ...breakfastTemplate, sort_order: 10 },
@@ -360,7 +469,8 @@ describe('BuffetBuilder', () => {
 
     renderBuilder({ mealType: 'breakfast' });
 
-    await waitFor(() => expect(useBuffetCatalog).toHaveBeenLastCalledWith('breakfast', { enabled: true }));
+    expect(screen.getByRole('button', { name: 'Frühstück' })).toBeInTheDocument();
+    expect(screen.getByTestId('buffet-free-preset')).toBeInTheDocument();
   });
 
   it('shows a retry state when template loading fails', () => {
@@ -389,7 +499,7 @@ describe('BuffetBuilder', () => {
 
     renderBuilder({ mealType: 'snack' });
 
-    expect(screen.getByText('Für diesen Mahlzeitentyp gibt es noch keine Buffet-Vorlage.')).toBeInTheDocument();
+    expect(screen.getByText('Für diesen Mahlzeitentyp gibt es noch keine hervorgehobene Vorlage.')).toBeInTheDocument();
     expect(screen.queryByText('Lade Buffet-Katalog…')).not.toBeInTheDocument();
   });
 
@@ -403,6 +513,7 @@ describe('BuffetBuilder', () => {
     } as unknown as ReturnType<typeof useBuffetPreview>);
 
     renderBuilder();
+    choosePreset();
 
     expect(screen.getByText(/bitte prüfen/)).toBeInTheDocument();
   });

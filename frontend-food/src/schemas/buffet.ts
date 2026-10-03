@@ -68,6 +68,9 @@ export const BuffetCatalogItemSchema = z.object({
   energy_kcal_per_100g: z.number().nullable().optional(),
   price_per_kg: z.number().nullable().optional(),
   weight_per_serving_g: z.number().nullable().optional(),
+  is_favorite: z.boolean().default(false),
+  is_template_default: z.boolean().default(false),
+  role_slugs: z.array(z.string()).default([]),
   default_selected: z.boolean().default(false),
 });
 export type BuffetCatalogItem = z.infer<typeof BuffetCatalogItemSchema>;
@@ -110,6 +113,7 @@ export const BuffetSelectionInSchema = z.object({
   role_slug: z.string(),
   ingredient_id: z.number().nullable().optional(),
   recipe_id: z.number().nullable().optional(),
+  share_percent: z.number().min(0).max(100).optional(),
 });
 export type BuffetSelectionIn = z.infer<typeof BuffetSelectionInSchema>;
 
@@ -117,12 +121,14 @@ export const BuffetSaveInSchema = z.object({
   template_id: z.number(),
   selections: z.array(BuffetSelectionInSchema).default([]),
   role_amounts: z.record(z.string(), z.number()).nullable().optional(),
+  manual_items_policy: z.enum(['preserve', 'replace']).default('preserve'),
   dry_run: z.boolean().default(false),
 });
 export type BuffetSaveIn = z.infer<typeof BuffetSaveInSchema>;
 
 export const BuffetResultItemSchema = z.object({
   role_slug: z.string(),
+  share_percent: z.number(),
   kind: z.enum(['ingredient', 'recipe']),
   id: z.number(),
   name: z.string(),
@@ -163,6 +169,7 @@ export type BuffetResult = z.infer<typeof BuffetResultSchema>;
 
 export const BuffetStateSelectionSchema = z.object({
   role_slug: z.string(),
+  share_percent: z.number(),
   ingredient_id: z.number().nullable().optional(),
   recipe_id: z.number().nullable().optional(),
   kind: z.enum(['ingredient', 'recipe']),
@@ -177,5 +184,6 @@ export const BuffetStateSchema = z.object({
   template_id: z.number().nullable().optional(),
   selections: z.array(BuffetStateSelectionSchema).default([]),
   role_amounts: z.record(z.string(), z.number()).default({}),
+  manual_item_count: z.number().default(0),
 });
 export type BuffetState = z.infer<typeof BuffetStateSchema>;

@@ -276,8 +276,12 @@ export function rebalanceShares<T extends { sharePercent: number; locked: boolea
   changedIndex: number,
   newValue: number,
 ): T[] {
+  const lockedTotalOther = items
+    .filter((item, index) => index !== changedIndex && item.locked)
+    .reduce((sum, item) => sum + item.sharePercent, 0);
+  const clampedValue = Math.max(0, Math.min(100 - lockedTotalOther, newValue));
   const updated = items.map((item, i) =>
-    i === changedIndex ? { ...item, sharePercent: newValue } : item,
+    i === changedIndex ? { ...item, sharePercent: clampedValue } : item,
   );
 
   const lockedTotal = updated

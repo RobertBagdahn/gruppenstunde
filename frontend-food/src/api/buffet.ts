@@ -132,6 +132,7 @@ export interface BuffetPreviewInput {
   templateId: number;
   selections: BuffetSaveIn['selections'];
   roleAmounts: BuffetSaveIn['role_amounts'];
+  manualItemsPolicy?: BuffetSaveIn['manual_items_policy'];
 }
 
 /**
@@ -160,6 +161,7 @@ export function useBuffetPreview(planId: number, mealId: number, delayMs = 300) 
                 template_id: input.templateId,
                 selections: input.selections,
                 role_amounts: input.roleAmounts,
+                manual_items_policy: input.manualItemsPolicy ?? 'preserve',
                 dry_run: true,
               },
               BuffetResultSchema,
@@ -211,6 +213,7 @@ export function useSaveBuffet(planId: number, mealId: number) {
         template_id: input.templateId,
         selections: input.selections,
         role_amounts: input.roleAmounts,
+        manual_items_policy: input.manualItemsPolicy ?? 'preserve',
         dry_run: false,
       });
       return postJson(`${MEAL_PLANS_BASE}/${planId}/meals/${mealId}/buffet/`, payload, BuffetResultSchema);

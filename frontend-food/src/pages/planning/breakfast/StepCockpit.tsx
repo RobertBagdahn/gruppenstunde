@@ -29,6 +29,9 @@ interface StepCockpitProps {
   breakfastMeals: Meal[];
   selectedBreakfastMealIds: number[];
   onSelectedBreakfastMealIdsChange: (ids: number[]) => void;
+  manualItemCount: number;
+  manualItemsPolicy: 'preserve' | 'replace';
+  onManualItemsPolicyChange: (policy: 'preserve' | 'replace') => void;
 }
 
 function kcalRow(kcal: number): string {
@@ -40,7 +43,20 @@ function gramsRow(g: number, portions?: BreakfastPortion[] | null): string {
   return formatGramsWithPortionHint(g, portions);
 }
 
-export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, planId, mealId, breakfastMeals, selectedBreakfastMealIds, onSelectedBreakfastMealIdsChange }: StepCockpitProps) {
+export default function StepCockpit({
+  wiz,
+  catalog,
+  dayPartFactor,
+  saveMode,
+  planId,
+  mealId,
+  breakfastMeals,
+  selectedBreakfastMealIds,
+  onSelectedBreakfastMealIdsChange,
+  manualItemCount,
+  manualItemsPolicy,
+  onManualItemsPolicyChange,
+}: StepCockpitProps) {
   const { state } = wiz;
   const scaleMutation = useScaleMealToTarget(planId);
 
@@ -117,6 +133,34 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
           </div>
           {selectedBreakfastMealIds.length === 0 && <p className="text-caption text-destructive">Bitte mindestens ein Frühstück auswählen.</p>}
         </div>
+      )}
+      {saveMode === 'directMeal' && manualItemCount > 0 && (
+        <fieldset className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <legend className="font-display font-semibold text-emphasis">Vorhandene manuelle Einträge</legend>
+          <p className="text-caption text-muted-foreground">
+            Für die ausgewählten Frühstücke gibt es {manualItemCount} eigene Einträge außerhalb des Assistenten.
+          </p>
+          <label className="flex items-start gap-2 text-body">
+            <input
+              type="radio"
+              name="manual-items-policy"
+              value="preserve"
+              checked={manualItemsPolicy === 'preserve'}
+              onChange={() => onManualItemsPolicyChange('preserve')}
+            />
+            <span>Eigene Einträge beibehalten</span>
+          </label>
+          <label className="flex items-start gap-2 text-body">
+            <input
+              type="radio"
+              name="manual-items-policy"
+              value="replace"
+              checked={manualItemsPolicy === 'replace'}
+              onChange={() => onManualItemsPolicyChange('replace')}
+            />
+            <span>Alle bisherigen Einträge durch dieses Frühstück ersetzen</span>
+          </label>
+        </fieldset>
       )}
       {/* SollIstBar */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">

@@ -50,6 +50,7 @@ class BuffetCatalogItem:
     obj: Any
     recipe_type: str | None = None
     is_favorite: bool = False
+    is_template_default: bool = False
     role_slugs: tuple[str, ...] = ()
 
 
@@ -158,22 +159,60 @@ def _catalog_item(kind: Literal["ingredient", "recipe"], obj: Any) -> BuffetCata
     )
 
 
-def items_for_role(user: Any, role_slug: str) -> list[BuffetCatalogItem]:
-    """Return the visible, non-alcoholic favorites for one role."""
+def items_for_role(
+    user: Any,
+    role_slug: str,
+    default_ids: set[tuple[Literal["ingredient", "recipe"], int]] | None = None,
+) -> list[BuffetCatalogItem]:
+    """Return visible role favorites plus visible template defaults."""
+    from content.services.food_access import visible_ingredient_queryset, visible_recipe_queryset
+
     items: list[BuffetCatalogItem] = []
+    seen: set[tuple[str, int]] = set()
     for ingredient in ingredients_for_role(user, role_slug):
         if is_alcoholic_item(ingredient, "ingredient"):
             continue
         item = _catalog_item("ingredient", ingredient)
         item.is_favorite = True
+        item.is_template_default = ("ingredient", item.id) in (default_ids or set())
         items.append(item)
+        seen.add((item.kind, item.id))
 
     for recipe in recipes_for_role(user, role_slug):
         if is_alcoholic_item(recipe, "recipe"):
             continue
         item = _catalog_item("recipe", recipe)
         item.is_favorite = True
+        item.is_template_default = ("recipe", item.id) in (default_ids or set())
         items.append(item)
+        seen.add((item.kind, item.id))
+
+    for kind, item_id in default_ids or set():
+        if (kind, item_id) in seen:
+            continue
+        if kind == "ingredient":
+            obj = (
+                visible_ingredient_queryset(user)
+                .filter(id=item_id)
+                .select_related("retail_section")
+                .prefetch_related("aliases", "tags")
+                .first()
+            )
+        elif kind == "recipe":
+            obj = (
+                visible_recipe_queryset(user)
+                .filter(id=item_id)
+                .prefetch_related("tags", "recipe_items__portion__ingredient__retail_section")
+                .first()
+            )
+        else:
+            continue
+        if obj is None or is_alcoholic_item(obj, kind):
+            continue
+        item = _catalog_item(kind, obj)
+        item.is_template_default = True
+        items.append(item)
+        seen.add((kind, item_id))
     return sorted(items, key=lambda item: (item.name.casefold(), item.kind, item.id))
 
 

@@ -228,6 +228,39 @@ export const WizardStateSchema = z.object({
 export type WizardState = z.infer<typeof WizardStateSchema>;
 
 // ============================================================================
+// Wizard item save requests (direct meal and bulk breakfast endpoints)
+// ============================================================================
+
+export const BreakfastProfileSlugSchema = z.enum(['muesli', 'bread-muesli', 'plant', 'vegetarian', 'meat']);
+export type BreakfastProfileSlug = z.infer<typeof BreakfastProfileSlugSchema>;
+
+export const WizardItemInSchema = z.object({
+  recipe_id: z.number().int().nullable().optional(),
+  ingredient_id: z.number().int().nullable().optional(),
+  quantity: z.number().nullable().optional(),
+  measuring_unit_id: z.number().int().nullable().optional(),
+  portion_id: z.number().int().nullable().optional(),
+  display_name: z.string().nullable().optional(),
+  factor: z.number().optional(),
+});
+export type WizardItemIn = z.infer<typeof WizardItemInSchema>;
+
+export const WizardItemsDirectInSchema = z.object({
+  items: z.array(WizardItemInSchema),
+  manual_items_policy: z.enum(['preserve', 'replace']).default('replace'),
+  managed_item_ids: z.array(z.number().int()).default([]),
+  breakfast_profile: BreakfastProfileSlugSchema.nullable().optional(),
+});
+
+export const WizardItemsBulkInSchema = z.object({
+  meal_ids: z.array(z.number().int()),
+  items: z.array(WizardItemInSchema),
+  manual_items_policy: z.enum(['preserve', 'replace']).default('replace'),
+  managed_item_ids_by_meal: z.record(z.string(), z.array(z.number().int())).default({}),
+  breakfast_profile: BreakfastProfileSlugSchema.nullable().optional(),
+});
+
+// ============================================================================
 // WizardItemsResponse (from batch endpoint)
 // ============================================================================
 

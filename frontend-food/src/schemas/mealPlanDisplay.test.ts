@@ -16,6 +16,7 @@ function meal(id: number, meal_type: string, start_datetime: string | null): Mea
     ref_meal_id: null,
     is_synced: false,
     buffet_template_id: null,
+    breakfast_profile: '',
     is_external: false,
     external_energy_kcal: null,
     external_cost_per_person: null,

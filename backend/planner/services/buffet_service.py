@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Any
 
 from django.db import transaction
+from django.db.models import QuerySet
 
 from planner.models import BuffetTemplate, BuffetUnitChoices, Meal, MealItem
 from planner.services.quantity_plausibility import QuantityWarning, check
@@ -24,16 +25,23 @@ class BuffetError(ValueError):
     """Invalid buffet selection (answered with 422)."""
 
 
+def breakfast_assistant_items(meal: Meal) -> QuerySet[MealItem]:
+    """Return meal items explicitly managed by the breakfast wizard."""
+    return meal.items.filter(is_breakfast_assistant=True)
+
+
 @dataclass
 class BuffetSelection:
     role_slug: str
     ingredient: Any | None = None
     recipe: Any | None = None
+    share_percent: float | None = None
 
 
 @dataclass
 class BuffetResultItem:
     role_slug: str
+    share_percent: float
     kind: str
     id: int
     name: str
@@ -113,16 +121,19 @@ def _recipe_values(recipe: Any, factor: float) -> tuple[float | None, float | No
 def validate_selections(template: BuffetTemplate, selections: list[BuffetSelection]) -> None:
     """Roles must belong to the template; visible items may be assigned freely once."""
     role_slugs = set(template.roles.values_list("role__slug", flat=True))
-    seen: set[tuple[str, int]] = set()
+    seen: set[tuple[str, str, int]] = set()
     for selection in selections:
         if selection.role_slug not in role_slugs:
             raise BuffetError(f"Die Rolle {selection.role_slug} gehört nicht zur Vorlage {template.name}.")
         obj = selection.ingredient or selection.recipe
         kind = "ingredient" if selection.ingredient is not None else "recipe"
         name = obj.name if kind == "ingredient" else obj.title
-        if (kind, obj.id) in seen:
-            raise BuffetError(f"{name} ist mehrfach ausgewählt.")
-        seen.add((kind, obj.id))
+        selection_key = (selection.role_slug, kind, obj.id)
+        if selection_key in seen:
+            raise BuffetError(f"{name} ist innerhalb der Rolle {selection.role_slug} mehrfach ausgewählt.")
+        seen.add(selection_key)
+        if selection.share_percent is not None and not 0 <= selection.share_percent <= 100:
+            raise BuffetError(f"Anteil für {name} muss zwischen 0 und 100 % liegen.")
 
 
 def _selection_name(selection: BuffetSelection) -> str:
@@ -174,6 +185,23 @@ def _buffet_quantity_warning(warning: QuantityWarning) -> BuffetWarning:
     )
 
 
+def _resolved_shares(selections: list[BuffetSelection]) -> list[float]:
+    shares = [selection.share_percent for selection in selections]
+    missing_count = sum(share is None for share in shares)
+    specified_total = sum(share or 0 for share in shares)
+    if missing_count == len(shares):
+        return [100 / len(shares)] * len(shares)
+    if missing_count:
+        remaining = 100 - specified_total
+        if remaining < -0.01:
+            raise BuffetError("Item-Anteile dürfen zusammen nicht über 100 % liegen.")
+        default_share = max(0.0, remaining) / missing_count
+        return [default_share if share is None else float(share) for share in shares]
+    if abs(specified_total - 100) > 0.01:
+        raise BuffetError("Item-Anteile einer Rolle müssen zusammen 100 % ergeben.")
+    return [float(share or 0) for share in shares]
+
+
 def _sum_if_complete(values: list[float | None]) -> float | None:
     if any(value is None for value in values):
         return None
@@ -185,6 +213,7 @@ def compute_buffet(
     selections: list[BuffetSelection],
     role_amounts: dict[str, float] | None,
     meal: Meal,
+    manual_items_policy: str = "preserve",
 ) -> BuffetResult:
     """Per-person amounts, totals, kcal, costs and warnings for a selection."""
     validate_selections(template, selections)
@@ -195,6 +224,15 @@ def compute_buffet(
         target_kcal_per_person=NORM_PERSON_DAILY_KCAL * meal.day_part_factor,
         warnings=_missing_data_warnings(selections),
     )
+    if manual_items_policy == "replace":
+        manual_count = meal.items.filter(buffet_role="", is_breakfast_assistant=False).count()
+        if manual_count:
+            result.warnings.append(
+                BuffetWarning(
+                    "manual_items_replace",
+                    f"Beim Speichern werden {manual_count} manuelle Mahlzeit-Einträge ersetzt.",
+                )
+            )
     kcal_values: list[float | None] = []
     cost_values: list[float | None] = []
 
@@ -208,13 +246,15 @@ def compute_buffet(
     for role_slug, role_selections in by_role.items():
         template_role = template_roles[role_slug]
         amount = float(role_amounts.get(role_slug, template_role.amount_per_person))
-        share = amount / len(role_selections)
-        for selection in role_selections:
+        shares = _resolved_shares(role_selections)
+        for selection, share_percent in zip(role_selections, shares, strict=True):
+            share = amount * share_percent / 100
             if selection.ingredient is not None:
                 ingredient = selection.ingredient
                 kcal, cost = _ingredient_values(ingredient, share, template_role.unit)
                 item = BuffetResultItem(
                     role_slug=role_slug,
+                    share_percent=round(share_percent, 4),
                     kind="ingredient",
                     id=ingredient.id,
                     name=ingredient.name,
@@ -232,15 +272,18 @@ def compute_buffet(
                         ingredient=ingredient,
                         quantity=Decimal(str(round(share, 2))),
                         measuring_unit=ml_unit if template_role.unit == BuffetUnitChoices.MILLILITER else grams_unit,
+                        buffet_role=role_slug,
+                        buffet_share_percent=round(share_percent, 4),
                     )
                 )
             else:
                 recipe = selection.recipe
                 serving_g = recipe_weight_per_serving_g(recipe)
-                factor = share / serving_g if serving_g else 1 / len(role_selections)
+                factor = share / serving_g if serving_g else share_percent / 100
                 kcal, cost = _recipe_values(recipe, factor)
                 item = BuffetResultItem(
                     role_slug=role_slug,
+                    share_percent=round(share_percent, 4),
                     kind="recipe",
                     id=recipe.id,
                     name=recipe.title,
@@ -268,22 +311,24 @@ def save_buffet(
     template: BuffetTemplate,
     selections: list[BuffetSelection],
     role_amounts: dict[str, float] | None,
+    manual_items_policy: str = "preserve",
 ) -> BuffetResult:
-    """Replace the meal's buffet items; other items stay untouched."""
-    result = compute_buffet(template, selections, role_amounts, meal)
+    """Replace buffet items and optionally replace manual meal entries."""
+    result = compute_buffet(template, selections, role_amounts, meal, manual_items_policy)
     grams_unit, ml_unit = gram_unit(), milliliter_unit()
     selection_by_key = {
-        ("ingredient" if s.ingredient is not None else "recipe", (s.ingredient or s.recipe).id): s for s in selections
+        (s.role_slug, "ingredient" if s.ingredient is not None else "recipe", (s.ingredient or s.recipe).id): s
+        for s in selections
     }
 
     with transaction.atomic():
+        breakfast_assistant_items(meal).delete()
         meal.items.exclude(buffet_role="").delete()
-        manual_ingredient_ids = set(meal.items.filter(ingredient__isnull=False).values_list("ingredient_id", flat=True))
+        if manual_items_policy == "replace":
+            meal.items.filter(buffet_role="").delete()
         for item in result.items:
-            selection = selection_by_key[(item.kind, item.id)]
+            selection = selection_by_key[(item.role_slug, item.kind, item.id)]
             if item.kind == "ingredient":
-                if item.id in manual_ingredient_ids:
-                    raise BuffetError(f"{item.name} ist bereits als eigener Eintrag in dieser Mahlzeit enthalten.")
                 MealItem.objects.create(
                     meal=meal,
                     ingredient=selection.ingredient,
@@ -291,6 +336,7 @@ def save_buffet(
                     measuring_unit=ml_unit if item.unit == BuffetUnitChoices.MILLILITER else grams_unit,
                     factor=1.0,
                     buffet_role=item.role_slug,
+                    buffet_share_percent=item.share_percent,
                 )
             else:
                 MealItem.objects.create(
@@ -298,10 +344,12 @@ def save_buffet(
                     recipe=selection.recipe,
                     factor=item.factor,
                     buffet_role=item.role_slug,
+                    buffet_share_percent=item.share_percent,
                 )
         meal.buffet_template = template
+        meal.breakfast_profile = ""
         meal.buffet_role_amounts = {slug: float(value) for slug, value in (role_amounts or {}).items()}
-        meal.save(update_fields=["buffet_template", "buffet_role_amounts"])
+        meal.save(update_fields=["buffet_template", "breakfast_profile", "buffet_role_amounts"])
 
     saved_items = (
         meal.items.exclude(buffet_role="")

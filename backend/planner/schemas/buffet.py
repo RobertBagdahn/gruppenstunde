@@ -59,6 +59,7 @@ class BuffetSelectionIn(Schema):
     role_slug: str = Field(min_length=1, max_length=50)
     ingredient_id: int | None = None
     recipe_id: int | None = None
+    share_percent: float | None = Field(default=None, ge=0, le=100)
 
     @model_validator(mode="after")
     def _exactly_one(self) -> "BuffetSelectionIn":
@@ -71,6 +72,7 @@ class BuffetSaveIn(Schema):
     template_id: int
     selections: list[BuffetSelectionIn] = []
     role_amounts: dict[str, float] | None = None
+    manual_items_policy: Literal["preserve", "replace"] = "preserve"
     dry_run: bool = False
 
     @model_validator(mode="after")
@@ -83,6 +85,7 @@ class BuffetSaveIn(Schema):
 
 class BuffetResultItemOut(Schema):
     role_slug: str
+    share_percent: float
     kind: Literal["ingredient", "recipe"]
     id: int
     name: str
@@ -108,6 +111,7 @@ class BuffetResultOut(Schema):
 
 class BuffetStateSelectionOut(Schema):
     role_slug: str
+    share_percent: float
     ingredient_id: int | None = None
     recipe_id: int | None = None
     kind: Literal["ingredient", "recipe"]
@@ -121,3 +125,4 @@ class BuffetStateOut(Schema):
     template_id: int | None = None
     selections: list[BuffetStateSelectionOut] = []
     role_amounts: dict[str, float] = {}
+    manual_item_count: int = 0

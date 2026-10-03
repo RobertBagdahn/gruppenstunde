@@ -13,17 +13,27 @@ class Command(BaseCommand):
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--dry-run", action="store_true", help="Nur geplante Änderungen zeigen (Standard).")
         parser.add_argument("--apply", action="store_true", help="Vorlagen tatsächlich anlegen.")
+        parser.add_argument(
+            "--fill-missing-defaults",
+            action="store_true",
+            help="Leere Standardauswahlen vorhandener Seed-Vorlagen ergänzen; nie nicht-leere Auswahlen überschreiben.",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         if options["dry_run"] and options["apply"]:
             raise CommandError("--dry-run und --apply schließen sich gegenseitig aus.")
         dry_run = not options["apply"]
-        report = seed_buffet_templates(dry_run=dry_run)
+        report = seed_buffet_templates(
+            dry_run=dry_run,
+            fill_missing_defaults=options["fill_missing_defaults"],
+        )
         prefix = "[Dry-Run] " if report.dry_run else ""
         for name in report.created:
             self.stdout.write(self.style.SUCCESS(f"{prefix}Vorlage anlegen: {name}"))
         for name in report.existing:
             self.stdout.write(f"Vorlage existiert bereits: {name}")
+        for entry in report.defaults_added:
+            self.stdout.write(f"{prefix}Standardauswahl ergänzen: {entry}")
         for message in report.missing:
             self.stdout.write(self.style.WARNING(message))
         if report.dry_run:

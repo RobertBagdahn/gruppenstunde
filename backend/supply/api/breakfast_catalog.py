@@ -173,26 +173,39 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     from supply.models import MeasuringUnit
     from supply.services.buffet_catalog import ingredients_for_role, recipes_for_role
 
-    def _ingredients(role_slug: str) -> list[dict]:
+    def _ingredients(role_slug: str) -> list[dict[str, Any]]:
         return [_ingredient_to_dict(ingredient) for ingredient in ingredients_for_role(request.user, role_slug)]
 
-    def _recipes(role_slug: str, recipe_type: str, filter_tag_ids: str | None = None) -> list[dict]:
+    def _recipes(role_slug: str, recipe_type: str, filter_tag_ids: str | None = None) -> list[dict[str, Any]]:
         recipes = recipes_for_role(request.user, role_slug).filter(recipe_type=recipe_type, status="approved")
         for tag_id in [int(t) for t in (filter_tag_ids or "").split(",") if t.strip().isdigit()]:
             recipes = recipes.filter(tags=tag_id)
         return list(recipes.values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g"))
 
-    toppings = {ingredient["id"]: ingredient for ingredient in _ingredients("buffet-savory")}
-    for ingredient in _ingredients("buffet-sweet"):
-        toppings.setdefault(ingredient["id"], ingredient)
+    def _merge_ingredients(role_slugs: tuple[str, ...]) -> list[dict[str, Any]]:
+        merged: dict[int, dict[str, Any]] = {}
+        for role_slug in role_slugs:
+            for ingredient in _ingredients(role_slug):
+                merged.setdefault(ingredient["id"], ingredient)
+        return sorted(merged.values(), key=lambda ingredient: ingredient["name"])
 
-    base_ingredients = _ingredients("buffet-bread")
-    topping_ingredients = sorted(toppings.values(), key=lambda ingredient: ingredient["name"])
-    fat_ingredients = _ingredients("buffet-fat")
-    extra_ingredients = _ingredients("buffet-fresh")
-    drink_ingredients = _ingredients("buffet-drink")
-    drink_recipes = _recipes("buffet-drink", "drink", tag_ids)
-    warm_meal_recipes = _recipes("buffet-dish", "breakfast")
+    base_ingredients = _merge_ingredients(("buffet-bread", "buffet-cereal", "breakfast-base"))
+    topping_ingredients = _merge_ingredients(("buffet-savory", "buffet-sweet", "buffet-cheese", "breakfast-topping"))
+    fat_ingredients = _merge_ingredients(("buffet-fat", "breakfast-fat"))
+    extra_ingredients = _merge_ingredients(("buffet-fresh", "breakfast-extra"))
+    drink_ingredients = _merge_ingredients(("buffet-drink", "breakfast-drink"))
+    drink_recipes_by_id = {
+        recipe["id"]: recipe
+        for role_slug in ("buffet-drink", "breakfast-drink")
+        for recipe in _recipes(role_slug, "drink", tag_ids)
+    }
+    warm_recipes_by_id = {
+        recipe["id"]: recipe
+        for role_slug in ("buffet-dish", "breakfast-extra")
+        for recipe in _recipes(role_slug, "breakfast")
+    }
+    drink_recipes = sorted(drink_recipes_by_id.values(), key=lambda recipe: recipe["title"])
+    warm_meal_recipes = sorted(warm_recipes_by_id.values(), key=lambda recipe: recipe["title"])
 
     gram_unit = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
     ml_unit = MeasuringUnit.objects.filter(name__iexact="Milliliter").first()
@@ -224,14 +237,12 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     auth=None,
 )
 def get_drink_recipes(request) -> list[dict]:
-    drink_tag = Tag.objects.filter(slug="buffet-drink").first()
+    from content.services.food_access import visible_recipe_queryset
 
-    from content.services.food_access import public_recipe_queryset
-
-    qs = public_recipe_queryset().filter(recipe_type="drink", status="approved")
-    if drink_tag:
-        qs = qs.filter(tags=drink_tag)
-
+    qs = visible_recipe_queryset(request.user).filter(recipe_type="drink", status="approved")
+    drink_tags = Tag.objects.filter(slug__in=("buffet-drink", "breakfast-drink"))
+    if drink_tags.exists():
+        qs = qs.filter(tags__in=drink_tags).distinct()
     drinks = qs.values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g")
 
     return [

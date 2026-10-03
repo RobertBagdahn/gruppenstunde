@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   AlertTriangle,
@@ -89,6 +89,7 @@ export function MealSlot({
   nutritionalTagNames?: string[];
 }) {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const mealPlanId = Number(id) || 0;
   const { data: scanData } = useIngredientScan(mealPlanId);
 
@@ -132,6 +133,10 @@ export function MealSlot({
   );
 
   const handleOpenWizard = () => {
+    if (meal.meal_type === 'breakfast') {
+      navigate(`/meal-plans/${mealPlanId}/meals/${meal.id}/breakfast-wizard`);
+      return;
+    }
     setShowBuffetBuilder(true);
   };
 
@@ -337,7 +342,7 @@ export function MealSlot({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border bg-warning-soft text-warning hover:bg-warning-soft transition-all"
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
-                  Buffet zusammenstellen
+                  {meal.meal_type === 'breakfast' ? 'Frühstücksassistent starten' : 'Buffet zusammenstellen'}
                 </button>
                 <button
                   type="button"
@@ -715,7 +720,7 @@ export function MealSlot({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-warning-border text-warning hover:bg-warning-soft transition-colors"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
-                Im Buffet-Builder bearbeiten
+                {meal.meal_type === 'breakfast' ? 'Frühstücksassistent bearbeiten' : 'Im Buffet-Builder bearbeiten'}
               </button>
             </div>
           )}

@@ -77,6 +77,7 @@ export const MealItemSchema = z.object({
   is_per_norm_person: z.boolean().default(true),
   recipe_portions: z.number().nullable().optional(),
   buffet_role: z.string().default(''),
+  is_breakfast_assistant: z.boolean().default(false),
   warnings: z.array(QuantityWarningSchema).default([]),
 });
 export type MealItem = z.infer<typeof MealItemSchema>;
@@ -99,6 +100,7 @@ export const MealSchema = z.object({
   ref_meal_id: z.number().nullable(),
   is_synced: z.boolean(),
   buffet_template_id: z.number().nullable().optional(),
+  breakfast_profile: z.string().default(''),
   is_external: z.boolean(),
   external_energy_kcal: z.number().nullable(),
   external_cost_per_person: z.number().nullable(),

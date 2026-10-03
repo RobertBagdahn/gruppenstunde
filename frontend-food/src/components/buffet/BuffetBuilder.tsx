@@ -3,7 +3,7 @@ import { Check, LayoutGrid, Save, Search, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   useBuffetTemplates,
   useBuffetCatalog,
@@ -12,10 +12,14 @@ import {
   useBuffetPreview,
   useSaveBuffet,
 } from '@/api/buffet';
-import type { BuffetCatalogItem, BuffetCatalogRole } from '@/schemas/buffet';
+import type { BuffetCatalogItem, BuffetCatalogRole, BuffetTemplate } from '@/schemas/buffet';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 import { formatNumber } from '@/lib/format';
+import { rebalanceShares } from '@/lib/breakfastCalc';
 import { Icon } from '@/components/ui/icon';
+import { buffetRoleName } from '@/lib/buffetRoles';
+import ShareSlider from '@/components/shared/ShareSlider';
+import { WizardProgress } from '@/components/shared/WizardProgress';
 
 interface BuffetBuilderProps {
   open: boolean;
@@ -29,11 +33,19 @@ interface BuffetBuilderProps {
 
 type SelectionKey = string;
 
+interface ItemShareState {
+  sharePercent: number;
+  locked: boolean;
+}
+
 interface RoleFormState {
   expanded: boolean;
   selected: Set<SelectionKey>;
+  shares: Record<SelectionKey, ItemShareState>;
   amount: number;
 }
+
+type BuffetBuilderStep = 'preset' | 'configure' | 'review';
 
 interface BuffetSearchFilters {
   kind: 'all' | 'ingredient' | 'recipe';
@@ -49,6 +61,57 @@ const DEFAULT_SEARCH_FILTERS: BuffetSearchFilters = {
   excludeAlcohol: false,
 };
 const RECIPE_TYPE_FILTERS = RECIPE_TYPE_OPTIONS.filter((option) => option.value !== 'ingredient');
+const WIZARD_STEPS = [
+  { id: 'preset', label: 'Variante' },
+  { id: 'configure', label: 'Zusammenstellen' },
+  { id: 'review', label: 'Prüfen' },
+] as const;
+const FEATURED_PRESET_SLUGS: Record<string, string[]> = {
+  breakfast: ['breakfast'],
+  drinks: ['house-trip-juices', 'camp-lemon-tea'],
+};
+
+function normalizeShares(
+  keys: SelectionKey[],
+  previous: Record<SelectionKey, ItemShareState>,
+  addedKey?: SelectionKey,
+): Record<SelectionKey, ItemShareState> {
+  if (keys.length === 0) return {};
+  if (keys.length === 1) return { [keys[0]]: { sharePercent: 100, locked: previous[keys[0]]?.locked ?? false } };
+
+  const items = keys.map((key) => ({
+    sharePercent: previous[key]?.sharePercent ?? 0,
+    locked: previous[key]?.locked ?? false,
+  }));
+  const lockedTotal = items.filter((item) => item.locked).reduce((total, item) => total + item.sharePercent, 0);
+  const available = Math.max(0, 100 - lockedTotal);
+  let changedIndex: number;
+  let changedValue: number;
+
+  if (addedKey) {
+    changedIndex = keys.indexOf(addedKey);
+    if (changedIndex < 0) return {};
+    const otherUnlockedCount = items.filter((item, index) => index !== changedIndex && !item.locked).length;
+    changedValue = otherUnlockedCount === 0
+      ? available
+      : Math.min(Math.floor(100 / keys.length), available);
+  } else {
+    const unlockedIndices = items.map((_item, index) => index).filter((index) => !items[index].locked);
+    if (unlockedIndices.length === 0) {
+      return Object.fromEntries(keys.map((key, index) => [key, items[index]]));
+    }
+    changedIndex = unlockedIndices[0];
+    const unlockedTotal = unlockedIndices.reduce((total, index) => total + items[index].sharePercent, 0);
+    changedValue = unlockedIndices.length === 1
+      ? available
+      : unlockedTotal <= 0
+        ? Math.floor(available / unlockedIndices.length)
+        : items[changedIndex].sharePercent;
+  }
+
+  const rebalanced = rebalanceShares(items, changedIndex, changedValue);
+  return Object.fromEntries(keys.map((key, index) => [key, rebalanced[index]]));
+}
 
 function itemKey(item: Pick<BuffetCatalogItem, 'kind' | 'id'>): SelectionKey {
   return `${item.kind}:${item.id}`;
@@ -77,22 +140,30 @@ export function BuffetBuilder({
   } = useBuffetState(mealPlanId, mealId, { enabled: open });
 
   const templatesForMealType = useMemo(() => {
-    const matching = (allTemplates ?? []).filter((candidate) => candidate.meal_types.includes(mealType));
-    return matching.sort((a, b) => {
-      const priority = (slug: string) => {
-        if (mealType === 'breakfast' && slug === 'breakfast') return -1;
-        if (slug === 'free') return 1;
-        return 0;
-      };
-      return priority(a.slug) - priority(b.slug) || a.sort_order - b.sort_order || a.name.localeCompare(b.name);
-    });
+    return (allTemplates ?? [])
+      .filter((candidate) => candidate.meal_types.includes(mealType) && candidate.slug !== 'free')
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
   }, [allTemplates, mealType]);
-  const otherTemplates = useMemo(
-    () => (allTemplates ?? []).filter((candidate) => !candidate.meal_types.includes(mealType)),
-    [allTemplates, mealType],
-  );
+  const featuredTemplates = useMemo(() => {
+    const bySlug = new Map(templatesForMealType.map((candidate) => [candidate.slug, candidate]));
+    const requested = (FEATURED_PRESET_SLUGS[mealType] ?? []).flatMap((slug) => {
+      const candidate = bySlug.get(slug);
+      return candidate ? [candidate] : [];
+    });
+    const fallback = templatesForMealType.filter((candidate) => !requested.some((item) => item.id === candidate.id));
+    return [...requested, ...fallback].slice(0, 6);
+  }, [templatesForMealType, mealType]);
+  const otherTemplates = useMemo(() => {
+    const featuredIds = new Set(featuredTemplates.map((candidate) => candidate.id));
+    return (allTemplates ?? []).filter(
+      (candidate) => candidate.slug !== 'free' && !featuredIds.has(candidate.id),
+    );
+  }, [allTemplates, featuredTemplates]);
+  const freeTemplate = (allTemplates ?? []).find((candidate) => candidate.slug === 'free') ?? null;
 
   const [templateId, setTemplateId] = useState<number | null>(null);
+  const [wizardStep, setWizardStep] = useState<BuffetBuilderStep>('preset');
+  const [manualItemsPolicy, setManualItemsPolicy] = useState<'preserve' | 'replace'>('preserve');
   const [roleStates, setRoleStates] = useState<Record<string, RoleFormState>>({});
   const [roleSearch, setRoleSearch] = useState<Record<string, string>>({});
   const [customItemsByRole, setCustomItemsByRole] = useState<Record<string, BuffetCatalogItem[]>>({});
@@ -106,6 +177,8 @@ export function BuffetBuilder({
       seededTemplateRef.current = null;
     } else {
       setTemplateId(null);
+      setWizardStep('preset');
+      setManualItemsPolicy('preserve');
       setRoleStates({});
       setRoleSearch({});
       setCustomItemsByRole({});
@@ -120,22 +193,12 @@ export function BuffetBuilder({
     restoredRef.current = true;
     if (savedState.template_id && allTemplates.some((candidate) => candidate.id === savedState.template_id)) {
       setTemplateId(savedState.template_id);
+      setWizardStep('configure');
       return;
     }
-    if (mealType === 'breakfast') {
-      const breakfastTemplate = templatesForMealType.find((candidate) => candidate.slug === 'breakfast');
-      if (breakfastTemplate) {
-        setTemplateId(breakfastTemplate.id);
-        return;
-      }
-    }
-    if (templatesForMealType.length > 0) {
-      setTemplateId(templatesForMealType[0].id);
-      return;
-    }
-    const freeTemplate = allTemplates.find((candidate) => candidate.slug === 'free');
-    if (freeTemplate) setTemplateId(freeTemplate.id);
-  }, [open, savedState, allTemplates, templatesForMealType, templateId, mealType]);
+    setTemplateId(null);
+    setWizardStep('preset');
+  }, [open, savedState, allTemplates, templateId]);
 
   const template = useMemo(
     () => (allTemplates ?? []).find((candidate) => candidate.id === templateId) ?? null,
@@ -169,6 +232,7 @@ export function BuffetBuilder({
     const nextCustomItems: Record<string, BuffetCatalogItem[]> = {};
     for (const role of catalog.roles) {
       const selected = new Set<SelectionKey>();
+      const savedShares: Record<SelectionKey, ItemShareState> = {};
       if (restoreThisTemplate) {
         for (const selection of savedState?.selections ?? []) {
           if (selection.role_slug !== role.role.slug) continue;
@@ -176,6 +240,7 @@ export function BuffetBuilder({
           if (id == null) continue;
           const key = `${selection.kind}:${id}`;
           selected.add(key);
+          savedShares[key] = { sharePercent: selection.share_percent, locked: false };
           if (!role.items.some((item) => itemKey(item) === key)) {
             const customItem: BuffetCatalogItem = {
               kind: selection.kind,
@@ -184,21 +249,26 @@ export function BuffetBuilder({
               energy_kcal_per_100g: selection.energy_kcal_per_100g,
               price_per_kg: selection.price_per_kg,
               weight_per_serving_g: selection.weight_per_serving_g,
+              is_favorite: false,
+              is_template_default: false,
+              role_slugs: [],
               default_selected: false,
             };
             nextCustomItems[role.role.slug] = [...(nextCustomItems[role.role.slug] ?? []), customItem];
           }
         }
       } else if (role.enabled_by_default) {
-        for (const item of role.items) {
-          if (item.default_selected) selected.add(itemKey(item));
-        }
+        const configuredDefaults = role.items.filter((item) => item.default_selected);
+        const fallbackFavorite = role.items.find((item) => item.is_favorite);
+        const initialItems = configuredDefaults.length > 0 ? configuredDefaults : fallbackFavorite ? [fallbackFavorite] : [];
+        for (const item of initialItems) selected.add(itemKey(item));
       }
       const amount =
         (restoreThisTemplate ? savedState?.role_amounts?.[role.role.slug] : undefined) ?? role.amount_per_person ?? 0;
       next[role.role.slug] = {
         expanded: restoreThisTemplate ? selected.size > 0 : role.enabled_by_default,
         selected,
+        shares: normalizeShares([...selected], savedShares),
         amount,
       };
     }
@@ -207,7 +277,7 @@ export function BuffetBuilder({
   }, [catalog, template, savedState]);
 
   const buildSelections = () => {
-    const selections: { role_slug: string; ingredient_id?: number | null; recipe_id?: number | null }[] = [];
+    const selections: { role_slug: string; ingredient_id?: number | null; recipe_id?: number | null; share_percent: number }[] = [];
     const roleAmounts: Record<string, number> = {};
     for (const [roleSlug, state] of Object.entries(roleStates)) {
       if (state.selected.size === 0) continue;
@@ -219,6 +289,7 @@ export function BuffetBuilder({
           role_slug: roleSlug,
           ingredient_id: kind === 'ingredient' ? id : null,
           recipe_id: kind === 'recipe' ? id : null,
+          share_percent: state.shares[key]?.sharePercent ?? 100 / state.selected.size,
         });
       }
     }
@@ -228,20 +299,20 @@ export function BuffetBuilder({
   const retryPreview = () => {
     if (!template) return;
     const { selections, roleAmounts } = buildSelections();
-    preview({ templateId: template.id, selections, roleAmounts });
+    preview({ templateId: template.id, selections, roleAmounts, manualItemsPolicy });
   };
 
   useEffect(() => {
     if (!template || seededTemplateRef.current !== template.id || Object.keys(roleStates).length === 0) return;
     const { selections, roleAmounts } = buildSelections();
-    preview({ templateId: template.id, selections, roleAmounts });
+    preview({ templateId: template.id, selections, roleAmounts, manualItemsPolicy });
     // buildSelections reads roleStates/template; re-run whenever either changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roleStates, template, preview]);
+  }, [roleStates, template, preview, manualItemsPolicy]);
 
   const toggleItem = (roleSlug: string, item: BuffetCatalogItem) => {
     const key = itemKey(item);
-    const isFavorite = catalog?.roles
+    const isCatalogItem = catalog?.roles
       .find((role) => role.role.slug === roleSlug)
       ?.items.some((candidate) => itemKey(candidate) === key) ?? false;
     const wasSelected = roleStates[roleSlug]?.selected.has(key) ?? false;
@@ -250,22 +321,74 @@ export function BuffetBuilder({
       const state = current[roleSlug];
       if (!state) return current;
       const next = new Set(state.selected);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return { ...current, [roleSlug]: { ...state, selected: next } };
+      const nextShares = { ...state.shares };
+      if (next.has(key)) {
+        next.delete(key);
+        delete nextShares[key];
+        return {
+          ...current,
+          [roleSlug]: { ...state, selected: next, shares: normalizeShares([...next], nextShares) },
+        };
+      }
+      next.add(key);
+      nextShares[key] = { sharePercent: 0, locked: false };
+      return {
+        ...current,
+        [roleSlug]: { ...state, selected: next, shares: normalizeShares([...next], nextShares, key) },
+      };
     });
 
-    if (!isFavorite) {
+    if (!isCatalogItem) {
       setCustomItemsByRole((current) => {
         const roleItems = current[roleSlug] ?? [];
         const nextItems = wasSelected
           ? roleItems.filter((candidate) => itemKey(candidate) !== key)
           : roleItems.some((candidate) => itemKey(candidate) === key)
             ? roleItems
-            : [...roleItems, { ...item, default_selected: false }];
+            : [...roleItems, { ...item, default_selected: false, is_template_default: false }];
         return { ...current, [roleSlug]: nextItems };
       });
     }
+  };
+
+  const setItemShare = (roleSlug: string, key: SelectionKey, value: number) => {
+    setRoleStates((current) => {
+      const state = current[roleSlug];
+      if (!state) return current;
+      const keys = [...state.selected];
+      const index = keys.indexOf(key);
+      if (index < 0) return current;
+      const shares = keys.map((itemKeyValue) => ({
+        sharePercent: state.shares[itemKeyValue]?.sharePercent ?? 0,
+        locked: state.shares[itemKeyValue]?.locked ?? false,
+      }));
+      const rebalanced = rebalanceShares(shares, index, value);
+      const nextShares = Object.fromEntries(keys.map((itemKeyValue, itemIndex) => [itemKeyValue, {
+        sharePercent: rebalanced[itemIndex].sharePercent,
+        locked: rebalanced[itemIndex].locked,
+      }]));
+      return { ...current, [roleSlug]: { ...state, shares: nextShares } };
+    });
+  };
+
+  const toggleItemShareLock = (roleSlug: string, key: SelectionKey) => {
+    setRoleStates((current) => {
+      const state = current[roleSlug];
+      const share = state?.shares[key];
+      if (!state || !share) return current;
+      return {
+        ...current,
+        [roleSlug]: { ...state, shares: { ...state.shares, [key]: { ...share, locked: !share.locked } } },
+      };
+    });
+  };
+
+  const chooseTemplate = (candidate: BuffetTemplate) => {
+    setTemplateId(candidate.id);
+    setWizardStep('configure');
+    setRoleStates({});
+    setCustomItemsByRole({});
+    seededTemplateRef.current = null;
   };
 
   const setAmount = (roleSlug: string, amount: number) => {
@@ -285,11 +408,19 @@ export function BuffetBuilder({
     });
   };
 
+  const handleBack = () => {
+    if (wizardStep === 'review') setWizardStep('configure');
+    else if (wizardStep === 'configure') {
+      resetPreview();
+      setWizardStep('preset');
+    }
+  };
+
   const handleSave = () => {
     if (!template) return;
     const { selections, roleAmounts } = buildSelections();
     saveBuffet.mutate(
-      { templateId: template.id, selections, roleAmounts },
+      { templateId: template.id, selections, roleAmounts, manualItemsPolicy },
       {
         onSuccess: () => {
           toast.success('Buffet gespeichert', { description: `${template.name} für ${normPortions} Personen` });
@@ -303,13 +434,7 @@ export function BuffetBuilder({
     );
   };
 
-  const templateSelectionPending =
-    open &&
-    templateId === null &&
-    savedState !== undefined &&
-    allTemplates !== undefined &&
-    (templatesForMealType.length > 0 || allTemplates.some((candidate) => candidate.slug === 'free'));
-  const isLoading = templatesLoading || stateLoading || catalogLoading || templateSelectionPending;
+  const isLoading = templatesLoading || stateLoading || (templateId !== null && catalogLoading);
   const kcalPercent =
     previewResult?.energy_kcal_per_person != null
       ? Math.round((previewResult.energy_kcal_per_person / Math.max(previewResult.target_kcal_per_person, 1)) * 100)
@@ -322,47 +447,14 @@ export function BuffetBuilder({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-section sm:text-section font-display font-bold text-foreground">
               <LayoutGrid className="w-5 h-5 text-primary" />
-              <span>Buffet zusammenstellen</span>
+              <span>{wizardStep === 'preset' ? 'Buffet auswählen' : wizardStep === 'review' ? 'Buffet prüfen' : (template?.name ?? 'Buffet zusammenstellen')}</span>
               <span className="text-caption font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
                 {normPortions} {normPortions === 1 ? 'Person' : 'Personen'}
               </span>
             </DialogTitle>
-            {!!allTemplates?.length && (
-              <Select
-                value={templateId != null ? String(templateId) : ''}
-                onValueChange={(value) => {
-                  setTemplateId(Number(value));
-                  seededTemplateRef.current = null;
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-64 h-9 text-body" data-testid="buffet-template-select">
-                  <SelectValue placeholder="Vorlage wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templatesForMealType.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel>{mealType === 'breakfast' ? 'Frühstücksmodus' : 'Passende Vorlagen'}</SelectLabel>
-                      {templatesForMealType.map((candidate) => (
-                        <SelectItem key={candidate.id} value={String(candidate.id)}>
-                          {candidate.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
-                  {otherTemplates.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel>Alle Vorlagen</SelectLabel>
-                      {otherTemplates.map((candidate) => (
-                        <SelectItem key={candidate.id} value={String(candidate.id)}>
-                          {candidate.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
-                </SelectContent>
-              </Select>
-            )}
+
           </div>
+          <div className="mt-3"><WizardProgress steps={WIZARD_STEPS} currentStep={wizardStep} /></div>
         </DialogHeader>
 
         {templatesError || stateError ? (
@@ -381,6 +473,14 @@ export function BuffetBuilder({
           </div>
         ) : isLoading ? (
           <div className="p-12 text-center text-caption text-muted-foreground" role="status">Lade Buffet-Katalog…</div>
+        ) : wizardStep === 'preset' ? (
+          <PresetChooser
+            mealType={mealType}
+            featuredTemplates={featuredTemplates}
+            otherTemplates={otherTemplates}
+            freeTemplate={freeTemplate}
+            onSelect={chooseTemplate}
+          />
         ) : !template ? (
           <div className="m-4 rounded-xl border border-border bg-muted/20 p-6 text-center" role="status">
             <p className="text-body font-semibold text-foreground">Für diesen Mahlzeitentyp gibt es noch keine Buffet-Vorlage.</p>
@@ -398,6 +498,51 @@ export function BuffetBuilder({
             >
               Erneut versuchen
             </button>
+          </div>
+        ) : wizardStep === 'review' ? (
+          <div className="space-y-4 p-4 sm:p-6">
+            <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+              <h3 className="font-display text-section font-bold text-foreground">Buffet prüfen</h3>
+              <p className="text-body text-muted-foreground">{template.name} · {normPortions} {normPortions === 1 ? 'Person' : 'Personen'}</p>
+              {previewPending && <p className="text-caption text-muted-foreground" role="status">Vorschau wird berechnet…</p>}
+              {previewError && <p className="text-caption text-danger" role="alert">Die Vorschau ist fehlgeschlagen. Bitte zurückgehen und erneut versuchen.</p>}
+              {previewResult && (
+                <ul className="divide-y divide-border rounded-lg border border-border">
+                  {previewResult.items.map((item) => (
+                    <li key={`${item.role_slug}-${item.kind}-${item.id}`} className="flex flex-wrap items-center justify-between gap-2 p-3 text-body">
+                      <span>{item.name} <span className="text-caption text-muted-foreground">({buffetRoleName(item.role_slug)})</span></span>
+                      <span className="text-caption text-muted-foreground">
+                        {formatNumber(item.amount_per_person, { maxDecimals: 1 })} {item.unit}/P. · {Math.round(item.share_percent)} %
+                      </span>
+                    </li>
+                  ))}
+                  {previewResult.items.length === 0 && <li className="p-3 text-caption text-muted-foreground">Noch keine Items ausgewählt.</li>}
+                </ul>
+              )}
+              {savedState && savedState.manual_item_count > 0 && (
+                <fieldset className="space-y-2">
+                  <legend className="text-body font-semibold text-foreground">Manuelle Mahlzeit-Einträge</legend>
+                  {([
+                    ['preserve', 'Manuelle Einträge beibehalten'],
+                    ['replace', 'Manuelle Einträge durch das Buffet ersetzen'],
+                  ] as const).map(([value, label]) => (
+                    <label key={value} className="flex items-center gap-2 text-body">
+                      <input
+                        type="radio"
+                        name="manual-items-policy"
+                        value={value}
+                        checked={manualItemsPolicy === value}
+                        onChange={() => setManualItemsPolicy(value)}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+              {previewResult?.warnings.map((warning, index) => (
+                <p key={`review-warning-${index}`} className="text-caption text-warning">{warning.message}</p>
+              ))}
+            </section>
           </div>
         ) : (
           <div className="space-y-4 p-4 sm:p-6">
@@ -467,14 +612,16 @@ export function BuffetBuilder({
                 onSearchChange={(value) => setRoleSearch((current) => ({ ...current, [role.role.slug]: value }))}
                 onToggleItem={(item) => toggleItem(role.role.slug, item)}
                 onAmountChange={(amount) => setAmount(role.role.slug, amount)}
+                onShareChange={(key, value) => setItemShare(role.role.slug, key, value)}
+                onShareLock={(key) => toggleItemShareLock(role.role.slug, key)}
                 onToggleExpanded={() => toggleExpanded(role.role.slug)}
               />
             ))}
           </div>
         )}
 
-        {/* Live preview */}
-        <div className="p-4 border-t border-border bg-muted/20 space-y-3">
+        {wizardStep !== 'preset' && (
+          <div className="p-4 border-t border-border bg-muted/20 space-y-3">
           {previewError && template && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-caption text-danger" role="alert">
               <span>Die Vorschau konnte nicht geladen werden.</span>
@@ -515,7 +662,7 @@ export function BuffetBuilder({
                 <span className="text-muted-foreground">{previewPending ? 'Berechne Vorschau…' : ''}</span>
               )}
             </div>
-            <div className="flex w-full justify-end gap-2 sm:w-auto">
+            <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
@@ -525,19 +672,124 @@ export function BuffetBuilder({
               </button>
               <button
                 type="button"
-                onClick={handleSave}
-                disabled={saveBuffet.isPending || isLoading || !template || !catalog || Boolean(templatesError || stateError || catalogError)}
-                data-testid="buffet-save"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-caption font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
+                onClick={handleBack}
+                className="rounded-lg border border-border px-4 py-2 text-caption font-semibold hover:bg-muted"
               >
-                <Save className="h-4 w-4" />
-                <span>{saveBuffet.isPending ? 'Speichert…' : 'Buffet übernehmen'}</span>
+                Zurück
               </button>
+              {wizardStep === 'configure' && (
+                <button
+                  type="button"
+                  onClick={() => setWizardStep('review')}
+                  disabled={!template || !catalog || Boolean(templatesError || stateError || catalogError)}
+                  className="rounded-lg bg-primary px-4 py-2 text-caption font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  Prüfen
+                </button>
+              )}
+              {wizardStep === 'review' && (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saveBuffet.isPending || isLoading || !template || !catalog || Boolean(templatesError || stateError || catalogError)}
+                  data-testid="buffet-save"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-caption font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{saveBuffet.isPending ? 'Speichert…' : 'Buffet übernehmen'}</span>
+                </button>
+              )}
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PresetChooser({
+  mealType,
+  featuredTemplates,
+  otherTemplates,
+  freeTemplate,
+  onSelect,
+}: {
+  mealType: string;
+  featuredTemplates: BuffetTemplate[];
+  otherTemplates: BuffetTemplate[];
+  freeTemplate: BuffetTemplate | null;
+  onSelect: (template: BuffetTemplate) => void;
+}) {
+  return (
+    <div className="space-y-5 p-4 sm:p-6">
+      <div className="space-y-1">
+        <h3 className="font-display text-section font-bold text-foreground">Wähle ein fertiges Buffet</h3>
+        <p className="text-body text-muted-foreground">Alle Mengen und Produkte lassen sich im nächsten Schritt anpassen.</p>
+      </div>
+      {featuredTemplates.length > 0 ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="buffet-featured-presets">
+          {featuredTemplates.map((candidate) => (
+            <button
+              key={candidate.id}
+              type="button"
+              onClick={() => onSelect(candidate)}
+              className="space-y-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-center gap-2 text-body font-semibold text-foreground">
+                <LayoutGrid className="h-4 w-4 shrink-0 text-primary" />
+                {candidate.name}
+              </span>
+              {candidate.description && <span className="block text-caption text-muted-foreground">{candidate.description}</span>}
+              <span className="flex flex-wrap gap-1.5">
+                {candidate.roles.slice(0, 5).map((role) => (
+                  <span key={role.role.slug} className="rounded-full bg-muted px-2 py-0.5 text-caption text-muted-foreground">
+                    {buffetRoleName(role.role.slug)}
+                  </span>
+                ))}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg border border-border bg-muted/20 p-4 text-body text-muted-foreground" role="status">
+          Für diesen Mahlzeitentyp gibt es noch keine hervorgehobene Vorlage.
+        </p>
+      )}
+      {freeTemplate && (
+        <button
+          type="button"
+          onClick={() => onSelect(freeTemplate)}
+          data-testid="buffet-free-preset"
+          className="w-full rounded-xl border-2 border-primary bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
+        >
+          <span className="block text-body font-bold text-primary">Freies Buffet</span>
+          <span className="mt-1 block text-caption text-muted-foreground">Alle Rollen sind verfügbar; stelle die Auswahl selbst zusammen.</span>
+        </button>
+      )}
+      {!freeTemplate && (
+        <p className="text-caption text-warning" role="alert">Die universelle Vorlage „Freies Buffet“ ist nicht verfügbar.</p>
+      )}
+      {otherTemplates.length > 0 && (
+        <details className="rounded-xl border border-border bg-card p-4" data-testid="buffet-other-presets">
+          <summary className="cursor-pointer text-body font-semibold text-foreground">Weitere Vorlagen</summary>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {otherTemplates.map((candidate) => (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() => onSelect(candidate)}
+                className="rounded-lg border border-border p-3 text-left text-body hover:border-primary hover:bg-primary/5"
+              >
+                <span className="block font-semibold text-foreground">{candidate.name}</span>
+                <span className="text-caption text-muted-foreground">{candidate.meal_types.join(', ')}</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
+      <p className="text-caption text-muted-foreground">Mahlzeitentyp: {mealType}</p>
+    </div>
   );
 }
 
@@ -551,6 +803,8 @@ function RoleSection({
   onSearchChange,
   onToggleItem,
   onAmountChange,
+  onShareChange,
+  onShareLock,
   onToggleExpanded,
 }: {
   role: BuffetCatalogRole;
@@ -562,12 +816,21 @@ function RoleSection({
   onSearchChange: (value: string) => void;
   onToggleItem: (item: BuffetCatalogItem) => void;
   onAmountChange: (amount: number) => void;
+  onShareChange: (key: SelectionKey, value: number) => void;
+  onShareLock: (key: SelectionKey) => void;
   onToggleExpanded: () => void;
 }) {
   const expanded = state?.expanded ?? role.enabled_by_default;
   const selected = state?.selected ?? new Set<SelectionKey>();
-  const favoriteKeys = new Set(role.items.map(itemKey));
-  const selectedCustomItems = customItems.filter((item) => selected.has(itemKey(item)) && !favoriteKeys.has(itemKey(item)));
+  const roleItemKeys = new Set(role.items.map(itemKey));
+  const selectedCustomItems = customItems.filter((item) => selected.has(itemKey(item)) && !roleItemKeys.has(itemKey(item)));
+  const favoriteItems = role.items.filter((item) => item.is_favorite);
+  const templateDefaultItems = role.items.filter((item) => !item.is_favorite);
+  const itemByKey = new Map([...role.items, ...customItems].map((item) => [itemKey(item), item]));
+  const selectedItems = [...selected].flatMap((key) => {
+    const item = itemByKey.get(key);
+    return item ? [{ key, item }] : [];
+  });
   const [debouncedSearch, setDebouncedSearch] = useState(search.trim());
 
   useEffect(() => {
@@ -588,7 +851,7 @@ function RoleSection({
     { enabled: expanded && debouncedSearch.length >= 2 },
   );
   const searchPending = expanded && search.trim().length >= 2 && (search.trim() !== debouncedSearch || searchQuery.isFetching);
-  const searchResults = (searchQuery.data ?? []).filter((item) => !favoriteKeys.has(`${item.kind}:${item.id}`));
+  const searchResults = (searchQuery.data ?? []).filter((item) => !roleItemKeys.has(`${item.kind}:${item.id}`));
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card" data-testid={`buffet-role-${role.role.slug}`}>
@@ -621,6 +884,21 @@ function RoleSection({
 
       {expanded && (
         <div className="space-y-3 px-4 pb-4">
+          {role.amount_per_person != null && (
+            <label className="flex flex-col gap-1 text-caption text-muted-foreground">
+              <span>Menge pro Person: {formatNumber(state?.amount ?? role.amount_per_person, { maxDecimals: 0 })} {role.unit}</span>
+              <input
+                type="range"
+                min={role.unit === 'ml' ? 25 : 5}
+                max={Math.max(role.amount_per_person * 3, role.unit === 'ml' ? 500 : 300)}
+                step={role.unit === 'ml' ? 10 : 5}
+                value={state?.amount ?? role.amount_per_person}
+                onChange={(event) => onAmountChange(Number(event.target.value))}
+                className="w-full accent-primary"
+                aria-label={`Menge pro Person für ${role.role.name}`}
+              />
+            </label>
+          )}
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -633,10 +911,35 @@ function RoleSection({
             />
           </div>
 
-          {role.items.length > 0 && (
+          {favoriteItems.length > 0 && (
             <div className="flex flex-wrap gap-2" aria-label={`Favoriten für ${role.role.name}`}>
-              {role.items.map((item) => (
+              {favoriteItems.map((item) => (
                 <ItemChip key={itemKey(item)} item={item} selected={selected.has(itemKey(item))} favorite onToggle={onToggleItem} />
+              ))}
+            </div>
+          )}
+          {templateDefaultItems.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-caption font-semibold text-muted-foreground">Vorauswahl dieser Variante</p>
+              <div className="flex flex-wrap gap-2">
+                {templateDefaultItems.map((item) => (
+                  <ItemChip key={itemKey(item)} item={item} selected={selected.has(itemKey(item))} favorite={false} onToggle={onToggleItem} />
+                ))}
+              </div>
+            </div>
+          )}
+          {selectedItems.length > 0 && (
+            <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-caption font-semibold text-foreground">Anteile innerhalb von {role.role.name}</p>
+              {selectedItems.map(({ key, item }) => (
+                <ShareSlider
+                  key={key}
+                  label={item.name}
+                  value={state?.shares[key]?.sharePercent ?? 0}
+                  locked={state?.shares[key]?.locked ?? false}
+                  onChange={(value) => onShareChange(key, value)}
+                  onToggleLock={() => onShareLock(key)}
+                />
               ))}
             </div>
           )}
@@ -672,6 +975,9 @@ function RoleSection({
                   energy_kcal_per_100g: result.energy_kcal_per_100g,
                   price_per_kg: result.price_per_kg,
                   weight_per_serving_g: result.weight_per_serving_g,
+                  is_favorite: result.is_favorite,
+                  is_template_default: false,
+                  role_slugs: result.role_slugs,
                   default_selected: false,
                 };
                 const isSelected = selected.has(itemKey(item));
@@ -731,7 +1037,11 @@ function ItemChip({
       }`}
     >
       <span className="truncate">{item.name}</span>
-      {!favorite && <span className="rounded-full bg-info-soft px-1.5 py-0.5 text-caption text-info">Eigene</span>}
+      {!favorite && (
+        <span className="rounded-full bg-info-soft px-1.5 py-0.5 text-caption text-info">
+          {item.is_template_default ? 'Vorlage' : 'Eigene'}
+        </span>
+      )}
       {selected && <Check className="h-3.5 w-3.5 shrink-0" />}
     </button>
   );

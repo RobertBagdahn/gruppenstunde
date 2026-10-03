@@ -75,6 +75,56 @@ class TestWizardItemsEndpoint:
         # Old items are gone
         assert MealItem.objects.filter(meal=meal).count() == 1
 
+    def test_preserve_manual_items_and_store_breakfast_profile(self, client: Client):
+        user = self._login(client)
+        gram_unit = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})[0]
+        plan = make_meal_plan(created_by=user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
+        manual_ingredient = baker.make("supply.Ingredient", name="Manuelle Zutat")
+        managed_ingredient = baker.make("supply.Ingredient", name="Alte Frühstückszutat")
+        new_ingredient = baker.make("supply.Ingredient", name="Müsli")
+        manual_item = baker.make(
+            MealItem,
+            meal=meal,
+            ingredient=manual_ingredient,
+            quantity=50,
+            measuring_unit=gram_unit,
+            buffet_role="",
+        )
+        managed_item = baker.make(
+            MealItem,
+            meal=meal,
+            ingredient=managed_ingredient,
+            quantity=60,
+            measuring_unit=gram_unit,
+            buffet_role="buffet-bread",
+        )
+
+        response = client.post(
+            self._url(plan.id, meal.id),
+            data=json.dumps(
+                {
+                    "items": [
+                        {"ingredient_id": manual_ingredient.id, "quantity": 75, "measuring_unit_id": gram_unit.id},
+                        {"ingredient_id": new_ingredient.id, "quantity": 80, "measuring_unit_id": gram_unit.id},
+                    ],
+                    "manual_items_policy": "preserve",
+                    "managed_item_ids": [managed_item.id],
+                    "breakfast_profile": "muesli",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200, response.content
+        meal.refresh_from_db()
+        assert meal.breakfast_profile == "muesli"
+        assert not MealItem.objects.filter(id=managed_item.id).exists()
+        assert MealItem.objects.filter(id=manual_item.id, quantity=50, is_breakfast_assistant=False).exists()
+        created_item = MealItem.objects.get(meal=meal, ingredient=new_ingredient)
+        assert created_item.is_breakfast_assistant is True
+        assert MealItem.objects.filter(meal=meal).count() == 2
+
     def test_invalid_item_triggers_rollback(self, client: Client):
         user = self._login(client)
         plan = make_meal_plan(created_by=user)

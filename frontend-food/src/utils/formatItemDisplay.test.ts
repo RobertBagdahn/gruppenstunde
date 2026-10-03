@@ -36,6 +36,7 @@ describe('formatItemDisplay', () => {
       has_missing_weight: false,
       is_per_norm_person: true,
       buffet_role: '',
+      is_breakfast_assistant: false,
       warnings: [],
     };
 
@@ -71,6 +72,7 @@ describe('formatItemDisplay', () => {
       has_missing_weight: false,
       is_per_norm_person: true,
       buffet_role: '',
+      is_breakfast_assistant: false,
       warnings: [],
     };
 
@@ -104,7 +106,8 @@ describe('formatItemDisplay', () => {
         overrides: [],
         has_missing_weight: false,
         is_per_norm_person: true,
-      buffet_role: '',
+        buffet_role: '',
+        is_breakfast_assistant: false,
       warnings: [],
       },
       {
@@ -131,7 +134,8 @@ describe('formatItemDisplay', () => {
         overrides: [],
         has_missing_weight: false,
         is_per_norm_person: true,
-      buffet_role: '',
+        buffet_role: '',
+        is_breakfast_assistant: false,
       warnings: [],
       },
     ];
@@ -171,6 +175,7 @@ describe('formatItemDisplay', () => {
       has_missing_weight: false,
       is_per_norm_person: true,
       buffet_role: '',
+      is_breakfast_assistant: false,
       warnings: [],
     } satisfies MealItem;
 

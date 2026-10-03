@@ -18,6 +18,7 @@ function meal(total_energy_kcal: number): Meal {
     ref_meal_id: null,
     is_synced: false,
     buffet_template_id: null,
+    breakfast_profile: '',
     is_external: false,
     external_energy_kcal: null,
     external_cost_per_person: null,

@@ -143,6 +143,9 @@ class TestBreakfastDrinks:
         coffee.tags.add(tag)
         cocoa = baker.make(Recipe, title="Kakao", recipe_type="drink", status="approved")
         cocoa.tags.add(tag)
+        legacy_tag = _make_tag("breakfast-drink")
+        legacy_tea = baker.make(Recipe, title="Alter Tee", recipe_type="drink", status="approved")
+        legacy_tea.tags.add(legacy_tag)
 
         c = _client_with_user()
         r = c.get("/api/supply/breakfast-catalog/drinks/")
@@ -150,6 +153,7 @@ class TestBreakfastDrinks:
         titles = [d["title"] for d in r.json()]
         assert "Kaffee" in titles
         assert "Kakao" in titles
+        assert "Alter Tee" in titles
 
     def test_drinks_excludes_untagged_drinks(self):
         tag = _make_tag("buffet-drink")

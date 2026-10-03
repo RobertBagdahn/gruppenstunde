@@ -59,6 +59,7 @@ class MealItemOut(Schema):
     is_per_norm_person: bool = True
     recipe_portions: int | None = None
     buffet_role: str = ""
+    is_breakfast_assistant: bool = False
     # Plausibility warnings, only filled by endpoints that save the item.
     warnings: list[QuantityWarningOut] = []
 
@@ -266,6 +267,9 @@ class PlanCheckResponseOut(Schema):
 
 class WizardItemsIn(Schema):
     items: list[MealItemCreateIn]
+    manual_items_policy: Literal["preserve", "replace"] = "replace"
+    managed_item_ids: list[int] = []
+    breakfast_profile: Literal["muesli", "bread-muesli", "plant", "vegetarian", "meat"] | None = None
 
 
 class WizardItemsOut(Schema):
@@ -277,6 +281,9 @@ class WizardItemsOut(Schema):
 class WizardItemsBulkIn(Schema):
     meal_ids: list[int]
     items: list[MealItemCreateIn]
+    manual_items_policy: Literal["preserve", "replace"] = "replace"
+    managed_item_ids_by_meal: dict[int, list[int]] = {}
+    breakfast_profile: Literal["muesli", "bread-muesli", "plant", "vegetarian", "meat"] | None = None
 
 
 class WizardItemsBulkOut(Schema):
@@ -305,6 +312,7 @@ class MealOut(Schema):
     ref_meal_id: int | None = None
     is_synced: bool = False
     buffet_template_id: int | None = None
+    breakfast_profile: str = ""
     is_external: bool = False
     external_energy_kcal: float | None = None
     external_cost_per_person: float | None = None

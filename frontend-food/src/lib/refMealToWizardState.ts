@@ -10,6 +10,7 @@ import type {
   BasisSelection,
   FatSelection,
   ToppingSelection,
+  DrinkIngredientSelection,
   ToppingIntensity,
   WizardState,
 } from '@/schemas/breakfast';
@@ -20,6 +21,7 @@ export function refMealItemsToWizardState(
   items: MealItem[],
   catalog: BreakfastCatalog,
   normPortions: number,
+  preserveLegacyRefMealMapping = false,
 ): Partial<WizardState> {
   const result = defaultWizardState();
 
@@ -36,7 +38,9 @@ export function refMealItemsToWizardState(
   };
 
   // ── 1. Basis items ────────────────────────────────────────────────────────
-  const basisItems = items.filter((i) => (i.ingredient_tags ?? []).includes('breakfast-base'));
+  const basisItems = items.filter((i) =>
+    ['breakfast-base', 'buffet-bread', 'buffet-cereal'].some((tag) => (i.ingredient_tags ?? []).includes(tag)),
+  );
   if (basisItems.length > 0) {
     const basisSelections: BasisSelection[] = [];
     let totalGrams = 0;
@@ -70,7 +74,9 @@ export function refMealItemsToWizardState(
   }
 
   // ── 2. Fat items ──────────────────────────────────────────────────────────
-  const fatItems = items.filter((i) => (i.ingredient_tags ?? []).includes('breakfast-fat'));
+  const fatItems = items.filter((i) =>
+    ['breakfast-fat', 'buffet-fat'].some((tag) => (i.ingredient_tags ?? []).includes(tag)),
+  );
   if (fatItems.length > 0) {
     const fatSelections: FatSelection[] = [];
     let totalGrams = 0;
@@ -103,9 +109,11 @@ export function refMealItemsToWizardState(
   }
 
   // ── 3. Topping items (exclude items with breakfast-fat tag — migration) ──
-  const toppingItems = items.filter(
-    (i) => (i.ingredient_tags ?? []).includes('breakfast-topping') && !(i.ingredient_tags ?? []).includes('breakfast-fat'),
-  );
+  const toppingItems = items.filter((i) => {
+    const tags = i.ingredient_tags ?? [];
+    return ['breakfast-topping', 'buffet-savory', 'buffet-sweet', 'buffet-cheese'].some((tag) => tags.includes(tag))
+      && !['breakfast-fat', 'buffet-fat'].some((tag) => tags.includes(tag));
+  });
   if (toppingItems.length > 0) {
     const toppingSelections: ToppingSelection[] = [];
     let totalGrams = 0;
@@ -167,7 +175,7 @@ export function refMealItemsToWizardState(
 
   // ── 4. Warm dishes (recipe, not drink tag) ───────────────────────────────
   const warmItems = items.filter(
-    (i) => i.recipe_id && i.recipe_type !== 'drink',
+    (item) => item.recipe_id && (preserveLegacyRefMealMapping ? item.recipe_type !== 'drink' : item.recipe_type === 'breakfast'),
   );
   for (const item of warmItems) {
     if (!item.recipe_id) continue;
@@ -179,9 +187,7 @@ export function refMealItemsToWizardState(
   }
 
   // ── 5. Drink items (recipe with breakfast-drink tag) ─────────────────────
-  const drinkItems = items.filter(
-    (i) => i.recipe_id && i.recipe_type === 'drink',
-  );
+  const drinkItems = items.filter((i) => i.recipe_id && i.recipe_type === 'drink');
   if (drinkItems.length > 0) {
     const totalFactor = drinkItems.reduce((sum, item) => sum + (item.factor ?? 1.0), 0);
     const drinkRecipes = drinkItems.map((item) => ({
@@ -194,14 +200,38 @@ export function refMealItemsToWizardState(
     result.drinkRecipes = drinkRecipes;
   }
 
-  // ── 6. Extra ingredients ──────────────────────────────────────────────────
-  const extraItems = items.filter(
-    (i) =>
-      i.ingredient_id &&
-      !(i.ingredient_tags ?? []).includes('breakfast-base') &&
-      !(i.ingredient_tags ?? []).includes('breakfast-topping') &&
-      !(i.ingredient_tags ?? []).includes('breakfast-fat'),
-  );
+  // ── 6. Drink ingredients (milk, juices) ──────────────────────────────────
+  const drinkIngredientItems = preserveLegacyRefMealMapping
+    ? []
+    : items.filter((item) =>
+        item.ingredient_id && ['buffet-drink', 'breakfast-drink'].some((tag) => (item.ingredient_tags ?? []).includes(tag)),
+      );
+  if (drinkIngredientItems.length > 0) {
+    const drinkAmounts = drinkIngredientItems.map((item) => ({ item, amount: perPerson(item) }));
+    const totalMl = drinkAmounts.reduce((sum, entry) => sum + entry.amount, 0);
+    result.drinkIngredients = drinkAmounts.map(({ item, amount }) => ({
+      ingredientId: item.ingredient_id ?? 0,
+      name: item.ingredient_name,
+      sharePercent: totalMl > 0 ? Math.round((amount / totalMl) * 100) : 0,
+      locked: false,
+      mlPerPerson: amount,
+    } satisfies DrinkIngredientSelection));
+  }
+
+  // ── 7. Extra ingredients ──────────────────────────────────────────────────
+  const extraItems = items.filter((item) => {
+    if (!item.ingredient_id) return false;
+    const tags = item.ingredient_tags ?? [];
+    if (preserveLegacyRefMealMapping) {
+      const mappedTags = [
+        'breakfast-base', 'buffet-bread', 'buffet-cereal',
+        'breakfast-fat', 'buffet-fat',
+        'breakfast-topping', 'buffet-savory', 'buffet-sweet', 'buffet-cheese',
+      ];
+      return !mappedTags.some((tag) => tags.includes(tag));
+    }
+    return ['breakfast-extra', 'buffet-fresh'].some((tag) => tags.includes(tag));
+  });
   for (const item of extraItems) {
     if (!item.ingredient_id || !item.quantity) continue;
     result.extraIngredients[String(item.ingredient_id)] = Math.round(perPerson(item));

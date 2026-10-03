@@ -10,7 +10,7 @@ from ninja.errors import HttpError
 
 from core.permissions import require_login
 from planner.api.meal_plan import _require_access, _require_edit
-from planner.models import BuffetTemplate, Meal, MealPlan
+from planner.models import BuffetTemplate, Meal, MealItem, MealPlan
 from planner.schemas.buffet import (
     BuffetResultOut,
     BuffetSaveIn,
@@ -90,6 +90,30 @@ def _get_meal(meal_plan_id: int, meal_id: int, request: HttpRequest, *, edit: bo
     return get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
 
 
+def _saved_share_percentages(items: list[MealItem]) -> dict[int, float]:
+    by_role: dict[str, list[MealItem]] = {}
+    for item in items:
+        by_role.setdefault(item.buffet_role, []).append(item)
+
+    shares: dict[int, float] = {}
+    for role_items in by_role.values():
+        explicit = [item.buffet_share_percent for item in role_items]
+        missing_count = sum(value is None for value in explicit)
+        explicit_total = sum(value or 0 for value in explicit)
+        if missing_count == len(role_items):
+            normalized = [100 / len(role_items)] * len(role_items)
+        elif missing_count and explicit_total <= 100:
+            fallback = (100 - explicit_total) / missing_count
+            normalized = [fallback if value is None else float(value) for value in explicit]
+        elif explicit_total > 0:
+            normalized = [100 * (value or 0) / explicit_total for value in explicit]
+        else:
+            normalized = [100 / len(role_items)] * len(role_items)
+        for item, value in zip(role_items, normalized, strict=True):
+            shares[item.id] = round(value, 4)
+    return shares
+
+
 @buffet_router.get("/{meal_plan_id}/meals/{meal_id}/buffet/", response=BuffetStateOut)
 def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> dict[str, Any]:
     """Saved template, selection and role amounts of a meal's buffet."""
@@ -100,7 +124,8 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
     from supply.services.price_service import price_or_none
 
     selections = []
-    saved_items = meal.items.exclude(buffet_role="").select_related("ingredient", "recipe").order_by("id")
+    saved_items = list(meal.items.exclude(buffet_role="").select_related("ingredient", "recipe").order_by("id"))
+    item_shares = _saved_share_percentages(saved_items)
     for item in saved_items:
         try:
             if item.ingredient_id is not None:
@@ -109,6 +134,7 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
                 selections.append(
                     {
                         "role_slug": item.buffet_role,
+                        "share_percent": item_shares[item.id],
                         "ingredient_id": ingredient.id,
                         "recipe_id": None,
                         "kind": "ingredient",
@@ -123,6 +149,7 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
                 selections.append(
                     {
                         "role_slug": item.buffet_role,
+                        "share_percent": item_shares[item.id],
                         "ingredient_id": None,
                         "recipe_id": recipe.id,
                         "kind": "recipe",
@@ -134,10 +161,12 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
                 )
         except Http404:
             raise HttpError(404, "Zutat oder Rezept nicht gefunden") from None
+    manual_count = meal.items.filter(buffet_role="", is_breakfast_assistant=False).count()
     return {
         "template_id": meal.buffet_template_id,
         "selections": selections,
         "role_amounts": meal.buffet_role_amounts or {},
+        "manual_item_count": manual_count,
     }
 
 
@@ -157,18 +186,42 @@ def save_meal_buffet(request: HttpRequest, meal_plan_id: int, meal_id: int, payl
                 ingredient = get_visible_ingredient_or_404(
                     request.user, selection.ingredient_id, allow_system_draft=True
                 )
-                selections.append(BuffetSelection(role_slug=selection.role_slug, ingredient=ingredient))
+                selections.append(
+                    BuffetSelection(
+                        role_slug=selection.role_slug,
+                        ingredient=ingredient,
+                        share_percent=selection.share_percent,
+                    )
+                )
             else:
                 recipe = get_visible_recipe_or_404(request.user, selection.recipe_id, allow_system_draft=True)
-                selections.append(BuffetSelection(role_slug=selection.role_slug, recipe=recipe))
+                selections.append(
+                    BuffetSelection(
+                        role_slug=selection.role_slug,
+                        recipe=recipe,
+                        share_percent=selection.share_percent,
+                    )
+                )
         except Http404:
             raise HttpError(404, "Zutat oder Rezept nicht gefunden") from None
 
     try:
         if payload.dry_run:
-            result = compute_buffet(template, selections, payload.role_amounts, meal)
+            result = compute_buffet(
+                template,
+                selections,
+                payload.role_amounts,
+                meal,
+                manual_items_policy=payload.manual_items_policy,
+            )
         else:
-            result = save_buffet(meal, template, selections, payload.role_amounts)
+            result = save_buffet(
+                meal,
+                template,
+                selections,
+                payload.role_amounts,
+                manual_items_policy=payload.manual_items_policy,
+            )
     except BuffetError as exc:
         raise HttpError(422, str(exc)) from exc
     return _result_out(result, saved=not payload.dry_run)

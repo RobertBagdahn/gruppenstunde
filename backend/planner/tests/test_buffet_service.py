@@ -241,6 +241,56 @@ class TestSaveBuffet:
         assert MealItem.objects.filter(meal=meal, ingredient=ingredient2).exists()
         assert MealItem.objects.filter(meal=meal, recipe=other_recipe).exists()
 
+    def test_saves_item_shares_and_allows_same_ingredient_in_multiple_roles(self, gram_unit):
+        template = make_buffet_template(
+            roles={
+                "buffet-bread": (100, "g", True),
+                "buffet-savory": (40, "g", True),
+            }
+        )
+        ingredient = make_ingredient(name="Mehrfachrolle")
+        ingredient.tags.add(template.roles.get(role__slug="buffet-bread").role)
+        ingredient.tags.add(template.roles.get(role__slug="buffet-savory").role)
+        bread = _tagged_ingredient(
+            template.roles.get(role__slug="buffet-bread").role,
+            name="Anteil A",
+        )
+        bread_other = _tagged_ingredient(
+            template.roles.get(role__slug="buffet-bread").role,
+            name="Anteil B",
+        )
+        meal = make_meal(override_portions=1)
+
+        save_buffet(
+            meal,
+            template,
+            [
+                BuffetSelection(role_slug="buffet-bread", ingredient=ingredient, share_percent=50),
+                BuffetSelection(role_slug="buffet-savory", ingredient=ingredient, share_percent=100),
+                BuffetSelection(role_slug="buffet-bread", ingredient=bread, share_percent=35),
+                BuffetSelection(role_slug="buffet-bread", ingredient=bread_other, share_percent=15),
+            ],
+            None,
+        )
+
+        from planner.models import MealItem
+
+        assert MealItem.objects.filter(meal=meal, ingredient=ingredient).count() == 2
+        assert set(MealItem.objects.filter(meal=meal, ingredient=ingredient).values_list("buffet_role", flat=True)) == {
+            "buffet-bread",
+            "buffet-savory",
+        }
+        assert (
+            MealItem.objects.get(meal=meal, ingredient=ingredient, buffet_role="buffet-bread").buffet_share_percent
+            == 50
+        )
+        assert (
+            MealItem.objects.get(meal=meal, ingredient=ingredient, buffet_role="buffet-savory").buffet_share_percent
+            == 100
+        )
+        assert MealItem.objects.get(meal=meal, ingredient=bread).buffet_share_percent == 35
+        assert MealItem.objects.get(meal=meal, ingredient=bread_other).buffet_share_percent == 15
+
     def test_sets_meal_template_and_role_amounts(self, gram_unit):
         template = make_buffet_template(roles={"buffet-bread": (100, "g", True)})
         bread_tag = template.roles.get(role__slug="buffet-bread").role

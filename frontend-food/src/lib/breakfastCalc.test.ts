@@ -122,6 +122,20 @@ describe('rebalanceShares', () => {
     expect(sum).toBe(100);
   });
 
+  it('clamps an unlocked share to the space left by locked items', () => {
+    const result = rebalanceShares(
+      [
+        { sharePercent: 70, locked: true },
+        { sharePercent: 30, locked: false },
+      ],
+      1,
+      50,
+    );
+
+    expect(result.map((item) => item.sharePercent)).toEqual([70, 30]);
+    expect(result.reduce((sum, item) => sum + item.sharePercent, 0)).toBe(100);
+  });
+
   it('handles 2 items: [99, 1] sums to 100', () => {
     const items = [
       { sharePercent: 50, locked: false },

@@ -19,8 +19,11 @@ def _role_info(tag: Tag) -> dict[str, str]:
     return {"slug": tag.slug, "name": tag.name, "icon": tag.icon}
 
 
-def _items_out(user: Any, role_slug: str, default_ids: set[tuple[str, int]]) -> list[dict[str, Any]]:
-    # Defaults the user cannot see drop out automatically: only visible items are listed.
+def _items_out(
+    user: Any,
+    role_slug: str,
+    default_ids: set[tuple[Literal["ingredient", "recipe"], int]],
+) -> list[dict[str, Any]]:
     return [
         {
             "kind": item.kind,
@@ -29,9 +32,11 @@ def _items_out(user: Any, role_slug: str, default_ids: set[tuple[str, int]]) -> 
             "energy_kcal_per_100g": item.energy_kcal_per_100g,
             "price_per_kg": item.price_per_kg,
             "weight_per_serving_g": item.weight_per_serving_g,
+            "is_favorite": item.is_favorite,
+            "is_template_default": item.is_template_default,
             "default_selected": (item.kind, item.id) in default_ids,
         }
-        for item in items_for_role(user, role_slug)
+        for item in items_for_role(user, role_slug, default_ids=default_ids)
     ]
 
 
@@ -97,7 +102,9 @@ def get_buffet_catalog(request: HttpRequest, template: str | None = None) -> dic
     if template:
         buffet_template = get_object_or_404(active_templates(), slug=template)
         for template_role in buffet_template.roles.all():
-            default_ids = {("ingredient", ingredient.id) for ingredient in template_role.default_ingredients.all()}
+            default_ids: set[tuple[Literal["ingredient", "recipe"], int]] = {
+                ("ingredient", ingredient.id) for ingredient in template_role.default_ingredients.all()
+            }
             default_ids |= {("recipe", recipe.id) for recipe in template_role.default_recipes.all()}
             roles.append(
                 {

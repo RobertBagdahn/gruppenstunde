@@ -11,7 +11,11 @@ import {
   BreakfastLeftoversOutSchema,
   DrinkRecipeSchema,
   WizardItemsResponseSchema,
+  WizardItemsDirectInSchema,
+  WizardItemsBulkInSchema,
   type BreakfastCatalog,
+  type BreakfastProfileSlug,
+  type WizardItemIn,
   type BreakfastLeftoversIn,
   type BreakfastLeftoversOut,
   type DrinkRecipe,
@@ -19,6 +23,8 @@ import {
 } from '@/schemas/breakfast';
 import { RefMealSchema, type RefMeal } from '@/schemas/mealPlan';
 import { invalidateMealPlanQueries } from '@/api/mealPlans';
+
+export type { BreakfastProfileSlug, WizardItemIn } from '@/schemas/breakfast';
 
 const SUPPLY_BASE = `${API_BASE_URL}/api/supply`;
 
@@ -102,15 +108,6 @@ export function useBreakfastLeftovers() {
 
 const MEAL_PLAN_BASE = `${API_BASE_URL}/api/meal-plans`;
 
-export interface WizardItemIn {
-  recipe_id?: number | null;
-  ingredient_id?: number | null;
-  quantity?: number | null;
-  measuring_unit_id?: number | null;
-  display_name?: string | null;
-  factor?: number;
-}
-
 export interface SaveWizardPayload {
   planId: number;
   /** Existing RefMeal id to update (null → create new) */
@@ -174,10 +171,13 @@ export interface SaveDirectMealPayload {
   planId: number;
   mealId: number;
   items: WizardItemIn[];
+  manualItemsPolicy: 'preserve' | 'replace';
+  managedItemIds: number[];
+  breakfastProfile: BreakfastProfileSlug | null;
 }
 
 async function saveWizardDirectMeal(payload: SaveDirectMealPayload): Promise<WizardItemsResponse> {
-  const { planId, mealId, items } = payload;
+  const { planId, mealId, items, manualItemsPolicy, managedItemIds, breakfastProfile } = payload;
 
   const res = await fetch(`${MEAL_PLAN_BASE}/${planId}/meals/${mealId}/wizard-items/`, {
     method: 'POST',
@@ -186,7 +186,14 @@ async function saveWizardDirectMeal(payload: SaveDirectMealPayload): Promise<Wiz
       'Content-Type': 'application/json',
       'X-CSRFToken': getCsrfToken(),
     },
-    body: JSON.stringify({ items }),
+    body: JSON.stringify(
+      WizardItemsDirectInSchema.parse({
+        items,
+        manual_items_policy: manualItemsPolicy,
+        managed_item_ids: managedItemIds,
+        breakfast_profile: breakfastProfile,
+      }),
+    ),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -209,17 +216,28 @@ export interface SaveBreakfastBulkPayload {
   planId: number;
   mealIds: number[];
   items: WizardItemIn[];
+  manualItemsPolicy: 'preserve' | 'replace';
+  managedItemIdsByMeal: Record<number, number[]>;
+  breakfastProfile: BreakfastProfileSlug | null;
 }
 
 export function useSaveBreakfastBulk(planId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ mealIds, items }: SaveBreakfastBulkPayload) => {
+    mutationFn: async ({ mealIds, items, manualItemsPolicy, managedItemIdsByMeal, breakfastProfile }: SaveBreakfastBulkPayload) => {
       const res = await fetch(`${MEAL_PLAN_BASE}/${planId}/meals/wizard-items/bulk/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-        body: JSON.stringify({ meal_ids: mealIds, items }),
+        body: JSON.stringify(
+          WizardItemsBulkInSchema.parse({
+            meal_ids: mealIds,
+            items,
+            manual_items_policy: manualItemsPolicy,
+            managed_item_ids_by_meal: managedItemIdsByMeal,
+            breakfast_profile: breakfastProfile,
+          }),
+        ),
       });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       return z

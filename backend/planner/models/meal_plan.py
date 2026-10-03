@@ -405,6 +405,12 @@ class Meal(models.Model):
         related_name="meals",
         verbose_name=_("Buffet-Vorlage"),
     )
+    breakfast_profile = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        verbose_name=_("Frühstücksvariante"),
+    )
     buffet_role_amounts = models.JSONField(
         default=dict,
         blank=True,
@@ -598,6 +604,17 @@ class MealItem(models.Model):
         verbose_name=_("Buffet-Rolle"),
         help_text=_("Rollen-Slug, wenn der Eintrag vom Buffet-Builder stammt"),
     )
+    buffet_share_percent = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Buffet-Anteil"),
+        help_text=_("Item-Anteil innerhalb der Buffet-Rolle in Prozent"),
+    )
+    is_breakfast_assistant = models.BooleanField(
+        default=False,
+        verbose_name=_("Vom Frühstücksassistenten"),
+        help_text=_("Kennzeichnet vom Frühstückswizard verwaltete Einträge."),
+    )
 
     class Meta:
         verbose_name = _("Mahlzeit-Eintrag")
@@ -609,9 +626,14 @@ class MealItem(models.Model):
                 name="meal_item_recipe_xor_ingredient",
             ),
             models.UniqueConstraint(
-                fields=["meal", "ingredient"],
+                fields=["meal", "ingredient", "buffet_role"],
                 condition=models.Q(ingredient__isnull=False),
-                name="unique_ingredient_per_meal",
+                name="unique_ingredient_role_per_meal",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(buffet_share_percent__isnull=True)
+                | (models.Q(buffet_share_percent__gte=0) & models.Q(buffet_share_percent__lte=100)),
+                name="meal_item_buffet_share_percent_range",
             ),
         ]
 

@@ -19,28 +19,51 @@ import StepGetraenke from './StepGetraenke';
 import StepCockpit from './StepCockpit';
 import { CreateIngredientModal } from '@/components/breakfast/CreateIngredientModal';
 import { CreateRecipeModal } from '@/components/breakfast/CreateRecipeModal';
-import { useMemo, useState } from 'react';
+import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
+import { WizardProgress } from '@/components/shared/WizardProgress';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import type { WizardItemIn } from '@/api/breakfast';
+import type { BreakfastProfileSlug, WizardItemIn } from '@/api/breakfast';
 import type { MealItem } from '@/schemas/mealPlan';
 import type { WizardState } from '@/schemas/breakfast';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
 import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson, FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
 
-type BreakfastProfile = 'classic' | 'children' | 'adults' | 'muesli' | 'vegetarian' | 'plant';
+type BreakfastProfile = BreakfastProfileSlug;
+
+type ManualItemsPolicy = 'preserve' | 'replace';
 
 const BREAKFAST_PROFILES: Array<{ id: BreakfastProfile; title: string; description: string }> = [
-  { id: 'classic', title: 'Klassisch', description: 'Brot, Belag, Obst und Getränke' },
-  { id: 'children', title: 'Für Kinder', description: 'Kleinere Brotportion, milde Auswahl und Obst' },
-  { id: 'adults', title: 'Für Erwachsene', description: 'Herzhaftere Portion mit vielfältigem Belag' },
-  { id: 'muesli', title: 'Nur Müsli', description: 'Müsli oder Haferflocken mit Obst und Milch' },
-  { id: 'vegetarian', title: 'Ohne Fleisch', description: 'Vegetarische Aufstriche und Käse' },
-  { id: 'plant', title: 'Rein pflanzlich', description: 'Vegane Auswahl ohne Milch, Ei, Fleisch und Honig' },
+  { id: 'muesli', title: 'Nur Müsli', description: 'Müsli oder Haferflocken mit Obst und Getränken' },
+  { id: 'bread-muesli', title: 'Brot und Müsli', description: 'Brot, Müsli, Belag, Obst und Getränke' },
+  { id: 'plant', title: 'Brot pflanzlich', description: 'Pflanzliche Aufstriche, Obst und Getränke' },
+  { id: 'vegetarian', title: 'Brot vegetarisch', description: 'Käse, vegetarische Aufstriche, Obst und Getränke' },
+  { id: 'meat', title: 'Brot mit Fleisch', description: 'Herzhafter Belag, Käse, Obst und Getränke' },
 ];
 
 function nameMatches(name: string, terms: string[]): boolean {
   const normalized = name.toLocaleLowerCase('de-DE');
   return terms.some((term) => normalized.includes(term));
+}
+
+function isBreakfastManagedItem(item: MealItem): boolean {
+  return item.is_breakfast_assistant
+    || item.buffet_role !== ''
+    || item.ingredient_tags.some((tag) => tag.startsWith('breakfast-'));
+}
+
+function isBreakfastWizardItem(item: MealItem, includeLegacyBuffetTags: boolean): boolean {
+  return isBreakfastManagedItem(item)
+    || (includeLegacyBuffetTags && item.ingredient_tags.some((tag) => tag.startsWith('buffet-')))
+    || (item.recipe_id != null && ['breakfast', 'drink'].includes(item.recipe_type));
+}
+
+function managedItemIds(items: MealItem[]): number[] {
+  return items.filter(isBreakfastManagedItem).map((item) => item.id);
+}
+
+function manualItemCount(items: MealItem[]): number {
+  return items.filter((item) => !isBreakfastManagedItem(item)).length;
 }
 
 export default function BreakfastWizardPage() {
@@ -55,7 +78,12 @@ export default function BreakfastWizardPage() {
 
   const { data: plan } = useMealPlan(planId);
   const { data: refMeals } = useRefMeals(planId);
-  const { data: catalog } = useBreakfastCatalog();
+  const {
+    data: catalog,
+    isLoading: catalogLoading,
+    isError: catalogError,
+    refetch: refetchCatalog,
+  } = useBreakfastCatalog();
   const saveWizardRefMeal = useSaveBreakfastWizard(planId);
   const saveWizardDirectMeal = useSaveDirectMeal(planId);
   const saveBreakfastBulk = useSaveBreakfastBulk(planId);
@@ -70,6 +98,8 @@ export default function BreakfastWizardPage() {
     return plan.meals.find((m) => m.id === mealId) ?? null;
   }, [saveMode, plan, mealId]);
 
+  const directMealLoading = saveMode === 'directMeal' && !plan;
+  const directMealNotFound = saveMode === 'directMeal' && Boolean(plan) && !targetMeal;
   const normPortions = plan?.norm_portions ?? 10;
   const breakfastMeals = useMemo(() => plan?.meals.filter((meal) => meal.meal_type === 'breakfast' && !meal.is_reference) ?? [], [plan?.meals]);
   const [selectedBreakfastMealIds, setSelectedBreakfastMealIds] = useState<number[]>(mealId ? [mealId] : []);
@@ -78,11 +108,16 @@ export default function BreakfastWizardPage() {
 
   // Compute initial wizard state from existing items (RefMeal or directMeal)
   const initialWizardState = useMemo(() => {
-    const sourceItems = (saveMode === 'directMeal' ? targetMeal?.items : existingRefMeal?.items) as MealItem[] | undefined;
-    if (!sourceItems || sourceItems.length === 0 || !catalog) return undefined;
-    const mapped = refMealItemsToWizardState(sourceItems, catalog, normPortions);
-    // Count unmappable items
-    const mappableCount = sourceItems.filter((i: MealItem) => i.ingredient_id || i.recipe_id || i.display_name).length;
+    const allItems = (saveMode === 'directMeal' ? targetMeal?.items : existingRefMeal?.items) as MealItem[] | undefined;
+    const hasAssistantProvenance = (allItems ?? []).some((item) => item.is_breakfast_assistant);
+    const includeLegacyBuffetTags = saveMode === 'refMeal'
+      || (!targetMeal?.breakfast_profile && !hasAssistantProvenance);
+    const sourceItems = saveMode === 'refMeal'
+      ? allItems ?? []
+      : (allItems ?? []).filter((item) => isBreakfastWizardItem(item, includeLegacyBuffetTags));
+    if (sourceItems.length === 0 || !catalog) return undefined;
+    const mapped = refMealItemsToWizardState(sourceItems, catalog, normPortions, saveMode === 'refMeal');
+    const mappableCount = sourceItems.filter((item) => item.ingredient_id || item.recipe_id || item.display_name).length;
     const unmappableCount = sourceItems.length - mappableCount;
     if (unmappableCount > 0) {
       toast.warning(`${unmappableCount} Item${unmappableCount === 1 ? '' : 's'} konnten nicht geladen werden.`);
@@ -90,48 +125,94 @@ export default function BreakfastWizardPage() {
     return mapped;
   }, [saveMode, targetMeal, existingRefMeal, catalog, normPortions]);
 
-  const wiz = useWizardState(initialWizardState);
-  const { state, step, currentStepIndex, canGoNext, canGoPrev, goNext, goPrev } = wiz;
+  const wiz = useWizardState(initialWizardState, saveMode === 'directMeal' ? 'preset' : 'basis');
+  const visibleWizardSteps = saveMode === 'refMeal' ? WIZARD_STEPS.filter((wizardStep) => wizardStep !== 'preset') : WIZARD_STEPS;
+  const { state, step, canGoNext, canGoPrev, goNext, goPrev, setStep } = wiz;
+  const [freeBuffetOpen, setFreeBuffetOpen] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<BreakfastProfile | null>(null);
+  const [manualItemsPolicy, setManualItemsPolicy] = useState<ManualItemsPolicy>('preserve');
+
+  useEffect(() => {
+    const savedProfile = BREAKFAST_PROFILES.find((profile) => profile.id === targetMeal?.breakfast_profile);
+    setSelectedProfile(savedProfile?.id ?? null);
+  }, [targetMeal?.breakfast_profile]);
+
+  const manualItemsCount = useMemo(() => {
+    if (saveMode !== 'directMeal') return 0;
+    return breakfastMeals
+      .filter((meal) => selectedBreakfastMealIds.includes(meal.id))
+      .reduce((total, meal) => total + manualItemCount(meal.items), 0);
+  }, [saveMode, breakfastMeals, selectedBreakfastMealIds]);
+
+  useEffect(() => {
+    if (saveMode === 'directMeal' && initialWizardState) setStep('basis');
+  }, [saveMode, initialWizardState, setStep]);
 
   function applyBreakfastProfile(profile: BreakfastProfile) {
     if (!catalog) return;
-    const isMuesli = profile === 'muesli';
+    setSelectedProfile(profile);
+    const isMuesliOnly = profile === 'muesli';
+    const isBreadAndMuesli = profile === 'bread-muesli';
     const isPlant = profile === 'plant';
     const isVegetarian = profile === 'vegetarian' || isPlant;
-    const base = catalog.base_ingredients.filter((item) => {
-      if (!isMuesli) return !nameMatches(item.name, ['müsli', 'haferflock']);
-      return nameMatches(item.name, ['müsli', 'haferflock']);
-    });
+    const isMeat = profile === 'meat';
+    const isCereal = (name: string) => nameMatches(name, ['müsli', 'haferflock', 'cornflake']);
+    const breads = catalog.base_ingredients.filter((item) => !isCereal(item.name));
+    const cereals = catalog.base_ingredients.filter((item) => isCereal(item.name));
+    const bases = isMuesliOnly ? cereals : isBreadAndMuesli ? [...breads.slice(0, 1), ...cereals.slice(0, 1)] : breads;
     const toppings = catalog.topping_ingredients.filter((item) => {
-      if (isMuesli) return false;
+      if (isMuesliOnly) return false;
       if (isPlant && nameMatches(item.name, ['käse', 'edamer', 'gouda', 'emmentaler', 'frischkäse', 'leberwurst', 'salami', 'schinken', 'putenbrust', 'honig'])) return false;
-      if (isVegetarian && nameMatches(item.name, ['leberwurst', 'salami', 'schinken', 'putenbrust'])) return false;
+      if (isVegetarian && nameMatches(item.name, ['leberwurst', 'salami', 'schinken', 'putenbrust', 'thunfisch'])) return false;
+      if (isMeat) return nameMatches(item.name, ['leberwurst', 'salami', 'schinken', 'putenbrust', 'thunfisch', 'gouda', 'käse', 'frischkäse']);
       return true;
     });
-    const fats = catalog.fat_ingredients.filter((item) => !isPlant || nameMatches(item.name, ['margarine', 'pflanz']));
+    const fats = isMuesliOnly
+      ? []
+      : catalog.fat_ingredients.filter((item) => !isPlant || nameMatches(item.name, ['margarine', 'pflanz']));
     const drinks = catalog.drink_recipes.filter((item) => !isPlant || !nameMatches(item.title, ['milch', 'kakao']));
-    const extras = catalog.extra_ingredients.filter((item) => !isMuesli || nameMatches(item.name, ['apfel', 'banane', 'erdbeere', 'orange', 'beere']));
+    const extras = catalog.extra_ingredients.filter((item) =>
+      isMuesliOnly || isBreadAndMuesli
+        ? nameMatches(item.name, ['apfel', 'banane', 'erdbeere', 'orange', 'beere'])
+        : true,
+    );
     const share = <T extends { id: number }>(items: T[]) => items.map((item, index) => ({ item, sharePercent: index === 0 ? 100 : 0 }));
-    const selectedBase = share(base.length > 0 ? base : catalog.base_ingredients.slice(0, 1));
+    let selectedBase = share(bases);
+    if (isBreadAndMuesli && selectedBase.length > 1) {
+      selectedBase = selectedBase.map((selection, index) => ({
+        ...selection,
+        sharePercent: index === 0 ? 60 : 40,
+      }));
+    }
     const selectedToppings = share(toppings);
     const selectedFats = share(fats);
     const selectedDrinks = share(drinks);
+    const drinkIngredients = catalog.drink_ingredients.filter((item) =>
+      isPlant
+        ? nameMatches(item.name, ['hafer', 'soja', 'mandel', 'pflanz'])
+        : isMuesliOnly || isBreadAndMuesli
+          ? nameMatches(item.name, ['milch'])
+          : nameMatches(item.name, ['saft', 'milch']),
+    );
+    const selectedDrinkIngredients = share(drinkIngredients.slice(0, 1));
+    const selectedExtras = share(extras.slice(0, isMuesliOnly || isBreadAndMuesli ? 2 : 1));
     const nextState: WizardState = {
       ...state,
-      gramsPerPerson: profile === 'children' ? 100 : 150,
+      gramsPerPerson: isMuesliOnly ? 80 : isBreadAndMuesli ? 120 : 150,
       basis: selectedBase.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, sliceWeightG: item.standard_recipe_weight_g ?? 50, energyKcal100g: item.energy_kcal })),
       toppings: selectedToppings.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, energyKcal100g: item.energy_kcal, pricePerKg: item.price_per_kg, portions: item.portions })),
       fatSelections: selectedFats.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, energyKcal100g: item.energy_kcal, pricePerKg: item.price_per_kg, portions: item.portions })),
       drinkRecipes: selectedDrinks.map(({ item, sharePercent }) => ({ recipeId: item.id, name: item.title, sharePercent, locked: false, energyKcal: item.cached_energy_total_kcal })),
-      drinkIngredients: isPlant ? [] : catalog.drink_ingredients.filter((item) => nameMatches(item.name, ['milch', 'hafermilch'])).map((item, index) => ({ ingredientId: item.id, name: item.name, sharePercent: index === 0 ? 100 : 0, locked: false, mlPerPerson: index === 0 ? 200 : null })),
-      extraIngredients: Object.fromEntries(extras.slice(0, isMuesli ? 2 : 0).map((item) => [String(item.id), isMuesli ? 80 : 0])),
-      extraIngredientNames: Object.fromEntries(extras.slice(0, isMuesli ? 2 : 0).map((item) => [String(item.id), item.name])),
+      drinkIngredients: selectedDrinkIngredients.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, mlPerPerson: 200 })),
+      extraIngredients: Object.fromEntries(selectedExtras.map(({ item }) => [String(item.id), 80])),
+      extraIngredientNames: Object.fromEntries(selectedExtras.map(({ item }) => [String(item.id), item.name])),
       warmDishRecipeIds: [],
       warmDishFactors: {},
       warmDishRecipeNames: {},
-      globalIntensity: profile === 'children' ? 'knapp' : 'normal',
+      globalIntensity: 'normal',
     };
     wiz.replaceState(nextState);
+    wiz.setStep('basis');
   }
 
   /**
@@ -144,6 +225,7 @@ export default function BreakfastWizardPage() {
    */
   function buildItems(): WizardItemIn[] {
     const gramUnitId = catalog?.gram_measuring_unit_id ?? null;
+    const mlUnitId = catalog?.ml_measuring_unit_id ?? null;
 
     const fixKcal = extrasKcalPerPerson(state);
     const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
@@ -152,6 +234,7 @@ export default function BreakfastWizardPage() {
 
     // Accumulate ingredient items in grams for dedup
     const ingGrams: Record<number, number> = {};
+    const ingMilliliters: Record<number, number> = {};
     const items: WizardItemIn[] = [];
 
     // ── Basis (bread) ──
@@ -202,7 +285,7 @@ export default function BreakfastWizardPage() {
     for (const ingredient of state.drinkIngredients.filter((d) => d.sharePercent > 0 && d.ingredientId > 0)) {
       const ml = ingredient.mlPerPerson ?? 0;
       if (ml <= 0) continue;
-      ingGrams[ingredient.ingredientId] = (ingGrams[ingredient.ingredientId] ?? 0) + ml;
+      ingMilliliters[ingredient.ingredientId] = (ingMilliliters[ingredient.ingredientId] ?? 0) + ml;
     }
 
     // ── Post-process: push accumulated ingredients (in grams) + recipe items ──
@@ -217,6 +300,15 @@ export default function BreakfastWizardPage() {
         ingredient_id: ingId,
         quantity: Math.round(grams * 10) / 10,
         measuring_unit_id: gramUnitId,
+        factor: 1.0,
+      });
+    }
+    for (const [ingIdStr, milliliters] of Object.entries(ingMilliliters)) {
+      if (milliliters <= 0) continue;
+      out.push({
+        ingredient_id: Number(ingIdStr),
+        quantity: Math.round(milliliters * 10) / 10,
+        measuring_unit_id: mlUnitId,
         factor: 1.0,
       });
     }
@@ -244,9 +336,27 @@ export default function BreakfastWizardPage() {
         }
         const mealIds = selectedBreakfastMealIds;
         if (mealIds.length > 1) {
-          await saveBreakfastBulk.mutateAsync({ planId, mealIds, items });
+          const selectedMeals = breakfastMeals.filter((meal) => mealIds.includes(meal.id));
+          const managedItemIdsByMeal = Object.fromEntries(
+            selectedMeals.map((meal) => [meal.id, managedItemIds(meal.items)]),
+          );
+          await saveBreakfastBulk.mutateAsync({
+            planId,
+            mealIds,
+            items,
+            manualItemsPolicy,
+            managedItemIdsByMeal,
+            breakfastProfile: selectedProfile,
+          });
         } else {
-          await saveWizardDirectMeal.mutateAsync({ planId, mealId, items });
+          await saveWizardDirectMeal.mutateAsync({
+            planId,
+            mealId,
+            items,
+            manualItemsPolicy,
+            managedItemIds: managedItemIds(targetMeal?.items ?? []),
+            breakfastProfile: selectedProfile,
+          });
         }
         navigate(`/meal-plans/${planId}/plan`);
       } else {
@@ -265,7 +375,6 @@ export default function BreakfastWizardPage() {
 
   const savePending = saveMode === 'directMeal' ? saveWizardDirectMeal.isPending || saveBreakfastBulk.isPending : saveWizardRefMeal.isPending;
   const isCockpit = step === 'cockpit';
-  const isEditMode = saveMode === 'refMeal' ? existingRefMeal != null : (targetMeal?.items?.length ?? 0) > 0;
 
   const handleBack = () => {
     if (saveMode === 'refMeal') {
@@ -290,51 +399,84 @@ export default function BreakfastWizardPage() {
             </button>
             <div className="flex-1">
               <h1 className="font-display font-bold text-section">Frühstücksassistent</h1>
-              <p className="text-caption text-muted-foreground">{plan?.name ?? '…'}</p>
+              <p className="text-caption text-muted-foreground">
+                {plan?.name ?? '…'}{selectedProfile ? ` · Variante: ${BREAKFAST_PROFILES.find((profile) => profile.id === selectedProfile)?.title ?? ''}` : ''}
+              </p>
             </div>
           </div>
 
-          {/* Step progress */}
-          <div className="mt-3 flex gap-1">
-            {WIZARD_STEPS.map((s, i) => (
-              <div
-                key={s}
-                className={`flex-1 h-1 rounded-full transition-colors ${
-                  i <= currentStepIndex ? 'bg-primary' : 'bg-muted'
-                }`}
-              />
-            ))}
+          <div className="mt-3">
+            <WizardProgress
+              steps={visibleWizardSteps.map((id) => ({ id, label: STEP_LABELS[id] }))}
+              currentStep={step}
+            />
           </div>
-          <p className="mt-1 text-caption text-muted-foreground text-center">
-            Schritt {currentStepIndex + 1} / {WIZARD_STEPS.length}: {STEP_LABELS[step]}
-          </p>
         </div>
       </div>
 
       {/* Step content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {step === 'basis' && catalog && (
-          <div className="mb-6 rounded-xl border border-border bg-card p-4 space-y-3">
-            <div>
-              <h2 className="font-display font-semibold text-emphasis">Schnellstart: Frühstück auswählen</h2>
-              <p className="text-caption text-muted-foreground">Wähle eine Vorlage. Danach kannst du jede Auswahl im Detail anpassen.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {BREAKFAST_PROFILES.map((profile) => (
-                <button key={profile.id} type="button" onClick={() => applyBreakfastProfile(profile.id)} className="rounded-lg border border-border p-3 text-left hover:border-primary hover:bg-primary/5 transition-colors">
-                  <span className="block text-body font-semibold">{profile.title}</span>
-                  <span className="block text-caption text-muted-foreground mt-0.5">{profile.description}</span>
-                </button>
-              ))}
-            </div>
+        {directMealLoading && (
+          <p className="rounded-xl border border-border bg-card p-4 text-body text-muted-foreground" role="status">
+            Frühstück wird geladen…
+          </p>
+        )}
+        {directMealNotFound && (
+          <p className="rounded-xl border border-destructive/30 bg-card p-4 text-body" role="alert">
+            Dieses Frühstück wurde im Essensplan nicht gefunden.
+          </p>
+        )}
+        {step === 'preset' && !directMealLoading && !directMealNotFound && catalogLoading && (
+          <p className="rounded-xl border border-border bg-card p-4 text-body text-muted-foreground" role="status">
+            Frühstücksauswahl wird geladen…
+          </p>
+        )}
+        {step === 'preset' && !directMealLoading && !directMealNotFound && catalogError && (
+          <div className="rounded-xl border border-destructive/30 bg-card p-4 text-body" role="alert">
+            <p>Die Frühstücksauswahl konnte nicht geladen werden.</p>
+            <button type="button" onClick={() => void refetchCatalog()} className="mt-3 rounded-lg border border-border px-3 py-2 font-semibold">
+              Erneut versuchen
+            </button>
           </div>
         )}
-        {step === 'basis' && <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />}
-        {step === 'fett' && <StepStreichfett wiz={wiz} />}
-        {step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
-        {step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
-        {step === 'getraenke' && <StepGetraenke wiz={wiz} />}
-        {step === 'cockpit' && (
+        {saveMode === 'directMeal' && step === 'preset' && !directMealLoading && !directMealNotFound && catalog && (
+          <section className="space-y-3" aria-labelledby="breakfast-preset-heading">
+            <div>
+              <h2 id="breakfast-preset-heading" className="font-display font-semibold text-emphasis">Frühstück auswählen</h2>
+              <p className="text-caption text-muted-foreground">Wähle ein vollständiges Frühstück. Danach kannst du alle Slider und Items anpassen.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {BREAKFAST_PROFILES.map((profile) => (
+                <button
+                  key={profile.id}
+                  type="button"
+                  onClick={() => applyBreakfastProfile(profile.id)}
+                  aria-pressed={selectedProfile === profile.id}
+                  className={`rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 ${selectedProfile === profile.id ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}
+                >
+                  <span className="block text-body font-semibold">{profile.title}</span>
+                  <span className="mt-0.5 block text-caption text-muted-foreground">{profile.description}</span>
+                </button>
+              ))}
+              {saveMode === 'directMeal' && mealId != null && (
+                <button
+                  type="button"
+                  onClick={() => setFreeBuffetOpen(true)}
+                  className="rounded-xl border-2 border-primary bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
+                >
+                  <span className="block text-body font-bold text-primary">Freies Buffet</span>
+                  <span className="mt-0.5 block text-caption text-muted-foreground">Alle Buffet-Rollen frei zusammenstellen.</span>
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+        {!directMealLoading && !directMealNotFound && step === 'basis' && <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />}
+        {!directMealLoading && !directMealNotFound && step === 'fett' && <StepStreichfett wiz={wiz} />}
+        {!directMealLoading && !directMealNotFound && step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
+        {!directMealLoading && !directMealNotFound && step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
+        {!directMealLoading && !directMealNotFound && step === 'getraenke' && <StepGetraenke wiz={wiz} />}
+        {!directMealLoading && !directMealNotFound && step === 'cockpit' && (
           <StepCockpit
             wiz={wiz}
             catalog={catalog}
@@ -345,6 +487,9 @@ export default function BreakfastWizardPage() {
             breakfastMeals={breakfastMeals}
             selectedBreakfastMealIds={selectedBreakfastMealIds}
             onSelectedBreakfastMealIdsChange={setSelectedBreakfastMealIds}
+            manualItemCount={manualItemsCount}
+            manualItemsPolicy={manualItemsPolicy}
+            onManualItemsPolicyChange={setManualItemsPolicy}
           />
         )}
       </div>
@@ -352,7 +497,7 @@ export default function BreakfastWizardPage() {
       {/* Navigation */}
       <div className="sticky bottom-0 bg-background border-t border-border px-4 py-3">
         <div className="max-w-2xl mx-auto flex gap-3">
-          {isEditMode && !isCockpit && (
+          {!isCockpit && (
             <button
               type="button"
               onClick={handleBack}
@@ -362,7 +507,7 @@ export default function BreakfastWizardPage() {
               Abbrechen
             </button>
           )}
-          {canGoPrev && (
+          {canGoPrev && (saveMode === 'directMeal' || step !== 'basis') && (
             <button
               type="button"
               onClick={goPrev}
@@ -372,7 +517,7 @@ export default function BreakfastWizardPage() {
               Zurück
             </button>
           )}
-          {canGoNext && (
+          {canGoNext && step !== 'preset' && (
             <button
               type="button"
               onClick={goNext}
@@ -411,6 +556,17 @@ export default function BreakfastWizardPage() {
           onClose={wiz.closeCreateModal}
           modalState={wiz.createModal}
           onError={wiz.setCreateModalError}
+        />
+      )}
+      {freeBuffetOpen && saveMode === 'directMeal' && mealId != null && (
+        <BuffetBuilder
+          open={freeBuffetOpen}
+          onOpenChange={setFreeBuffetOpen}
+          mealPlanId={planId}
+          mealId={mealId}
+          mealType="breakfast"
+          normPortions={targetMeal?.override_portions ?? normPortions}
+          onSaved={() => navigate(`/meal-plans/${planId}/plan`)}
         />
       )}
     </div>

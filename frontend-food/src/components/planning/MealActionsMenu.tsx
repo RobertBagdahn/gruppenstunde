@@ -217,7 +217,7 @@ export function MealActionsMenu({
           {onOpenBuffetBuilder && (
             <DropdownMenuItem onClick={onOpenBuffetBuilder}>
               <LayoutGrid className="mr-2 h-4 w-4 text-primary" />
-              <span>Buffetassistent</span>
+              <span>{meal.meal_type === 'breakfast' ? 'Frühstücksassistent' : 'Buffetassistent'}</span>
             </DropdownMenuItem>
           )}
           {canEdit && !meal.is_synced && !meal.is_external && meal.items.length > 0 && (

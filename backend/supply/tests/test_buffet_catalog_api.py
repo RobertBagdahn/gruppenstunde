@@ -4,6 +4,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 
+from content.models import Tag
 from planner.tests import make_buffet_roles, make_buffet_template
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import IngredientAlias
@@ -229,10 +230,22 @@ class TestBreakfastCatalogAdapter:
         roles = make_buffet_roles()
         bread = make_ingredient(name="Toast")
         bread.tags.add(roles["buffet-bread"])
+        cereal = make_ingredient(name="Haferflocken")
+        cereal.tags.add(roles["buffet-cereal"])
+        legacy_base_tag, _ = Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "Breakfast base"})
+        legacy_cereal = make_ingredient(name="Altes Müsli")
+        legacy_cereal.tags.add(legacy_base_tag)
+        cheese = make_ingredient(name="Edamer")
+        cheese.tags.add(roles["buffet-cheese"])
         savory = make_ingredient(name="Gouda")
         savory.tags.add(roles["buffet-savory"])
         sweet = make_ingredient(name="Nutella")
         sweet.tags.add(roles["buffet-sweet"])
+        legacy_topping_tag, _ = Tag.objects.get_or_create(
+            slug="breakfast-topping", defaults={"name": "Breakfast topping"}
+        )
+        legacy_topping = make_ingredient(name="Alter Honig")
+        legacy_topping.tags.add(legacy_topping_tag)
         fat = make_ingredient(name="Butter")
         fat.tags.add(roles["buffet-fat"])
         fresh = make_ingredient(name="Apfel")
@@ -248,9 +261,9 @@ class TestBreakfastCatalogAdapter:
         resp = client.get("/api/supply/breakfast-catalog/")
         assert resp.status_code == 200
         data = resp.json()
-        assert {i["name"] for i in data["base_ingredients"]} == {"Toast"}
+        assert {i["name"] for i in data["base_ingredients"]} == {"Toast", "Haferflocken", "Altes Müsli"}
         topping_names = {i["name"] for i in data["topping_ingredients"]}
-        assert topping_names == {"Gouda", "Nutella"}
+        assert topping_names == {"Edamer", "Gouda", "Nutella", "Alter Honig"}
         assert {i["name"] for i in data["fat_ingredients"]} == {"Butter"}
         assert {i["name"] for i in data["extra_ingredients"]} == {"Apfel"}
         assert {i["name"] for i in data["drink_ingredients"]} == {"Milch"}
