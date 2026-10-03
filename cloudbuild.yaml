@@ -4,20 +4,89 @@
 # are set by the Terraform-managed trigger.
 
 steps:
-  # Run required checks on the deploy commit. This trigger is also a release gate.
-  - name: 'gcr.io/cloud-builders/gcloud'
+  # -----------------------------------------------
+  # 1. Backend quality and regression checks
+  # -----------------------------------------------
+  - name: 'python:3.13-slim'
+    entrypoint: bash
     args:
-      - builds
-      - submit
-      - --config=cloudbuild-pr.yaml
-      - --region=${_REGION}
-      - --project=$PROJECT_ID
-      - .
-    id: release-checks
+      - -c
+      - |
+        pip install --quiet uv
+        cd backend
+        uv sync --extra dev --quiet
+        uv run ruff check .
+        sh scripts/check_release_format.sh
+        sh scripts/check_release_types.sh
+        uv run pytest --tb=short -q
+    id: backend-check
     waitFor: ['-']
 
   # -----------------------------------------------
-  # 1. Build Backend Container Image
+  # 2. Main frontend quality checks
+  # -----------------------------------------------
+  - name: 'node:20'
+    entrypoint: bash
+    args:
+      - -c
+      - cd frontend && npm ci --quiet && npm run lint && npx tsc --noEmit
+    id: frontend-check
+    waitFor: ['-']
+
+  # -----------------------------------------------
+  # 3. Food frontend checks
+  # -----------------------------------------------
+  - name: 'node:20'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        cd frontend-food
+        npm ci --quiet
+        sh scripts/lint-release-check.sh
+        npx tsc --noEmit
+        npm test -- --run
+        npm run build
+    id: food-frontend-check
+    waitFor: ['-']
+
+  # -----------------------------------------------
+  # 4. Mocked Food browser regressions
+  # -----------------------------------------------
+  - name: 'mcr.microsoft.com/playwright:v1.52.0-noble'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        cd frontend-food
+        npm run dev -- --host 0.0.0.0 --strictPort > /tmp/food-vite.log 2>&1 &
+        server_pid=$!
+        trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+        for attempt in $(seq 1 60); do
+          if curl -fsS http://127.0.0.1:5174/ >/dev/null; then break; fi
+          sleep 1
+        done
+        if ! curl -fsS http://127.0.0.1:5174/ >/dev/null; then
+          cat /tmp/food-vite.log
+          exit 1
+        fi
+        cd ../e2e
+        npm ci --quiet
+        E2E_BASE_URL=http://127.0.0.1:5174 \\
+          npx playwright test --project=mocked \\
+          tests/food-release-hardening.mocked.spec.ts
+    id: food-e2e-check
+    waitFor: ['food-frontend-check']
+
+  # Avoid nested submissions; a failed check blocks subsequent build/deploy steps.
+  - name: 'alpine:3'
+    entrypoint: sh
+    args: ['-c', 'echo All release checks passed.']
+    id: release-gate
+    waitFor: ['backend-check', 'frontend-check', 'food-e2e-check']
+
+  # -----------------------------------------------
+  # 5. Build Backend Container Image
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -30,10 +99,10 @@ steps:
       - Dockerfile.backend
       - .
     id: build-backend
-    waitFor: ['release-checks']
+    waitFor: ['release-gate']
 
   # -----------------------------------------------
-  # 2. Push Backend Image to Artifact Registry
+  # 6. Push Backend Image to Artifact Registry
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/docker'
     args:
@@ -44,7 +113,7 @@ steps:
     waitFor: ['build-backend']
 
   # -----------------------------------------------
-  # 3. Build Frontend (Vite)
+  # 7. Build Frontend (Vite)
   # -----------------------------------------------
   - name: 'node:20'
     entrypoint: bash
@@ -52,10 +121,10 @@ steps:
       - -c
       - cd frontend && npm ci && npm run build
     id: build-frontend
-    waitFor: ['release-checks']
+    waitFor: ['release-gate']
 
   # -----------------------------------------------
-  # 4. Deploy Backend to Cloud Run
+  # 8. Deploy Backend to Cloud Run
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
@@ -70,10 +139,10 @@ steps:
       - --concurrency=${_BACKEND_CONCURRENCY}
       - --update-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID,BACKEND_MAX_INSTANCES=${_BACKEND_MAX_INSTANCES},BACKEND_CONCURRENCY=${_BACKEND_CONCURRENCY},GUNICORN_WORKERS=2,GUNICORN_THREADS=4,BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8
     id: deploy-backend
-    waitFor: ['push-backend', 'release-checks']
+    waitFor: ['push-backend', 'release-gate']
 
   # -----------------------------------------------
-  # 5. Deploy Frontend to GCS
+  # 9. Deploy Frontend to GCS
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/gsutil'
     args:
@@ -84,10 +153,10 @@ steps:
       - frontend/dist/
       - 'gs://${_FRONTEND_BUCKET}/'
     id: deploy-frontend
-    waitFor: ['build-frontend', 'release-checks']
+    waitFor: ['build-frontend', 'release-gate']
 
   # -----------------------------------------------
-  # 6. Run Django Migrations (after deploy)
+  # 10. Run Django Migrations (after deploy)
   # -----------------------------------------------
   - name: '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA'
     entrypoint: python

@@ -2,7 +2,7 @@
 
 - [x] 1.1 Read-only production inspection: Cloud SQL `max_connections=25`; Cloud Run max scale/concurrency `10/10`; Gunicorn `2×4`; background worker `1/process`; Django `CONN_MAX_AGE=60`. Current envelope is 100 sessions against an application budget of 14 (8 reserved); proposed `2×2`, `CONN_MAX_AGE=0` envelope is 8.
 - [x] 1.2 Run the report-only production audit: 4 exchange groups, 8 findings (3 empty groups and 2 members without Portions); no production data changed.
-- [x] 1.3 Identify the authoritative production Cloud Build trigger and Cloud Run ownership/drift behavior (only push-to-main is active; it auto-detects `cloudbuild.yaml`; its `inspi-dev` service account has only visible project-level `roles/storage.admin`, so nested-check submit permission requires an approved IAM change).
+- [x] 1.3 Identify the authoritative production Cloud Build trigger and Cloud Run ownership/drift behavior (only push-to-main is active; it auto-detects `cloudbuild.yaml`; its `inspi-dev` service account has visible project-level `roles/storage.admin`, and recent builds failed while pushing the backend image; Artifact Registry IAM could not be inspected).
 
 ## 2. Bound backend connection and memory use
 
@@ -38,5 +38,5 @@
 
 - [x] 6.1 Extend the authoritative PR Cloud Build trigger to lint release-touched `frontend-food` files, and run TypeScript, Vitest, and production build checks.
 - [x] 6.2 Add deterministic mocked Playwright coverage for Buffet persistence, draft-Ingredient alternatives, and safe HTTP 500 feedback; ensure unexpected API errors fail tests.
-- [x] 6.3 Keep backend pytest and existing quality gates required, and verify the configured deploy trigger cannot bypass failed Food checks (the active push-to-main pipeline invokes the PR checks before any build or deployment).
+- [x] 6.3 Keep backend pytest and existing quality gates required; inline the backend, frontend and Food checks in the active push-to-main pipeline before any build/deploy, avoiding a nested Cloud Build submission.
 - [x] 6.4 Run backend tests, touched-file Food lint, TypeScript, Vitest, mocked Playwright, infrastructure validation, and strict OpenSpec validation; document that rollout remains blocked by the over-budget current runtime and audited malformed exchange data.

@@ -53,7 +53,7 @@ Extend `cloudbuild-pr.yaml` with Food frontend lint, TypeScript, Vitest, and pro
 ## Risks / Trade-offs
 
 - [Existing repository-wide static-check baselines are not clean] → Full `frontend-food` lint reports 67 design-token/formatting errors in untouched files; full-backend Ruff format reports 41 pre-existing files; prior full-backend MyPy runs reported numerous legacy errors in unrelated modules. Release gates therefore lint/format the touched frontend/backend files and MyPy-check the changed backend modules; full-baseline cleanup remains separate work and is not attributed to this change.
-- [Nested Cloud Build release-check permissions are insufficiently verified] → The active main trigger uses `inspi-dev@inspi-441320.iam.gserviceaccount.com`; its visible project-level binding is only `roles/storage.admin`, with no Cloud Build submit role. The deploy YAML waits for the nested `gcloud builds submit` before building or deploying, so failure is fail-closed, but grant and verify least-privilege submit/wait permissions before relying on this gate operationally.
+- [Active deploy identity permissions are unresolved] → The active main trigger uses `inspi-dev@inspi-441320.iam.gserviceaccount.com`; its visible project-level binding is `roles/storage.admin`. Recent trigger builds failed at `push-backend`, and the Artifact Registry resource policy could not be read with the available IAM. Release checks now run inline (no nested Cloud Build submission), but verify Artifact Registry push and Cloud Run deploy permissions before rollout.
 - [Conservative Cloud Run limits reduce peak throughput] → Derive settings from the measured database capacity, load-test them, and alert before the budget is exhausted; consider a larger database tier only with explicit cost approval.
 - [Database-side percentile/histogram queries may differ from current Python calculations] → Add fixture-based parity tests for empty, single-value, duplicate, and outlier distributions before switching implementations.
 - [A new atomic alternative endpoint changes the frontend mutation path] → Keep the existing exchange API available for other callers until searches confirm it is unused; test all API clients and document the new Pydantic/Zod response contract.
@@ -73,7 +73,7 @@ No database schema migration is planned. Any later constraint or malformed-data 
 
 ## Open Questions
 
-- Which Cloud Build trigger/configuration is the authoritative production release gate? `cloudbuild-pr.yaml` omits `frontend-food`, while the deploy pipeline also builds only the main frontend; the implementation must update the actual required trigger(s).
+- The active main trigger auto-detects `cloudbuild.yaml`; the separate PR trigger is not deployed. The deploy pipeline now runs checks inline, but its service account's Artifact Registry and Cloud Run permissions must be verified before rollout.
 - What exact safe instance/concurrency values meet product latency needs after querying Cloud SQL `max_connections` and load testing?
 - Does the existing request middleware already generate a correlation ID that can be reused, or is a middleware addition needed?
 - Which existing recipe items without portions are legitimate direct-gram entries versus malformed exchange alternatives? Resolve with a report-only data audit before adding any DB constraint.
