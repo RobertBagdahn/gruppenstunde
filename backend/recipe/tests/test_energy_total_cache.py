@@ -103,3 +103,26 @@ class TestCacheExcludesExchangeAlternatives:
         # Both items included: 100 + 300 = 400 kcal
         expected_total = 100.0 + 300.0
         assert recipe.cached_energy_total_kcal == pytest.approx(expected_total, abs=0.5)
+
+
+@pytest.mark.django_db
+class TestEnergyPerPortionSchema:
+    def test_per_portion_energy_is_total_divided_by_portions(self):
+        from recipe.schemas import RecipeDetailOut, RecipeListOut
+
+        recipe = make_recipe(portions=4)
+        ingredient = make_ingredient(energy_kcal=120)
+        portion = make_portion(ingredient=ingredient, weight_g=200.0)
+        make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=2.0)
+        recalculate_recipe_cache(recipe)
+        recipe.refresh_from_db()
+
+        # 120 kcal/100 g * 400 g = 480 kcal total, 4 portions -> 120 kcal each
+        assert RecipeListOut.resolve_cached_energy_per_portion_kcal(recipe) == pytest.approx(120.0)
+        assert RecipeDetailOut.resolve_cached_energy_per_portion_kcal(recipe) == pytest.approx(120.0)
+
+    def test_per_portion_energy_is_none_without_total(self):
+        from recipe.schemas import RecipeListOut
+
+        recipe = make_recipe(portions=4)
+        assert RecipeListOut.resolve_cached_energy_per_portion_kcal(recipe) is None

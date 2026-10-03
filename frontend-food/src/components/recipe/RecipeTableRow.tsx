@@ -25,6 +25,11 @@ export default function RecipeTableRow({ recipe, searchQuery, onDelete, onClone 
   const pricePerPortion = recipePricePerPortion(recipe);
   const costsLabel = pricePerPortion != null ? `${formatEuro(pricePerPortion)} / P.` : '—';
 
+  const energyLabel =
+    recipe.cached_energy_per_portion_kcal != null
+      ? `${Math.round(recipe.cached_energy_per_portion_kcal)} kcal/P.`
+      : '—';
+
   const isDraft = recipe.status === 'draft';
 
   return (
@@ -59,6 +64,9 @@ export default function RecipeTableRow({ recipe, searchQuery, onDelete, onClone 
       <span className="hidden md:inline-flex items-center gap-1 text-caption font-semibold text-danger shrink-0">
         <Icon name="favorite" size={16} />
         {recipe.like_score}
+      </span>
+      <span className="hidden md:inline-flex text-caption text-muted-foreground shrink-0 w-20 text-right">
+        {energyLabel}
       </span>
       <span className="hidden md:inline-flex text-caption text-muted-foreground shrink-0 w-16 text-right">
         {costsLabel}

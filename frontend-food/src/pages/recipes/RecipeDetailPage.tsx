@@ -1255,6 +1255,7 @@ export default function RecipeDetailPage() {
                     <NutritionTab
                       nb={nb}
                       recipeType={recipe.recipe_type}
+                      recipe={recipe}
                     />
                   ),
                 }]

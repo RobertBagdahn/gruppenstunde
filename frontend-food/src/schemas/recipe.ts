@@ -176,6 +176,8 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   source_url: z.string().optional().default(''),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
+  // Energy of one portion (derived from the total energy / portions)
+  cached_energy_per_portion_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
   cached_fat_g: z.number().nullable().optional(),
   cached_carbohydrate_g: z.number().nullable().optional(),
@@ -224,6 +226,8 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   materials: z.array(RecipeMaterialSchema).default([]),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
+  // Energy of one portion (derived from the total energy / portions)
+  cached_energy_per_portion_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
   cached_fat_g: z.number().nullable().optional(),
   cached_carbohydrate_g: z.number().nullable().optional(),

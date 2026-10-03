@@ -82,7 +82,7 @@ export function BreakfastItemCard({
             <span>{(item as RecipeDetail).portions} Portionen</span>
           )}
           {(item as RecipeDetail).cached_energy_kcal && (
-            <span className="ml-2">{(item as RecipeDetail).cached_energy_kcal} kcal</span>
+            <span className="ml-2">{(item as RecipeDetail).cached_energy_kcal} kcal/100 g</span>
           )}
         </div>
       )}
