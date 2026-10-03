@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from supply.choices import AiReviewVerdictChoices, IngredientStatusChoices, RetailSectionSourceChoices
 from supply.services.nutrition_plausibility import NUTRITION_FIELDS, detect_nutrition_issues
-from supply.services.price_service import is_missing_price
+from supply.services.price_service import is_free_ingredient, is_missing_price
 
 # AI review cost per batch call (Gemini 3.5 Flash-Lite, ~4k input / ~3k output tokens, EUR).
 ESTIMATED_EUR_PER_REVIEW_BATCH = 0.005
@@ -112,7 +112,7 @@ def _row_issues(row: dict[str, Any], nutrition_codes: list[str]) -> list[str]:
         issues.append("nutrition_implausible")
     if any(row.get(f) is None for f in CORE_NUTRITION_FIELDS):
         issues.append("nutrition_missing")
-    if is_missing_price(row.get("price_per_kg")):
+    if is_missing_price(row.get("price_per_kg")) and not is_free_ingredient(row.get("name")):
         issues.append("price_missing")
     # "Sonstiges" is fine when a rule or the AI chose it deliberately (e.g. protein powder).
     if row.get("retail_section_id") is None or (

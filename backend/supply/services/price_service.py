@@ -13,6 +13,26 @@ if TYPE_CHECKING:
     from supply.models import Ingredient
 
 
+# Free ingredients: no shopping cost, so ``price_per_kg`` stays empty on purpose.
+FREE_INGREDIENT_NAMES: frozenset[str] = frozenset(
+    {
+        "heißes wasser",
+        "kochendes wasser",
+        "leitungswasser",
+        "nudelkochwasser",
+        "kochwasser",
+        "gurkenwasser",
+        "gewürzgurkenwasser",
+        "einlegewasser",
+    }
+)
+
+
+def is_free_ingredient(name: str | None) -> bool:
+    """Whether the ingredient is free by nature (cooking/pickle water) and needs no price."""
+    return " ".join((name or "").lower().split()) in FREE_INGREDIENT_NAMES
+
+
 def is_missing_price(price) -> bool:
     """Return whether a price counts as missing.
 

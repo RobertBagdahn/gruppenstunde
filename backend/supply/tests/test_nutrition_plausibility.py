@@ -65,7 +65,8 @@ def test_alcohol_energy_without_macros_is_plausible():
     assert codes(rum, "Rum") == set()
 
 
-def test_us_total_carbs_are_clamped():
+def test_us_total_carbs_lose_their_fibre():
     chocolate = {**BASE, "energy_kcal": 588.0, "protein_g": 6.0, "fat_g": 40.0, "carbohydrate_g": 52.0, "fibre_g": 10.0}
     changes = propose_deterministic_repair(chocolate, name="Zartbitterschokolade")
-    assert changes["carbohydrate_g"] == 42.5
+    # Stated energy (588) fits the net carbs (52 - 10 fibre) better than the gross value.
+    assert changes["carbohydrate_g"] == 42.0
