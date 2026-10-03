@@ -140,3 +140,13 @@ def test_empty_summary_is_filled():
     recipe.refresh_from_db()
     assert result.changed == 1
     assert recipe.summary == "Einfaches Gericht für die Gruppe."
+
+
+@pytest.mark.django_db
+def test_summary_stops_after_ai_unavailable():
+    for _ in range(repair.BATCH_SIZE + 1):
+        make_recipe(summary="")
+    with patch.object(repair, "gemini_call", return_value=(None, None)) as call:
+        result = repair.fix_placeholder_summaries(ids=None, apply=True)
+    assert call.call_count == 1
+    assert result.changed == 0

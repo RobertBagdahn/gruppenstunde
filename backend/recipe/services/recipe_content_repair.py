@@ -162,6 +162,9 @@ def fix_placeholder_summaries(
         except (*_AI_ERRORS, ValueError) as exc:
             result.messages.append(f"KI-Fehler bei Beschreibungen, Batch übersprungen: {exc}")
             result.skipped += len(batch)
+            if isinstance(exc, GeminiUnavailableError):
+                result.messages.append("KI nicht verfügbar (GOOGLE_CLOUD_PROJECT gesetzt?) – Schritt abgebrochen.")
+                break
             continue
         by_id = {item.id: item.summary.strip() for item in parsed.items}
         for recipe in batch:
@@ -241,6 +244,9 @@ def fix_missing_steps(
         except (*_AI_ERRORS, ValueError) as exc:
             result.skipped += 1
             result.messages.append(f"#{recipe.id} {recipe.title}: KI-Fehler, übersprungen: {exc}")
+            if isinstance(exc, GeminiUnavailableError):
+                result.messages.append("KI nicht verfügbar (GOOGLE_CLOUD_PROJECT gesetzt?) – Schritt abgebrochen.")
+                break
             continue
         if not steps:
             result.skipped += 1
@@ -303,6 +309,9 @@ def fix_missing_tags(
         except (*_AI_ERRORS, ValueError) as exc:
             result.messages.append(f"KI-Fehler bei Tags, Batch übersprungen: {exc}")
             result.skipped += len(batch)
+            if isinstance(exc, GeminiUnavailableError):
+                result.messages.append("KI nicht verfügbar (GOOGLE_CLOUD_PROJECT gesetzt?) – Schritt abgebrochen.")
+                break
             continue
         picks = {item.id: item.tag_slugs for item in parsed.items}
         for recipe in batch:
