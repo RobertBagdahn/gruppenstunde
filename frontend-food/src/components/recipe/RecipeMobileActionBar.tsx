@@ -10,12 +10,15 @@ interface RecipeMobileActionBarProps {
   onOpenShoppingList: () => void;
   onOpenPortions: () => void;
   recipeSlug?: string;
+  /** Show "Kochen starten" only when the recipe has steps to cook. */
+  canCook?: boolean;
 }
 
 export default function RecipeMobileActionBar({
   onOpenShoppingList,
   onOpenPortions,
   recipeSlug,
+  canCook = true,
 }: RecipeMobileActionBarProps) {
   const navigate = useNavigate();
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
@@ -124,14 +127,16 @@ export default function RecipeMobileActionBar({
 
         {menuOpen && (
           <div className="absolute bottom-12 right-0 w-48 bg-popover border rounded-lg shadow-lg py-1 z-50">
-            <button
-              type="button"
-              onClick={() => { handleStartCooking(); setMenuOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
-            >
-              <Icon name="skillet" size={20} />
-              Kochen starten
-            </button>
+            {canCook && (
+              <button
+                type="button"
+                onClick={() => { handleStartCooking(); setMenuOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
+              >
+                <Icon name="skillet" size={20} />
+                Kochen starten
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { setPdfDialogOpen(true); setMenuOpen(false); }}
