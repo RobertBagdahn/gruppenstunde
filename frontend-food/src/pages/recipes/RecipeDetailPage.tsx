@@ -124,6 +124,11 @@ export default function RecipeDetailPage() {
     [recipe?.description],
   );
 
+  const canCook =
+    (recipe?.steps_count ?? 0) > 0 ||
+    (recipe?.steps.length ?? 0) > 0 ||
+    legacyPreparationSteps.length > 0;
+
   const { data: comments } = useRecipeComments(recipeId);
   const createComment = useCreateRecipeComment(recipeId);
   const createEmotion = useRecipeEmotion(recipeId);
@@ -1359,6 +1364,7 @@ export default function RecipeDetailPage() {
         onPortionsChange={setPortionsMultiplier}
         onOpenShoppingList={handleOpenShoppingList}
         hidePortionScaler={isInlineEditMode}
+        canCook={canCook}
         onClone={() => {
           setCloneTitle(`${recipe.title} (Kopie)`);
           setShowCloneDialog(true);
@@ -1370,6 +1376,7 @@ export default function RecipeDetailPage() {
         onOpenShoppingList={handleOpenShoppingList}
         onOpenPortions={() => setPortionSheetOpen(true)}
         recipeSlug={slug}
+        canCook={canCook}
       />
 
       {/* Portion Bottom Sheet (Mobile) */}

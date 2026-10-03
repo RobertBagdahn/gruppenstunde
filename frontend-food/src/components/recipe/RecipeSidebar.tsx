@@ -22,6 +22,8 @@ interface RecipeSidebarProps {
    * showing both at once is confusing/duplicated.
    */
   hidePortionScaler?: boolean;
+  /** Show "Kochen starten" only when the recipe has steps to cook. */
+  canCook?: boolean;
 }
 
 export default function RecipeSidebar({
@@ -32,6 +34,7 @@ export default function RecipeSidebar({
   onOpenShoppingList,
   onClone,
   hidePortionScaler = false,
+  canCook = true,
 }: RecipeSidebarProps) {
   const navigate = useNavigate();
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
@@ -69,19 +72,21 @@ export default function RecipeSidebar({
 
       {/* Action Buttons (compact) */}
       <div className="flex flex-col gap-1.5">
-        <button
-          type="button"
-          onClick={() => {
-            navigate(
-              { search: `?mode=cooking&step=0` },
-              { replace: true },
-            );
-          }}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-warning text-white rounded-lg hover:bg-warning transition-colors"
-        >
-          <UtensilsCrossed className="w-4 h-4" />
-          Kochen starten
-        </button>
+        {canCook && (
+          <button
+            type="button"
+            onClick={() => {
+              navigate(
+                { search: `?mode=cooking&step=0` },
+                { replace: true },
+              );
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-warning text-white rounded-lg hover:bg-warning transition-colors"
+          >
+            <UtensilsCrossed className="w-4 h-4" />
+            Kochen starten
+          </button>
+        )}
         <button
           type="button"
           onClick={onOpenShoppingList}
