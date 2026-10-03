@@ -368,8 +368,8 @@ export function MealOmnibarDialog({
                       <div className="rounded-xl border border-border bg-card p-3 space-y-2">
                         <div className="flex items-center gap-2 text-caption font-semibold text-foreground"><Flame className="w-3.5 h-3.5 text-primary" />Nährwerte und Hinweise</div>
                         <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
-                          {formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal') && <span>{formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal')}</span>}
-                          {formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein') && <span>{formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein')}</span>}
+                          {formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal/100 g') && <span>{formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal/100 g')}</span>}
+                          {formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein/100 g') && <span>{formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein/100 g')}</span>}
                           {activeItem.data.nutritional_tags?.map((tag) => <span key={tag.id} className="rounded-full bg-primary/10 px-2 py-1 text-primary">{tag.name}</span>)}
                         </div>
                       </div>

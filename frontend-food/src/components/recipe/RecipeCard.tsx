@@ -38,6 +38,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
   const pricePerPortion = recipePricePerPortion(recipe);
   const costsLabel = pricePerPortion != null ? formatEuro(pricePerPortion) : null;
+  const energyPerPortion = recipe.cached_energy_per_portion_kcal;
 
   const hasActions = (canEdit && onEdit) || (canDelete && onDelete) || onClone;
   const nutriClass = recipe.cached_nutri_class;
@@ -173,6 +174,12 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
             <Icon name="signal_cellular_alt" size={16} className="text-primary" />
             {difficultyLabel}
           </span>
+          {energyPerPortion != null && (
+            <span className="flex items-center gap-1 bg-warning-soft rounded-full px-2 py-0.5">
+              <Icon name="local_fire_department" size={16} className="text-warning" />
+              {Math.round(energyPerPortion)} kcal/Portion
+            </span>
+          )}
           {costsLabel && (
             <span className="flex items-center gap-1 bg-warning-soft rounded-full px-2 py-0.5">
               <Icon name="payments" size={16} className="text-warning" />

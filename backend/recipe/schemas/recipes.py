@@ -89,6 +89,14 @@ def build_recipe_price_coverage(recipe) -> dict:
     return build_price_coverage(len(items), priced, len(affected_items), affected_items)
 
 
+def energy_per_portion_kcal(recipe) -> float | None:
+    """Energy of one portion; ``cached_energy_kcal`` itself is per 100 g of the whole recipe."""
+    total = recipe.cached_energy_total_kcal
+    if total is None:
+        return None
+    return float(total) / max(recipe.portions or 1, 1)
+
+
 # --- Recipe List Schema (extends ContentListOut) ---
 
 
@@ -97,7 +105,9 @@ class RecipeListOut(ContentListOut):
 
     recipe_type: str
     portions: int | None
+    # Per 100 g of the whole recipe (not per portion); see cached_energy_per_portion_kcal
     cached_energy_kcal: float | None = None
+    cached_energy_per_portion_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
     cached_carbohydrate_g: float | None = None
@@ -116,6 +126,10 @@ class RecipeListOut(ContentListOut):
     shared_group_ids: list[int] = []
     source_url: str = ""
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
+
+    @staticmethod
+    def resolve_cached_energy_per_portion_kcal(obj) -> float | None:
+        return energy_per_portion_kcal(obj)
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
@@ -176,7 +190,9 @@ class RecipeDetailOut(ContentDetailOut):
     preparation_method: str = ""
     equipment: list[EquipmentOut] = []
     materials: list[RecipeMaterialOut] = []
+    # Per 100 g of the whole recipe (not per portion); see cached_energy_per_portion_kcal
     cached_energy_kcal: float | None = None
+    cached_energy_per_portion_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
     cached_carbohydrate_g: float | None = None
@@ -214,6 +230,10 @@ class RecipeDetailOut(ContentDetailOut):
     def resolve_ai_interaction_id(obj) -> str | None:
         """Expose the transient AI interaction id when a service attaches one."""
         return getattr(obj, "ai_interaction_id", None)
+
+    @staticmethod
+    def resolve_cached_energy_per_portion_kcal(obj) -> float | None:
+        return energy_per_portion_kcal(obj)
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:

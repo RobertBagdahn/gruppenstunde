@@ -226,7 +226,7 @@ export function RecipeDetailView({
             )}
             {recipe.cached_energy_kcal && (
               <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-xs text-gray-600">Energie</p>
+                <p className="text-xs text-gray-600">Energie (pro 100 g)</p>
                 <p className="text-lg font-semibold">
                   {recipe.cached_energy_kcal} kcal
                 </p>

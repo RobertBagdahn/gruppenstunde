@@ -9,20 +9,26 @@ import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { RecipeCategoryBenchmark } from '@/components/recipe/RecipeCategoryBenchmark';
 import RecipeHistogram from '@/components/recipe/RecipeHistogram';
 import { useRecipeTypeStats } from '@/api/recipes';
-import type { RecipeNutritionBreakdown } from '@/schemas/recipe';
+import NutritionBigTable from '@/components/recipe/NutritionBigTable';
+import type { RecipeDetail, RecipeNutritionBreakdown } from '@/schemas/recipe';
 
 const LazyNutritionPieChart = lazy(() => import('@/components/charts/NutritionPieChart'));
 
 interface Props {
   nb: RecipeNutritionBreakdown;
   recipeType: string;
+  recipe: RecipeDetail;
 }
 
-export function NutritionTab({ nb, recipeType }: Props) {
+export function NutritionTab({ nb, recipeType, recipe }: Props) {
   const { data: typeStats } = useRecipeTypeStats(recipeType);
 
   return (
     <div className="space-y-6">
+      <div>
+        <h3 className="text-body font-semibold mb-3">Nährwerte im Vergleich</h3>
+        <NutritionBigTable recipe={recipe} portions={recipe.portions ?? 1} />
+      </div>
       <div>
         <h3 className="text-body font-semibold mb-3 flex items-center gap-2">
           Inhaltsstoffe
