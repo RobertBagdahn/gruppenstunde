@@ -93,7 +93,7 @@ export function PlanCheckFlyout({
         onClick={() => setOpen(true)}
         aria-label="Plan-Check öffnen"
         className={cn(
-          'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-caption font-bold transition-all shadow-soft',
+          'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-caption font-bold whitespace-nowrap transition-all shadow-soft',
           totalIssues > 0
             ? 'border-warning-border bg-warning-soft text-warning hover:bg-warning-soft'
             : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
