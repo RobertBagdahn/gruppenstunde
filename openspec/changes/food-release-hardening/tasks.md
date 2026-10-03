@@ -1,7 +1,7 @@
 ## 1. Audit and define runtime budgets
 
 - [x] 1.1 Read-only production inspection: Cloud SQL `max_connections=25`; Cloud Run max scale/concurrency `10/10`; Gunicorn `2×4`; background worker `1/process`; Django `CONN_MAX_AGE=60`. Current envelope is 100 sessions against an application budget of 14 (8 reserved); proposed `2×2`, `CONN_MAX_AGE=0` envelope is 8.
-- [x] 1.2 Run the report-only production audit: 4 exchange groups, 8 findings (3 empty groups and 2 members without Portions); no production data changed.
+- [x] 1.2 Run the report-only production audit (4 groups, 8 findings), remove only the 3 empty unnamed groups after owner approval, and verify the report-only audit now finds the remaining 2 portionless members.
 - [x] 1.3 Identify the authoritative production Cloud Build trigger and Cloud Run ownership/drift behavior (only push-to-main is active; it auto-detects `cloudbuild.yaml`; its `inspi-dev` service account has visible project-level `roles/storage.admin`, and recent builds failed while pushing the backend image; Artifact Registry IAM could not be inspected).
 
 ## 2. Bound backend connection and memory use
@@ -18,8 +18,8 @@
 - [x] 3.3 Update Pydantic and Zod contracts for the alternative operation and ensure the response contains the persisted Ingredient name and Portion.
 - [x] 3.4 Switch the Food recipe editor to the atomic operation, handle portion-request failures using the shared API error type, and preserve the pending selection on retry.
 - [x] 3.5 Make embedding generation safe for legacy/direct-gram RecipeItems without a Portion, and add tests proving one malformed/portionless row cannot abort recipe embedding construction.
-- [x] 3.6 Report-only production audit found 3 empty exchange groups and 2 exchange members without Portions. A separate reviewed data-repair plan is required; no repair or migration was run.
-- [ ] 3.7 Obtain content-owner approval for a row-level repair plan: review empty groups for removal and identify the two portionless members from a trusted source; never infer or fabricate their ingredients.
+- [x] 3.6 Report-only production audit found 3 empty unnamed groups and 2 exchange members without Portions. The 3 empty groups were removed after approval; a repeat audit confirms only the 2 portionless members remain. No migration ran.
+- [ ] 3.7 Obtain trusted ingredient/portion mappings or content-owner approval to remove the two remaining portionless exchange members; never infer or fabricate their ingredients.
 
 ## 4. Surface Food API server errors safely
 

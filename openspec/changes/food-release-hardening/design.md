@@ -58,7 +58,7 @@ Extend `cloudbuild-pr.yaml` with Food frontend lint, TypeScript, Vitest, and pro
 - [Database-side percentile/histogram queries may differ from current Python calculations] → Add fixture-based parity tests for empty, single-value, duplicate, and outlier distributions before switching implementations.
 - [A new atomic alternative endpoint changes the frontend mutation path] → Keep the existing exchange API available for other callers until searches confirm it is unused; test all API clients and document the new Pydantic/Zod response contract.
 - [Some users may not have read access to a system draft] → Preserve existing access policy and distinguish “not readable” from “draft status”; do not broaden global ingredient search visibility.
-- [Existing exchange groups contain malformed data] → The authorized report-only audit found four exchange groups and eight findings: three empty groups and two members without Portions (the remaining findings are missing default members for the empty groups). Do not mutate production rows or add constraints during deployment; prepare and review a separate repair plan.
+- [Existing exchange groups contain malformed data] → The authorized report-only audit found four groups and eight findings. After approval, only the three empty unnamed group rows were removed; a repeat report-only audit found the two portionless members remain. Their ingredient identity cannot be safely inferred. Do not modify those recipe items or add constraints until the content owner approves a mapping/removal plan.
 
 ## Migration Plan
 
@@ -69,7 +69,7 @@ Extend `cloudbuild-pr.yaml` with Food frontend lint, TypeScript, Vitest, and pro
 5. Enable the expanded PR/release gates and verify the Buffet and draft-alternative E2E workflows.
 6. Roll back the frontend to the prior image if UI regressions occur. Keep the new backend endpoint additive during rollout. Revert Cloud Run limits only to a previously measured safe configuration; do not restore the known connection-exhausting settings.
 
-No database schema migration is planned. Any later constraint or malformed-data repair requires evidence from the audit and a separate migration/rollback plan.
+No database schema migration is planned. The three approved empty-group rows were removed in one guarded transaction that rechecked their emptiness; the remaining portionless members were not changed. Any further repair or constraint requires a trusted ingredient mapping, content-owner approval, and a separate rollback plan.
 
 ## Open Questions
 
