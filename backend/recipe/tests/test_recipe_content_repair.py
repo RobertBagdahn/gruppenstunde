@@ -150,3 +150,10 @@ def test_summary_stops_after_ai_unavailable():
         result = repair.fix_placeholder_summaries(ids=None, apply=True)
     assert call.call_count == 1
     assert result.changed == 0
+
+
+@pytest.mark.django_db
+def test_junk_recipes_are_ignored():
+    make_recipe(title="E2E Rezept 1", summary="")
+    real = make_recipe(title="Linsensuppe", summary="")
+    assert [r.id for r in repair.placeholder_summary_recipes()] == [real.id]

@@ -24,7 +24,7 @@ from core.services.gemini import (
     gemini_call,
 )
 from recipe.models import Recipe, RecipeStep, RecipeStepIngredient
-from recipe.services.recipe_data_offensive import RecipeBulkResult
+from recipe.services.recipe_data_offensive import JUNK_TITLE_PATTERN, RecipeBulkResult
 from recipe.services.step_ai_service import AiStepService
 
 logger = logging.getLogger(__name__)
@@ -60,6 +60,11 @@ class TagBatch(BaseModel):
 
 def _active_recipes() -> Any:
     return Recipe.objects.exclude(status=ContentStatus.ARCHIVED)
+
+
+def _real_recipes(recipes: Any) -> list[Recipe]:
+    """Drop test/junk recipes (e.g. "E2E Rezept"); they are archived, not repaired."""
+    return [recipe for recipe in recipes if not JUNK_TITLE_PATTERN.search(recipe.title or "")]
 
 
 def _ingredient_names(recipe: Recipe, limit: int = 15) -> list[str]:
@@ -109,7 +114,7 @@ def clean_cooklang_markers(*, ids: list[int] | None, apply: bool) -> RecipeBulkR
     queryset = _active_recipes().filter(description__contains="#")
     if ids:
         queryset = queryset.filter(id__in=ids)
-    for recipe in queryset.order_by("id"):
+    for recipe in _real_recipes(queryset.order_by("id")):
         cleaned = strip_cooklang_markers(recipe.description)
         if cleaned == recipe.description:
             continue
@@ -128,7 +133,7 @@ def placeholder_summary_recipes(ids: list[int] | None = None) -> list[Recipe]:
     queryset = _active_recipes().filter(Q(summary__startswith=PLACEHOLDER_SUMMARY_PREFIX) | Q(summary=""))
     if ids:
         queryset = queryset.filter(id__in=ids)
-    return list(queryset.prefetch_related("recipe_items__portion__ingredient").order_by("id"))
+    return _real_recipes(queryset.prefetch_related("recipe_items__portion__ingredient").order_by("id"))
 
 
 def _summary_prompt(recipes: list[Recipe]) -> str:
@@ -187,7 +192,7 @@ def recipes_without_steps(ids: list[int] | None = None) -> list[Recipe]:
     queryset = _active_recipes().annotate(step_total=Count("steps")).filter(step_total=0)
     if ids:
         queryset = queryset.filter(id__in=ids)
-    return list(queryset.prefetch_related("recipe_items__portion__ingredient").order_by("id"))
+    return _real_recipes(queryset.prefetch_related("recipe_items__portion__ingredient").order_by("id"))
 
 
 def save_steps(recipe: Recipe, steps: list[dict[str, Any]]) -> None:
@@ -265,7 +270,7 @@ def untagged_recipes(ids: list[int] | None = None) -> list[Recipe]:
     queryset = _active_recipes().annotate(tag_total=Count("tags")).filter(tag_total=0)
     if ids:
         queryset = queryset.filter(id__in=ids)
-    return list(queryset.prefetch_related("recipe_items__portion__ingredient").order_by("id"))
+    return _real_recipes(queryset.prefetch_related("recipe_items__portion__ingredient").order_by("id"))
 
 
 def _tag_prompt(recipes: list[Recipe], catalog: list[Tag]) -> str:
