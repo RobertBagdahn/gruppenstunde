@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('recipe', '0003_alter_recipeitem_portion'),
+        ("recipe", "0003_alter_recipeitem_portion"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='recipe',
-            name='costs_per_person',
-            field=models.DecimalField(blank=True, decimal_places=2, help_text='Cost per participant in Euros', max_digits=8, null=True),
+            model_name="recipe",
+            name="costs_per_person",
+            field=models.DecimalField(
+                blank=True, decimal_places=2, help_text="Cost per participant in Euros", max_digits=8, null=True
+            ),
         ),
     ]

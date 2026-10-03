@@ -19,7 +19,13 @@ class TestCollaboratorList:
         """Owner can list collaborators."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="editor")
 
         client.login(username="owner@test.de", password="pass")
@@ -34,7 +40,13 @@ class TestCollaboratorList:
         """User without access gets 404 (not found, not 403)."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         other = User.objects.create_user(username="other", email="other@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
 
         client.login(username="other@test.de", password="pass")
         resp = client.get(f"/api/meal-plans/{plan.id}/collaborators/")
@@ -54,7 +66,13 @@ class TestCollaboratorAdd:
         """Owner can add a collaborator."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
 
         client.login(username="owner@test.de", password="pass")
         with patch("planner.services.notification_service.send_mail") as mock_send:
@@ -71,7 +89,13 @@ class TestCollaboratorAdd:
         """Adding the same user twice returns 409."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="viewer")
 
         client.login(username="owner@test.de", password="pass")
@@ -85,7 +109,13 @@ class TestCollaboratorAdd:
     def test_add_owner_as_collaborator_400(self, client: Client):
         """Adding the owner as collaborator returns 400."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
 
         client.login(username="owner@test.de", password="pass")
         resp = client.post(
@@ -100,7 +130,13 @@ class TestCollaboratorAdd:
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         viewer = User.objects.create_user(username="viewer", email="viewer@test.de", password="pass")
         other = User.objects.create_user(username="other", email="other@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=viewer, role="viewer")
 
         client.login(username="viewer@test.de", password="pass")
@@ -116,7 +152,13 @@ class TestCollaboratorAdd:
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         editor = User.objects.create_user(username="editor", email="editor@test.de", password="pass")
         other = User.objects.create_user(username="other", email="other@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=editor, role="editor")
 
         client.login(username="editor@test.de", password="pass")
@@ -134,7 +176,13 @@ class TestCollaboratorUpdate:
         """Owner can change a collaborator's role."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         mc = MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="viewer")
 
         client.login(username="owner@test.de", password="pass")
@@ -153,7 +201,13 @@ class TestCollaboratorUpdate:
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         viewer = User.objects.create_user(username="viewer", email="viewer@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=viewer, role="viewer")
         mc = MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="viewer")
 
@@ -172,7 +226,13 @@ class TestCollaboratorRemove:
         """Owner can remove a collaborator."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         mc = MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="viewer")
 
         client.login(username="owner@test.de", password="pass")
@@ -185,7 +245,13 @@ class TestCollaboratorRemove:
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         viewer = User.objects.create_user(username="viewer", email="viewer@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=viewer, role="viewer")
         mc = MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="viewer")
 
@@ -200,7 +266,13 @@ class TestIsOwner:
     def test_owner_sees_is_owner_true_in_detail(self, client: Client):
         """Owner sees is_owner=True in detail response."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
 
         client.login(username="owner@test.de", password="pass")
         resp = client.get(f"/api/meal-plans/{plan.id}/")
@@ -211,7 +283,13 @@ class TestIsOwner:
         """Collaborator sees is_owner=False in detail response."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="editor")
 
         client.login(username="collab@test.de", password="pass")
@@ -223,7 +301,13 @@ class TestIsOwner:
         """Collaborator sees is_owner=False in list response."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
         collab = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
         MealPlanCollaborator.objects.create(meal_plan=plan, user=collab, role="viewer")
 
         client.login(username="collab@test.de", password="pass")
@@ -236,7 +320,13 @@ class TestIsOwner:
     def test_owner_sees_is_owner_true_in_list(self, client: Client):
         """Owner sees is_owner=True in list response."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
-        plan = MealPlan.objects.create(name="Plan", slug="plan", norm_portions=10, created_by=owner, start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)))
+        plan = MealPlan.objects.create(
+            name="Plan",
+            slug="plan",
+            norm_portions=10,
+            created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+        )
 
         client.login(username="owner@test.de", password="pass")
         resp = client.get("/api/meal-plans/")

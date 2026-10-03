@@ -90,9 +90,9 @@ class TestEnergyInKcal:
             with open(fixture_path, encoding="utf-8") as f:
                 rules = json.load(f)
             for entry in rules:
-                assert (
-                    entry["fields"]["parameter"] != "energy_kj"
-                ), f"Rule {entry['pk']} '{entry['fields']['name']}' still has parameter='energy_kj'"
+                assert entry["fields"]["parameter"] != "energy_kj", (
+                    f"Rule {entry['pk']} '{entry['fields']['name']}' still has parameter='energy_kj'"
+                )
 
     def test_data_migration_0007_updates_energy_kj_rules(self):
         mod = importlib.import_module("recipe.migrations.0007_migrate_energy_kj_rules_to_energy_kcal")

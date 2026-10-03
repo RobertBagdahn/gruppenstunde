@@ -75,6 +75,7 @@ def _get_ingredient_id(portion_id):
     if portion_id is None:
         return None
     from supply.models import Portion
+
     try:
         return Portion.objects.get(id=portion_id).ingredient_id
     except Portion.DoesNotExist:

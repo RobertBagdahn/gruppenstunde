@@ -41,12 +41,12 @@ class TestFibreRules:
         assert fibre_rules.exists(), "At least one fibre rule should exist"
 
         for rule in fibre_rules:
-            assert (
-                rule.max_green is None
-            ), f"Fibre rule '{rule.name}' (scope: {rule.scope}) should not have max_green set"
-            assert (
-                rule.max_yellow is None
-            ), f"Fibre rule '{rule.name}' (scope: {rule.scope}) should not have max_yellow set"
+            assert rule.max_green is None, (
+                f"Fibre rule '{rule.name}' (scope: {rule.scope}) should not have max_green set"
+            )
+            assert rule.max_yellow is None, (
+                f"Fibre rule '{rule.name}' (scope: {rule.scope}) should not have max_yellow set"
+            )
             # Should have min thresholds
             assert rule.min_green is not None, "Fibre rule should have min_green set"
             assert rule.min_yellow is not None, "Fibre rule should have min_yellow set"

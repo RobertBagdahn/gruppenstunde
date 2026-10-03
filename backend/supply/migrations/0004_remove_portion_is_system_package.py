@@ -51,7 +51,6 @@ def migrate_system_portions(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0003_ingredient_deleted_at"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -63,22 +62,67 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("name", models.CharField(max_length=255, verbose_name="Name")),
-                ("weight_g", models.FloatField(blank=True, default=None, help_text="Gewicht einer Packung in Gramm. NULL = unbekannt.", null=True, validators=[django.core.validators.MinValueValidator(0.01)], verbose_name="Gewicht (g)")),
+                (
+                    "weight_g",
+                    models.FloatField(
+                        blank=True,
+                        default=None,
+                        help_text="Gewicht einer Packung in Gramm. NULL = unbekannt.",
+                        null=True,
+                        validators=[django.core.validators.MinValueValidator(0.01)],
+                        verbose_name="Gewicht (g)",
+                    ),
+                ),
                 ("rank", models.IntegerField(default=1, verbose_name="Rang (1 = Standardpackung)")),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("deleted_at", models.DateTimeField(blank=True, db_index=True, null=True)),
-                ("created_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="packages_created", to=settings.AUTH_USER_MODEL)),
-                ("ingredient", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="packages", to="supply.ingredient", verbose_name="Zutat")),
-                ("updated_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="packages_updated", to=settings.AUTH_USER_MODEL)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="packages_created",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "ingredient",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="packages",
+                        to="supply.ingredient",
+                        verbose_name="Zutat",
+                    ),
+                ),
+                (
+                    "updated_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="packages_updated",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
                 "verbose_name": "Packung",
                 "verbose_name_plural": "Packungen",
                 "ordering": ["rank"],
                 "constraints": [
-                    models.UniqueConstraint(django.db.models.functions.text.Lower("name"), models.F("ingredient_id"), condition=models.Q(("deleted_at__isnull", True)), name="unique_package_name_per_ingredient"),
-                    models.UniqueConstraint(condition=models.Q(("deleted_at__isnull", True), ("rank", 1)), fields=("ingredient",), name="unique_rank1_package_per_ingredient"),
+                    models.UniqueConstraint(
+                        django.db.models.functions.text.Lower("name"),
+                        models.F("ingredient_id"),
+                        condition=models.Q(("deleted_at__isnull", True)),
+                        name="unique_package_name_per_ingredient",
+                    ),
+                    models.UniqueConstraint(
+                        condition=models.Q(("deleted_at__isnull", True), ("rank", 1)),
+                        fields=("ingredient",),
+                        name="unique_rank1_package_per_ingredient",
+                    ),
                 ],
             },
         ),

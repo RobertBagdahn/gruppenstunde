@@ -65,7 +65,7 @@ class TestResolvePlaceholders:
 
     def test_resolve_numeric_placeholder(self, setup):
         """Test resolving numeric placeholders like {123}."""
-        setup["step"].instruction = f"Mix {{{ setup['flour_item'].id}}} with {{{ setup['sugar_item'].id}}}"
+        setup["step"].instruction = f"Mix {{{setup['flour_item'].id}}} with {{{setup['sugar_item'].id}}}"
         result = resolve_placeholders(setup["step"])
 
         assert "500g Mehl" in result
@@ -82,7 +82,7 @@ class TestResolvePlaceholders:
 
     def test_resolve_mixed_placeholders(self, setup):
         """Test resolving both numeric and name-based placeholders together."""
-        setup["step"].instruction = f"Combine {{{ setup['flour_item'].id}}} with {{Zucker}} and {{Milch}}"
+        setup["step"].instruction = f"Combine {{{setup['flour_item'].id}}} with {{Zucker}} and {{Milch}}"
         result = resolve_placeholders(setup["step"])
 
         assert "500g Mehl" in result

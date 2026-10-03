@@ -172,7 +172,7 @@ class Command(BaseCommand):
                 return
 
         urls = CHEFKOCH_URLS[:limit]
-        self.stdout.write(f"Importiere {len(urls)} Rezepte als User '{user.username}'...")
+        self.stdout.write(f"Importiere {len(urls)} Rezepte als User '{user.get_username()}'...")
 
         success_count = 0
         error_count = 0
@@ -229,7 +229,7 @@ class Command(BaseCommand):
                                 )
                                 items_created += 1
 
-                        self.stdout.write(f"  ✓ Gespeichert (ID: {recipe.id}, {items_created} Zutaten)")
+                        self.stdout.write(f"  ✓ Gespeichert (ID: {recipe.pk}, {items_created} Zutaten)")
 
                 success_count += 1
 

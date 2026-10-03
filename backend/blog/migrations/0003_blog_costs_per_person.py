@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('blog', '0002_initial'),
+        ("blog", "0002_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='blog',
-            name='costs_per_person',
-            field=models.DecimalField(blank=True, decimal_places=2, help_text='Cost per participant in Euros', max_digits=8, null=True),
+            model_name="blog",
+            name="costs_per_person",
+            field=models.DecimalField(
+                blank=True, decimal_places=2, help_text="Cost per participant in Euros", max_digits=8, null=True
+            ),
         ),
     ]

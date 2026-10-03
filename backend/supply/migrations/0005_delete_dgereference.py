@@ -4,13 +4,12 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0004_remove_portion_is_system_package'),
+        ("supply", "0004_remove_portion_is_system_package"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='DgeReference',
+            name="DgeReference",
         ),
     ]

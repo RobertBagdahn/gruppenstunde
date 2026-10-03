@@ -7,16 +7,16 @@ def cleanup_measuring_units(apps, schema_editor):
     Portion = apps.get_model("supply", "Portion")
 
     FK_MIGRATIONS = [
-        (101, 61),   # g → Gramm
-        (102, 63),   # ml → Milliliter
-        (65, 61),    # Stück → Gramm
-        (105, 61),   # Packung → Gramm
-        (73, 61),    # Portion → Gramm
-        (72, 61),    # Scheibe → Gramm
-        (70, 61),    # Dose → Gramm
-        (74, 61),    # Glas → Gramm
-        (71, 61),    # Becher → Gramm
-        (75, 61),    # Bund → Gramm
+        (101, 61),  # g → Gramm
+        (102, 63),  # ml → Milliliter
+        (65, 61),  # Stück → Gramm
+        (105, 61),  # Packung → Gramm
+        (73, 61),  # Portion → Gramm
+        (72, 61),  # Scheibe → Gramm
+        (70, 61),  # Dose → Gramm
+        (74, 61),  # Glas → Gramm
+        (71, 61),  # Becher → Gramm
+        (75, 61),  # Bund → Gramm
     ]
 
     for from_pk, to_pk in FK_MIGRATIONS:

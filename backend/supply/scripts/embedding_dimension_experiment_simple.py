@@ -149,7 +149,7 @@ def run_experiment():
             "overlap": float(overlap),
             "size_ratio": target_dim / 3072.0,
         }
-        print(f"    ✓ top-10 overlap = {overlap*100:5.1f}%, size = {target_dim/3072.0*100:5.1f}%")
+        print(f"    ✓ top-10 overlap = {overlap * 100:5.1f}%, size = {target_dim / 3072.0 * 100:5.1f}%")
 
     # Method 2: Last-N slicing
     print("\n" + "-" * 80)
@@ -165,7 +165,7 @@ def run_experiment():
             "overlap": float(overlap),
             "size_ratio": target_dim / 3072.0,
         }
-        print(f"    ✓ top-10 overlap = {overlap*100:5.1f}%, size = {target_dim/3072.0*100:5.1f}%")
+        print(f"    ✓ top-10 overlap = {overlap * 100:5.1f}%, size = {target_dim / 3072.0 * 100:5.1f}%")
 
     # Method 3: SVD-based reduction
     print("\n" + "-" * 80)
@@ -182,7 +182,7 @@ def run_experiment():
                 "overlap": float(overlap),
                 "size_ratio": target_dim / 3072.0,
             }
-            print(f"    ✓ top-10 overlap = {overlap*100:5.1f}%, size = {target_dim/3072.0*100:5.1f}%")
+            print(f"    ✓ top-10 overlap = {overlap * 100:5.1f}%, size = {target_dim / 3072.0 * 100:5.1f}%")
         except Exception as e:
             print(f"    ✗ ERROR: {e}")
             results["methods"]["svd"][target_dim] = {"error": str(e)}
@@ -206,7 +206,7 @@ def run_experiment():
     for method_name, method_results in results["methods"].items():
         print(f"\n{method_name.upper()}:")
         best_dim = max(method_results.items(), key=lambda x: x[1].get("overlap", 0))
-        print(f"  Best dimension: {best_dim[0]} with {best_dim[1]['overlap']*100:.1f}% overlap")
+        print(f"  Best dimension: {best_dim[0]} with {best_dim[1]['overlap'] * 100:.1f}% overlap")
 
     print("\n" + "=" * 80)
     print("RECOMMENDATION:")

@@ -1,7 +1,9 @@
 # CI/CD – deploys Inspi to Google Cloud Run on every merge to main.
 # Mirrors .claude/skills/deploy/SKILL.md (phases 1, 3, 4, 5, 8, 9, 10).
-# Intentionally NOT automated: OpenTofu apply, add_users, seed_all (data-/infra-changing, manual only).
-# Auth: Workload Identity Federation (no JSON keys). One-time setup: scripts/setup-github-deploy.sh
+# Intentionally NOT automated: OpenTofu apply, add_users, seed_all
+# (data-/infra-changing, manual only).
+# Auth: Workload Identity Federation (no JSON keys).
+# One-time setup: scripts/setup-github-deploy.sh
 
 name: Deploy
 
@@ -33,8 +35,8 @@ jobs:
     name: Backend checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
       - name: Ruff
         working-directory: backend
         run: |
@@ -49,11 +51,12 @@ jobs:
     timeout-minutes: 60
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          workload_identity_provider: >-
+            ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - uses: google-github-actions/setup-gcloud@v2
@@ -62,18 +65,26 @@ jobs:
       - name: Pre-flight checks
         run: |
           set -euo pipefail
-          test "$(gcloud config get-value project 2>/dev/null)" = "$PROJECT_ID" || gcloud config set project "$PROJECT_ID"
+          test "$(gcloud config get-value project 2>/dev/null)" = "$PROJECT_ID" \
+            || gcloud config set project "$PROJECT_ID"
           gcloud auth list --filter=status:ACTIVE --format="value(account)"
-          gcloud artifacts repositories describe inspi --location="$REGION" --format="value(name)"
-          state=$(gcloud sql instances describe "$SQL_INSTANCE" --format="value(state)")
+          gcloud artifacts repositories describe inspi \
+            --location="$REGION" \
+            --format="value(name)"
+          state=$(gcloud sql instances describe "$SQL_INSTANCE" \
+            --format="value(state)")
           echo "Cloud SQL state: $state"
           test "$state" = "RUNNABLE"
-          for svc in "$BACKEND_SERVICE" "$FRONTEND_SERVICE" "$FRONTEND_FOOD_SERVICE"; do
-            gcloud run services describe "$svc" --region="$REGION" --format="value(metadata.name)"
+          for svc in "$BACKEND_SERVICE" "$FRONTEND_SERVICE" \
+            "$FRONTEND_FOOD_SERVICE"; do
+            gcloud run services describe "$svc" --region="$REGION" \
+              --format="value(metadata.name)"
           done
-          gcloud run jobs describe "$MIGRATE_JOB" --region="$REGION" --format="value(metadata.name)"
+          gcloud run jobs describe "$MIGRATE_JOB" --region="$REGION" \
+            --format="value(metadata.name)"
 
-      # Images are built with Cloud Build (amd64), tagged with the commit SHA and :latest.
+      # Images are built with Cloud Build (amd64), tagged with the commit
+      # SHA and :latest.
       - name: Build images (Cloud Build)
         run: |
           set -euo pipefail
@@ -82,12 +93,22 @@ jobs:
             cat > "$RUNNER_TEMP/cloudbuild-$name.yaml" <<YAML
           steps:
             - name: 'gcr.io/cloud-builders/docker'
-              args: ['build', '-t', '$REGISTRY/$name:$GITHUB_SHA', '-t', '$REGISTRY/$name:latest', '-f', '$dockerfile', '.']
+              args:
+                - 'build'
+                - '-t'
+                - '$REGISTRY/$name:$GITHUB_SHA'
+                - '-t'
+                - '$REGISTRY/$name:latest'
+                - '-f'
+                - '$dockerfile'
+                - '.'
           images:
             - '$REGISTRY/$name:$GITHUB_SHA'
             - '$REGISTRY/$name:latest'
           YAML
-            gcloud builds submit --config="$RUNNER_TEMP/cloudbuild-$name.yaml" --region="$REGION" .
+            gcloud builds submit \
+              --config="$RUNNER_TEMP/cloudbuild-$name.yaml" \
+              --region="$REGION" .
           }
           build backend Dockerfile.backend &
           p1=$!
@@ -101,38 +122,54 @@ jobs:
           wait $p3 || rc=1
           exit $rc
 
-      # Phase 4: backend (minimal flags – existing env, secrets and scaling are preserved)
+      # Phase 4: backend (minimal flags – existing env, secrets and scaling
+      # are preserved)
       - name: Deploy backend
         run: |
           set -euo pipefail
-          gcloud run deploy "$BACKEND_SERVICE" --image "$REGISTRY/backend:$GITHUB_SHA" --region "$REGION"
-          gcloud run services update-traffic "$BACKEND_SERVICE" --region "$REGION" --to-latest
+          gcloud run deploy "$BACKEND_SERVICE" \
+            --image "$REGISTRY/backend:$GITHUB_SHA" \
+            --region "$REGION"
+          gcloud run services update-traffic "$BACKEND_SERVICE" \
+            --region "$REGION" --to-latest
 
-      # Phase 5: migrations (job pins its image, so point it at the new build first)
+      # Phase 5: migrations (job pins its image, so point it at the new
+      # build first)
       - name: Run migrations
         run: |
           set -euo pipefail
-          gcloud run jobs update "$MIGRATE_JOB" --image "$REGISTRY/backend:$GITHUB_SHA" --region "$REGION"
+          gcloud run jobs update "$MIGRATE_JOB" \
+            --image "$REGISTRY/backend:$GITHUB_SHA" \
+            --region "$REGION"
           gcloud run jobs execute "$MIGRATE_JOB" --region "$REGION" --wait
 
       # Phases 8 + 9: frontends
       - name: Deploy frontend
         run: |
           set -euo pipefail
-          gcloud run deploy "$FRONTEND_SERVICE" --image "$REGISTRY/frontend:$GITHUB_SHA" --region "$REGION"
-          gcloud run services update-traffic "$FRONTEND_SERVICE" --region "$REGION" --to-latest
+          gcloud run deploy "$FRONTEND_SERVICE" \
+            --image "$REGISTRY/frontend:$GITHUB_SHA" \
+            --region "$REGION"
+          gcloud run services update-traffic "$FRONTEND_SERVICE" \
+            --region "$REGION" --to-latest
 
       - name: Deploy frontend food
         run: |
           set -euo pipefail
-          gcloud run deploy "$FRONTEND_FOOD_SERVICE" --image "$REGISTRY/frontend-food:$GITHUB_SHA" --region "$REGION"
-          gcloud run services update-traffic "$FRONTEND_FOOD_SERVICE" --region "$REGION" --to-latest
+          gcloud run deploy "$FRONTEND_FOOD_SERVICE" \
+            --image "$REGISTRY/frontend-food:$GITHUB_SHA" \
+            --region "$REGION"
+          gcloud run services update-traffic "$FRONTEND_FOOD_SERVICE" \
+            --region "$REGION" --to-latest
 
       # Phases 3 + 10: smoke checks and summary
       - name: Verify and summarize
         run: |
           set -euo pipefail
-          url() { gcloud run services describe "$1" --region="$REGION" --format="value(status.url)"; }
+          url() {
+            gcloud run services describe "$1" --region="$REGION" \
+              --format="value(status.url)"
+          }
           check() {
             local label="$1" target="$2" code
             for _ in 1 2 3 4 5; do
@@ -151,4 +188,5 @@ jobs:
           check backend "$(url "$BACKEND_SERVICE")/api/docs"
           check frontend "$(url "$FRONTEND_SERVICE")/"
           check frontend-food "$(url "$FRONTEND_FOOD_SERVICE")/"
-          gcloud run services list --region="$REGION" --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"
+          gcloud run services list --region="$REGION" \
+            --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"

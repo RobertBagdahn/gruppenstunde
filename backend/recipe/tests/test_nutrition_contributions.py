@@ -207,9 +207,9 @@ class TestNutritionContributions:
         per_serving = data.get("per_serving_energy_kcal", 0)
         item_sum = sum(item["energy_kcal"] for item in data["items"])
         # Sum of per-item energy_kcal should match per_serving_energy_kcal
-        assert (
-            abs(item_sum - per_serving) < 0.15
-        ), f"Sum of per-item energy_kcal ({item_sum}) != per_serving_energy_kcal ({per_serving})"
+        assert abs(item_sum - per_serving) < 0.15, (
+            f"Sum of per-item energy_kcal ({item_sum}) != per_serving_energy_kcal ({per_serving})"
+        )
         # Each item value should be <= total (per-serving ≤ total when portions > 1)
         for item in data["items"]:
             assert item["energy_kcal"] <= data["total_energy_kcal"]

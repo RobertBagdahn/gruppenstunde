@@ -17,9 +17,7 @@ from recipe.tests import make_rule
 class TestRuleEvaluate:
     def test_max_only_upper_limit(self):
         """Only max thresholds set → too much is bad."""
-        rule = make_rule(
-            min_green=None, min_yellow=None, max_green=10.0, max_yellow=20.0
-        )
+        rule = make_rule(min_green=None, min_yellow=None, max_green=10.0, max_yellow=20.0)
         assert rule.evaluate(5.0) == "green"
         assert rule.evaluate(10.0) == "green"  # == max_green is still green
         assert rule.evaluate(10.1) == "yellow"
@@ -64,9 +62,7 @@ class TestRuleEvaluate:
 
     def test_no_thresholds_is_always_green(self):
         """A rule with no thresholds set never flags anything."""
-        rule = make_rule(
-            min_green=None, min_yellow=None, max_green=None, max_yellow=None
-        )
+        rule = make_rule(min_green=None, min_yellow=None, max_green=None, max_yellow=None)
         assert rule.evaluate(0.0) == "green"
         assert rule.evaluate(99999.0) == "green"
 

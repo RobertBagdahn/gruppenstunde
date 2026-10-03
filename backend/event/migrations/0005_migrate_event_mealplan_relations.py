@@ -30,8 +30,7 @@ def migrate_relations(apps, schema_editor):
         logger.warning(
             "Event/MealPlan relation conflicts (MealPlan-side link kept): "
             + ", ".join(
-                f"meal_plan={meal_plan_id}:kept={kept}:ignored={ignored}"
-                for meal_plan_id, kept, ignored in conflicts
+                f"meal_plan={meal_plan_id}:kept={kept}:ignored={ignored}" for meal_plan_id, kept, ignored in conflicts
             )
         )
 

@@ -156,6 +156,6 @@ class TestMealPlanCostSummaryAPI:
         shop_total = sum(item.get("estimated_price_eur", 0) or 0 for item in shop_data)
 
         # With reserve_factor=1.0 both should match
-        assert float(cost_data["total_cost_with_reserve"]) == pytest.approx(
-            shop_total, abs=0.01
-        ), f"Cost summary (with reserve): {cost_data['total_cost_with_reserve']}, Shopping list total: {shop_total}"
+        assert float(cost_data["total_cost_with_reserve"]) == pytest.approx(shop_total, abs=0.01), (
+            f"Cost summary (with reserve): {cost_data['total_cost_with_reserve']}, Shopping list total: {shop_total}"
+        )

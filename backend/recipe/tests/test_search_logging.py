@@ -67,9 +67,7 @@ class TestRecipeSearchLogging:
         resp = api_client.get("/api/recipes/", {"q": "Pfannkuchen"})
         assert resp.status_code == 200
 
-        json_lines = [
-            json.loads(r.msg) for r in caplog.records if r.name == "content.services.search_service"
-        ]
+        json_lines = [json.loads(r.msg) for r in caplog.records if r.name == "content.services.search_service"]
         assert len(json_lines) == 1
         assert json_lines[0]["event"] == "recipe_list_search"
         assert json_lines[0]["query"] == "Pfannkuchen"

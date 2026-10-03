@@ -10,7 +10,7 @@ from .base import *  # noqa: F403
 # ("change-me-in-production") must never reach a live deployment.
 if SECRET_KEY == "change-me-in-production":
     raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY is not configured. " "Set the environment variable before deploying to production."
+        "DJANGO_SECRET_KEY is not configured. Set the environment variable before deploying to production."
     )
 
 DEBUG = env("DEBUG", default="False").lower() in ("true", "1")

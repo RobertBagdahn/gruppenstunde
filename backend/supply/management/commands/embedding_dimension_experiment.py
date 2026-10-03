@@ -125,7 +125,7 @@ class Command(BaseCommand):
                 "overlap": float(overlap),
                 "size_ratio": target_dim / 3072.0,
             }
-            self.stdout.write(f"    ✓ top-10 overlap = {overlap*100:5.1f}%, " f"size = {target_dim/3072.0*100:5.1f}%")
+            self.stdout.write(f"    ✓ top-10 overlap = {overlap * 100:5.1f}%, size = {target_dim / 3072.0 * 100:5.1f}%")
 
         # Method 2: Last-N slicing
         self.stdout.write("\n" + "-" * 80)
@@ -141,7 +141,7 @@ class Command(BaseCommand):
                 "overlap": float(overlap),
                 "size_ratio": target_dim / 3072.0,
             }
-            self.stdout.write(f"    ✓ top-10 overlap = {overlap*100:5.1f}%, " f"size = {target_dim/3072.0*100:5.1f}%")
+            self.stdout.write(f"    ✓ top-10 overlap = {overlap * 100:5.1f}%, size = {target_dim / 3072.0 * 100:5.1f}%")
 
         # Method 3: SVD
         self.stdout.write("\n" + "-" * 80)
@@ -159,7 +159,7 @@ class Command(BaseCommand):
                     "size_ratio": target_dim / 3072.0,
                 }
                 self.stdout.write(
-                    f"    ✓ top-10 overlap = {overlap*100:5.1f}%, " f"size = {target_dim/3072.0*100:5.1f}%"
+                    f"    ✓ top-10 overlap = {overlap * 100:5.1f}%, size = {target_dim / 3072.0 * 100:5.1f}%"
                 )
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"    ✗ ERROR: {e}"))

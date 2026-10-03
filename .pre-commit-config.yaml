@@ -18,31 +18,42 @@ repos:
       - id: debug-statements
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.15.6
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+        args: [--config, backend/pyproject.toml, --fix, --exit-non-zero-on-fix]
         types_or: [python, pyi]
       - id: ruff-format
-
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
-        language_version: python3.13
+        args: [--config, backend/pyproject.toml]
 
   - repo: local
     hooks:
       - id: playwright-mobile-ingredient-autocomplete
         name: Playwright mobile ingredient autocomplete
-        entry: bash e2e/smoke-test.sh --food-only --reuse-running --grep=autocomplete
+        entry: >-
+          bash e2e/smoke-test.sh --food-only --reuse-running
+          --grep=autocomplete
         language: system
         pass_filenames: false
-        files: ^(\.pre-commit-config\.yaml|e2e/(package(-lock)?\.json|playwright\.config\.ts|smoke-test\.sh|tests/recipe-ingredient-editing\.spec\.ts)|frontend-food/src/components/recipe/(IngredientAutocomplete|InlineIngredientEditor)\.tsx)$
+        files: >-
+          (?x)^(
+            \.pre-commit-config\.yaml
+            |e2e/(
+              package(-lock)?\.json
+              |playwright\.config\.ts
+              |smoke-test\.sh
+              |tests/recipe-ingredient-editing\.spec\.ts
+            )
+            |frontend-food/src/components/recipe/(
+              IngredientAutocomplete|InlineIngredientEditor
+            )\.tsx
+          )$
         stages: [pre-commit]
       - id: pytest
         name: pytest (fast tests only)
-        entry: bash -c 'cd backend && uv run python -m pytest -x -q --tb=short -m "not slow"'
+        entry: >-
+          bash -c 'cd backend && uv run python -m pytest -x -q --tb=short
+          -m "not slow"'
         language: system
         pass_filenames: false
         always_run: true

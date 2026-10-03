@@ -139,7 +139,7 @@ class TestMatcherReplacementContext:
         RecipeItem.objects.create(recipe=recipe, portion=alias_portion, quantity=7.0)
 
         result = IngredientMatcher.match("Jodsalz", recipe=recipe)
-        assert result.replacement_for_item_id == salz_item.id
+        assert result.replacement_for_item_id == salz_item.pk
 
     def test_no_source_in_recipe_stays_add_candidate(self, salz, jodsalz, salz_jodsalz_mapping, db, auth_client):
         user = auth_client._user
@@ -157,6 +157,7 @@ class TestMatcherReplacementContext:
         with patch.object(service, "suggest_ingredients", return_value=(ai_output, "interaction-1")):
             results, interaction_id = service.get_full_suggestions(recipe)
         assert interaction_id == "interaction-1"
+        assert results is not None
         assert len(results) == 1
         result = results[0]
         assert result.ingredient_id == jodsalz.id
@@ -255,7 +256,7 @@ class TestReplaceEndpoint:
             rank=1,
         )
         assert portion.weight_g is None
-        resp = self._replace(auth_client, recipe.id, item.id, portion_id=portion.id)
+        resp = self._replace(auth_client, recipe.id, item.id, portion_id=portion.pk)
         assert resp.status_code == 422
         item.refresh_from_db()
         assert item.portion.ingredient.name == "Salz"
@@ -283,7 +284,7 @@ class TestReplaceEndpoint:
             auth_client,
             recipe.id,
             item.id,
-            portion_id=other_portion.id,
+            portion_id=other_portion.pk,
             ingredient_id=jodsalz.id,
         )
         assert resp.status_code == 422
@@ -311,11 +312,11 @@ class TestReplaceEndpoint:
         assert resp.status_code == 404
 
     def test_replace_item_of_other_recipe_404(self, auth_client, jodsalz, recipe_with_salz, db):
-        recipe, item = recipe_with_salz
+        _, item = recipe_with_salz
         user = auth_client._user
         other_recipe = Recipe.objects.create(title="Anderes Rezept", status=ContentStatus.DRAFT, created_by=user)
         target_portion = jodsalz.portions.first()
-        resp = self._replace(auth_client, other_recipe.id, item.id, portion_id=target_portion.id)
+        resp = self._replace(auth_client, other_recipe.pk, item.id, portion_id=target_portion.id)
         assert resp.status_code == 404
 
     def test_replace_unauthenticated_403(self, client, jodsalz, recipe_with_salz):
@@ -377,7 +378,7 @@ class TestReplaceEndpoint:
             auth_client,
             recipe.id,
             item.id,
-            portion_id=other_portion.id,
+            portion_id=other_portion.pk,
             client_request_id="conflict-key",
         )
         assert first.status_code == 200
@@ -393,7 +394,7 @@ class TestReplaceEndpoint:
         assert resp.status_code == 200
         assert resp.json()["id"] == item.id
         assignment = RecipeStepIngredient.objects.get(step=step)
-        assert assignment.recipe_item_id == item.id
+        assert assignment.recipe_item.pk == item.pk
         assert assignment.recipe_item.portion_id == target_portion.id
 
     def test_replace_recalculates_cache(self, auth_client, salz, jodsalz, recipe_with_salz):
@@ -418,7 +419,7 @@ class TestApplyTimeCreation:
         recipe.authors.add(user)
 
         resp = auth_client.post(
-            f"/api/recipes/{recipe.id}/ai-apply-ingredients/",
+            f"/api/recipes/{recipe.pk}/ai-apply-ingredients/",
             data=[{"portion_id": None, "ingredient_id": None, "name": "Spezialgewürz", "quantity": 10.0}],
             content_type="application/json",
         )
@@ -428,7 +429,7 @@ class TestApplyTimeCreation:
         ingredient = Ingredient.objects.get(name="Spezialgewürz")
         assert ingredient.status == "draft"
         item = RecipeItem.objects.get(id=created[0]["id"])
-        assert item.portion.ingredient_id == ingredient.id
+        assert item.portion.ingredient_id == ingredient.pk
         assert item.portion.measuring_unit.unit == "g"
 
     def test_apply_creates_fallback_portion_for_existing_ingredient(self, auth_client, db):
@@ -438,13 +439,13 @@ class TestApplyTimeCreation:
         bare = make_ingredient(name="Bare Zutat")
 
         resp = auth_client.post(
-            f"/api/recipes/{recipe.id}/ai-apply-ingredients/",
-            data=[{"portion_id": None, "ingredient_id": bare.id, "name": "Bare Zutat", "quantity": 20.0}],
+            f"/api/recipes/{recipe.pk}/ai-apply-ingredients/",
+            data=[{"portion_id": None, "ingredient_id": bare.pk, "name": "Bare Zutat", "quantity": 20.0}],
             content_type="application/json",
         )
         assert resp.status_code == 200
         item = RecipeItem.objects.get(id=resp.json()[0]["id"])
-        assert item.portion.ingredient_id == bare.id
+        assert item.portion.ingredient_id == bare.pk
         assert item.portion.name == "g"
 
     def test_apply_skips_ingredient_already_in_recipe(self, auth_client, salz, recipe_with_salz):

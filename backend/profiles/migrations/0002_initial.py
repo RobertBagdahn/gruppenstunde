@@ -6,32 +6,35 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('profiles', '0001_initial'),
-        ('supply', '0001_initial'),
+        ("profiles", "0001_initial"),
+        ("supply", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='userprofile',
-            name='nutritional_tags',
-            field=models.ManyToManyField(blank=True, related_name='user_profiles', to='supply.nutritionaltag', verbose_name='Ernährungstags'),
+            model_name="userprofile",
+            name="nutritional_tags",
+            field=models.ManyToManyField(
+                blank=True, related_name="user_profiles", to="supply.nutritionaltag", verbose_name="Ernährungstags"
+            ),
         ),
         migrations.AddField(
-            model_name='userprofile',
-            name='user',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL),
+            model_name="userprofile",
+            name="user",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE, related_name="profile", to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='groupmembership',
-            unique_together={('user', 'group')},
+            name="groupmembership",
+            unique_together={("user", "group")},
         ),
         migrations.AlterUniqueTogether(
-            name='groupjoinrequest',
-            unique_together={('user', 'group')},
+            name="groupjoinrequest",
+            unique_together={("user", "group")},
         ),
     ]
