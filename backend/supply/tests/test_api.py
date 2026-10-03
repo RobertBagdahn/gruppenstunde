@@ -336,12 +336,32 @@ class TestPortions:
                     "name": "Esslöffel Mehl",
                     "measuring_unit_id": measuring_unit.id,
                     "quantity": 1.0,
+                    "weight_g": 10.0,
                 }
             ),
             content_type="application/json",
         )
         assert resp.status_code == 200
         assert resp.json()["name"] == "Esslöffel Mehl"
+
+    def test_create_portion_rejects_impossible_measure_weight(self, auth_client, ingredient, measuring_unit):
+        ingredient.created_by = auth_client._user
+        ingredient.status = "draft"
+        ingredient.save(update_fields=["created_by", "status"])
+        resp = auth_client.post(
+            f"/api/ingredients/{ingredient.slug}/portions/",
+            data=json.dumps(
+                {
+                    "name": "gehäufter TL",
+                    "measuring_unit_id": measuring_unit.id,
+                    "quantity": 1.0,
+                    "weight_g": 1.0,
+                }
+            ),
+            content_type="application/json",
+        )
+        assert resp.status_code == 422
+        assert "Unplausibles Gewicht" in resp.json()["detail"]
 
 
 # ===========================================================================

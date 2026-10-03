@@ -7,7 +7,11 @@ Rules (all idempotent, dry-run by default):
 2. An unused portion named after a standard measure (EL, TL, Tasse, Prise, …)
    with a physically impossible weight is soft-deleted; the standard-measure
    catalog already offers these measures.
-3. Referenced implausible portions are only reported for manual review.
+3. A referenced measure portion with a physically impossible weight (e.g.
+   "gehäufter TL" = 1 g) is replaced by grams: its recipe items keep their
+   total weight on the gram portion, and an item that then duplicates a plain
+   item of the same ingredient in the same recipe is merged into it.
+   Other referenced mismatches are only reported for manual review.
 4. Retail sections that are exact duplicates of or legacy aliases for a
    catalog section are merged into it.
 
@@ -28,16 +32,12 @@ from django.utils import timezone
 
 from recipe.models import RecipeItem
 from supply.models import Ingredient, Portion, RetailSection
-
-# (pattern on portion name, min g, max g) — outside these bounds a measure is impossible.
-MEASURE_BOUNDS: list[tuple[re.Pattern[str], float, float]] = [
-    (re.compile(r"^(1\s*)?(el|esslöffel)\b", re.IGNORECASE), 3, 40),
-    (re.compile(r"^(1\s*)?(tl|teelöffel)\b", re.IGNORECASE), 0.8, 15),
-    (re.compile(r"gehäuft", re.IGNORECASE), 2, 40),
-    (re.compile(r"^(1\s*)?(tasse|tassen|becher)\b", re.IGNORECASE), 50, 400),
-    (re.compile(r"^(1\s*)?prise\b", re.IGNORECASE), 0.05, 1.5),
-    (re.compile(r"^(1\s*)?(dose|dosen|packung|glas|flasche)\b", re.IGNORECASE), 5, 5000),
-]
+from supply.services.portion_integrity import (
+    get_or_create_gram_portion,
+    measure_violation,
+    rebind_recipe_items_to_portion,
+)
+from supply.services.portion_resolution import resolve_trusted_weight
 
 DECLARED_GRAMS = re.compile(r"(?<![\d,.])(\d+(?:[.,]\d+)?)\s*g\b(?!\s*abgetropft)", re.IGNORECASE)
 
@@ -51,7 +51,7 @@ SECTION_MERGES: dict[str, str] = {
 @dataclass
 class Finding:
     portion: Portion
-    action: str  # "set_weight" | "soft_delete" | "report"
+    action: str  # "set_weight" | "soft_delete" | "rebind" | "report"
     reason: str
     new_weight: float | None = None
 
@@ -64,13 +64,6 @@ def declared_grams(name: str) -> float | None:
     if len(matches) != 1:
         return None
     return float(matches[0].replace(",", "."))
-
-
-def measure_violation(name: str, weight_g: float) -> str | None:
-    for pattern, low, high in MEASURE_BOUNDS:
-        if pattern.search(name.strip()) and not (low <= weight_g <= high):
-            return f"{weight_g:g} g liegt außerhalb {low:g}–{high:g} g"
-    return None
 
 
 def collect_findings() -> list[Finding]:
@@ -90,8 +83,43 @@ def collect_findings() -> list[Finding]:
             continue
         violation = measure_violation(portion.name, weight)
         if violation:
-            findings.append(Finding(portion, "report" if used else "soft_delete", violation))
+            findings.append(Finding(portion, "rebind" if used else "soft_delete", violation))
     return findings
+
+
+def rebind_to_grams(portion: Portion) -> int:
+    """Move all recipe items of `portion` onto grams, keeping their total weight.
+
+    Returns the number of items merged into an existing plain item of the same
+    ingredient in the same recipe.
+    """
+    gram_portion = get_or_create_gram_portion(portion.ingredient)
+    item_ids = rebind_recipe_items_to_portion(portion, gram_portion)
+    gram_weight = resolve_trusted_weight(gram_portion) or 1.0
+    merged = 0
+    for item in RecipeItem.objects.filter(id__in=item_ids).select_related("portion"):
+        if item.is_optional or item.exchange_group_id:
+            continue
+        twin = (
+            RecipeItem.objects.filter(
+                recipe_id=item.recipe_id,
+                portion__ingredient_id=portion.ingredient_id,
+                is_optional=False,
+                exchange_group__isnull=True,
+            )
+            .exclude(id=item.id)
+            .select_related("portion")
+            .order_by("sort_order", "id")
+            .first()
+        )
+        twin_weight = resolve_trusted_weight(twin.portion) if twin else None
+        if twin is None or not twin_weight:
+            continue
+        twin.quantity += item.quantity * gram_weight / twin_weight
+        twin.save(update_fields=["quantity"])
+        item.delete()
+        merged += 1
+    return merged
 
 
 class Command(BaseCommand):
@@ -117,6 +145,13 @@ class Command(BaseCommand):
                     self.stdout.write(f"  [ENTFERNEN] {label}: {finding.reason} (von keinem Rezept genutzt)")
                     if apply:
                         Portion.objects.filter(id=p.id).update(deleted_at=now, updated_at=now)
+                elif finding.action == "rebind":
+                    self.stdout.write(f"  [GRAMM] {label}: {finding.reason} → Rezeptzeilen auf Gramm umgestellt")
+                    if apply:
+                        merged = rebind_to_grams(p)
+                        if merged:
+                            self.stdout.write(f"    {merged} doppelte Zutatenzeile(n) zusammengeführt")
+                        Portion.objects.filter(id=p.id).update(deleted_at=now, updated_at=now)
                 else:
                     self.stdout.write(f"  [PRÜFEN] {label}: {finding.reason} (von Rezepten genutzt)")
 
@@ -135,10 +170,12 @@ class Command(BaseCommand):
                         legacy.delete()
 
         summary = {
-            action: sum(1 for f in findings if f.action == action) for action in ("set_weight", "soft_delete", "report")
+            action: sum(1 for f in findings if f.action == action)
+            for action in ("set_weight", "soft_delete", "rebind", "report")
         }
         self.stdout.write(
             f"\nGewicht korrigiert: {summary['set_weight']}, entfernt: {summary['soft_delete']}, "
+            f"auf Gramm umgestellt: {summary['rebind']}, "
             f"manuell prüfen: {summary['report']}"
         )
         if not apply:

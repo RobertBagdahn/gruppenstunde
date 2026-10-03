@@ -4,8 +4,9 @@ import pytest
 from django.core.management import call_command
 
 from recipe.models import Recipe, RecipeItem
-from supply.management.commands.fix_implausible_portions import declared_grams, measure_violation
+from supply.management.commands.fix_implausible_portions import declared_grams
 from supply.models import Ingredient, MeasuringUnit, Portion, RetailSection
+from supply.services.portion_integrity import measure_violation
 
 
 @pytest.fixture
@@ -60,9 +61,37 @@ def test_apply_fixes_only_unreferenced_portions(ingredient, unit):
         p.refresh_from_db()
     assert declared.weight_g == 400 and declared.deleted_at is None
     assert impossible.deleted_at is not None
-    assert used.deleted_at is None and used.weight_g == 1
     assert fine.deleted_at is None and fine.weight_g == 400
-    assert "[PRÜFEN]" in out.getvalue()
+    assert used.deleted_at is not None
+    assert "[GRAMM]" in out.getvalue()
+
+
+def test_apply_rebinds_referenced_measure_to_grams_and_merges_duplicate(ingredient, unit):
+    hundred = _portion(ingredient, unit, "100g Zucker", 100)
+    teaspoon = _portion(ingredient, unit, "gehäufter TL", 1)
+    recipe = Recipe.objects.create(title="Obstsalat", slug="obstsalat")
+    kept = RecipeItem.objects.create(recipe=recipe, portion=hundred, quantity=0.5, sort_order=1)
+    RecipeItem.objects.create(recipe=recipe, portion=teaspoon, quantity=10, sort_order=2)
+
+    call_command("fix_implausible_portions", "--apply", stdout=StringIO())
+
+    teaspoon.refresh_from_db()
+    kept.refresh_from_db()
+    assert teaspoon.deleted_at is not None
+    assert recipe.recipe_items.count() == 1
+    assert kept.quantity * kept.portion.weight_g == pytest.approx(60)
+
+
+def test_apply_rebinds_without_twin_keeps_grams(ingredient, unit):
+    teaspoon = _portion(ingredient, unit, "gehäufter TL", 1)
+    recipe = Recipe.objects.create(title="Obstsalat", slug="obstsalat")
+    item = RecipeItem.objects.create(recipe=recipe, portion=teaspoon, quantity=10)
+
+    call_command("fix_implausible_portions", "--apply", stdout=StringIO())
+
+    item.refresh_from_db()
+    assert item.quantity * item.portion.weight_g == pytest.approx(10)
+    assert item.portion_id != teaspoon.id
 
 
 def test_apply_merges_legacy_retail_sections(ingredient):
