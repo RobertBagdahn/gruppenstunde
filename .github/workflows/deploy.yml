@@ -65,7 +65,8 @@ jobs:
       - name: Pre-flight checks
         run: |
           set -euo pipefail
-          test "$(gcloud config get-value project 2>/dev/null)" = "$PROJECT_ID" \
+          current_project="$(gcloud config get-value project 2>/dev/null)"
+          test "$current_project" = "$PROJECT_ID" \
             || gcloud config set project "$PROJECT_ID"
           gcloud auth list --filter=status:ACTIVE --format="value(account)"
           gcloud artifacts repositories describe inspi \
@@ -106,9 +107,30 @@ jobs:
             - '$REGISTRY/$name:$GITHUB_SHA'
             - '$REGISTRY/$name:latest'
           YAML
-            gcloud builds submit \
+            # Submit async and poll the status: streaming logs from the
+            # default logs bucket requires project Viewer, which the deploy
+            # service account intentionally does not have.
+            local build_id status
+            build_id=$(gcloud builds submit \
               --config="$RUNNER_TEMP/cloudbuild-$name.yaml" \
-              --region="$REGION" .
+              --region="$REGION" --async \
+              --format="value(id)" .)
+            echo "[$name] Cloud Build $build_id started"
+            while true; do
+              status=$(gcloud builds describe "$build_id" \
+                --region="$REGION" --format="value(status)")
+              case "$status" in
+                SUCCESS)
+                  echo "[$name] build succeeded"
+                  return 0 ;;
+                FAILURE|INTERNAL_ERROR|TIMEOUT|CANCELLED|EXPIRED)
+                  echo "::error::[$name] build $build_id finished with $status"
+                  gcloud builds describe "$build_id" --region="$REGION" \
+                    --format="value(logUrl)"
+                  return 1 ;;
+              esac
+              sleep 10
+            done
           }
           build backend Dockerfile.backend &
           p1=$!
