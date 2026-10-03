@@ -8,6 +8,9 @@ Management-Befehle auf Prod laufen als Cloud Run Job (Muster:
 `gcloud run jobs execute <job> --region europe-west1 --wait`) oder lokal vom jeweiligen
 Branch gegen die Prod-Datenbank über den Cloud SQL Auth Proxy. Beim Deploy führt Cloud Build
 `manage.py migrate --noinput` automatisch aus (`cloudbuild.yaml`).
+Seit dem GitHub-Workflow `.github/workflows/deploy.yml` deployt jeder Merge nach `main` automatisch
+(Build, Deploy, `inspi-migrate`-Job, Smoke-Checks); einmalige Einrichtung: `scripts/setup-github-deploy.sh`.
+Tofu, `add_users` und `seed_all` bleiben manuell.
 
 ## 0. Vorbereitung
 
