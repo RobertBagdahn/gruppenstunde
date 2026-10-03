@@ -42,5 +42,5 @@
 - [x] 6.3 Keep backend pytest and existing quality gates required; inline the backend, frontend and Food checks in the active push-to-main pipeline before any build/deploy, avoiding a nested Cloud Build submission.
 - [x] 6.4 Run backend tests, touched-file Food lint, TypeScript, Vitest, mocked Playwright, infrastructure validation, and strict OpenSpec validation; document production capacity, schema, IAM and migration-runner blockers. No deploy occurred.
 - [ ] 6.5 Verify and approve least-privilege Artifact Registry push and Cloud Run deploy permissions for the active trigger identity; validate the pipeline in a non-production trigger before relying on it.
-- [ ] 6.6 Enable/verify a restorable production backup, review the pending schema migrations, and configure a Cloud Run migration job with the correct DB connection/secret before applying migrations.
+- [ ] 6.6 Enable/verify a restorable production backup; review the pending schema migrations; verify the configured Cloud Run migration job's execution identity and the updated pre-deploy pipeline before applying migrations.
 - [ ] 6.7 After schema repair, obtain approval and regenerate/verify recipe 523's embedding; its post-delete refresh failed because the production `AiInteraction.tier` column is absent.

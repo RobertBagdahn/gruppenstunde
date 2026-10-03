@@ -124,7 +124,35 @@ steps:
     waitFor: ['release-gate']
 
   # -----------------------------------------------
-  # 8. Deploy Backend to Cloud Run
+  # 8. Pin the configured Cloud Run migration job to this build
+  # -----------------------------------------------
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - run
+      - jobs
+      - update
+      - inspi-migrate
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA
+      - --region=${_REGION}
+      - --project=$PROJECT_ID
+    id: update-migration-job
+    waitFor: ['push-backend', 'release-gate']
+
+  # Run additive migrations before deploying code that requires them.
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - run
+      - jobs
+      - execute
+      - inspi-migrate
+      - --region=${_REGION}
+      - --project=$PROJECT_ID
+      - --wait
+    id: migrate
+    waitFor: ['update-migration-job']
+
+  # -----------------------------------------------
+  # 10. Deploy Backend to Cloud Run
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
@@ -139,10 +167,10 @@ steps:
       - --concurrency=${_BACKEND_CONCURRENCY}
       - --update-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID,BACKEND_MAX_INSTANCES=${_BACKEND_MAX_INSTANCES},BACKEND_CONCURRENCY=${_BACKEND_CONCURRENCY},GUNICORN_WORKERS=2,GUNICORN_THREADS=4,BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8
     id: deploy-backend
-    waitFor: ['push-backend', 'release-gate']
+    waitFor: ['migrate']
 
   # -----------------------------------------------
-  # 9. Deploy Frontend to GCS
+  # 11. Deploy Frontend to GCS
   # -----------------------------------------------
   - name: 'gcr.io/cloud-builders/gsutil'
     args:
@@ -153,7 +181,7 @@ steps:
       - frontend/dist/
       - 'gs://${_FRONTEND_BUCKET}/'
     id: deploy-frontend
-    waitFor: ['build-frontend', 'release-gate']
+    waitFor: ['build-frontend', 'migrate']
 
   # -----------------------------------------------
   # 10. Run Django Migrations (after deploy)
