@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { Check, ChevronRight, ChevronDown } from 'lucide-react';
 import { formatEuro, formatWeight } from '@/lib/format';
-import { formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
+import { HelpHint } from '@/components/ui/help-hint';
+import { PACKAGE_RESERVE_HELP, formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -117,7 +118,12 @@ export default function ShoppingListItemRow({
               </span>
             )}
           </div>
-          {reserveLabel && <p className="text-caption text-muted-foreground mt-0.5">{reserveLabel}</p>}
+          {reserveLabel && (
+            <p className="text-caption text-muted-foreground mt-0.5 flex items-center gap-1">
+              {reserveLabel}
+              <HelpHint label="Was bedeutet Reserve?">{PACKAGE_RESERVE_HELP}</HelpHint>
+            </p>
+          )}
           {/* Portion options toggle & price */}
           <div className="flex items-center gap-2 mt-0.5">
             {hasPortionOptions && (

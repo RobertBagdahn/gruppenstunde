@@ -39,6 +39,7 @@ import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { formatCount, formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import { HelpHint } from '@/components/ui/help-hint';
 
 export function MealSlot({
   meal,
@@ -414,10 +415,13 @@ export function MealSlot({
                       ? 'bg-destructive/10 text-destructive border-destructive/20'
                       : 'bg-warning-soft text-warning border-warning-border'
                   }`}
-                  title={`Nur ${coverage.percent}% der erwarteten Energiemenge (${formatCount(mealActualKcal)} von ${formatCount(mealTargetKcal)} kcal)`}
+                  title={`Nur ${coverage.percent}% der erwarteten Energiemenge (${formatCount(mealActualKcal)} von ${formatCount(mealTargetKcal)} kcal). Jede Mahlzeit wird einzeln gegen ihren Anteil am Tagesbedarf geprüft – ein Überschuss bei anderen Mahlzeiten gleicht das nicht aus, die Tagessumme kann trotzdem passen.`}
                 >
                   <AlertCircle className="w-3 h-3" />
                   Zu wenig Energie ({coverage.percent} %)
+                  <HelpHint label="Warum ist das ein Problem?" className="text-inherit">
+                    Jede Mahlzeit wird einzeln mit ihrem Anteil am Tagesbedarf verglichen. Eine zu kleine Mahlzeit gilt als Problem, auch wenn die Tagessumme passt – die Gruppe wäre sonst zwischen den Mahlzeiten unterversorgt.
+                  </HelpHint>
                 </span>
               )}
               {mealIsTooExpensive && (

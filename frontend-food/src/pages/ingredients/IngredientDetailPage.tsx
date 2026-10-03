@@ -136,6 +136,7 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 import { formatExactWeight, formatNumber, roundToDecimals } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import { HelpHint } from '@/components/ui/help-hint';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -183,14 +184,19 @@ function NutritionRow({
   label,
   value,
   unit,
+  hint,
 }: {
   label: string;
   value: number | null;
   unit: string;
+  hint?: string;
 }) {
   return (
     <div className="flex justify-between py-1.5 border-b border-border/30 last:border-0">
-      <span className="text-body text-muted-foreground">{label}</span>
+      <span className="text-body text-muted-foreground inline-flex items-center gap-1">
+        {label}
+        {hint && <HelpHint label={`Was bedeutet ${label}?`}>{hint}</HelpHint>}
+      </span>
       <span className="text-body font-medium">
         {value !== null ? `${roundToDecimals(value, 1)} ${unit}` : '\u2014'}
       </span>
@@ -908,12 +914,15 @@ function PortionsSection({
             <button
               onClick={onOpenMagicWand}
               disabled={isOpeningMagicWand || !!aiDisabledHint}
-              className="flex items-center gap-1 text-sm text-primary hover:underline disabled:opacity-50"
+              className="flex items-center gap-1 text-body text-primary hover:underline disabled:opacity-50"
               title={aiDisabledHint || 'Typische Portionen mit KI vorschlagen'}
             >
               {isOpeningMagicWand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
               Zauberstab
             </button>
+            <HelpHint label="Was macht der Zauberstab?">
+              Die KI schlägt typische Portionen für diese Zutat vor (z. B. 1 Scheibe, 1 EL). Du siehst eine Vorschau und übernimmst nur, was passt.
+            </HelpHint>
             <button
               onClick={() => setShowAddPortion(!showAddPortion)}
               className="flex items-center gap-1 text-body text-primary hover:underline"
@@ -1591,11 +1600,36 @@ export default function IngredientDetailPage() {
                   ) : '\u2014'}
                 </span>
               </div>
-              <NutritionRow label="NOVA-Score" value={ingredient.nova_score} unit="" />
-              <NutritionRow label="Kinder-Score" value={ingredient.child_score} unit="" />
-              <NutritionRow label="Pfadfinder-Score" value={ingredient.scout_score} unit="" />
-              <NutritionRow label="Umwelt-Score" value={ingredient.environmental_score} unit="" />
-              <NutritionRow label="Fruchtfaktor" value={ingredient.fruit_factor} unit="" />
+              <NutritionRow
+                label="NOVA-Score"
+                value={ingredient.nova_score}
+                unit=""
+                hint="Verarbeitungsgrad von 1 (unverarbeitet) bis 4 (ultra-verarbeitet). Niedriger ist besser."
+              />
+              <NutritionRow
+                label="Kinder-Score"
+                value={ingredient.child_score}
+                unit=""
+                hint="Kinderfreundlichkeit von 1 (kommt bei Kindern eher schlecht an) bis 10 (kommt sehr gut an). Höher ist besser; ein Schätzwert, kein Messwert."
+              />
+              <NutritionRow
+                label="Pfadfinder-Score"
+                value={ingredient.scout_score}
+                unit=""
+                hint="Eignung für Pfadfinder-Aktionen (Lager, Fahrt) von 1 (wenig geeignet) bis 10 (sehr gut geeignet). Höher ist besser; ein Schätzwert."
+              />
+              <NutritionRow
+                label="Umwelt-Score"
+                value={ingredient.environmental_score}
+                unit=""
+                hint="Umweltfreundlichkeit von 1 (stark belastend) bis 10 (besonders umweltfreundlich). Höher ist besser; ein Schätzwert."
+              />
+              <NutritionRow
+                label="Fruchtfaktor"
+                value={ingredient.fruit_factor}
+                unit=""
+                hint="Obst- und Gemüseanteil der Zutat von 0 (enthält keins) bis 1 (besteht vollständig daraus)."
+              />
             </div>
           </div>
 
