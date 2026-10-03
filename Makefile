@@ -10,10 +10,11 @@ PODMAN := podman compose
 
 # GCP settings – override via environment or .env
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
-# Artifact Registry and Cloud Build region.
-GCP_REGION ?= europe-west3
-# Cloud Run deployment region.
+# Artifact Registry and Cloud Run region.
+GCP_REGION ?= europe-west1
 GCP_RUN_REGION ?= europe-west1
+# Cloud Build trigger/build region (separate from the runtime and registry region).
+GCP_BUILD_REGION ?= europe-west3
 GCP_FOOD_REGION ?= europe-west1
 BACKEND_MAX_INSTANCES ?= 2
 BACKEND_CONCURRENCY ?= 2
@@ -201,15 +202,15 @@ setup-infra: ## Create GCP infrastructure (one-time)
 		--description="Inspi container images" || true
 	@echo "Creating VPC Connector..."
 	gcloud compute networks vpc-access connectors create $(VPC_CONNECTOR) \
-		--region=$(GCP_REGION) \
+		--region=$(GCP_RUN_REGION) \
 		--range=10.8.0.0/28 || true
 	@echo "Creating Cloud SQL instance..."
 	gcloud sql instances create $(CLOUD_SQL_INSTANCE) \
-		--database-version=POSTGRES_15 \
+		--database-version=POSTGRES_17 \
 		--tier=db-f1-micro \
-		--region=$(GCP_REGION) \
+		--region=$(GCP_RUN_REGION) \
 		--network=default \
-		--no-assign-ip || true
+		--assign-ip || true
 	@echo "Creating database and user..."
 	gcloud sql databases create inspi --instance=$(CLOUD_SQL_INSTANCE) || true
 	gcloud sql users create inspi \
@@ -225,7 +226,7 @@ build-backend: ## Build backend container image
 		"images:" \
 		"  - '$(BACKEND_IMAGE):latest'" \
 		> /tmp/cloudbuild-backend.yaml
-	gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
+	gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=$(GCP_BUILD_REGION) --project=$(GCP_PROJECT) .
 
 build-frontend: ## Build frontend container image
 	printf '%s\n' \
@@ -235,7 +236,7 @@ build-frontend: ## Build frontend container image
 		"images:" \
 		"  - '$(FRONTEND_IMAGE):latest'" \
 		> /tmp/cloudbuild-frontend.yaml
-	gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
+	gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=$(GCP_BUILD_REGION) --project=$(GCP_PROJECT) .
 
 build-frontend-food: ## Build food frontend container image
 	printf '%s\n' \
@@ -245,7 +246,7 @@ build-frontend-food: ## Build food frontend container image
 		"images:" \
 		"  - '$(FRONTEND_FOOD_IMAGE):latest'" \
 		> /tmp/cloudbuild-frontend-food.yaml
-	gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
+	gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=$(GCP_BUILD_REGION) --project=$(GCP_PROJECT) .
 
 push-backend: build-backend ## Push backend image to Artifact Registry
 	@echo "Backend image was pushed by Cloud Build."
@@ -267,7 +268,7 @@ deploy-backend: verify-release push-backend ## Deploy backend to Cloud Run (west
 		--update-env-vars=BACKEND_MAX_INSTANCES=$(BACKEND_MAX_INSTANCES),BACKEND_CONCURRENCY=$(BACKEND_CONCURRENCY),GUNICORN_WORKERS=2,GUNICORN_THREADS=4,BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8
 
 migrate-cloud: ## Run Django migrations via Cloud Run job (west3, connects to west1 DB)
-	gcloud run jobs execute inspi-migrate --region europe-west3 --wait
+	gcloud run jobs execute inspi-migrate --region $(GCP_RUN_REGION) --wait
 
 deploy-frontend: push-frontend ## Deploy frontend to Cloud Run (west1)
 	gcloud run deploy inspi-frontend \

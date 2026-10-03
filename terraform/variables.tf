@@ -8,9 +8,9 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "GCP region"
+  description = "Cloud SQL, Cloud Run and Artifact Registry region"
   type        = string
-  default     = "europe-west3"
+  default     = "europe-west1"
 }
 
 variable "environment" {

@@ -1,8 +1,8 @@
 ## 1. Audit and define runtime budgets
 
 - [x] 1.1 Read-only production inspection: Cloud SQL `max_connections=25`; Cloud Run max scale/concurrency `10/10`; Gunicorn `2×4`; background worker `1/process`; Django `CONN_MAX_AGE=60`. Current envelope is 100 sessions against an application budget of 14 (8 reserved); proposed `2×2`, `CONN_MAX_AGE=0` envelope is 8.
-- [x] 1.2 Run the report-only production audit (4 groups, 8 findings), remove only the 3 empty unnamed groups after owner approval, and verify the report-only audit now finds the remaining 2 portionless members.
-- [x] 1.3 Identify the authoritative production Cloud Build trigger and Cloud Run ownership/drift behavior (only push-to-main is active; it auto-detects `cloudbuild.yaml`; its `inspi-dev` service account has visible project-level `roles/storage.admin`, and recent builds failed while pushing the backend image; Artifact Registry IAM could not be inspected).
+- [x] 1.2 Run the report-only production audit (4 groups, 8 findings), perform only the user-approved cleanup, and verify the post-cleanup audit finds zero exchange groups or issues.
+- [x] 1.3 Identify the authoritative production Cloud Build trigger and Cloud Run ownership/drift behavior (only push-to-main is active and auto-detects `cloudbuild.yaml`; the old `europe-west3` default mismatched the live `europe-west1` registry/runtime and is corrected in this branch; Artifact Registry/Cloud Run permissions for `inspi-dev` still require verification).
 
 ## 2. Bound backend connection and memory use
 
@@ -18,8 +18,8 @@
 - [x] 3.3 Update Pydantic and Zod contracts for the alternative operation and ensure the response contains the persisted Ingredient name and Portion.
 - [x] 3.4 Switch the Food recipe editor to the atomic operation, handle portion-request failures using the shared API error type, and preserve the pending selection on retry.
 - [x] 3.5 Make embedding generation safe for legacy/direct-gram RecipeItems without a Portion, and add tests proving one malformed/portionless row cannot abort recipe embedding construction.
-- [x] 3.6 Report-only production audit found 3 empty unnamed groups and 2 exchange members without Portions. The 3 empty groups were removed after approval; a repeat audit confirms only the 2 portionless members remain. No migration ran.
-- [ ] 3.7 Obtain trusted ingredient/portion mappings or content-owner approval to remove the two remaining portionless exchange members; never infer or fabricate their ingredients.
+- [x] 3.6 Report-only production audit found 3 empty unnamed groups and 2 exchange members without Portions. The user approved removal of all six malformed rows; the post-cleanup audit confirms zero exchange groups or issues. No schema migration ran.
+- [x] 3.7 Remove only the approved empty groups and the two explicitly approved portionless members in guarded transactions; verify both members had no recipe-step links and record the deletion counts.
 
 ## 4. Surface Food API server errors safely
 
@@ -42,3 +42,4 @@
 - [x] 6.3 Keep backend pytest and existing quality gates required; inline the backend, frontend and Food checks in the active push-to-main pipeline before any build/deploy, avoiding a nested Cloud Build submission.
 - [x] 6.4 Run backend tests, touched-file Food lint, TypeScript, Vitest, mocked Playwright, infrastructure validation, and strict OpenSpec validation; document that rollout remains blocked by the over-budget current runtime and audited malformed exchange data.
 - [ ] 6.5 Verify and approve least-privilege Artifact Registry push and Cloud Run deploy permissions for the active trigger identity; validate the pipeline in a non-production trigger before relying on it.
+- [ ] 6.6 Review and approve the pending production schema migrations (`content.0016_ai_budget`, `content.0017_ai_budget_db_defaults`, profile/socialaccount migrations), with a backup and rollback plan, before deploying code that requires them.
