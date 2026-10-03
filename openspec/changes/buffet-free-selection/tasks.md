@@ -66,9 +66,9 @@
 
 ## Offene Abnahmehinweise
 
-- 4.6 ist nach einem Prod-Preflight in einer Rollback-Transaktion abgeschlossen. Der Mapping-Dry-Run plante 0 Änderungen, übersprang 8 veraltete Zeilen und meldete drei verbleibende Alt-Tag-Träger; Details stehen in `docs/prod-runbook.md`. Es wurde nichts persistiert.
+- 4.6 ist abgeschlossen. Der Default-Mapping-Dry-Run plante 0 Änderungen, übersprang 8 veraltete Zeilen und meldete drei verbleibende Alt-Tag-Träger. Ein separater, gegen Prod verifizierter Screenshot-Rollenzuordnungs-Export fügte anschließend 38 Favoriten-Tags hinzu; Details stehen in `docs/prod-runbook.md`.
 - Die Mengen in `free` und `drinks-bar` wurden vom Nutzer bestätigt. Der Template-Preflight ergab 18 geplante Vorlagen, 3 vorhandene und 0 fehlende Abhängigkeiten.
-- 8.4 ist nach Prod-Preflight, Merge/Deploy und Template-Seed abgeschlossen. `migrate_buffet_roles --apply` wurde wegen 8 veralteter, übersprungener Mapping-Zeilen nicht ausgeführt.
+- 8.4 ist nach Prod-Preflight, Merge/Deploy, Template-Seed und dem bestätigten Screenshot-Rollen-Apply abgeschlossen. Der ungeprüfte Default-Mapping-Apply wurde wegen seiner 8 veralteten, übersprungenen Zeilen nicht ausgeführt.
 - 6.3 ist noch nicht vollständig: Frontend-Tests decken Kandidatenvorschlag und Formularzugriff ab; UI-AI-Ablauf, vollständiges manuelles Speichern und Export sind noch nicht umfassend getestet.
 - 7.5 wurde implementiert, aber der 320-px-Layoutcheck wurde nicht manuell ausgeführt. 8.3 bleibt offen, weil kein vollständiger integrierter End-to-End-Ablauf ausgeführt wurde.
 - Die vollständigen Backend-Tests bestehen (3384 passed, 9 skipped); Food-Frontend-Tests und Build bestehen (752 Tests). `npm run lint` meldet 67 bestehende Verstöße in nicht geänderten Frontend-Dateien; ESLint auf den geänderten Food-Frontend-Dateien ist sauber.

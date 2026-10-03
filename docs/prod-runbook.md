@@ -132,13 +132,24 @@ keine der simulierten Änderungen wurde persistiert.
 
 ### Deployment und Seed
 
-- Merge/Push auf `main`: Commit `b1e2ab54` (`docs(prod): record buffet deployment`); Feature-Commit `c2076fdb`, Preflight-Dokumentation `287fb870`.
+- Merge/Push auf `main`: Commit `c82f9503` (`docs(prod): record buffet smoke checks`); Feature-Commit `c2076fdb`, Preflight-Dokumentation `287fb870`, Deployment-Dokumentation `b1e2ab54`.
 - Backend: `inspi-backend-00075-t7w`; Migration-Job `inspi-migrate-f8wt5` erfolgreich.
 - Food-Frontend: `inspi-frontend-food-00070-qwv`.
 - Template-Seed mit `--apply`: 18 Vorlagen angelegt, 3 vorhandene beibehalten; anschließend 21 Standardvorlagen samt Rollen verifiziert.
 - Smoke-Checks: Backend-API-Doku, Food-Frontend und Buffet-Suche antworteten mit HTTP 200. `/api/meal-plans/buffet-templates/?meal_type=drinks` liefert `drinks-bar` und `free`; `template=free` liefert 19 Rollen einschließlich `buffet-drink`; eine anonyme Anfrage an den staff-only Datenqualitätsbericht wird mit HTTP 401 abgewiesen.
 
-`migrate_buffet_roles --apply` wurde **nicht** ausgeführt: Der Dry-Run zeigte 0 geplante Änderungen und 8 übersprungene veraltete Zeilen. Diese Einträge sowie die weiteren Dubletten-Kandidaten bleiben ungeändert und benötigen eine aktualisierte Zuordnung sowie einen neuen Dry-Run vor einem separaten Mapping-Apply. Die Proposal-UI führt selbst keine Katalogänderungen aus.
+Die screenshot-bezogenen Favoriten wurden nach einem separaten Prod-Dry-Run mit
+`migrate_buffet_roles --apply --mapping-file supply/data/buffet_role_additions_snack_catalog.json`
+angewendet: `add: 38`, `übersprungen: 0`; es wurden keine Zutaten/Rezepte erstellt und keine
+Dubletten zusammengeführt. Die Zuordnung umfasst Knabbereien (8), Käse (11), Dips (8), Nüsse &
+Trockenobst (9) sowie klassische Soßen/Würze (2); Ketchup und Mayonnaise waren bereits als
+`buffet-condiment` getaggt. Die angewendete Datei ist im Repository versioniert.
+
+Der **Default-Mapping-Apply** wurde nicht ausgeführt: dessen Dry-Run zeigte 0 geplante Änderungen
+und 8 veraltete, übersprungene Zeilen. Diese Fälle und die weiteren Dubletten-Kandidaten bleiben
+ungeändert und benötigen eine aktualisierte Zuordnung sowie einen neuen Dry-Run vor einem
+separaten Apply. Drei alte Frühstücks-Tags bleiben ebenfalls auf den oben genannten Items.
+Die Proposal-UI führt selbst keine Katalogänderungen aus.
 
 ## Rollback
 

@@ -1,0 +1,47 @@
+{
+  "items": [
+    {"action":"add","item_kind":"ingredient","source_id":6971,"source_name":"Maistortilla-Chips","role_slugs":["buffet-salty-snack"]},
+    {"action":"add","item_kind":"ingredient","source_id":6830,"source_name":"Mini-Salzbrezeln","role_slugs":["buffet-salty-snack"]},
+    {"action":"add","item_kind":"ingredient","source_id":7235,"source_name":"Reiswaffeln","role_slugs":["buffet-salty-snack"]},
+    {"action":"add","item_kind":"ingredient","source_id":6650,"source_name":"Brotchips Tomate-Olive","role_slugs":["buffet-salty-snack"]},
+    {"action":"add","item_kind":"ingredient","source_id":4685,"source_name":"Popcorn-Mais","role_slugs":["buffet-salty-snack"]},
+    {"action":"add","item_kind":"ingredient","source_id":436,"source_name":"Studentenfutter","role_slugs":["buffet-salty-snack"]},
+    {"action":"add","item_kind":"ingredient","source_id":686,"source_name":"Erdnusskerne geröstet","role_slugs":["buffet-salty-snack"]},
+    {"action":"add","item_kind":"ingredient","source_id":7273,"source_name":"Gebrannte Mandeln","role_slugs":["buffet-salty-snack"]},
+
+    {"action":"add","item_kind":"ingredient","source_id":105,"source_name":"Gouda","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":107,"source_name":"Emmentaler Hartkäse","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":106,"source_name":"Cheddar","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":104,"source_name":"Feta","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":108,"source_name":"Halloumi","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":6799,"source_name":"Gorgonzola","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":8,"source_name":"Parmigiano Reggiano","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":7266,"source_name":"Mozzarella-Minikugeln","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":5213,"source_name":"Burrata","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":3,"source_name":"Frischkäse Doppelrahmstufe","role_slugs":["buffet-cheese"]},
+    {"action":"add","item_kind":"ingredient","source_id":6926,"source_name":"Hirtenkäse light","role_slugs":["buffet-cheese"]},
+
+    {"action":"add","item_kind":"ingredient","source_id":323,"source_name":"Hummus","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":6970,"source_name":"Salsa-Sauce","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":7112,"source_name":"Sweet-Chili-Sauce","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":6776,"source_name":"Vegan Remoulade","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":4501,"source_name":"Salatcreme","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":96,"source_name":"Schmand","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":6360,"source_name":"Saure Sahne","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":97,"source_name":"Creme Fraiche","role_slugs":["buffet-dip"]},
+    {"action":"add","item_kind":"ingredient","source_id":177,"source_name":"Tomaten-Ketchup","role_slugs":["buffet-condiment"]},
+    {"action":"add","item_kind":"ingredient","source_id":6674,"source_name":"Mayonnaise","role_slugs":["buffet-condiment"]},
+    {"action":"add","item_kind":"ingredient","source_id":7109,"source_name":"BBQ-Sauce light","role_slugs":["buffet-condiment"]},
+    {"action":"add","item_kind":"ingredient","source_id":7039,"source_name":"Pesto","role_slugs":["buffet-condiment"]},
+
+    {"action":"add","item_kind":"ingredient","source_id":391,"source_name":"Cashewkerne","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":436,"source_name":"Studentenfutter","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":135,"source_name":"Rosinen","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":7097,"source_name":"Datteln","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":6833,"source_name":"Apfelringe","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":126,"source_name":"Walnusskerne","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":125,"source_name":"Mandeln ganz","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":127,"source_name":"Haselnusskerne","role_slugs":["buffet-nuts"]},
+    {"action":"add","item_kind":"ingredient","source_id":130,"source_name":"Kürbiskerne","role_slugs":["buffet-nuts"]}
+  ]
+}
