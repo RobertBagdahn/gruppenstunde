@@ -19,6 +19,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Show changes without saving.")
         parser.add_argument("--all", action="store_true", help="Process all recipes (not just Cooklang imports).")
+        parser.add_argument(
+            "--only-defaults",
+            action="store_true",
+            help='Only touch recipes still on the import default ("Einfach", "< 30 Min"); keeps curated values.',
+        )
         parser.add_argument("--recalculate", action="store_true", help="Also recalculate price/nutrition caches.")
 
     def handle(self, **options):
@@ -31,6 +36,9 @@ class Command(BaseCommand):
             qs = Recipe.objects.all()
         else:
             qs = Recipe.objects.filter(summary__startswith="Importiert aus Cooklang")
+
+        if options["only_defaults"]:
+            qs = qs.filter(difficulty=DifficultyChoices.EASY, execution_time=ExecutionTimeChoices.LESS_30)
 
         recipes = list(qs.prefetch_related("recipe_items__portion__ingredient"))
         self.stdout.write(f"Found {len(recipes)} recipes to process.")
