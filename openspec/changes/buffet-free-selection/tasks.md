@@ -30,7 +30,7 @@
 - [x] 4.3 Cocktailtomaten-Ziel 6934 mit Quellen 6626/36/7058 sowie alle weiteren plausiblen Dublettengruppen aus `buffet-data-quality-proposals` und dem aktuellen Bericht als unfreigegebene Vorschläge abbilden; Merges ausschließlich nach expliziter Staff-Auswahl und Preview über bestehende Merge-Services ermöglichen.
 - [x] 4.4 `migrate_buffet_roles` standardmäßig schreibfrei machen; Änderungen nur mit explizitem `--apply` zulassen und `--dry-run`/`--apply` gegenseitig ausschließen; Planausgabe, Name-Abweichungen und Merge-Aktionen testen.
 - [x] 4.5 Fehlende Lebensmittel-/Rezeptkandidaten aus `buffet-data-quality-proposals` nur nach Review aufnehmen; Zutaten-Status, Nährwerte, Retail-Section und Portionsdaten durch Staff-Review absichern, KI-Anreicherung nur als Vorschlag nutzen.
-- [ ] 4.6 Dry-Run auf der vorgesehenen Zielumgebung ausführen, Output (Merges, fehlende/abweichende IDs, alte Tags, Qualitätswarnungen) fachlich prüfen und dokumentieren; Prod-Apply bleibt separat und benötigt explizite Freigabe nach `docs/prod-runbook.md`.
+- [x] 4.6 Dry-Run auf der vorgesehenen Zielumgebung ausführen, Output (Merges, fehlende/abweichende IDs, alte Tags, Qualitätswarnungen) fachlich prüfen und dokumentieren; Prod-Apply bleibt separat und benötigt explizite Freigabe nach `docs/prod-runbook.md`.
 
 ## 5. Backend: Datenqualitäts-Vorschläge und Mapping-Test
 
@@ -66,8 +66,9 @@
 
 ## Offene Abnahmehinweise
 
-- 4.6 und 8.4 bleiben absichtlich offen: Die Strategie-Datei ist auf den 03.10.2026 datiert, ihre IDs/Namen sind nicht gegen die Ziel-Prod-Umgebung verifiziert, und es wurde kein Prod-Dry-Run oder -Apply ausgeführt.
-- Die Einzelmengen in `free` und `drinks-bar` sind Startvorschläge, nicht durch Phase C2 vorgegeben; vor einem Prod-Seed fachlich bestätigen.
+- 4.6 ist nach einem Prod-Preflight in einer Rollback-Transaktion abgeschlossen. Der Mapping-Dry-Run plante 0 Änderungen, übersprang 8 veraltete Zeilen und meldete drei verbleibende Alt-Tag-Träger; Details stehen in `docs/prod-runbook.md`. Es wurde nichts persistiert.
+- Die Mengen in `free` und `drinks-bar` wurden vom Nutzer bestätigt. Der Template-Preflight ergab 18 geplante Vorlagen, 3 vorhandene und 0 fehlende Abhängigkeiten.
+- 8.4 bleibt offen, bis der freigegebene Code gemergt und deployt ist; der separate Mapping-Apply ist nicht freigegeben oder erforderlich für diesen Deploy.
 - 6.3 ist noch nicht vollständig: Frontend-Tests decken Kandidatenvorschlag und Formularzugriff ab; UI-AI-Ablauf, vollständiges manuelles Speichern und Export sind noch nicht umfassend getestet.
 - 7.5 wurde implementiert, aber der 320-px-Layoutcheck wurde nicht manuell ausgeführt. 8.3 bleibt offen, weil kein vollständiger integrierter End-to-End-Ablauf ausgeführt wurde.
-- `npm run lint` meldet 67 bestehende Verstöße in nicht geänderten Frontend-Dateien; ESLint auf den geänderten Food-Frontend-Dateien ist sauber.
+- Die vollständigen Backend-Tests bestehen (3384 passed, 9 skipped); Food-Frontend-Tests und Build bestehen (752 Tests). `npm run lint` meldet 67 bestehende Verstöße in nicht geänderten Frontend-Dateien; ESLint auf den geänderten Food-Frontend-Dateien ist sauber.

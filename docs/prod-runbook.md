@@ -106,23 +106,36 @@ Cloud Build führt sie beim Deploy automatisch aus; sie ist rein additiv und spe
 - [ ] Stichprobe: Rezeptliste „Zufällig“ und „Meiste Likes“ durchblättern (keine doppelten oder
       fehlenden Rezepte), Einkaufslisten-Übersicht „Neueste“ zeigt die zuletzt erzeugte Liste oben
 
-## 7. buffet-free-selection — noch nicht für Prod freigegeben
+## 7. buffet-free-selection — Preflight abgeschlossen, Deploy noch offen
 
 Die Bestandsaufnahme `docs/buffet-expansion-strategy.md` ist auf den 03.10.2026 datiert,
-liegt damit nach dem aktuellen Systemdatum 01.10.2026 und wurde nicht gegen die aktuelle
-Prod-Datenbank verifiziert. Alle darin enthaltenen IDs, Namen und vorgeschlagenen Merges
-bleiben Review-Kandidaten. Für diesen Change wurde kein Prod-Dry-Run und kein Prod-Apply
-ausgeführt.
+liegt damit nach dem im Runbook dokumentierten Systemdatum 01.10.2026. Die dortigen
+Dubletten-Kandidaten, die nicht zur freigegebenen Mapping-Tabelle gehören, werden weiterhin
+nicht automatisch zusammengeführt. Aktuelle Prod-Snapshot-ID: `1791007426360`.
 
-Vor einem späteren Prod-Lauf müssen IDs, Namen und Merge-Richtungen frisch gegen die
-Zielumgebung geprüft werden. Den vollständigen Dry-Run-Output einschließlich übersprungener
-IDs, Alt-Tags und Qualitätswarnungen sichern und fachlich prüfen. Ein `--apply` ist erst nach
-einem zweiten, separaten dokumentierten Okay zulässig; die UI-Freigabe eines Vorschlags allein
-gibt keinen Prod-Lauf frei.
+Für Commit `c2076fdb` wurde vor dem Deploy ein Prod-Preflight in einer äußeren
+Rollback-Transaktion ausgeführt. **Es wurden keine Änderungen persistiert.**
 
-Der Template-Seed für diesen Change ist ebenfalls standardmäßig schreibfrei. Vor dem Anlegen
-neuer Vorlagen zuerst `uv run python manage.py seed_buffet_templates --dry-run` ausführen und
-Ausgabe prüfen; die Vorlagen erst nach separatem Okay mit `--apply` anlegen.
+- Rollen: 0/10 neue Slugs waren vorhanden; die Migration simulierte 10 Anlegungen und wurde
+  zurückgerollt.
+- `migrate_buffet_roles --dry-run`: 0 geplante Änderungen, keine manuelle Prüfliste; 8 veraltete
+  Mapping-Zeilen übersprungen: Ziele 6925 (Zutat 7041 „Tomate frisch“) und 153 (Rezepte 155/215
+  „Tschai einfach/günstig“) fehlen; Quelle 191 „Glas Apfelsaft“ ist gelöscht und nicht mit 183
+  verknüpft; Quellen 7341 „Edamer“, 6925 „Tomaten“, 58 „frische Banane“ und Rezept 153
+  „Tschai einfach/günstig“ sind gelöscht. Die übersprungenen Zeilen werden **nicht angewendet**.
+- Alte Frühstücks-Tags bleiben vorerst auf drei Datensätzen: `breakfast-base` auf Zutat 663
+  „Erdnussmus fein“, `breakfast-topping` auf Zutat 7616 „Edamer“ und `breakfast-drink` auf Rezept
+  155 „Tschai einfach/günstig“.
+- `seed_buffet_templates --dry-run`: 18 neue Vorlagen, 3 vorhandene, 0 fehlende Abhängigkeiten;
+  auch diese Simulation wurde zurückgerollt. Die bestätigten Mengen werden erst mit dem
+  separaten `--apply` geschrieben.
+
+Der Nutzer hat Merge und Prod-Deploy ausdrücklich freigegeben. Für den Release werden die
+additiven Rollen-/Proposal-Migrationen ausgerollt und die 18 geplanten Vorlagen nach dem
+erfolgreichen Preflight mit `seed_buffet_templates --apply` angelegt. **Kein**
+`migrate_buffet_roles --apply` wird ausgeführt: Der Preflight zeigte keine geplanten Änderungen
+und die 8 übersprungenen Zeilen bleiben ungeklärt. Die UI-Freigabe eines Vorschlags allein gibt
+einen Prod-Lauf nicht frei.
 
 ## Rollback
 
