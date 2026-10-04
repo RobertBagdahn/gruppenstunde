@@ -1334,7 +1334,7 @@ export default function RecipeDetailPage() {
 
       {/* Usage in meal plans */}
       {(recipe.usage_in_meal_plans_count ?? 0) > 0 && (
-        <RecipeUsageInMealPlans count={recipe.usage_in_meal_plans_count} />
+        <RecipeUsageInMealPlans recipeId={recipeId} count={recipe.usage_in_meal_plans_count} />
       )}
 
       <ContentLinkSection contentType="recipe" objectId={recipeId} />
