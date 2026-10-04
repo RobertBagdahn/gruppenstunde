@@ -1,36 +1,36 @@
 ## 1. Backend: Kontextfelder
 
-- [ ] 1.1 `MealPlan` um `age_groups`, `setting`, `cooking_sources`, `cooling`, `season_hint` erweitern (`backend/planner/models/meal_plan.py`) und Migration erzeugen
-- [ ] 1.2 Pydantic-Schemas und Plan-Update-API für die Felder erweitern (`backend/planner/schemas/`, `api/meal_plan.py`)
-- [ ] 1.3 Ableitung Altersgruppe aus GroupMember/Teilnehmern und Jahreszeit aus Startdatum implementieren
-- [ ] 1.4 Event-Wizard-/Event-Schemas so erweitern, dass die Felder in den verknüpften Plan schreiben (`backend/event/`)
-- [ ] 1.5 Tests für Felder, Ableitung und Event-Durchreichung
+- [x] 1.1 `MealPlan` um `age_groups`, `setting`, `cooking_sources`, `cooling`, `season_hint` erweitern (`backend/planner/models/meal_plan.py`) und Migration erzeugen
+- [x] 1.2 Pydantic-Schemas und Plan-Update-API für die Felder erweitern (`backend/planner/schemas/`, `api/meal_plan.py`)
+- [x] 1.3 Ableitung Altersgruppe aus GroupMember/Teilnehmern und Jahreszeit aus Startdatum implementieren
+- [x] 1.4 Schreibweg für Event-Wizard und Event-Seite: Felder über `PATCH /meal-plans/{id}/` am verknüpften Plan (kein Event-Schema nötig, Event-UI in 6.7)
+- [x] 1.5 Tests für Felder, Ableitung und Event-Durchreichung
 
 ## 2. Backend: Merkmale und Backfills
 
-- [ ] 2.1 `traits.py` mit Ableitung süß/herzhaft, Vorbereitung, kinderfreundlich, Kochquelle, frisch/haltbar; Platzhalter-`child_score` ignorieren
-- [ ] 2.2 Neue Merkmals-Tags (Seed/Data-Migration) ergänzen
-- [ ] 2.3 Command `backfill_standalone_food` mit Dry-run-Default und Review-Liste
-- [ ] 2.4 Tests für Ableitung und Backfill
+- [x] 2.1 `traits.py` mit Ableitung süß/herzhaft, Vorbereitung, kinderfreundlich, Kochquelle, frisch/haltbar; Platzhalter-`child_score` ignorieren
+- [x] 2.2 Keine neuen Tags nötig: Merkmale werden aus Feldern und Stichwörtern abgeleitet (`traits.py`); Tag-Seed entfällt
+- [x] 2.3 Command `backfill_standalone_food` mit Dry-run-Default und Review-Liste
+- [x] 2.4 Tests für Backfill (`test_backfill_standalone_food.py`) und Ableitung über die Panel-Tests
 
 ## 3. Backend: Vorschlags-Engine
 
-- [ ] 3.1 Package `planner/services/suggestion_panel/` mit `directions.py` (Richtungen je Meal-Typ als Daten)
-- [ ] 3.2 Kandidaten und harte Filter (Status, Allergien, Kochquelle, Kühlung, Dubletten je Meal-Typ, Event-weiter Scope)
-- [ ] 3.3 Scoring (Saison, Beliebtheit, Preis, Kontext) und unbekannte Merkmale abwerten
-- [ ] 3.4 Embedding-Malus und MMR-Diversität (`diversity.py`)
-- [ ] 3.5 Typ-Mischung Rezept/Zutat und Auffüllen
-- [ ] 3.6 Lockern der weichen Kriterien (`relax.py`) und Seed für „Neu mischen“
-- [ ] 3.7 Optionales Gemini-Umsortieren mit Fallback
-- [ ] 3.8 Endpoint `POST /planner/{plan}/meal/{meal}/suggestions/`, Pydantic-Schemas, alten Endpoint und `IntelligentSuggestionsService` entfernen
-- [ ] 3.9 Tests: Dubletten je Meal-Typ, Typ-Mischung, Lockern, Auth, Fallback ohne KI
+- [x] 3.1 Package `planner/services/suggestion_panel/` mit `directions.py` (Richtungen je Meal-Typ als Daten)
+- [x] 3.2 Kandidaten und harte Filter (Status, Allergien, Kochquelle, Kühlung, Dubletten je Meal-Typ, Event-weiter Scope)
+- [x] 3.3 Scoring (Saison, Beliebtheit, Preis, Kontext) und unbekannte Merkmale abwerten
+- [x] 3.4 Embedding-Malus und MMR-Diversität (`diversity.py`)
+- [x] 3.5 Typ-Mischung Rezept/Zutat und Auffüllen
+- [x] 3.6 Lockern der weichen Kriterien (`relax.py`) und Seed für „Neu mischen“
+- [x] 3.7 Gemini-Umsortieren nur explizit über den Zauberstab (4.1), kein automatischer Aufruf; Fallback ohne KI
+- [x] 3.8 Endpoint `POST /planner/{plan}/meal/{meal}/suggestions/`, Pydantic-Schemas, alten Endpoint und `IntelligentSuggestionsService` entfernen
+- [x] 3.9 Tests: Dubletten je Meal-Typ, Typ-Mischung, Lockern, Auth, Fallback ohne KI
 
 ## 4. Backend: Zauberstab
 
-- [ ] 4.1 `wand.py` mit einem Gemini-Aufruf, Rangfolge und Vorschlägen neuer Zutaten
-- [ ] 4.2 Neue Zutaten über vorhandenen KI-Anlage-Flow als Entwurf mit `is_standalone_food=True`
-- [ ] 4.3 Stichwort-Fallback ohne KI-Budget
-- [ ] 4.4 Endpoint `POST .../suggestions/wand/` und Tests (Budget, Duplikat-Check)
+- [x] 4.1 `wand.py` mit einem Gemini-Aufruf, Rangfolge und Vorschlägen neuer Zutaten
+- [x] 4.2 Neue Zutaten über vorhandenen KI-Anlage-Flow als Entwurf mit `is_standalone_food=True`
+- [x] 4.3 Stichwort-Fallback ohne KI-Budget
+- [x] 4.4 Endpoint `POST .../suggestions/wand/` und Tests (Budget, Duplikat-Check)
 
 ## 5. Frontend: Schemas und Hooks
 

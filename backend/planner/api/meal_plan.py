@@ -50,7 +50,7 @@ from planner.schemas import (
     GroupMemberCreateIn,
     GroupMemberOut,
     GroupMemberUpdateIn,
-    IntelligentSuggestionsResponse,
+    MagicWandIn,
     MealCostOut,
     MealCreateIn,
     MealDayBulkCreateIn,
@@ -87,6 +87,8 @@ from planner.schemas import (
     ShoppingListItemOut,
     ShoppingPackageOptionOut,
     ShoppingPieceEquivalentOut,
+    SuggestionPanelIn,
+    SuggestionPanelOut,
     WizardItemsBulkIn,
     WizardItemsBulkOut,
     WizardItemsIn,
@@ -3067,59 +3069,40 @@ def delete_tag(request, meal_plan_id: int, tag_id: int):
 
 
 # ==========================================================================
-# Intelligent Recipe Suggestions
+# Suggestion panel (16 cards in 4 directions)
 # ==========================================================================
 
 
-@meal_plan_router.get(
+@meal_plan_router.post(
     "/{meal_plan_id}/meal/{meal_id}/suggestions/",
-    response=IntelligentSuggestionsResponse,
+    response=SuggestionPanelOut,
 )
-def intelligent_suggestions(
-    request,
-    meal_plan_id: int,
-    meal_id: int,
-    context_enhance: bool = True,
-):
-    """Get 9 context-aware recipe suggestions for a specific meal slot.
-
-    By default (context_enhance=true), Gemini receives enriched context
-    (event info, tags, meal plan, top 30 candidates) for intelligent selection.
-    Falls back to algorithmic scoring when Gemini is unavailable.
-    Set context_enhance=false for pure algorithmic suggestions.
-    """
+def suggestion_panel(request, meal_plan_id: int, meal_id: int, payload: SuggestionPanelIn):
+    """Return up to 16 suggestions (4 directions x 4 cards) for a meal slot."""
     require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
-
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
 
-    from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+    from planner.services.suggestion_panel.service import get_panel
 
-    service = IntelligentSuggestionsService(
-        meal_plan=meal_plan,
-        meal=meal,
-        user=request.user,
-    )
-    result = service.get_suggestions(context_enhance=context_enhance)
-    suggestions = result["suggestions"]
-    ai_enhanced = result["ai_enhanced"]
-    ai_interaction_id = result.get("ai_interaction_id")
+    return get_panel(meal_plan, meal, request.user, payload.filters, payload.seed)
 
-    total = sum(len(v) for v in suggestions.values())
 
-    day_number = 1
-    if meal_plan.start_datetime and meal.start_datetime:
-        day_number = (meal.start_datetime.date() - meal_plan.start_datetime.date()).days + 1
+@meal_plan_router.post(
+    "/{meal_plan_id}/meal/{meal_id}/suggestions/wand/",
+    response=SuggestionPanelOut,
+)
+def suggestion_panel_wand(request, meal_plan_id: int, meal_id: int, payload: MagicWandIn):
+    """Re-rank the panel by a free-text wish (one AI call; keyword fallback without AI budget)."""
+    require_login(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
 
-    return IntelligentSuggestionsResponse(
-        suggestions=suggestions,
-        total=total,
-        ai_enhanced=ai_enhanced,
-        ai_interaction_id=ai_interaction_id,
-        meal_type=meal.meal_type,
-        day_number=max(day_number, 1),
-    )
+    from planner.services.suggestion_panel.wand import run_wand
+
+    return run_wand(meal_plan, meal, request.user, payload.free_text, payload.filters, payload.seed)
 
 
 # ==========================================================================

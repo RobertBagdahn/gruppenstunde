@@ -438,6 +438,13 @@ class MealDayBulkCreateIn(Schema):
 # ==========================================================================
 
 
+AgeGroup = Literal["toddlers", "children", "teens", "adults"]
+CookingSource = Literal["stove_oven", "gas_burner", "campfire", "grill", "none"]
+PlanSetting = Literal["camp", "house_trip", "day_event", "group_meeting", "hike", "other", ""]
+PlanCooling = Literal["fridge", "cooler_box", "none", ""]
+PlanSeasonHint = Literal["hot", "mild", "cold", ""]
+
+
 class MealPlanTagOut(Schema):
     id: int
     name: str
@@ -458,6 +465,11 @@ class MealPlanOut(Schema):
     activity_factor: float = 1.5
     reserve_factor: float
     budget_per_person_per_day: float | None = None
+    age_groups: list[AgeGroup] = []
+    setting: PlanSetting = ""
+    cooking_sources: list[CookingSource] = []
+    cooling: PlanCooling = ""
+    season_hint: PlanSeasonHint = ""
     event_id: int | None = None
     event_name: str = ""
     start_datetime: dt.datetime | None = None
@@ -558,6 +570,11 @@ class MealPlanCreateIn(Schema):
     norm_portions: float = Field(10.0, gt=0, le=1000)
     reserve_factor: float = 1.1
     budget_per_person_per_day: float | None = None
+    age_groups: list[AgeGroup] = []
+    setting: PlanSetting = ""
+    cooking_sources: list[CookingSource] = []
+    cooling: PlanCooling = ""
+    season_hint: PlanSeasonHint = ""
     visibility: Literal["private", "group", "public", "draft"] = "private"
     activity_factor: float = 1.5
     event_id: int | None = None
@@ -576,6 +593,11 @@ class MealPlanUpdateIn(Schema):
     reserve_factor: float | None = None
     activity_factor: float | None = None
     budget_per_person_per_day: float | None = None
+    age_groups: list[AgeGroup] = []
+    setting: PlanSetting = ""
+    cooking_sources: list[CookingSource] = []
+    cooling: PlanCooling = ""
+    season_hint: PlanSeasonHint = ""
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     day_part_factors: dict[str, float] | None = None
@@ -1230,34 +1252,3 @@ class RecentlyUsedRecipesResponseOut(Schema):
     """Response for the recently-used-recipes endpoint."""
 
     recipes: list[RecipeRecentlyUsedOut] = []
-
-
-# ==========================================================================
-# Intelligent Recipe Suggestions
-# ==========================================================================
-
-
-class IntelligentSuggestionOut(Schema):
-    """A single intelligent recipe suggestion."""
-
-    id: int
-    title: str
-    slug: str
-    image_url: str | None = None
-    recipe_type: str
-    recipe_badge: str = "community"
-    reason: str = ""
-    reason_text: str = ""
-    usage_count: int = 0
-    price_per_serving: float | None = None
-
-
-class IntelligentSuggestionsResponse(Schema):
-    """Response for intelligent recipe suggestions."""
-
-    suggestions: dict[str, list[IntelligentSuggestionOut]]
-    total: int = 0
-    ai_enhanced: bool = False
-    ai_interaction_id: str | None = None
-    meal_type: str = ""
-    day_number: int = 1
