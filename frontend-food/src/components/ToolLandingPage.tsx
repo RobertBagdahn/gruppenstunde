@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
 import type { ToolConfig } from '@/lib/toolColors';
 import { cn } from '@/lib/utils';
@@ -72,7 +73,6 @@ export default function ToolLandingPage({
       {/*  HERO                                                        */}
       {/* ============================================================ */}
       <section className={cn('relative overflow-hidden text-white py-16 md:py-24 bg-gradient-to-br', tool.gradient)}>
-        <div className="absolute inset-0 bg-dots-pattern opacity-[0.04] pointer-events-none" />
         <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-16 -left-16 w-60 h-60 bg-white/10 rounded-full blur-2xl" />
 
@@ -250,7 +250,7 @@ export default function ToolLandingPage({
           {faq.map((item) => (
             <details
               key={item.question}
-              className="group p-5 rounded-xl bg-card border border-border/60 shadow-sm"
+              className="group p-5 rounded-xl bg-card border-border/60 shadow-card"
             >
               <summary className="flex items-center justify-between cursor-pointer font-bold text-emphasis font-display">
                 {item.question}
@@ -268,7 +268,6 @@ export default function ToolLandingPage({
       {/*  FINAL CTA                                                   */}
       {/* ============================================================ */}
       <section className={cn('relative overflow-hidden text-white py-14 md:py-20 bg-gradient-to-br', tool.gradient)}>
-        <div className="absolute inset-0 bg-dots-pattern opacity-[0.04] pointer-events-none" />
         <div className="container relative text-center">
           <h2 className="text-title md:text-title font-extrabold mb-4 font-display">
             Bereit loszulegen?
@@ -289,9 +288,9 @@ export default function ToolLandingPage({
             {!isLoggedIn && (
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-8 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-sm font-bold hover:bg-white/25 hover:scale-105 transition-all"
+                className="flex items-center gap-2 px-8 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-body font-bold hover:bg-white/25 hover:scale-105 transition-all"
               >
-                <span className="material-symbols-outlined text-[20px]">login</span>
+                <LogIn className="h-5 w-5" />
                 Kostenlos anmelden
               </Link>
             )}

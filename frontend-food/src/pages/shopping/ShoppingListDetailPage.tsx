@@ -29,10 +29,11 @@ import {
 } from '@/hooks/useShoppingListWebSocket';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
-import { toast } from 'sonner';
+import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart } from 'lucide-react';
 import { formatEuro } from '@/lib/format';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -96,18 +97,7 @@ export default function ShoppingListDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded-xl w-2/3" />
-          <div className="h-6 bg-muted rounded-xl w-1/3" />
-          <div className="h-3 bg-muted rounded-xl" />
-          <div className="space-y-2 mt-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-12 bg-muted rounded-xl" />
-            ))}
-          </div>
-        </div>
-      </div>
+      <PageSkeleton label="Einkaufsliste wird geladen" />
     );
   }
 
@@ -150,7 +140,7 @@ export default function ShoppingListDetailPage() {
         },
         onError: (err) => {
           rollback(previousData);
-          toast.error('Fehler beim Abhaken', { description: err.message });
+          notify.error('Eintrag konnte nicht abgehakt werden', { error: err });
         },
       },
     );
@@ -166,7 +156,7 @@ export default function ShoppingListDetailPage() {
           setShowAddItem(false);
           sendEvent('item.added', { name: newItemName.trim() });
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Eintrag konnte nicht hinzugefügt werden', { error: err }),
       },
     );
   };
@@ -175,7 +165,8 @@ export default function ShoppingListDetailPage() {
     deleteItem.mutate(item.id, {
       onSuccess: () => {
         sendEvent('item.removed', { item_id: item.id });
-        toast.success(`„${item.name}“ gelöscht`, {
+        notify.success(`„${item.name}“ gelöscht`, {
+          duration: UNDO_DURATION_MS,
           action: {
             label: 'Rückgängig',
             onClick: () =>
@@ -188,12 +179,12 @@ export default function ShoppingListDetailPage() {
                   retail_section_id: item.retail_section_id ?? null,
                   ingredient_id: item.ingredient_id ?? null,
                 },
-                { onError: (err) => toast.error('Wiederherstellen fehlgeschlagen', { description: err.message }) },
+                { onError: (err) => notify.error('Wiederherstellen fehlgeschlagen', { error: err }) },
               ),
           },
         });
       },
-      onError: (err) => toast.error('Fehler beim Löschen', { description: err.message }),
+      onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
     });
   };
 
@@ -206,7 +197,7 @@ export default function ShoppingListDetailPage() {
           setEditingName(false);
           sendEvent('list.updated', { name: editName.trim() });
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Einkaufsliste konnte nicht gespeichert werden', { error: err }),
       },
     );
   };
@@ -218,11 +209,11 @@ export default function ShoppingListDetailPage() {
         onConfirm={() => {
           deleteList.mutate(listId, {
             onSuccess: () => {
-              toast.success('Einkaufsliste gelöscht');
+              notify.success('Einkaufsliste gelöscht');
               navigate('/shopping-lists');
             },
             onError: (err) => {
-              toast.error('Fehler', { description: err.message });
+              notify.error('Einkaufsliste konnte nicht gelöscht werden', { error: err });
               setShowDeleteConfirm(false);
             },
           });
@@ -324,7 +315,7 @@ export default function ShoppingListDetailPage() {
 
       {/* Total price */}
       {items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
-        <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 shadow-soft mb-6">
+        <div className="flex items-center justify-between bg-card rounded-xl px-4 py-3 mb-6 shadow-card">
           <span className="text-body font-semibold text-muted-foreground">
             Geschätzter Gesamtpreis
           </span>
@@ -336,7 +327,7 @@ export default function ShoppingListDetailPage() {
 
       {/* Items grouped by section */}
       {totalCount === 0 ? (
-        <div className="text-center py-12 bg-card border border-border rounded-xl shadow-soft">
+        <div className="text-center py-12 bg-card rounded-xl shadow-card">
           <ShoppingBag className="w-10 h-10 text-muted-foreground/80 mb-2.5 mx-auto" />
           <p className="text-muted-foreground text-body font-semibold">
             Diese Liste ist noch leer. Füge Einträge hinzu.
@@ -345,7 +336,7 @@ export default function ShoppingListDetailPage() {
       ) : (
         <div className="space-y-6">
           {Object.entries(groupedItems).map(([section, items]) => (
-            <div key={section} className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-soft">
+            <div key={section} className="bg-card rounded-xl p-4 md:p-5 shadow-card">
               {section && (
                 <h3 className="text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5 border-b border-border/40 pb-2">
                   <Store className="w-4 h-4 text-primary shrink-0" />
@@ -373,7 +364,7 @@ export default function ShoppingListDetailPage() {
       {canEdit && (
         <div className="mt-4">
           {showAddItem ? (
-            <div className="flex gap-2 p-3 bg-card rounded-xl border border-border shadow-soft">
+            <div className="flex gap-2 p-3 bg-card rounded-xl shadow-card">
               <input
                 type="text"
                 value={newItemName}
@@ -416,7 +407,7 @@ export default function ShoppingListDetailPage() {
       )}
 
       {/* REWE Export */}
-      <section className="mt-6 bg-card rounded-xl border border-border p-5 shadow-soft">
+      <section className="mt-6 bg-card rounded-xl p-5 shadow-card">
         <h2 className="flex items-center gap-2 text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4">
           <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
           REWE-Export
@@ -428,7 +419,7 @@ export default function ShoppingListDetailPage() {
       <KitchenReminderSection />
 
       {/* Collaborators section */}
-      <section className="mt-8 bg-card rounded-xl border border-border p-5 shadow-soft">
+      <section className="mt-8 bg-card rounded-xl p-5 shadow-card">
         <button
           type="button"
           onClick={() => setShowCollaborators(!showCollaborators)}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useCreateMealPlan } from '@/api/mealPlans';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 
 interface CreateMealPlanDialogProps {
   open: boolean;
@@ -51,7 +51,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, onSuccess }: CreateMe
       },
       {
         onSuccess: (plan) => {
-          toast.success('Essensplan erstellt', {
+          notify.success('Essensplan erstellt', {
             description: 'Tage und Standard-Mahlzeiten wurden vorbereitet.',
           });
           onOpenChange(false);
@@ -62,7 +62,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, onSuccess }: CreateMe
           }
         },
         onError: (err) => {
-          toast.error('Fehler beim Erstellen', { description: err.message });
+          notify.error('Essensplan konnte nicht angelegt werden', { error: err });
         },
       }
     );

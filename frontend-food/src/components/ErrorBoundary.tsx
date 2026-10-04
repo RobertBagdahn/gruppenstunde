@@ -28,7 +28,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
-          <div className="bg-card rounded-xl border p-6 max-w-md w-full text-center space-y-4">
+          <div className="bg-card rounded-xl p-6 max-w-md w-full text-center space-y-4 shadow-card">
             <Icon name="error" size={24} className="text-destructive" />
             <h1 className="text-section font-semibold">Ein Fehler ist aufgetreten</h1>
             <p className="text-body text-muted-foreground">

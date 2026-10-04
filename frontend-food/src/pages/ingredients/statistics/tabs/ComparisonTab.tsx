@@ -71,7 +71,7 @@ export default function ComparisonTab() {
       ) : data ? (
         <div className="space-y-6">
           {data.mean_difference_pct !== null && (
-            <div className="rounded-xl border border-border bg-card p-4 text-center">
+            <div className="rounded-xl bg-card p-4 text-center shadow-card">
               <p className="text-caption text-muted-foreground mb-1">
                 Mittlere Abweichung ({data.group_label} vs. Rest)
               </p>
@@ -87,13 +87,13 @@ export default function ComparisonTab() {
                 {data.group.label} ({data.group.count} Zutaten)
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <div className="rounded-xl bg-card p-3 text-center shadow-card">
                   <p className="text-caption text-muted-foreground">Mittelwert</p>
                   <p className="text-section font-bold font-display">
                     {data.group.mean !== null ? `${formatNumber(data.group.mean, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <div className="rounded-xl bg-card p-3 text-center shadow-card">
                   <p className="text-caption text-muted-foreground">Median</p>
                   <p className="text-section font-bold font-display">
                     {data.group.median !== null ? `${formatNumber(data.group.median, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
@@ -114,13 +114,13 @@ export default function ComparisonTab() {
                 Rest ({data.rest.count} Zutaten)
               </h3>
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <div className="rounded-xl bg-card p-3 text-center shadow-card">
                   <p className="text-caption text-muted-foreground">Mittelwert</p>
                   <p className="text-section font-bold font-display">
                     {data.rest.mean !== null ? `${formatNumber(data.rest.mean, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}
                   </p>
                 </div>
-                <div className="rounded-xl border border-border bg-card p-3 text-center">
+                <div className="rounded-xl bg-card p-3 text-center shadow-card">
                   <p className="text-caption text-muted-foreground">Median</p>
                   <p className="text-section font-bold font-display">
                     {data.rest.median !== null ? `${formatNumber(data.rest.median, { maxDecimals: 1 })} ${data.metric_unit}` : '–'}

@@ -22,9 +22,11 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Loader2, GitMerge, EyeOff, AlertTriangle, ArrowRight, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
 import { formatNumber, roundToDecimals } from '@/lib/format';
+import ErrorDisplay from '@/components/ErrorDisplay';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface DuplicateDetectionListProps {
   type: 'ingredient' | 'recipe';
@@ -73,9 +75,9 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
       } else {
         await recipeDismissMutation.mutateAsync({ recipe_a_id: aId, recipe_b_id: bId });
       }
-      toast.success('Als kein Duplikat markiert');
+      notify.success('Als kein Duplikat markiert');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Markieren');
+      notify.error('Markierung konnte nicht gespeichert werden', { error: err });
     }
   };
 
@@ -94,11 +96,11 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
     if (!mergePair) return;
     try {
       await activeMergeMutation.mutateAsync({ source_id: mergePair.sourceId, target_id: mergePair.targetId });
-      toast.success(`${mergePair.sourceName} → ${mergePair.targetName} zusammengeführt`);
+      notify.success(`${mergePair.sourceName} → ${mergePair.targetName} zusammengeführt`);
       setMergeDialogOpen(false);
       setMergePair(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Zusammenführen');
+      notify.error('Zutaten konnten nicht zusammengeführt werden', { error: err });
     }
   };
 
@@ -113,7 +115,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
           <Loader2 className="animate-spin text-title text-muted-foreground" />
         </div>
       )}
-      {error && <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>}
+      {error && <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" />}
 
       {/* Duplicate List */}
       {data && data.items.length > 0 && (
@@ -224,7 +226,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
           {mergePreviewError && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-danger-soft border border-danger-border text-body text-danger">
               <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-              <span>Fehler beim Laden der Vorschau: {mergePreviewError instanceof Error ? mergePreviewError.message : 'Unbekannter Fehler'}</span>
+              <span>Fehler beim Laden der Vorschau: {getApiErrorMessage(mergePreviewError, 'Unbekannter Fehler')}</span>
             </div>
           )}
 

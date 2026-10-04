@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { useCurrentUser } from '@/api/auth';
 import {
+  hasAnyListState,
   readListState,
   writeListState,
   type ListKey,
@@ -149,6 +150,9 @@ export function usePersistedListState<S extends ListSchema, D extends Partial<z.
   }, [hasStateParams, key, urlRawKey, userId, userLoading]);
 
   // Without state in the URL, restore the stored state once the user is known.
+  // Lists with state in the URL, or without anything stored, do not need to wait
+  // for the user: their queries start immediately (food-loading-states).
+  const [noStoredState] = useState(() => !restore || !hasAnyListState(key));
   const [restoreChecked, setRestoreChecked] = useState(false);
   const migrateLegacyRef = useRef(migrateLegacy);
   migrateLegacyRef.current = migrateLegacy;
@@ -180,7 +184,7 @@ export function usePersistedListState<S extends ListSchema, D extends Partial<z.
     reset,
     activeCount,
     /** True once the stored state was applied; enable list queries only then. */
-    restored: !userLoading && restoreChecked,
+    restored: hasStateParams || noStoredState || (!userLoading && restoreChecked),
   };
 }
 

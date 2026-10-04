@@ -16,8 +16,7 @@ import {
   type RecipeEnergyData,
 } from '@/lib/breakfastCalc';
 import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
-import { toast } from 'sonner';
-import { getApiErrorMessage } from '@/lib/api';
+import { notify } from '@/lib/notify';
 
 interface StepCockpitProps {
   wiz: UseWizardStateReturn;
@@ -95,7 +94,7 @@ export default function StepCockpit({
   const barColor =
     coverage < 0.8 ? 'bg-destructive'
     : coverage <= 1.1 ? 'bg-primary'
-    : coverage <= 1.2 ? 'bg-warning'
+    : coverage <= 1.2 ? 'bg-warning-bright'
     : 'bg-destructive';
   const showOverplanWarning = coverage > 1.2;
 
@@ -105,9 +104,9 @@ export default function StepCockpit({
     if (saveMode === 'directMeal' && mealId != null) {
       try {
         await scaleMutation.mutateAsync(mealId);
-        toast.success('Auf Soll skaliert');
+        notify.success('Auf Soll skaliert');
       } catch (error) {
-        toast.error('Skalierung fehlgeschlagen', { description: getApiErrorMessage(error) });
+        notify.error('Skalierung fehlgeschlagen', { error: error });
       }
     }
   }
@@ -115,7 +114,7 @@ export default function StepCockpit({
   return (
     <div className="space-y-6">
       {saveMode === 'directMeal' && breakfastMeals.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
           <div>
             <h3 className="font-display font-semibold text-emphasis">Auf welche Frühstücke anwenden?</h3>
             <p className="text-caption text-muted-foreground">Die geprüfte Zusammenstellung wird auf jedes ausgewählte Frühstück dieses Events kopiert.</p>
@@ -135,7 +134,7 @@ export default function StepCockpit({
         </div>
       )}
       {saveMode === 'directMeal' && manualItemCount > 0 && (
-        <fieldset className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <fieldset className="bg-card rounded-xl p-4 space-y-3 shadow-card">
           <legend className="font-display font-semibold text-emphasis">Vorhandene manuelle Einträge</legend>
           <p className="text-caption text-muted-foreground">
             Für die ausgewählten Frühstücke gibt es {manualItemCount} eigene Einträge außerhalb des Assistenten.
@@ -163,7 +162,7 @@ export default function StepCockpit({
         </fieldset>
       )}
       {/* SollIstBar */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <div className="flex items-center justify-between">
           <h3 className="font-display font-semibold text-emphasis">Energie-Check</h3>
           {saveMode === 'directMeal' && (
@@ -214,7 +213,7 @@ export default function StepCockpit({
       )}
 
       {/* Transparenz-Tabelle */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="bg-card rounded-xl overflow-hidden shadow-card">
         <div className="px-4 py-3 border-b border-border">
           <h3 className="font-display font-semibold text-emphasis">Zusammenfassung</h3>
         </div>

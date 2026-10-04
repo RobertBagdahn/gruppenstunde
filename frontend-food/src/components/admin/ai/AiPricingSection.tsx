@@ -4,6 +4,7 @@ import { useAiPricing } from '@/api/aiInteraction';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatNumber } from '@/lib/format';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 export default function AiPricingSection() {
   const [open, setOpen] = useState(false);
@@ -30,7 +31,7 @@ export default function AiPricingSection() {
       {open && (
         <CardContent>
           {isLoading && (
-            <p className="text-center text-muted-foreground py-4">Lade Preise...</p>
+            <SkeletonTableRows rows={4} columns={3} label="Preise werden geladen" />
           )}
           {data && (
             <div className="space-y-3">

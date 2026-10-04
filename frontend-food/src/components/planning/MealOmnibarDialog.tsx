@@ -341,12 +341,12 @@ export function MealOmnibarDialog({
                         {activeItem.data.title}
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-caption">
-                        <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
+                        <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card px-3 py-2 font-semibold text-foreground break-words shadow-card">
                           <Users className="w-3.5 h-3.5 text-primary" />
                           {normPortions} Personen
                         </span>
                         {activeItem.data.price_per_serving != null && (
-                          <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
+                          <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card px-3 py-2 font-semibold text-foreground break-words shadow-card">
                             <Euro className="w-3.5 h-3.5 text-success" />
                             {formatNumber((activeItem.data.price_per_serving * normPortions), { maxDecimals: 2 })} € gesamt
                           </span>
@@ -357,7 +357,7 @@ export function MealOmnibarDialog({
                       <div className="space-y-3 text-caption">
                         {activeItem.data.description && <p className="text-muted-foreground leading-relaxed break-words">{activeItem.data.description}</p>}
                         {activeItem.data.ingredients_preview && activeItem.data.ingredients_preview.length > 0 && (
-                          <div className="rounded-xl border border-border bg-card p-3">
+                          <div className="rounded-xl bg-card p-3 shadow-card">
                             <div className="flex items-center gap-2 font-semibold text-foreground mb-2"><Utensils className="w-3.5 h-3.5 text-primary" />Enthält unter anderem</div>
                             <p className="text-muted-foreground leading-relaxed break-words">{activeItem.data.ingredients_preview.join(' · ')}</p>
                           </div>
@@ -365,7 +365,7 @@ export function MealOmnibarDialog({
                       </div>
                     )}
                     {(activeItem.data.cached_energy_kcal != null || activeItem.data.cached_protein_g != null || activeItem.data.nutritional_tags?.length) && (
-                      <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                      <div className="rounded-xl bg-card p-3 space-y-2 shadow-card">
                         <div className="flex items-center gap-2 text-caption font-semibold text-foreground"><Flame className="w-3.5 h-3.5 text-primary" />Nährwerte und Hinweise</div>
                         <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
                           {formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal/100 g') && <span>{formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal/100 g')}</span>}

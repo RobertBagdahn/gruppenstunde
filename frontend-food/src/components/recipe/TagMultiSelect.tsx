@@ -51,7 +51,7 @@ export default function TagMultiSelect({ selectedSlugs, onToggle, valueKey = 'sl
         <Icon name="expand_more" size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-card border border-border rounded-xl shadow-lg p-2 max-h-80 overflow-hidden flex flex-col">
+        <div className="absolute right-0 top-full mt-1 z-50 w-64 bg-card rounded-xl shadow-lg p-2 max-h-80 overflow-hidden flex flex-col shadow-card">
           <input
             type="text"
             value={search}

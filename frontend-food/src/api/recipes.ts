@@ -7,7 +7,7 @@
  */
 import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL, parseApiResponse } from '@/lib/api';
-import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient, keepPreviousData } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   PaginatedRecipesSchema,
@@ -205,6 +205,8 @@ export function useRecipes(filters: Partial<RecipeFilter> = {}, options: { enabl
     queryKey: ['recipes', filters] as const,
     queryFn: () => fetchJson(`${API_BASE}/?${queryString}`, PaginatedRecipesSchema),
     enabled: options.enabled ?? true,
+    // Keep the previous page visible while the next one loads (food-loading-states).
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -678,6 +680,7 @@ export function useForkAndSaveRecipe(recipeId: number) {
 export function useMyRecipes(filters: Partial<RecipeFilter> = {}) {
   const queryString = buildFilterParams(filters);
   return useQuery({
+    placeholderData: keepPreviousData,
     queryKey: ['my-recipes', filters] as const,
     queryFn: () => fetchJson(`${API_BASE}/my-recipes/?${queryString}`, PaginatedRecipesSchema),
   });

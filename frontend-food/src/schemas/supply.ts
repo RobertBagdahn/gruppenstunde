@@ -438,20 +438,20 @@ export const NutriScoreDetailSchema = z.object({
 export type NutriScoreDetail = z.infer<typeof NutriScoreDetailSchema>;
 
 // --- Nutri-Score Colors (for UI) ---
+// Only `NutriScoreBadge` (components/shared/NutriScoreBadge.tsx) may use these
+// (semantic-colors spec); a test enforces it.
 
-/** Official Nutri-Score colors, keyed by letter. */
-export const NUTRI_SCORE_COLORS_BY_LETTER: Record<string, { bg: string; text: string }> = {
-  A: { bg: 'bg-nutri-a', text: 'text-white' },
-  B: { bg: 'bg-nutri-b', text: 'text-nutri-dark-text' },
-  C: { bg: 'bg-nutri-c', text: 'text-nutri-dark-text' },
-  D: { bg: 'bg-nutri-d', text: 'text-nutri-dark-text' },
-  E: { bg: 'bg-nutri-e', text: 'text-white' },
+export const NUTRI_SCORE_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
+export type NutriScoreLetter = (typeof NUTRI_SCORE_LETTERS)[number];
+
+/** Official Nutri-Score colors (Santé publique France), keyed by letter. */
+export const NUTRI_SCORE_COLORS_BY_LETTER: Record<NutriScoreLetter, { bg: string; text: string; hex: string; textHex: string }> = {
+  A: { bg: 'bg-nutri-a', text: 'text-white', hex: '#038141', textHex: '#FFFFFF' },
+  B: { bg: 'bg-nutri-b', text: 'text-nutri-dark-text', hex: '#85BB2F', textHex: '#1F2937' },
+  C: { bg: 'bg-nutri-c', text: 'text-nutri-dark-text', hex: '#FECB02', textHex: '#1F2937' },
+  D: { bg: 'bg-nutri-d', text: 'text-nutri-dark-text', hex: '#EE8100', textHex: '#1F2937' },
+  E: { bg: 'bg-nutri-e', text: 'text-white', hex: '#E63E11', textHex: '#FFFFFF' },
 };
-
-/** Official Nutri-Score colors, keyed by nutri class (1 = A … 5 = E). */
-export const NUTRI_SCORE_COLORS: Record<number, { bg: string; text: string; label: string }> = Object.fromEntries(
-  ['A', 'B', 'C', 'D', 'E'].map((label, idx) => [idx + 1, { ...NUTRI_SCORE_COLORS_BY_LETTER[label], label }]),
-);
 
 // --- Legacy Material Content schemas (used by api/materials.ts) ---
 

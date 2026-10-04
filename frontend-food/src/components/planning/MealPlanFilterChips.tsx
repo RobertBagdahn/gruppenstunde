@@ -10,7 +10,7 @@ interface MealPlanFilterChipsProps {
 const AMPEL_CHIPS: { value: AmpelStatus | 'all'; label: string; dotClass: string }[] = [
   { value: 'all', label: 'Alle', dotClass: '' },
   { value: 'green', label: 'Bereit', dotClass: 'bg-success' },
-  { value: 'yellow', label: 'In Arbeit', dotClass: 'bg-warning' },
+  { value: 'yellow', label: 'In Arbeit', dotClass: 'bg-warning-bright' },
   { value: 'red', label: 'Teilweise', dotClass: 'bg-danger' },
 ];
 

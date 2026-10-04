@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { useSuggestIngredientAssignment } from '@/hooks/useRecipeSteps';
 import type { RecipeStepIngredient } from '@/schemas/recipeStep';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 
 interface IngredientSuggestionsProps {
   recipeSlug: string;
@@ -86,7 +86,7 @@ export default function IngredientSuggestions({
           setIsLoadingInitial(false);
         },
         onError: () => {
-          toast.error('Fehler beim Laden von Vorschlägen');
+          notify.error('Vorschläge konnten nicht geladen werden');
           setIsLoadingInitial(false);
         },
       }
@@ -123,7 +123,7 @@ export default function IngredientSuggestions({
 
     if (newIngredients.length > 0) {
       onAddSuggestions(newIngredients);
-      toast.success(`${newIngredients.length} Zutaten hinzugefügt`);
+      notify.success(`${newIngredients.length} Zutaten hinzugefügt`);
     }
   };
 

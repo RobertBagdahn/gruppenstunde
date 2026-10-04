@@ -67,7 +67,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
   return (
     <div className="space-y-6">
       {/* Intensität */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <h3 className="font-display font-semibold text-emphasis">Belag-Intensität</h3>
         <p className="text-caption text-muted-foreground">
           Wie viel Belag pro Person?
@@ -105,7 +105,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
 
       {/* Sortenverteilung */}
       {state.toppings.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-emphasis">Sortenverteilung</h3>
             <div className="flex items-center gap-2">

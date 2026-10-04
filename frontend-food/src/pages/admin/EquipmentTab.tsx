@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import {
   useDeleteEquipment,
 } from '@/api/admin';
 import { EquipmentInSchema, type EquipmentIn, type Equipment } from '@/schemas/supply';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import { applyApiFieldErrors } from '@/lib/formErrors';
 
 export default function EquipmentTab() {
   const { data: equipment, isLoading } = useAdminEquipment();
@@ -47,14 +49,15 @@ export default function EquipmentTab() {
     try {
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, data });
-        toast.success('Equipment aktualisiert');
+        notify.success('Equipment aktualisiert');
       } else {
         await createMutation.mutateAsync(data);
-        toast.success('Equipment erstellt');
+        notify.success('Equipment erstellt');
       }
       setDialogOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      applyApiFieldErrors(err, form.setError, Object.keys(form.getValues()));
+      notify.error('Ausstattung konnte nicht gespeichert werden', { error: err });
     }
   }
 
@@ -62,15 +65,15 @@ export default function EquipmentTab() {
     if (!deleteTarget) return;
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
-      toast.success('Equipment gelöscht');
+      notify.success('Equipment gelöscht');
       setDeleteTarget(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Löschen');
+      notify.error('Ausstattung konnte nicht gelöscht werden', { error: err });
     }
   }
 
   if (isLoading) {
-    return <div className="py-8 text-center text-muted-foreground">Laden...</div>;
+    return <SkeletonTableRows rows={6} columns={3} label="Ausstattung wird geladen" />;
   }
 
   return (
@@ -83,7 +86,7 @@ export default function EquipmentTab() {
         </Button>
       </div>
 
-      <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-card rounded-xl overflow-hidden shadow-card">
         <div className="overflow-x-auto">
           <table className="w-full text-body">
             <thead>

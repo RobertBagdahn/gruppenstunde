@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ import {
   useDeleteTag,
 } from '@/api/admin';
 import { TagAdminInSchema, type TagAdminIn, type TagAdmin } from '@/schemas/supply';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import { applyApiFieldErrors } from '@/lib/formErrors';
 
 export default function TagTab() {
   const navigate = useNavigate();
@@ -57,14 +59,15 @@ export default function TagTab() {
     try {
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, data });
-        toast.success('Tag aktualisiert');
+        notify.success('Tag aktualisiert');
       } else {
         await createMutation.mutateAsync(data);
-        toast.success('Tag erstellt');
+        notify.success('Tag erstellt');
       }
       setDialogOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      applyApiFieldErrors(err, form.setError, Object.keys(form.getValues()));
+      notify.error('Tag konnte nicht gespeichert werden', { error: err });
     }
   }
 
@@ -72,17 +75,17 @@ export default function TagTab() {
     if (!deleteTarget) return;
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
-      toast.success('Tag gelöscht');
+      notify.success('Tag gelöscht');
       setDeleteTarget(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Löschen');
+      notify.error('Tag konnte nicht gelöscht werden', { error: err });
     }
   }
 
   const tags = paginated?.items ?? [];
 
   if (isLoading) {
-    return <div className="py-8 text-center text-muted-foreground">Laden...</div>;
+    return <SkeletonTableRows rows={6} columns={3} label="Tags werden geladen" />;
   }
 
   return (
@@ -95,7 +98,7 @@ export default function TagTab() {
         </Button>
       </div>
 
-      <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-card rounded-xl overflow-hidden shadow-card">
         <div className="overflow-x-auto">
           <table className="w-full text-body">
             <thead>

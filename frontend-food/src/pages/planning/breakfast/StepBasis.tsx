@@ -43,7 +43,7 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
     <div className="space-y-6">
       {/* Sortenverteilung */}
       {state.basis.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-emphasis">Sortenverteilung</h3>
             <div className="flex items-center gap-2">

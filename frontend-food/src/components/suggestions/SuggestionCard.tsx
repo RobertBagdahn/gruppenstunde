@@ -35,7 +35,7 @@ const suggestionStyles = {
   yellow: {
     card: 'bg-warning/[0.04] border border-warning-border',
     text: 'text-warning',
-    bullet: 'bg-warning',
+    bullet: 'bg-warning-bright',
   },
   red: {
     card: 'bg-destructive/[0.04] border border-destructive/20',
@@ -46,8 +46,8 @@ const suggestionStyles = {
 
 const scopeBadgeConfig: Record<string, { text: string; color: string }> = {
   day: { text: 'Summe', color: 'bg-info' },
-  event: { text: 'Ø Plan', color: 'bg-warning' },
-  meal_event: { text: 'Ø Plan', color: 'bg-warning' },
+  event: { text: 'Ø Plan', color: 'bg-warning-bright' },
+  meal_event: { text: 'Ø Plan', color: 'bg-warning-bright' },
   meal: { text: 'Mahlzeit', color: 'bg-success' },
 };
 

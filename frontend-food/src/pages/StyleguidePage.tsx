@@ -7,6 +7,10 @@ import { useEffect, useState } from 'react';
 import { contrastRatio, parseHsl, type Hsl } from '@/lib/contrast';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import { notify } from '@/lib/notify';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
+import { areaTileClass } from '@/components/shared/PageHeader';
+import { SkeletonCard, SkeletonSection } from '@/components/ui/skeleton';
 
 interface SwatchProps {
   token: string;
@@ -116,7 +120,7 @@ function ColorSwatch({ token, label, on, minimum, passLabel }: SwatchProps) {
 
 const STATUS_CLASSES: Record<(typeof STATUS_TOKENS)[number]['token'], { solid: string; soft: string }> = {
   success: { solid: 'bg-success text-success-foreground', soft: 'bg-success-soft text-success border-success-border' },
-  warning: { solid: 'bg-warning text-warning-foreground', soft: 'bg-warning-soft text-warning border-warning-border' },
+  warning: { solid: 'bg-warning-bright text-foreground', soft: 'bg-warning-soft text-warning border-warning-border' },
   danger: { solid: 'bg-danger text-danger-foreground', soft: 'bg-danger-soft text-danger border-danger-border' },
   info: { solid: 'bg-info text-info-foreground', soft: 'bg-info-soft text-info border-info-border' },
 };
@@ -376,8 +380,56 @@ export default function StyleguidePage() {
             description="Füge dein erstes Gruppenstunden-Rezept hinzu, um mit der Zeltlagerplanung loszulegen."
             icon="restaurant"
             ctaLabel="Rezept hinzufügen"
-            onCtaClick={() => alert('CTA geklickt')}
+            onCtaClick={() => notify.info('CTA geklickt')}
           />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
+          Bereichsfarben, Nutri-Score, Laden &amp; Feedback
+        </h2>
+        <p className="text-body text-muted-foreground">
+          Bereichsfarben nur als Tönung (Icon-Kachel, Navigation). Nutri-Score ausschließlich über NutriScoreBadge in den
+          Originalfarben. Laden mit inhaltsförmigen Skeletons, Feedback über notify.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-4">
+          {(['recipes', 'ingredients', 'planner', 'shopping'] as const).map((area) => (
+            <div key={area} className="flex items-center gap-3 rounded-xl bg-card p-4 shadow-card">
+              <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${areaTileClass(area)}`}>
+                <Icon name="restaurant" size={20} />
+              </span>
+              <span className="text-body font-medium">{area}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-6 rounded-xl bg-card p-5 shadow-card">
+          <NutriScoreBadge value="B" size="scale" />
+          <div className="flex gap-2">
+            {(['A', 'B', 'C', 'D', 'E'] as const).map((letter) => (
+              <NutriScoreBadge key={letter} value={letter} size="sm" />
+            ))}
+          </div>
+          <NutriScoreBadge value={1} size="md" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonSection lines={4} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="rounded-lg bg-primary px-4 py-2 text-body font-medium text-primary-foreground" onClick={() => notify.saved('Zutat')}>
+            Erfolg zeigen
+          </button>
+          <button type="button" className="rounded-lg bg-primary-soft px-4 py-2 text-body font-medium text-primary" onClick={() => notify.removed('Eintrag', () => notify.info('Wiederhergestellt'))}>
+            Mit Rückgängig
+          </button>
+          <button
+            type="button"
+            className="rounded-lg bg-card px-4 py-2 text-body font-medium shadow-card"
+            onClick={() => notify.failed('Rezept', 'gespeichert', new Error('Der Titel fehlt.'))}
+          >
+            Fehler zeigen
+          </button>
         </div>
       </section>
     </div>

@@ -1,3 +1,5 @@
+import { PageSkeleton } from '@/components/ui/skeleton';
+import SectionBoundary from '@/components/shared/SectionBoundary';
 import { useState, useEffect, useMemo } from 'react';
 import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, AlertTriangle, Minus, Plus } from 'lucide-react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -64,7 +66,7 @@ import { parsePreparationSteps } from '@/lib/parseRecipeSteps';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
 import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import { RecipeAnalysisTabs } from '@/components/recipe/RecipeAnalysisTabs';
 import { PriceTab } from '@/components/recipe/PriceTab';
@@ -91,12 +93,12 @@ function AnalysisSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="mt-6 bg-card rounded-xl border overflow-hidden">
+    <section className="mt-4 bg-card rounded-xl shadow-card overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-3 p-4 sm:p-5 text-left hover:bg-muted/50 transition-colors"
       >
-        <h2 className="flex shrink-0 items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
+        <h2 className="flex shrink-0 items-center gap-2 font-display text-emphasis font-bold text-foreground">
           <Icon name={icon} size={20} className={accentColor} />
           {title}
         </h2>
@@ -105,7 +107,7 @@ function AnalysisSection({
           <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
-      {open && <div className="px-5 pb-5 pt-0">{children}</div>}
+      {open && <div className="section-enter px-5 pb-5 pt-0">{children}</div>}
     </section>
   );
 }
@@ -324,14 +326,7 @@ export default function RecipeDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container py-8">
-        <div className="animate-pulse space-y-4 max-w-3xl mx-auto">
-          <div className="h-8 bg-muted rounded-lg w-2/3" />
-          <div className="h-64 bg-muted rounded-lg" />
-          <div className="h-4 bg-muted rounded-lg w-full" />
-          <div className="h-4 bg-muted rounded-lg w-3/4" />
-        </div>
-      </div>
+      <PageSkeleton label="Rezept wird geladen" />
     );
   }
 
@@ -394,12 +389,12 @@ export default function RecipeDetailPage() {
         onConfirm={() => {
           deleteRecipe.mutate(recipeId, {
             onSuccess: () => {
-              toast.success('Rezept gelöscht');
+              notify.success('Rezept gelöscht');
               setShowDeleteConfirm(false);
               navigate('/recipes');
             },
             onError: (err) => {
-              toast.error('Fehler beim Löschen', { description: err.message });
+              notify.error('Rezept konnte nicht gelöscht werden', { error: err });
               setShowDeleteConfirm(false);
             },
           });
@@ -578,16 +573,16 @@ export default function RecipeDetailPage() {
                     {
                       onSuccess: (savedRecipe) => {
                         resetModifications();
-                        toast.success('Neue Version gespeichert');
+                        notify.success('Neue Version gespeichert');
                         navigate(`/recipes/${savedRecipe.slug}`);
                       },
                       onError: (err) => {
-                        toast.error('Fehler beim Speichern', { description: err.message });
+                        notify.error('Neue Version konnte nicht gespeichert werden', { error: err });
                       },
                     },
                   );
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-warning px-4 py-2.5 text-body font-medium text-white hover:bg-warning transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-body font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 <Icon name="content_copy" size={20} />
                 {forkAndSaveRecipe.isPending ? 'Wird gespeichert...' : 'Als neue Version speichern'}
@@ -628,10 +623,10 @@ export default function RecipeDetailPage() {
                     {
                       onSuccess: () => {
                         resetModifications();
-                        toast.success('Rezept aktualisiert');
+                        notify.success('Rezept aktualisiert');
                       },
                       onError: (err) => {
-                        toast.error('Fehler beim Aktualisieren', { description: err.message });
+                        notify.error('Rezept konnte nicht aktualisiert werden', { error: err });
                       },
                     },
                   );
@@ -696,7 +691,7 @@ export default function RecipeDetailPage() {
               <button
                 type="button"
                 onClick={() => scaleToNormPortion(normFactor)}
-                className="shrink-0 rounded-lg bg-warning px-3 py-1.5 text-caption font-medium text-white hover:bg-warning transition-colors"
+                className="shrink-0 rounded-lg bg-primary-soft px-3 py-1.5 text-caption font-medium text-primary hover:bg-primary-soft-border/60 transition-colors"
               >
                 Auf Normportion skalieren
               </button>
@@ -718,7 +713,7 @@ export default function RecipeDetailPage() {
 
       {/* Topic Tags */}
       {topicTags.length > 0 && (
-        <section className="mt-6 bg-card rounded-xl border p-6">
+        <section className="mt-6 bg-card rounded-xl p-6 shadow-card">
           <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
             <Icon name="label" size={20} />
             Themen
@@ -738,7 +733,7 @@ export default function RecipeDetailPage() {
       )}
 
       {/* Recipe Items (Ingredients) — using IngredientList component */}
-      <section className="mt-8 bg-card rounded-xl border p-6">
+      <section className="mt-8 bg-card rounded-xl p-6 shadow-card">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
@@ -854,7 +849,7 @@ export default function RecipeDetailPage() {
 
       {/* Recipe Materials (read-only) */}
       {recipe.materials && recipe.materials.length > 0 && (
-        <section className="mt-6 bg-card rounded-xl border p-6">
+        <section className="mt-6 bg-card rounded-xl p-6 shadow-card">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
@@ -903,7 +898,7 @@ export default function RecipeDetailPage() {
 
       {/* Nutritional Tags */}
       {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
-        <section className="mt-6 bg-card rounded-xl border p-6">
+        <section className="mt-6 bg-card rounded-xl p-6 shadow-card">
           <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
             <Icon name="nutrition" size={20} />
             Ernährungstags
@@ -924,7 +919,7 @@ export default function RecipeDetailPage() {
       {/* Shopping List Export Dialog */}
       {showShoppingExport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl" data-testid="recipe-shopping-export-dialog">
+          <div className="bg-card rounded-xl p-6 mx-4 w-full max-w-sm shadow-xl shadow-card" data-testid="recipe-shopping-export-dialog">
             <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
               <Icon name="shopping_cart" size={24} className="text-primary" />
               Einkaufsliste erstellen
@@ -967,12 +962,12 @@ export default function RecipeDetailPage() {
                     { recipeId: recipe.id, portions: exportPortions },
                     {
                       onSuccess: (created) => {
-                        toast.success('Einkaufsliste erstellt');
+                        notify.success('Einkaufsliste erstellt');
                         setShowShoppingExport(false);
                         navigate(`/shopping-lists/${created.id}`);
                       },
                       onError: (err) =>
-                        toast.error('Fehler', { description: err.message }),
+                        notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
                     },
                   );
                 }}
@@ -1032,11 +1027,11 @@ export default function RecipeDetailPage() {
                   {
                     onSuccess: (forkedRecipe) => {
                       setShowCloneDialog(false);
-                      toast.success('Rezept geklont');
+                      notify.success('Rezept geklont');
                       navigate(`/recipes/${forkedRecipe.slug}`);
                     },
                     onError: (err) => {
-                      toast.error('Fehler beim Klonen', { description: err.message });
+                      notify.error('Rezept konnte nicht geklont werden', { error: err });
                     },
                   },
                 );
@@ -1058,7 +1053,7 @@ export default function RecipeDetailPage() {
 
       {/* Visibility UI for recipe owner (13.6) */}
       {recipe.is_owner && recipe.visibility && (
-        <div className="mt-6 bg-card rounded-xl border p-5">
+        <div className="mt-6 bg-card rounded-xl p-5 shadow-card">
           <h3 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             <Icon name="visibility" size={20} />
             Sichtbarkeit
@@ -1095,11 +1090,11 @@ export default function RecipeDetailPage() {
           if (showVisibilityConfirm) {
             updateVisibility.mutate(showVisibilityConfirm, {
               onSuccess: () => {
-                toast.success('Sichtbarkeit geändert');
+                notify.success('Sichtbarkeit geändert');
                 setShowVisibilityConfirm(null);
               },
               onError: (err) => {
-                toast.error('Fehler', { description: err.message });
+                notify.error('Sichtbarkeit konnte nicht geändert werden', { error: err });
                 setShowVisibilityConfirm(null);
               },
             });
@@ -1190,11 +1185,11 @@ export default function RecipeDetailPage() {
             recipeSlug={recipe.slug}
             availableRecipeItems={recipe.recipe_items}
             onSave={() => {
-              toast.success('Schritte gespeichert');
+              notify.success('Schritte gespeichert');
               // Optionally refetch recipe to update steps_count
             }}
             onError={(error) => {
-              toast.error('Fehler beim Speichern der Schritte', { description: error });
+              notify.error('Schritte konnten nicht gespeichert werden', { description: error });
             }}
           />
         </AnalysisSection>
@@ -1203,7 +1198,7 @@ export default function RecipeDetailPage() {
           <AnalysisSection
             icon="format_list_numbered"
             title="Zubereitungsschritte"
-            defaultOpen={mode === 'steps'}
+            defaultOpen
             accentColor="text-info"
             preview={
               recipe.steps_count || legacyPreparationSteps.length ? (
@@ -1241,6 +1236,13 @@ export default function RecipeDetailPage() {
         </div>
       )}
       {nb && nb.total_weight_g > 0 && (
+        <AnalysisSection
+          icon="analytics"
+          title="Analyse"
+          accentColor="text-primary"
+          preview={<span className="text-caption text-muted-foreground">Preis, Inhaltsstoffe, Gesundheit, Gewicht</span>}
+        >
+        <SectionBoundary title="Die Analyse konnte nicht angezeigt werden">
         <RecipeAnalysisTabs
           tabs={[
             ...(nb && displayedPriceTotal !== null && displayedPriceTotal > 0
@@ -1304,6 +1306,8 @@ export default function RecipeDetailPage() {
               : []),
           ]}
         />
+        </SectionBoundary>
+        </AnalysisSection>
       )}
 
       {/* Rezeptregeln */}
@@ -1340,24 +1344,31 @@ export default function RecipeDetailPage() {
       <ContentLinkSection contentType="recipe" objectId={recipeId} />
 
       {/* Emotions */}
-      <section className="mt-8 bg-card rounded-xl border p-6">
+      <section className="mt-8 bg-card rounded-xl p-6 shadow-card">
         <h2 className="flex items-center gap-2 text-section font-semibold mb-4">
-          <Smile className="w-5 h-5 text-accent" />
+          <Smile className="w-5 h-5 text-area-recipes" />
           Wie findest du dieses Rezept?
         </h2>
         <ContentEmotions
           emotionCounts={recipe.emotion_counts ?? {}}
           userEmotion={recipe.user_emotion ?? null}
-          onToggle={(emotionType) => createEmotion.mutate({ emotion_type: emotionType })}
+          onToggle={(emotionType) =>
+            createEmotion.mutate({ emotion_type: emotionType }, { onError: (error) => notify.failed('Bewertung', 'gespeichert', error) })
+          }
           isPending={createEmotion.isPending}
         />
       </section>
 
       {/* Comments */}
-      <section className="mt-8 bg-card rounded-xl border p-6">
+      <section className="mt-8 bg-card rounded-xl p-6 shadow-card">
         <ContentComments
           comments={comments ?? []}
-          onSubmit={(data) => createComment.mutate(data)}
+          onSubmit={(data) =>
+            createComment.mutate(data, {
+              onSuccess: () => notify.success('Kommentar gesendet'),
+              onError: (error) => notify.failed('Kommentar', 'gesendet', error),
+            })
+          }
           isPending={createComment.isPending}
         />
       </section>

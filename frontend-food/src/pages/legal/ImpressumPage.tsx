@@ -9,20 +9,20 @@ export default function ImpressumPage() {
 
   return (
     <div>
-      <section className="gradient-hero text-white py-12 md:py-16">
+      <section className="pt-10 md:pt-14">
         <div className="container text-center">
           <img
             src="/images/inspi_teacher.webp"
             alt="Inspi Teacher"
-            className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-lg"
+            className="mx-auto w-28 md:w-36 h-auto mb-4"
           />
-          <h1 className="text-title md:text-title font-display font-bold">Impressum</h1>
+          <h1 className="text-title font-display font-extrabold text-foreground">Impressum</h1>
         </div>
       </section>
 
-      <section className="container py-12 md:py-16">
+      <section className="container py-8 md:py-10">
         <div className="max-w-3xl mx-auto space-y-6">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <div className="rounded-xl bg-card p-6 shadow-card">
             <h3 className="text-section font-display font-bold text-foreground">Angaben gemäß § 5 DDG</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Robert Bagdahn<br />
@@ -31,7 +31,7 @@ export default function ImpressumPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <div className="rounded-xl bg-card p-6 shadow-card">
             <h3 className="text-section font-display font-bold text-foreground">Kontakt</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               <a
@@ -43,7 +43,7 @@ export default function ImpressumPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <div className="rounded-xl bg-card p-6 shadow-card">
             <h3 className="text-section font-display font-bold text-foreground">
               Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV
             </h3>
@@ -54,7 +54,7 @@ export default function ImpressumPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <div className="rounded-xl bg-card p-6 shadow-card">
             <h3 className="text-section font-display font-bold text-foreground">Haftung für Inhalte</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Als Diensteanbieter sind wir gemäß § 7 Abs. 1 DDG für eigene Inhalte auf diesen Seiten
@@ -69,7 +69,7 @@ export default function ImpressumPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <div className="rounded-xl bg-card p-6 shadow-card">
             <h3 className="text-section font-display font-bold text-foreground">Haftung für Links</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen
@@ -83,7 +83,7 @@ export default function ImpressumPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <div className="rounded-xl bg-card p-6 shadow-card">
             <h3 className="text-section font-display font-bold text-foreground">Urheberrecht</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen

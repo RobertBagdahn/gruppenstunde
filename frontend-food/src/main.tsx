@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthOverlays from './components/auth/AuthOverlays';
+import GlobalFetchingBar from './components/shared/GlobalFetchingBar';
 import { ApiError } from './lib/api';
 import { handleGlobalApiError } from './lib/apiErrorHandler';
 import './lib/queryMeta';
@@ -48,10 +49,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <App />
           <AuthOverlays />
+          <GlobalFetchingBar />
+          {/* Top centre: visible and clear of the mobile action bar at the bottom (food-feedback-toasts). */}
           <Toaster
-            position="bottom-right"
+            position="top-center"
             richColors
             closeButton
+            offset="calc(env(safe-area-inset-top, 0px) + 72px)"
+            mobileOffset={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}
             toastOptions={{
               duration: 4000,
             }}

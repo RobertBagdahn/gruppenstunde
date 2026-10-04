@@ -110,7 +110,7 @@ export default function IngredientAssignmentDropdown({
           />
 
           {/* Menu */}
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-40 max-h-64 flex flex-col">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card rounded-xl shadow-lg z-40 max-h-64 flex flex-col shadow-card">
             {/* Search Input */}
             {showSearch && (
               <div className="p-2 border-b border-border">

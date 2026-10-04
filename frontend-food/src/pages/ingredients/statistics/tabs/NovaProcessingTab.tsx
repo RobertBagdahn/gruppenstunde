@@ -6,7 +6,7 @@ import { formatNumber } from '@/lib/format';
 const NOVA_COLORS: Record<number, string> = {
   1: 'bg-success',
   2: 'bg-success',
-  3: 'bg-warning',
+  3: 'bg-warning-bright',
   4: 'bg-danger',
 };
 
@@ -34,7 +34,7 @@ export default function NovaProcessingTab() {
         <div className="space-y-6">
           <div className="flex flex-wrap gap-3">
             {data.classes.map((cls) => (
-              <div key={cls.class_value} className="flex-1 min-w-[100px] rounded-xl border border-border bg-card p-4 text-center">
+              <div key={cls.class_value} className="flex-1 min-w-[100px] rounded-xl bg-card p-4 text-center shadow-card">
                 <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-section font-bold text-white mb-2 ${NOVA_COLORS[cls.class_value] ?? 'bg-muted'}`}>
                   {cls.class_label}
                 </div>

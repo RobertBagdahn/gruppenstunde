@@ -14,7 +14,7 @@ import {
 import { useMyRecipes } from '@/api/recipes';
 import { useMealPlans } from '@/api/mealPlans';
 import { useShoppingLists } from '@/api/shoppingLists';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +30,7 @@ import {
   DialogClose,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { applyApiFieldErrors } from '@/lib/formErrors';
 
 const genderOptions = [
   { value: 'male', label: 'Männlich' },
@@ -68,7 +69,7 @@ function MyProfileSkeleton() {
         </div>
       </div>
       {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div key={i} className="rounded-xl bg-card p-5 space-y-3 shadow-card">
           <div className="h-5 w-32 bg-muted rounded-lg" />
           <div className="h-10 w-full bg-muted rounded-lg" />
         </div>
@@ -143,10 +144,11 @@ export default function MyProfilePage() {
         ...data,
         birthday: data.birthday || null,
       });
-      toast.success('Profil gespeichert');
+      notify.success('Profil gespeichert');
       setDialogOpen(false);
-    } catch {
-      toast.error('Fehler beim Speichern');
+    } catch (err) {
+      applyApiFieldErrors(err, form.setError, Object.keys(form.getValues()));
+      notify.error('Profil konnte nicht gespeichert werden', { error: err });
     }
   }
 
@@ -155,19 +157,19 @@ export default function MyProfilePage() {
     if (!file) return;
 
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      toast.error('Nur JPEG, PNG oder WebP erlaubt');
+      notify.error('Nur JPEG, PNG oder WebP erlaubt');
       return;
     }
     if (file.size > 500_000) {
-      toast.error('Maximal 500 KB');
+      notify.error('Maximal 500 KB');
       return;
     }
 
     try {
       await uploadPicture.mutateAsync(file);
-      toast.success('Profilbild hochgeladen');
+      notify.success('Profilbild hochgeladen');
     } catch {
-      toast.error('Fehler beim Hochladen');
+      notify.error('Bild konnte nicht hochgeladen werden');
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -176,9 +178,9 @@ export default function MyProfilePage() {
   async function handlePictureDelete() {
     try {
       await deletePicture.mutateAsync();
-      toast.success('Profilbild entfernt');
+      notify.success('Profilbild entfernt');
     } catch {
-      toast.error('Fehler beim Entfernen');
+      notify.error('Bild konnte nicht entfernt werden');
     }
   }
 
@@ -237,7 +239,7 @@ export default function MyProfilePage() {
       </section>
 
       {/* View Mode: Personal Data */}
-      <section className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <section className="rounded-xl bg-card p-5 space-y-4 shadow-card">
         <div className="flex items-center justify-between">
           <h2 className="font-display font-bold text-section text-foreground">Persönliche Daten</h2>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -378,7 +380,7 @@ export default function MyProfilePage() {
       </section>
 
       {/* Visibility */}
-      <section className="rounded-xl border border-border bg-card p-5">
+      <section className="rounded-xl bg-card p-5 shadow-card">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-display font-bold text-section text-foreground">Sichtbarkeit</h2>

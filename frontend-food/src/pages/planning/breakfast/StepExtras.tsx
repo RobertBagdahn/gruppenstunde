@@ -37,7 +37,7 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
   return (
     <div className="space-y-6">
       {/* Warme Gerichte */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-display font-semibold text-emphasis">Warme Gerichte</h3>
@@ -117,7 +117,7 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
         )}
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-display font-semibold text-emphasis">Gemüse & Extras</h3>

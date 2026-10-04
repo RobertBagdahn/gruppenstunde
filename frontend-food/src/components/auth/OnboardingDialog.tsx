@@ -3,7 +3,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useCompleteOnboarding, useCurrentUser } from '@/api/auth';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getApiErrorMessage } from '@/lib/api';
 
 export default function OnboardingDialog() {
   const { data: user } = useCurrentUser();
@@ -36,7 +35,7 @@ export default function OnboardingDialog() {
 
   function submit(values: { first_name?: string; last_name?: string; scout_name?: string }) {
     complete.mutate(values, {
-      onError: (error) => toast.error(getApiErrorMessage(error)),
+      onError: (error) => notify.error('Profil konnte nicht gespeichert werden', { error }),
     });
   }
 
@@ -71,7 +70,7 @@ export default function OnboardingDialog() {
             <Label htmlFor="onboarding-scout-name">Pfadfindername (optional)</Label>
             <Input id="onboarding-scout-name" value={scoutName} onChange={(e) => setScoutName(e.target.value)} />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Einer Gruppe beitreten kannst du jederzeit in deinem{' '}
             <Link to="/profile" className="underline underline-offset-2" onClick={() => submit({})}>
               Profil

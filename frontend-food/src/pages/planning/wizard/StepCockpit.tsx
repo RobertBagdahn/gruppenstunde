@@ -44,7 +44,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-soft">
+      <div className="rounded-xl bg-card p-5 space-y-4 shadow-card">
         <h3 className="font-display font-bold text-section text-foreground">Zusammenfassung</h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -107,7 +107,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 space-y-3 shadow-soft">
+      <div className="rounded-xl bg-card p-5 space-y-3 shadow-card">
         <h4 className="font-display font-bold text-body text-foreground flex items-center gap-2">
           {state.strategy === 'ai' ? (
             <Sparkles className="w-4 h-4 text-primary" />

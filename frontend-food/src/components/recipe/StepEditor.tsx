@@ -21,13 +21,15 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useRecipeStepStore } from '@/store/useRecipeStepStore';
 import { useRecipeSteps, useBatchUpdateSteps, useGenerateStepsFromItems } from '@/hooks/useRecipeSteps';
 import type { RecipeStep } from '@/schemas/recipeStep';
 import StepCard from './StepCard';
 import StepActionsBar from './StepActionsBar';
 import { Button } from '@/components/ui/button';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface StepEditorProps {
   recipeSlug: string;
@@ -100,7 +102,7 @@ const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEd
   // Show errors
   useEffect(() => {
     if (fetchError) {
-      const message = fetchError instanceof Error ? fetchError.message : 'Failed to load steps';
+      const message = getApiErrorMessage(fetchError, 'Die Schritte konnten nicht geladen werden.');
       setError(message);
       onError?.(message);
     }
@@ -138,13 +140,13 @@ const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEd
       onSave?.();
       return true;
     } catch (err) {
-      const detail = err instanceof Error ? err.message : '';
+      const detail = getApiErrorMessage(err, '');
       const message = detail && !detail.startsWith('Failed')
         ? detail
         : 'Die Zubereitungsschritte konnten nicht gespeichert werden.';
       setError(message);
       onError?.(message);
-      toast.error('Speichern der Schritte fehlgeschlagen', { description: message });
+      notify.error('Speichern der Schritte fehlgeschlagen', { description: message });
       return false;
     }
   };
@@ -175,12 +177,12 @@ const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEd
       {
         onSuccess: (generatedSteps) => {
           setSteps(generatedSteps || [], recipeSlug);
-          toast.success('Schritte wurden von KI generiert!');
+          notify.success('Schritte wurden von KI generiert');
         },
         onError: (error) => {
-          const message = error instanceof Error ? error.message : 'Fehler beim Generieren';
+          const message = getApiErrorMessage(error, 'Fehler beim Generieren');
           setError(message);
-          toast.error('KI-Generierung fehlgeschlagen', { description: message });
+          notify.error('KI-Generierung fehlgeschlagen', { description: message });
         },
       }
     );
@@ -201,7 +203,7 @@ const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEd
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-8">Laden...</div>;
+    return <SkeletonTableRows rows={4} columns={1} label="Schritte werden geladen" />;
   }
 
   return (

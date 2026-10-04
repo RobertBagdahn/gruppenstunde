@@ -32,7 +32,7 @@ export default function LoginDialog() {
           <DialogDescription>{reason}</DialogDescription>
         </DialogHeader>
         {mode === 'login' && (
-          <ul className="space-y-1.5 text-sm text-muted-foreground">
+          <ul className="space-y-1.5 text-body text-muted-foreground">
             {BENEFITS.map((benefit) => (
               <li key={benefit} className="flex items-start gap-2">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

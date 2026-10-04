@@ -7,7 +7,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useAiAccess } from '@/hooks/useAiAccess';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { ArrowDown, ArrowUp, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import EmptyState from '@/components/shared/EmptyState';
@@ -80,7 +80,7 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
           });
         },
         onError: (err) => {
-          toast.error('Material konnte nicht gespeichert werden', { description: err.message });
+          notify.error('Material konnte nicht gespeichert werden', { error: err });
         },
       },
     );
@@ -88,21 +88,21 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
 
   const handleAdd = () => {
     if (selectedMaterialId === null) {
-      toast.error('Bitte wähle zuerst ein Material aus');
+      notify.error('Bitte wähle zuerst ein Material aus');
       return;
     }
     createMaterial.mutate(
       { material_id: selectedMaterialId, quantity: newQuantity.trim() },
       {
         onSuccess: () => {
-          toast.success('Material hinzugefügt');
+          notify.success('Material hinzugefügt');
           setSearchTerm('');
           setSelectedMaterialId(null);
           setSelectedMaterialName('');
           setNewQuantity('');
         },
         onError: (err) => {
-          toast.error('Material konnte nicht hinzugefügt werden', { description: err.message });
+          notify.error('Material konnte nicht hinzugefügt werden', { error: err });
         },
       },
     );
@@ -113,7 +113,7 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
     if (next.join(',') === itemIds.join(',')) return;
     reorderMaterials.mutate(next, {
       onError: (err) => {
-        toast.error('Reihenfolge konnte nicht gespeichert werden', { description: err.message });
+        notify.error('Reihenfolge konnte nicht gespeichert werden', { error: err });
       },
     });
   };
@@ -121,10 +121,10 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
   const handleDelete = (itemId: number, materialName: string) => {
     deleteMaterial.mutate(itemId, {
       onSuccess: () => {
-        toast.success(`${materialName} entfernt`);
+        notify.success(`${materialName} entfernt`);
       },
       onError: (err) => {
-        toast.error('Material konnte nicht entfernt werden', { description: err.message });
+        notify.error('Material konnte nicht entfernt werden', { error: err });
       },
     });
   };
@@ -209,7 +209,7 @@ export default function RecipeMaterialsEditor({ recipeId, onSuggestClick }: Reci
           )}
 
           {/* Add form */}
-          <div className="bg-card rounded-xl border p-4 space-y-3">
+          <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
             <p className="text-body font-medium">Material hinzufügen</p>
             <div className="flex flex-col gap-2">
               <Input

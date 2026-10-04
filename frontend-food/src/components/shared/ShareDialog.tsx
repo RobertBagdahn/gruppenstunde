@@ -3,7 +3,7 @@
  * Shows current collaborators and allows adding/removing with role selection.
  */
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import {
   useContentCollaborators,
   useAddCollaborator,
@@ -13,6 +13,7 @@ import {
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RoleSelect from './RoleSelect';
 import { Icon } from '@/components/ui/icon';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 interface ShareDialogProps {
   open: boolean;
@@ -59,7 +60,7 @@ export default function ShareDialog({
         setSearchResults(data);
       }
     } catch {
-      toast.error('Fehler bei der Suche');
+      notify.error('Suche konnte nicht ausgeführt werden');
     } finally {
       setIsSearching(false);
     }
@@ -77,14 +78,14 @@ export default function ShareDialog({
       },
       {
         onSuccess: () => {
-          toast.success('Freigabe hinzugefügt');
+          notify.success('Freigabe hinzugefügt');
           setSearchQuery('');
           setSelectedUserId(null);
           setSelectedGroupId(null);
           setNewRole('viewer');
           setSearchResults([]);
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Freigabe konnte nicht hinzugefügt werden', { error: err }),
       },
     );
   };
@@ -98,7 +99,7 @@ export default function ShareDialog({
         onClick={onClose}
       >
         <div
-          className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border p-6"
+          className="w-full max-w-md bg-card rounded-xl shadow-lg p-6 shadow-card"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4">
@@ -117,7 +118,7 @@ export default function ShareDialog({
               Freigegeben für ({collaborators.length})
             </h3>
             {isLoading ? (
-              <p className="text-body text-muted-foreground">Lädt...</p>
+              <SkeletonTableRows rows={2} columns={2} label="Freigaben werden geladen" />
             ) : collaborators.length === 0 ? (
               <p className="text-body text-muted-foreground">Noch keine Freigaben</p>
             ) : (
@@ -139,7 +140,13 @@ export default function ShareDialog({
                       <RoleSelect
                         value={collab.role}
                         onChange={(role) =>
-                          updateCollaborator.mutate({ id: collab.id, role: { role: role as 'viewer' | 'editor' | 'admin' } })
+                          updateCollaborator.mutate(
+                            { id: collab.id, role: { role: role as 'viewer' | 'editor' | 'admin' } },
+                            {
+                              onSuccess: () => notify.success('Rolle geändert'),
+                              onError: (error) => notify.failed('Rolle', 'geändert', error),
+                            },
+                          )
                         }
                       />
                       <button
@@ -257,11 +264,11 @@ export default function ShareDialog({
         onConfirm={() => {
           removeCollaborator.mutate(removeTarget!.id, {
             onSuccess: () => {
-              toast.success('Freigabe entfernt');
+              notify.success('Freigabe entfernt');
               setRemoveTarget(null);
             },
             onError: (err) => {
-              toast.error('Fehler', { description: err.message });
+              notify.error('Freigabe konnte nicht entfernt werden', { error: err });
               setRemoveTarget(null);
             },
           });

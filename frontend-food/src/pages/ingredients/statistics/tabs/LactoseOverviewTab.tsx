@@ -1,4 +1,5 @@
 import { useSearchParams, Link } from 'react-router-dom';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import { useIngredientTagLists } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
 
@@ -44,12 +45,7 @@ export default function LactoseOverviewTab() {
                     <td className="py-2 px-3 text-right font-mono text-caption hidden sm:table-cell">{item.fat_g ?? '–'}</td>
                     <td className="py-2 px-3 text-right font-mono text-caption hidden md:table-cell">{item.energy_kcal ?? '–'}</td>
                     <td className="py-2 px-3 text-center hidden lg:table-cell">
-                      {item.nutri_class ? (
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-caption font-bold text-white"
-                          style={{ backgroundColor: ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'][item.nutri_class - 1] || '#94a3b8' }}>
-                          {['', 'A', 'B', 'C', 'D', 'E'][item.nutri_class]}
-                        </span>
-                      ) : '–'}
+                      <NutriScoreBadge value={item.nutri_class} size="sm" emptyLabel="–" />
                     </td>
                   </tr>
                 ))}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useCurrentUser } from '@/api/auth';
 import { useAiAccess } from '@/hooks/useAiAccess';
 import { Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useRecipeIngredientReviewPreview } from '@/api/recipeImport';
 import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
 import type { RecipeImportSource } from '@/schemas/ingredientReview';
@@ -38,13 +38,13 @@ export default function WizardStepMethod({
     if (direction === 'back' || hasResultRef.current) return true;
     const value = input.trim();
     if (!value && sources.length === 0) {
-      toast.error('Bitte füge einen Link, Rezepttext oder eine Rezeptidee ein.', {
+      notify.error('Bitte füge einen Link, Rezepttext oder eine Rezeptidee ein', {
         description: 'Oder wähle „Ohne KI manuell beginnen“.',
       });
       return false;
     }
     if (ai.disabled) {
-      toast.warning(ai.hint, { description: 'Oder wähle „Ohne KI manuell beginnen“.' });
+      notify.warning(ai.hint, { description: 'Oder wähle „Ohne KI manuell beginnen“.' });
       return false;
     }
     const sourceType: RecipeImportSource['type'] = /^https?:\/\//i.test(value) ? 'url' : 'text';
@@ -67,7 +67,7 @@ export default function WizardStepMethod({
         </p>
       </div>
 
-      <div className="space-y-3 rounded-xl border bg-card p-4 sm:p-5">
+      <div className="space-y-3 rounded-xl bg-card p-4 sm:p-5 shadow-card">
         <label htmlFor="recipe-smart-input" className="block text-body font-medium">
           Link, Rezepttext oder Idee
         </label>
@@ -114,13 +114,13 @@ export default function WizardStepMethod({
           ))}
         </div>
         {!user && (
-          <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+          <p className="rounded-lg bg-primary/5 px-3 py-2 text-caption leading-relaxed text-muted-foreground">
             Ohne Anmeldung nutzt du eine kostenlose, begrenzte KI-Vorschau. Gespeichert wird erst, wenn du dich
             anmeldest.
           </p>
         )}
-        {ai.hint && <p className="text-xs text-destructive">{ai.hint}</p>}
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        {ai.hint && <p className="text-caption text-destructive">{ai.hint}</p>}
+        <p className="text-caption leading-relaxed text-muted-foreground">
           Bei blockierten Webseiten versucht die KI, das Rezept über die Websuche zu rekonstruieren. Prüfe die Angaben danach trotzdem.
         </p>
         {aiInteractionId && (

@@ -55,7 +55,7 @@ export default function SollIstBar({
       border: 'border-primary/20',
     },
     yellow: {
-      bar: 'bg-warning',
+      bar: 'bg-warning-bright',
       text: 'text-warning',
       bg: 'bg-warning-soft',
       border: 'border-warning-border',

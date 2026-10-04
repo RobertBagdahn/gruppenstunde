@@ -3,7 +3,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/comp
 
 const BADGE_CONFIG = {
   verified: { color: 'bg-success', label: 'Verifiziert' },
-  community: { color: 'bg-warning', label: 'Community' },
+  community: { color: 'bg-warning-bright', label: 'Community' },
   personal: { color: 'bg-info', label: 'Persönlich' },
   draft: { color: 'bg-danger', label: 'Entwurf' },
 } as const;

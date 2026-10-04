@@ -7,10 +7,11 @@ import { useCurrentUser } from '@/api/auth';
 import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { formatEuro, formatWeight } from '@/lib/format';
 import { HelpHint } from '@/components/ui/help-hint';
 import { PACKAGE_RESERVE_HELP, formatItemPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 type TransientShoppingItem = ShoppingListItem;
 
@@ -164,7 +165,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
   const [showReserve, setShowReserve] = useState(false);
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
-  if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
+  if (isLoading) return <SkeletonTableRows rows={5} columns={3} label="Einkaufsliste wird geladen" />;
   if (!data || data.length === 0) {
     return (
       <EmptyState
@@ -206,11 +207,11 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
           onClick={() => {
             createFromMealPlan.mutate(mealPlanId, {
               onSuccess: (created) => {
-                toast.success('Einkaufsliste erstellt');
+                notify.success('Einkaufsliste erstellt');
                 navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId } });
               },
               onError: (err) =>
-                toast.error('Fehler', { description: err.message }),
+                notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
             });
           }}
           className="flex items-center gap-2 px-4 py-2.5 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50 font-semibold"
@@ -227,7 +228,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       )}
 
       {Object.entries(grouped).map(([section, items]) => (
-        <div key={section} className="rounded-xl border bg-card overflow-hidden">
+        <div key={section} className="rounded-xl bg-card overflow-hidden shadow-card">
           <div className="px-4 py-2.5 bg-muted/50 border-b">
             <h3 className="font-semibold text-body flex items-center gap-2">
               <Store className="w-4 h-4 text-muted-foreground" />
@@ -244,7 +245,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
 
       {/* Total */}
       {totalPrice > 0 && (
-        <div className="rounded-xl border bg-card px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl bg-card px-4 py-3 flex items-center justify-between shadow-card">
           <span className="font-semibold">Geschätzter Gesamtpreis</span>
           <span className="font-bold text-section">{formatEuro(totalPrice)}</span>
         </div>

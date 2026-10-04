@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { nutriScoreFill } from '@/components/shared/NutriScoreBadge';
 import { cn } from '@/lib/utils';
 import {
   useIngredientCostDistribution,
@@ -12,16 +13,14 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter,
   PieChart, Pie, Legend,
 } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 const TYPE_TABS = [
   { key: 'ingredients', label: 'Zutaten' },
   { key: 'recipes', label: 'Rezepte' },
 ] as const;
 
-const NUTRI_SCORE_COLORS: Record<string, string> = {
-  A: '#038141', B: '#85BB2F', C: '#FECB02', D: '#F0861E', E: '#E63E11',
-};
 
 export default function DataDistributionsPage() {
   const [type, setType] = useState<string>('ingredients');
@@ -54,7 +53,7 @@ export default function DataDistributionsPage() {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <div className="rounded-xl bg-card p-4 space-y-3 shadow-card">
       <h3 className="text-body font-semibold font-display">{title}</h3>
       {children}
     </div>
@@ -101,10 +100,11 @@ function CostChart({ type }: { type: 'ingredients' | 'recipes' }) {
   // Hooks must run unconditionally; select the relevant result by type.
   const ingredientQuery = useIngredientCostDistribution();
   const recipeQuery = useRecipeCostDistribution();
-  const { data, isLoading, error } = type === 'ingredients' ? ingredientQuery : recipeQuery;
+  const { data, isLoading, error, refetch } = type === 'ingredients' ? ingredientQuery : recipeQuery;
 
-  if (isLoading) return <Loader2 className="animate-spin mx-auto" />;
-  if (error || !data?.buckets.length) return <div className="text-muted-foreground text-body py-8 text-center">Keine Daten</div>;
+  if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" onRetry={() => void refetch()} />;
+  if (!data?.buckets.length) return <div className="text-muted-foreground text-body py-8 text-center">Für diese Auswahl gibt es noch keine Daten.</div>;
 
   return (
     <div className="h-[220px]">
@@ -124,10 +124,11 @@ function EnergyChart({ type }: { type: 'ingredients' | 'recipes' }) {
   // Hooks must run unconditionally; select the relevant result by type.
   const ingredientQuery = useIngredientEnergyDistribution();
   const recipeQuery = useRecipeCalorieDistribution();
-  const { data, isLoading, error } = type === 'ingredients' ? ingredientQuery : recipeQuery;
+  const { data, isLoading, error, refetch } = type === 'ingredients' ? ingredientQuery : recipeQuery;
 
-  if (isLoading) return <Loader2 className="animate-spin mx-auto" />;
-  if (error || !data?.buckets.length) return <div className="text-muted-foreground text-body py-8 text-center">Keine Daten</div>;
+  if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" onRetry={() => void refetch()} />;
+  if (!data?.buckets.length) return <div className="text-muted-foreground text-body py-8 text-center">Für diese Auswahl gibt es noch keine Daten.</div>;
 
   return (
     <div className="h-[220px]">
@@ -144,10 +145,11 @@ function EnergyChart({ type }: { type: 'ingredients' | 'recipes' }) {
 }
 
 function TopEnergyChart() {
-  const { data, isLoading, error } = useIngredientEnergyDistribution();
+  const { data, isLoading, error, refetch } = useIngredientEnergyDistribution();
 
-  if (isLoading) return <Loader2 className="animate-spin mx-auto" />;
-  if (error || !data?.top_dense?.length) return <div className="text-muted-foreground text-body py-8 text-center">Keine Daten</div>;
+  if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" onRetry={() => void refetch()} />;
+  if (!data?.top_dense?.length) return <div className="text-muted-foreground text-body py-8 text-center">Für diese Auswahl gibt es noch keine Daten.</div>;
 
   const chartData = data.top_dense.slice(0, 10);
 
@@ -166,10 +168,11 @@ function TopEnergyChart() {
 }
 
 function NutrientScatterChartView() {
-  const { data, isLoading, error } = useIngredientNutrientDistribution();
+  const { data, isLoading, error, refetch } = useIngredientNutrientDistribution();
 
-  if (isLoading) return <Loader2 className="animate-spin mx-auto" />;
-  if (error || !data?.scatter_data?.length) return <div className="text-muted-foreground text-body py-8 text-center">Keine Daten</div>;
+  if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" onRetry={() => void refetch()} />;
+  if (!data?.scatter_data?.length) return <div className="text-muted-foreground text-body py-8 text-center">Für diese Auswahl gibt es noch keine Daten.</div>;
 
   const vegan = data.scatter_data.filter((d) => d.is_vegan).map((d) => ({ x: d.fat_g, y: d.carbohydrate_g, name: d.name }));
   const nonVegan = data.scatter_data.filter((d) => !d.is_vegan).map((d) => ({ x: d.fat_g, y: d.carbohydrate_g, name: d.name }));
@@ -191,10 +194,11 @@ function NutrientScatterChartView() {
 }
 
 function NutriScoreChartView() {
-  const { data, isLoading, error } = useRecipeNutriScoreDistribution();
+  const { data, isLoading, error, refetch } = useRecipeNutriScoreDistribution();
 
-  if (isLoading) return <Loader2 className="animate-spin mx-auto" />;
-  if (error || !data?.classes?.length) return <div className="text-muted-foreground text-body py-8 text-center">Keine Daten</div>;
+  if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" onRetry={() => void refetch()} />;
+  if (!data?.classes?.length) return <div className="text-muted-foreground text-body py-8 text-center">Für diese Auswahl gibt es noch keine Daten.</div>;
 
   const pieData = data.classes.map((c) => ({ name: c.class_label, value: c.count }));
 
@@ -212,7 +216,7 @@ function NutriScoreChartView() {
             labelLine={false}
           >
             {pieData.map((entry) => (
-              <Cell key={entry.name} fill={NUTRI_SCORE_COLORS[entry.name] || '#ccc'} />
+              <Cell key={entry.name} fill={nutriScoreFill(entry.name)} />
             ))}
           </Pie>
           <Tooltip />

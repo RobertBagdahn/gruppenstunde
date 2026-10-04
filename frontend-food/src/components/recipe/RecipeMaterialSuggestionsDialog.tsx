@@ -6,7 +6,7 @@
  * suggestions are shown with a hint instead of being silently created.
  */
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -46,7 +46,7 @@ export default function RecipeMaterialSuggestionsDialog({
       hasFetchedRef.current = true;
       suggest.mutate(undefined, {
         onError: (err) => {
-          toast.error('KI-Vorschläge konnten nicht geladen werden', { description: err.message });
+          notify.error('KI-Vorschläge konnten nicht geladen werden', { error: err });
         },
       });
     }
@@ -69,18 +69,18 @@ export default function RecipeMaterialSuggestionsDialog({
       .filter((item) => item.material_id !== null && selectedIds.includes(item.material_id))
       .map((item) => ({ material_id: item.material_id as number, quantity: item.quantity }));
     if (toApply.length === 0) {
-      toast.error('Bitte wähle mindestens ein Material aus');
+      notify.error('Bitte wähle mindestens ein Material aus');
       return;
     }
     apply.mutate(toApply, {
       onSuccess: (created) => {
-        toast.success(`${created.length} Material(ien) übernommen`);
+        notify.success(`${created.length} Material(ien) übernommen`);
         hasFetchedRef.current = false;
         suggest.reset();
         onOpenChange(false);
       },
       onError: (err) => {
-        toast.error('Materialien konnten nicht übernommen werden', { description: err.message });
+        notify.error('Materialien konnten nicht übernommen werden', { error: err });
       },
     });
   };

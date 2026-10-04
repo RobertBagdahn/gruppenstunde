@@ -16,7 +16,7 @@ export default function RecipeUsageInMealPlans({ recipeId, count }: RecipeUsageI
   const hiddenCount = usage ? usage.plan_count - plans.length : 0;
 
   return (
-    <div className="mt-6 bg-card rounded-xl border p-4 flex items-start gap-3">
+    <div className="mt-6 bg-card rounded-xl p-4 flex items-start gap-3 shadow-card">
       <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
         <CalendarDays className="w-4 h-4 text-primary" />
       </div>

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
-import { Loader2 } from 'lucide-react';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 interface StaffGuardProps {
   children: React.ReactNode;
@@ -11,9 +11,7 @@ export default function StaffGuard({ children }: StaffGuardProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="animate-spin text-title text-muted-foreground" />
-      </div>
+      <PageSkeleton label="Seite wird geladen" />
     );
   }
 

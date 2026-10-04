@@ -12,8 +12,10 @@ import {
 import type { PortionRepairFinding } from '@/schemas/portionRepair';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
+import { CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { notify } from '@/lib/notify';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 const PAGE_SIZE = 20;
 
@@ -75,9 +77,9 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
     if (!confirmTarget) return;
     try {
       await rejectMutation.mutateAsync(confirmTarget.id);
-      toast.success('Befund abgelehnt');
+      notify.success('Befund abgelehnt');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Aktion fehlgeschlagen');
+      notify.error('Aktion fehlgeschlagen', { error: err });
     } finally {
       setConfirmTarget(null);
     }
@@ -85,11 +87,9 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
 
   if (isLoading)
     return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin text-title text-muted-foreground" />
-      </div>
+      <SkeletonTableRows rows={5} columns={3} label="Einträge werden geladen" />
     );
-  if (error) return <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" />;
   const items = data?.items ?? [];
   const totalPages = data?.total_pages ?? 1;
   const readyItems = items.filter((finding) => finding.status === 'ready');
@@ -99,26 +99,26 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
 
   const handleScan = () => {
     scanMutation.mutate(20, {
-      onSuccess: (result) => toast.success(`${result.processed} neue Kandidaten gefunden`),
-      onError: (mutationError) => toast.error(mutationError.message),
+      onSuccess: (result) => notify.success(`${result.processed} neue Kandidaten gefunden`),
+      onError: (mutationError) => notify.error('Portion konnte nicht repariert werden', { error: mutationError }),
     });
   };
 
   const handleEvaluate = () => {
     evaluateMutation.mutate(20, {
       onSuccess: (result) =>
-        toast.success(`${result.processed} Vorschläge bewertet: ${result.ready} bereit, ${result.pending_review} zur Prüfung`),
-      onError: (mutationError) => toast.error(mutationError.message),
+        notify.success(`${result.processed} Vorschläge bewertet: ${result.ready} bereit, ${result.pending_review} zur Prüfung`),
+      onError: (mutationError) => notify.error('Portion konnte nicht repariert werden', { error: mutationError }),
     });
   };
 
   const handleApprove = (id: number) => {
     approveMutation.mutate(id, {
       onSuccess: () => {
-        toast.success('Befund freigegeben');
+        notify.success('Befund freigegeben');
         setSelectedIds((current) => (current.includes(id) ? current : [...current, id]));
       },
-      onError: (mutationError) => toast.error(mutationError.message),
+      onError: (mutationError) => notify.error('Portion konnte nicht repariert werden', { error: mutationError }),
     });
   };
 
@@ -127,25 +127,25 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
       onSuccess: (result) => {
         setSelectedIds([]);
         if (result.failed.length > 0 || result.blocked.length > 0) {
-          toast.warning(`${result.applied.length} angewendet, ${result.blocked.length} blockiert, ${result.failed.length} fehlgeschlagen`);
+          notify.warning(`${result.applied.length} angewendet, ${result.blocked.length} blockiert, ${result.failed.length} fehlgeschlagen`);
         } else {
-          toast.success(`${result.applied.length} freigegebene Reparatur(en) angewendet`);
+          notify.success(`${result.applied.length} freigegebene Reparatur(en) angewendet`);
         }
       },
-      onError: (mutationError) => toast.error(mutationError.message),
+      onError: (mutationError) => notify.error('Portion konnte nicht repariert werden', { error: mutationError }),
     });
   };
 
   const handleApproveSelected = () => {
     approveSelectedMutation.mutate(selectedIds, {
       onSuccess: (result) => {
-        toast.success(
+        notify.success(
           result.blocked.length > 0
             ? `${result.approved.length} freigegeben, ${result.blocked.length} blockiert`
             : `${result.approved.length} Befund(e) freigegeben`,
         );
       },
-      onError: (mutationError) => toast.error(mutationError.message),
+      onError: (mutationError) => notify.error('Portion konnte nicht repariert werden', { error: mutationError }),
     });
   };
 

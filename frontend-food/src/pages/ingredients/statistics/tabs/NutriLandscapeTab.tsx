@@ -1,15 +1,9 @@
 import { useSearchParams, Link } from 'react-router-dom';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import { useIngredientScores } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
 import { formatNumber } from '@/lib/format';
 
-const NUTRI_COLORS: Record<number, { bg: string; label: string }> = {
-  1: { bg: 'bg-nutri-a', label: 'A' },
-  2: { bg: 'bg-nutri-b', label: 'B' },
-  3: { bg: 'bg-nutri-c', label: 'C' },
-  4: { bg: 'bg-nutri-d', label: 'D' },
-  5: { bg: 'bg-nutri-e', label: 'E' },
-};
 
 export default function NutriLandscapeTab() {
   const [searchParams] = useSearchParams();
@@ -28,10 +22,8 @@ export default function NutriLandscapeTab() {
         <div className="space-y-6">
           <div className="flex flex-wrap gap-3">
             {data.classes.map((cls) => (
-              <div key={cls.class_value} className="flex-1 min-w-[100px] rounded-xl border border-border bg-card p-4 text-center">
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-section font-bold text-white mb-2 ${NUTRI_COLORS[cls.class_value]?.bg ?? 'bg-muted'}`}>
-                  {cls.class_label}
-                </div>
+              <div key={cls.class_value} className="flex-1 min-w-[100px] rounded-xl bg-card shadow-card p-4 text-center">
+                <NutriScoreBadge value={cls.class_value} size="md" className="mb-2 h-10 w-10 text-section" />
                 <p className="text-title font-bold font-display">{cls.count}</p>
                 <p className="text-caption text-muted-foreground">{cls.percentage}%</p>
               </div>

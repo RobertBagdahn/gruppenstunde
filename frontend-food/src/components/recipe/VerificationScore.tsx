@@ -18,14 +18,14 @@ export default function VerificationScore({ recipeId, isOwner, isStaff, isApprov
   const pct = total > 0 ? Math.round((passed / total) * 100) : 0;
 
   return (
-    <div className="bg-card rounded-xl border p-4">
+    <div className="bg-card rounded-xl p-4 shadow-card">
       <div className="flex items-center justify-between mb-2">
         <span className="text-body font-semibold">Verification-Readiness</span>
         <span className="text-caption text-muted-foreground">{passed}/{total}</span>
       </div>
       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-success' : pct >= 50 ? 'bg-warning' : 'bg-danger'}`}
+          className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-success' : pct >= 50 ? 'bg-warning-bright' : 'bg-danger'}`}
           style={{ width: `${pct}%` }}
         />
       </div>

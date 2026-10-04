@@ -82,7 +82,7 @@ export default function PasswordLoginForm({
         </div>
       )}
       {(validationError || apiError) && (
-        <p className="text-sm text-destructive" role="alert">
+        <p className="text-body text-destructive" role="alert">
           {validationError ?? getApiErrorMessage(apiError)}
         </p>
       )}
@@ -92,7 +92,7 @@ export default function PasswordLoginForm({
       </Button>
       <button
         type="button"
-        className="w-full text-center text-xs text-muted-foreground underline underline-offset-2"
+        className="w-full text-center text-caption text-muted-foreground underline underline-offset-2"
         onClick={() => {
           setMode(mode === 'login' ? 'register' : 'login');
           setValidationError(null);

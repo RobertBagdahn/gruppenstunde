@@ -96,7 +96,7 @@ export default function OffensivePipeline({ summary, onNotify }: OffensivePipeli
   const implausible = summary.issue_counts.nutrition_implausible ?? 0;
 
   return (
-    <section className="rounded-xl border bg-card p-4 md:p-5 space-y-1">
+    <section className="rounded-xl bg-card p-4 md:p-5 space-y-1 shadow-card">
       <div className="space-y-1">
         <h2 className="font-display text-section font-bold">Datenoffensive in 7 Schritten</h2>
         <p className="text-body text-muted-foreground">

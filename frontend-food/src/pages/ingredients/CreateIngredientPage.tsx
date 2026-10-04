@@ -12,8 +12,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Pencil, Sparkles, Eye, Link } from 'lucide-react';
-import { toast } from 'sonner';
-import { ApiError } from '@/lib/api';
+import { notify } from '@/lib/notify';
+import { ApiError, getApiErrorMessage } from '@/lib/api';
 import { useCurrentUser } from '@/api/auth';
 import {
   useCreateIngredient,
@@ -31,6 +31,7 @@ import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import type { IngredientStatus } from '@/schemas/supply';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 import { Icon } from '@/components/ui/icon';
+import { SkeletonForm } from '@/components/ui/skeleton';
 
 
 // ---------------------------------------------------------------------------
@@ -132,7 +133,7 @@ function UrlImportModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6 space-y-4">
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 shadow-card">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
             <Link className="w-5 h-5 text-primary" />
@@ -246,7 +247,7 @@ export default function CreateIngredientPage() {
     if (!draft) return;
     setFormData(draft);
     setStep(1);
-    toast.info('Willkommen zurück! Deine Zutat ist wiederhergestellt – prüfe sie und speichere.');
+    notify.info('Willkommen zurück! Deine Zutat ist wiederhergestellt – prüfe sie und speichere');
     // Only once per login round trip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -283,7 +284,7 @@ export default function CreateIngredientPage() {
           setStep(1);
         },
         onError: (err) => {
-          setAiError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
+          setAiError(getApiErrorMessage(err, 'Ein Fehler ist aufgetreten'));
           setAiMode('cancelled');
         },
       });
@@ -302,7 +303,7 @@ export default function CreateIngredientPage() {
         setStep(1);
       },
       onError: (err) => {
-        setAiError(err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten');
+        setAiError(getApiErrorMessage(err, 'Ein Fehler ist aufgetreten'));
         setAiMode('cancelled');
       },
     });
@@ -326,14 +327,14 @@ export default function CreateIngredientPage() {
           ? Object.values(result.nutrition).filter((v) => v !== null).length
           : 0;
         if (nutritionCount > 0) {
-          toast.success(`${nutritionCount} Nährwertfelder aus der URL extrahiert`);
+          notify.success(`${nutritionCount} Nährwertfelder aus der URL extrahiert`);
         }
 
         setShowUrlModal(false);
         setStep(1);
       },
       onError: (err) => {
-        toast.error(err instanceof Error ? err.message : 'URL-Import fehlgeschlagen');
+        notify.error('URL-Import fehlgeschlagen', { error: err });
       },
     });
   }
@@ -372,10 +373,10 @@ export default function CreateIngredientPage() {
       // AI mode: ingredient already exists — PATCH with any edits from step 1
       updateIngredient.mutate(payload as Record<string, unknown>, {
         onSuccess: (updated) => {
-          toast.success('Zutat gespeichert');
+          notify.success('Zutat gespeichert');
           navigate(getRedirectUrl(updated.slug));
         },
-        onError: () => toast.error('Fehler beim Speichern'),
+        onError: () => notify.error('Zutat konnte nicht gespeichert werden'),
       });
     } else {
       // Manual / URL mode: create the ingredient
@@ -389,7 +390,7 @@ export default function CreateIngredientPage() {
         {
           onSuccess: (ingredient) => {
             clearDraft(INGREDIENT_DRAFT_KEY);
-            toast.success('Zutat erstellt');
+            notify.success('Zutat erstellt');
             navigate(getRedirectUrl(ingredient.slug));
           },
           onError: (err) => {
@@ -401,7 +402,7 @@ export default function CreateIngredientPage() {
               window.setTimeout(() => nameInputRef.current?.focus(), 0);
               return;
             }
-            toast.error('Fehler beim Erstellen der Zutat', { description: err.message });
+            notify.error('Zutat konnte nicht angelegt werden', { error: err });
           },
         },
       );
@@ -413,8 +414,8 @@ export default function CreateIngredientPage() {
   // -------------------------------------------------------------------------
   if (userLoading) {
     return (
-      <div className="container py-16 max-w-3xl text-center text-muted-foreground text-body">
-        Wird geladen...
+      <div className="container py-8 max-w-3xl">
+        <SkeletonForm label="Formular wird geladen" />
       </div>
     );
   }
@@ -460,11 +461,11 @@ export default function CreateIngredientPage() {
       {/* Step 0: Modus wählen                                             */}
       {/* ================================================================ */}
       {step === 0 && (
-        <div className="bg-card rounded-xl border p-6">
+        <div className="bg-card rounded-xl p-6 shadow-card">
           <h2 className="text-section font-semibold mb-4">Wie möchtest du starten?</h2>
 
           {aiMode === 'choose' && ai.hint && (
-            <p className="mb-3 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">{ai.hint}</p>
+            <p className="mb-3 rounded-lg bg-muted/50 px-3 py-2 text-body text-muted-foreground">{ai.hint}</p>
           )}
           {aiMode === 'choose' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -549,9 +550,9 @@ export default function CreateIngredientPage() {
                       onClick={handleAiCreate}
                       disabled={!aiName.trim() || ai.disabled}
                       title={ai.hint || undefined}
-                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                      <Sparkles className="h-4 w-4" />
                       {user ? 'Mit KI erstellen' : 'Mit KI erkennen'}
                     </button>
                     <button
@@ -614,7 +615,7 @@ export default function CreateIngredientPage() {
           )}
 
           {/* Name */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <label className="block text-body font-medium mb-1.5">
               Name <span className="text-destructive">*</span>
             </label>
@@ -652,7 +653,7 @@ export default function CreateIngredientPage() {
           </div>
 
           {/* Beschreibung */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <label className="block text-body font-medium mb-1.5">Beschreibung</label>
             <textarea
               value={formData.description}
@@ -664,7 +665,7 @@ export default function CreateIngredientPage() {
           </div>
 
           {/* Status + Warengruppe */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <h3 className="text-body font-medium mb-4">Klassifikation</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -723,7 +724,7 @@ export default function CreateIngredientPage() {
       {/* ================================================================ */}
       {step === 2 && (
         <div className="space-y-6">
-          <div className="bg-card rounded-xl border overflow-hidden">
+          <div className="bg-card rounded-xl overflow-hidden shadow-card">
             <div className="bg-gradient-to-r from-success to-success px-6 py-4">
               <h2 className="text-white text-section font-bold">{formData.name || 'Ohne Namen'}</h2>
               {formData.description && (

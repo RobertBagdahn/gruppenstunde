@@ -110,7 +110,7 @@ export function NutritionTab({ nb, recipeType, recipe }: Props) {
             label="Fett"
             value={nb.total_fat_g ?? 0}
             max={Math.max(nb.total_protein_g ?? 0, nb.total_fat_g ?? 0, nb.total_carbohydrate_g ?? 0)}
-            color="bg-warning"
+            color="bg-warning-bright"
             dgeRef={nb.dge_reference.fat_g}
             dgeCoverage={nb.dge_coverage.fat_g}
           />
@@ -118,7 +118,7 @@ export function NutritionTab({ nb, recipeType, recipe }: Props) {
             label="davon gesättigt"
             value={nb.total_fat_sat_g ?? 0}
             max={nb.total_fat_g ?? 1}
-            color="bg-warning"
+            color="bg-warning-bright"
             dgeRef={nb.dge_reference.fat_sat_g}
             dgeCoverage={nb.dge_coverage.fat_sat_g}
           />

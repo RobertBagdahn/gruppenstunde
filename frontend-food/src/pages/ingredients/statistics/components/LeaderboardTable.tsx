@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import NutriScoreBadge, { nutriScoreFill } from '@/components/shared/NutriScoreBadge';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import type { RankingItem } from '@/schemas/supply';
@@ -25,13 +26,6 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
     retail_section_name: item.retail_section_name,
   }));
 
-  const NUTRI_CLASS_COLORS: Record<number, string> = {
-    1: '#22c55e',
-    2: '#84cc16',
-    3: '#eab308',
-    4: '#f97316',
-    5: '#ef4444',
-  };
 
   return (
     <div className="space-y-4">
@@ -72,7 +66,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
               {chartData.map((entry, index) => (
                 <Cell
                   key={index}
-                  fill={entry.nutri_class ? NUTRI_CLASS_COLORS[entry.nutri_class] || '#94a3b8' : '#94a3b8'}
+                  fill={nutriScoreFill(entry.nutri_class)}
                   fillOpacity={0.85}
                 />
               ))}
@@ -103,16 +97,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
                 </td>
                 <td className="py-2 px-3 text-right font-mono text-caption">{formatNumber(item.value, { maxDecimals: 1 })}</td>
                 <td className="py-2 px-3 text-center hidden sm:table-cell">
-                  {item.nutri_class ? (
-                    <span
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full text-caption font-bold text-white"
-                      style={{ backgroundColor: NUTRI_CLASS_COLORS[item.nutri_class] || '#94a3b8' }}
-                    >
-                      {['', 'A', 'B', 'C', 'D', 'E'][item.nutri_class]}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">–</span>
-                  )}
+                  <NutriScoreBadge value={item.nutri_class} size="sm" emptyLabel="–" />
                 </td>
                 <td className="py-2 px-3 hidden md:table-cell text-muted-foreground">
                   {item.retail_section_name || '–'}

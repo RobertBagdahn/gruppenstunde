@@ -38,7 +38,7 @@ function ProfileSkeleton() {
       <div className="h-4 w-full bg-muted rounded-lg" />
       <div className="h-4 w-3/4 bg-muted rounded-lg" />
       {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div key={i} className="rounded-xl bg-card p-5 space-y-3 shadow-card">
           <div className="h-5 w-32 bg-muted rounded-lg" />
           <div className="h-4 w-full bg-muted rounded-lg" />
         </div>

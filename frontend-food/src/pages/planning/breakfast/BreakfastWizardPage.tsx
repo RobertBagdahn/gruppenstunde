@@ -22,12 +22,13 @@ import { CreateRecipeModal } from '@/components/breakfast/CreateRecipeModal';
 import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
 import { WizardProgress } from '@/components/shared/WizardProgress';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import type { BreakfastProfileSlug, WizardItemIn } from '@/api/breakfast';
 import type { MealItem } from '@/schemas/mealPlan';
 import type { WizardState } from '@/schemas/breakfast';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
 import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson, FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
+import { getApiErrorMessage } from '@/lib/api';
 
 type BreakfastProfile = BreakfastProfileSlug;
 
@@ -120,7 +121,7 @@ export default function BreakfastWizardPage() {
     const mappableCount = sourceItems.filter((item) => item.ingredient_id || item.recipe_id || item.display_name).length;
     const unmappableCount = sourceItems.length - mappableCount;
     if (unmappableCount > 0) {
-      toast.warning(`${unmappableCount} Item${unmappableCount === 1 ? '' : 's'} konnten nicht geladen werden.`);
+      notify.warning(`${unmappableCount} Item${unmappableCount === 1 ? '' : 's'} konnten nicht geladen werden.`);
     }
     return mapped;
   }, [saveMode, targetMeal, existingRefMeal, catalog, normPortions]);
@@ -325,13 +326,13 @@ export default function BreakfastWizardPage() {
       const items = buildItems();
 
       if (items.length === 0) {
-        toast.error('Keine Artikel zum Speichern vorhanden.');
+        notify.error('Keine Artikel zum Speichern vorhanden');
         return;
       }
 
       if (saveMode === 'directMeal' && mealId != null) {
         if (selectedBreakfastMealIds.length === 0) {
-          toast.error('Bitte mindestens ein Frühstück auswählen.');
+          notify.error('Bitte mindestens ein Frühstück auswählen');
           return;
         }
         const mealIds = selectedBreakfastMealIds;
@@ -368,8 +369,8 @@ export default function BreakfastWizardPage() {
         navigate(`/meal-plans/${planId}/ref-meals/breakfast`);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler';
-      toast.error(`Speichern fehlgeschlagen: ${msg}`);
+      const msg = getApiErrorMessage(err, 'Unbekannter Fehler');
+      notify.error(`Speichern fehlgeschlagen: ${msg}`);
     }
   }
 
@@ -417,7 +418,7 @@ export default function BreakfastWizardPage() {
       {/* Step content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
         {directMealLoading && (
-          <p className="rounded-xl border border-border bg-card p-4 text-body text-muted-foreground" role="status">
+          <p className="rounded-xl bg-card p-4 text-body text-muted-foreground shadow-card" role="status">
             Frühstück wird geladen…
           </p>
         )}
@@ -427,7 +428,7 @@ export default function BreakfastWizardPage() {
           </p>
         )}
         {step === 'preset' && !directMealLoading && !directMealNotFound && catalogLoading && (
-          <p className="rounded-xl border border-border bg-card p-4 text-body text-muted-foreground" role="status">
+          <p className="rounded-xl bg-card p-4 text-body text-muted-foreground shadow-card" role="status">
             Frühstücksauswahl wird geladen…
           </p>
         )}

@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useFoodDashboard } from '@/api/dashboard';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { areaTileClass, type PageArea } from '@/components/shared/PageHeader';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatCount } from '@/lib/format';
 import {
   BookOpen,
   Egg,
@@ -22,7 +25,7 @@ const MODULES = [
     icon: BookOpen,
     description: 'Durchsuche hunderte Rezepte – von Lagerfeuerküche bis Desserts. Erstelle eigene Rezepte mit Nährwertberechnung.',
     href: '/recipes',
-    color: 'amber',
+    area: 'recipes',
   },
   {
     key: 'ingredients',
@@ -30,7 +33,7 @@ const MODULES = [
     icon: Egg,
     description: 'Tausende Zutaten mit exakten Nährwertangaben, Preisen und Portionsgrößen.',
     href: '/ingredients',
-    color: 'emerald',
+    area: 'ingredients',
   },
   {
     key: 'meal-plans',
@@ -38,7 +41,7 @@ const MODULES = [
     icon: Utensils,
     description: 'Plane Mahlzeiten für Lager und Fahrten – mit automatischer Portionsberechnung und Nährwert-Cockpit.',
     href: '/meal-plans/app',
-    color: 'sky',
+    area: 'planner',
   },
   {
     key: 'shopping',
@@ -46,7 +49,7 @@ const MODULES = [
     icon: ShoppingCart,
     description: 'Kollaborative Einkaufslisten mit Echtzeit-Updates – sortiert nach Supermarkt-Abteilung.',
     href: '/shopping-lists',
-    color: 'rose',
+    area: 'shopping',
   },
   {
     key: 'simulator',
@@ -54,7 +57,7 @@ const MODULES = [
     icon: Calculator,
     description: 'Berechne Energiebedarf und Normfaktoren nach Alter, Geschlecht und Aktivität.',
     href: '/tools/norm-portion-simulator',
-    color: 'violet',
+    area: 'neutral',
   },
   {
     key: 'statistics',
@@ -62,17 +65,10 @@ const MODULES = [
     icon: BarChart3,
     description: 'Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank – Rankings, Scores und mehr.',
     href: '/ingredients/statistics',
-    color: 'amber',
+    area: 'neutral',
   },
 ] as const;
 
-const COLOR_MAP: Record<string, { bg: string; text: string; ring: string }> = {
-  amber: { bg: 'bg-accent/10', text: 'text-accent-foreground', ring: 'ring-accent/20' },
-  emerald: { bg: 'bg-primary/10', text: 'text-primary', ring: 'ring-primary/20' },
-  sky: { bg: 'bg-info-soft', text: 'text-info', ring: 'ring-info-border' },
-  rose: { bg: 'bg-danger-soft', text: 'text-danger', ring: 'ring-danger-border' },
-  violet: { bg: 'bg-warning-soft', text: 'text-warning', ring: 'ring-warning-border' },
-};
 
 function StatCard({
   label,
@@ -80,6 +76,8 @@ function StatCard({
   staticValue,
   icon: Icon,
   href,
+  area,
+  failed = false,
 }: {
   label: string;
   value?: number;
@@ -87,23 +85,30 @@ function StatCard({
   staticValue?: string;
   icon: React.ComponentType<{ className?: string }>;
   href: string;
+  area: PageArea;
+  /** The dashboard failed: show a dash instead of an endless skeleton. */
+  failed?: boolean;
 }) {
   return (
     <Link
       to={href}
-      className="group rounded-xl border border-border bg-card p-4 md:p-5 shadow-[0_2px_8px_-1px_rgba(0,0,0,0.04)] hover:shadow-md transition-all hover:-translate-y-0.5"
+      className="group rounded-xl bg-card p-4 md:p-5 shadow-card card-hover"
     >
       <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${areaTileClass(area)}`}>
+          <Icon className="w-5 h-5" />
+        </div>
         <div>
           {staticValue !== undefined ? (
             <p className="text-title font-extrabold text-foreground font-display">{staticValue}</p>
           ) : value !== undefined ? (
             <p className="text-title font-extrabold text-foreground font-display">
-              {value.toLocaleString('de-DE')}
+              {formatCount(value)}
             </p>
+          ) : failed ? (
+            <p className="text-title font-extrabold text-muted-foreground font-display" title="Zahl konnte nicht geladen werden">–</p>
           ) : (
-            <div className="h-8 w-16 bg-muted animate-pulse rounded-lg" />
+            <Skeleton className="h-9 w-16" />
           )}
           <p className="text-caption text-muted-foreground font-sans">{label}</p>
         </div>
@@ -113,15 +118,14 @@ function StatCard({
 }
 
 function ModuleCard({ module }: { module: (typeof MODULES)[number] }) {
-  const colors = COLOR_MAP[module.color];
   const Icon = module.icon;
   return (
     <Link
       to={module.href}
-      className="group rounded-xl border border-border bg-card p-5 md:p-6 shadow-[0_2px_8px_-1px_rgba(0,0,0,0.04)] hover:shadow-md transition-all hover:-translate-y-0.5 flex flex-col sm:flex-row items-start gap-4"
+      className="group rounded-xl bg-card p-5 md:p-6 shadow-card card-hover flex flex-col sm:flex-row items-start gap-4"
     >
-      <div className={`flex items-center justify-center w-11 h-11 rounded-lg ${colors.bg} shrink-0`}>
-        <Icon className={`w-5 h-5 ${colors.text}`} />
+      <div className={`flex items-center justify-center w-11 h-11 rounded-lg ${areaTileClass(module.area)} shrink-0`}>
+        <Icon className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="text-emphasis font-bold mb-1 group-hover:text-primary transition-colors font-display">
@@ -138,23 +142,21 @@ function ModuleCard({ module }: { module: (typeof MODULES)[number] }) {
 
 export default function HomePage() {
   useDocumentMeta({ title: 'Inspi Food – Startseite' });
-  const { data, isLoading } = useFoodDashboard();
+  const { data, isLoading, isError } = useFoodDashboard();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-8 md:space-y-12 pb-12">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-xl gradient-primary text-white py-12 md:py-16 px-6 md:px-8 shadow-lg">
-        <div className="absolute inset-0 bg-dots-pattern opacity-[0.04] pointer-events-none" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 hidden md:block" />
-        <div className="relative max-w-3xl flex flex-col sm:flex-row items-center gap-6">
+      {/* Welcome */}
+      <section className="rounded-xl gradient-soft px-6 py-10 md:px-10 md:py-14">
+        <div className="flex max-w-3xl flex-col items-start gap-6 sm:flex-row sm:items-center">
           <img
             src="/images/inspi_thinking.webp"
             alt="Inspi"
-            className="h-20 md:h-24 w-auto drop-shadow-lg hidden sm:block shrink-0"
+            className="hidden h-20 w-auto shrink-0 sm:block md:h-24"
           />
           <div>
-            <h1 className="text-title md:text-title font-extrabold mb-3 font-display">Inspi Food</h1>
-            <p className="text-emphasis md:text-emphasis text-white/90 max-w-2xl font-sans leading-relaxed">
+            <h1 className="mb-2 font-display text-title font-extrabold text-foreground">Inspi Food</h1>
+            <p className="max-w-2xl font-sans text-emphasis leading-relaxed text-muted-foreground">
               Dein Küchen-Manager für jede Pfadfinder-Aktion – Rezepte, Essenspläne, Einkaufslisten und mehr.
             </p>
           </div>
@@ -162,19 +164,19 @@ export default function HomePage() {
       </section>
 
       {/* Stat Cards */}
-      <section className="relative z-10">
+      <section>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-          <StatCard label="Rezepte" value={data?.recipe_count} icon={BookOpen} href="/recipes" />
-          <StatCard label="Zutaten" value={data?.ingredient_count} icon={Egg} href="/ingredients" />
-          <StatCard label="Essenspläne" value={data?.meal_plan_count} icon={Utensils} href="/meal-plans/app" />
-          <StatCard label="Einkaufslisten" value={data?.shopping_list_count} icon={ShoppingCart} href="/shopping-lists" />
-          <StatCard label="Statistiken" staticValue="Ansehen" icon={BarChart3} href="/ingredients/statistics" />
+          <StatCard area="recipes" failed={isError} label="Rezepte" value={data?.recipe_count} icon={BookOpen} href="/recipes" />
+          <StatCard area="ingredients" failed={isError} label="Zutaten" value={data?.ingredient_count} icon={Egg} href="/ingredients" />
+          <StatCard area="planner" failed={isError} label="Essenspläne" value={data?.meal_plan_count} icon={Utensils} href="/meal-plans/app" />
+          <StatCard area="shopping" failed={isError} label="Einkaufslisten" value={data?.shopping_list_count} icon={ShoppingCart} href="/shopping-lists" />
+          <StatCard area="neutral" label="Statistiken" staticValue="Ansehen" icon={BarChart3} href="/ingredients/statistics" />
         </div>
       </section>
 
       {/* Module Cards */}
       <section className="space-y-4">
-        <h2 className="text-section md:text-title font-bold font-display">Module & Features</h2>
+        <h2 className="text-section font-bold font-display">Module & Features</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {MODULES.map((m) => (
             <ModuleCard key={m.key} module={m} />
@@ -183,13 +185,23 @@ export default function HomePage() {
       </section>
 
       {/* Insights */}
+      {isLoading && (
+        <section className="space-y-4" aria-busy="true">
+          <Skeleton className="h-7 w-32" />
+          <div className="space-y-3 rounded-xl bg-card p-5 shadow-card md:p-6">
+            {Array.from({ length: 3 }, (_, index) => (
+              <Skeleton key={index} className="h-5 w-3/4" />
+            ))}
+          </div>
+        </section>
+      )}
       {!isLoading && data?.insights && (
-        <section className="space-y-4">
-          <h2 className="text-section md:text-title font-bold font-display">Insights</h2>
-          <div className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-[0_2px_8px_-1px_rgba(0,0,0,0.04)] space-y-3 font-sans">
+        <section className="section-enter space-y-4">
+          <h2 className="text-section font-bold font-display">Insights</h2>
+          <div className="rounded-xl bg-card p-5 md:p-6 shadow-card space-y-3 font-sans">
             {data.insights.most_planned_recipe && (
               <div className="flex items-center gap-3">
-                <Star className="w-4 h-4 text-[hsl(var(--accent))] shrink-0 fill-current" />
+                <Star className="w-4 h-4 text-area-shopping shrink-0 fill-current" />
                 <p className="text-body">
                   Beliebtestes Rezept:{' '}
                   <Link
@@ -233,7 +245,7 @@ export default function HomePage() {
             </div>
             {data.insights.total_meal_days_planned > 0 && (
               <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-warning shrink-0" />
+                <Calendar className="w-4 h-4 text-area-planner shrink-0" />
                 <p className="text-body">
                   <span className="font-semibold">
                     {data.insights.total_meal_days_planned}

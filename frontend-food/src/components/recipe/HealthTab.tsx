@@ -1,4 +1,5 @@
-import { NUTRI_SCORE_COLORS, HealthIndicator } from '@/components/recipe/RecipeDetailHelpers';
+import { HealthIndicator } from '@/components/recipe/RecipeDetailHelpers';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import { RecipeNutriScoreDistribution } from '@/components/recipe/RecipeNutriScoreDistribution';
 import RecipeImprovements from '@/components/recipe/RecipeImprovements';
 import { useRecipeTypeStats } from '@/api/recipes';
@@ -20,24 +21,7 @@ export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeT
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-6">
         <div className="flex flex-col items-center gap-2">
-          <div className="flex gap-1">
-            {['A', 'B', 'C', 'D', 'E'].map((grade) => {
-              const isActive = nutriScore.nutri_label === grade;
-              const colors = NUTRI_SCORE_COLORS[grade];
-              return (
-                <div
-                  key={grade}
-                  className={`flex items-center justify-center font-bold rounded-lg transition-all ${
-                    isActive
-                      ? `${colors.bg} ${colors.text} w-14 h-14 text-title shadow-lg scale-110`
-                      : `${colors.bg}/20 text-muted-foreground w-10 h-10 text-body opacity-30`
-                  }`}
-                >
-                  {grade}
-                </div>
-              );
-            })}
-          </div>
+          <NutriScoreBadge value={nutriScore.nutri_label} size="scale" />
           <p className="text-caption text-muted-foreground">
             Gesamtpunkte: {nutriScore.total_points}
           </p>

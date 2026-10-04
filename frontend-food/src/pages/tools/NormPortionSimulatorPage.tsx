@@ -77,7 +77,7 @@ function ChartTooltip({ active, payload, label, unit = '' }: CustomTooltipProps)
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card px-4 py-3 shadow-lg">
+    <div className="rounded-xl border-border/60 bg-card px-4 py-3 shadow-lg shadow-card">
       <p className="text-body font-semibold text-foreground mb-1">
         {typeof label === 'number' ? `Alter: ${label} Jahre` : label}
       </p>
@@ -209,7 +209,7 @@ function MacroBreakdownChart({ dgePoints }: { dgePoints: DgeReferencePoint[] }) 
   if (!data.length) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl bg-card overflow-hidden shadow-card">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <h2 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
           <BarChart3 className="w-5 h-5 text-primary" />
@@ -319,7 +319,7 @@ function IstVsSollComparison({
   ];
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl bg-card overflow-hidden shadow-card">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <h2 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
           <ArrowLeftRight className="w-5 h-5 text-primary" />
@@ -381,7 +381,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
   const { data, isLoading, error } = useNormPersonCalculation(age, gender, chartPal);
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl bg-card overflow-hidden shadow-card">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <h3 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
           <Calculator className="w-5 h-5 text-primary" />
@@ -600,7 +600,7 @@ export default function NormPortionSimulatorPage() {
       {curves && (
         <div className="space-y-6">
           {/* Norm Factor Chart */}
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-xl bg-card overflow-hidden shadow-card">
             <div className="px-4 py-3 border-b border-border bg-muted/30">
               <h2 className="text-emphasis font-semibold text-foreground flex items-center gap-2 font-display">
                 <Scale className="w-5 h-5 text-primary" />

@@ -35,16 +35,15 @@ erneut gemacht werden.
   **Fix:** `public/favicon.ico` ergänzt (kopiert von `inspi/static/images/favicon/favicon.ico` als
   Platzhalter — ggf. später durch ein zum Inspi-Food-Branding passendes `.ico` ersetzen).
 
-## Farb-Token — Vorsicht bei `accent`
+## Farb-Token — `accent` ist eine zarte Tönung (2026-10-04)
 
-`--accent` ist in diesem Theme **kein neutraler Grauton**, sondern ein kräftiges Orange
-(`--accent: 38 92% 50%`). Klassen wie `bg-accent`, `hover:bg-accent`, `text-accent` dürfen daher
-**nicht** als "dezenter Hover/Highlight"-Zustand verwendet werden — das Ergebnis ist ein grell
-oranger Block statt eines subtilen Hovers.
+Seit „Frisch & offen“ (OpenSpec `food-frontend-friendly-ux`) ist `--accent` ein sehr helles Grün
+(identisch mit `--primary-soft`) und `--accent-foreground` ein dunkles Grün. `hover:bg-accent` ist damit
+ein ruhiger Hover. Für Akzentfarben mit Wirkung die Bereichsfarben (`area-*`) als Tönung verwenden,
+für Status die Status-Token. `text-accent` nicht als Signalfarbe verwenden.
 
-**Empfehlung:** Für Hover-/Active-States stattdessen verwenden:
-- Hover: `hover:bg-muted`
-- Ausgewählt/aktiv: `bg-primary/5 border-l-2 border-l-primary` (oder `bg-primary/10 text-primary`)
+Das frühere Dunkelbraun kam von `bg-warning` als Button-/Balkenfläche (`--warning` ist ein dunkler
+Bernsteinton für Text). Flächen daher nur `bg-warning-soft` bzw. `bg-warning-bright`; ESLint meldet `bg-warning`.
 
 ## Buttons & Toolbars
 

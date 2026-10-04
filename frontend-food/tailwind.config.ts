@@ -44,6 +44,16 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          bright: "hsl(var(--primary-bright))",
+          soft: "hsl(var(--primary-soft))",
+          "soft-border": "hsl(var(--primary-soft-border))",
+        },
+        // Area colours: tone + tint, only for icon tiles, nav indicator and small accents.
+        area: {
+          recipes: { DEFAULT: "hsl(var(--area-recipes))", soft: "hsl(var(--area-recipes-soft))" },
+          ingredients: { DEFAULT: "hsl(var(--area-ingredients))", soft: "hsl(var(--area-ingredients-soft))" },
+          planner: { DEFAULT: "hsl(var(--area-planner))", soft: "hsl(var(--area-planner-soft))" },
+          shopping: { DEFAULT: "hsl(var(--area-shopping))", soft: "hsl(var(--area-shopping-soft))" },
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -58,24 +68,28 @@ export default {
           foreground: "hsl(var(--success-foreground))",
           soft: "hsl(var(--success-soft))",
           border: "hsl(var(--success-border))",
+          bright: "hsl(var(--success-bright))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
           soft: "hsl(var(--warning-soft))",
           border: "hsl(var(--warning-border))",
+          bright: "hsl(var(--warning-bright))",
         },
         danger: {
           DEFAULT: "hsl(var(--danger))",
           foreground: "hsl(var(--danger-foreground))",
           soft: "hsl(var(--danger-soft))",
           border: "hsl(var(--danger-border))",
+          bright: "hsl(var(--danger-bright))",
         },
         info: {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
           soft: "hsl(var(--info-soft))",
           border: "hsl(var(--info-border))",
+          bright: "hsl(var(--info-bright))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -110,11 +124,10 @@ export default {
         },
       },
       boxShadow: {
-        soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
-        glow: "0 0 20px rgba(34, 163, 74, 0.15)",
-        "fun": "0 8px 30px -4px rgba(34, 163, 74, 0.2), 0 0 0 1px rgba(34, 163, 74, 0.05)",
-        "warm-glow": "0 0 25px rgba(245, 183, 49, 0.25)",
-        "colorful": "0 10px 40px -10px rgba(34, 163, 74, 0.3), 0 4px 6px -2px rgba(0,0,0,0.05)",
+        // Cards on the light background: fine, warm shadow instead of a grey border.
+        card: "0 1px 2px rgb(31 41 55 / 0.05), 0 4px 16px rgb(31 41 55 / 0.05)",
+        soft: "0 1px 2px rgb(31 41 55 / 0.05), 0 4px 16px rgb(31 41 55 / 0.05)",
+        raised: "0 2px 4px rgb(31 41 55 / 0.06), 0 12px 28px rgb(31 41 55 / 0.08)",
       },
       keyframes: {
         "shimmer": {

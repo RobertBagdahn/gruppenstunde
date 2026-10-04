@@ -40,7 +40,7 @@ export function PortionPersonsInput({
   };
 
   return (
-    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-xl border border-border bg-card text-caption">
+    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-xl bg-card text-caption shadow-card">
       <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
       <span className="text-muted-foreground whitespace-nowrap">Portionen für</span>
       <input

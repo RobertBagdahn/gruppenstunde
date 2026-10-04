@@ -8,7 +8,7 @@
  */
 import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL, parseApiResponse } from '@/lib/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   IngredientDetailSchema,
@@ -175,6 +175,8 @@ export function useIngredients(filters: IngredientFilters = {}, options: { enabl
   const qs = params.toString();
   return useQuery({
     enabled: options.enabled ?? true,
+    // Keep the previous page visible while the next one loads (food-loading-states).
+    placeholderData: keepPreviousData,
     queryKey: ['ingredients', filters] as const,
     queryFn: () => fetchJson(`${INGREDIENT_BASE}/?${qs}`, PaginatedIngredientSchema),
   });

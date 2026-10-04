@@ -10,7 +10,8 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
-import ListPageHero from '@/components/shared/ListPageHero';
+import PageHeader from '@/components/shared/PageHeader';
+import { SkeletonCardGrid } from '@/components/ui/skeleton';
 
 export default function MyRecipesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -29,14 +30,8 @@ export default function MyRecipesPage() {
   if (authLoading || isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <div className="animate-pulse space-y-4 max-w-4xl mx-auto">
-          <div className="h-8 bg-muted rounded-lg w-48" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="aspect-square bg-muted rounded-xl" />
-            ))}
-          </div>
-        </div>
+        <PageHeader title="Meine Rezepte" description="Deine persönlichen Rezepte" area="recipes" icon="menu_book" countLoading />
+        <SkeletonCardGrid count={8} label="Rezepte werden geladen" />
       </div>
     );
   }
@@ -54,7 +49,7 @@ export default function MyRecipesPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <ErrorDisplay error={error} title="Fehler beim Laden" onRetry={() => refetch()} />
+        <ErrorDisplay error={error} title="Rezepte konnten nicht geladen werden" onRetry={() => refetch()} />
       </div>
     );
   }
@@ -75,18 +70,17 @@ export default function MyRecipesPage() {
       </div>
 
       {/* Hero Header */}
-      <ListPageHero
+      <PageHeader
         title="Meine Rezepte"
         description="Deine persönlichen Rezepte"
+        area="recipes"
         icon="menu_book"
-        gradientClasses="gradient-primary"
-        totalCount={data?.total}
+        count={data?.total}
         countLabel={{ one: 'persönliches Rezept', other: 'persönliche Rezepte' }}
-        countIcon="menu_book"
       />
 
       {recipes.length === 0 ? (
-        <div className="text-center py-16 space-y-4 bg-card rounded-xl border border-border p-8">
+        <div className="text-center py-16 space-y-4 bg-card rounded-xl p-8 shadow-card">
           <div className="flex justify-center">
             <BookOpen className="w-12 h-12 text-muted-foreground" />
           </div>

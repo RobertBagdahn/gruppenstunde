@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import {
   useDeleteRetailSection,
 } from '@/api/admin';
 import { RetailSectionInSchema, type RetailSectionIn, type RetailSection } from '@/schemas/supply';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import { applyApiFieldErrors } from '@/lib/formErrors';
 
 export default function RetailSectionTab() {
   const { data: sections, isLoading } = useAdminRetailSections();
@@ -47,14 +49,15 @@ export default function RetailSectionTab() {
     try {
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, data });
-        toast.success('Abteilung aktualisiert');
+        notify.success('Abteilung aktualisiert');
       } else {
         await createMutation.mutateAsync(data);
-        toast.success('Abteilung erstellt');
+        notify.success('Abteilung erstellt');
       }
       setDialogOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Speichern');
+      applyApiFieldErrors(err, form.setError, Object.keys(form.getValues()));
+      notify.error('Abteilung konnte nicht gespeichert werden', { error: err });
     }
   }
 
@@ -62,15 +65,15 @@ export default function RetailSectionTab() {
     if (!deleteTarget) return;
     try {
       await deleteMutation.mutateAsync(deleteTarget.id);
-      toast.success('Abteilung gelöscht');
+      notify.success('Abteilung gelöscht');
       setDeleteTarget(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Löschen');
+      notify.error('Abteilung konnte nicht gelöscht werden', { error: err });
     }
   }
 
   if (isLoading) {
-    return <div className="py-8 text-center text-muted-foreground">Laden...</div>;
+    return <SkeletonTableRows rows={6} columns={3} label="Abteilungen werden geladen" />;
   }
 
   return (
@@ -83,7 +86,7 @@ export default function RetailSectionTab() {
         </Button>
       </div>
 
-      <div className="border border-border bg-card rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-card rounded-xl overflow-hidden shadow-card">
         <div className="overflow-x-auto">
           <table className="w-full text-body">
             <thead>

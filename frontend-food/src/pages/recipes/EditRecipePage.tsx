@@ -14,8 +14,9 @@ import {
   RECIPE_EXECUTION_TIME_OPTIONS,
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Icon } from '@/components/ui/icon';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 export default function EditRecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -116,24 +117,18 @@ export default function EditRecipePage() {
 
     updateRecipe.mutate(payload, {
       onSuccess: (data) => {
-        toast.success('Rezept gespeichert');
+        notify.success('Rezept gespeichert');
         navigate(`/recipes/${data.slug}`);
       },
       onError: (err) => {
-        toast.error('Fehler beim Speichern', { description: err.message });
+        notify.error('Rezept konnte nicht gespeichert werden', { error: err });
       },
     });
   }
 
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-muted rounded-lg w-1/3" />
-          <div className="h-40 bg-muted rounded-lg" />
-          <div className="h-40 bg-muted rounded-lg" />
-        </div>
-      </div>
+      <PageSkeleton label="Rezept wird geladen" />
     );
   }
 
@@ -170,7 +165,7 @@ export default function EditRecipePage() {
 
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Recipe Type */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
             <Icon name="restaurant" size={20} className="text-primary" />
             Rezeptart
@@ -203,7 +198,7 @@ export default function EditRecipePage() {
         </div>
 
         {/* Preparation Method */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
             <Icon name="cooking" size={20} className="text-primary" />
             Zubereitungsart
@@ -236,7 +231,7 @@ export default function EditRecipePage() {
 
         {/* Equipment */}
         {equipment && equipment.length > 0 && (
-          <div className="bg-card rounded-xl border p-5">
+          <div className="bg-card rounded-xl p-5 shadow-card">
             <label className="flex items-center gap-1.5 text-body font-medium mb-3">
               <Icon name="skillet" size={20} className="text-primary" />
               Equipment
@@ -270,7 +265,7 @@ export default function EditRecipePage() {
         )}
 
         {/* Materials */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
             <Icon name="inventory_2" size={20} className="text-primary" />
             Materialien
@@ -287,7 +282,7 @@ export default function EditRecipePage() {
         />
 
         {/* Title */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-2">
             <Icon name="title" size={20} className="text-primary" />
             Titel *
@@ -314,7 +309,7 @@ export default function EditRecipePage() {
         </div>
 
         {/* Summary */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-2">
             <Icon name="short_text" size={20} className="text-primary" />
             Zusammenfassung
@@ -329,7 +324,7 @@ export default function EditRecipePage() {
         </div>
 
         {/* Description */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-2">
             <Icon name="description" size={20} className="text-primary" />
             Beschreibung
@@ -342,7 +337,7 @@ export default function EditRecipePage() {
         </div>
 
         {/* Servings + Meta */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
             <Icon name="tune" size={20} className="text-primary" />
             Details
@@ -397,7 +392,7 @@ export default function EditRecipePage() {
         </div>
 
         {/* Tags */}
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
             <Icon name="label" size={20} className="text-primary" />
             Tags
@@ -425,7 +420,7 @@ export default function EditRecipePage() {
 
         {/* Scout Levels */}
         {scoutLevels && (
-          <div className="bg-card rounded-xl border p-5">
+          <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
             <Icon name="groups" size={20} className="text-info" />
             Stufen

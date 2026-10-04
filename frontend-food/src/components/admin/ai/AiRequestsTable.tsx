@@ -8,6 +8,7 @@ import Pagination from '@/components/shared/Pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api';
 
 const CONTEXT_OPTIONS = Object.entries(AiContextChoices).sort(([, labelA], [, labelB]) =>
   labelA.localeCompare(labelB, 'de'),
@@ -57,7 +58,7 @@ function RequestRow({
   const { data: detail, isLoading } = useAiInteractionDetail(expanded ? item.id : null);
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="rounded-xl bg-card shadow-card">
       <button
         type="button"
         onClick={onToggle}
@@ -228,7 +229,7 @@ export default function AiRequestsTable() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         )}
-        {error && <p className="py-8 text-center text-destructive">Fehler beim Laden der Anfragen: {error.message}</p>}
+        {error && <p className="py-8 text-center text-destructive">Fehler beim Laden der Anfragen: {getApiErrorMessage(error)}</p>}
         {!isLoading && !error && data?.items.length === 0 && (
           <p className="py-8 text-center text-muted-foreground">Keine Anfragen für diese Filter gefunden.</p>
         )}

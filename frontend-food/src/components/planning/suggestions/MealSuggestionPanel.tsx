@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Info, Loader2, RefreshCw, Sparkles, Wand2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -150,14 +150,14 @@ export function MealSuggestionPanel({
             setResult(data);
             setSeed(data.seed);
             if (!data.ai_used) {
-              toast.info('KI gerade nicht verfügbar', {
+              notify.info('KI gerade nicht verfügbar', {
                 description: 'Die Vorschläge wurden nach Stichwörtern sortiert.',
               });
             }
           },
           onError: (err) => {
             if (current === requestId.current) setHasError(true);
-            toast.error('Zauberstab fehlgeschlagen', { description: err.message });
+            notify.error('Zauberstab fehlgeschlagen', { error: err });
           },
         },
       );
@@ -190,7 +190,7 @@ export function MealSuggestionPanel({
 
   const saveContext = (patch: ContextPatch) => {
     updatePlan.mutate(patch, {
-      onError: (err) => toast.error('Konnte nicht gespeichert werden', { description: err.message }),
+      onError: (err) => notify.error('Konnte nicht gespeichert werden', { error: err }),
     });
   };
 

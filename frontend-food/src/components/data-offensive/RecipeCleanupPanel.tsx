@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Archive, Loader2, Sparkles } from 'lucide-react';
 import { useJunkRecipes, useOffensiveBulkAction } from '@/api/dataOffensive';
 import { Button } from '@/components/ui/button';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface RecipeCleanupPanelProps {
   onNotify: (kind: 'success' | 'error' | 'info', message: string) => void;
@@ -25,7 +26,7 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="min-w-0 rounded-xl border bg-card p-3 space-y-2">
+        <div className="min-w-0 rounded-xl bg-card p-3 space-y-2 shadow-card">
           <div className="flex items-center justify-between gap-2">
             <p className="text-body font-semibold">{junk.length} unsinnige Rezepte</p>
             <Button
@@ -50,7 +51,7 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
           ) : error ? (
             <p className="text-body text-destructive">
-              {error.message}{' '}
+              {getApiErrorMessage(error)}{' '}
               <button type="button" className="underline" onClick={() => refetch()}>
                 Erneut versuchen
               </button>
@@ -69,7 +70,7 @@ export default function RecipeCleanupPanel({ onNotify }: RecipeCleanupPanelProps
           )}
         </div>
 
-        <div className="min-w-0 rounded-xl border bg-card p-3 space-y-2">
+        <div className="min-w-0 rounded-xl bg-card p-3 space-y-2 shadow-card">
           <div className="flex items-center justify-between gap-2">
             <p className="text-body font-semibold">Rezeptkategorien prüfen</p>
             <Button

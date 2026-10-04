@@ -5,8 +5,9 @@ import type { PriceAnomaly, PriceSuggestion } from '@/schemas/dataQuality';
 import Pagination from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, TrendingDown, HelpCircle, Sparkles, Check } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { formatNumber } from '@/lib/format';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 const ANOMALY_TYPE_OPTIONS = [
   { value: '', label: 'Alle Typen' },
@@ -88,7 +89,7 @@ export default function PriceAnalysisTable() {
 
   const handleEvaluate = async (ingredientIds: number[] = [...selected]) => {
     if (ingredientIds.length === 0) {
-      toast.error('Keine Zutaten mit fehlendem Preis auf dieser Seite');
+      notify.error('Keine Zutaten mit fehlendem Preis auf dieser Seite');
       return;
     }
     try {
@@ -96,7 +97,7 @@ export default function PriceAnalysisTable() {
       setSuggestions(res.suggestions);
       setShowComparison(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler bei der KI-Bewertung');
+      notify.error('KI-Bewertung fehlgeschlagen', { error: err });
     }
   };
 
@@ -108,14 +109,14 @@ export default function PriceAnalysisTable() {
       const result = res.results[0];
       if (result?.status === 'accepted') {
         setAppliedIds((prev) => new Set(prev).add(ingredientId));
-        toast.success('Preis übernommen');
+        notify.success('Preis übernommen');
       } else if (result?.status === 'conflict') {
-        toast.error('Preis konnte nicht übernommen werden', { description: result.message });
+        notify.error('Preis konnte nicht übernommen werden', { description: result.message });
       } else {
-        toast.error('Preis konnte nicht übernommen werden', { description: result?.message });
+        notify.error('Preis konnte nicht übernommen werden', { description: result?.message });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Übernehmen');
+      notify.error('Preis konnte nicht übernommen werden', { error: err });
     }
   };
 
@@ -125,7 +126,7 @@ export default function PriceAnalysisTable() {
         .filter((s) => s.suggested_price != null && !appliedIds.has(s.ingredient_id))
         .map((s) => ({ ingredient_id: s.ingredient_id, action: 'accept' as const, replace: false }));
       if (items.length === 0) {
-        toast.error('Keine übernehmbaren Vorschläge vorhanden');
+        notify.error('Keine übernehmbaren Vorschläge vorhanden');
         return;
       }
       const res = await applyMutation.mutateAsync({ items });
@@ -133,13 +134,13 @@ export default function PriceAnalysisTable() {
       const conflicts = res.results.filter((r) => r.status !== 'accepted');
       if (accepted.length > 0) {
         setAppliedIds(new Set(suggestions.map((s) => s.ingredient_id)));
-        toast.success(`${accepted.length} Preis(e) übernommen`);
+        notify.success(`${accepted.length} Preis(e) übernommen`);
       }
       if (conflicts.length > 0) {
-        toast.error(`${conflicts.length} Preis(e) konnten nicht übernommen werden`);
+        notify.error(`${conflicts.length} Preis(e) konnten nicht übernommen werden`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Übernehmen');
+      notify.error('Preis konnte nicht übernommen werden', { error: err });
     }
   };
 
@@ -220,7 +221,7 @@ export default function PriceAnalysisTable() {
           <Loader2 className="animate-spin text-title text-muted-foreground" />
         </div>
       )}
-      {error && <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>}
+      {error && <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" />}
 
       {/* Comparison Table (after AI evaluation) */}
       {showComparison && suggestions.length > 0 && (

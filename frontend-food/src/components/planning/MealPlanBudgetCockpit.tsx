@@ -187,7 +187,7 @@ export function MealPlanBudgetCockpit({
                 className={cn(
                   "h-full rounded-full transition-all duration-300",
                   budgetStatus === 'green' && "bg-primary",
-                  budgetStatus === 'yellow' && "bg-warning",
+                  budgetStatus === 'yellow' && "bg-warning-bright",
                   budgetStatus === 'red' && "bg-destructive"
                 )}
                 style={{ width: `${Math.min(100, budgetPercent)}%` }}
@@ -230,7 +230,7 @@ export function MealPlanBudgetCockpit({
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-300",
-                kcalPercent >= 85 && kcalPercent <= 115 ? "bg-primary" : "bg-warning"
+                kcalPercent >= 85 && kcalPercent <= 115 ? "bg-primary" : "bg-warning-bright"
               )}
               style={{ width: `${Math.min(100, kcalPercent)}%` }}
             />

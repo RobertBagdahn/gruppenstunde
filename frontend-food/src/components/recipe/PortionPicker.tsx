@@ -108,7 +108,7 @@ export default function PortionPicker({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-30" onClick={close} />
-          <div className="absolute top-full right-0 mt-1 w-56 max-w-[80vw] bg-card border border-border rounded-xl shadow-lg z-40 max-h-72 overflow-y-auto p-1">
+          <div className="absolute top-full right-0 mt-1 w-56 max-w-[80vw] bg-card rounded-xl shadow-lg z-40 max-h-72 overflow-y-auto p-1 shadow-card">
             {/* Portionen der Zutat */}
             <p className="px-2 py-1 text-caption font-medium uppercase tracking-wide text-muted-foreground/70">
               Zutat

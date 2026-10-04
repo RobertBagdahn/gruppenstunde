@@ -3,7 +3,7 @@
  * 401 codes open the login dialog, AI limits show an explanatory toast.
  * Other errors stay with the page (error states / page toasts).
  */
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { ApiError } from '@/lib/api';
 import { useLoginPrompt } from '@/store/loginPromptStore';
 
@@ -29,7 +29,7 @@ export function handleGlobalApiError(error: unknown): boolean {
     case 'ai_public_budget_exhausted':
     case 'ai_visitor_limit':
     case 'ai_rate_limited':
-      toast.warning(error.message + (error.code === 'ai_quota_exceeded' ? '' : formatRetry(error.retryAfterSeconds)), {
+      notify.warning(error.message + (error.code === 'ai_quota_exceeded' ? '' : formatRetry(error.retryAfterSeconds)), {
         id: `ai-limit-${error.code}`,
       });
       return true;

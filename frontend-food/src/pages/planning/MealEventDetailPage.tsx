@@ -11,7 +11,7 @@ import { mealTargetLabel } from '@/lib/mealTargetLabel';
 import { useOmnibarShortcut } from '@/hooks/useOmnibarShortcut';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/lib/api';
-import { toast } from 'sonner';
+import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import type { SuggestionContextValue } from '@/components/planning/suggestions/SuggestionContextFields';
 import {
   Dialog,
@@ -64,6 +64,8 @@ import { GroupMemberPanel } from '@/components/groupMembers/GroupMemberPanel';
 import CookingScheduleTab from './CookingScheduleTab';
 import { MealPlanBudgetCockpit } from '@/components/planning/MealPlanBudgetCockpit';
 import { formatNumber } from '@/lib/format';
+import { PageSkeleton } from '@/components/ui/skeleton';
+import SectionBoundary from '@/components/shared/SectionBoundary';
 
 const MEAL_PLAN_DETAIL_DEFAULTS = { view: 'cards' } as const;
 
@@ -179,8 +181,8 @@ export default function MealPlanDetailPage() {
 
       removeMealItemMutation.mutate(itemId, {
         onSuccess: (_data, _vars, context) => {
-          toast.success(`«${itemTitle}» entfernt`, {
-            duration: 6000,
+          notify.success(`«${itemTitle}» entfernt`, {
+            duration: UNDO_DURATION_MS,
             action: {
               label: 'Rückgängig',
               onClick: () => {
@@ -202,7 +204,7 @@ export default function MealPlanDetailPage() {
           });
         },
         onError: (err: { message: string }) => {
-          toast.error('Fehler beim Entfernen', { description: err.message });
+          notify.error('Rezept konnte nicht entfernt werden', { error: err });
         },
       });
     },
@@ -238,7 +240,7 @@ export default function MealPlanDetailPage() {
     updateMealItemMutation.mutate(
       { itemId, factor },
       {
-        onError: (err: { message: string }) => toast.error('Fehler', { description: err.message }),
+        onError: (err: { message: string }) => notify.error('Faktor konnte nicht geändert werden', { error: err }),
       },
     );
   }, [updateMealItemMutation]);
@@ -247,7 +249,7 @@ export default function MealPlanDetailPage() {
     updateMealItemMutation.mutate(
       { itemId, quantity },
       {
-        onError: (err: { message: string }) => toast.error('Fehler', { description: err.message }),
+        onError: (err: { message: string }) => notify.error('Menge konnte nicht geändert werden', { error: err }),
       },
     );
   }, [updateMealItemMutation]);
@@ -265,7 +267,7 @@ export default function MealPlanDetailPage() {
     updateMealMutation.mutate(
       { mealId, ...data },
       {
-        onError: (err: { message: string }) => toast.error('Fehler', { description: err.message }),
+        onError: (err: { message: string }) => notify.error('Mahlzeit konnte nicht gespeichert werden', { error: err }),
       },
     );
   }, [updateMealMutation]);
@@ -273,10 +275,10 @@ export default function MealPlanDetailPage() {
   const handleScaleMeal = useCallback((mealId: number) => {
     scaleMealMutation.mutate(mealId, {
       onSuccess: () => {
-        toast.success('Mahlzeit erfolgreich auf Soll-Kcal skaliert');
+        notify.success('Mahlzeit erfolgreich auf Soll-Kcal skaliert');
       },
       onError: (err: { message: string }) => {
-        toast.error('Fehler beim Skalieren', { description: err.message });
+        notify.error('Mahlzeit konnte nicht skaliert werden', { error: err });
       },
     });
   }, [scaleMealMutation]);
@@ -285,10 +287,7 @@ export default function MealPlanDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-        <div className="h-8 w-48 bg-muted rounded-xl animate-pulse" />
-        <div className="h-64 bg-muted rounded-xl animate-pulse" />
-      </div>
+      <PageSkeleton label="Essensplan wird geladen" />
     );
   }
 
@@ -296,15 +295,15 @@ export default function MealPlanDetailPage() {
 
   const handleAddDayBefore = () => {
     addDayBeforeMutation.mutate(undefined, {
-      onSuccess: () => toast.success('Tag davor hinzugefügt'),
-      onError: (err) => toast.error('Fehler', { description: err.message }),
+      onSuccess: () => notify.success('Tag davor hinzugefügt'),
+      onError: (err) => notify.error('Tag konnte nicht hinzugefügt werden', { error: err }),
     });
   };
 
   const handleAddDayAfter = () => {
     addDayAfterMutation.mutate(undefined, {
-      onSuccess: () => toast.success('Tag danach hinzugefügt'),
-      onError: (err) => toast.error('Fehler', { description: err.message }),
+      onSuccess: () => notify.success('Tag danach hinzugefügt'),
+      onError: (err) => notify.error('Tag konnte nicht hinzugefügt werden', { error: err }),
     });
   };
 
@@ -320,17 +319,17 @@ export default function MealPlanDetailPage() {
         meal_type: mealType,
       }
     ).then((res) => {
-      toast.success('Mahlzeit hinzugefügt');
+      notify.success('Mahlzeit hinzugefügt');
       return res;
     }).catch((err) => {
-      toast.error('Fehler', { description: err.message });
+      notify.error('Mahlzeit konnte nicht angelegt werden', { error: err });
       throw err;
     });
   };
 
   /** Toast action that removes a just-added meal item again. */
   const undoAddAction = (newItem: { id: number } | null | undefined) => ({
-    duration: 6000,
+    duration: UNDO_DURATION_MS,
     action: newItem
       ? { label: 'Rückgängig', onClick: () => removeMealItemMutation.mutate(newItem.id) }
       : undefined,
@@ -345,7 +344,7 @@ export default function MealPlanDetailPage() {
       { mealId, recipe_id: recipeId },
       {
         onSuccess: (newItem) => {
-          toast.success('Rezept hinzugefügt', undoAddAction(newItem));
+          notify.success('Rezept hinzugefügt', undoAddAction(newItem));
           if (newItem && typeof newItem === 'object' && 'id' in newItem) {
             setVariantDialog({
               open: true,
@@ -356,7 +355,7 @@ export default function MealPlanDetailPage() {
             });
           }
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Rezept konnte nicht hinzugefügt werden', { error: err }),
       },
     );
   };
@@ -373,9 +372,9 @@ export default function MealPlanDetailPage() {
       },
       {
         onSuccess: (newItem) => {
-          toast.success('Zutat hinzugefügt', undoAddAction(newItem));
+          notify.success('Zutat hinzugefügt', undoAddAction(newItem));
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Rezept konnte nicht hinzugefügt werden', { error: err }),
       },
     );
   };
@@ -394,7 +393,7 @@ export default function MealPlanDetailPage() {
   } & Partial<SuggestionContextValue>) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
-        toast.success(
+        notify.success(
           data.norm_portions_manual === false
             ? 'Automatische Normportionen aktiviert'
             : data.norm_portions_manual === true
@@ -403,7 +402,7 @@ export default function MealPlanDetailPage() {
         );
         setShowSettingsDialog(false);
       },
-      onError: (err) => toast.error('Fehler', { description: err.message }),
+      onError: (err) => notify.error('Einstellungen konnten nicht gespeichert werden', { error: err }),
     });
   };
 
@@ -622,6 +621,7 @@ export default function MealPlanDetailPage() {
           </div>
 
           {planView === 'cards' ? (
+            <SectionBoundary>
             <DayPlanView
               refMeals={plan.ref_meals}
               mealPlanId={mealPlanId}
@@ -649,7 +649,9 @@ export default function MealPlanDetailPage() {
               nutritionalTagIds={plan.nutritional_tag_ids}
               nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
             />
+            </SectionBoundary>
           ) : (
+            <SectionBoundary>
             <TableView
               meals={plan.meals}
               refMeals={plan.ref_meals}
@@ -670,6 +672,7 @@ export default function MealPlanDetailPage() {
               nutritionalTagIds={plan.nutritional_tag_ids}
               nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
             />
+            </SectionBoundary>
           )}
         </div>
       )}
@@ -712,8 +715,9 @@ export default function MealPlanDetailPage() {
               Kosten & Budget
             </button>
           </div>
-          {shoppingSub === 'list' && <ShoppingView mealPlanId={mealPlanId} />}
+          {shoppingSub === 'list' && <SectionBoundary><ShoppingView mealPlanId={mealPlanId} /></SectionBoundary>}
           {shoppingSub === 'costs' && (
+            <SectionBoundary>
             <CostDashboard
               mealPlanId={mealPlanId}
               budgetPerPersonPerDay={plan.budget_per_person_per_day}
@@ -728,6 +732,7 @@ export default function MealPlanDetailPage() {
                 }
               }}
             />
+            </SectionBoundary>
           )}
         </div>
       )}
@@ -770,14 +775,16 @@ export default function MealPlanDetailPage() {
               Ernährungs-Check
             </button>
           </div>
-          {cookingSub === 'schedule' && <CookingScheduleTab mealPlanId={mealPlanId} />}
+          {cookingSub === 'schedule' && <SectionBoundary><CookingScheduleTab mealPlanId={mealPlanId} /></SectionBoundary>}
           {cookingSub === 'helpers' && (
+            <SectionBoundary>
             <IngredientScanView
               mealPlanId={mealPlanId}
               canEdit={plan.can_edit}
               onOpenSettings={() => setShowSettingsDialog(true)}
               nutritionalTagsCount={plan.nutritional_tag_ids?.length || 0}
             />
+            </SectionBoundary>
           )}
         </div>
       )}
@@ -789,10 +796,10 @@ export default function MealPlanDetailPage() {
           if (deleteDayDate === null) return;
           removeDayMutation.mutate(deleteDayDate, {
             onSuccess: () => {
-              toast.success('Tag gelöscht');
+              notify.success('Tag gelöscht');
               setDeleteDayDate(null);
             },
-            onError: (err) => toast.error('Fehler', { description: err.message }),
+            onError: (err) => notify.error('Tag konnte nicht entfernt werden', { error: err }),
           });
         }}
         onCancel={() => setDeleteDayDate(null)}
@@ -809,10 +816,10 @@ export default function MealPlanDetailPage() {
           if (deleteMealId === null) return;
           removeMealMutation.mutate(deleteMealId, {
             onSuccess: () => {
-              toast.success('Mahlzeit gelöscht');
+              notify.success('Mahlzeit gelöscht');
               setDeleteMealId(null);
             },
-            onError: (err) => toast.error('Fehler', { description: err.message }),
+            onError: (err) => notify.error('Mahlzeit konnte nicht entfernt werden', { error: err }),
           });
         }}
         onCancel={() => setDeleteMealId(null)}

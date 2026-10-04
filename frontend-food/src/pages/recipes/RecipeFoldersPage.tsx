@@ -4,8 +4,8 @@ import { FolderOpen, Plus, Pencil, Trash2, ArrowLeft, ChevronRight } from 'lucid
 import { useRecipeFolders, useCreateRecipeFolder, useUpdateRecipeFolder, useDeleteRecipeFolder } from '@/api/recipeFolders';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import type { RecipeFolder } from '@/schemas/recipeFolder';
-import { toast } from 'sonner';
-import { getApiErrorMessage } from '@/lib/api';
+import { notify } from '@/lib/notify';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function RecipeFoldersPage() {
   const { data: folders, isLoading } = useRecipeFolders();
@@ -17,6 +17,7 @@ export default function RecipeFoldersPage() {
   const [newParentId, setNewParentId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
+  const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
 
   useDocumentMeta({
     title: 'Ordner verwalten',
@@ -31,7 +32,7 @@ export default function RecipeFoldersPage() {
       setNewName('');
       setNewParentId(null);
     } catch (error) {
-      toast.error('Ordner konnte nicht erstellt werden', { description: getApiErrorMessage(error) });
+      notify.error('Ordner konnte nicht erstellt werden', { error: error });
     }
   };
 
@@ -42,7 +43,7 @@ export default function RecipeFoldersPage() {
       setEditingId(null);
       setEditName('');
     } catch (error) {
-      toast.error('Ordner konnte nicht gespeichert werden', { description: getApiErrorMessage(error) });
+      notify.error('Ordner konnte nicht gespeichert werden', { error: error });
     }
   };
 
@@ -69,7 +70,7 @@ export default function RecipeFoldersPage() {
       </p>
 
       {/* Create form */}
-      <div className="rounded-xl border border-border bg-card p-4 mb-6 shadow-sm">
+      <div className="rounded-xl bg-card p-4 mb-6 shadow-card">
         <h2 className="font-display font-semibold text-emphasis mb-3">Neuen Ordner erstellen</h2>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
@@ -116,7 +117,7 @@ export default function RecipeFoldersPage() {
           ))}
         </div>
       ) : !folders?.length ? (
-        <div className="text-center py-16 space-y-4 bg-card rounded-xl border border-border p-8">
+        <div className="text-center py-16 space-y-4 bg-card rounded-xl p-8 shadow-card">
           <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto" />
           <p className="text-section font-semibold">Noch keine Ordner</p>
           <p className="text-body text-muted-foreground">
@@ -136,16 +137,30 @@ export default function RecipeFoldersPage() {
               onEditNameChange={setEditName}
               onSaveEdit={handleEdit}
               onCancelEdit={() => setEditingId(null)}
-              onDelete={(id) => {
-                if (window.confirm('Ordner wirklich löschen? Rezepte bleiben erhalten.')) {
-                   deleteFolder.mutate(id, { onError: (error) => toast.error('Ordner konnte nicht gelöscht werden', { description: getApiErrorMessage(error) }) });
-                }
-              }}
+              onDelete={(id) => setDeleteFolderId(id)}
               isDeleting={deleteFolder.isPending}
             />
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={deleteFolderId !== null}
+        onConfirm={() => {
+          if (deleteFolderId === null) return;
+          deleteFolder.mutate(deleteFolderId, {
+            onSuccess: () => {
+              setDeleteFolderId(null);
+              notify.deleted('Ordner');
+            },
+            onError: (error) => notify.failed('Ordner', 'gelöscht', error),
+          });
+        }}
+        onCancel={() => setDeleteFolderId(null)}
+        title="Ordner löschen?"
+        description="Die Rezepte im Ordner bleiben erhalten."
+        confirmLabel="Löschen"
+        loading={deleteFolder.isPending}
+      />
     </div>
   );
 }
@@ -176,7 +191,7 @@ function FolderCard({
   const isEditing = editingId === folder.id;
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm">
+    <div className="rounded-xl bg-card shadow-card">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <FolderOpen className="w-5 h-5 text-muted-foreground shrink-0" />

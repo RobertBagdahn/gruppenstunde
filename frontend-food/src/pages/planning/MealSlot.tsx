@@ -470,7 +470,7 @@ export function MealSlot({
         <div className="border-t border-border/60 p-4 space-y-4 bg-muted/10 animate-in fade-in-50 duration-200">
           {/* Meal Note */}
           {meal.note && (
-            <div className="text-caption text-muted-foreground italic flex items-center gap-1 bg-card p-2 rounded-xl border border-border/40">
+            <div className="text-caption text-muted-foreground italic flex items-center gap-1 bg-card p-2 rounded-xl border-border/40 shadow-card">
               <FileText className="w-3.5 h-3.5 shrink-0" />
               <span>{meal.note}</span>
             </div>
@@ -480,7 +480,7 @@ export function MealSlot({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
             {meal.meal_type !== 'drinks' && (
               <span
-                className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border border-border/40"
+                className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border-border/40 shadow-card"
                 title={!mealIsTooLittle ? 'Energie ok' : undefined}
               >
                 <Icon name="local_fire_department" size={16} />
@@ -488,7 +488,7 @@ export function MealSlot({
               </span>
             )}
             {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
-              <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border border-border/40">
+              <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-xl border-border/40 shadow-card">
                 <Icon name="payments" size={16} />
                 <span>Preis: Soll {formatNumber(mealTargetCost, { maxDecimals: 2 })} € / Ist {formatNumber(mealActualCost, { maxDecimals: 2 })} €</span>
               </span>
@@ -578,7 +578,7 @@ export function MealSlot({
 
             rendered.push(
               <div key={role} className="pl-7 py-1" data-testid={`buffet-role-group-${role}`}>
-                <div className="rounded-xl border bg-card overflow-hidden">
+                <div className="rounded-xl bg-card overflow-hidden shadow-card">
                   <div className={`px-3 py-1.5 text-caption font-semibold uppercase tracking-wider ${mealColors.bg} ${mealColors.text} border-b`}>
                     {buffetRoleName(role)}
                   </div>

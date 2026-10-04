@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
 import type { RecipeDetail } from '@/schemas/recipe';
@@ -34,6 +34,7 @@ import {
   type WizardStepDef,
   type WizardStepId,
 } from './wizardSteps';
+import { SkeletonForm } from '@/components/ui/skeleton';
 
 function StepIndicator({ steps, activeIndex }: { steps: WizardStepDef[]; activeIndex: number }) {
   const active = steps[activeIndex];
@@ -195,7 +196,7 @@ export default function RecipeWizard() {
       next.delete(RESTORE_DRAFT_PARAM);
       return next;
     }, { replace: true });
-    toast.info('Willkommen zurück! Dein Rezept ist wiederhergestellt – klicke auf „Weiter“, um es zu speichern.');
+    notify.info('Willkommen zurück! Dein Rezept ist wiederhergestellt – klicke auf „Weiter“, um es zu speichern');
   }, [initializeReview, searchParams, setBasics, setSearchParams, user]);
 
   // --- Leave handlers registered by the rendered step ---
@@ -239,7 +240,7 @@ export default function RecipeWizard() {
   const showError = useCallback((stepId: WizardStepId, error: unknown) => {
     const message = errorMessage(error);
     if (stepId === 'review') setReviewError(message);
-    toast.error(stepId === 'input' ? 'Analyse fehlgeschlagen' : 'Speichern fehlgeschlagen', { description: message });
+    notify.error(stepId === 'input' ? 'Analyse fehlgeschlagen' : 'Speichern fehlgeschlagen', { description: message });
   }, [setReviewError]);
 
   const writeUrl = useCallback((stepId: WizardStepId, nextDraftId: number | null, replace: boolean) => {
@@ -265,7 +266,7 @@ export default function RecipeWizard() {
     if (knownDraftId !== null && draftId === null) {
       // History entries from before the draft existed carry no client state.
       writeUrl(activeStepId, knownDraftId, true);
-      toast.info('Das Rezept ist bereits angelegt. Titel und Typ änderst du im Schritt Zutaten.');
+      notify.info('Das Rezept ist bereits angelegt. Titel und Typ änderst du im Schritt Zutaten');
       return;
     }
     if (urlStepId === activeStepId) {
@@ -310,7 +311,7 @@ export default function RecipeWizard() {
     const reviewIsVisible = visibleSteps.some((step) => step.id === 'review');
     const finalizedRows = reviewIsVisible ? getFinalizedRows() : null;
     if (reviewIsVisible && !finalizedRows) {
-      toast.error('Bitte bestätige alle Zutaten und löse offene Zuordnungen.');
+      notify.error('Bitte bestätige alle Zutaten und löse offene Zuordnungen');
       return null;
     }
     if (!user) {
@@ -388,7 +389,7 @@ export default function RecipeWizard() {
     try {
       if (!(await runLeave(from, 'next'))) return;
       if (from === 'preview') {
-        toast.success('Rezept fertiggestellt!');
+        notify.success('Rezept fertiggestellt');
         if (draft) navigate(`/recipes/${draft.slug}`);
         return;
       }
@@ -503,9 +504,7 @@ export default function RecipeWizard() {
     }
     if (!draft) {
       return (
-        <div className="flex items-center justify-center py-12 text-muted-foreground">
-          Lade Entwurf...
-        </div>
+        <SkeletonForm label="Entwurf wird geladen" className="py-6" />
       );
     }
     switch (activeStepId) {

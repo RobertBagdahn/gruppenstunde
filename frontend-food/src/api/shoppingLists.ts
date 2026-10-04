@@ -3,7 +3,7 @@
  * MUST stay in sync with backend/shopping/api.py
  */
 import { API_BASE_URL } from '@/lib/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   PaginatedShoppingListsSchema,
@@ -106,6 +106,8 @@ export function useShoppingLists(
   const { q = '', sort = 'newest', mine = false } = query;
   return useQuery({
     enabled: options.enabled ?? true,
+    // Keep the previous page visible while the next one loads (food-loading-states).
+    placeholderData: keepPreviousData,
     queryKey: ['shopping-lists', page, pageSize, q, sort, mine] as const,
     queryFn: () => {
       const params = new URLSearchParams({

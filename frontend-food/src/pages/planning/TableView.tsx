@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import {
   Coffee,
   Utensils,
@@ -229,7 +229,7 @@ export default function TableView({
   return (
     <div className="space-y-4 font-sans">
       <RefMealChips mealPlanId={mealPlanId} refMeals={refMeals} canEdit={canEdit} />
-      <div className="w-full overflow-x-auto rounded-xl border border-border shadow-soft bg-card">
+      <div className="w-full overflow-x-auto rounded-xl bg-card shadow-card">
         <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>
             <tr>
@@ -323,7 +323,7 @@ export default function TableView({
                                               setLocalNoteValue('');
                                             }
                                           } catch {
-                                            toast.error('Mahlzeit konnte nicht angelegt werden');
+                                            notify.error('Mahlzeit konnte nicht angelegt werden');
                                           } finally {
                                             setIsCreatingSlot(null);
                                           }
@@ -350,7 +350,7 @@ export default function TableView({
                                         setSearchDialogMeal(newMeal);
                                       }
                                     } catch {
-                                      toast.error('Mahlzeit konnte nicht angelegt werden');
+                                      notify.error('Mahlzeit konnte nicht angelegt werden');
                                     } finally {
                                       setIsCreatingSlot(null);
                                     }
@@ -371,7 +371,7 @@ export default function TableView({
                                         setSearchDialogMeal(newMeal);
                                       }
                                     } catch {
-                                      toast.error('Mahlzeit konnte nicht angelegt werden');
+                                      notify.error('Mahlzeit konnte nicht angelegt werden');
                                     } finally {
                                       setIsCreatingSlot(null);
                                     }
@@ -564,7 +564,7 @@ export default function TableView({
                                         if (isBuffetCandidate && !isBuffetExpanded) {
                                           const summary = getBreakfastSummary(regularItems, effPortions);
                                           cells.push(
-                                            <div key="buffet-summary" className="p-2.5 rounded-xl bg-card border border-border shadow-xs space-y-2">
+                                            <div key="buffet-summary" className="p-2.5 rounded-xl bg-card shadow-xs space-y-2 shadow-card">
                                               <div className="flex items-center justify-between gap-1">
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                   <Coffee className="w-4 h-4 text-primary shrink-0" />
@@ -775,7 +775,7 @@ export default function TableView({
                                        setSearchDialogMeal(newMeal);
                                      }
                                    } catch {
-                                     toast.error('Snack konnte nicht angelegt werden');
+                                     notify.error('Snack konnte nicht angelegt werden');
                                    } finally {
                                      setIsCreatingSlot(null);
                                    }
@@ -823,7 +823,7 @@ export default function TableView({
                 const kcalPercent = dailyTotal.targetKcal > 0 ? Math.min(100, Math.round((kcalPerPerson / dailyTotal.targetKcal) * 100)) : 0;
                 const costPercent = dailyTotal.targetCost > 0 ? Math.min(100, Math.round((costPerPerson / dailyTotal.targetCost) * 100)) : 0;
                 const barColor = (status: 'green' | 'yellow' | 'red' | 'overplanned') =>
-                  status === 'green' ? 'bg-primary' : status === 'yellow' ? 'bg-warning' : 'bg-destructive';
+                  status === 'green' ? 'bg-primary' : status === 'yellow' ? 'bg-warning-bright' : 'bg-destructive';
 
                 return (
                   <td key={date} className="border-t border-r border-border bg-muted/40 p-3.5 text-body align-top">

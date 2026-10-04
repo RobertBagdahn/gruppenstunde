@@ -35,8 +35,18 @@ ruleTester.run('food/design-tokens', rule, {
     // non-class strings and other functions are ignored
     "const message = 'rounded bg-amber-50 text-xs';",
     "format('text-xs')",
+    // friendly warning surfaces
+    '<span className="bg-warning-soft bg-warning-bright hover:bg-warning/10" />',
   ],
   invalid: [
+    {
+      code: '<section className="gradient-hero text-white" />',
+      errors: [{ messageId: 'removedGradient' }],
+    },
+    {
+      code: '<button className="bg-warning text-white" />',
+      errors: [{ messageId: 'darkWarningSurface' }],
+    },
     {
       code: '<div className="bg-amber-50 text-amber-700" />',
       errors: [{ messageId: 'palette' }, { messageId: 'palette' }],

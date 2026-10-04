@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
-import { Loader2, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle, Users, Printer, StickyNote, Euro } from 'lucide-react';
+import { ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle, Users, Printer, StickyNote, Euro } from 'lucide-react';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, MEAL_TYPE_ICONS_LUCIDE, MEAL_TYPE_COLORS } from '@/schemas/mealPlan';
 import type { CookingScheduleItem, CookingScheduleDay, CookingScheduleStep } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
@@ -8,6 +8,7 @@ import { de } from 'date-fns/locale';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { API_BASE_URL } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 function formatTime(isoString: string): string {
   try {
@@ -318,9 +319,7 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="animate-spin w-8 h-8 text-muted-foreground" />
-      </div>
+      <SkeletonTableRows rows={5} columns={3} label="Einträge werden geladen" />
     );
   }
 

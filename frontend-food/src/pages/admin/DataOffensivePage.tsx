@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useOffensiveSummary } from '@/api/dataOffensive';
 import type { OffensiveFilters, PackageSuggestionFilters, PackageSuggestionStatus } from '@/schemas/dataOffensive';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import DuplicateGroupsPanel from '@/components/data-offensive/DuplicateGroupsPan
 import RecipeCleanupPanel from '@/components/data-offensive/RecipeCleanupPanel';
 import PackageSuggestionsPanel from '@/components/data-offensive/PackageSuggestionsPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 const PAGE_SIZE = 25;
 const PACKAGE_PAGE_SIZE = 50;
@@ -97,17 +97,17 @@ export default function DataOffensivePage() {
     [writeState, tab, filters]
   );
 
-  const notify = useCallback((kind: 'success' | 'error' | 'info', message: string) => {
-    if (kind === 'success') toast.success(message);
-    else if (kind === 'error') toast.error(message);
-    else toast.info(message);
+  const notifyKind = useCallback((kind: 'success' | 'error' | 'info', message: string) => {
+    if (kind === 'success') notify.success(message);
+    else if (kind === 'error') notify.error(message);
+    else notify.info(message);
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <p className="text-body text-muted-foreground">Analysiere alle Zutaten …</p>
+      <div className="space-y-4 py-4">
+        <p className="text-body text-muted-foreground">Alle Zutaten werden analysiert …</p>
+        <SkeletonTableRows rows={6} columns={4} label="Zutaten werden analysiert" />
       </div>
     );
   }
@@ -135,7 +135,7 @@ export default function DataOffensivePage() {
         <TabsTrigger value="packages">Packungen</TabsTrigger>
       </TabsList>
       <TabsContent value="ingredients" className="space-y-8">
-        <OffensivePipeline summary={summary} onNotify={notify} />
+        <OffensivePipeline summary={summary} onNotify={notifyKind} />
         <OffensiveKpiGrid
           summary={summary}
           activeIssue={filters.issue}
@@ -144,12 +144,12 @@ export default function DataOffensivePage() {
             document.getElementById('arbeitsliste')?.scrollIntoView({ behavior: 'smooth' });
           }}
         />
-        <OffensiveWorkList summary={summary} filters={filters} onFiltersChange={setFilters} onNotify={notify} />
-        <DuplicateGroupsPanel onNotify={notify} />
-        <RecipeCleanupPanel onNotify={notify} />
+        <OffensiveWorkList summary={summary} filters={filters} onFiltersChange={setFilters} onNotify={notifyKind} />
+        <DuplicateGroupsPanel onNotify={notifyKind} />
+        <RecipeCleanupPanel onNotify={notifyKind} />
       </TabsContent>
       <TabsContent value="packages">
-        <PackageSuggestionsPanel filters={packageFilters} onFiltersChange={setPackageFilters} onNotify={notify} />
+        <PackageSuggestionsPanel filters={packageFilters} onFiltersChange={setPackageFilters} onNotify={notifyKind} />
       </TabsContent>
     </Tabs>
   );

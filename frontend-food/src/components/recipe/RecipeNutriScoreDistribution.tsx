@@ -1,4 +1,4 @@
-import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
+import NutriScoreBadge, { nutriScoreFill } from '@/components/shared/NutriScoreBadge';
 import type { RecipeTypeStats } from '@/schemas/recipe';
 
 interface Props {
@@ -20,7 +20,7 @@ export function RecipeNutriScoreDistribution({ stats, currentNutriClass }: Props
   const currentLabel = nutriClassToLetter(currentNutriClass ?? 0);
 
   return (
-    <div className="bg-card rounded-xl border p-4 space-y-3">
+    <div className="bg-card rounded-xl shadow-card p-4 space-y-3">
       <h3 className="text-body font-semibold text-muted-foreground">
         Nutri-Score Verteilung
         <span className="font-normal ml-1.5 text-caption text-muted-foreground">
@@ -33,23 +33,20 @@ export function RecipeNutriScoreDistribution({ stats, currentNutriClass }: Props
           const count = dist[grade] ?? 0;
           const pct = total > 0 ? (count / total) * 100 : 0;
           const isActive = currentLabel === grade;
-          const colors = NUTRI_SCORE_COLORS_BY_LETTER[grade];
 
           return (
             <div key={grade} className="flex items-center gap-2">
-              <span
-                className={`flex items-center justify-center w-7 h-7 rounded-lg text-caption font-extrabold shrink-0 ${
-                  isActive
-                    ? `${colors.bg} ${colors.text} shadow-md scale-110`
-                    : `${colors.bg}/20 text-muted-foreground`
-                }`}
-              >
-                {grade}
+              <span className="flex w-7 shrink-0 justify-center">
+                <NutriScoreBadge
+                  value={grade}
+                  size="sm"
+                  className={isActive ? 'h-7 min-w-7 text-body ring-2 ring-foreground/70 ring-offset-1' : 'opacity-60'}
+                />
               </span>
               <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${colors.bg}`}
-                  style={{ width: `${pct}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, backgroundColor: nutriScoreFill(grade) }}
                 />
               </div>
               <span className="text-caption text-muted-foreground w-10 text-right shrink-0">

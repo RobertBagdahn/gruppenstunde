@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useRecipeBySlug } from '@/api/recipes';
 import { normalizeServingContext } from '@/lib/cookingQuantityScale';
 import InlineIngredientEditor from './InlineIngredientEditor';
 import type { InlineIngredientEditorHandle } from './InlineIngredientEditor';
 import { useWizardStep } from './wizardContext';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 interface WizardStepIngredientsProps {
   recipeId: number;
@@ -25,7 +26,7 @@ export default function WizardStepIngredients({
 
   useEffect(() => registerLeave(async () => {
     if (!editorRef.current) {
-      toast.error('Die Zutaten werden noch geladen.');
+      notify.error('Die Zutaten werden noch geladen');
       return false;
     }
     return editorRef.current.save();
@@ -35,9 +36,7 @@ export default function WizardStepIngredients({
   // InlineIngredientEditor — it initializes its state only once on mount.
   if (isLoading || !recipe) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        Lade Zutaten...
-      </div>
+      <SkeletonTableRows rows={5} columns={2} label="Zutaten werden geladen" className="py-4" />
     );
   }
 
@@ -57,7 +56,7 @@ export default function WizardStepIngredients({
 
       <div>
         <span className="block text-body font-medium mb-1.5">Zutaten *</span>
-        <div className="bg-card rounded-xl border">
+        <div className="bg-card rounded-xl shadow-card">
           <InlineIngredientEditor
             ref={editorRef}
             recipeId={recipeId}

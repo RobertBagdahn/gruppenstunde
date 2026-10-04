@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { getApiErrorMessage } from '@/lib/api';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
@@ -19,6 +19,7 @@ import StepBasicSettings from './StepBasicSettings';
 import StepStrategy from './StepStrategy';
 import StepAiPrompt from './StepAiPrompt';
 import StepCockpit from './StepCockpit';
+import { SkeletonForm } from '@/components/ui/skeleton';
 
 export default function MealPlanWizardPage() {
   const navigate = useNavigate();
@@ -77,10 +78,10 @@ export default function MealPlanWizardPage() {
         budget_per_person_per_day: state.budget_per_person_per_day ?? undefined,
       });
       setAiSuggestions(result);
-      toast.success('Vorschläge generiert');
+      notify.success('Vorschläge generiert');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Fehler bei der Generierung';
-      toast.error('KI-Generierung fehlgeschlagen', { description: message });
+      const message = getApiErrorMessage(err, 'Fehler bei der Generierung');
+      notify.error('KI-Generierung fehlgeschlagen', { description: message });
     }
   };
 
@@ -94,12 +95,11 @@ export default function MealPlanWizardPage() {
           end_datetime: state.end_datetime + ':00',
           norm_portions: state.norm_portions,
         });
-        toast.success('Essensplan aus Vorlage erstellt');
+        notify.success('Essensplan aus Vorlage erstellt');
         cleanup();
         navigate(`/meal-plans/${plan.id}`);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Fehler beim Erstellen';
-        toast.error('Fehler', { description: message });
+        notify.error('Essensplan konnte nicht angelegt werden', { error: err });
       }
     } else {
       try {
@@ -128,19 +128,18 @@ export default function MealPlanWizardPage() {
               planId: plan.id,
               body: state.ai_suggestions,
             });
-            toast.success('Essensplan mit KI-Vorschlägen erstellt');
+            notify.success('Essensplan mit KI-Vorschlägen erstellt');
           } catch (error) {
-            toast.warning('Essensplan erstellt, aber KI-Vorschläge konnten nicht übernommen werden', { description: getApiErrorMessage(error) });
+            notify.warning('Essensplan erstellt, aber KI-Vorschläge konnten nicht übernommen werden', { description: getApiErrorMessage(error) });
           }
         } else {
-          toast.success('Essensplan erstellt');
+          notify.success('Essensplan erstellt');
         }
 
         cleanup();
         navigate(`/meal-plans/${plan.id}`);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Fehler beim Erstellen';
-        toast.error('Fehler', { description: message });
+        notify.error('Essensplan konnte nicht angelegt werden', { error: err });
       }
     }
   };
@@ -154,7 +153,7 @@ export default function MealPlanWizardPage() {
   if (userLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="h-96 rounded-xl bg-muted animate-pulse" />
+        <SkeletonForm label="Assistent wird geladen" />
       </div>
     );
   }
@@ -207,7 +206,7 @@ export default function MealPlanWizardPage() {
       </div>
 
       {/* Current step content */}
-      <div className="rounded-xl border border-border bg-card p-5 sm:p-6 shadow-soft mb-6">
+      <div className="rounded-xl bg-card p-5 sm:p-6 mb-6 shadow-card">
         {step === 'basics' && (
           <StepBasicSettings
             state={state}

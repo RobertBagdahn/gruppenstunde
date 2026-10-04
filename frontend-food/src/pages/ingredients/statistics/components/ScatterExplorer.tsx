@@ -1,3 +1,4 @@
+import { nutriScoreFill } from '@/components/shared/NutriScoreBadge';
 import {
   ScatterChart,
   Scatter,
@@ -20,18 +21,11 @@ interface ScatterExplorerProps {
   yUnit: string;
 }
 
-const NUTRI_COLORS: Record<number, string> = {
-  1: '#22c55e',
-  2: '#84cc16',
-  3: '#eab308',
-  4: '#f97316',
-  5: '#ef4444',
-};
 
 export default function ScatterExplorer({ data, xLabel, yLabel, xUnit, yUnit }: ScatterExplorerProps) {
   const chartData = data.points.map((p) => ({
     ...p,
-    color: p.nutri_class ? NUTRI_COLORS[p.nutri_class] || '#94a3b8' : '#94a3b8',
+    color: nutriScoreFill(p.nutri_class),
   }));
 
   return (

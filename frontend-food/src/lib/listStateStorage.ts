@@ -37,6 +37,24 @@ export function readListState(userId: number | null, listKey: ListKey): StoredLi
   }
 }
 
+/**
+ * Whether any user (or the anonymous visitor) has stored state for this list.
+ * Lists without stored state can load right away instead of waiting for the
+ * current user (food-loading-states).
+ */
+export function hasAnyListState(listKey: ListKey): boolean {
+  try {
+    const suffix = `:${listKey}`;
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (key?.startsWith('inspi-food:list-state:v1:') && key.endsWith(suffix)) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 /** Writes the state; an empty state removes the entry. */
 export function writeListState(userId: number | null, listKey: ListKey, state: StoredListState): void {
   try {

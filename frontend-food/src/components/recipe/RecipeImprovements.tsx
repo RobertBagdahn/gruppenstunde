@@ -14,6 +14,7 @@ import type { Improvement, RecipeItemNutrition } from '@/schemas/recipe';
 import HintDetailModal from './HintDetailModal';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 interface RecipeImprovementsProps {
   recipeId: number;
@@ -43,10 +44,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        <div className="h-20 rounded-xl bg-muted animate-pulse" />
-        <div className="h-20 rounded-xl bg-muted animate-pulse" />
-      </div>
+      <SkeletonTableRows rows={2} columns={1} label="Verbesserungen werden geladen" />
     );
   }
 
@@ -122,7 +120,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
           return (
             <div
               key={`${imp.parameter}-${idx}`}
-              className="rounded-xl border bg-card p-4 space-y-3"
+              className="rounded-xl bg-card p-4 space-y-3 shadow-card"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">

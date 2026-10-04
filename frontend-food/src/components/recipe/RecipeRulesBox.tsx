@@ -20,7 +20,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
 
   if (isLoading) {
     return (
-      <div className="mt-6 bg-card rounded-xl border p-5 animate-pulse">
+      <div className="mt-6 bg-card rounded-xl p-5 animate-pulse shadow-card">
         <div className="h-5 bg-muted rounded-lg w-1/3 mb-2" />
         <div className="h-4 bg-muted rounded-lg w-1/4" />
       </div>
@@ -46,7 +46,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
   }
 
   return (
-    <section className="mt-6 bg-card rounded-xl border overflow-hidden">
+    <section className="mt-6 bg-card rounded-xl overflow-hidden shadow-card">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
@@ -68,7 +68,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
             </span>
             <span className="text-muted-foreground/30">·</span>
             <span className="flex items-center gap-0.5 text-warning">
-              <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-warning-bright shrink-0" />
               {data.yellow_count}
             </span>
             <span className="text-muted-foreground/30">·</span>

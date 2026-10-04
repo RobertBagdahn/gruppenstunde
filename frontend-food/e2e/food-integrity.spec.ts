@@ -121,7 +121,7 @@ test.describe('Food data integrity release flows', () => {
     await page.getByTestId('recipe-wizard-next').click();
     await expect(page.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
     await page.getByTestId('recipe-wizard-next').click();
-    await expect(page.getByText('Bitte bestätige alle Zutaten und löse offene Zuordnungen.')).toBeVisible();
+    await expect(page.getByText('Bitte bestätige alle Zutaten und löse offene Zuordnungen')).toBeVisible();
     expect(createBodies).toHaveLength(0);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);

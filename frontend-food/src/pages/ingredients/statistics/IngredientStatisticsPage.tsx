@@ -136,7 +136,7 @@ export default function IngredientStatisticsPage() {
       </div>
 
       {/* Active tab content */}
-      <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-sm">
+      <div className="rounded-xl bg-card p-4 md:p-6 shadow-card">
         <ActiveComponent />
       </div>
     </div>

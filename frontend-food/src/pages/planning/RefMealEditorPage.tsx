@@ -4,8 +4,7 @@
  */
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { getApiErrorMessage } from '@/lib/api';
+import { notify } from '@/lib/notify';
 import {
   useRefMeals,
   useCreateRefMeal,
@@ -22,6 +21,7 @@ import { BackButton } from '@/components/shared/BackButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefMealSyncConfirmDialog } from '@/components/planning/RefMealSyncConfirmDialog';
 import { formatNumber } from '@/lib/format';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
@@ -155,9 +155,9 @@ export default function RefMealEditorPage() {
   const handleCreateRefMeal = async () => {
     try {
       await createRefMeal.mutateAsync({ meal_type: currentMealType });
-      toast.success('Referenz-Mahlzeit erstellt');
+      notify.success('Referenz-Mahlzeit erstellt');
     } catch (error) {
-      toast.error('Fehler beim Erstellen', { description: getApiErrorMessage(error) });
+      notify.error('Vorlage konnte nicht angelegt werden', { error: error });
     }
   };
 
@@ -186,14 +186,14 @@ export default function RefMealEditorPage() {
       const result = await updateRefMealMutation.mutateAsync({ items: localItems });
       const count = result.synced_meal_count ?? 0;
       if (count > 0) {
-        toast.success(
+        notify.success(
           `Referenz-Mahlzeit gespeichert · ${count} verknüpfte Mahlzeit${count === 1 ? '' : 'en'} aktualisiert`
         );
       } else {
-        toast.success('Referenz-Mahlzeit gespeichert');
+        notify.success('Referenz-Mahlzeit gespeichert');
       }
     } catch (error) {
-      toast.error('Fehler beim Speichern', { description: getApiErrorMessage(error) });
+      notify.error('Vorlage konnte nicht gespeichert werden', { error: error });
     }
   };
 
@@ -217,21 +217,21 @@ export default function RefMealEditorPage() {
       const result = await syncRefMeal.mutateAsync(refMeal.id);
       const count = result?.synced_meals ?? 0;
       if (count === 0) {
-        toast.info('Keine synchronisierten Mahlzeiten vorhanden');
+        notify.info('Keine synchronisierten Mahlzeiten vorhanden');
       } else {
-        toast.success(`${count} Mahlzeit${count === 1 ? '' : 'en'} wurde${count === 1 ? '' : 'n'} aktualisiert`);
+        notify.success(`${count} Mahlzeit${count === 1 ? '' : 'en'} wurde${count === 1 ? '' : 'n'} aktualisiert`);
       }
     } catch (error) {
-      toast.error('Fehler beim Synchronisieren', { description: getApiErrorMessage(error) });
+      notify.error('Mahlzeiten konnten nicht synchronisiert werden', { error: error });
     }
   };
 
   const handleLinkAll = async () => {
     try {
       await linkAllMeals.mutateAsync(currentMealType);
-      toast.success('Alle Mahlzeiten verknüpft und synchronisiert');
+      notify.success('Alle Mahlzeiten verknüpft und synchronisiert');
     } catch (error) {
-      toast.error('Fehler beim Verknüpfen', { description: getApiErrorMessage(error) });
+      notify.error('Mahlzeiten konnten nicht verknüpft werden', { error: error });
     }
   };
 
@@ -241,17 +241,12 @@ export default function RefMealEditorPage() {
     setLocalItems((prev) =>
       prev.map((item) => ({ ...item, factor: Math.round((item.factor || 1) * ratio * 100) / 100 }))
     );
-    toast.success(`Faktoren normalisiert (×${formatNumber(ratio, { maxDecimals: 2 })})`);
+    notify.success(`Faktoren normalisiert (×${formatNumber(ratio, { maxDecimals: 2 })})`);
   };
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded-lg w-1/3" />
-          <div className="h-64 bg-muted rounded-lg" />
-        </div>
-      </div>
+      <PageSkeleton label="Vorlage wird geladen" />
     );
   }
 

@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import type { RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { formatNumber } from '@/lib/format';
@@ -12,14 +13,6 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   drink: 'Getränk',
   snack: 'Snack',
   ingredient: 'Zutat',
-};
-
-const NUTRI_SCORE_LABELS: Record<number, { letter: string; color: string }> = {
-  1: { letter: 'A', color: 'bg-primary text-primary-foreground' },
-  2: { letter: 'B', color: 'bg-primary/80 text-primary-foreground' },
-  3: { letter: 'C', color: 'bg-accent text-accent-foreground' },
-  4: { letter: 'D', color: 'bg-warning text-primary-foreground' },
-  5: { letter: 'E', color: 'bg-destructive text-destructive-foreground' },
 };
 
 interface RecipePreviewInlineProps {
@@ -48,10 +41,6 @@ export default function RecipePreviewInline({
   const pricePerServing = recipe.price_per_serving
     ? formatNumber(recipe.price_per_serving, { maxDecimals: 2 })
     : null;
-  const nutriScore = recipe.cached_nutri_class
-    ? NUTRI_SCORE_LABELS[recipe.cached_nutri_class]
-    : null;
-
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="mb-3 flex shrink-0 items-center justify-between">
@@ -115,11 +104,7 @@ export default function RecipePreviewInline({
               ~{pricePerServing}€ / Portion
             </span>
           )}
-          {nutriScore && (
-            <span className={`text-caption font-bold px-2 py-0.5 rounded-lg ${nutriScore.color}`}>
-              Nutri {nutriScore.letter}
-            </span>
-          )}
+          <NutriScoreBadge value={recipe.cached_nutri_class} size="sm" />
         </div>
 
         {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (

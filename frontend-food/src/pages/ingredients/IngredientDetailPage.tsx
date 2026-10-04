@@ -1,8 +1,14 @@
 import { useState, useCallback, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
+import CollapsibleSection from '@/components/shared/CollapsibleSection';
+import MissingValuesHint from '@/components/shared/MissingValuesHint';
+import SlowLoadingHint from '@/components/shared/SlowLoadingHint';
+import { Skeleton, SkeletonDetailHeader, SkeletonSection } from '@/components/ui/skeleton';
+import IngredientSummary from './detail/IngredientSummary';
 import { useAiAccess } from '@/hooks/useAiAccess';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { ChefHat, Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2, Wand2 } from 'lucide-react';
+import { notify } from '@/lib/notify';
+import { Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2, Wand2 } from 'lucide-react';
 import { useAiFillMissingIngredient } from '@/api/dataQuality';
 import {
   DndContext,
@@ -45,7 +51,7 @@ import {
   usePreviewPortionMagicWand,
   useApplyPortionMagicWand,
 } from '@/api/supplies';
-import { NUTRI_SCORE_COLORS, PHYSICAL_VISCOSITY_LABELS, type PortionMagicOperation } from '@/schemas/supply';
+import { PHYSICAL_VISCOSITY_LABELS, type PortionMagicOperation } from '@/schemas/supply';
 import type { Package, Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
 import { formatMeasuringUnitLabel } from '@/lib/units';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
@@ -134,26 +140,12 @@ import { Label } from '@/components/ui/label';
 import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
-import { formatExactWeight, formatNumber, roundToDecimals } from '@/lib/format';
+import { formatEuro, formatExactWeight, roundToDecimals } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 import { ApiError } from '@/lib/api';
 import { HelpHint } from '@/components/ui/help-hint';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-
-// ---------------------------------------------------------------------------
-// NutriScoreBadge
-// ---------------------------------------------------------------------------
-function NutriScoreBadge({ nutriClass }: { nutriClass: number | null }) {
-  if (!nutriClass) return null;
-  const colors = NUTRI_SCORE_COLORS[nutriClass];
-  if (!colors) return null;
-  return (
-    <span className={`${colors.bg} ${colors.text} text-body font-bold px-3 py-1 rounded-lg`}>
-      Nutri-Score {colors.label}
-    </span>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // NutritionalTagBadge
@@ -192,6 +184,8 @@ function NutritionRow({
   unit: string;
   hint?: string;
 }) {
+  // Empty values are hidden; MissingValuesHint counts them (food-progressive-disclosure).
+  if (value === null) return null;
   return (
     <div className="flex justify-between py-1.5 border-b border-border/30 last:border-0">
       <span className="text-body text-muted-foreground inline-flex items-center gap-1">
@@ -199,40 +193,8 @@ function NutritionRow({
         {hint && <HelpHint label={`Was bedeutet ${label}?`}>{hint}</HelpHint>}
       </span>
       <span className="text-body font-medium">
-        {value !== null ? `${roundToDecimals(value, 1)} ${unit}` : '\u2014'}
+        {`${roundToDecimals(value, 1)} ${unit}`.trim()}
       </span>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Collapsible Nutrition Group (for Vitamins / Minerals)
-// ---------------------------------------------------------------------------
-function CollapsibleNutritionGroup({
-  title,
-  icon,
-  iconColor,
-  children,
-}: {
-  title: string;
-  icon: string;
-  iconColor: string;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mt-3 border rounded-lg overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 p-2.5 text-left hover:bg-muted/50 transition-colors"
-      >
-        <span className="flex items-center gap-1.5 text-body font-semibold">
-          <Icon name={icon} size={16} className={iconColor} />
-          {title}
-        </span>
-        <Icon name="expand_more" size={16} className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && <div className="px-3 pb-2">{children}</div>}
     </div>
   );
 }
@@ -263,7 +225,7 @@ function PackageRow({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-2 p-3 border border-border rounded-xl bg-card">
+      <div className="flex items-center gap-2 p-3 rounded-xl bg-card shadow-card">
         <input
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
@@ -278,10 +240,16 @@ function PackageRow({
         />
         <button
           onClick={() => {
-            updatePackage.mutate({
-              packageId: pkg.id,
-              data: { name: editName, weight_g: editWeight ? parseFloat(editWeight) : null },
-            });
+            updatePackage.mutate(
+              {
+                packageId: pkg.id,
+                data: { name: editName, weight_g: editWeight ? parseFloat(editWeight) : null },
+              },
+              {
+                onSuccess: () => notify.saved('Packung'),
+                onError: (error) => notify.failed('Packung', 'gespeichert', error),
+              },
+            );
             setEditing(false);
           }}
           className="text-caption text-primary hover:underline"
@@ -296,7 +264,7 @@ function PackageRow({
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 border border-border rounded-xl bg-card">
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-card shadow-card">
       <div className="flex-1 min-w-0">
         <span className="text-body font-medium text-foreground">{pkg.name}</span>
         {pkg.weight_g && (
@@ -327,7 +295,10 @@ function PackageRow({
           title="Packung löschen"
           description={`"${pkg.name}" wirklich löschen?`}
           onConfirm={() => {
-            deletePackage.mutate(pkg.id);
+            deletePackage.mutate(pkg.id, {
+              onSuccess: () => notify.deleted('Packung'),
+              onError: (error) => notify.failed('Packung', 'gelöscht', error),
+            });
             setConfirmDelete(false);
           }}
           onCancel={() => setConfirmDelete(false)}
@@ -401,32 +372,32 @@ function PortionFormDialog({
   const handleSubmit = () => {
     const name = values.name.trim();
     if (!name) {
-      toast.error('Name darf nicht leer sein');
+      notify.error('Name darf nicht leer sein');
       return;
     }
 
     const quantity = Number(values.quantity.trim().replace(',', '.'));
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      toast.error('Die Anzahl muss größer als 0 sein');
+      notify.error('Die Anzahl muss größer als 0 sein');
       return;
     }
 
     const rank = Number(values.rank.trim());
     if (!Number.isInteger(rank) || rank < 1) {
-      toast.error('Der Rang muss eine positive ganze Zahl sein');
+      notify.error('Der Rang muss eine positive ganze Zahl sein');
       return;
     }
 
     const measuringUnitId = Number(values.unitId);
     if (!Number.isInteger(measuringUnitId) || measuringUnitId < 1) {
-      toast.error('Bitte wähle eine Einheit aus');
+      notify.error('Bitte wähle eine Einheit aus');
       return;
     }
 
     const weightInput = values.weight.trim();
     const weight = weightInput ? Number(weightInput.replace(',', '.')) : null;
     if (weight !== null && (!Number.isFinite(weight) || weight <= 0)) {
-      toast.error('Gewicht muss größer als 0 g sein');
+      notify.error('Gewicht muss größer als 0 g sein');
       return;
     }
 
@@ -600,15 +571,15 @@ function PortionCard({
         onSuccess: (result) => {
           const referencingCount = result.referencing_recipe_count ?? 0;
           if (result.replaced_portion_id != null && referencingCount > 0) {
-            toast.success('Gespeichert', {
+            notify.success('Gespeichert', {
               description: `${referencingCount} ${referencingCount === 1 ? 'Rezept behält' : 'Rezepte behalten'} das alte Gewicht, bis sie aktualisiert werden.`,
             });
           } else {
-            toast.success('Portion aktualisiert');
+            notify.success('Portion aktualisiert');
           }
           setEditing(false);
         },
-        onError: (err: Error) => toast.error('Fehler', { description: err.message }),
+        onError: (err: Error) => notify.error('Portion konnte nicht gespeichert werden', { error: err }),
       },
     );
   };
@@ -677,11 +648,11 @@ function PortionCard({
         onConfirm={() => {
           deletePortion.mutate(portion.id, {
             onSuccess: () => {
-              toast.success('Portion gelöscht');
+              notify.success('Portion gelöscht');
               setConfirmDelete(false);
             },
             onError: (err: Error) => {
-              toast.error('Fehler', { description: err.message });
+              notify.error('Portion konnte nicht gelöscht werden', { error: err });
               setConfirmDelete(false);
             },
           });
@@ -719,22 +690,16 @@ function PortionCard({
 
 function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName: string }) {
   const navigate = useNavigate();
-  const { data, isLoading, error } = useRecipesByIngredient(slug);
+  const { data, isLoading, error, refetch } = useRecipesByIngredient(slug);
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
-          <ChefHat className="text-primary" size={20} />
-          Rezepte mit dieser Zutat
-        </h2>
-      </div>
+    <div>
 
       {/* Loading */}
       {isLoading && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse rounded-xl border bg-card overflow-hidden">
+            <div key={i} className="animate-pulse rounded-xl bg-card overflow-hidden shadow-card">
               <div className="aspect-[16/9] bg-muted" />
               <div className="p-3 space-y-2">
                 <div className="h-4 bg-muted rounded-lg w-3/4" />
@@ -747,14 +712,12 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
 
       {/* Error */}
       {error && !isLoading && (
-        <p className="text-body text-destructive">
-          Rezepte konnten nicht geladen werden.
-        </p>
+        <ErrorDisplay variant="inline" error={error} title="Rezepte konnten nicht geladen werden" onRetry={() => void refetch()} />
       )}
 
       {/* Empty state */}
       {!isLoading && !error && data && data.items.length === 0 && (
-        <div className="border border-border rounded-xl p-6 bg-card text-center space-y-4">
+        <div className="p-2 text-center space-y-4">
           <p className="text-body text-muted-foreground">
             Noch kein Rezept mit dieser Zutat.
           </p>
@@ -861,12 +824,12 @@ function PortionsSection({
         onError: () => {
           // Revert on error
           setPortions(ingredient.portions);
-          toast.error('Fehler beim Speichern der Sortierung');
+          notify.error('Reihenfolge konnte nicht gespeichert werden');
         },
         onSuccess: (updatedPortions) => {
           // Update with server response
           setPortions(updatedPortions);
-          toast.success('Portionen neu sortiert');
+          notify.success('Portionen neu sortiert');
         },
       });
     },
@@ -1039,19 +1002,20 @@ export default function IngredientDetailPage() {
 
   const handleFillMissing = async () => {
     if (!ingredient) return;
-    try {
-      const res = await fillMissing.mutateAsync(ingredient.id);
-      if (res.filled_fields.length > 0) {
-        const labels = res.filled_fields.map((f) => f.label).slice(0, 4).join(', ');
-        const more = res.filled_fields.length > 4 ? ` und ${res.filled_fields.length - 4} weitere` : '';
-        toast.success(`${res.filled_fields.length} fehlende Stammdaten ergänzt: ${labels}${more}`);
-        refetch();
-      } else {
-        toast.info('Alle Stammdaten sind bereits vollständig erfasst. Keine leeren Felder vorhanden.');
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler bei der KI-Ergänzung');
-    }
+    // Long AI action: one toast from "wird ergänzt" to the result (food-feedback-toasts).
+    const res = await notify
+      .promise(fillMissing.mutateAsync(ingredient.id), {
+        loading: 'Fehlende Stammdaten werden mit KI ergänzt …',
+        success: (result) => {
+          if (result.filled_fields.length === 0) return 'Alle Stammdaten sind bereits vollständig';
+          const labels = result.filled_fields.map((f) => f.label).slice(0, 4).join(', ');
+          const more = result.filled_fields.length > 4 ? ` und ${result.filled_fields.length - 4} weitere` : '';
+          return `${result.filled_fields.length} Stammdaten ergänzt: ${labels}${more}`;
+        },
+        error: 'Stammdaten konnten nicht ergänzt werden',
+      })
+      .catch(() => null);
+    if (res && res.filled_fields.length > 0) refetch();
   };
 
   const canEdit = ingredient?.can_edit ?? false;
@@ -1064,7 +1028,7 @@ export default function IngredientDetailPage() {
         setMagicOperations(preview.operations);
         setShowPortionMagicWand(true);
       },
-      onError: (err: Error) => toast.error('Portionen konnten nicht vorgeschlagen werden', { description: err.message }),
+      onError: (err: Error) => notify.error('Portionen konnten nicht vorgeschlagen werden', { error: err }),
     });
   };
 
@@ -1085,7 +1049,7 @@ export default function IngredientDetailPage() {
         setMagicPreviewToken(preview.preview_token);
         setMagicOperations((current) => mergeMagicOperations(current, preview.operations));
       },
-      onError: (err: Error) => toast.error('Weitere Portionen konnten nicht geladen werden', { description: err.message }),
+      onError: (err: Error) => notify.error('Weitere Portionen konnten nicht geladen werden', { error: err }),
     });
   };
 
@@ -1100,7 +1064,7 @@ export default function IngredientDetailPage() {
 
   const applyMagicPreview = () => {
     if (hasInvalidMagicOperation) {
-      toast.error('Für jede ausgewählte Portion muss ein positives Gewicht eingetragen sein.');
+      notify.error('Für jede ausgewählte Portion muss ein positives Gewicht eingetragen sein');
       return;
     }
     applyMagicWand.mutate(
@@ -1108,9 +1072,9 @@ export default function IngredientDetailPage() {
       {
         onSuccess: () => {
           setShowPortionMagicWand(false);
-          toast.success('Portionen wurden aktualisiert');
+          notify.success('Portionen wurden aktualisiert');
         },
-        onError: (err: Error) => toast.error('Portionen konnten nicht aktualisiert werden', { description: err.message }),
+        onError: (err: Error) => notify.error('Portionen konnten nicht aktualisiert werden', { error: err }),
       },
     );
   };
@@ -1118,11 +1082,14 @@ export default function IngredientDetailPage() {
   // --- Loading / error states ---
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        <div className="animate-pulse h-8 w-48 bg-muted rounded-lg" />
-        <div className="animate-pulse h-4 w-72 bg-muted rounded-lg" />
-        <div className="animate-pulse h-32 bg-muted rounded-lg" />
-        <div className="animate-pulse h-32 bg-muted rounded-lg" />
+      <div role="status" aria-busy="true" className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+        <span className="sr-only">Zutat wird geladen</span>
+        <SkeletonDetailHeader />
+        <SkeletonSection lines={3} />
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className="h-14 rounded-xl" />
+        ))}
+        <SlowLoadingHint />
       </div>
     );
   }
@@ -1255,28 +1222,28 @@ export default function IngredientDetailPage() {
 
     Promise.all(promises)
       .then(() => {
-        toast.success('Vorschläge übernommen');
+        notify.success('Vorschläge übernommen');
       })
       .catch((err) => {
-        toast.error('Fehler', { description: (err as Error).message });
+        notify.error('Vorschläge konnten nicht übernommen werden', { error: err });
       });
   };
 
   const handleDelete = () => {
     deleteIngredient.mutate(ingredient.slug, {
       onSuccess: () => {
-        toast.success('Zutat gelöscht');
+        notify.success('Zutat gelöscht');
         navigate('/ingredients');
       },
       onError: (err: Error) => {
         setShowDeleteConfirm(false);
         if (err instanceof ApiDeleteError && err.status === 409 && err.recipes.length > 0) {
           const recipeNames = err.recipes.map((r) => r.title).join(', ');
-          toast.error('Zutat wird noch verwendet', {
+          notify.error('Zutat wird noch verwendet', {
             description: `Entferne die Zutat zuerst aus folgenden Rezepten: ${recipeNames}`,
           });
         } else {
-          toast.error('Fehler beim Löschen', { description: err.message });
+          notify.error('Zutat konnte nicht gelöscht werden', { error: err });
         }
       },
     });
@@ -1293,10 +1260,10 @@ export default function IngredientDetailPage() {
       },
       {
         onSuccess: () => {
-          toast.success('Portion hinzugefügt');
+          notify.success('Portion hinzugefügt');
           setShowAddPortion(false);
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Portion konnte nicht angelegt werden', { error: err }),
       },
     );
   };
@@ -1308,24 +1275,15 @@ export default function IngredientDetailPage() {
       { name: trimmed, is_generic: newAliasIsGeneric },
       {
         onSuccess: () => {
-          toast.success('Alias hinzugefügt');
+          notify.success('Alias hinzugefügt');
           setNewAliasName('');
           setNewAliasIsGeneric(false);
           setShowAddAlias(false);
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Alias konnte nicht angelegt werden', { error: err }),
       },
     );
   };
-
-  const formatPrice = (price: number | null) => {
-    if (price === null) return '\u2014';
-    return `${formatNumber(price, { maxDecimals: 2 }).replace('.', ',')} €`;
-  };
-
-  const nutriColors = ingredient.nutri_class
-    ? NUTRI_SCORE_COLORS[ingredient.nutri_class]
-    : null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -1342,7 +1300,7 @@ export default function IngredientDetailPage() {
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-section sm:text-title font-display font-bold text-foreground truncate">{ingredient.name}</h1>
+            <h1 className="text-title font-display font-extrabold text-foreground truncate">{ingredient.name}</h1>
             {ingredient.status === 'verified' ? (
               <span className="text-caption px-2 py-0.5 rounded-full font-medium shrink-0 border bg-success-soft border-success-border text-success flex items-center gap-1">
                 <CheckCircle size={12} />
@@ -1359,7 +1317,12 @@ export default function IngredientDetailPage() {
                 </span>
                 {ingredient.can_verify && (
                   <button
-                    onClick={() => updateIngredient.mutate({ status: 'verified' } as Record<string, unknown>)}
+                    onClick={() =>
+                      updateIngredient.mutate({ status: 'verified' } as Record<string, unknown>, {
+                        onSuccess: () => notify.success('Zutat verifiziert'),
+                        onError: (error) => notify.failed('Zutat', 'verifiziert', error),
+                      })
+                    }
                     disabled={updateIngredient.isPending}
                     className="text-caption px-2 py-0.5 rounded-full font-medium border border-success-border text-success hover:bg-success-soft shrink-0"
                   >
@@ -1373,9 +1336,8 @@ export default function IngredientDetailPage() {
             <p className="text-body text-muted-foreground mb-2">{ingredient.description}</p>
           )}
           <div className="flex flex-wrap items-center gap-2">
-            <NutriScoreBadge nutriClass={ingredient.nutri_class} />
             {ingredient.camp_suitable && (
-              <span className="flex items-center gap-1 text-caption text-foreground bg-warning-soft px-2 py-1 rounded-lg">
+              <span className="flex items-center gap-1 text-caption text-foreground bg-area-shopping-soft px-2 py-1 rounded-lg">
                 <Icon name="camping" size={16} />
                 Camp-geeignet
               </span>
@@ -1384,12 +1346,6 @@ export default function IngredientDetailPage() {
               <span className="flex items-center gap-1 text-caption text-muted-foreground bg-muted px-2 py-1 rounded-lg">
                 <Icon name="store" size={16} />
                 {ingredient.retail_section_name}
-              </span>
-            )}
-            {ingredient.price_per_kg !== null && (
-              <span className="flex items-center gap-1 text-caption text-muted-foreground bg-muted px-2 py-1 rounded-lg">
-                <Icon name="payments" size={16} />
-                {formatPrice(ingredient.price_per_kg)}/kg
               </span>
             )}
             {ingredient.is_standalone_food && (
@@ -1408,7 +1364,7 @@ export default function IngredientDetailPage() {
                 <button
                   onClick={handleFillMissing}
                   disabled={fillMissing.isPending || ai.disabled}
-                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground hover:text-primary disabled:opacity-50"
+                  className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground hover:text-primary disabled:opacity-50"
                   title={ai.disabled ? ai.hint : 'Fehlende Stammdaten mit KI ergänzen (bestehende bleiben erhalten)'}
                 >
                   {fillMissing.isPending ? (
@@ -1425,7 +1381,7 @@ export default function IngredientDetailPage() {
                     }
                   }}
                   disabled={ai.disabled}
-                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground disabled:opacity-50"
+                  className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground disabled:opacity-50"
                   title={ai.disabled ? ai.hint : 'Alle KI-Vorschläge prüfen & vergleichen'}
                 >
                   <Icon name="auto_fix_high" size={20} />
@@ -1456,7 +1412,17 @@ export default function IngredientDetailPage() {
         )}
       </div>
 
-      {/* Nutritional Tags */}
+      <IngredientSummary
+        nutriClass={ingredient.nutri_class}
+        pricePerKg={ingredient.price_per_kg}
+        energyKcal={ingredient.energy_kcal}
+        proteinG={ingredient.protein_g}
+        fatG={ingredient.fat_g}
+        carbohydrateG={ingredient.carbohydrate_g}
+        portions={ingredient.portions}
+      />
+
+      {/* Nutritional Tags (allergens stay visible) */}
       {ingredient.nutritional_tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
           {ingredient.nutritional_tags.map((tag) => (
@@ -1469,97 +1435,23 @@ export default function IngredientDetailPage() {
         </div>
       )}
 
-      {/* Tags (content.Tag) */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-body font-medium text-muted-foreground">Tags</h3>
-          {canEdit && (
-            <button
-              onClick={() => setShowTagPicker(!showTagPicker)}
-              className="flex items-center gap-1 text-caption text-primary hover:underline"
-            >
-              <Plus size={14} />
-              Tag hinzufügen
-            </button>
-          )}
-        </div>
-        {showTagPicker && canEdit && (
-          <div className="mb-3">
-            <div className="relative">
-              <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={tagSearch}
-                onChange={(e) => setTagSearch(e.target.value)}
-                placeholder="Tag suchen..."
-                className="w-full pl-8 pr-3 py-1.5 text-body border border-border rounded-lg bg-background"
-              />
-            </div>
-            {tagSearch && (
-              <div className="mt-1 border border-border rounded-xl max-h-40 overflow-y-auto bg-card">
-                {(allTags || [])
-                  .filter((t) => !(ingredient.tags || []).some((it: Tag) => it.id === t.id) && t.name.toLowerCase().includes(tagSearch.toLowerCase()))
-                  .slice(0, 10)
-                  .map((tag) => (
-                    <button
-                      key={tag.id}
-                      onClick={() => {
-                        const newTagIds = [...(ingredient.tags || []).map((t: Tag) => t.id), tag.id];
-                        updateIngredient.mutate({ tag_ids: newTagIds } as Record<string, unknown>);
-                        setTagSearch('');
-                        setShowTagPicker(false);
-                      }}
-                      className="w-full text-left px-3 py-1.5 text-body hover:bg-muted flex items-center gap-2"
-                    >
-                      <span className="text-caption">{tag.icon}</span>
-                      <span>{tag.name}</span>
-                      <span className="text-caption text-muted-foreground ml-auto">{tag.group}</span>
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {(ingredient.tags || []).length === 0 ? (
-            <p className="text-body text-muted-foreground italic">Keine Tags</p>
-          ) : (
-            (ingredient.tags || []).map((tag) => (
-              <span
-                key={tag.id}
-                className="inline-flex items-center gap-1 text-caption px-2 py-1 rounded-full bg-muted border border-border"
-              >
-                <span>{tag.icon}</span>
-                <span>{tag.name}</span>
-                {canEdit && (
-                  <button
-                    onClick={() => {
-                      const newTagIds = (ingredient.tags || []).filter((t: Tag) => t.id !== tag.id).map((t: Tag) => t.id);
-                      updateIngredient.mutate({ tag_ids: newTagIds } as Record<string, unknown>);
-                    }}
-                    className="ml-0.5 hover:text-destructive"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </span>
-            ))
-          )}
-        </div>
-      </div>
+      {/* Main details: portions open, everything else on demand (food-progressive-disclosure) */}
+      <div className="space-y-3 mb-8">
+      {/* Portions Section */}
+      <PortionsSection
+        ingredient={ingredient}
+        canEdit={canEdit}
+        showAddPortion={showAddPortion}
+        setShowAddPortion={setShowAddPortion}
+        measuringUnits={measuringUnits || []}
+        onAddPortion={handleAddPortion}
+        isAddingPortion={createPortion.isPending}
+        onOpenMagicWand={openPortionMagicWand}
+        isOpeningMagicWand={previewMagicWand.isPending}
+        aiDisabledHint={ai.disabled ? ai.hint : undefined}
+      />
 
-      {/* Preis & KI-Preisvorschläge */}
-      <div className="mb-6">
-        <PriceProposalCard ingredient={ingredient} />
-      </div>
-
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Nutritional Values */}
-        <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-          <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-            <Icon name="nutrition" size={20} className="text-primary" />
-            Nährwerte pro 100g
-          </h2>
+        <CollapsibleSection title="Alle Nährwerte" summary="pro 100 g" icon="nutrition" storageKey="ingredient-nutrition">
           <div>
             <NutritionRow label="Energie" value={ingredient.energy_kcal != null ? Math.round(ingredient.energy_kcal) : null} unit="kcal" />
             <NutritionRow label="Protein" value={ingredient.protein_g} unit="g" />
@@ -1573,32 +1465,18 @@ export default function IngredientDetailPage() {
             <NutritionRow label="Fructose" value={ingredient.fructose_g} unit="g" />
             <NutritionRow label="Lactose" value={ingredient.lactose_g} unit="g" />
           </div>
-
-          {/* Vitamins (only vitamin_c_mg is stored by the backend) */}
           {ingredient.vitamin_c_mg != null && (
-            <CollapsibleNutritionGroup title="Vitamine" icon="medication" iconColor="text-primary">
-              <NutritionRow label="Vitamin C" value={ingredient.vitamin_c_mg ?? null} unit="mg" />
-            </CollapsibleNutritionGroup>
+            <NutritionRow label="Vitamin C" value={ingredient.vitamin_c_mg ?? null} unit="mg" />
           )}
-        </div>
+          <MissingValuesHint count={[ingredient.energy_kcal, ingredient.protein_g, ingredient.fat_g, ingredient.fat_sat_g, ingredient.carbohydrate_g, ingredient.sugar_g, ingredient.fibre_g, ingredient.salt_g, ingredient.sodium_mg, ingredient.fructose_g, ingredient.lactose_g].filter((value) => value == null).length} canEdit={canEdit} editHref={`/ingredients/${ingredient.slug}/edit`} />
+        </CollapsibleSection>
 
-        {/* Scores & Physical */}
-        <div className="space-y-6">
-          {/* Scores */}
-          <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-            <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-              <Icon name="health_and_safety" size={20} className="text-primary" />
-              Bewertungen
-            </h2>
-            <div>
+        <CollapsibleSection title="Bewertungen" summary="NOVA, Kinder, Pfadfinder, Umwelt" icon="health_and_safety" storageKey="ingredient-scores">
+          <div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
                 <span className="text-body text-muted-foreground">Nutri-Score</span>
                 <span className="text-body font-medium">
-                  {nutriColors ? (
-                    <span className={`${nutriColors.bg} ${nutriColors.text} text-caption font-bold px-2 py-0.5 rounded-lg`}>
-                      {nutriColors.label}
-                    </span>
-                  ) : '\u2014'}
+                  <NutriScoreBadge value={ingredient.nutri_class} size="sm" emptyLabel="–" />
                 </span>
               </div>
               <NutritionRow
@@ -1631,16 +1509,12 @@ export default function IngredientDetailPage() {
                 unit=""
                 hint="Obst- und Gemüseanteil der Zutat von 0 (enthält keins) bis 1 (besteht vollständig daraus)."
               />
-            </div>
           </div>
+          <MissingValuesHint count={[ingredient.nutri_class, ingredient.nova_score, ingredient.child_score, ingredient.scout_score, ingredient.environmental_score, ingredient.fruit_factor].filter((value) => value == null).length} canEdit={canEdit} editHref={`/ingredients/${ingredient.slug}/edit`} />
+        </CollapsibleSection>
 
-          {/* Physical Properties */}
-          <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
-            <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
-              <Icon name="science" size={20} className="text-primary" />
-              Physikalische Eigenschaften
-            </h2>
-            <div>
+        <CollapsibleSection title="Physik & Lager" summary="Dichte, Haltbarkeit, Saison" icon="science" storageKey="ingredient-physics">
+          <div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
                 <span className="text-body text-muted-foreground">Dichte</span>
                 <span className="text-body font-medium">{ingredient.physical_density} g/ml</span>
@@ -1651,12 +1525,10 @@ export default function IngredientDetailPage() {
               </div>
               <NutritionRow label="Haltbarkeit" value={ingredient.durability_in_days} unit="Tage" />
               <NutritionRow label="Max. Lagertemperatur" value={ingredient.max_storage_temperature} unit="°C" />
-            </div>
           </div>
-
           {/* Scout / Camp Fields */}
           {(ingredient.storage_type != null || ingredient.cooking_factor != null || ingredient.preparation_time_min != null || ingredient.season_start != null) && (
-            <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+            <div className="mt-4">
               <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
                 <Icon name="backpack" size={20} className="text-primary" />
                 Lager & Pfadfinder
@@ -1708,10 +1580,9 @@ export default function IngredientDetailPage() {
               </div>
             </div>
           )}
-
           {/* References */}
           {(ingredient.fdc_id || ingredient.nan_art_id_rewe || ingredient.ean) && (
-            <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+            <div className="mt-4">
               <h2 className="text-body font-display font-bold text-foreground mb-3 flex items-center gap-2">
                 <Icon name="link" size={20} className="text-primary" />
                 Referenzen
@@ -1738,22 +1609,104 @@ export default function IngredientDetailPage() {
               </div>
             </div>
           )}
+          <MissingValuesHint count={[ingredient.physical_viscosity, ingredient.durability_in_days, ingredient.max_storage_temperature].filter((value) => value == null).length} canEdit={canEdit} editHref={`/ingredients/${ingredient.slug}/edit`} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Preis"
+          summary={ingredient.price_per_kg != null ? `${formatEuro(ingredient.price_per_kg)}/kg` : 'noch kein Preis'}
+          icon="payments"
+          storageKey="ingredient-price"
+        >
+          <PriceProposalCard ingredient={ingredient} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Tags"
+          summary={(ingredient.tags || []).length > 0 ? (ingredient.tags || []).map((tag) => tag.name).join(', ') : 'keine'}
+          icon="sell"
+          storageKey="ingredient-tags"
+        >
+      <div>
+        <div className="flex items-center justify-end mb-2">
+          {canEdit && (
+            <button
+              onClick={() => setShowTagPicker(!showTagPicker)}
+              className="flex items-center gap-1 text-caption text-primary hover:underline"
+            >
+              <Plus size={14} />
+              Tag hinzufügen
+            </button>
+          )}
+        </div>
+        {showTagPicker && canEdit && (
+          <div className="mb-3">
+            <div className="relative">
+              <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                placeholder="Tag suchen..."
+                className="w-full pl-8 pr-3 py-1.5 text-body border border-border rounded-lg bg-background"
+              />
+            </div>
+            {tagSearch && (
+              <div className="mt-1 rounded-xl max-h-40 overflow-y-auto bg-card shadow-card">
+                {(allTags || [])
+                  .filter((t) => !(ingredient.tags || []).some((it: Tag) => it.id === t.id) && t.name.toLowerCase().includes(tagSearch.toLowerCase()))
+                  .slice(0, 10)
+                  .map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        const newTagIds = [...(ingredient.tags || []).map((t: Tag) => t.id), tag.id];
+                        updateIngredient.mutate({ tag_ids: newTagIds } as Record<string, unknown>, {
+                          onError: (error) => notify.failed('Tags', 'gespeichert', error),
+                        });
+                        setTagSearch('');
+                        setShowTagPicker(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-body hover:bg-muted flex items-center gap-2"
+                    >
+                      <span className="text-caption">{tag.icon}</span>
+                      <span>{tag.name}</span>
+                      <span className="text-caption text-muted-foreground ml-auto">{tag.group}</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {(ingredient.tags || []).length === 0 ? (
+            <p className="text-body text-muted-foreground italic">Keine Tags</p>
+          ) : (
+            (ingredient.tags || []).map((tag) => (
+              <span
+                key={tag.id}
+                className="inline-flex items-center gap-1 text-caption px-2 py-1 rounded-full bg-muted border border-border"
+              >
+                <span>{tag.icon}</span>
+                <span>{tag.name}</span>
+                {canEdit && (
+                  <button
+                    onClick={() => {
+                      const newTagIds = (ingredient.tags || []).filter((t: Tag) => t.id !== tag.id).map((t: Tag) => t.id);
+                      updateIngredient.mutate({ tag_ids: newTagIds } as Record<string, unknown>, {
+                          onError: (error) => notify.failed('Tags', 'gespeichert', error),
+                        });
+                    }}
+                    className="ml-0.5 hover:text-destructive"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </span>
+            ))
+          )}
         </div>
       </div>
-
-      {/* Portions Section */}
-      <PortionsSection
-        ingredient={ingredient}
-        canEdit={canEdit}
-        showAddPortion={showAddPortion}
-        setShowAddPortion={setShowAddPortion}
-        measuringUnits={measuringUnits || []}
-        onAddPortion={handleAddPortion}
-        isAddingPortion={createPortion.isPending}
-        onOpenMagicWand={openPortionMagicWand}
-        isOpeningMagicWand={previewMagicWand.isPending}
-        aiDisabledHint={ai.disabled ? ai.hint : undefined}
-      />
+        </CollapsibleSection>
 
       <Dialog open={showPortionMagicWand} onOpenChange={setShowPortionMagicWand}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -1907,12 +1860,13 @@ export default function IngredientDetailPage() {
       </Dialog>
 
       {/* Packages Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
-            <Icon name="inventory_2" size={24} className="text-primary" />
-            Packungen
-          </h2>
+      <CollapsibleSection
+        title="Packungen"
+        summary={(ingredient.packages || []).length > 0 ? `${(ingredient.packages || []).length} Packungen` : 'keine'}
+        icon="inventory_2"
+        storageKey="ingredient-packages"
+      >
+        <div className="flex items-center justify-end mb-3">
           {canEdit && (
             <button
               onClick={() => setShowAddPackage(!showAddPackage)}
@@ -1951,7 +1905,9 @@ export default function IngredientDetailPage() {
                         setNewPackageName('');
                         setNewPackageWeight('');
                         setShowAddPackage(false);
+                        notify.created('Packung');
                       },
+                      onError: (error) => notify.failed('Packung', 'angelegt', error),
                     }
                   );
                 }}
@@ -1979,15 +1935,16 @@ export default function IngredientDetailPage() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Aliases Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-section font-display font-bold text-foreground flex items-center gap-2">
-            <Icon name="label" size={24} className="text-primary" />
-            Aliase
-          </h2>
+      <CollapsibleSection
+        title="Alternative Namen"
+        summary={ingredient.aliases.length > 0 ? ingredient.aliases.map((alias) => alias.name).join(', ') : 'keine'}
+        icon="label"
+        storageKey="ingredient-aliases"
+      >
+        <div className="flex items-center justify-end mb-3">
           {canEdit && (
             <button
               onClick={() => setShowAddAlias(!showAddAlias)}
@@ -2047,7 +2004,7 @@ export default function IngredientDetailPage() {
                 {canEdit && (
                   <button
                     onClick={() => setDeleteAliasId(alias.id)}
-                    className="text-destructive/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition"
+                    className="text-destructive/60 hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition"
                   >
                     <Icon name="close" size={16} />
                   </button>
@@ -2056,12 +2013,15 @@ export default function IngredientDetailPage() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
-      {/* Recipes with this ingredient */}
-      <RecipesSection slug={ingredient.slug} ingredientName={ingredient.name} />
+      {/* Recipes with this ingredient: loads only when opened */}
+      <CollapsibleSection title="Verwendet in" summary="Rezepte mit dieser Zutat" icon="restaurant" storageKey="ingredient-recipes">
+        <RecipesSection slug={ingredient.slug} ingredientName={ingredient.name} />
+      </CollapsibleSection>
 
       {/* Statistischer Vergleich */}
+      <CollapsibleSection title="Statistischer Vergleich" summary="im Vergleich zur Abteilung" icon="bar_chart" storageKey="ingredient-benchmark">
       <IngredientBenchmarkSection
         values={{
           price_per_kg: ingredient.price_per_kg,
@@ -2074,6 +2034,8 @@ export default function IngredientDetailPage() {
           retail_section_name: ingredient.retail_section_name,
         }}
       />
+      </CollapsibleSection>
+      </div>
 
       {/* Meta */}
       <div className="border-t pt-4 text-caption text-muted-foreground flex flex-wrap gap-4">
@@ -2100,11 +2062,11 @@ export default function IngredientDetailPage() {
           if (deleteAliasId === null) return;
           deleteAlias.mutate(deleteAliasId, {
             onSuccess: () => {
-              toast.success('Alias gelöscht');
+              notify.success('Alias gelöscht');
               setDeleteAliasId(null);
             },
             onError: (err) => {
-              toast.error('Fehler', { description: err.message });
+              notify.error('Alias konnte nicht gelöscht werden', { error: err });
               setDeleteAliasId(null);
             },
           });

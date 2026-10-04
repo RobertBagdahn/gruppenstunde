@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import OffensiveIngredientRow from './OffensiveIngredientRow';
 import { KPI_ISSUES } from './offensiveMeta';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface OffensiveWorkListProps {
   summary: OffensiveSummary;
@@ -88,7 +89,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
       onNotify('success', `${result.reviewed} Zutaten geprüft, ${changed} Werte korrigiert.`);
       result.errors.forEach((message) => onNotify('error', message));
     } catch (err) {
-      onNotify('error', err instanceof Error ? err.message : 'KI-Prüfung fehlgeschlagen');
+      onNotify('error', getApiErrorMessage(err, 'KI-Prüfung fehlgeschlagen'));
     } finally {
       setBusy(ids, false);
       setReviewing(false);
@@ -117,7 +118,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
       const ids = await fetchOffensiveIngredientIds(filters);
       setSelected(new Set(ids));
     } catch (err) {
-      onNotify('error', err instanceof Error ? err.message : 'Auswahl fehlgeschlagen');
+      onNotify('error', getApiErrorMessage(err, 'Auswahl fehlgeschlagen'));
     }
   };
 
@@ -256,7 +257,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
       ) : error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-body text-destructive space-y-2">
           <p className="font-semibold">Arbeitsliste konnte nicht geladen werden</p>
-          <p>{error.message}</p>
+          <p>{getApiErrorMessage(error)}</p>
           <Button size="sm" variant="outline" onClick={() => refetch()}>
             Erneut versuchen
           </Button>

@@ -7,6 +7,7 @@ import type { Meal } from '@/schemas/mealPlan';
 import SollIstBar from '@/components/shared/SollIstBar';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import { planDateKey } from '@/lib/mealPlanDateTime';
+import { Skeleton, SkeletonSection } from '@/components/ui/skeleton';
 
 interface CostDashboardProps {
   mealPlanId: number;
@@ -43,9 +44,14 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="h-24 bg-muted rounded-xl animate-pulse" />
-        <div className="h-48 bg-muted rounded-xl animate-pulse" />
+      <div role="status" aria-busy="true" className="space-y-4">
+        <span className="sr-only">Kosten werden geladen</span>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-20 rounded-xl" />
+          ))}
+        </div>
+        <SkeletonSection lines={5} />
       </div>
     );
   }
@@ -148,7 +154,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
 
       {/* Budget relative progress bar */}
       {hasBudget && (
-        <div className="rounded-xl border border-border bg-card p-4 md:p-5 shadow-soft">
+        <div className="rounded-xl bg-card p-4 md:p-5 shadow-card">
           <h3 className="text-body font-bold flex items-center gap-2 mb-3 font-display text-foreground">
             <Wallet className="w-4 h-4 text-primary" />
             Budget-Auslastung (pro Person/Tag)
@@ -181,7 +187,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
           {coverage < 50 ? (
             <AlertCircle className="w-4.5 h-4.5 text-destructive shrink-0 mt-0.5" />
           ) : (
-            <Info className="w-4.5 h-4.5 text-accent shrink-0 mt-0.5" />
+            <Info className="w-4.5 h-4.5 text-info shrink-0 mt-0.5" />
           )}
           <span className="font-medium">
             Geschätzte Kosten — {data.priced_ingredients} von {data.total_ingredients} Zutaten haben einen Preis ({coverage}% Abdeckung). {data.missing_ingredients > 0 && `${data.missing_ingredients} ${data.missing_ingredients === 1 ? 'Zutat hat' : 'Zutaten haben'} noch keinen bestätigten Preis.`}
@@ -210,7 +216,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
                   {hasNoPrice ? (
                     <span className="text-caption font-semibold text-muted-foreground ml-2">Keine Preise</span>
                   ) : isPartial ? (
-                    <span className="text-body font-semibold tabular-nums text-accent ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
+                    <span className="text-body font-semibold tabular-nums text-warning ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
                       ~{formatEur(showPerPortion ? recipe.cost_per_person : recipe.total_cost)}
                     </span>
                   ) : (
@@ -307,13 +313,13 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
       )}
 
       {/* Hinweis-Banner */}
-      <div className="rounded-xl border border-accent/20 bg-accent/10 p-4 flex items-start gap-3 shadow-soft">
-        <Lightbulb className="text-accent w-5 h-5 shrink-0 mt-0.5" />
+      <div className="rounded-xl border border-info-border bg-info-soft p-4 flex items-start gap-3">
+        <Lightbulb className="text-info w-5 h-5 shrink-0 mt-0.5" />
         <div>
-          <p className="font-bold text-accent font-display text-body">Preise verwalten</p>
+          <p className="font-bold text-info font-display text-body">Preise verwalten</p>
           <p className="text-caption font-semibold text-accent-foreground/80 mt-0.5 leading-relaxed">
             Zutatenpreise kannst du in der{' '}
-            <Link to="/ingredients" className="font-bold underline hover:no-underline text-accent">
+            <Link to="/ingredients" className="font-bold underline hover:no-underline text-info">
               Zutatendatenbank
             </Link>{' '}
             hinterlegen.

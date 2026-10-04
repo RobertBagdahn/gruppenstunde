@@ -6,6 +6,7 @@ import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import { EntityLink } from '@/components/shared/EntityLink';
 import { type NutritionalTag } from '@/schemas/supply';
 import { type NutritionalTagViolation } from '@/schemas/mealPlan';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 interface IngredientScanViewProps {
   mealPlanId: number;
@@ -24,7 +25,7 @@ export default function IngredientScanView({
   const [collapsedTags, setCollapsedTags] = useState<Record<number, boolean>>({});
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
-  if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
+  if (isLoading) return <SkeletonTableRows rows={5} columns={3} label="Zutaten werden geladen" />;
   if (!data) return null;
 
   const { summary, violations } = data;
@@ -41,7 +42,7 @@ export default function IngredientScanView({
   // Scenario 1: No tags configured on this plan
   if (nutritionalTagsCount === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6 text-center space-y-4 shadow-soft">
+      <div className="rounded-xl bg-card p-6 text-center space-y-4 shadow-card">
         <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
           <Settings className="w-6 h-6 text-muted-foreground" />
         </div>
@@ -132,7 +133,7 @@ export default function IngredientScanView({
             return (
               <div
                 key={tagId}
-                className="rounded-xl border border-border bg-card overflow-hidden shadow-soft"
+                className="rounded-xl bg-card overflow-hidden shadow-card"
               >
                 {/* Accordion Header */}
                 <button

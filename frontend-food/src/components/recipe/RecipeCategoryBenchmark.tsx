@@ -78,7 +78,7 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
   const label = isBelowAvg ? comparisonLabels.below : comparisonLabels.above;
 
   return (
-    <div className="bg-card rounded-xl border p-4 space-y-3">
+    <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
       <h3 className="text-body font-semibold text-muted-foreground">
         Kategorievergleich: {typeLabel}
         <span className="font-normal ml-1.5 text-caption text-muted-foreground">

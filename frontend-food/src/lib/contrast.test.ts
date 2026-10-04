@@ -53,6 +53,8 @@ const TEXT_PAIRS: [string, string][] = [
   ['primary', 'background'],
   ['primary', 'card'],
   ['destructive-foreground', 'destructive'],
+  ['primary', 'primary-soft'],
+  ['accent-foreground', 'background'],
   ...(['success', 'warning', 'danger', 'info'] as const).flatMap((status): [string, string][] => [
     [`${status}-foreground`, status],
     [status, 'background'],
@@ -63,6 +65,7 @@ const TEXT_PAIRS: [string, string][] = [
 
 /** Form-control borders and focus rings: WCAG AA 3:1 (non-text contrast). */
 const CONTROL_PAIRS: [string, string][] = [
+  ['primary-bright', 'background'],
   ['input', 'background'],
   ['input', 'card'],
   ['ring', 'background'],
@@ -80,6 +83,18 @@ describe('design token contrast (WCAG AA)', () => {
   it('keeps --border clearly visible on background and card', () => {
     expect(contrast('border', 'background')).toBeGreaterThanOrEqual(1.3);
     expect(contrast('border', 'card')).toBeGreaterThanOrEqual(1.3);
+  });
+
+  it('keeps --warning a light-enough amber instead of dark brown', () => {
+    expect(resolveHsl('warning')[2]).toBeGreaterThanOrEqual(0.3);
+    expect(resolveHsl('warning-soft')[2]).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('defines every area colour as tone + tint', () => {
+    for (const area of ['recipes', 'ingredients', 'planner', 'shopping']) {
+      expect(() => resolveHsl(`area-${area}`)).not.toThrow();
+      expect(resolveHsl(`area-${area}-soft`)[2]).toBeGreaterThanOrEqual(0.95);
+    }
   });
 
   it('keeps the shadcn --destructive alias on --danger', () => {

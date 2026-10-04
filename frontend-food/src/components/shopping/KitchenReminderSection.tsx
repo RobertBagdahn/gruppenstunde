@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useKitchenReminders, useSuggestKitchenReminder } from '@/api/kitchenReminders';
 import { ChevronDown, ChevronRight, Plus, Check } from 'lucide-react';
+import { notify } from '@/lib/notify';
 
 export default function KitchenReminderSection() {
   const { data: categories, isLoading } = useKitchenReminders();
@@ -47,7 +48,13 @@ export default function KitchenReminderSection() {
   const handleSuggest = () => {
     const name = suggestionInput.trim();
     if (!name) return;
-    suggestMutation.mutate({ name });
+    suggestMutation.mutate(
+      { name },
+      {
+        onSuccess: () => notify.success('Vorschlag gespeichert'),
+        onError: (error) => notify.failed('Vorschlag', 'gespeichert', error),
+      },
+    );
     setSuggestionInput('');
   };
 

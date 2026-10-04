@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { formatCount, formatEuro } from '@/lib/format';
 import PackageSuggestionRow from './PackageSuggestionRow';
+import { getApiErrorMessage } from '@/lib/api';
 
 /** Default threshold for "accept all" when no confidence filter is set. */
 export const DEFAULT_BULK_CONFIDENCE = 0.8;
@@ -120,7 +121,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border bg-card p-4 md:p-5 space-y-3">
+      <section className="rounded-xl bg-card p-4 md:p-5 space-y-3 shadow-card">
         <div className="space-y-1">
           <h2 className="font-display text-section font-bold">Packungen per KI vorschlagen</h2>
           <p className="text-body text-muted-foreground">
@@ -294,7 +295,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
         ) : error ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-body text-destructive space-y-2">
             <p className="font-semibold">Vorschläge konnten nicht geladen werden</p>
-            <p>{error.message}</p>
+            <p>{getApiErrorMessage(error)}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
               Erneut versuchen
             </Button>

@@ -7,7 +7,7 @@
 import { useRef, useState } from 'react';
 import { useAiAccess } from '@/hooks/useAiAccess';
 import { Upload, Sparkles, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { type UseMutationResult } from '@tanstack/react-query';
 import { useGenerateImage } from '@/api/ai';
 import {
@@ -20,6 +20,7 @@ import {
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/components/ui/icon';
+import { getApiErrorMessage } from '@/lib/api';
 
 const MAX_FILE_SIZE = 500 * 1024; // 500KB
 
@@ -59,13 +60,13 @@ export default function TitleImageEditor({
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('Das Bild darf maximal 500KB gross sein');
+      notify.error('Das Bild darf maximal 500KB gross sein');
       return;
     }
 
     uploadMutation.mutate(file, {
-      onSuccess: () => toast.success('Bild erfolgreich hochgeladen'),
-      onError: () => toast.error('Bild konnte nicht hochgeladen werden'),
+      onSuccess: () => notify.success('Bild erfolgreich hochgeladen'),
+      onError: () => notify.error('Bild konnte nicht hochgeladen werden'),
     });
 
     // Reset input so the same file can be selected again
@@ -76,10 +77,10 @@ export default function TitleImageEditor({
   const handleDelete = () => {
     deleteMutation.mutate(undefined, {
       onSuccess: () => {
-        toast.success('Titelbild entfernt');
+        notify.success('Titelbild entfernt');
         setShowDeleteConfirm(false);
       },
-      onError: () => toast.error('Titelbild konnte nicht entfernt werden'),
+      onError: () => notify.error('Titelbild konnte nicht entfernt werden'),
     });
   };
 
@@ -109,7 +110,7 @@ export default function TitleImageEditor({
               onClick={() => setShowAiModal(true)}
               disabled={isUploading || ai.disabled}
               title={ai.hint || undefined}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-sm font-medium text-primary transition disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-body font-medium text-primary transition disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
               KI-Bild generieren
@@ -136,10 +137,10 @@ export default function TitleImageEditor({
           onSelect={(url) => {
             setFromUrlMutation.mutate(url, {
               onSuccess: () => {
-                toast.success('KI-Bild wurde gesetzt');
+                notify.success('KI-Bild gesetzt');
                 setShowAiModal(false);
               },
-              onError: () => toast.error('KI-Bild konnte nicht gesetzt werden'),
+              onError: (error) => notify.error('KI-Bild konnte nicht gesetzt werden', { error }),
             });
           }}
         />
@@ -186,7 +187,7 @@ export default function TitleImageEditor({
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-12 z-20 min-w-[200px] rounded-xl border bg-card shadow-lg py-1">
+              <div className="absolute right-0 top-12 z-20 min-w-[200px] rounded-xl bg-card shadow-lg py-1 shadow-card">
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-body text-left hover:bg-muted transition"
@@ -238,10 +239,10 @@ export default function TitleImageEditor({
         onSelect={(url) => {
           setFromUrlMutation.mutate(url, {
             onSuccess: () => {
-              toast.success('KI-Bild wurde gesetzt');
+              notify.success('KI-Bild gesetzt');
               setShowAiModal(false);
             },
-            onError: () => toast.error('KI-Bild konnte nicht gesetzt werden'),
+            onError: (error) => notify.error('KI-Bild konnte nicht gesetzt werden', { error }),
           });
         }}
       />
@@ -326,8 +327,8 @@ function AiImageModal({
           }
         },
         onError: (err) => {
-          toast.error('KI-Bildgenerierung fehlgeschlagen', {
-            description: err.message,
+          notify.error('KI-Bildgenerierung fehlgeschlagen', {
+            error: err,
           });
         },
       },
@@ -406,7 +407,7 @@ function AiImageModal({
           {/* Error state */}
           {generateImage.isError && (
             <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-body text-destructive">
-              {generateImage.error.message}
+              {getApiErrorMessage(generateImage.error)}
             </div>
           )}
 
@@ -416,7 +417,7 @@ function AiImageModal({
             onClick={handleGenerate}
             disabled={generateImage.isPending || ai.disabled}
             title={ai.hint || undefined}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition disabled:opacity-50 disabled:bg-green-600"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary hover:bg-primary/90 text-white text-body font-medium transition disabled:opacity-50 disabled:bg-primary"
           >
             {generateImage.isPending ? (
               <>

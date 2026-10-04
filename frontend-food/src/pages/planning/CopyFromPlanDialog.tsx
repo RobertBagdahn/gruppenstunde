@@ -15,7 +15,7 @@ import {
 } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { formatNumber } from '@/lib/format';
 import { planDateKey } from '@/lib/mealPlanDateTime';
 
@@ -149,12 +149,12 @@ export function CopyFromPlanDialog({
       },
       {
         onSuccess: (data) => {
-          toast.success(`${data.length} ${data.length === 1 ? 'Eintrag wurde' : 'Einträge wurden'} kopiert`);
+          notify.success(`${data.length} ${data.length === 1 ? 'Eintrag wurde' : 'Einträge wurden'} kopiert`);
           onOpenChange(false);
           resetState();
         },
         onError: (err: Error) => {
-          toast.error('Fehler beim Kopieren', { description: err.message });
+          notify.error('Mahlzeiten konnten nicht kopiert werden', { error: err });
         },
       },
     );

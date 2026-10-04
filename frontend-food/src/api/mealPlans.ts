@@ -145,6 +145,8 @@ export function useMealPlans(filters: MealPlanFilterParams = {}, options: { enab
   const queryKey = ['meal-plans', filters] as const;
   return useQuery<MealPlan[]>({
     enabled: options.enabled ?? true,
+    // Keep the previous page visible while the next one loads (food-loading-states).
+    placeholderData: keepPreviousData,
     queryKey,
     queryFn: () => {
       const params = new URLSearchParams();

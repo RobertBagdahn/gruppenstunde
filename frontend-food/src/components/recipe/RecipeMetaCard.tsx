@@ -1,4 +1,5 @@
 import { UtensilsCrossed, User, Clock, Timer, BarChart2, Users, Eye, Heart, Calendar } from 'lucide-react';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import type { RecipeDetail } from '@/schemas/recipe';
 import {
   RECIPE_TYPE_OPTIONS,
@@ -7,9 +8,7 @@ import {
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 import { cn } from '@/lib/utils';
-import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
 
-const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 interface RecipeMetaCardProps {
   recipe: RecipeDetail;
@@ -36,7 +35,6 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
   const nutriLabel = recipe.cached_nutri_class != null
     ? ['A', 'B', 'C', 'D', 'E'][recipe.cached_nutri_class - 1]
     : null;
-  const nutriColors = nutriLabel ? NUTRI_SCORE_COLORS[nutriLabel] : null;
 
   const authorLabel = recipe.authors && recipe.authors.length > 0
     ? recipe.authors.map((a) => a.display_name || a.scout_name).join(', ')
@@ -104,12 +102,10 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
             <div className="w-10 h-10 bg-muted/60 rounded-full animate-pulse" />
           </div>
         ) : (
-          nutriLabel && nutriColors && (
-            <div className="flex flex-col items-center gap-1.5" title={`Nutri-Score ${nutriLabel}: ${['Hervorragend', 'Gut', 'Ausreichend', 'Mäßig', 'Schlecht'][recipe.cached_nutri_class! - 1]}`}>
+          nutriLabel && (
+            <div className="flex flex-col items-center gap-1.5">
               <span className="text-caption text-muted-foreground uppercase tracking-wider font-semibold">Nutri-Score</span>
-              <span className={cn(nutriColors.bg, nutriColors.text, 'flex items-center justify-center w-10 h-10 text-section font-black rounded-full shadow-sm cursor-help')}>
-                {nutriLabel}
-              </span>
+              <NutriScoreBadge value={nutriLabel} size="md" className="h-10 w-10 text-section cursor-help" />
             </div>
           )
         )}

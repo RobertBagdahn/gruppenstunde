@@ -23,7 +23,7 @@ import {
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
 } from '@/schemas/content';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ export default function ContentStepper({
       { text, field },
       {
         onSuccess: (data) => setter(data.improved_text),
-        onError: () => toast.error('KI-Verbesserung fehlgeschlagen'),
+        onError: () => notify.error('KI-Verbesserung fehlgeschlagen'),
       },
     );
   }
@@ -226,9 +226,9 @@ export default function ContentStepper({
       {
         onSuccess: (data) => {
           setFormData({ selectedTagIds: data.tag_ids.map(String) });
-          toast.success(`${data.tag_ids.length} Tags vorgeschlagen`);
+          notify.success(`${data.tag_ids.length} Tags vorgeschlagen`);
         },
-        onError: () => toast.error('Tag-Vorschläge fehlgeschlagen'),
+        onError: () => notify.error('Tag-Vorschläge fehlgeschlagen'),
       },
     );
   }
@@ -238,7 +238,7 @@ export default function ContentStepper({
     // Bot check
     if (honeyField || Date.now() - loadedAt.current < 5000) return;
     if (!formData.title.trim()) {
-      toast.error('Bitte gib einen Titel ein');
+      notify.error('Bitte gib einen Titel ein');
       return;
     }
     await onSave(formData);
@@ -343,7 +343,7 @@ export default function ContentStepper({
       {/* Step 0: Describe (AI or Manual)                                  */}
       {/* ================================================================ */}
       {step === 0 && (
-        <div className="bg-card rounded-xl border p-6">
+        <div className="bg-card rounded-xl p-6 shadow-card">
           <h2 className="text-section font-semibold mb-4">Wie möchtest du starten?</h2>
 
           {step0Mode === 'choose' && (
@@ -470,7 +470,7 @@ export default function ContentStepper({
       {step === 1 && (
         <div className="space-y-6">
           {/* Title */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <label className="block text-body font-medium mb-1.5">
               Titel <span className="text-destructive">*</span>
             </label>
@@ -499,7 +499,7 @@ export default function ContentStepper({
           </div>
 
           {/* Summary */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <label className="block text-body font-medium mb-1.5">Kurzbeschreibung</label>
             <div className="flex gap-2">
               <textarea
@@ -526,7 +526,7 @@ export default function ContentStepper({
           </div>
 
           {/* Description */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-body font-medium">Beschreibung</label>
               <button
@@ -551,7 +551,7 @@ export default function ContentStepper({
           </div>
 
           {/* Meta fields */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <h3 className="text-body font-medium mb-4">Eigenschaften</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -610,7 +610,7 @@ export default function ContentStepper({
           {renderTypeFields?.()}
 
           {/* Tags */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-body font-medium">Tags</h3>
               <button
@@ -651,7 +651,7 @@ export default function ContentStepper({
           </div>
 
           {/* Scout levels */}
-          <div className="bg-card rounded-xl border p-6">
+          <div className="bg-card rounded-xl p-6 shadow-card">
             <h3 className="text-body font-medium mb-3">Altersstufen</h3>
             <div className="flex flex-wrap gap-2">
               {scoutLevels?.map((level) => {
@@ -707,7 +707,7 @@ export default function ContentStepper({
       {step === 2 && (
         <div className="space-y-6">
           {/* Preview card */}
-          <div className="bg-card rounded-xl border overflow-hidden">
+          <div className="bg-card rounded-xl overflow-hidden shadow-card">
             {/* Preview header */}
             <div className={`bg-gradient-to-r ${typeGradient} px-6 py-4`}>
               <h2 className="text-white text-section font-bold">{formData.title || 'Ohne Titel'}</h2>

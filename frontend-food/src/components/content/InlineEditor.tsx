@@ -14,7 +14,7 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useAiAccess } from '@/hooks/useAiAccess';
 import { useImproveText } from '@/api/ai';
 import MarkdownEditor from '@/components/MarkdownEditor';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Icon } from '@/components/ui/icon';
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ export default function InlineEditor(props: InlineEditorProps) {
       await onSave(editValue);
       setIsOpen(false);
     } catch {
-      toast.error('Speichern fehlgeschlagen');
+      notify.error('Speichern fehlgeschlagen');
     }
   }
 
@@ -101,7 +101,7 @@ export default function InlineEditor(props: InlineEditorProps) {
       { text: editValue, field: aiField },
       {
         onSuccess: (data) => setEditValue(data.improved_text),
-        onError: () => toast.error('KI-Verbesserung fehlgeschlagen'),
+        onError: () => notify.error('KI-Verbesserung fehlgeschlagen'),
       },
     );
   }
@@ -125,7 +125,7 @@ export default function InlineEditor(props: InlineEditorProps) {
       <dialog
         ref={dialogRef}
         onClose={() => setIsOpen(false)}
-        className="w-full max-w-lg rounded-xl border bg-card p-0 shadow-xl backdrop:bg-black/50"
+        className="w-full max-w-lg rounded-xl bg-card p-0 shadow-xl backdrop:bg-black/50 shadow-card"
       >
         {isOpen && (
           <div className="p-6 space-y-4">
@@ -191,7 +191,7 @@ export default function InlineEditor(props: InlineEditorProps) {
                     onClick={handleAiImprove}
                     disabled={!editValue.trim() || improveText.isPending || ai.disabled}
                     title={ai.hint || undefined}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-sm"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-body"
                   >
                     <Icon name="auto_awesome" size={16} />
                     {improveText.isPending ? 'Verbessert...' : 'KI-Vorschlag'}

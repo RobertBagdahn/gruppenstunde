@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { ApiError } from '@/lib/api';
 import {
   fieldErrorsFromApi,
@@ -37,7 +37,7 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+    <div className="rounded-xl p-4 bg-card shadow-card">
       <h2 className="text-body font-display font-bold text-foreground mb-4 flex items-center gap-2">
         <Icon name={icon} size={20} className="text-primary" />
         {title}
@@ -257,11 +257,11 @@ export default function IngredientEditPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error('Name ist erforderlich');
+      notify.error('Name ist erforderlich');
       return;
     }
     if (Object.keys(clientNutritionErrors).length > 0) {
-      toast.error('Bitte korrigiere die markierten Nährwerte.');
+      notify.error('Bitte korrigiere die markierten Nährwerte');
       return;
     }
     setServerNutritionErrors({});
@@ -322,11 +322,11 @@ export default function IngredientEditPage() {
       onSuccess: (saved) => {
         const warnings = saved.nutrition_warnings ?? [];
         if (warnings.length > 0) {
-          toast.warning('Zutat gespeichert – bitte Nährwerte prüfen', {
+          notify.warning('Zutat gespeichert – bitte Nährwerte prüfen', {
             description: warnings.map((warning) => warning.label).join('; '),
           });
         } else {
-          toast.success('Zutat gespeichert');
+          notify.success('Zutat gespeichert');
         }
         navigate(`/ingredients/${slug}`);
       },
@@ -334,7 +334,7 @@ export default function IngredientEditPage() {
         if (err instanceof ApiError && err.code === 'nutrition_implausible') {
           setServerNutritionErrors(fieldErrorsFromApi(err.fields, err.message));
         }
-        toast.error('Fehler beim Speichern', { description: err.message });
+        notify.error('Zutat konnte nicht gespeichert werden', { error: err });
       },
     });
   };

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Download, Loader2, Pencil, Search, Sparkles, TestTube2, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ import { DataQualityBuffetStateSchema } from '@/schemas/listState';
 import { usePersistedListState } from '@/hooks/usePersistedListState';
 import { BUFFET_ROLE_ORDER, buffetRoleName } from '@/lib/buffetRoles';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
+import { getApiErrorMessage } from '@/lib/api';
 
 const PAGE_SIZE = 20;
 const ROLE_DEFAULTS: Record<'ingredient' | 'recipe', string[]> = {
@@ -288,10 +289,10 @@ export default function BuffetCatalogProposalPanel() {
         rationale: candidate.rationale,
       });
       setSelectedProposalId(proposal.id);
-      toast.success('Vorschlag angelegt', { description: 'Das Katalog-Item wurde nicht verändert.' });
+      notify.success('Vorschlag angelegt', { description: 'Das Katalog-Item wurde nicht verändert.' });
     } catch (error) {
-      toast.error('Vorschlag konnte nicht angelegt werden', {
-        description: error instanceof Error ? error.message : 'Bitte erneut versuchen.',
+      notify.error('Vorschlag konnte nicht angelegt werden', {
+        description: getApiErrorMessage(error, 'Bitte erneut versuchen.'),
       });
     }
   };
@@ -325,10 +326,10 @@ export default function BuffetCatalogProposalPanel() {
         setRecipeIngredients(recipeItemsText(data));
         setRecipeSteps(recipeStepsText(data));
       }
-      toast.success('KI-Vorschlag erstellt', { description: 'Bitte prüfen und manuell ergänzen.' });
+      notify.success('KI-Vorschlag erstellt', { description: 'Bitte prüfen und manuell ergänzen.' });
     } catch (error) {
-      toast.error('KI-Vorschlag fehlgeschlagen', {
-        description: error instanceof Error ? error.message : 'Bitte erneut versuchen.',
+      notify.error('KI-Vorschlag fehlgeschlagen', {
+        description: getApiErrorMessage(error, 'Bitte erneut versuchen.'),
       });
     }
   };
@@ -408,17 +409,17 @@ export default function BuffetCatalogProposalPanel() {
           },
         });
         setSelectedProposalId(updated.id);
-        toast.success('Vorschlag aktualisiert', { description: 'Der Mapping-Test muss erneut ausgeführt werden.' });
+        notify.success('Vorschlag aktualisiert', { description: 'Der Mapping-Test muss erneut ausgeführt werden.' });
       } else {
         const created = await createProposal.mutateAsync(request);
         setSelectedProposalId(created.id);
-        toast.success('Vorschlag gespeichert', { description: 'Es wurden noch keine Katalogdaten geändert.' });
+        notify.success('Vorschlag gespeichert', { description: 'Es wurden noch keine Katalogdaten geändert.' });
       }
       setPreviewResult(null);
       resetForm();
     } catch (error) {
-      toast.error('Vorschlag konnte nicht gespeichert werden', {
-        description: error instanceof Error ? error.message : 'Bitte Eingaben prüfen und erneut versuchen.',
+      notify.error('Vorschlag konnte nicht gespeichert werden', {
+        description: getApiErrorMessage(error, 'Bitte Eingaben prüfen und erneut versuchen.'),
       });
     }
   };
@@ -428,10 +429,10 @@ export default function BuffetCatalogProposalPanel() {
       const result = await previewProposal.mutateAsync(proposalId);
       setSelectedProposalId(proposalId);
       setPreviewResult(result);
-      if (result.can_approve) toast.success('Mapping-Test erfolgreich', { description: 'Es wurden keine Katalogdaten geändert.' });
+      if (result.can_approve) notify.success('Mapping-Test erfolgreich', { description: 'Es wurden keine Katalogdaten geändert.' });
     } catch (error) {
-      toast.error('Mapping-Test fehlgeschlagen', {
-        description: error instanceof Error ? error.message : 'Bitte erneut versuchen.',
+      notify.error('Mapping-Test fehlgeschlagen', {
+        description: getApiErrorMessage(error, 'Bitte erneut versuchen.'),
       });
     }
   };
@@ -440,12 +441,12 @@ export default function BuffetCatalogProposalPanel() {
     try {
       await reviewProposal.mutateAsync({ id: proposal.id, review: { decision, note: '' } });
       setPreviewResult(null);
-      toast.success(decision === 'approve' ? 'Mapping freigegeben' : 'Vorschlag abgelehnt', {
+      notify.success(decision === 'approve' ? 'Mapping freigegeben' : 'Vorschlag abgelehnt', {
         description: decision === 'approve' ? 'Die Freigabe ändert noch keine Katalogdaten.' : undefined,
       });
     } catch (error) {
-      toast.error('Entscheidung konnte nicht gespeichert werden', {
-        description: error instanceof Error ? error.message : 'Bitte erneut versuchen.',
+      notify.error('Entscheidung konnte nicht gespeichert werden', {
+        description: getApiErrorMessage(error, 'Bitte erneut versuchen.'),
       });
     }
   };
@@ -460,10 +461,10 @@ export default function BuffetCatalogProposalPanel() {
       link.download = 'buffet-approved-mapping.json';
       link.click();
       URL.revokeObjectURL(url);
-      toast.success('Freigegebenes Mapping exportiert');
+      notify.success('Freigegebenes Mapping exportiert');
     } catch (error) {
-      toast.error('Mapping-Export fehlgeschlagen', {
-        description: error instanceof Error ? error.message : 'Bitte erneut versuchen.',
+      notify.error('Mapping-Export fehlgeschlagen', {
+        description: getApiErrorMessage(error, 'Bitte erneut versuchen.'),
       });
     }
   };
@@ -479,7 +480,7 @@ export default function BuffetCatalogProposalPanel() {
         Rezepte oder Tags und ersetzt nicht den freizugebenden Prod-Dry-Run.
       </div>
 
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4" aria-labelledby="buffet-quality-report-heading">
+      <section className="space-y-3 rounded-xl bg-card p-4 shadow-card" aria-labelledby="buffet-quality-report-heading">
         <div>
           <h3 id="buffet-quality-report-heading" className="text-emphasis font-semibold text-foreground">Vollständigkeits- und Alt-Tag-Bericht</h3>
           <p className="text-caption text-muted-foreground">Prüft Buffet-Zutaten auf kcal, Verifizierung und Retail-Section sowie alte Frühstücks-Tags.</p>
@@ -539,7 +540,7 @@ export default function BuffetCatalogProposalPanel() {
         ) : null}
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl bg-card p-4 shadow-card">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h3 className="text-emphasis font-semibold text-foreground">Kandidaten prüfen</h3>
@@ -612,7 +613,7 @@ export default function BuffetCatalogProposalPanel() {
       </section>
 
       {formOpen && (
-        <section className="space-y-4 rounded-xl border border-border bg-card p-4" aria-label="Buffet-Vorschlag bearbeiten">
+        <section className="space-y-4 rounded-xl bg-card p-4 shadow-card" aria-label="Buffet-Vorschlag bearbeiten">
           <div className="flex items-center justify-between gap-2">
             <div>
               <h3 className="text-emphasis font-semibold text-foreground">{editingProposal ? 'Vorschlag bearbeiten' : 'Neuen Vorschlag erfassen'}</h3>
@@ -727,7 +728,7 @@ export default function BuffetCatalogProposalPanel() {
         </section>
       )}
 
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl bg-card p-4 shadow-card">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-emphasis font-semibold text-foreground">Gespeicherte Vorschläge</h3>

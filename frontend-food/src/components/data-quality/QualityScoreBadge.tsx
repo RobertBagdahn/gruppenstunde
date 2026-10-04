@@ -37,7 +37,7 @@ export default function QualityScoreBadge({ score, className }: QualityScoreBadg
             : score >= 80
               ? 'bg-success'
               : score >= 50
-                ? 'bg-warning'
+                ? 'bg-warning-bright'
                 : 'bg-danger'
         )}
       />

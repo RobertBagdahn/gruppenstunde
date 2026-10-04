@@ -6,7 +6,6 @@ import type { RecipeItemNutrition } from '@/schemas/recipe';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 
-export { NUTRI_SCORE_COLORS_BY_LETTER as NUTRI_SCORE_COLORS } from '@/schemas/supply';
 
 // --- Collapsible Section Component ---
 export function AnalysisSection({
@@ -26,7 +25,7 @@ export function AnalysisSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="border rounded-xl overflow-hidden bg-card">
+    <section className="rounded-xl overflow-hidden bg-card shadow-card">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-2 px-5 py-4 text-left hover:bg-muted/50 transition-colors"
@@ -156,7 +155,7 @@ export function MicronutrientSection({
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        coverage >= 80 ? 'bg-success' : coverage >= 40 ? 'bg-warning' : 'bg-danger'
+                        coverage >= 80 ? 'bg-success' : coverage >= 40 ? 'bg-warning-bright' : 'bg-danger'
                       }`}
                       style={{ width: `${Math.min(coverage, 100)}%` }}
                     />
@@ -297,7 +296,7 @@ export function HealthIndicator({
       <p className="text-caption opacity-75">{dgePct}% der DGE-Referenz</p>
       <div className="h-1.5 bg-white/50 rounded-full mt-1 overflow-hidden">
         <div
-          className={`h-full rounded-full ${status === 'good' ? 'bg-success' : status === 'warn' ? 'bg-warning' : 'bg-danger'}`}
+          className={`h-full rounded-full ${status === 'good' ? 'bg-success' : status === 'warn' ? 'bg-warning-bright' : 'bg-danger'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -331,7 +330,7 @@ export function PriceRow({
       )}
       <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         <div
-          className="h-full bg-warning rounded-full"
+          className="h-full bg-warning-bright rounded-full"
           style={{ width: `${pricePct}%` }}
         />
       </div>

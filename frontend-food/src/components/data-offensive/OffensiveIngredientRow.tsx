@@ -170,7 +170,7 @@ export default function OffensiveIngredientRow({
                 key={issue}
                 className={cn(
                   'rounded-full px-2 py-0.5 text-caption font-medium',
-                  CRITICAL_ISSUES.has(issue) ? 'bg-destructive/10 text-destructive' : 'bg-accent/15 text-foreground'
+                  CRITICAL_ISSUES.has(issue) ? 'bg-destructive/10 text-destructive' : 'bg-warning-soft text-warning'
                 )}
               >
                 {issueLabels[issue] ?? issue}

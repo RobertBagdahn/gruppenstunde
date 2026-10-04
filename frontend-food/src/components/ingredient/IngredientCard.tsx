@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import type { IngredientListItem } from '@/schemas/supply';
-import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 
@@ -10,9 +10,6 @@ interface IngredientCardProps {
 }
 
 export default function IngredientCard({ ingredient, onDelete }: IngredientCardProps) {
-  const nutriColors = ingredient.nutri_class
-    ? NUTRI_SCORE_COLORS[ingredient.nutri_class]
-    : null;
 
   const formatPrice = (price: number | null) => {
     if (price === null) return null;
@@ -22,19 +19,13 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
   return (
     <Link
       to={`/ingredients/${ingredient.slug}`}
-      className="group block rounded-xl bg-card overflow-hidden shadow-soft card-hover border border-border hover:border-primary/50 hover:shadow-md p-4"
+      className="group block rounded-xl bg-card overflow-hidden shadow-card card-hover p-4"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <h3 className="font-semibold text-body line-clamp-2 group-hover:text-primary transition-colors">
           {ingredient.name}
         </h3>
-        {nutriColors && (
-          <span
-            className={`${nutriColors.bg} ${nutriColors.text} text-caption font-bold px-2 py-0.5 rounded-lg shrink-0`}
-          >
-            {nutriColors.label}
-          </span>
-        )}
+        <NutriScoreBadge value={ingredient.nutri_class} size="sm" />
       </div>
 
       {ingredient.retail_section_name && (

@@ -4,6 +4,7 @@ import { useBreakfastCatalog } from '@/api/breakfast';
 import { FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
 import ShareSlider from './ShareSlider';
 import type { FatSelection } from '@/schemas/breakfast';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 interface StepStreichfettProps {
   wiz: UseWizardStateReturn;
@@ -44,12 +45,12 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
   }, [catalog, state.fatSelections.length, initFats]);
 
   if (isLoading) {
-    return <div className="text-body text-muted-foreground p-4">Lade Streichfette…</div>;
+    return <SkeletonTableRows rows={4} columns={2} label="Streichfette werden geladen" className="p-4" />;
   }
 
   if (!catalog?.fat_ingredients?.length && state.fatSelections.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <h3 className="font-display font-semibold text-emphasis">Streichfett</h3>
         <p className="text-body text-muted-foreground">
           Keine Streichfette verfügbar — lege Zutaten mit dem Tag breakfast-fat an.
@@ -60,7 +61,7 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <h3 className="font-display font-semibold text-emphasis">Streichfett-Verteilung</h3>
         <p className="text-caption text-muted-foreground">
           Welche Streichfette sollen verwendet werden? {FAT_GRAMS_PER_PERSON}g pro Person, feste Portion.
@@ -68,7 +69,7 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
       </div>
 
       {state.fatSelections.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
             <button

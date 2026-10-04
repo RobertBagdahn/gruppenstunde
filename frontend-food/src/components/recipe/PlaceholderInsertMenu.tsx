@@ -98,7 +98,7 @@ export default function PlaceholderInsertMenu({
           {/* Menu */}
           <div
             ref={menuRef}
-            className="absolute top-full left-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-40 min-w-80"
+            className="absolute top-full left-0 mt-1 bg-card rounded-xl shadow-lg z-40 min-w-80 shadow-card"
           >
             <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
               {/* Header */}

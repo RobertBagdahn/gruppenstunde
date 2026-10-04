@@ -34,7 +34,7 @@ export default function MealPlanLandingPage() {
       {/* Related Tool: Rezepte */}
       <section className="container py-10 md:py-14">
         <div className="max-w-3xl mx-auto space-y-4">
-          <div className="rounded-xl border border-border bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
+          <div className="rounded-xl bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-card">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
               <BookOpen className="w-5 h-5 text-primary" />
             </div>
@@ -54,7 +54,7 @@ export default function MealPlanLandingPage() {
           </div>
 
           {/* Related Tool: Normportion-Simulator */}
-          <div className="rounded-xl border border-border bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
+          <div className="rounded-xl bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-card">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
               <Calculator className="w-5 h-5 text-primary" />
             </div>

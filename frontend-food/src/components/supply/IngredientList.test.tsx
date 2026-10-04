@@ -56,16 +56,18 @@ describe('IngredientList', () => {
     expect(screen.getByText('(1 ohne Preis)')).toBeTruthy();
   });
 
-  it('hides the facts row in compact mode', () => {
-    renderList([makeItem(1, 'Tee', 100, 30), makeItem(2, 'Reis', 100, 2)], '/?ingredient_view=compact');
+  it('hides the facts row by default', () => {
+    renderList([makeItem(1, 'Tee', 100, 30), makeItem(2, 'Reis', 100, 2)]);
     expect(screen.queryByText('30,00 €/kg')).toBeNull();
-    expect((screen.getByLabelText('Kompakt') as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText('Details') as HTMLInputElement).checked).toBe(false);
   });
 
-  it('shows price per kg by default and toggles compact mode', () => {
-    renderList([makeItem(1, 'Tee', 100, 30), makeItem(2, 'Reis', 100, 2)]);
+  it('shows the facts of all rows with "Details" and of one tapped row', () => {
+    renderList([makeItem(1, 'Tee', 100, 30), makeItem(2, 'Reis', 100, 2)], '/?ingredient_view=details');
     expect(screen.getByText('30,00 €/kg')).toBeTruthy();
-    fireEvent.click(screen.getByLabelText('Kompakt'));
+    fireEvent.click(screen.getByLabelText('Details'));
     expect(screen.queryByText('30,00 €/kg')).toBeNull();
+    fireEvent.click(screen.getAllByText('Tee')[0].closest('li')!);
+    expect(screen.getByText('30,00 €/kg')).toBeTruthy();
   });
 });

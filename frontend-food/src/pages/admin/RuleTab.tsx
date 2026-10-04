@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import AmpelRangePreview from '@/components/admin/AmpelRangePreview';
 import RuleEditDialog from '@/components/admin/RuleEditDialog';
 import { Pencil, Trash2, Plus, AlertCircle, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 const SCOPE_LABELS: Record<string, string> = {
   meal_event: 'Essensplan',
@@ -30,41 +32,50 @@ export default function RuleTab() {
 
   const [editRule, setEditRule] = useState<Rule | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Rule | null>(null);
 
   function handleSave(data: RuleIn) {
     if (editRule) {
       updateMutation.mutate(
         { id: editRule.id, data },
         {
-          onSuccess: () => { setShowDialog(false); toast.success('Regel aktualisiert'); },
-          onError: () => toast.error('Fehler beim Speichern'),
+          onSuccess: () => { setShowDialog(false); notify.success('Regel aktualisiert'); },
+          onError: () => notify.error('Regel konnte nicht gespeichert werden'),
         },
       );
     } else {
       createMutation.mutate(data, {
-        onSuccess: () => { setShowDialog(false); toast.success('Regel erstellt'); },
-        onError: () => toast.error('Fehler beim Erstellen'),
+        onSuccess: () => { setShowDialog(false); notify.success('Regel erstellt'); },
+        onError: () => notify.error('Regel konnte nicht angelegt werden'),
       });
     }
   }
 
   function handleToggle(rule: Rule) {
-    toggleMutation.mutate({ id: rule.id, is_active: !rule.is_active });
+    toggleMutation.mutate(
+      { id: rule.id, is_active: !rule.is_active },
+      { onError: (error) => notify.failed('Regel', 'umgeschaltet', error) },
+    );
   }
 
   function handleDelete(rule: Rule) {
-    if (!confirm(`Regel "${rule.name}" löschen?`)) return;
-    deleteMutation.mutate(rule.id, {
-      onSuccess: () => toast.success('Regel gelöscht'),
-      onError: () => toast.error('Fehler beim Löschen'),
+    setDeleteTarget(rule);
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        setDeleteTarget(null);
+        notify.deleted('Regel');
+      },
+      onError: (error) => notify.failed('Regel', 'gelöscht', error),
     });
   }
 
   if (isLoading) {
     return (
-      <div className="py-12 text-center text-body text-muted-foreground">
-        Lade Regeln...
-      </div>
+      <SkeletonTableRows rows={6} columns={3} label="Regeln werden geladen" />
     );
   }
 
@@ -124,7 +135,7 @@ export default function RuleTab() {
 
       <div className="grid gap-6">
         {scopes.map((scope) => (
-          <div key={scope} className="border border-border bg-card rounded-xl overflow-hidden shadow-sm">
+          <div key={scope} className="bg-card rounded-xl overflow-hidden shadow-card">
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30 border-b border-border">
               <span className={`px-2.5 py-0.5 rounded-full text-caption font-semibold border ${SCOPE_COLORS[scope] || ''}`}>
@@ -198,6 +209,15 @@ export default function RuleTab() {
         rule={editRule}
         onSave={handleSave}
         isPending={createMutation.isPending || updateMutation.isPending}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+        title="Regel löschen?"
+        description={deleteTarget ? `Die Regel „${deleteTarget.name}“ wird endgültig gelöscht.` : undefined}
+        confirmLabel="Löschen"
+        loading={deleteMutation.isPending}
       />
     </div>
   );

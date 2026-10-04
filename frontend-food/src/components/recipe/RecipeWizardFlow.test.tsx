@@ -408,7 +408,7 @@ describe('RecipeWizard toasts', () => {
     await renderPreview();
     fireEvent.click(screen.getByTestId('recipe-wizard-finish'));
 
-    await waitFor(() => expect(mocks.toast.success).toHaveBeenCalledWith('Rezept fertiggestellt!'));
+    await waitFor(() => expect(mocks.toast.success).toHaveBeenCalledWith('Rezept fertiggestellt', undefined));
     expect(mocks.toast.error).not.toHaveBeenCalled();
   });
 

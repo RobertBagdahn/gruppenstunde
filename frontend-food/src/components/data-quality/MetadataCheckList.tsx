@@ -1,6 +1,8 @@
 import { useRecipeMetadataCheck } from '@/api/dataQuality';
 import type { RecipeMetadataCheck } from '@/schemas/dataQuality';
-import { Loader2, Image, Tags, FileText } from 'lucide-react';
+import { Image, Tags, FileText } from 'lucide-react';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 interface MetadataCheckListProps {
   page?: number;
@@ -12,11 +14,9 @@ export default function MetadataCheckList({ page = 1, pageSize = 50 }: MetadataC
 
   if (isLoading)
     return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin text-title text-muted-foreground" />
-      </div>
+      <SkeletonTableRows rows={5} columns={3} label="Einträge werden geladen" />
     );
-  if (error) return <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" />;
   if (!data?.items.length) return <div className="text-muted-foreground py-4">Alle Rezepte haben vollständige Metadaten</div>;
 
   return (

@@ -24,7 +24,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Loader2, GitMerge, ArrowRight, ArrowLeftRight, ArrowLeft, AlertTriangle, Search, XCircle, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { formatNumber } from '@/lib/format';
 
 interface InlineIngredient {
@@ -89,7 +89,7 @@ export default function IngredientMergeDialog({
 
   const handleSelectIngredient = useCallback((ingredient: InlineIngredient) => {
     if (ingredient.id === currentIngredient.id) {
-      toast.error('Kann nicht mit sich selbst zusammengeführt werden');
+      notify.error('Kann nicht mit sich selbst zusammengeführt werden');
       return;
     }
     setSourceIngredient(ingredient);
@@ -108,7 +108,7 @@ export default function IngredientMergeDialog({
         source_id: sourceIngredient.id,
         target_id: targetIngredient.id,
       });
-      toast.success(
+      notify.success(
         `Zutaten zusammengeführt: ${result.affected_recipe_items} Rezepte aktualisiert, ${result.portions_moved} Portionen übernommen, ${result.aliases_added} Aliase hinzugefügt`
       );
       onOpenChange(false);
@@ -118,7 +118,7 @@ export default function IngredientMergeDialog({
         navigate(`/ingredients/${targetIngredient.slug}`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Zusammenführen');
+      notify.error('Zutaten konnten nicht zusammengeführt werden', { error: err });
     }
   }, [sourceIngredient, targetIngredient, mergeMutation, onOpenChange, reset, onMergeComplete, navigate, currentIngredient, preSelectedTarget]);
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { useVoteAiInteraction } from '@/api/aiInteraction';
 
@@ -18,10 +18,10 @@ export function AiVoteButtons({ interactionId }: AiVoteButtonsProps) {
       {
         onSuccess: () => {
           setVoted(vote);
-          toast.success(vote === 'up' ? 'Gefällt mir' : 'Nicht hilfreich');
+          notify.success(vote === 'up' ? 'Gefällt mir' : 'Nicht hilfreich');
         },
         onError: (err) => {
-          toast.error('Fehler', { description: err.message });
+          notify.error('Bewertung konnte nicht gespeichert werden', { error: err });
         },
       },
     );

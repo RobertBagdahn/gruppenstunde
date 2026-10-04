@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useApprovalQueue, useApprovalAction, type ApprovalQueueItem } from '@/api/admin';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Check, X, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 export default function ApprovalTab() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, error } = useApprovalQueue(page);
+  const { data, isLoading, error, refetch } = useApprovalQueue(page);
   const approvalAction = useApprovalAction();
   const [rejectItem, setRejectItem] = useState<ApprovalQueueItem | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -17,8 +19,8 @@ export default function ApprovalTab() {
     approvalAction.mutate(
       { contentType: item.content_type, objectId: item.object_id, action: 'approve' },
       {
-        onSuccess: (result) => toast.success(result.message),
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onSuccess: (result) => notify.success(result.message),
+        onError: (err) => notify.error('Freigabe konnte nicht erteilt werden', { error: err }),
       },
     );
   }
@@ -29,28 +31,22 @@ export default function ApprovalTab() {
       { contentType: rejectItem.content_type, objectId: rejectItem.object_id, action: 'reject', reason: rejectReason },
       {
         onSuccess: (result) => {
-          toast.success(result.message);
+          notify.success(result.message);
           setRejectItem(null);
           setRejectReason('');
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Ablehnung konnte nicht gespeichert werden', { error: err }),
       },
     );
   }
 
   if (error) {
-    return (
-      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-body text-destructive">
-        Fehler beim Laden: {error.message}
-      </div>
-    );
+    return <ErrorDisplay variant="inline" error={error} title="Freigaben konnten nicht geladen werden" onRetry={() => void refetch()} />;
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12 text-body text-muted-foreground">
-        Lade Freigaben...
-      </div>
+      <SkeletonTableRows rows={6} columns={3} label="Freigaben werden geladen" />
     );
   }
 

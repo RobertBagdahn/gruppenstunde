@@ -3,7 +3,7 @@
  */
 import { BookOpen, KeyRound, LogIn, LogOut, Settings, User as UserIcon } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useCurrentUser, useLogout } from '@/api/auth';
 import AiQuotaBar from '@/components/auth/AiQuotaBar';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ export default function UserMenu() {
   function handleLogout() {
     logout.mutate(undefined, {
       onSuccess: () => {
-        toast.success('Du bist abgemeldet.');
+        notify.success('Du bist abgemeldet');
         if (PRIVATE_PREFIXES.some((prefix) => location.pathname.startsWith(prefix))) navigate('/');
       },
     });
@@ -61,7 +61,7 @@ export default function UserMenu() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-semibold text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+          className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-body font-semibold text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
           aria-label="Benutzermenü öffnen"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -72,8 +72,8 @@ export default function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="space-y-0.5">
-          <div className="truncate text-sm">{user.display_name}</div>
-          <div className="truncate text-xs font-normal text-muted-foreground">{user.email}</div>
+          <div className="truncate text-body">{user.display_name}</div>
+          <div className="truncate text-caption font-normal text-muted-foreground">{user.email}</div>
         </DropdownMenuLabel>
         <div className="px-2 pb-2">
           <AiQuotaBar showEuro={user.is_staff} />

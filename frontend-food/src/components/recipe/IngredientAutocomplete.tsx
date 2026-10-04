@@ -4,6 +4,7 @@
  * and displays nutritional info (protein, fat, carbs) in results.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import { API_BASE_URL } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
@@ -11,10 +12,8 @@ import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { useRetailSections } from '@/api/supplies';
 import { UnknownIngredientDialog } from './UnknownIngredientDialog';
-import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
 import { roundToDecimals } from '@/lib/format';
 
-const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 function formatNum(v: number | null | undefined): string {
   return v != null ? roundToDecimals(v, 1) + 'g' : '';
@@ -332,13 +331,6 @@ export function IngredientAutocomplete({
             </div>
           )}
           {suggestions.map((s, i) => {
-            const nutriLabel =
-              s.nutri_class != null
-                ? (['A', 'B', 'C', 'D', 'E'][s.nutri_class - 1] ?? '?')
-                : null;
-            const nutriColors = nutriLabel
-              ? NUTRI_SCORE_COLORS[nutriLabel]
-              : null;
             return (
               <button
                 key={s.id}
@@ -355,19 +347,9 @@ export function IngredientAutocomplete({
                   setIsOpen(false);
                 }}
               >
-                {nutriLabel && nutriColors ? (
-                  <span
-                    className={cn(
-                      'inline-flex items-center justify-center w-6 h-6 rounded-lg text-caption font-bold shrink-0',
-                      nutriColors.bg,
-                      nutriColors.text
-                    )}
-                  >
-                    {nutriLabel}
-                  </span>
-                ) : (
-                  <span className="w-6 shrink-0" />
-                )}
+                <span className="flex w-6 shrink-0 justify-center">
+                  <NutriScoreBadge value={s.nutri_class} size="sm" />
+                </span>
                 <div className="flex-1 min-w-0">
                   <span className="font-medium truncate block text-foreground">
                     {s.name}

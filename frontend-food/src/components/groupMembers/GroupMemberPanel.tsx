@@ -4,6 +4,7 @@ import { useGroupMembers, useCreateGroupMember, useDeleteGroupMember, useBulkCre
 import { AddPersonDialog } from './AddPersonDialog';
 import { GroupMemberList } from './GroupMemberList';
 import { QuickAddStufenDialog } from './QuickAddStufenDialog';
+import { notify } from '@/lib/notify';
 
 interface Props {
   mealPlanId: number;
@@ -23,7 +24,7 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName, activityFact
   const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
+    <div className="rounded-xl bg-card p-5 sm:p-6 space-y-5 font-sans shadow-card">
       <div className="flex items-center gap-2">
         <span className="text-body text-muted-foreground ml-auto">
           {members.length} {members.length === 1 ? 'Person' : 'Personen'}
@@ -51,7 +52,12 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName, activityFact
 
       <GroupMemberList
         members={members}
-        onDelete={(id) => deleteMutation.mutate(id)}
+        onDelete={(id) =>
+          deleteMutation.mutate(id, {
+            onSuccess: () => notify.removed('Person'),
+            onError: (error) => notify.failed('Person', 'entfernt', error),
+          })
+        }
         isDeleting={deleteMutation.isPending}
         activityFactor={activityFactor}
       />
@@ -66,7 +72,15 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName, activityFact
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => syncMutation.mutate(undefined, { onSuccess: () => setShowSyncConfirm(false) })}
+                  onClick={() =>
+                    syncMutation.mutate(undefined, {
+                      onSuccess: () => {
+                        setShowSyncConfirm(false);
+                        notify.success('Personen synchronisiert');
+                      },
+                      onError: (error) => notify.failed('Personen', 'synchronisiert', error),
+                    })
+                  }
                   disabled={syncMutation.isPending}
                   className="rounded-lg bg-primary px-3 py-1.5 text-caption font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
@@ -102,14 +116,24 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName, activityFact
       <AddPersonDialog
         open={showAddPersonDialog}
         onOpenChange={setShowAddPersonDialog}
-        onSubmit={(data) => createMutation.mutate(data)}
+        onSubmit={(data) =>
+          createMutation.mutate(data, {
+            onSuccess: () => notify.created('Person'),
+            onError: (error) => notify.failed('Person', 'angelegt', error),
+          })
+        }
         isPending={createMutation.isPending}
       />
 
       <QuickAddStufenDialog
         open={showQuickAddDialog}
         onOpenChange={setShowQuickAddDialog}
-        onBulkCreate={(data) => bulkCreateMutation.mutate(data)}
+        onBulkCreate={(data) =>
+          bulkCreateMutation.mutate(data, {
+            onSuccess: () => notify.created('Personen'),
+            onError: (error) => notify.failed('Personen', 'angelegt', error),
+          })
+        }
         isPending={bulkCreateMutation.isPending}
       />
     </div>

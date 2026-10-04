@@ -1,8 +1,10 @@
 import { useCacheStaleness } from '@/api/dataQuality';
 import type { CacheStaleness } from '@/schemas/dataQuality';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 interface CacheStalenessListProps {
   page?: number;
@@ -14,11 +16,9 @@ export default function CacheStalenessList({ page = 1, pageSize = 50 }: CacheSta
 
   if (isLoading)
     return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin text-title text-muted-foreground" />
-      </div>
+      <SkeletonTableRows rows={5} columns={3} label="Einträge werden geladen" />
     );
-  if (error) return <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" />;
   if (!data?.items.length) return <div className="text-muted-foreground py-4">Alle Caches sind aktuell</div>;
 
   function formatStaleSince(val: string | null | undefined): string {
@@ -56,7 +56,7 @@ export default function CacheStalenessList({ page = 1, pageSize = 50 }: CacheSta
                 size="sm"
                 onClick={(e) => {
                   e.preventDefault();
-                  toast.info('Cache-Neuberechnung ist in Planung');
+                  notify.info('Cache-Neuberechnung ist in Planung');
                 }}
               >
                 <RefreshCw className="h-3.5 w-3.5 mr-1" />

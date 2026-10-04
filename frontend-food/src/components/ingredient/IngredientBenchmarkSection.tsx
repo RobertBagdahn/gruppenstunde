@@ -21,6 +21,7 @@ import { useIngredientDistributions } from '@/api/supplies';
 import type { DistributionBucket, DistributionStats } from '@/schemas/supply';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ---------------------------------------------------------------------------
 // Konfiguration der angezeigten Felder
@@ -256,7 +257,7 @@ function BenchmarkPanel({
   const hasSection = !!retailSectionId && sectionStats && sectionStats.count >= 3 && sectionStats.p5 != null;
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4 space-y-5">
+    <div className="bg-card rounded-xl p-4 space-y-5 shadow-card">
       {/* Feldname + Aktueller Wert */}
       <div>
         <p className="text-caption font-semibold text-muted-foreground uppercase tracking-wide">
@@ -323,7 +324,11 @@ function BenchmarkPanel({
 
       {/* Ladezustand */}
       {(globalDist.isLoading || sectionDist.isLoading) && (
-        <div className="text-caption text-muted-foreground animate-pulse">Lade Statistiken…</div>
+        <div role="status" aria-busy="true" className="space-y-2">
+          <span className="sr-only">Statistiken werden geladen</span>
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
       )}
     </div>
   );

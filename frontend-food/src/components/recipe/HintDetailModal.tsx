@@ -18,6 +18,7 @@ import { useAiAccess } from '@/hooks/useAiAccess';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import type { Improvement, LlmSuggestion, RecipeItemNutrition } from '@/schemas/recipe';
 import { formatNumber } from '@/lib/format';
+import { Sparkles } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 
 interface HintDetailModalProps {
@@ -75,7 +76,7 @@ function SuggestionCard({
   onApply: (suggestion: LlmSuggestion) => void;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 space-y-2">
+    <div className="rounded-xl bg-card p-4 space-y-2 shadow-card">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <p className="font-medium text-body">
@@ -219,11 +220,11 @@ export default function HintDetailModal({
                 disabled={ai.disabled}
                 title={ai.hint || undefined}
               >
-                <span className="material-symbols-outlined text-sm mr-1.5">auto_awesome</span>
+                <Sparkles className="h-4 w-4 mr-1.5" />
                 KI-Vorschläge anfordern
                 {ai.locked && <AiLockBadge className="ml-1.5" />}
               </Button>
-              {ai.hint && <p className="mt-2 text-xs text-muted-foreground">{ai.hint}</p>}
+              {ai.hint && <p className="mt-2 text-caption text-muted-foreground">{ai.hint}</p>}
             </>
           )}
 

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import type { RecipeItem } from '@/schemas/recipe';
 import { useBatchCreateMealItems } from '@/api/mealPlans';
 import type { MealItemVariantIn } from '@/schemas/mealPlan';
 import { Icon } from '@/components/ui/icon';
+import { Skeleton, SkeletonText } from '@/components/ui/skeleton';
 
 interface VariantSliderDialogProps {
   mealPlanId: number;
@@ -232,7 +233,7 @@ export default function VariantSliderDialog({
   const handleSave = useCallback(async () => {
     const variants = generateVariants(displayGroups, displayOptionals, effectivePortions);
     if (variants.length === 0) {
-      toast.error('Keine Varianten erzeugt');
+      notify.error('Keine Varianten erzeugt');
       return;
     }
     const items: MealItemVariantIn[] = variants.map((v) => ({
@@ -243,11 +244,11 @@ export default function VariantSliderDialog({
     }));
     try {
       await batchCreate.mutateAsync(items);
-      toast.success(`${variants.length} Varianten erstellt`);
+      notify.success(`${variants.length} Varianten erstellt`);
       onClose();
     } catch (err) {
-      toast.error('Fehler beim Erstellen der Varianten', {
-        description: (err as Error).message,
+      notify.error('Varianten konnten nicht angelegt werden', {
+        error: err,
       });
     }
   }, [displayGroups, displayOptionals, effectivePortions, recipeId, batchCreate, onClose]);
@@ -257,7 +258,7 @@ export default function VariantSliderDialog({
   if (effectivePortions <= 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6 text-center space-y-4">
+        <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6 text-center space-y-4 shadow-card">
           <Icon name="info" size={24} className="text-muted-foreground" />
           <p className="text-body text-muted-foreground">
             Keine gültige Portionsanzahl für dieses Gericht. Bitte zuerst Portionen festlegen.
@@ -273,10 +274,11 @@ export default function VariantSliderDialog({
   if (!dataLoaded) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6">
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            <span>Lade Zutaten…</span>
+        <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6 shadow-card">
+          <div role="status" aria-busy="true" className="space-y-3">
+            <span className="sr-only">Zutaten werden geladen</span>
+            <Skeleton className="h-6 w-2/3" />
+            <SkeletonText lines={4} />
           </div>
         </div>
       </div>
@@ -325,7 +327,7 @@ export default function VariantSliderDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-card rounded-xl border shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto shadow-card">
         <div className="p-6">
           <h2 className="text-section font-semibold font-display mb-1">Varianten konfigurieren</h2>
           <p className="text-body text-muted-foreground mb-5">

@@ -5,12 +5,12 @@
  * Used on RecipeDetailPage and other recipe views.
  */
 import { useState, useMemo, type ReactNode } from 'react';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import { AlertTriangle, ChefHat, ChevronDown, Coins, Scale, Search, Tag, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { AvailableConversionBatchItem, Portion } from '@/schemas/supply';
-import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
 import { formatPortionAmount, isGramPortion, shortUnit } from '@/lib/ingredientAmount';
@@ -87,21 +87,7 @@ function Fact({ icon: Icon, children, className }: { icon: LucideIcon; children:
 }
 
 function NutriBadge({ nutriClass, className }: { nutriClass: number | null | undefined; className?: string }) {
-  const colors = nutriClass != null ? NUTRI_SCORE_COLORS[nutriClass] : undefined;
-  if (!colors) return null;
-  return (
-    <span
-      className={cn(
-        colors.bg,
-        colors.text,
-        'h-5 w-5 shrink-0 items-center justify-center rounded-lg text-caption font-extrabold leading-none',
-        className,
-      )}
-      title={`Nutri-Score ${colors.label}`}
-    >
-      {colors.label}
-    </span>
-  );
+  return <NutriScoreBadge value={nutriClass} size="sm" className={className} />;
 }
 
 export default function IngredientList({
@@ -116,16 +102,27 @@ export default function IngredientList({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const sortMode: SortMode = searchParams.get('ingredient_sort') === 'category' ? 'category' : 'amount';
-  const compact = searchParams.get('ingredient_view') === 'compact';
+  // Simple first (food-progressive-disclosure): facts per row only with "Details" or per tapped row.
+  const showDetails = searchParams.get('ingredient_view') === 'details';
+  const [detailRows, setDetailRows] = useState<Set<number>>(new Set());
 
-  const setCompact = (value: boolean) => {
+  const setShowDetails = (value: boolean) => {
     const next = new URLSearchParams(searchParams);
     if (value) {
-      next.set('ingredient_view', 'compact');
+      next.set('ingredient_view', 'details');
     } else {
       next.delete('ingredient_view');
     }
     setSearchParams(next, { replace: true });
+  };
+
+  const toggleRowDetails = (id: number) => {
+    setDetailRows((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const setSortMode = (mode: SortMode) => {
@@ -299,7 +296,15 @@ export default function IngredientList({
       // Rows 2 and 3 start in the name column; the subgrid keeps columns aligned across the list.
       <li
         key={item.id}
-        className="col-span-3 grid grid-cols-subgrid gap-y-1.5 px-6 py-3 transition-colors hover:bg-muted/30 sm:px-4"
+        onClick={(event) => {
+          // Tapping a row reveals its facts; links, buttons and inputs keep their own behaviour.
+          if ((event.target as HTMLElement).closest('a, button, input, select, [role="button"]')) return;
+          if (hasFactsRow && !showDetails) toggleRowDetails(item.id);
+        }}
+        className={cn(
+          'col-span-3 grid grid-cols-subgrid gap-y-1.5 px-6 py-3 transition-colors hover:bg-muted/30 sm:px-4',
+          hasFactsRow && !showDetails && 'cursor-pointer',
+        )}
       >
         {/* Row 1 */}
         <div className="min-w-[3rem] justify-self-end whitespace-nowrap text-right leading-6 tabular-nums">
@@ -381,7 +386,7 @@ export default function IngredientList({
         )}
 
         {/* Row 3: facts in fixed slots — category, share of amount, price per kg, share of cost */}
-        {hasFactsRow && !compact && (
+        {hasFactsRow && (showDetails || detailRows.has(item.id)) && (
           <div className="col-span-2 col-start-2 grid grid-cols-2 gap-x-3 gap-y-1 text-caption text-muted-foreground sm:grid-cols-[minmax(0,1fr)_6.5rem_7rem_6.5rem]">
             <span className="col-span-2 min-w-0 sm:col-span-1">
               {showSection && <Fact icon={Tag}><span className="truncate">{item.ingredient_retail_section_name}</span></Fact>}
@@ -436,11 +441,11 @@ export default function IngredientList({
         <label className="inline-flex cursor-pointer items-center gap-1.5 text-caption text-muted-foreground">
           <input
             type="checkbox"
-            checked={compact}
-            onChange={(e) => setCompact(e.target.checked)}
-            className="h-4 w-4"
+            checked={showDetails}
+            onChange={(e) => setShowDetails(e.target.checked)}
+            className="h-4 w-4 accent-primary"
           />
-          Kompakt
+          Details
         </label>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-caption text-muted-foreground">Sortieren nach</span>

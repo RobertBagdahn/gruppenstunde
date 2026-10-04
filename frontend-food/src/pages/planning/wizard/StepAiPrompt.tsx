@@ -48,7 +48,7 @@ export default function StepAiPrompt({
           onClick={onGenerate}
           disabled={!state.ai_prompt.trim() || isLoading || ai.disabled}
           title={ai.hint || undefined}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -59,10 +59,10 @@ export default function StepAiPrompt({
           {ai.locked && <AiLockBadge />}
         </button>
       )}
-      {!state.ai_suggestions && ai.hint && <p className="text-xs text-muted-foreground">{ai.hint}</p>}
+      {!state.ai_suggestions && ai.hint && <p className="text-caption text-muted-foreground">{ai.hint}</p>}
 
       {state.ai_suggestions && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div className="rounded-xl bg-card p-4 space-y-3 shadow-card">
            <h4 className="font-display font-bold text-body text-foreground flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
              Generierte Vorschläge
@@ -82,7 +82,7 @@ export default function StepAiPrompt({
                 </p>
                 <div className="grid gap-2">
                   {day.meals.map((meal, idx) => (
-                    <div key={idx} className="flex flex-col gap-0.5 rounded-xl bg-card border border-border/60 p-2.5">
+                    <div key={idx} className="flex flex-col gap-0.5 rounded-xl bg-card border-border/60 p-2.5 shadow-card">
                       <div className="flex items-center justify-between">
                         <span className="text-caption font-bold uppercase tracking-wide text-primary">
                           {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}

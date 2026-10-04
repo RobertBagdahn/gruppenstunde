@@ -7,6 +7,7 @@ import Pagination from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { STATUS_LABELS } from './offensiveMeta';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface DuplicateGroupsPanelProps {
   onNotify: (kind: 'success' | 'error' | 'info', message: string) => void;
@@ -21,7 +22,7 @@ function GroupCard({ group, onNotify }: { group: DuplicateGroup; onNotify: Dupli
   const sources = group.items.filter((item) => item.id !== targetId && included.has(item.id));
 
   return (
-    <div className="min-w-0 rounded-xl border bg-card p-3 space-y-2">
+    <div className="min-w-0 rounded-xl bg-card p-3 space-y-2 shadow-card">
       <ul className="space-y-1">
         {group.items.map((item) => (
           <li key={item.id} className="flex items-center gap-2 text-body">
@@ -104,7 +105,7 @@ export default function DuplicateGroupsPanel({ onNotify }: DuplicateGroupsPanelP
         </div>
       ) : error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-body text-destructive">
-          {error.message}{' '}
+          {getApiErrorMessage(error)}{' '}
           <button type="button" className="underline" onClick={() => refetch()}>
             Erneut versuchen
           </button>

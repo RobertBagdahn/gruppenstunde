@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTagDetail } from '@/api/admin';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 export default function TagDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -8,7 +9,7 @@ export default function TagDetailPage() {
   const { data, isLoading, error } = useTagDetail(id);
 
   if (isLoading) {
-    return <div className="py-8 text-center text-muted-foreground">Laden...</div>;
+    return <PageSkeleton label="Tag wird geladen" />;
   }
 
   if (error || !data) {
@@ -31,7 +32,7 @@ export default function TagDetailPage() {
         Zurück zu Tags
       </button>
 
-      <div className="bg-card rounded-xl border p-6 space-y-4">
+      <div className="bg-card rounded-xl p-6 space-y-4 shadow-card">
         <h1 className="text-title font-bold font-display">{tag.name}</h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-body">
@@ -70,7 +71,7 @@ export default function TagDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-xl border p-5 space-y-3">
+        <div className="bg-card rounded-xl p-5 space-y-3 shadow-card">
           <h2 className="font-display font-semibold text-section">
             Rezepte ({recipes.length})
           </h2>
@@ -93,7 +94,7 @@ export default function TagDetailPage() {
           )}
         </div>
 
-        <div className="bg-card rounded-xl border p-5 space-y-3">
+        <div className="bg-card rounded-xl p-5 space-y-3 shadow-card">
           <h2 className="font-display font-semibold text-section">
             Zutaten ({ingredients.length})
           </h2>

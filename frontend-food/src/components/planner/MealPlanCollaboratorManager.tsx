@@ -7,7 +7,7 @@ import {
   useRemoveMealPlanCollaborator,
 } from '@/api/mealPlans';
 import { COLLABORATOR_ROLE_LABELS } from '@/schemas/mealPlan';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Icon } from '@/components/ui/icon';
 
@@ -35,18 +35,18 @@ export default function MealPlanCollaboratorManager({
   const handleInvite = () => {
     const userId = parseInt(inviteUserId, 10);
     if (isNaN(userId) || userId <= 0) {
-      toast.error('Bitte einen Nutzer auswählen');
+      notify.error('Bitte einen Nutzer auswählen');
       return;
     }
     addCollaborator.mutate(
       { user_id: userId, role: inviteRole },
       {
         onSuccess: () => {
-          toast.success('Nutzer eingeladen');
+          notify.success('Nutzer eingeladen');
           setInviteUserId('');
           setShowInvite(false);
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Person konnte nicht hinzugefügt werden', { error: err }),
       },
     );
   };
@@ -59,11 +59,11 @@ export default function MealPlanCollaboratorManager({
           if (removeTarget !== null) {
             removeCollaborator.mutate(removeTarget, {
               onSuccess: () => {
-                toast.success('Mitglied entfernt');
+                notify.success('Mitglied entfernt');
                 setRemoveTarget(null);
               },
               onError: (err) => {
-                toast.error('Fehler', { description: err.message });
+                notify.error('Person konnte nicht entfernt werden', { error: err });
                 setRemoveTarget(null);
               },
             });
@@ -100,9 +100,9 @@ export default function MealPlanCollaboratorManager({
                       updateCollaborator.mutate(
                         { collabId: collab.id, role: e.target.value },
                         {
-                          onSuccess: () => toast.success('Rolle geändert'),
+                          onSuccess: () => notify.success('Rolle geändert'),
                           onError: (err) =>
-                            toast.error('Fehler', { description: err.message }),
+                            notify.error('Rolle konnte nicht geändert werden', { error: err }),
                         },
                       )
                     }

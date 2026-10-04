@@ -13,6 +13,8 @@ interface EmptyStateProps {
   ctaLabel?: string;
   ctaHref?: string;
   onCtaClick?: () => void;
+  /** Icon of the button variant (`onCtaClick`); none by default. */
+  ctaIcon?: string;
 }
 
 export default function EmptyState({
@@ -24,6 +26,7 @@ export default function EmptyState({
   ctaLabel,
   ctaHref,
   onCtaClick,
+  ctaIcon,
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -37,7 +40,7 @@ export default function EmptyState({
           height={160}
         />
       ) : icon ? (
-        <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted mb-6">
+        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
           <Icon name={icon} size={24} className="text-muted-foreground" />
         </div>
       ) : null}
@@ -56,9 +59,9 @@ export default function EmptyState({
         <button
           type="button"
           onClick={onCtaClick}
-          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-body font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary-soft text-primary rounded-lg text-body font-medium hover:bg-primary-soft-border/60 transition-colors"
         >
-          <Icon name="add" size={20} />
+          {ctaIcon && <Icon name={ctaIcon} size={20} />}
           {ctaLabel}
         </button>
       )}

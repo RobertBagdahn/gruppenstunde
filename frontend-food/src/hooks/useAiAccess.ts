@@ -4,7 +4,7 @@
  * The backend stays authoritative; this only mirrors /api/ai/quota/ for the UI.
  */
 import { useCallback } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useAiQuota } from '@/api/ai';
 import { useCurrentUser } from '@/api/auth';
 import { useLoginPrompt } from '@/store/loginPromptStore';
@@ -51,7 +51,7 @@ export function useAiAccess({ anonymousAllowed = false, description = DEFAULT_DE
           return;
         }
         if (status === 'exhausted') {
-          toast.warning(hint, { id: 'ai-exhausted' });
+          notify.warning(hint, { id: 'ai-exhausted' });
           return;
         }
         action(...args);

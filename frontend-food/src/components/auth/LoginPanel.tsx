@@ -60,7 +60,7 @@ export default function LoginPanel({
 
   if (isError) {
     return (
-      <p className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+      <p className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-body text-destructive">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
         Die Anmeldeoptionen konnten nicht geladen werden. Bitte lade die Seite neu.
       </p>
@@ -74,7 +74,7 @@ export default function LoginPanel({
           key={provider.id}
           type="button"
           variant="outline"
-          className="h-11 w-full justify-center gap-2 text-sm font-medium"
+          className="h-11 w-full justify-center gap-2 text-body font-medium"
           disabled={pendingProvider !== null}
           onClick={() => handleProvider(provider.id, provider.login_url)}
         >
@@ -90,7 +90,7 @@ export default function LoginPanel({
       {data?.password_login && process === 'login' && (
         <>
           {providers.length > 0 && (
-            <div className="flex items-center gap-3 py-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 py-1 text-caption text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               oder mit E-Mail
               <span className="h-px flex-1 bg-border" />
@@ -101,7 +101,7 @@ export default function LoginPanel({
       )}
 
       {providers.length === 0 && !data?.dev_login && !data?.password_login && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Aktuell ist keine Anmeldung verfügbar. Bitte versuche es später erneut.
         </p>
       )}
@@ -114,7 +114,7 @@ export default function LoginPanel({
             devLogin.mutate({ email: devEmail }, { onSuccess: () => onDevLoginSuccess?.() });
           }}
         >
-          <label htmlFor="dev-login-email" className="text-xs font-semibold text-muted-foreground">
+          <label htmlFor="dev-login-email" className="text-caption font-semibold text-muted-foreground">
             Entwicklungs-Login (nur lokal)
           </label>
           <div className="flex gap-2">
@@ -131,12 +131,12 @@ export default function LoginPanel({
             </Button>
           </div>
           {devLogin.error && (
-            <p className="text-xs text-destructive">{getApiErrorMessage(devLogin.error)}</p>
+            <p className="text-caption text-destructive">{getApiErrorMessage(devLogin.error)}</p>
           )}
         </form>
       )}
 
-      <p className="pt-1 text-center text-xs text-muted-foreground">
+      <p className="pt-1 text-center text-caption text-muted-foreground">
         Wir speichern nur deinen Namen und deine E-Mail-Adresse.{' '}
         <Link to="/privacy" className="underline underline-offset-2">
           Datenschutz

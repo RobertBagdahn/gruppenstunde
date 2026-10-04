@@ -7,6 +7,7 @@ import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import ShareSlider from './ShareSlider';
 import type { DrinkRecipeSelection, DrinkIngredientSelection } from '@/schemas/breakfast';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 interface StepGetraenkeProps {
   wiz: UseWizardStateReturn;
@@ -72,12 +73,12 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
   }, [catalog, state.drinkIngredients.length, initDrinkIngredients]);
 
   if (isLoading) {
-    return <div className="text-body text-muted-foreground p-4">Lade Getränke…</div>;
+    return <SkeletonTableRows rows={4} columns={2} label="Getränke werden geladen" className="p-4" />;
   }
 
   if (!catalog?.drink_recipes?.length && state.drinkRecipes.length === 0) {
     return (
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <h3 className="font-display font-semibold text-emphasis">Getränke</h3>
         <p className="text-body text-muted-foreground">
           Keine Getränke-Rezepte verfügbar — lege Rezepte mit dem Tag breakfast-drink an.
@@ -89,7 +90,7 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
   return (
     <div className="space-y-6">
       {/* Getränke-Rezepte */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <h3 className="font-display font-semibold text-emphasis">Getränke</h3>
         <p className="text-caption text-muted-foreground">
           Wähle Getränke-Rezepte aus — Kalorien kommen aus dem Rezept.
@@ -97,7 +98,7 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
       </div>
 
       {state.drinkRecipes.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
             <button
@@ -133,13 +134,13 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
       )}
 
       {/* Milch & Säfte */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <h3 className="font-display font-semibold text-emphasis">Milch & Säfte</h3>
         <p className="text-caption text-muted-foreground">Zum Trinken oder für Kaffee/Kakao (optional)</p>
       </div>
 
       {state.drinkIngredients.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
           </div>

@@ -3,7 +3,7 @@
  */
 import { useState, useMemo } from 'react';
 import { useReweExportToken } from '@/api/shoppingLists';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { ShoppingCart, Copy, Check } from 'lucide-react';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
@@ -49,8 +49,8 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
         setShowDialog(true);
       },
       onError: (err) => {
-        toast.error('Fehler beim Erstellen des Export-Tokens', {
-          description: err.message,
+        notify.error('REWE-Export konnte nicht vorbereitet werden', {
+          error: err,
         });
       },
     });
@@ -62,7 +62,7 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Konnte nicht in die Zwischenablage kopieren');
+      notify.error('Konnte nicht in die Zwischenablage kopieren');
     }
   };
 
@@ -89,7 +89,7 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
 
       {showDialog && createToken.data && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
+          <div className="bg-card rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-card">
             <h2 className="text-section font-display font-bold text-foreground mb-4">
               REWE-Warenkorb-Export
             </h2>
@@ -108,7 +108,7 @@ export default function ReweExportButton({ listId, listName, items }: ReweExport
                 className="block w-full text-center px-4 py-2.5 bg-primary text-primary-foreground font-bold text-body rounded-xl hover:bg-primary/90 transition-all shadow-soft mb-2"
                 onClick={(e) => {
                   e.preventDefault();
-                  toast.info('Ziehe diesen Link in deine Lesezeichenleiste');
+                  notify.info('Ziehe diesen Link in deine Lesezeichenleiste');
                 }}
               >
                 REWE-Export: {listName}

@@ -14,7 +14,7 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 import { useReorderMeals } from '@/api/mealPlans';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -453,11 +453,11 @@ export function MealActionsMenu({
                   },
                   {
                     onSuccess: () => {
-                      toast.success('Mahlzeit erfolgreich verschoben');
+                      notify.success('Mahlzeit erfolgreich verschoben');
                       setShowMoveDialog(false);
                     },
                     onError: (err) => {
-                      toast.error('Fehler beim Verschieben', { description: err.message });
+                      notify.error('Reihenfolge konnte nicht geändert werden', { error: err });
                     },
                   }
                 );

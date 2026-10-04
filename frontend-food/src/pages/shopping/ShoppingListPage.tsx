@@ -15,14 +15,15 @@ import type { ShoppingList } from '@/schemas/shoppingList';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import ListPageHero from '@/components/shared/ListPageHero';
+import PageHeader from '@/components/shared/PageHeader';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import { ShoppingListStateSchema } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import EmptyState from '@/components/shared/EmptyState';
 import UnauthGate from '@/components/shared/UnauthGate';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
+import { SkeletonCardGrid } from '@/components/ui/skeleton';
 
 function ShoppingListCard({ list }: { list: ShoppingList }) {
   const sourceLabel = SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type;
@@ -108,7 +109,7 @@ export default function ShoppingListPage() {
   const q = state.q ?? '';
   const myDataOnly = state.mine === '1';
 
-  const { data, isLoading, error } = useShoppingLists(page, 20, { q, sort, mine: myDataOnly }, { enabled: restored });
+  const { data, isPending: isLoading, error } = useShoppingLists(page, 20, { q, sort, mine: myDataOnly }, { enabled: restored });
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
 
@@ -122,15 +123,8 @@ export default function ShoppingListPage() {
   if (userLoading || !restored || (isLoading && !data)) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-32 bg-muted rounded-xl" />
-          <div className="h-16 bg-muted rounded-xl" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-28 bg-muted rounded-xl" />
-            ))}
-          </div>
-        </div>
+        <PageHeader title="Einkaufslisten" description="Erstelle und verwalte deine Einkaufslisten." area="shopping" icon="shopping_cart" countLoading />
+        <SkeletonCardGrid count={6} withImage={false} label="Einkaufslisten werden geladen" className="lg:grid-cols-3 xl:grid-cols-3" />
       </div>
     );
   }
@@ -164,12 +158,12 @@ export default function ShoppingListPage() {
       { name: newName.trim() },
       {
         onSuccess: (created) => {
-          toast.success('Einkaufsliste erstellt');
+          notify.success('Einkaufsliste erstellt');
           setNewName('');
           setShowCreate(false);
           navigate(`/shopping-lists/${created.id}`);
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
+        onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
       },
     );
   };
@@ -182,11 +176,11 @@ export default function ShoppingListPage() {
           if (deleteTargetId !== null) {
             deleteList.mutate(deleteTargetId, {
               onSuccess: () => {
-                toast.success('Einkaufsliste gelöscht');
+                notify.success('Einkaufsliste gelöscht');
                 setDeleteTargetId(null);
               },
               onError: (err) => {
-                toast.error('Fehler', { description: err.message });
+                notify.error('Einkaufsliste konnte nicht gelöscht werden', { error: err });
                 setDeleteTargetId(null);
               },
             });
@@ -200,14 +194,13 @@ export default function ShoppingListPage() {
       />
 
       {/* Hero */}
-      <ListPageHero
+      <PageHeader
         title="Einkaufslisten"
         description="Erstelle und verwalte deine Einkaufslisten."
+        area="shopping"
         icon="shopping_cart"
-        gradientClasses="gradient-primary"
-        totalCount={data?.total}
+        count={data?.total}
         countLabel={{ one: 'Liste', other: 'Listen' }}
-        countIcon="shopping_cart"
       />
 
       {/* Search Bar */}
@@ -218,7 +211,6 @@ export default function ShoppingListPage() {
         onSubmit={search.submit}
         createLabel="Neue Liste"
         onCreateClick={() => setShowCreate(true)}
-        gradientClasses=""
       />
 
       <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
@@ -254,7 +246,7 @@ export default function ShoppingListPage() {
 
       {/* Create form */}
       {showCreate && (
-        <div className="mb-4 p-5 bg-card rounded-xl border border-border shadow-soft">
+        <div className="mb-4 p-5 bg-card rounded-xl shadow-card">
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"

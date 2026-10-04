@@ -1,4 +1,5 @@
 import { BookOpen } from 'lucide-react';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import {
   Dialog,
   DialogContent,
@@ -18,14 +19,6 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   drink: 'Getränk',
   snack: 'Snack',
   ingredient: 'Zutat',
-};
-
-const NUTRI_SCORE_LABELS: Record<number, { letter: string; color: string }> = {
-  1: { letter: 'A', color: 'bg-primary text-primary-foreground' },
-  2: { letter: 'B', color: 'bg-primary/80 text-primary-foreground' },
-  3: { letter: 'C', color: 'bg-accent text-accent-foreground' },
-  4: { letter: 'D', color: 'bg-warning text-primary-foreground' },
-  5: { letter: 'E', color: 'bg-destructive text-destructive-foreground' },
 };
 
 interface RecipePreviewDialogProps {
@@ -58,10 +51,6 @@ export default function RecipePreviewDialog({
   const pricePerServing = recipe.price_per_serving
     ? formatNumber(recipe.price_per_serving, { maxDecimals: 2 })
     : null;
-  const nutriScore = recipe.cached_nutri_class
-    ? NUTRI_SCORE_LABELS[recipe.cached_nutri_class]
-    : null;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
@@ -127,11 +116,7 @@ export default function RecipePreviewDialog({
                 ~{pricePerServing}€ / Portion
               </span>
             )}
-            {nutriScore && (
-              <span className={`text-caption font-bold px-2 py-0.5 rounded-lg ${nutriScore.color}`}>
-                Nutri {nutriScore.letter}
-              </span>
-            )}
+            <NutriScoreBadge value={recipe.cached_nutri_class} size="sm" />
           </div>
 
           {/* Nutritional Tags */}

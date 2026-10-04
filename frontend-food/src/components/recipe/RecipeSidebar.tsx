@@ -1,5 +1,5 @@
 import { UtensilsCrossed, Printer, ShoppingCart, Share2, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useNavigate } from 'react-router-dom';
 import PortionScaler from './PortionScaler';
 import RecipeMetaCard from './RecipeMetaCard';
@@ -52,9 +52,9 @@ export default function RecipeSidebar({
     } else {
       try {
         await navigator.clipboard.writeText(url);
-        toast.success('Link kopiert');
+        notify.success('Link kopiert');
       } catch {
-        toast.error('Der Link konnte nicht kopiert werden.');
+        notify.error('Der Link konnte nicht kopiert werden');
       }
     }
   };
@@ -85,7 +85,7 @@ export default function RecipeSidebar({
                 { replace: true },
               );
             }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-warning text-white rounded-lg hover:bg-warning transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             <UtensilsCrossed className="w-4 h-4" />
             Kochen starten
@@ -95,7 +95,7 @@ export default function RecipeSidebar({
           type="button"
           onClick={onOpenShoppingList}
           aria-label="Einkaufsliste erstellen"
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-primary-soft text-primary rounded-lg hover:bg-primary-soft-border/60 transition-colors"
         >
           <ShoppingCart className="w-4 h-4" />
           Einkaufsliste

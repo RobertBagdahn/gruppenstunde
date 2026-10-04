@@ -1,69 +1,53 @@
+/**
+ * Routes. Pages load on demand (food-loading-states): the layout and its
+ * navigation stay visible while a page's code loads, and each page is
+ * wrapped in a RouteBoundary inside the layout.
+ */
+import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { PageSkeleton } from './components/ui/skeleton';
 import FoodLayout from './components/layout/FoodLayout';
-
-// Home
-import HomePage from './pages/HomePage';
-
-// Recipe pages
-import RecipeListPage from './pages/recipes/RecipeListPage';
-import MyRecipesPage from './pages/recipes/MyRecipesPage';
-import RecipeFoldersPage from './pages/recipes/RecipeFoldersPage';
-import CreateRecipePage from './pages/recipes/CreateRecipePage';
-import EditRecipePage from './pages/recipes/EditRecipePage';
-import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
-
-// Ingredient pages
-import IngredientListPage from './pages/ingredients/IngredientListPage';
-import CreateIngredientPage from './pages/ingredients/CreateIngredientPage';
-import IngredientEditPage from './pages/ingredients/IngredientEditPage';
-import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
-import IngredientStatisticsPage from './pages/ingredients/statistics/IngredientStatisticsPage';
-
-// Meal plan pages
-import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
-import MealPlanListPage from './pages/planning/MealEventListPage';
-import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
-import RefMealEditorPage from './pages/planning/RefMealEditorPage';
-import BreakfastWizardPage from './pages/planning/breakfast/BreakfastWizardPage';
-import MealPlanWizardPage from './pages/planning/wizard/MealPlanWizardPage';
-
-// Shopping list pages
-import ShoppingListPage from './pages/shopping/ShoppingListPage';
-import ShoppingListDetailPage from './pages/shopping/ShoppingListDetailPage';
-
-// Tools
-import NormPortionSimulatorPage from './pages/tools/NormPortionSimulatorPage';
-
-// Admin
-import AdminPage from './pages/admin/AdminPage';
-import TagDetailPage from './pages/admin/TagDetailPage';
-import DataQualityPage from './pages/admin/DataQualityPage';
 import StaffGuard from './components/admin/StaffGuard';
+import { lazyPage } from './lib/lazyPage';
 
-// Data Quality (public)
-import DataDistributionsPage from './pages/DataDistributionsPage';
-
-// Styleguide
-import StyleguidePage from './pages/StyleguidePage';
-
-// Legal
-import ImpressumPage from './pages/legal/ImpressumPage';
-import DatenschutzPage from './pages/legal/DatenschutzPage';
-
-// Profile
-import ProfilePage from './pages/profile/ProfilePage';
-import MyProfilePage from './pages/profile/MyProfilePage';
-import AccountPage from './pages/profile/AccountPage';
-
-// Fallback
-import NotFoundPage from './pages/NotFoundPage';
-
-// Auth
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+const HomePage = lazyPage(() => import('./pages/HomePage'));
+const RecipeListPage = lazyPage(() => import('./pages/recipes/RecipeListPage'));
+const MyRecipesPage = lazyPage(() => import('./pages/recipes/MyRecipesPage'));
+const RecipeFoldersPage = lazyPage(() => import('./pages/recipes/RecipeFoldersPage'));
+const CreateRecipePage = lazyPage(() => import('./pages/recipes/CreateRecipePage'));
+const EditRecipePage = lazyPage(() => import('./pages/recipes/EditRecipePage'));
+const RecipeDetailPage = lazyPage(() => import('./pages/recipes/RecipeDetailPage'));
+const IngredientListPage = lazyPage(() => import('./pages/ingredients/IngredientListPage'));
+const CreateIngredientPage = lazyPage(() => import('./pages/ingredients/CreateIngredientPage'));
+const IngredientEditPage = lazyPage(() => import('./pages/ingredients/IngredientEditPage'));
+const IngredientDetailPage = lazyPage(() => import('./pages/ingredients/IngredientDetailPage'));
+const IngredientStatisticsPage = lazyPage(() => import('./pages/ingredients/statistics/IngredientStatisticsPage'));
+const MealPlanLandingPage = lazyPage(() => import('./pages/tools/MealEventLandingPage'));
+const MealPlanListPage = lazyPage(() => import('./pages/planning/MealEventListPage'));
+const MealPlanDetailPage = lazyPage(() => import('./pages/planning/MealEventDetailPage'));
+const RefMealEditorPage = lazyPage(() => import('./pages/planning/RefMealEditorPage'));
+const BreakfastWizardPage = lazyPage(() => import('./pages/planning/breakfast/BreakfastWizardPage'));
+const MealPlanWizardPage = lazyPage(() => import('./pages/planning/wizard/MealPlanWizardPage'));
+const ShoppingListPage = lazyPage(() => import('./pages/shopping/ShoppingListPage'));
+const ShoppingListDetailPage = lazyPage(() => import('./pages/shopping/ShoppingListDetailPage'));
+const NormPortionSimulatorPage = lazyPage(() => import('./pages/tools/NormPortionSimulatorPage'));
+const AdminPage = lazyPage(() => import('./pages/admin/AdminPage'));
+const TagDetailPage = lazyPage(() => import('./pages/admin/TagDetailPage'));
+const DataQualityPage = lazyPage(() => import('./pages/admin/DataQualityPage'));
+const DataDistributionsPage = lazyPage(() => import('./pages/DataDistributionsPage'));
+const StyleguidePage = lazyPage(() => import('./pages/StyleguidePage'));
+const ImpressumPage = lazyPage(() => import('./pages/legal/ImpressumPage'));
+const DatenschutzPage = lazyPage(() => import('./pages/legal/DatenschutzPage'));
+const ProfilePage = lazyPage(() => import('./pages/profile/ProfilePage'));
+const MyProfilePage = lazyPage(() => import('./pages/profile/MyProfilePage'));
+const AccountPage = lazyPage(() => import('./pages/profile/AccountPage'));
+const NotFoundPage = lazyPage(() => import('./pages/NotFoundPage'));
+const LoginPage = lazyPage(() => import('./pages/LoginPage'));
+const RegisterPage = lazyPage(() => import('./pages/RegisterPage'));
 
 export default function App() {
   return (
+    <Suspense fallback={<PageSkeleton />}>
     <Routes>
       {/* Auth routes (no layout) */}
       <Route path="/login" element={<LoginPage />} />
@@ -133,5 +117,6 @@ export default function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
+    </Suspense>
   );
 }

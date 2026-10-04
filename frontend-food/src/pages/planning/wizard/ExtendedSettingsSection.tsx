@@ -127,7 +127,7 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
         </div>
         <p className="text-caption text-muted-foreground mt-2 font-medium">
           Summe:{' '}
-          <span className={Math.abs(factorsSum - 1.0) < 0.001 ? 'text-primary font-bold' : 'text-accent font-bold'}>
+          <span className={Math.abs(factorsSum - 1.0) < 0.001 ? 'text-primary font-bold' : 'text-warning font-bold'}>
             {formatNumber(factorsSum, { maxDecimals: 2 })}
           </span>
           {' '}(Sollte idealerweise 1,00 ergeben)

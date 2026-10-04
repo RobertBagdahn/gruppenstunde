@@ -1,4 +1,5 @@
 import { useState, useDeferredValue, useEffect } from 'react';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, Plus } from 'lucide-react';
 import {
@@ -13,30 +14,15 @@ import { useIngredientSearch } from '@/api/supplies';
 import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/api/supplies';
 import type { Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
-import { NUTRI_SCORE_COLORS_BY_LETTER } from '@/schemas/supply';
 import { roundToDecimals } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Nutriscore Badge
 // ---------------------------------------------------------------------------
 
-const NUTRI_SCORE_COLORS = NUTRI_SCORE_COLORS_BY_LETTER;
 
 function NutriscoreBadge({ nutriClass }: { nutriClass: number | null | undefined }) {
-  if (!nutriClass) return <span className="text-muted-foreground text-caption">–</span>;
-  const label = ['A', 'B', 'C', 'D', 'E'][nutriClass - 1] ?? '?';
-  const colors = NUTRI_SCORE_COLORS[label];
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center justify-center w-6 h-6 rounded-lg text-caption font-bold shrink-0',
-        colors?.bg ?? 'bg-muted',
-        colors?.text ?? 'text-muted-foreground',
-      )}
-    >
-      {label}
-    </span>
-  );
+  return <NutriScoreBadge value={nutriClass} size="sm" emptyLabel="–" />;
 }
 
 // ---------------------------------------------------------------------------

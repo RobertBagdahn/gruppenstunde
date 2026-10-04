@@ -19,7 +19,7 @@ import {
   useUpdateIngredient,
 } from '@/api/supplies';
 import type { IngredientPriceProposal } from '@/schemas/supply';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Check, Loader2, Pencil, Sparkles, X } from 'lucide-react';
 import { formatNumber } from '@/lib/format';
 
@@ -61,11 +61,11 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
   const handleCreate = () => {
     createProposal.mutate(undefined, {
       onSuccess: (proposal: IngredientPriceProposal) => {
-        toast.success('Preisvorschlag erstellt', {
+        notify.success('Preisvorschlag erstellt', {
           description: `${formatPrice(proposal.proposed_price_per_kg)} vorgeschlagen – bitte prüfen.`,
         });
       },
-      onError: (err) => toast.error('Vorschlag fehlgeschlagen', { description: err.message }),
+      onError: (err) => notify.error('Vorschlag fehlgeschlagen', { error: err }),
     });
   };
 
@@ -76,9 +76,9 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
       {
         onSuccess: () => {
           setReplaceExisting(false);
-          toast.success('Preis übernommen');
+          notify.success('Preis übernommen');
         },
-        onError: (err) => toast.error('Bestätigung fehlgeschlagen', { description: err.message }),
+        onError: (err) => notify.error('Bestätigung fehlgeschlagen', { error: err }),
       },
     );
   };
@@ -92,7 +92,7 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
     const normalized = priceInput.trim().replace(',', '.');
     const value = normalized === '' ? null : Number(normalized);
     if (value !== null && (!Number.isFinite(value) || value < 0)) {
-      toast.error('Ungültiger Preis', { description: 'Bitte eine Zahl ab 0 eingeben.' });
+      notify.error('Ungültiger Preis', { description: 'Bitte eine Zahl ab 0 eingeben.' });
       return;
     }
     updateIngredient.mutate(
@@ -100,9 +100,9 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
       {
         onSuccess: () => {
           setEditing(false);
-          toast.success('Preis gespeichert');
+          notify.success('Preis gespeichert');
         },
-        onError: (err) => toast.error('Speichern fehlgeschlagen', { description: err.message }),
+        onError: (err) => notify.error('Speichern fehlgeschlagen', { error: err }),
       },
     );
   };
@@ -112,14 +112,14 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
     rejectProposal.mutate(pending.id, {
       onSuccess: () => {
         setReplaceExisting(false);
-        toast.success('Vorschlag abgelehnt');
+        notify.success('Vorschlag abgelehnt');
       },
-      onError: (err) => toast.error('Ablehnung fehlgeschlagen', { description: err.message }),
+      onError: (err) => notify.error('Ablehnung fehlgeschlagen', { error: err }),
     });
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <div className="rounded-xl bg-card p-4 space-y-3 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-body font-semibold text-foreground">Preis</h3>
         <span

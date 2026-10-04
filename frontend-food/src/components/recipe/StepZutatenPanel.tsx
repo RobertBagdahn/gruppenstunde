@@ -136,7 +136,7 @@ export default function StepZutatenPanel({
             <button
               onClick={handleSuggestIngredients}
               disabled={isSuggesting || !stepInstruction.trim() || ai.disabled}
-              className="flex items-center gap-1 text-sm px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+              className="flex items-center gap-1 text-body px-2 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
               title={ai.disabled ? ai.hint : 'KI-Vorschläge für Zutaten basierend auf der Anweisung'}
             >
               <Sparkles size={16} /> Vorschlagen

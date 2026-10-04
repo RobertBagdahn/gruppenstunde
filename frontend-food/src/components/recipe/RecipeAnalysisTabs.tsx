@@ -44,7 +44,7 @@ export function RecipeAnalysisTabs({ tabs, showSummaryBox }: Props) {
       )}
 
       {activeContent && (
-        <div className="bg-card rounded-xl border p-5">
+        <div className="bg-card rounded-xl p-5 shadow-card">
           {activeContent}
         </div>
       )}

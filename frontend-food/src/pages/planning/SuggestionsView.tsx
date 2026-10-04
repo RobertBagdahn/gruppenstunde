@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 import { planDateKey } from '@/lib/mealPlanDateTime';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
@@ -148,7 +149,7 @@ export default function SuggestionsView({
   }, [nonGreenDayFiltered, statusFilter]);
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
-  if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
+  if (isLoading) return <SkeletonTableRows rows={5} columns={3} label="Vorschläge werden geladen" />;
   if (!data) return null;
 
   const numDays = Math.max(uniqueDates.length, 1);
@@ -187,7 +188,7 @@ export default function SuggestionsView({
       )}
 
       {/* KPI Overview */}
-      <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="rounded-xl bg-card overflow-hidden shadow-card">
         <div className="px-4 py-3 bg-muted/50 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span
@@ -243,7 +244,7 @@ export default function SuggestionsView({
               className={cn(
                 "text-caption px-3 py-1.5 rounded-lg border font-semibold whitespace-nowrap transition-colors inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed",
                 statusFilter === 'yellow'
-                  ? "border-warning bg-warning text-white shadow-sm"
+                  ? "border-warning-bright bg-warning-bright text-foreground shadow-sm"
                   : "border-warning-border bg-warning-soft text-warning hover:bg-warning-soft"
               )}
             >

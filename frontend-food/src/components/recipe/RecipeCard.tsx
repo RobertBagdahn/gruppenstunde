@@ -1,25 +1,16 @@
 import { Link } from 'react-router-dom';
+import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import type { RecipeListItem } from '@/schemas/recipe';
 import {
   RECIPE_TYPE_OPTIONS,
-  RECIPE_DIFFICULTY_OPTIONS,
   getRecipeExecutionTimeLabel,
 } from '@/schemas/recipe';
-import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
 import RecipeThumbnail from './RecipeThumbnail';
 import { formatEuro } from '@/lib/format';
 import { recipePricePerPortion } from '@/lib/recipeCostRanges';
 import { Icon } from '@/components/ui/icon';
-
-const TAG_COLORS = [
-  'bg-primary/10 text-primary border border-primary/20',
-  'bg-info-soft text-info border border-info-border',
-  'bg-warning-soft text-warning border border-warning-border',
-  'bg-warning-soft text-warning border border-warning-border',
-  'bg-danger-soft text-danger border border-danger-border',
-];
 
 interface RecipeCardProps {
   recipe: RecipeListItem;
@@ -32,17 +23,13 @@ interface RecipeCardProps {
 }
 
 export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, onEdit, onDelete, onClone }: RecipeCardProps) {
-  const difficultyLabel =
-    RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
   const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
   const pricePerPortion = recipePricePerPortion(recipe);
-  const costsLabel = pricePerPortion != null ? formatEuro(pricePerPortion) : null;
-  const energyPerPortion = recipe.cached_energy_per_portion_kcal;
+  const costsLabel = pricePerPortion != null ? `${formatEuro(pricePerPortion)} pro Portion` : null;
 
   const hasActions = (canEdit && onEdit) || (canDelete && onDelete) || onClone;
   const nutriClass = recipe.cached_nutri_class;
-  const nutriColors = nutriClass ? NUTRI_SCORE_COLORS[nutriClass] : null;
 
   const effectiveBadge = recipe.status === 'draft'
     ? 'draft'
@@ -51,7 +38,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
   return (
     <Link
       to={`/recipes/${recipe.slug}`}
-      className="group block rounded-xl bg-card overflow-hidden shadow-soft card-hover border border-border hover:border-primary/40 hover:shadow-colorful"
+      className="group block rounded-xl bg-card overflow-hidden shadow-card card-hover"
     >
       {/* Image with gradient overlay */}
       <div className="relative overflow-hidden aspect-square">
@@ -63,15 +50,15 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
           className="absolute inset-0"
           imgClassName="transition-transform duration-500 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-warning-soft" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         {/* Like badge */}
-        <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-caption font-extrabold text-danger shadow-md">
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-caption font-bold text-area-recipes shadow-card">
           <Icon name="favorite" size={16} />
           {recipe.like_score}
         </div>
         {/* Type badge */}
         {typeOpt && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-caption font-extrabold text-warning shadow-md">
+          <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-caption font-bold text-area-recipes shadow-card">
             <Icon name={typeOpt.icon} size={16} />
             {typeOpt.label}
           </div>
@@ -81,11 +68,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
           {effectiveBadge && (
             <RecipeBadge badge={effectiveBadge as 'draft' | 'verified' | 'community' | 'personal'} />
           )}
-          {nutriColors && (
-            <div className={`flex items-center justify-center w-6 h-6 rounded-full ${nutriColors.bg} ${nutriColors.text} text-caption font-extrabold shadow-md`}>
-              {nutriColors.label}
-            </div>
-          )}
+          <NutriScoreBadge value={nutriClass} size="sm" className="h-6 min-w-6 shadow-card" />
         </div>
         {/* Admin action icons */}
         {hasActions && (
@@ -133,56 +116,26 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
         )}
       </div>
 
-      <div className="p-3">
-        <h3 className="font-extrabold text-body group-hover:text-primary transition-colors line-clamp-2">
+      <div className="p-3.5">
+        <h3 className="font-bold text-body group-hover:text-primary transition-colors line-clamp-2">
           <SearchHighlight text={recipe.title} query={searchQuery} />
         </h3>
 
         {recipe.summary && (
-          <p className="text-caption text-muted-foreground mt-1 line-clamp-2">
+          <p className="text-caption text-muted-foreground mt-1 line-clamp-1">
             <SearchHighlight text={recipe.summary} query={searchQuery} />
           </p>
         )}
 
-        {/* Tags */}
-        {recipe.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {recipe.tags.slice(0, 3).map((tag, index) => (
-              <span
-                key={tag.id}
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-bold ${TAG_COLORS[index % TAG_COLORS.length]}`}
-              >
-                {tag.icon && <Icon name={tag.icon} size={16} className="mr-0.5" />}
-                {tag.name}
-              </span>
-            ))}
-            {recipe.tags.length > 3 && (
-              <span className="inline-flex items-center rounded-full bg-secondary/20 text-secondary-foreground border border-secondary/30 px-2 py-0.5 text-caption font-bold">
-                +{recipe.tags.length - 3}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Meta info */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-border text-caption font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1 bg-info-soft rounded-full px-2 py-0.5">
-            <Icon name="schedule" size={16} className="text-info" />
+        {/* Key facts only (food-progressive-disclosure): time and cost; Nutri-Score sits on the image. */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Icon name="schedule" size={16} />
             {timeLabel}
           </span>
-          <span className="flex items-center gap-1 bg-primary/10 rounded-full px-2 py-0.5">
-            <Icon name="signal_cellular_alt" size={16} className="text-primary" />
-            {difficultyLabel}
-          </span>
-          {energyPerPortion != null && (
-            <span className="flex items-center gap-1 bg-warning-soft rounded-full px-2 py-0.5">
-              <Icon name="local_fire_department" size={16} className="text-warning" />
-              {Math.round(energyPerPortion)} kcal/Portion
-            </span>
-          )}
           {costsLabel && (
-            <span className="flex items-center gap-1 bg-warning-soft rounded-full px-2 py-0.5">
-              <Icon name="payments" size={16} className="text-warning" />
+            <span className="flex items-center gap-1 tabular-nums">
+              <Icon name="payments" size={16} />
               {costsLabel}
             </span>
           )}

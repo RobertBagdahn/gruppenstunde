@@ -5,8 +5,8 @@
 import { forwardRef, useState, useCallback, useEffect, useImperativeHandle, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { API_BASE_URL } from '@/lib/api';
+import { notify } from '@/lib/notify';
+import { API_BASE_URL, getApiErrorMessage } from '@/lib/api';
 import { Sparkles, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import {
   useUpdateRecipeItem,
@@ -588,7 +588,7 @@ function IngredientRow({
                 );
               },
               onError: (err) => {
-                toast.error('Fehler', { description: err.message });
+                notify.error('Zutat konnte nicht geändert werden', { error: err });
               },
             },
           );
@@ -619,7 +619,7 @@ function IngredientRow({
                 !other.isDeleted,
             );
           if (hasAlternatives) {
-            toast.error('Löschen nicht möglich', {
+            notify.error('Löschen nicht möglich', {
               description:
                 'Dieses Item hat Alternativen. Bitte zuerst die Alternativen entfernen.',
             });
@@ -644,11 +644,11 @@ function IngredientRow({
               { status: 'verified' },
               {
                 onSuccess: () => {
-                  toast.success('Zutat als verifiziert markiert');
+                  notify.success('Zutat als verifiziert markiert');
                 },
                 onError: (err) => {
-                  toast.error('Fehler beim Verifizieren', {
-                    description: err.message,
+                  notify.error('Zutat konnte nicht verifiziert werden', {
+                    error: err,
                   });
                 },
               },
@@ -763,10 +763,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       adoptCurrentPortions.mutate([itemId], {
         onSuccess: (result) => {
           applyAdoptedPortions(result.items);
-          toast.success('Portion aktualisiert');
+          notify.success('Portion aktualisiert');
         },
         onError: (err) => {
-          toast.error('Fehler', { description: err instanceof Error ? err.message : undefined });
+          notify.error('Portionen konnten nicht übernommen werden', { error: err });
         },
       });
     },
@@ -777,12 +777,12 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     adoptCurrentPortions.mutate(undefined, {
       onSuccess: (result) => {
         applyAdoptedPortions(result.items);
-        toast.success(
+        notify.success(
           `${result.updated_count} ${result.updated_count === 1 ? 'Zutat aktualisiert' : 'Zutaten aktualisiert'}`,
         );
       },
       onError: (err) => {
-        toast.error('Fehler', { description: err instanceof Error ? err.message : undefined });
+        notify.error('Portionen konnten nicht übernommen werden', { error: err });
       },
     });
   }, [adoptCurrentPortions, applyAdoptedPortions]);
@@ -913,7 +913,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           ?? portions[0];
 
         if (!bestPortion) {
-          toast.error('Keine Portion für diese Zutat gefunden');
+          notify.error('Keine Portion für diese Zutat gefunden');
           return;
         }
 
@@ -960,7 +960,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           },
         ]);
       } catch {
-        toast.error('Fehler beim Laden der Portion');
+        notify.error('Portion konnte nicht geladen werden');
       }
     },
     [editItems, scale],
@@ -1032,7 +1032,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           : null;
 
         if (!selectedPortion) {
-          toast.error('Die gewählte Portion wurde nicht gefunden. Bitte wähle die Menge erneut.');
+          notify.error('Die gewählte Portion wurde nicht gefunden. Bitte wähle die Menge erneut');
           return;
         }
 
@@ -1083,7 +1083,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           },
         ]);
       } catch {
-        toast.error('Fehler beim Laden der Portion');
+        notify.error('Portion konnte nicht geladen werden');
       }
     },
     [editItems],
@@ -1097,7 +1097,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       setEstimateResult(result.items);
       setShowEstimate(true);
     } catch {
-      toast.error('AI-Schätzung fehlgeschlagen');
+      notify.error('AI-Schätzung fehlgeschlagen');
     }
   }, [estimateQuantities]);
 
@@ -1114,7 +1114,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     setShowEstimate(false);
     setEstimateResult(null);
     setSelectedEstimates(new Set());
-    toast.success(`${applied} von ${estimateResult.length} Mengen übernommen`);
+    notify.success(`${applied} von ${estimateResult.length} Mengen übernommen`);
   }, [estimateResult, selectedEstimates, scale]);
 
   // --- AI Suggest Ingredients ---
@@ -1150,7 +1150,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       const interactionId: string | null = !Array.isArray(data) ? (data.ai_interaction_id ?? null) : null;
 
       if (!suggestions || suggestions.length === 0) {
-        toast.info('Keine weiteren Zutaten vorgeschlagen');
+        notify.info('Keine weiteren Zutaten vorgeschlagen');
         return;
       }
 
@@ -1158,7 +1158,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       setSelectedAiSuggestions(new Set(suggestions.map((_, i) => i)));
       setAiSuggestInteractionId(interactionId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'KI-Vorschläge konnten nicht generiert werden');
+      notify.error('KI-Vorschläge konnten nicht generiert werden', { error: err });
     } finally {
       setIsAiSuggesting(false);
     }
@@ -1179,12 +1179,12 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       if (!applyRes.ok) throw new Error('Anwenden fehlgeschlagen');
 
       await queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
-      toast.success(`${selected.length} Zutaten hinzugefügt`);
+      notify.success(`${selected.length} Zutaten hinzugefügt`);
       setAiSuggestions(null);
       setSelectedAiSuggestions(new Set());
       onSaved();
     } catch {
-      toast.error('Fehler beim Hinzufügen der Zutaten');
+      notify.error('Zutaten konnten nicht hinzugefügt werden');
     }
   }, [aiSuggestions, selectedAiSuggestions, recipeId, queryClient, onSaved]);
 
@@ -1198,14 +1198,14 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           itemId: targetItemId,
           data: payload,
         });
-        toast.success(`${suggestion.ingredient_name} ersetzt`);
+        notify.success(`${suggestion.ingredient_name} ersetzt`);
         setAiSuggestions(null);
         setSelectedAiSuggestions(new Set());
         setAiSuggestInteractionId(null);
         onSaved();
       } catch (err) {
-        toast.error('Ersetzen fehlgeschlagen', {
-          description: err instanceof Error ? err.message : undefined,
+        notify.error('Ersetzen fehlgeschlagen', {
+          error: err,
         });
       }
     },
@@ -1241,7 +1241,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         ) ?? sortedPortions[0] ?? portions[0];
 
         if (!bestPortion) {
-          toast.error('Keine Portion für diese Zutat gefunden');
+          notify.error('Keine Portion für diese Zutat gefunden');
           return;
         }
 
@@ -1321,10 +1321,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           },
         ]);
 
-        toast.success(`${ingredientName} als Alternative hinzugefügt`);
+        notify.success(`${ingredientName} als Alternative hinzugefügt`);
         setAlternativeTargetId(null);
       } catch (err) {
-        toast.error('Fehler', { description: (err as Error).message });
+        notify.error('Alternative konnte nicht hinzugefügt werden', { error: err });
       }
     },
     [alternativeTargetId, editItems, createExchangeGroup, patchItem, scale],
@@ -1340,7 +1340,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       try {
       if (recipeId === null) {
         if (!onCreateDraft) {
-          toast.error('Rezept konnte nicht angelegt werden');
+          notify.error('Rezept konnte nicht angelegt werden');
           return false;
         }
 
@@ -1380,7 +1380,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           });
           onSave?.();
           onSaved();
-          toast.success('Rezept angelegt');
+          notify.success('Rezept angelegt');
         }
         return created !== null;
       }
@@ -1393,7 +1393,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         promises.push(
           deleteItem.mutateAsync(item.id).catch((err: Error) => {
             if (err.message.includes('aktiven Essensplänen')) {
-              toast.error('Löschen nicht möglich', {
+              notify.error('Löschen nicht möglich', {
                 description: 'Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden.',
               });
               // Restore item as not-deleted
@@ -1471,14 +1471,14 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             };
           }),
       );
-      toast.success('Änderungen gespeichert');
+      notify.success('Änderungen gespeichert');
       onSave?.();
       onSaved();
       await queryClient.invalidateQueries({ queryKey: ['recipe', persistedRecipeId] });
       return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unbekannter Fehler';
-        toast.error('Fehler beim Speichern', { description: message });
+        const message = getApiErrorMessage(err, 'Unbekannter Fehler');
+        notify.error('Zutaten konnten nicht gespeichert werden', { description: message });
         return false;
       } finally {
         setIsSaving(false);
@@ -1519,7 +1519,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       return deferredSave;
     }
     if (recipeId === null && !editItems.some((item) => !item.isDeleted)) {
-      toast.error('Füge mindestens eine Zutat hinzu');
+      notify.error('Füge mindestens eine Zutat hinzu');
       return Promise.resolve(false);
     }
     if (saveInFlightRef.current || saveConfirmationRef.current) {
@@ -1574,7 +1574,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             title="Weitere Zutaten per KI vorschlagen"
           >
             <Sparkles className="w-4 h-4 mr-1.5" />
-            {isAiSuggesting ? 'Lädt...' : 'Weitere Zutaten'}
+            {isAiSuggesting ? 'Wird gesucht …' : 'Weitere Zutaten'}
           </Button>
           <Button
             type="button"
@@ -1742,7 +1742,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       {/* AI Estimate Preview Dialog */}
       {showEstimate && estimateResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-card rounded-xl p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto shadow-card">
             <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
               <Icon name="auto_fix_high" size={24} className="text-primary" />
               AI-Mengenschätzung
@@ -1857,7 +1857,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       {/* AI Suggestions Confirmation Dialog */}
       {aiSuggestions && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-card rounded-xl p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto shadow-card">
             <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
               KI-Vorschläge

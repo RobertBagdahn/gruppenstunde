@@ -1,11 +1,12 @@
+import { SkeletonCardGrid } from '@/components/ui/skeleton';
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useIngredients, useDeleteIngredient, ApiDeleteError } from '@/api/supplies';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import ListPageHero from '@/components/shared/ListPageHero';
+import PageHeader from '@/components/shared/PageHeader';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import IngredientCard from '@/components/ingredient/IngredientCard';
@@ -40,7 +41,7 @@ export default function IngredientListPage() {
   });
   const { q: name, retail_section: retailSection, status, origin, sort, page } = state;
 
-  const { data, isLoading, error, refetch } = useIngredients({
+  const { data, isPending: isLoading, error, refetch, isPlaceholderData } = useIngredients({
     page,
     page_size: 20,
     name: name || undefined,
@@ -70,14 +71,14 @@ export default function IngredientListPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
       {/* Hero */}
-      <ListPageHero
+      <PageHeader
         title="Zutatendatenbank"
         description="Verwalte alle Zutaten mit Nährwerten, Preisen und Nutri-Score."
+        area="ingredients"
         icon="egg_alt"
-        gradientClasses="gradient-primary"
-        totalCount={data?.total}
+        count={data?.total}
+        countLoading={isLoading || !restored}
         countLabel={{ one: 'Zutat', other: 'Zutaten' }}
-        countIcon="egg_alt"
       />
 
       {/* Search Bar */}
@@ -88,7 +89,6 @@ export default function IngredientListPage() {
         onSubmit={search.submit}
         createLabel="Neue Zutat"
         createHref="/ingredients/new"
-        gradientClasses="from-primary/5 via-primary/10 to-primary/5"
       />
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
@@ -125,7 +125,7 @@ export default function IngredientListPage() {
               <select
                 value={sort}
                 onChange={(e) => patch({ sort: SORT_OPTIONS.find((opt) => opt.value === e.target.value)?.value, page: undefined })}
-                className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium shadow-sm transition-all"
+                className="px-3 py-1.5 rounded-lg border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-ring/30 focus:border-primary focus:outline-none font-medium shadow-card transition-all"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -139,14 +139,7 @@ export default function IngredientListPage() {
           {error ? (
             <ErrorDisplay error={error} onRetry={() => refetch()} />
           ) : isLoading || !restored ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-border bg-muted/40 animate-pulse h-40"
-                />
-              ))}
-            </div>
+            <SkeletonCardGrid count={8} withImage={false} label="Zutaten werden geladen" />
           ) : data?.items.length === 0 ? (
             activeCount > 0 ? (
               <EmptyState
@@ -166,7 +159,10 @@ export default function IngredientListPage() {
               />
             )
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div
+              aria-busy={isPlaceholderData}
+              className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
+            >
               {data?.items.map((ingredient) => (
                 <IngredientCard
                   key={ingredient.id}
@@ -193,7 +189,7 @@ export default function IngredientListPage() {
           if (deleteTarget === null) return;
           deleteIngredient.mutate(deleteTarget, {
             onSuccess: () => {
-              toast.success('Zutat gelöscht');
+              notify.success('Zutat gelöscht');
               setDeleteTarget(null);
               refetch();
             },
@@ -201,11 +197,11 @@ export default function IngredientListPage() {
               setDeleteTarget(null);
               if (err instanceof ApiDeleteError && err.status === 409 && err.recipes.length > 0) {
                 const recipeNames = err.recipes.map((r) => r.title).join(', ');
-                toast.error('Zutat wird noch verwendet', {
+                notify.error('Zutat wird noch verwendet', {
                   description: `Entferne die Zutat zuerst aus folgenden Rezepten: ${recipeNames}`,
                 });
               } else {
-                toast.error('Fehler beim Löschen', { description: err.message });
+                notify.error('Zutat konnte nicht gelöscht werden', { error: err });
               }
             },
           });

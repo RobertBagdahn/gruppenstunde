@@ -42,16 +42,16 @@ function getTagDotColor(name: string): string {
   const colorMap: Record<string, string> = {
     'Tierbestandteile (nicht Vegetarisch)': 'bg-danger',
     'Tierische Produkte (nicht Vegan)': 'bg-danger',
-    'Gluten (Zöliakie)': 'bg-warning',
-    'Laktose': 'bg-warning',
-    'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-warning',
-    'Erdnüsse': 'bg-warning',
-    'Fisch': 'bg-warning',
-    'Soja, Sojaerzeugnisse': 'bg-warning',
-    'Sellerie, Sellerieerzeugnisse': 'bg-warning',
-    'Senf': 'bg-warning',
-    'Sesam': 'bg-warning',
-    'Lupinen': 'bg-warning',
+    'Gluten (Zöliakie)': 'bg-warning-bright',
+    'Laktose': 'bg-warning-bright',
+    'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-warning-bright',
+    'Erdnüsse': 'bg-warning-bright',
+    'Fisch': 'bg-warning-bright',
+    'Soja, Sojaerzeugnisse': 'bg-warning-bright',
+    'Sellerie, Sellerieerzeugnisse': 'bg-warning-bright',
+    'Senf': 'bg-warning-bright',
+    'Sesam': 'bg-warning-bright',
+    'Lupinen': 'bg-warning-bright',
     'Histamin': 'bg-info',
     'Fructose': 'bg-info',
     'Koffeinhaltig': 'bg-info',
@@ -121,7 +121,7 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
         <Icon name="expand_more" size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-card border border-border rounded-xl shadow-lg p-2 max-h-80 overflow-hidden flex flex-col">
+        <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-card rounded-xl shadow-lg p-2 max-h-80 overflow-hidden flex flex-col shadow-card">
           <input
             type="text"
             value={search}

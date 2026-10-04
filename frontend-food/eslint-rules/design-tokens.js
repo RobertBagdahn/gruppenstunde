@@ -8,6 +8,7 @@
  * - font sizes outside the scale (`text-xs`, `text-2xl`, `text-[11px]`) —
  *   use text-caption/body/emphasis/section/title,
  * - radii other than rounded-lg/xl/full/none,
+ * - removed gradient utilities and the dark solid `bg-warning` surface,
  * - Material Symbols classes — use the Lucide `Icon` component.
  */
 
@@ -36,6 +37,16 @@ const CHECKS = [
     id: 'radius',
     test: /^rounded(?:-(?:t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee))?(?:-(?:sm|md|2xl|3xl|\[.*\]))?$/,
     message: 'Radius „{{token}}“ nicht erlaubt: nutze rounded-lg (Bedienelemente), rounded-xl (Karten) oder rounded-full.',
+  },
+  {
+    id: 'removedGradient',
+    test: /^gradient-(?:hero|primary|warm|fun|sunset|rainbow)$/,
+    message: 'Verlauf „{{token}}“ wurde entfernt: nutze helle Token-Flächen (food-frontend-friendly-ux).',
+  },
+  {
+    id: 'darkWarningSurface',
+    test: /^bg-warning$/,
+    message: '„{{token}}“ ist eine dunkle Fläche: nutze bg-warning-soft (Hinweise) oder bg-warning-bright (Balken, Punkte).',
   },
   {
     id: 'materialSymbols',

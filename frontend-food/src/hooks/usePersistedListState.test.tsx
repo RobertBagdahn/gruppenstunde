@@ -123,6 +123,20 @@ describe('usePersistedListState', () => {
     expect(screen.getByTestId('restored').textContent).toBe('true');
   });
 
+  it('does not wait for the user when the URL already carries the list state', () => {
+    auth.isLoading = true;
+    writeListState(1, 'recipes', { sort: 'newest' });
+    renderAt('/recipes?page=2');
+    expect(screen.getByTestId('restored').textContent).toBe('true');
+    expect(screen.getByTestId('page').textContent).toBe('2');
+  });
+
+  it('does not wait for the user when nothing is stored for the list', () => {
+    auth.isLoading = true;
+    renderAt('/recipes');
+    expect(screen.getByTestId('restored').textContent).toBe('true');
+  });
+
   it('drops invalid stored fields and keeps valid ones', async () => {
     writeListState(1, 'recipes', { sort: 'rating', origin: ['mine'] });
     renderAt('/recipes');

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   MEALPLAN_ORIGIN_OPTIONS,
   MEALPLAN_WHEN_OPTIONS,
@@ -7,6 +6,7 @@ import {
   MEALPLAN_VISIBILITY_OPTIONS,
 } from '@/schemas/mealPlan';
 import { Icon } from '@/components/ui/icon';
+import { FilterCheckbox, FilterGroup, FilterRadio, FilterSidebar, MoreFilters } from '@/components/shared/FilterParts';
 
 export interface MealPlanSidebarValues {
   origin: string;
@@ -38,25 +38,18 @@ interface RadioGroupProps {
 
 function RadioGroup({ title, icon, name, value, options, onChange }: RadioGroupProps) {
   return (
-    <div className="bg-card rounded-xl border p-4 shadow-sm">
-      <h3 className="flex items-center gap-1.5 text-body font-semibold mb-2 text-primary">
-        <Icon name={icon} size={20} />
-        {title}
-      </h3>
+    <FilterGroup title={title} icon={icon}>
       {options.map((opt) => (
-        <label key={opt.value} className="flex items-center gap-2 py-1 cursor-pointer text-body hover:text-primary transition-colors">
-          <input
-            type="radio"
-            name={name}
-            checked={value === opt.value}
-            onChange={() => onChange(opt.value)}
-            className="border-muted-foreground accent-primary"
-          />
-          {opt.icon && <Icon name={opt.icon} size={16} />}
-          {opt.label}
-        </label>
+        <FilterRadio
+          key={opt.value}
+          name={name}
+          checked={value === opt.value}
+          onChange={() => onChange(opt.value)}
+          icon={opt.icon}
+          label={opt.label}
+        />
       ))}
-    </div>
+    </FilterGroup>
   );
 }
 
@@ -67,59 +60,47 @@ export default function MealPlanFilterSidebar({
   onChange,
   onReset,
 }: MealPlanFilterSidebarProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   const toggleTag = (tag: string) =>
     onChange({
       tags: values.tags.includes(tag) ? values.tags.filter((t) => t !== tag) : [...values.tags, tag],
     });
 
+  // Filters behind "Weitere Filter" that differ from their default (first option).
+  const hiddenActiveCount =
+    Number(values.size !== MEALPLAN_SIZE_OPTIONS[0].value) +
+    Number(values.duration !== MEALPLAN_DURATION_OPTIONS[0].value) +
+    Number(values.visibility !== MEALPLAN_VISIBILITY_OPTIONS[0].value) +
+    Number(values.withMembers) +
+    Number(values.withEvent) +
+    values.tags.length;
+
   return (
-    <aside className="w-full md:w-64 shrink-0">
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-expanded={mobileOpen}
-        className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-body"
-      >
-        <span className="flex items-center gap-2">
-          <Icon name="tune" size={20} className="text-primary" />
-          Filter
-          {activeCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-primary-foreground text-caption px-1.5">
-              {activeCount}
-            </span>
-          )}
-        </span>
-        <Icon name="expand_more" size={20} className={`transition-transform ${mobileOpen ? 'rotate-180' : ''}`} />
-      </button>
+    <FilterSidebar activeCount={activeCount}>
+      {activeCount > 0 && (
+        <button onClick={onReset} className="flex items-center gap-1 text-caption font-medium text-primary hover:underline">
+          <Icon name="close" size={16} />
+          Alle Filter löschen
+        </button>
+      )}
 
-      <div className={`space-y-4 ${mobileOpen ? 'block' : 'hidden md:block'}`}>
-        {activeCount > 0 && (
-          <button
-            onClick={onReset}
-            className="flex items-center gap-1 text-caption font-semibold text-destructive hover:underline"
-          >
-            <Icon name="close" size={16} />
-            Alle Filter löschen
-          </button>
-        )}
+      <RadioGroup
+        title="Zeitraum"
+        icon="calendar_month"
+        name="when"
+        value={values.when}
+        options={MEALPLAN_WHEN_OPTIONS}
+        onChange={(when) => onChange({ when })}
+      />
+      <RadioGroup
+        title="Herkunft"
+        icon="verified"
+        name="origin"
+        value={values.origin}
+        options={MEALPLAN_ORIGIN_OPTIONS}
+        onChange={(origin) => onChange({ origin })}
+      />
 
-        <RadioGroup
-          title="Zeitraum"
-          icon="calendar_month"
-          name="when"
-          value={values.when}
-          options={MEALPLAN_WHEN_OPTIONS}
-          onChange={(when) => onChange({ when })}
-        />
-        <RadioGroup
-          title="Herkunft"
-          icon="verified"
-          name="origin"
-          value={values.origin}
-          options={MEALPLAN_ORIGIN_OPTIONS}
-          onChange={(origin) => onChange({ origin })}
-        />
+      <MoreFilters activeCount={hiddenActiveCount}>
         <RadioGroup
           title="Gruppengröße"
           icon="groups"
@@ -145,38 +126,22 @@ export default function MealPlanFilterSidebar({
           onChange={(visibility) => onChange({ visibility })}
         />
 
-        <div className="bg-card rounded-xl border p-4 shadow-sm">
-          <h3 className="flex items-center gap-1.5 text-body font-semibold mb-2 text-primary">
-            <Icon name="tune" size={20} />
-            Eigenschaften
-          </h3>
-          <label className="flex items-center gap-2 py-1 cursor-pointer text-body">
-            <input
-              type="checkbox"
-              checked={values.withMembers}
-              onChange={(e) => onChange({ withMembers: e.target.checked })}
-              className="rounded-lg accent-primary"
-            />
-            Mit Teilnehmerliste
-          </label>
-          <label className="flex items-center gap-2 py-1 cursor-pointer text-body">
-            <input
-              type="checkbox"
-              checked={values.withEvent}
-              onChange={(e) => onChange({ withEvent: e.target.checked })}
-              className="rounded-lg accent-primary"
-            />
-            Mit Veranstaltung
-          </label>
-        </div>
+        <FilterGroup title="Eigenschaften" icon="tune">
+          <FilterCheckbox
+            checked={values.withMembers}
+            onChange={() => onChange({ withMembers: !values.withMembers })}
+            label="Mit Teilnehmerliste"
+          />
+          <FilterCheckbox
+            checked={values.withEvent}
+            onChange={() => onChange({ withEvent: !values.withEvent })}
+            label="Mit Veranstaltung"
+          />
+        </FilterGroup>
 
         {availableTags.length > 0 && (
-          <div className="bg-card rounded-xl border p-4 shadow-sm">
-            <h3 className="flex items-center gap-1.5 text-body font-semibold mb-2 text-primary">
-              <Icon name="eco" size={20} />
-              Ernährung
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
+          <FilterGroup title="Ernährung" icon="eco">
+            <div className="flex flex-wrap gap-1.5 px-1">
               {availableTags.map((tag) => {
                 const selected = values.tags.includes(tag);
                 return (
@@ -185,10 +150,8 @@ export default function MealPlanFilterSidebar({
                     type="button"
                     aria-pressed={selected}
                     onClick={() => toggleTag(tag)}
-                    className={`rounded-full border px-2.5 py-1 text-caption font-medium transition-colors ${
-                      selected
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card text-foreground border-border hover:border-primary/40'
+                    className={`rounded-full px-2.5 py-1 text-caption font-medium transition-colors ${
+                      selected ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground shadow-card hover:bg-primary-soft'
                     }`}
                   >
                     {tag}
@@ -196,9 +159,9 @@ export default function MealPlanFilterSidebar({
                 );
               })}
             </div>
-          </div>
+          </FilterGroup>
         )}
-      </div>
-    </aside>
+      </MoreFilters>
+    </FilterSidebar>
   );
 }

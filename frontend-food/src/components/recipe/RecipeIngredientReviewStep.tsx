@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Check, ChevronDown, Plus, Scale, Search, Sparkles, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import {
   Dialog,
   DialogContent,
@@ -338,7 +338,8 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   const removeNow = () => {
     const removed = removeRow(row.key);
     if (!removed) return;
-    toast('Zeile entfernt', {
+    notify.message('Zeile entfernt', {
+      duration: UNDO_DURATION_MS,
       description: row.source_text,
       action: { label: 'Rückgängig', onClick: () => restoreRow(removed.row, removed.index) },
     });
@@ -388,7 +389,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   );
 
   return (
-    <article className="rounded-xl border bg-card p-4 space-y-3" data-testid={`ingredient-review-row-${row.key}`}>
+    <article className="rounded-xl bg-card p-4 space-y-3 shadow-card" data-testid={`ingredient-review-row-${row.key}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="text-caption font-medium uppercase tracking-wide text-muted-foreground">Originalangabe</p>

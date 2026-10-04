@@ -29,7 +29,7 @@ export default function OutlierAccordion({ fields, summary }: OutlierAccordionPr
 
       <div className="space-y-2">
         {fields.map((field) => (
-          <div key={field.field} className="rounded-xl border border-border bg-card overflow-hidden">
+          <div key={field.field} className="rounded-xl bg-card overflow-hidden shadow-card">
             <button
               onClick={() => setOpenField(openField === field.field ? null : field.field)}
               className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"

@@ -4,14 +4,14 @@
 import { useEffect } from 'react';
 import { KeyRound, Link2Off, LogOut } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { useConnections, useCurrentUser, useDisconnect, useLogout } from '@/api/auth';
 import AiQuotaBar from '@/components/auth/AiQuotaBar';
 import LoginPanel from '@/components/auth/LoginPanel';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { Button } from '@/components/ui/button';
-import { getApiErrorMessage } from '@/lib/api';
 import { LOGIN_ERROR_MESSAGES } from '@/lib/socialLogin';
+import { PageSkeleton, SkeletonTableRows } from '@/components/ui/skeleton';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '–';
@@ -30,13 +30,13 @@ export default function AccountPage() {
     const connected = searchParams.get('connected');
     const error = searchParams.get('error');
     if (!connected && !error) return;
-    if (connected) toast.success('Anbieter verbunden.');
-    if (error) toast.error(LOGIN_ERROR_MESSAGES[error] ?? LOGIN_ERROR_MESSAGES.provider_error);
+    if (connected) notify.success('Anbieter verbunden');
+    if (error) notify.error(LOGIN_ERROR_MESSAGES[error] ?? LOGIN_ERROR_MESSAGES.provider_error);
     setSearchParams({}, { replace: true });
   }, [searchParams, setSearchParams]);
 
   if (isLoading) {
-    return <div className="container max-w-2xl py-16 text-center text-sm text-muted-foreground">Wird geladen …</div>;
+    return <PageSkeleton label="Konto wird geladen" className="max-w-2xl" />;
   }
   if (!user) {
     return (
@@ -52,20 +52,20 @@ export default function AccountPage() {
   return (
     <div className="container max-w-2xl space-y-6 px-4 py-6 sm:py-10">
       <header>
-        <h1 className="flex items-center gap-2 font-display text-2xl font-bold">
+        <h1 className="flex items-center gap-2 font-display text-title font-bold">
           <KeyRound className="h-6 w-6 text-primary" />
           Konto &amp; Anmeldung
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-body text-muted-foreground">
           Angemeldet als <span className="font-medium text-foreground">{user.email}</span>
         </p>
       </header>
 
-      <section className="space-y-3 rounded-2xl border bg-card p-4 sm:p-6">
+      <section className="space-y-3 rounded-xl bg-card p-4 sm:p-6 shadow-card">
         <h2 className="font-semibold">Verbundene Anbieter</h2>
-        {connectionsLoading && <p className="text-sm text-muted-foreground">Wird geladen …</p>}
+        {connectionsLoading && <SkeletonTableRows rows={2} columns={2} label="Anbieter werden geladen" />}
         {isError && (
-          <div className="flex items-center justify-between gap-2 text-sm text-destructive">
+          <div className="flex items-center justify-between gap-2 text-body text-destructive">
             Die Anbieter konnten nicht geladen werden.
             <Button size="sm" variant="outline" onClick={() => refetch()}>
               Erneut versuchen
@@ -77,7 +77,7 @@ export default function AccountPage() {
             <li key={connection.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
               <div className="min-w-0">
                 <div className="font-medium">{connection.provider_name}</div>
-                <div className="truncate text-xs text-muted-foreground">
+                <div className="truncate text-caption text-muted-foreground">
                   {connection.email || 'ohne E-Mail'} · verbunden seit {formatDate(connection.connected_at)}
                 </div>
               </div>
@@ -93,8 +93,8 @@ export default function AccountPage() {
                 }
                 onClick={() =>
                   disconnect.mutate(connection.id, {
-                    onSuccess: () => toast.success(`${connection.provider_name} getrennt.`),
-                    onError: (error) => toast.error(getApiErrorMessage(error)),
+                    onSuccess: () => notify.success(`${connection.provider_name} getrennt`),
+                    onError: (error) => notify.error('Verbindung konnte nicht getrennt werden', { error }),
                   })
                 }
               >
@@ -105,12 +105,12 @@ export default function AccountPage() {
           ))}
         </ul>
         {isLast && connections.length === 1 && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Tipp: Verbinde einen zweiten Anbieter, falls du den ersten einmal nicht nutzen kannst.
           </p>
         )}
         <div className="pt-2">
-          <h3 className="mb-2 text-sm font-medium">Weiteren Anbieter verbinden</h3>
+          <h3 className="mb-2 text-body font-medium">Weiteren Anbieter verbinden</h3>
           <LoginPanel
             next="/profile/account"
             process="connect"
@@ -119,16 +119,16 @@ export default function AccountPage() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-2xl border bg-card p-4 sm:p-6">
+      <section className="space-y-3 rounded-xl bg-card p-4 sm:p-6 shadow-card">
         <h2 className="font-semibold">KI-Kontingent</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           Der KI-Assistent hat ein Tageskontingent, damit das Angebot für alle kostenlos bleibt.
         </p>
         <AiQuotaBar showEuro={user.is_staff} />
       </section>
 
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4 sm:p-6">
-        <p className="text-sm text-muted-foreground">
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-card p-4 sm:p-6 shadow-card">
+        <p className="text-body text-muted-foreground">
           Datenübersicht, Datenexport und Konto löschen findest du in den Datenschutz-Einstellungen auf
           gruppenstunde.de.
         </p>
@@ -138,7 +138,7 @@ export default function AccountPage() {
           onClick={() =>
             logout.mutate(undefined, {
               onSuccess: () => {
-                toast.success('Du bist abgemeldet.');
+                notify.success('Du bist abgemeldet');
                 navigate('/');
               },
             })

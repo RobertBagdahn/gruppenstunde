@@ -5,7 +5,9 @@ import type { CompletenessItem } from '@/schemas/dataQuality';
 import Pagination from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowUpDown, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
+import ErrorDisplay from '@/components/ErrorDisplay';
 
 type SortKey = keyof CompletenessItem;
 type SortDir = 'asc' | 'desc';
@@ -43,12 +45,12 @@ export default function CompletenessGrid() {
       if (result.filled_fields.length > 0) {
         const labels = result.filled_fields.map((f) => f.label).slice(0, 3).join(', ');
         const more = result.filled_fields.length > 3 ? ` und ${result.filled_fields.length - 3} weitere` : '';
-        toast.success(`Stammdaten für "${item.name}" ergänzt: ${labels}${more}`);
+        notify.success(`Stammdaten für "${item.name}" ergänzt: ${labels}${more}`);
       } else {
-        toast.info(`Keine fehlenden Stammdaten für "${item.name}". Bestehende Daten beibehalten.`);
+        notify.info(`Keine fehlenden Stammdaten für "${item.name}". Bestehende Daten beibehalten`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler bei der KI-Ergänzung');
+      notify.error('KI-Ergänzung fehlgeschlagen', { error: err });
     } finally {
       setFillingId(null);
     }
@@ -77,11 +79,9 @@ export default function CompletenessGrid() {
 
   if (isLoading)
     return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="animate-spin text-title text-muted-foreground" />
-      </div>
+      <SkeletonTableRows rows={5} columns={3} label="Einträge werden geladen" />
     );
-  if (error) return <div className="text-danger py-4">Fehler beim Laden: {error.message}</div>;
+  if (error) return <ErrorDisplay variant="inline" error={error} title="Daten konnten nicht geladen werden" />;
   if (!sortedItems.length) return <div className="text-muted-foreground py-4">Keine Zutaten gefunden</div>;
 
   return (

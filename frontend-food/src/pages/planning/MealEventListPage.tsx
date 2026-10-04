@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import {
   Calendar,
   Users,
@@ -21,7 +21,7 @@ import { getNextWeekend } from '@/lib/dateUtils';
 import { MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import ListPageHero from '@/components/shared/ListPageHero';
+import PageHeader from '@/components/shared/PageHeader';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import { MealPlanListStateSchema } from '@/schemas/listState';
@@ -54,6 +54,7 @@ import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSe
 import { formatNumber, formatEuro } from '@/lib/format';
 import { sourceBadgeHelp } from '@/lib/sourceBadgeHelp';
 import { Icon } from '@/components/ui/icon';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   verified: {
@@ -89,11 +90,8 @@ export default function MealPlanListPage() {
   if (userLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
-          ))}
-        </div>
+        <PageHeader title="Essenspläne" description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden." area="planner" icon="restaurant_menu" countLoading />
+        <SkeletonTableRows rows={4} columns={3} label="Essenspläne werden geladen" />
       </div>
     );
   }
@@ -163,7 +161,8 @@ function MealPlanListPageInner() {
     search: searchQuery || undefined,
   }), [origin, sort, when, size, duration, visibility, withMembers, withEvent, selectedTags, searchQuery]);
 
-  const { data: mealPlans, error, isLoading, refetch } = useMealPlans(filters, { enabled: restored });
+  // isPending (not isLoading): a paused request (offline, hidden tab) is still "no data yet", not "empty".
+  const { data: mealPlans, error, isPending: isLoading, refetch } = useMealPlans(filters, { enabled: restored });
   const createMutation = useCreateMealPlan();
   const deleteMutation = useDeleteMealPlan();
   const duplicateMutation = useDuplicateMealPlan();
@@ -261,12 +260,12 @@ function MealPlanListPageInner() {
         },
         {
           onSuccess: (plan) => {
-            toast.success('Essensplan aus Vorlage erstellt');
+            notify.success('Essensplan aus Vorlage erstellt');
             setShowCreate(false);
             resetCreateForm();
             navigate(`/meal-plans/${plan.id}`);
           },
-          onError: (err) => toast.error('Fehler', { description: err.message }),
+          onError: (err) => notify.error('Essensplan konnte nicht angelegt werden', { error: err }),
         },
       );
     } else {
@@ -280,12 +279,12 @@ function MealPlanListPageInner() {
         },
         {
           onSuccess: (plan) => {
-            toast.success('Essensplan erstellt');
+            notify.success('Essensplan erstellt');
             setShowCreate(false);
             resetCreateForm();
             navigate(`/meal-plans/${plan.id}`);
           },
-          onError: (err) => toast.error('Fehler', { description: err.message }),
+          onError: (err) => notify.error('Essensplan konnte nicht angelegt werden', { error: err }),
         },
       );
     }
@@ -295,10 +294,10 @@ function MealPlanListPageInner() {
     if (deleteId === null) return;
     deleteMutation.mutate(deleteId, {
       onSuccess: () => {
-        toast.success('Essensplan gelöscht');
+        notify.success('Essensplan gelöscht');
         setDeleteId(null);
       },
-      onError: (err) => toast.error('Fehler', { description: err.message }),
+      onError: (err) => notify.error('Essensplan konnte nicht gelöscht werden', { error: err }),
     });
   };
 
@@ -503,14 +502,14 @@ function MealPlanListPageInner() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 font-sans">
       {/* Hero */}
-      <ListPageHero
+      <PageHeader
         title="Essenspläne"
         description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden."
+        area="planner"
         icon="restaurant_menu"
-        gradientClasses="gradient-primary"
-        totalCount={totalCount}
+        count={totalCount}
+        countLoading={isLoading || !restored}
         countLabel={{ one: 'Plan', other: 'Pläne' }}
-        countIcon="restaurant_menu"
       />
 
       {/* Tool Link */}
@@ -532,7 +531,6 @@ function MealPlanListPageInner() {
                 onSubmit={search.submit}
                 createLabel="Neuer Essensplan"
                 onCreateClick={() => navigate('/meal-plans/new')}
-                gradientClasses=""
               />
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">

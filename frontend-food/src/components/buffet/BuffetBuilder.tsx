@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, LayoutGrid, Save, Search, TriangleAlert } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -423,12 +423,12 @@ export function BuffetBuilder({
       { templateId: template.id, selections, roleAmounts, manualItemsPolicy },
       {
         onSuccess: () => {
-          toast.success('Buffet gespeichert', { description: `${template.name} für ${normPortions} Personen` });
+          notify.success('Buffet gespeichert', { description: `${template.name} für ${normPortions} Personen` });
           onSaved?.();
           onOpenChange(false);
         },
         onError: (err) => {
-          toast.error('Fehler beim Speichern', { description: err.message });
+          notify.error('Buffet konnte nicht gespeichert werden', { error: err });
         },
       },
     );
@@ -501,7 +501,7 @@ export function BuffetBuilder({
           </div>
         ) : wizardStep === 'review' ? (
           <div className="space-y-4 p-4 sm:p-6">
-            <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+            <section className="space-y-3 rounded-xl bg-card p-4 shadow-card">
               <h3 className="font-display text-section font-bold text-foreground">Buffet prüfen</h3>
               <p className="text-body text-muted-foreground">{template.name} · {normPortions} {normPortions === 1 ? 'Person' : 'Personen'}</p>
               {previewPending && <p className="text-caption text-muted-foreground" role="status">Vorschau wird berechnet…</p>}
@@ -771,7 +771,7 @@ function PresetChooser({
         <p className="text-caption text-warning" role="alert">Die universelle Vorlage „Freies Buffet“ ist nicht verfügbar.</p>
       )}
       {otherTemplates.length > 0 && (
-        <details className="rounded-xl border border-border bg-card p-4" data-testid="buffet-other-presets">
+        <details className="rounded-xl bg-card p-4 shadow-card" data-testid="buffet-other-presets">
           <summary className="cursor-pointer text-body font-semibold text-foreground">Weitere Vorlagen</summary>
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {otherTemplates.map((candidate) => (
@@ -854,7 +854,7 @@ function RoleSection({
   const searchResults = (searchQuery.data ?? []).filter((item) => !roleItemKeys.has(`${item.kind}:${item.id}`));
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card" data-testid={`buffet-role-${role.role.slug}`}>
+    <section className="overflow-hidden rounded-xl bg-card shadow-card" data-testid={`buffet-role-${role.role.slug}`}>
       <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20">
         <button
           type="button"

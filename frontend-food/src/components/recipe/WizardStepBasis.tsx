@@ -70,7 +70,7 @@ export default function WizardStepBasis({
         </div>
       )}
 
-      <div className="space-y-4 rounded-xl border bg-card p-4 sm:p-5">
+      <div className="space-y-4 rounded-xl bg-card p-4 sm:p-5 shadow-card">
         <div>
           <label htmlFor="recipe-basis-title" className="mb-1.5 block text-body font-medium">Titel *</label>
           <input

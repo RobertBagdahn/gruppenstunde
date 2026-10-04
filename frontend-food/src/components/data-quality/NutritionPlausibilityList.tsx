@@ -15,8 +15,9 @@ import {
   Square,
   CheckCircle2,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { formatNumber } from '@/lib/format';
+import { getApiErrorMessage } from '@/lib/api';
 
 // Codes MUST match backend/supply/services/nutrition_plausibility.py ISSUE_LABELS.
 const ANOMALY_OPTIONS = [
@@ -77,12 +78,12 @@ export default function NutritionPlausibilityList() {
       if (result.filled_fields.length > 0) {
         const labels = result.filled_fields.map((f) => f.label).slice(0, 3).join(', ');
         const more = result.filled_fields.length > 3 ? ` und ${result.filled_fields.length - 3} weitere` : '';
-        toast.success(`Stammdaten für "${item.name}" ergänzt: ${labels}${more}`);
+        notify.success(`Stammdaten für "${item.name}" ergänzt: ${labels}${more}`);
       } else {
-        toast.info(`Keine leeren Felder für "${item.name}" gefunden. Bestehende Daten wurden beibehalten.`);
+        notify.info(`Keine leeren Felder für "${item.name}" gefunden. Bestehende Daten wurden beibehalten`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler bei der KI-Ergänzung');
+      notify.error('KI-Ergänzung fehlgeschlagen', { error: err });
     } finally {
       setFillingId(null);
     }
@@ -91,19 +92,19 @@ export default function NutritionPlausibilityList() {
   const handleFillBatch = async () => {
     const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : data?.items?.map((i) => i.id) || [];
     if (targetIds.length === 0) {
-      toast.error('Keine Zutaten zum Ergänzen vorhanden');
+      notify.error('Keine Zutaten zum Ergänzen vorhanden');
       return;
     }
 
     try {
-      toast.info(`Ergänze fehlende Stammdaten für ${targetIds.length} Zutaten mit KI...`);
+      notify.info(`Ergänze fehlende Stammdaten für ${targetIds.length} Zutaten mit KI...`);
       const result = await fillBatchMutation.mutateAsync({ ingredient_ids: targetIds });
-      toast.success(
+      notify.success(
         `${result.total_filled} von ${targetIds.length} Zutaten erfolgreich mit fehlenden Stammdaten ergänzt!`
       );
       setSelectedIds(new Set());
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Fehler beim Batch-Auffüllen');
+      notify.error('Werte konnten nicht aufgefüllt werden', { error: err });
     }
   };
 
@@ -120,7 +121,7 @@ export default function NutritionPlausibilityList() {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive space-y-2">
         <p className="font-semibold">Fehler beim Laden der Datenqualität</p>
-        <p className="text-body">{error.message}</p>
+        <p className="text-body">{getApiErrorMessage(error)}</p>
       </div>
     );
   }

@@ -717,7 +717,7 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
   breakfast: { text: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', dot: 'bg-primary' },
   lunch: { text: 'text-accent-foreground', bg: 'bg-accent/30', border: 'border-accent', dot: 'bg-accent-foreground' },
   dinner: { text: 'text-secondary-foreground', bg: 'bg-secondary', border: 'border-secondary-foreground/30', dot: 'bg-secondary-foreground' },
-  snack: { text: 'text-warning', bg: 'bg-warning-soft', border: 'border-warning-border', dot: 'bg-warning' },
+  snack: { text: 'text-warning', bg: 'bg-warning-soft', border: 'border-warning-border', dot: 'bg-warning-bright' },
   drinks: { text: 'text-info', bg: 'bg-info-soft', border: 'border-info-border', dot: 'bg-info' },
 };
 

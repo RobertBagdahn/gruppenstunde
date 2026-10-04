@@ -1,3 +1,4 @@
+import { SkeletonCardGrid, SkeletonTableRows } from '@/components/ui/skeleton';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { costBounds } from '@/lib/recipeCostRanges';
 import { useNavigate, Link } from 'react-router-dom';
@@ -14,7 +15,7 @@ import { takeLegacyValue } from '@/lib/listStateStorage';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
-import ListPageHero from '@/components/shared/ListPageHero';
+import PageHeader from '@/components/shared/PageHeader';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import EmptyState from '@/components/shared/EmptyState';
@@ -25,7 +26,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import { Icon } from '@/components/ui/icon';
 
 type RecipeListState = z.infer<typeof RecipeListStateSchema>;
@@ -101,7 +102,7 @@ export default function RecipeListPage() {
   const [cloneTarget, setCloneTarget] = useState<{ id: number; title: string } | null>(null);
   const [cloneTitle, setCloneTitle] = useState('');
 
-  const { data, isLoading, error, refetch } = useRecipes(filters, { enabled: restored });
+  const { data, isPending: isLoading, error, refetch, isPlaceholderData } = useRecipes(filters, { enabled: restored });
   const deleteRecipe = useDeleteRecipe();
   const forkRecipe = useForkRecipe(cloneTarget?.id ?? 0);
 
@@ -136,14 +137,14 @@ export default function RecipeListPage() {
   return (
     <EntityLinkContext.Provider value="list">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-      <ListPageHero
+      <PageHeader
         title="Rezepte"
         description="Finde das perfekte Rezept für deine Gruppe"
+        area="recipes"
         icon="menu_book"
-        gradientClasses="gradient-primary"
-        totalCount={data?.total}
+        count={data?.total}
+        countLoading={isLoading || !restored}
         countLabel={{ one: 'Rezept', other: 'Rezepte' }}
-        countIcon="restaurant"
       />
 
       <ListPageSearchBar
@@ -153,7 +154,6 @@ export default function RecipeListPage() {
         onSubmit={search.submit}
         createLabel="Neues Rezept"
         createHref="/recipes/new"
-        gradientClasses=""
       />
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
@@ -213,14 +213,7 @@ export default function RecipeListPage() {
             viewMode === 'table' ? (
               <RecipeTableSkeleton />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl border bg-muted border-border animate-pulse h-72"
-                  />
-                ))}
-              </div>
+              <SkeletonCardGrid count={10} label="Rezepte werden geladen" className="md:grid-cols-3 xl:grid-cols-5" />
             )
           ) : data?.items.length === 0 ? (
             <EmptyState
@@ -232,6 +225,7 @@ export default function RecipeListPage() {
               onCtaClick={hasNonDefaultFilters(filters) ? handleReset : undefined}
             />
           ) : viewMode === 'table' ? (
+            <div className={isPlaceholderData ? 'opacity-60 transition-opacity' : 'transition-opacity'} aria-busy={isPlaceholderData}>
             <RecipeTable
               recipes={data!.items}
               searchQuery={filters.q}
@@ -242,8 +236,12 @@ export default function RecipeListPage() {
                 setCloneTitle(`${title} (Kopie)`);
               }}
             />
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div
+              aria-busy={isPlaceholderData}
+              className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
+            >
               {data?.items.map((recipe) => (
                 <RecipeCard
                   key={recipe.id}
@@ -310,11 +308,11 @@ export default function RecipeListPage() {
                   {
                     onSuccess: (forkedRecipe) => {
                       setCloneTarget(null);
-                      toast.success('Rezept geklont');
+                      notify.success('Rezept geklont');
                       navigate(`/recipes/${forkedRecipe.slug}`);
                     },
                     onError: (err) => {
-                      toast.error('Fehler beim Klonen', { description: err.message });
+                      notify.error('Rezept konnte nicht geklont werden', { error: err });
                     },
                   },
                 );
@@ -340,12 +338,12 @@ export default function RecipeListPage() {
           if (!deleteTarget) return;
           deleteRecipe.mutate(deleteTarget.id, {
             onSuccess: () => {
-              toast.success('Rezept gelöscht');
+              notify.success('Rezept gelöscht');
               setDeleteTarget(null);
               refetch();
             },
             onError: (err) => {
-              toast.error('Fehler beim Löschen', { description: err.message });
+              notify.error('Rezept konnte nicht gelöscht werden', { error: err });
               setDeleteTarget(null);
             },
           });
@@ -374,17 +372,5 @@ function hasNonDefaultFilters(filters: Partial<RecipeFilter>): boolean {
 }
 
 function RecipeTableSkeleton() {
-  return (
-    <div className="space-y-2">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-3 rounded-xl border bg-muted border-border animate-pulse">
-          <div className="w-12 h-12 rounded-lg bg-muted-foreground/20 shrink-0" />
-          <div className="flex-1 h-4 bg-muted-foreground/20 rounded-lg" />
-          <div className="w-16 h-4 bg-muted-foreground/20 rounded-lg hidden sm:block" />
-          <div className="w-12 h-4 bg-muted-foreground/20 rounded-lg hidden md:block" />
-          <div className="w-10 h-4 bg-muted-foreground/20 rounded-lg hidden md:block" />
-        </div>
-      ))}
-    </div>
-  );
+  return <SkeletonTableRows rows={8} columns={3} label="Rezepte werden geladen" />;
 }

@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useCreateRecipe } from '@/api/breakfast';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { CreateModalState } from '@/pages/planning/breakfast/useWizardState';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface CreateRecipeModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export function CreateRecipeModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      toast.error('Name erforderlich');
+      notify.error('Name erforderlich');
       return;
     }
 
@@ -54,7 +55,7 @@ export function CreateRecipeModal({
         tag_ids: tagIds,
       });
 
-      toast.success('Rezept erstellt ✓');
+      notify.success('Rezept erstellt');
 
       // Invalidate catalog so new recipe appears
       queryClient.invalidateQueries({ queryKey: ['breakfast-catalog'] });
@@ -63,8 +64,8 @@ export function CreateRecipeModal({
       setDescription('');
       onClose();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Fehler beim Erstellen';
-      toast.error(message);
+      const message = getApiErrorMessage(err, 'Fehler beim Erstellen');
+      notify.error('Rezept konnte nicht angelegt werden', { error: err });
       onError(message);
     }
   };

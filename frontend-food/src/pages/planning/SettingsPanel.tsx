@@ -3,8 +3,7 @@ import { X, Plus } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanTag } from '@/schemas/mealPlan';
 import { useMealPlanTags, useCreateMealPlanTag, useDeleteMealPlanTag } from '@/api/mealPlans';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { getApiErrorMessage } from '@/lib/api';
+import { notify } from '@/lib/notify';
 import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/lib/mealPlanDateTime';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 import { formatNumber } from '@/lib/format';
@@ -113,7 +112,7 @@ export default function SettingsPanel({
   const [factors, setFactors] = useState<Record<string, number>>(plan.day_part_factors || defaultFactors);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
+    <div className="rounded-xl bg-card p-5 sm:p-6 space-y-5 font-sans shadow-card">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <label htmlFor="meal-plan-settings-name" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>
@@ -286,7 +285,7 @@ export default function SettingsPanel({
         </div>
         <p className="text-caption text-muted-foreground mt-3 font-medium">
           Summe der Faktoren:{' '}
-          <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-primary font-bold" : "text-accent font-bold"}>
+          <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-primary font-bold" : "text-warning font-bold"}>
             {formatNumber(Object.values(factors).reduce((a, b) => a + b, 0), { maxDecimals: 2 })}
           </span> (Sollte idealerweise 1,00 ergeben).
         </p>
@@ -337,8 +336,8 @@ export default function SettingsPanel({
             >
               {tag.name}
               <button
-                onClick={() => deleteTag.mutate(tag.id, { onError: (error) => toast.error('Tag konnte nicht gelöscht werden', { description: getApiErrorMessage(error) }) })}
-                className="hover:text-accent transition-colors"
+                onClick={() => deleteTag.mutate(tag.id, { onError: (error) => notify.error('Tag konnte nicht gelöscht werden', { error: error }) })}
+                className="hover:text-primary transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -352,7 +351,7 @@ export default function SettingsPanel({
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && tagInput.trim()) {
-                createTag.mutate(tagInput.trim(), { onError: (error) => toast.error('Tag konnte nicht erstellt werden', { description: getApiErrorMessage(error) }) });
+                createTag.mutate(tagInput.trim(), { onError: (error) => notify.error('Tag konnte nicht erstellt werden', { error: error }) });
                 setTagInput('');
               }
             }}
@@ -362,7 +361,7 @@ export default function SettingsPanel({
           <button
             onClick={() => {
               if (tagInput.trim()) {
-                createTag.mutate(tagInput.trim(), { onError: (error) => toast.error('Tag konnte nicht erstellt werden', { description: getApiErrorMessage(error) }) });
+                createTag.mutate(tagInput.trim(), { onError: (error) => notify.error('Tag konnte nicht erstellt werden', { error: error }) });
                 setTagInput('');
               }
             }}
