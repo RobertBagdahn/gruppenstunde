@@ -23,7 +23,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-RELAX_ORDER = ("budget", "prep", "kids", "taste", "diet")
+# The diet filter (vegetarian) is a dietary choice like the plan tags and is never relaxed.
+RELAX_ORDER = ("budget", "prep", "kids", "taste")
 CHEAP_PRICE_PP = {"breakfast": 1.0, "lunch": 1.5, "dinner": 1.5, "snack": 0.8, "drinks": 0.5}
 MMR_LAMBDA = 0.35
 SIMILARITY_PENALTY_START = 0.8
@@ -130,40 +131,67 @@ def planned_embeddings(meal_plan: MealPlan, meal: Meal) -> list[np.ndarray]:
 # ---------------------------------------------------------------------------
 
 
-def _recipe_candidates(config: MealTypeConfig, user: AbstractBaseUser) -> list[Candidate]:
+def _visible_to(user: AbstractBaseUser | None) -> Q:
+    """Verified (ownerless) content plus the user's own; ownerless only without a user."""
+    return Q(owner__isnull=True) | Q(owner=user) if user is not None else Q(owner__isnull=True)
+
+
+def _recipe_candidates(config: MealTypeConfig, user: AbstractBaseUser | None) -> list[Candidate]:
     from content.choices import ContentStatus
     from recipe.models import Recipe
 
     qs = (
         Recipe.objects.filter(status=ContentStatus.APPROVED, recipe_type__in=config.recipe_types)
-        .filter(Q(owner__isnull=True) | Q(owner=user))
+        .filter(_visible_to(user))
         .annotate(item_count=Count("recipe_items", distinct=True))
-        .prefetch_related("nutritional_tags", "manual_nutritional_tags")
+        .prefetch_related(
+            "nutritional_tags",
+            "manual_nutritional_tags",
+            "recipe_items__portion__ingredient__nutritional_tags",
+            "recipe_items__portion__ingredient__retail_section",
+        )
     )
+    from supply.models import NutritionalTag
+
+    veg_tag_id = NutritionalTag.objects.filter(name="Vegetarisch").values_list("id", flat=True).first()
     out: list[Candidate] = []
     for r in qs:
         weight = float(r.cached_weight_g or 0)
         sugar = float(r.cached_sugar_g) if r.cached_sugar_g is not None else None
         tags = list(r.nutritional_tags.all()) + list(r.manual_nutritional_tags.all())
-        out.append(
-            Candidate(
-                kind="recipe",
-                id=r.id,
-                title=r.title,
-                slug=r.slug,
-                recipe_type=r.recipe_type,
-                description=(r.summary or r.description or "")[:300],
-                sugar_per_100g=(sugar / weight * 100) if sugar is not None and weight > 0 else None,
-                price_pp=(round(float(r.cached_price_total) / (r.portions or 1), 2) if r.cached_price_total else None),
-                tag_ids={tag.id for tag in tags},
-                tag_names={tag.name for tag in tags},
-                embedding=np.asarray(r.embedding, dtype=np.float32) if r.embedding is not None else None,
-                usage_count=r.usage_count or 0,
-                quality=float(r.quality_score or 0),
-                item_count=r.item_count,
-                badge="verified" if r.owner_id is None else "community",
-            )
+        tag_ids = {tag.id for tag in tags}
+        tag_names = {tag.name for tag in tags}
+        ingredients = [
+            item.portion.ingredient for item in r.recipe_items.all() if item.portion and item.portion.ingredient
+        ]
+        if ingredients:
+            # A recipe carries a tag when every ingredient does (recipe tags are not synced on all systems).
+            shared = set.intersection(*({tag.id for tag in ing.nutritional_tags.all()} for ing in ingredients))
+            tag_ids |= shared
+            names_by_id = {tag.id: tag.name for ing in ingredients for tag in ing.nutritional_tags.all()}
+            tag_names |= {names_by_id[i] for i in shared}
+        candidate = Candidate(
+            kind="recipe",
+            id=r.id,
+            title=r.title,
+            slug=r.slug,
+            recipe_type=r.recipe_type,
+            description=(r.summary or r.description or "")[:300],
+            sugar_per_100g=(sugar / weight * 100) if sugar is not None and weight > 0 else None,
+            price_pp=(round(float(r.cached_price_total) / (r.portions or 1), 2) if r.cached_price_total else None),
+            tag_ids=tag_ids,
+            tag_names=tag_names,
+            ingredient_names=" ".join(ing.name.lower() for ing in ingredients),
+            ingredient_sections={ing.retail_section.name for ing in ingredients if ing.retail_section},
+            embedding=np.asarray(r.embedding, dtype=np.float32) if r.embedding is not None else None,
+            usage_count=r.usage_count or 0,
+            quality=float(r.quality_score or 0),
+            item_count=r.item_count,
+            badge="verified" if r.owner_id is None else "community",
         )
+        if veg_tag_id is not None and t.is_vegetarian(candidate) is True:
+            candidate.tag_ids.add(veg_tag_id)
+        out.append(candidate)
     return out
 
 
@@ -181,7 +209,7 @@ def default_portion(ingredient: Any) -> tuple[int | None, int | None, float | No
     return None, None, None, None
 
 
-def _ingredient_candidates(config: MealTypeConfig, user: AbstractBaseUser) -> list[Candidate]:
+def _ingredient_candidates(config: MealTypeConfig, user: AbstractBaseUser | None) -> list[Candidate]:
     from supply.models import Ingredient
 
     if not config.ingredient_sections:
@@ -192,7 +220,7 @@ def _ingredient_candidates(config: MealTypeConfig, user: AbstractBaseUser) -> li
             status="verified",
             retail_section__name__in=config.ingredient_sections,
         )
-        .filter(Q(owner__isnull=True) | Q(owner=user))
+        .filter(_visible_to(user))
         .select_related("retail_section")
         .prefetch_related("nutritional_tags", "portions")
     )
@@ -225,6 +253,12 @@ def _ingredient_candidates(config: MealTypeConfig, user: AbstractBaseUser) -> li
             )
         )
     return out
+
+
+def load_all_candidates(meal_type: str, user: AbstractBaseUser | None = None) -> list[Candidate]:
+    """All candidates for a meal type without duplicate exclusion (used by the coverage report)."""
+    config = MEAL_TYPE_CONFIG.get(meal_type, MEAL_TYPE_CONFIG["snack"])
+    return [*_recipe_candidates(config, user), *_ingredient_candidates(config, user)]
 
 
 def load_candidates(meal_plan: MealPlan, meal: Meal, user: AbstractBaseUser) -> list[Candidate]:

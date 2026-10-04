@@ -193,6 +193,24 @@ class TestHardFilters:
 
         assert {c.id for c in _all_cards(result)} == {ok.id}
 
+    def test_recipe_tags_come_from_ingredients_when_not_synced(self):
+        tag = baker.make(NutritionalTag, name="Glutenfrei (freiwillig)")
+        plan = make_meal_plan()
+        plan.nutritional_tags.add(tag)
+        meal = make_meal(plan, meal_type="dinner", start_datetime=_at(0, 18), end_datetime=_at(0, 19))
+        rice = make_ingredient(name="Reis")
+        rice.nutritional_tags.add(tag)
+        flour = make_ingredient(name="Weizenmehl")
+        good = _plain("Reispfanne", "warm_meal")
+        make_recipe_item(good, ingredient=rice)
+        bad = _plain("Mehlspeise", "warm_meal")
+        make_recipe_item(bad, ingredient=rice)
+        make_recipe_item(bad, ingredient=flour)
+
+        result = build_panel(plan, meal, plan.created_by, Filters(), seed=1)
+
+        assert {c.id for c in _all_cards(result)} == {good.id}
+
     def test_cooling_none_removes_perishables(self):
         plan = make_meal_plan(cooling="none")
         meal = make_meal(plan, meal_type="snack", start_datetime=_at(0, 15), end_datetime=_at(0, 16))
@@ -202,6 +220,34 @@ class TestHardFilters:
         result = build_panel(plan, meal, plan.created_by, Filters(), seed=1)
 
         assert {c.id for c in _all_cards(result) if c.kind == "recipe"} == {dry.id}
+
+
+@pytest.mark.django_db
+class TestVegetarianInference:
+    def test_vegetarian_direction_uses_ingredients_without_tags(self):
+        plan = make_meal_plan()
+        meal = make_meal(plan, meal_type="dinner", start_datetime=_at(0, 18), end_datetime=_at(0, 19))
+        veg = _plain("Gemüsepfanne", "warm_meal")
+        make_recipe_item(veg, ingredient=make_ingredient(name="Paprika"))
+        meat = _plain("Pfanne", "warm_meal")
+        make_recipe_item(meat, ingredient=make_ingredient(name="Hackfleisch"))
+
+        result = build_panel(plan, meal, plan.created_by, Filters(), seed=1)
+
+        directions = {d.key: [c.id for c in cards] for d, cards in result.directions}
+        assert directions["vegetarian"] == [veg.id]
+
+    def test_vegetarian_filter_excludes_meat(self):
+        plan = make_meal_plan()
+        meal = make_meal(plan, meal_type="dinner", start_datetime=_at(0, 18), end_datetime=_at(0, 19))
+        meat = _plain("Pfanne", "warm_meal")
+        make_recipe_item(meat, ingredient=make_ingredient(name="Hackfleisch"))
+        veg = _plain("Gemüsepfanne", "warm_meal")
+        make_recipe_item(veg, ingredient=make_ingredient(name="Paprika"))
+
+        result = build_panel(plan, meal, plan.created_by, Filters(diet="vegetarian"), seed=1)
+
+        assert {c.id for c in _all_cards(result)} == {veg.id}
 
 
 @pytest.mark.django_db

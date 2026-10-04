@@ -51,9 +51,9 @@
 
 ## 7. Abdeckungsanalyse
 
-- [ ] 7.1 Command `report_suggestion_coverage` mit Markdown/JSON-Ausgabe
-- [ ] 7.2 Mindestabdeckungs-Test auf Fixtures
-- [ ] 7.3 Report auf Prod-Kopie laufen lassen und Seed-Backlog ableiten
+- [x] 7.1 Command `report_suggestion_coverage` mit Markdown/JSON-Ausgabe
+- [x] 7.2 Mindestabdeckungs-Test auf Fixtures
+- [x] 7.3 Report auf Prod laufen lassen und Seed-Backlog ableiten (read-only, Ergebnis: `coverage-prod-2026-10-04.md`)
 
 ## 8. Abschluss
 

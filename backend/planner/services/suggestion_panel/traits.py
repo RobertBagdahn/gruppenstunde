@@ -9,6 +9,24 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 SWEET_SUGAR_PER_100G = 10.0
+SWEET_DRINK_SUGAR_PER_100G = 5.0
+MEAT_WORDS = (
+    "fleisch",
+    "hack",
+    "wurst",
+    "fisch",
+    "lachs",
+    "schinken",
+    "speck",
+    "huhn",
+    "hähnchen",
+    "rind",
+    "schwein",
+    "thunfisch",
+    "salami",
+    "gelatine",
+)
+MEAT_SECTIONS = ("Fleisch", "Fisch & Meeresfrüchte", "Wurst & Aufschnitt")
 
 SPICY_OR_ADULT = ("chili", "scharf", "curry", "pfeffer", "wein", "bier", "alkohol", "kaffee", "espresso", "glühwein")
 COOKING_WORDS = (
@@ -68,6 +86,8 @@ class Candidate:
     quality: float = 0.0
     item_count: int = 0
     child_score: int | None = None
+    ingredient_names: str = ""
+    ingredient_sections: set[str] = field(default_factory=set)
     badge: str = "community"
     is_new: bool = False
     portion_id: int | None = None
@@ -88,16 +108,28 @@ class Candidate:
 def is_sweet(c: Candidate) -> bool | None:
     if c.sugar_per_100g is None:
         return None
-    return c.sugar_per_100g >= SWEET_SUGAR_PER_100G
+    is_drink = c.recipe_type == "drink" or c.section == "Wasser & Erfrischungsgetränke"
+    return c.sugar_per_100g >= (SWEET_DRINK_SUGAR_PER_100G if is_drink else SWEET_SUGAR_PER_100G)
 
 
 def is_vegetarian(c: Candidate) -> bool | None:
+    """Tags win; otherwise infer from ingredient sections and meat words (needs known ingredients)."""
     if "Vegetarisch" in c.tag_names or "Vegan" in c.tag_names:
         return True
-    if c.kind == "ingredient" and c.section in ("Obst", "Gemüse", "Wasser & Erfrischungsgetränke"):
-        return True
-    if c.kind == "recipe" and c.has_word(("fleisch", "hack", "wurst", "fisch", "lachs", "schinken", "speck", "huhn")):
+    if c.kind == "ingredient":
+        if c.section in MEAT_SECTIONS or c.has_word(MEAT_WORDS):
+            return False
+        if c.section in ("Obst", "Gemüse", "Wasser & Erfrischungsgetränke"):
+            return True
+        return None
+    if (
+        c.has_word(MEAT_WORDS)
+        or any(w in c.ingredient_names for w in MEAT_WORDS)
+        or c.ingredient_sections & set(MEAT_SECTIONS)
+    ):
         return False
+    if c.item_count > 0 and c.ingredient_names:
+        return True
     return None
 
 
