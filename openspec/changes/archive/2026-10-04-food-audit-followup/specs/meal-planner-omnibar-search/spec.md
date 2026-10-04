@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Omnibar ingredient search returns eligible ingredients
 The Omnibar SHALL search all ingredients eligible for meal-plan use, not only ingredients marked standalone. Search results MUST exclude deleted and draft ingredients. The result order MUST preserve backend relevance and use a deterministic tie-breaker; client-side combination MUST NOT replace this order with an unrelated ordering. Any pagination parameters MUST be applied consistently across the complete result set.

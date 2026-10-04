@@ -2,9 +2,7 @@
 
 ## Purpose
 Defines safety, security, privacy, and numerical calculation integrity guarantees for meal planning, including AI candidate isolation, permission enforcement, PDF export fidelity, portion scaling, and view consistency.
-
 ## Requirements
-
 ### Requirement: Privacy in AI breakfast candidates
 The system SHALL only select breakfast candidates for AI suggestions from public templates, verified plans, or plans created by the requesting user. Private plans from other users SHALL NEVER be queried or sent to an LLM prompt.
 
@@ -102,3 +100,22 @@ The nutrition suggestions view SHALL calculate and display the actual daily nutr
 #### Scenario: Variable day nutrition display
 - **WHEN** day 1 has 1500 kcal and day 2 has 2500 kcal
 - **THEN** the respective daily bars SHALL display 1500 kcal and 2500 kcal instead of 2000 kcal for both.
+
+### Requirement: Gelöschte Rezepte zählen nicht in Plänen
+Berechnungen eines Essensplans (Kosten, Nährwerte, Einkaufsliste) und das Kopieren eines Plans SHALL Einträge mit soft-gelöschtem Rezept ignorieren, sodass Kosten und Einkaufsliste konsistent bleiben.
+
+#### Scenario: Bestandsplan mit gelöschtem Rezept
+- **WHEN** ein Plan einen Eintrag mit soft-gelöschtem Rezept enthält
+- **THEN** enthalten Plankosten und kcal diesen Eintrag nicht
+- **AND** Einkaufsliste und Plankosten weisen dieselben Zutaten aus
+
+#### Scenario: Plan kopieren
+- **WHEN** ein Plan mit einem Eintrag mit soft-gelöschtem Rezept kopiert wird
+- **THEN** enthält die Kopie diesen Eintrag nicht
+
+### Requirement: Bereinigung gelöschter Rezepte in Plänen
+Das System SHALL ein Management-Command bereitstellen, das Plan-Einträge mit soft-gelöschtem Rezept auflistet und nur mit `--apply` entfernt.
+
+#### Scenario: Dry-Run
+- **WHEN** das Command ohne `--apply` läuft
+- **THEN** werden betroffene Einträge aufgelistet und nichts verändert

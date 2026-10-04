@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Standardmaß-API liefert Volumen zur eindeutigen Beschriftung
 Das Response-Schema `StandardMeasureOut` SHALL für volumenbasierte Standardmaße zusätzlich `volume_ml` als Zahl und für reine Massenmaße `null` liefern. Das entsprechende Zod-Schema SHALL dasselbe Feld und dieselbe Null-Semantik verwenden.

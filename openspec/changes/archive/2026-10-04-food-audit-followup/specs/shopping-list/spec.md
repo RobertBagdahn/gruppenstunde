@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Einkaufslisten zeigen erkannte Mengen eindeutig
 Wenn ein Einkaufslisteneintrag einer Zutat zugeordnet ist, SHALL die Anzeige eine eindeutige Menge und passende Einheit aus den kanonischen Mengendaten darstellen. Die Portionsbezeichnung SHALL nicht doppelt mit einer zweiten Einheit erscheinen. Einheiten wie Gramm, Stück oder Volumen SHALL der gespeicherten Menge entsprechen.

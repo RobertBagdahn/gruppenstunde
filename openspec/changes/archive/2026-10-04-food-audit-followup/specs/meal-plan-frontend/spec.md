@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Eigene Essenspläne
 Die Planliste SHALL bei aktivem Filter „Meine Pläne“ ausschließlich Essenspläne zurückgeben, deren Owner der angemeldete Nutzer ist. Staff-Status allein SHALL den Owner-Filter nicht aufheben. Kollaborator-Zugriff und administrative Gesamtübersichten SHALL über eigene Berechtigungen beziehungsweise explizite Filter geregelt werden.

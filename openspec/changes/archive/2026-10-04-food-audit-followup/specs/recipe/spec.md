@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Zubereitungsschritte sind in Rezeptansichten konsistent
 Die Rezept-Detailansicht und der Rezept-Editor SHALL dieselbe maßgebliche Quelle für Zubereitungsschritte verwenden. Wenn bestehende Rezepte Anweisungen als Markdown-Beschreibung statt in strukturierten Schritten speichern, SHALL die Detailansicht diese Inhalte weiterhin darstellen oder der Change SHALL eine explizite, getestete Überführung in das strukturierte Format vorsehen.

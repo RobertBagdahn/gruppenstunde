@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Rezept-Basisdaten werden im Wizard einmal erfasst
 Der Rezept-Wizard SHALL Titel und Rezepttyp nach erfolgreicher Erfassung nicht erneut als verpflichtende Eingaben abfragen. Validierungsfehler SHALL am jeweils betroffenen Feld in deutscher Sprache angezeigt werden; ein Toast MAY ergänzend erscheinen, SHALL aber die Feldmeldung nicht ersetzen.
