@@ -6,10 +6,25 @@ from typing import Any, cast
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, connection
-from django.db.models import BooleanField, Case, Count, IntegerField, Prefetch, Q, QuerySet, Value, When
+from django.db.models import (
+    BooleanField,
+    Case,
+    Count,
+    DateTimeField,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    IntegerField,
+    Prefetch,
+    Q,
+    QuerySet,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Router, Status
+from ninja import Query, Router, Status
 from ninja.errors import HttpError
 
 from core.permissions import require_login
@@ -323,14 +338,28 @@ def list_meal_plans(
     sort: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    when: str | None = None,
+    size: str | None = None,
+    duration: str | None = None,
+    visibility: str | None = None,
+    with_members: bool = False,
+    with_event: bool = False,
+    tags: list[str] = Query(default=[]),
 ):
     """List meal plans the user has access to.
 
     Filters:
     - search: text search on name/description/event
     - origin: 'all' (default), 'mine', 'community', 'verified'
-    - sort: 'date_newest' (default), 'date_oldest', 'name_asc', 'name_desc'
+    - sort: 'date_upcoming' (running/upcoming first, then past newest first,
+      undated last), 'date_newest' (default), 'date_oldest', 'name_asc', 'name_desc'
     - date_from/date_to: date range filter
+    - when: 'upcoming' (incl. undated), 'running', 'past'
+    - size: 'small' (<=15 portions), 'medium' (16-40), 'large' (>40)
+    - duration: 'day' (1 calendar day), 'weekend' (2-3), 'week' (4+); undated plans never match
+    - visibility: 'private', 'group', 'public', 'draft'
+    - with_members / with_event: only plans with participants / a linked event
+    - tags: nutritional tag names; a plan must have all of them
 
     Anonymous visitors only see public, verified and template plans.
     """
@@ -404,14 +433,77 @@ def list_meal_plans(
     if date_to:
         qs = qs.filter(start_datetime__date__lte=date_to)
 
+    now = timezone.now()
+    if when == "upcoming":
+        qs = qs.filter(Q(start_datetime__gt=now) | Q(start_datetime__isnull=True, end_datetime__isnull=True))
+    elif when == "running":
+        qs = qs.filter(
+            Q(start_datetime__lte=now, end_datetime__gte=now)
+            | Q(start_datetime__lte=now, end_datetime__isnull=True)
+            | Q(start_datetime__isnull=True, end_datetime__gte=now)
+        )
+    elif when == "past":
+        qs = qs.filter(end_datetime__lt=now)
+
+    if size == "small":
+        qs = qs.filter(norm_portions__lte=15)
+    elif size == "medium":
+        qs = qs.filter(norm_portions__gt=15, norm_portions__lte=40)
+    elif size == "large":
+        qs = qs.filter(norm_portions__gt=40)
+
+    if duration in ("day", "weekend", "week"):
+        qs = qs.filter(start_datetime__isnull=False, end_datetime__isnull=False).annotate(
+            span_days=ExpressionWrapper(
+                TruncDate("end_datetime") - TruncDate("start_datetime"), output_field=DurationField()
+            )
+        )
+        if duration == "day":
+            qs = qs.filter(span_days=dt.timedelta(0))
+        elif duration == "weekend":
+            qs = qs.filter(span_days__gte=dt.timedelta(days=1), span_days__lte=dt.timedelta(days=2))
+        else:
+            qs = qs.filter(span_days__gte=dt.timedelta(days=3))
+
+    if visibility in {choice.value for choice in MealPlanVisibility}:
+        qs = qs.filter(visibility=visibility)
+    if with_members:
+        qs = qs.filter(group_members__isnull=False).distinct()
+    if with_event:
+        qs = qs.filter(event_relation__isnull=False)
+    for tag_name in tags:
+        qs = qs.filter(nutritional_tags__name=tag_name)
+    if tags:
+        qs = qs.distinct()
+
     # Sort
+    if sort == "date_upcoming":
+        qs = qs.annotate(sort_start=Coalesce("start_datetime", "end_datetime"))
+        qs = qs.annotate(
+            sort_rank=Case(
+                When(sort_start__isnull=True, then=Value(2)),
+                When(end_datetime__lt=now, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        # Upcoming plans ascending, past plans descending; both keys are NULL for the other group.
+        qs = qs.annotate(
+            sort_asc=Case(When(sort_rank=0, then="sort_start"), output_field=DateTimeField()),
+            sort_desc=Case(When(sort_rank=1, then="sort_start"), output_field=DateTimeField()),
+        )
+        qs = qs.order_by(
+            "sort_rank", F("sort_asc").asc(nulls_last=True), F("sort_desc").desc(nulls_last=True), "-created_at", "-id"
+        )
     sort_map = {
         "date_newest": "-start_datetime",
         "date_oldest": "start_datetime",
         "name_asc": "name",
         "name_desc": "-name",
     }
-    if sort and sort in sort_map:
+    if sort == "date_upcoming":
+        pass
+    elif sort and sort in sort_map:
         qs = qs.order_by(sort_map[sort], "-created_at", "-id")
     else:
         qs = qs.order_by("-start_datetime", "-created_at", "-id")

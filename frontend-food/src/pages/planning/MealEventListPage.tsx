@@ -28,14 +28,12 @@ import { MealPlanListStateSchema } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import {
-  matchesMealPlanFilters,
-  sortMealPlansByDate,
   planTiming,
   planDurationDays,
   monthKey,
   monthLabel,
   type PlanTiming,
-} from '@/lib/mealPlanListFilters';
+} from '@/lib/mealPlanListDisplay';
 import EmptyState from '@/components/shared/EmptyState';
 import MealPlanFilterSidebar from '@/components/planning/MealPlanFilterSidebar';
 import {
@@ -154,10 +152,16 @@ function MealPlanListPageInner() {
 
   const filters = useMemo(() => ({
     origin: origin === 'all' ? undefined : origin,
-    // Date order is applied on the client so that upcoming plans come first.
-    sort: sort.startsWith('date_') ? undefined : sort,
+    sort,
+    when,
+    size,
+    duration,
+    visibility,
+    with_members: withMembers,
+    with_event: withEvent,
+    tags: selectedTags,
     search: searchQuery || undefined,
-  }), [origin, sort, searchQuery]);
+  }), [origin, sort, when, size, duration, visibility, withMembers, withEvent, selectedTags, searchQuery]);
 
   const { data: mealPlans, error, isLoading, refetch } = useMealPlans(filters, { enabled: restored });
   const createMutation = useCreateMealPlan();
@@ -184,12 +188,7 @@ function MealPlanListPageInner() {
     return [...names].sort((a, b) => a.localeCompare(b, 'de'));
   }, [mealPlans, selectedTags]);
 
-  const visiblePlans = useMemo(() => {
-    if (!mealPlans) return [];
-    const filters = { when, size, duration, visibility, withMembers, withEvent, tags: selectedTags };
-    const matching = mealPlans.filter((plan) => matchesMealPlanFilters(plan, filters, now));
-    return sort.startsWith('date_') ? sortMealPlansByDate(matching, sort, now) : matching;
-  }, [mealPlans, when, size, duration, visibility, withMembers, withEvent, selectedTags, sort, now]);
+  const visiblePlans = useMemo(() => mealPlans ?? [], [mealPlans]);
 
   const monthGroups = useMemo(() => {
     if (!sort.startsWith('date_')) return [{ key: '', plans: visiblePlans }];

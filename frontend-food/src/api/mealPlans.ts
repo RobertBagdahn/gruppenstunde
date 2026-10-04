@@ -127,6 +127,13 @@ export interface MealPlanFilterParams {
   sort?: string;
   date_from?: string;
   date_to?: string;
+  when?: string;
+  size?: string;
+  duration?: string;
+  visibility?: string;
+  with_members?: boolean;
+  with_event?: boolean;
+  tags?: string[];
 }
 
 export function useMealPlans(filters: MealPlanFilterParams = {}, options: { enabled?: boolean } = {}) {
@@ -141,6 +148,13 @@ export function useMealPlans(filters: MealPlanFilterParams = {}, options: { enab
       if (filters.sort) params.set('sort', filters.sort);
       if (filters.date_from) params.set('date_from', filters.date_from);
       if (filters.date_to) params.set('date_to', filters.date_to);
+      for (const key of ['when', 'size', 'duration', 'visibility'] as const) {
+        const value = filters[key];
+        if (value && value !== 'all') params.set(key, value);
+      }
+      if (filters.with_members) params.set('with_members', 'true');
+      if (filters.with_event) params.set('with_event', 'true');
+      filters.tags?.forEach((tag) => params.append('tags', tag));
       const qs = params.toString();
       return fetchJson(`${API_BASE}/${qs ? `?${qs}` : ''}`, z.array(MealPlanSchema));
     },

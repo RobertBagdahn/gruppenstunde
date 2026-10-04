@@ -192,3 +192,46 @@ class TestMealItemPatchEndpoint(TestCase):
         data = response.json()
         for item in data.get("items", []):
             self.assertIn("quantity_g", item)
+
+
+class TestMealPlanListFilters(TestCase):
+    def setUp(self):
+        self.user = baker.make("auth.User")
+        self.client.force_login(self.user)
+        now = timezone.now()
+
+        def make(name, start, end, **extra):
+            return MealPlan.objects.create(
+                name=name, created_by=self.user, owner=self.user, start_datetime=start, end_datetime=end, **extra
+            )
+
+        self.past = make("Past", now - dt.timedelta(days=30), now - dt.timedelta(days=28), norm_portions=50)
+        self.running = make("Running", now - dt.timedelta(days=1), now + dt.timedelta(days=1), norm_portions=12)
+        self.soon = make("Soon", now + dt.timedelta(days=5), now + dt.timedelta(days=8), norm_portions=30)
+        self.later = make("Later", now + dt.timedelta(days=60), now + dt.timedelta(days=60, hours=4))
+        self.public = make("Public", now + dt.timedelta(days=90), now + dt.timedelta(days=91), visibility="public")
+
+    def names(self, **params):
+        response = self.client.get("/api/meal-plans/", params)
+        self.assertEqual(response.status_code, 200)
+        return [plan["name"] for plan in response.json()]
+
+    def test_date_upcoming_sort(self):
+        self.assertEqual(self.names(sort="date_upcoming"), ["Running", "Soon", "Later", "Public", "Past"])
+
+    def test_when_filter(self):
+        self.assertEqual(self.names(when="running"), ["Running"])
+        self.assertEqual(self.names(when="past"), ["Past"])
+        self.assertCountEqual(self.names(when="upcoming"), ["Soon", "Later", "Public"])
+
+    def test_size_filter(self):
+        self.assertEqual(self.names(size="large"), ["Past"])
+        self.assertEqual(self.names(size="medium", sort="date_upcoming"), ["Soon"])
+
+    def test_duration_filter(self):
+        self.assertEqual(self.names(duration="day"), ["Later"])
+        self.assertEqual(self.names(duration="week"), ["Soon"])
+        self.assertCountEqual(self.names(duration="weekend"), ["Running", "Past", "Public"])
+
+    def test_visibility_filter(self):
+        self.assertEqual(self.names(visibility="public"), ["Public"])
