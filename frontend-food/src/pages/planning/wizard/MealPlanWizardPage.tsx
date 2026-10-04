@@ -115,6 +115,11 @@ export default function MealPlanWizardPage() {
            day_part_factors: state.day_part_factors,
            meal_default_times: state.meal_default_times,
           nutritional_tag_ids: state.nutritional_tag_ids.length > 0 ? state.nutritional_tag_ids : undefined,
+          age_groups: state.age_groups,
+          setting: state.setting,
+          cooking_sources: state.cooking_sources,
+          cooling: state.cooling,
+          season_hint: state.season_hint,
         });
 
         if (state.strategy === 'ai' && state.ai_suggestions) {

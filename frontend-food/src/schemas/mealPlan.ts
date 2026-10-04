@@ -122,6 +122,21 @@ export const MealPlanTagSchema = z.object({
 export type MealPlanTag = z.infer<typeof MealPlanTagSchema>;
 
 // ==========================================================================
+// Suggestion context (optional plan fields used by the suggestion panel)
+// ==========================================================================
+
+export const AgeGroupSchema = z.enum(['toddlers', 'children', 'teens', 'adults']);
+export type AgeGroup = z.infer<typeof AgeGroupSchema>;
+export const CookingSourceSchema = z.enum(['stove_oven', 'gas_burner', 'campfire', 'grill', 'none']);
+export type CookingSource = z.infer<typeof CookingSourceSchema>;
+export const PlanSettingSchema = z.enum(['camp', 'house_trip', 'day_event', 'group_meeting', 'hike', 'other', '']);
+export type PlanSetting = z.infer<typeof PlanSettingSchema>;
+export const PlanCoolingSchema = z.enum(['fridge', 'cooler_box', 'none', '']);
+export type PlanCooling = z.infer<typeof PlanCoolingSchema>;
+export const PlanSeasonHintSchema = z.enum(['hot', 'mild', 'cold', '']);
+export type PlanSeasonHint = z.infer<typeof PlanSeasonHintSchema>;
+
+// ==========================================================================
 // MealPlan (list item)
 // ==========================================================================
 
@@ -136,6 +151,11 @@ export const MealPlanSchema = z.object({
   activity_factor: z.number().default(1.5),
   reserve_factor: z.number(),
   budget_per_person_per_day: z.number().nullable(),
+  age_groups: z.array(AgeGroupSchema).default([]),
+  setting: PlanSettingSchema.default(''),
+  cooking_sources: z.array(CookingSourceSchema).default([]),
+  cooling: PlanCoolingSchema.default(''),
+  season_hint: PlanSeasonHintSchema.default(''),
   event_id: z.number().nullable(),
   event_name: z.string(),
   start_datetime: z.string().nullable(),
@@ -240,6 +260,11 @@ export const MealPlanDetailSchema = z.object({
   activity_factor: z.number().default(1.5),
   reserve_factor: z.number(),
   budget_per_person_per_day: z.number().nullable(),
+  age_groups: z.array(AgeGroupSchema).default([]),
+  setting: PlanSettingSchema.default(''),
+  cooking_sources: z.array(CookingSourceSchema).default([]),
+  cooling: PlanCoolingSchema.default(''),
+  season_hint: PlanSeasonHintSchema.default(''),
   event_id: z.number().nullable(),
   event_name: z.string(),
   start_datetime: z.string().nullable(),
@@ -605,6 +630,12 @@ export const MealPlanWizardStateSchema = z.object({
 
   nutritional_tag_ids: z.array(z.number()).default([]),
 
+  age_groups: z.array(AgeGroupSchema).default([]),
+  setting: PlanSettingSchema.default(''),
+  cooking_sources: z.array(CookingSourceSchema).default([]),
+  cooling: PlanCoolingSchema.default(''),
+  season_hint: PlanSeasonHintSchema.default(''),
+
   strategy: MealPlanWizardStrategySchema.default('empty'),
   reference_plan_id: z.number().nullable().default(null),
   reference_plan_name: z.string().default(''),
@@ -635,6 +666,11 @@ export function defaultWizardState(): MealPlanWizardState {
       snack: ['15:00', '15:30'],
     },
     nutritional_tag_ids: [],
+    age_groups: [],
+    setting: '',
+    cooking_sources: [],
+    cooling: '',
+    season_hint: '',
     strategy: 'empty',
     reference_plan_id: null,
     reference_plan_name: '',
@@ -1197,32 +1233,67 @@ export function getDaysCount(startDatetime?: string | null, endDatetime?: string
 }
 
 // ==========================================================================
-// Intelligent Recipe Suggestions
+// Suggestion panel (16 cards in 4 directions) and magic wand
 // ==========================================================================
 
-export const IntelligentSuggestionSchema = z.object({
+export const SuggestionFiltersSchema = z.object({
+  taste: z.enum(['sweet', 'savory']).nullable().default(null),
+  prep: z.enum(['none', 'some']).nullable().default(null),
+  kids: z.boolean().nullable().default(null),
+  budget: z.enum(['cheap']).nullable().default(null),
+  diet: z.enum(['vegetarian']).nullable().default(null),
+  with_dessert: z.boolean().default(false),
+});
+export type SuggestionFilters = z.infer<typeof SuggestionFiltersSchema>;
+
+export const SuggestionCardSchema = z.object({
+  kind: z.enum(['recipe', 'ingredient']),
   id: z.number(),
   title: z.string(),
-  slug: z.string(),
-  image_url: z.string().nullable(),
-  recipe_type: z.string(),
-  recipe_badge: z.enum(['verified', 'community', 'personal', 'draft']).default('community'),
-  reason: z.string().default(''),
+  slug: z.string().default(''),
+  type_label: z.string(),
   reason_text: z.string().default(''),
-  usage_count: z.number().default(0),
-  price_per_serving: z.number().nullable(),
+  price_per_person: z.number().nullable(),
+  recipe_type: z.string().nullable(),
+  badge: z.string().default('community'),
+  is_new: z.boolean().default(false),
+  portion_id: z.number().nullable(),
+  measuring_unit_id: z.number().nullable(),
+  quantity: z.number().nullable(),
 });
-export type IntelligentSuggestion = z.infer<typeof IntelligentSuggestionSchema>;
+export type SuggestionCard = z.infer<typeof SuggestionCardSchema>;
 
-export const IntelligentSuggestionsResponseSchema = z.object({
-  suggestions: z.record(z.array(IntelligentSuggestionSchema)),
-  total: z.number().default(0),
-  ai_enhanced: z.boolean().default(false),
-  ai_interaction_id: z.string().uuid().nullable().optional(),
-  meal_type: z.string().default(''),
-  day_number: z.number().default(1),
+export const SuggestionDirectionSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  hint: z.string().default(''),
+  cards: z.array(SuggestionCardSchema).default([]),
 });
-export type IntelligentSuggestionsResponse = z.infer<typeof IntelligentSuggestionsResponseSchema>;
+export type SuggestionDirection = z.infer<typeof SuggestionDirectionSchema>;
+
+export const PlanSuggestionContextSchema = z.object({
+  age_groups: z.array(AgeGroupSchema).default([]),
+  age_derived: z.boolean().default(false),
+  setting: PlanSettingSchema.default(''),
+  cooking_sources: z.array(CookingSourceSchema).default([]),
+  cooling: PlanCoolingSchema.default(''),
+  season_hint: PlanSeasonHintSchema.default('mild'),
+  season_derived: z.boolean().default(true),
+});
+export type PlanSuggestionContext = z.infer<typeof PlanSuggestionContextSchema>;
+
+export const SuggestionPanelResponseSchema = z.object({
+  meal_type: z.string(),
+  directions: z.array(SuggestionDirectionSchema),
+  total: z.number(),
+  relaxed_filters: z.array(z.string()).default([]),
+  missing_context: z.array(z.string()).default([]),
+  context: PlanSuggestionContextSchema,
+  filters: SuggestionFiltersSchema,
+  ai_used: z.boolean().default(false),
+  seed: z.number().nullable(),
+});
+export type SuggestionPanelResponse = z.infer<typeof SuggestionPanelResponseSchema>;
 
 // ==========================================================================
 // Reorder & Actionable Alerts (Plan-Check)

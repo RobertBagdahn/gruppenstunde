@@ -8,6 +8,10 @@ import { getApiErrorMessage } from '@/lib/api';
 import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/lib/mealPlanDateTime';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 import { formatNumber } from '@/lib/format';
+import {
+  SuggestionContextFields,
+  type SuggestionContextValue,
+} from '@/components/planning/suggestions/SuggestionContextFields';
 
 interface SettingsPanelProps {
   planId: number;
@@ -26,6 +30,11 @@ interface SettingsPanelProps {
     day_part_factors?: Record<string, number>;
     meal_default_times?: Record<string, string[]>;
     nutritional_tag_ids?: number[];
+    age_groups?: SuggestionContextValue['age_groups'];
+    setting?: SuggestionContextValue['setting'];
+    cooking_sources?: SuggestionContextValue['cooking_sources'];
+    cooling?: SuggestionContextValue['cooling'];
+    season_hint?: SuggestionContextValue['season_hint'];
     has_group_members?: boolean;
     group_members_count?: number;
   };
@@ -42,7 +51,7 @@ interface SettingsPanelProps {
     day_part_factors?: Record<string, number>;
     meal_default_times?: Record<string, string[]>;
     nutritional_tag_ids?: number[];
-  }) => void;
+  } & Partial<SuggestionContextValue>) => void;
   isPending: boolean;
 }
 
@@ -62,6 +71,13 @@ export default function SettingsPanel({
   const [startDatetime, setStartDatetime] = useState(toLocalDateTimeInput(plan.start_datetime));
   const [endDatetime, setEndDatetime] = useState(toLocalDateTimeInput(plan.end_datetime));
   const [nutritionalTagIds, setNutritionalTagIds] = useState<number[]>(plan.nutritional_tag_ids || []);
+  const [suggestionContext, setSuggestionContext] = useState<SuggestionContextValue>({
+    age_groups: plan.age_groups ?? [],
+    setting: plan.setting ?? '',
+    cooking_sources: plan.cooking_sources ?? [],
+    cooling: plan.cooling ?? '',
+    season_hint: plan.season_hint ?? '',
+  });
   const [tagInput, setTagInput] = useState('');
   const { data: tags = [] } = useMealPlanTags(planId);
   const createTag = useCreateMealPlanTag(planId);
@@ -181,8 +197,9 @@ export default function SettingsPanel({
           )}
         </div>
         <div>
-          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">PAL (Aktivitätsfaktor)</label>
+          <label htmlFor="activity-factor-select" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">PAL (Aktivitätsfaktor)</label>
           <select
+            id="activity-factor-select"
             value={activityFactor}
             onChange={(e) => setActivityFactor(Number(e.target.value))}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
@@ -357,6 +374,11 @@ export default function SettingsPanel({
         </div>
       </div>
 
+      <SuggestionContextFields
+        value={suggestionContext}
+        onChange={(patch) => setSuggestionContext((prev) => ({ ...prev, ...patch }))}
+      />
+
       <div className="flex justify-end pt-2">
         <button
           onClick={() => onSave({
@@ -372,6 +394,7 @@ export default function SettingsPanel({
             day_part_factors: factors,
             meal_default_times: mealTimes,
             nutritional_tag_ids: nutritionalTagIds,
+            ...suggestionContext,
           })}
           disabled={isPending || !hasValidDateRange || (isEventLinked && manualNormPortions && !hasValidManualNormPortions)}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"

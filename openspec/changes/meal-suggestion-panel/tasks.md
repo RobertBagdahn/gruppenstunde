@@ -34,20 +34,20 @@
 
 ## 5. Frontend: Schemas und Hooks
 
-- [ ] 5.1 Zod-Schemas synchron zu Pydantic (`frontend-food/src/schemas/suggestions.ts`, `mealPlan.ts`) inkl. Kontextfelder
-- [ ] 5.2 TanStack-Query-Hooks in `src/api/mealPlans.ts` (Panel, Zauberstab, Kontext-Update)
-- [ ] 5.3 Schema-Contract-Tests ergänzen
+- [x] 5.1 Zod-Schemas synchron zu Pydantic (`frontend-food/src/schemas/suggestions.ts`, `mealPlan.ts`) inkl. Kontextfelder
+- [x] 5.2 TanStack-Query-Hooks in `src/api/mealPlans.ts` (Panel, Zauberstab, Kontext-Update)
+- [x] 5.3 Schema-Contract-Tests ergänzen
 
 ## 6. Frontend: UI
 
-- [ ] 6.1 Panel-Komponente mit 4 Richtungen × 4 bildlosen Karten (mobile-first ab 320 px)
-- [ ] 6.2 Filter-Chips, „Neu mischen“, Hinweis bei gelockerten Filtern
-- [ ] 6.3 Assistent mit 5 Fragen, Zurück, Fortschritt, Kontext-Überspringen und Freitext
-- [ ] 6.4 Zauberstab-Button, Badge „Neu“, Fallback-Hinweis
-- [ ] 6.5 Übernahme per Klick mit Undo, Panel bleibt offen
-- [ ] 6.6 `MealSlot.tsx` und `RecipeSearchDialog.tsx` umstellen, `IntelligentSuggestionsGrid` und Zufallsvorschlag entfernen
-- [ ] 6.7 Kontextfelder im Event-Wizard und auf der Event-Seite (deutsche UI-Texte mit Umlauten)
-- [ ] 6.8 Komponententests und Prüfung im Browser bei 320 px
+- [x] 6.1 Panel-Komponente mit 4 Richtungen × 4 bildlosen Karten (mobile-first ab 320 px)
+- [x] 6.2 Filter-Chips, „Neu mischen“, Hinweis bei gelockerten Filtern
+- [x] 6.3 Assistent mit 5 Fragen, Zurück, Fortschritt, Kontext-Überspringen und Freitext
+- [x] 6.4 Zauberstab-Button, Badge „Neu“, Fallback-Hinweis
+- [x] 6.5 Übernahme per Klick mit Undo, Panel bleibt offen
+- [x] 6.6 `MealSlot.tsx` und `RecipeSearchDialog.tsx` umstellen, `IntelligentSuggestionsGrid` und Zufallsvorschlag entfernen
+- [x] 6.7 Kontextfelder im Event-Wizard und auf der Event-Seite (deutsche UI-Texte mit Umlauten)
+- [x] 6.8 Komponententests und Prüfung im Browser bei 320 px
 
 ## 7. Abdeckungsanalyse
 
@@ -57,5 +57,5 @@
 
 ## 8. Abschluss
 
-- [ ] 8.1 Specs `context-recipe-suggestions` und `meal-plan-suggestions` auf Überschneidungen prüfen
-- [ ] 8.2 Prod-Rollout (Migration, Backfills im Dry-run, Anwenden nur nach OK) mit den übrigen Prod-Schritten bündeln
+- [x] 8.1 Specs geprüft: `context-recipe-suggestions` (alter 9-Rezepte-Endpoint) per REMOVED-Delta entfernt, `meal-plan-suggestions` (Plan-Check-Regeln) unberührt
+- [x] 8.2 Prod-Rollout: Migration `0012` und `backfill_standalone_food` am 04.10.2026 mit Freigabe angewendet (Snapshot `1791106629796`); Eintrag in `docs/prod-runbook.md`

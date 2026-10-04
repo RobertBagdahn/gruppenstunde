@@ -143,7 +143,7 @@ describe('SettingsPanel norm portions', () => {
     const onSave = vi.fn<(data: SettingsData) => void>();
     renderPanel({ ...basePlan, event_id: null, has_group_members: false }, onSave);
 
-    await user.selectOptions(screen.getByRole('combobox'), '2');
+    await user.selectOptions(screen.getByLabelText('PAL (Aktivitätsfaktor)'), '2');
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({

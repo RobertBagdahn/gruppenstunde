@@ -35,11 +35,16 @@ import {
   type NutritionalTagScanResponse,
   RecentlyUsedResponseSchema,
   type RecentlyUsedResponse,
-  type RecipeSuggestion,
   CookingScheduleSchema,
   type CookingSchedule,
-  IntelligentSuggestionsResponseSchema,
-  type IntelligentSuggestionsResponse,
+  SuggestionPanelResponseSchema,
+  type SuggestionPanelResponse,
+  type SuggestionFilters,
+  type AgeGroup,
+  type CookingSource,
+  type PlanSetting,
+  type PlanCooling,
+  type PlanSeasonHint,
   type MealReorderInput,
   PlanCheckResponseSchema,
   type PlanCheckResponse,
@@ -62,7 +67,7 @@ export function invalidateMealPlanQueries(queryClient: QueryClient, mealPlanId: 
     queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'costs'] }),
     queryClient.invalidateQueries({ queryKey: ['cooking-schedule', mealPlanId] }),
     queryClient.invalidateQueries({ queryKey: ['meal-plan-suggestions', mealPlanId] }),
-    queryClient.invalidateQueries({ queryKey: ['intelligent-suggestions', mealPlanId] }),
+    queryClient.invalidateQueries({ queryKey: ['suggestion-panel', mealPlanId] }),
     queryClient.invalidateQueries({ queryKey: ['refMeals', mealPlanId] }),
     queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'plan-check'] }),
   ]);
@@ -193,6 +198,11 @@ export function useCreateMealPlan() {
        day_part_factors?: Record<string, number>;
        meal_default_times?: Record<string, string[]>;
       nutritional_tag_ids?: number[];
+      age_groups?: AgeGroup[];
+      setting?: PlanSetting;
+      cooking_sources?: CookingSource[];
+      cooling?: PlanCooling;
+      season_hint?: PlanSeasonHint;
     }) => postJson(`${API_BASE}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
@@ -241,6 +251,11 @@ export function useUpdateMealPlan(id: number) {
       end_datetime?: string | null;
       day_part_factors?: Record<string, number>;
       nutritional_tag_ids?: number[];
+      age_groups?: AgeGroup[];
+      setting?: PlanSetting;
+      cooking_sources?: CookingSource[];
+      cooling?: PlanCooling;
+      season_hint?: PlanSeasonHint;
     }) => patchJson(`${API_BASE}/${id}/`, body, MealPlanSchema),
     onSuccess: () => invalidateMealPlanQueries(queryClient, id),
   });
@@ -665,36 +680,6 @@ export function useRecentlyUsedRecipes(limit = 5) {
 }
 
 // ==========================================================================
-// Random Recipe Suggestion
-// ==========================================================================
-
-export function useRandomRecipeSuggestion(params: {
-  mealType?: string;
-  nutritionalTagIds?: number[];
-  excludeNutritionalTagIds?: number[];
-}) {
-  const { mealType, excludeNutritionalTagIds } = params;
-
-  const searchParams = new URLSearchParams();
-  if (mealType) searchParams.set('meal_type', mealType);
-  searchParams.set('random', 'true');
-  searchParams.set('limit', '1');
-  if (excludeNutritionalTagIds?.length)
-    searchParams.set('exclude_nutritional_tag_ids', excludeNutritionalTagIds.join(','));
-
-  // RecipeSuggestionsResponseSchema = z.array(...), result.data may be empty array — callers must guard with length > 0
-  return useQuery<RecipeSuggestion[]>({
-    queryKey: ['random-recipe-suggestion', mealType, excludeNutritionalTagIds],
-    queryFn: () =>
-      fetchJson(
-        `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,
-        RecipeSuggestionsResponseSchema,
-      ),
-    enabled: false, // only fetch on demand via refetch()
-  });
-}
-
-// ==========================================================================
 // Cooking Schedule (Kochplan)
 // ==========================================================================
 
@@ -787,28 +772,29 @@ export function useRemoveMealPlanCollaborator(planId: number) {
 }
 
 // ==========================================================================
-// ==========================================================================
-// Intelligent Recipe Suggestions
+// Suggestion panel (16 cards in 4 directions) and magic wand
 // ==========================================================================
 
-export function useIntelligentSuggestions(
-  planId: number,
-  mealId: number,
-  contextEnhance = true,
-) {
-  const searchParams = new URLSearchParams();
-  if (!contextEnhance) searchParams.set('context_enhance', 'false');
+export function useSuggestionPanel(planId: number, mealId: number) {
+  return useMutation<SuggestionPanelResponse, Error, { filters: SuggestionFilters; seed?: number | null }>({
+    mutationFn: ({ filters, seed }) =>
+      postJson(`${API_BASE}/${planId}/meal/${mealId}/suggestions/`, { filters, seed: seed ?? null }, SuggestionPanelResponseSchema),
+  });
+}
 
-  return useQuery<IntelligentSuggestionsResponse>({
+export function useSuggestionWand(planId: number, mealId: number) {
+  return useMutation<
+    SuggestionPanelResponse,
+    Error,
+    { freeText: string; filters: SuggestionFilters; seed?: number | null }
+  >({
     meta: AI_META,
-    queryKey: ['intelligent-suggestions', planId, mealId, contextEnhance],
-    queryFn: () =>
-      fetchJson(
-        `${API_BASE}/${planId}/meal/${mealId}/suggestions/?${searchParams.toString()}`,
-        IntelligentSuggestionsResponseSchema,
+    mutationFn: ({ freeText, filters, seed }) =>
+      postJson(
+        `${API_BASE}/${planId}/meal/${mealId}/suggestions/wand/`,
+        { free_text: freeText, filters, seed: seed ?? null },
+        SuggestionPanelResponseSchema,
       ),
-    enabled: !!planId && !!mealId,
-    staleTime: 30_000,
   });
 }
 

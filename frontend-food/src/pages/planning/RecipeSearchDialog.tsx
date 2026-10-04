@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple, X, Sparkles } from 'lucide-react';
+import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple, X } from 'lucide-react';
 import { useNutritionalTags } from '@/api/supplies';
 import {
   Dialog,
@@ -20,7 +20,6 @@ import RecipePreviewInline from './RecipePreviewInline';
 import CategoryPills from '@/components/recipe/CategoryPills';
 import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
-import IntelligentSuggestionsGrid from '@/components/recipe/IntelligentSuggestionsGrid';
 import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
 import { HelpHint } from '@/components/ui/help-hint';
 import { SOURCE_BADGE_HELP } from '@/lib/sourceBadgeHelp';
@@ -71,8 +70,6 @@ interface RecipeSearchDialogProps {
   excludedRecipeIds?: Set<number>;
   excludedIngredientIds?: Set<number>;
   ingredientOnly?: boolean;
-  planId?: number;
-  mealId?: number;
 }
 
 export default function RecipeSearchDialog({
@@ -86,8 +83,6 @@ export default function RecipeSearchDialog({
   excludedRecipeIds = new Set(),
   excludedIngredientIds = new Set(),
   ingredientOnly = false,
-  planId,
-  mealId,
 }: RecipeSearchDialogProps) {
   const defaultTypes = ingredientOnly
     ? ['ingredient']
@@ -95,7 +90,6 @@ export default function RecipeSearchDialog({
 
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set(defaultTypes));
   const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>('all');
-  const [showSuggestions, setShowSuggestions] = useState(true);
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
   const [excludeDietaryTags, setExcludeDietaryTags] = useState(true);
@@ -153,7 +147,6 @@ export default function RecipeSearchDialog({
       setPreviewRecipe(null);
       setSearchQuery('');
       setDebouncedQuery('');
-      setShowSuggestions(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mealType, ingredientOnly]);
@@ -247,68 +240,26 @@ export default function RecipeSearchDialog({
             </DialogTitle>
           </DialogHeader>
 
-          {/* View toggle: Vorschläge vs. Suche (nur wenn planId/mealId vorhanden) */}
-          {!ingredientOnly && !isIngredientMode && planId && mealId && (
-            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 w-fit">
+          {/* Suchfeld */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={ingredientOnly || isIngredientMode ? "Zutat suchen..." : "Rezept oder Zutat suchen..."}
+              className="w-full pl-9 pr-8 py-2 text-body rounded-xl border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            {searchQuery.length > 0 && (
               <button
-                onClick={() => { setShowSuggestions(true); setSearchQuery(''); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-lg transition-colors ${
-                  showSuggestions
-                    ? 'bg-card text-foreground shadow-sm border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                onClick={clearSearch}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                Vorschläge
+                <X className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => setShowSuggestions(false)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium rounded-lg transition-colors ${
-                  !showSuggestions
-                    ? 'bg-card text-foreground shadow-sm border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Search className="w-3.5 h-3.5" />
-                Suche
-              </button>
-            </div>
-          )}
-
-          {/* Vorschläge-Ansicht */}
-          {!ingredientOnly && !isIngredientMode && showSuggestions && planId && mealId && (
-            <div className="flex-1 overflow-y-auto min-h-0">
-              <IntelligentSuggestionsGrid
-                planId={planId}
-                mealId={mealId}
-                mealType={mealType}
-                onSelect={(recipeId, title) => { onSelect?.(recipeId, title); onOpenChange(false); }}
-              />
-            </div>
-          )}
-
-          {/* Suchfeld — sichtbar wenn nicht in der Vorschlags-Ansicht */}
-          {!(showSuggestions && planId && mealId) && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={ingredientOnly || isIngredientMode ? "Zutat suchen..." : "Rezept oder Zutat suchen..."}
-                className="w-full pl-9 pr-8 py-2 text-body rounded-xl border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-              {searchQuery.length > 0 && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Filter-Zeile — nur im Rezept-Modus */}
           {!ingredientOnly && (

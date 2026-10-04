@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  PlanSuggestionContextSchema,
   RecipeSearchResultSchema,
   RecipeSuggestionSchema,
+  SuggestionPanelResponseSchema,
 } from './mealPlan';
 
 describe('meal-plan recipe contracts', () => {
@@ -33,5 +35,59 @@ describe('meal-plan recipe contracts', () => {
 
     expect(result).toHaveProperty('image_url');
     expect(result).not.toHaveProperty('image_thumbnail');
+  });
+});
+
+describe('suggestion panel contract', () => {
+  it('parses the backend panel response including the echoed filters', () => {
+    const result = SuggestionPanelResponseSchema.parse({
+      meal_type: 'snack',
+      directions: [
+        {
+          key: 'fruit_veg',
+          label: 'Obst & Gemüse',
+          hint: 'Frisch und gesund',
+          cards: [
+            {
+              kind: 'ingredient',
+              id: 7,
+              title: 'Apfel',
+              slug: 'apfel',
+              type_label: 'Zutat',
+              reason_text: 'Ohne Vorbereitung',
+              price_per_person: 0.12,
+              recipe_type: null,
+              badge: 'verified',
+              is_new: false,
+              portion_id: 11,
+              measuring_unit_id: 3,
+              quantity: 1,
+            },
+          ],
+        },
+      ],
+      total: 1,
+      relaxed_filters: [],
+      missing_context: ['cooling'],
+      context: {
+        age_groups: ['children'],
+        age_derived: true,
+        setting: 'camp',
+        cooking_sources: ['campfire'],
+        cooling: '',
+        season_hint: 'cold',
+        season_derived: true,
+      },
+      filters: { taste: null, prep: null, kids: null, budget: null, diet: null, with_dessert: false },
+      ai_used: false,
+      seed: 12,
+    });
+
+    expect(result.directions[0].cards[0].quantity).toBe(1);
+    expect(result.context.age_groups).toEqual(['children']);
+  });
+
+  it('rejects unknown context values', () => {
+    expect(() => PlanSuggestionContextSchema.parse({ cooking_sources: ['microwave'] })).toThrow();
   });
 });

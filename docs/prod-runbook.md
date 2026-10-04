@@ -201,3 +201,12 @@ Command `fix_food_data_quality` (idempotent, Standard ist Dry-Run). Schritte: `w
 Hinweis zum Audit: Die „Kalorien passen nicht zu den Makros“-Funde (z. B. Flohsamenschalen 186 kcal) entstehen,
 wenn man nur 4/4/9 kcal/g rechnet. Ballaststoffe zählen mit 2 kcal/g; das Regelwerk
 (`nutrition_plausibility.atwater_kcal`) tut das bereits, deshalb sind diese Werte korrekt und bleiben unverändert.
+
+## 9. meal-suggestion-panel — Migration und Einzelzutaten-Backfill
+
+Migration `planner.0012_mealplan_suggestion_context` (fünf optionale Kontextfelder am Essensplan, nur additive Spalten) lief mit dem Deploy vom 04.10.2026. Der Backfill setzt `is_standalone_food` für Obst, Gemüse, Wasser/Erfrischung und Milch/Pflanzendrinks (kuratierte Regeln in `supply/services/standalone_food.py`, nur verifizierte Zutaten).
+
+- [x] Dry-run gegen Prod (04.10.2026, Cloud SQL Proxy, nichts geändert): `uv run python manage.py backfill_standalone_food` — 61 Zutaten (20 Obst, 26 Gemüse, 12 Milch/Pflanzendrinks, 3 Wasser)
+- [x] Nach OK: `uv run python manage.py backfill_standalone_food --apply` (04.10.2026, Snapshot `1791106629796`); erneuter Dry-run: 0 offen
+- [x] Abdeckungsbericht (nur lesend): `uv run python manage.py report_suggestion_coverage --output <datei>`; Stand 04.10.2026 siehe `openspec/changes/meal-suggestion-panel/coverage-prod-2026-10-04.md`
+- Rollback: Die Spalten sind additiv und harmlos. Den Backfill macht `UPDATE supply_ingredient SET is_standalone_food = false` für die 61 betroffenen Zutaten (oder der Snapshot) rückgängig.

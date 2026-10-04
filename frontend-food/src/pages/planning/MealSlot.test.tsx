@@ -13,7 +13,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@/api/mealPlans', () => ({
-  useRandomRecipeSuggestion: () => ({ refetch: vi.fn(), isFetching: false }),
   useIngredientScan: () => ({ data: undefined }),
 }));
 
@@ -21,7 +20,9 @@ vi.mock('@/components/buffet/BuffetBuilder', () => ({
   BuffetBuilder: ({ open }: { open: boolean }) => (open ? <div data-testid="buffet-builder-open" /> : null),
 }));
 vi.mock('@/components/planning/MealOmnibarDialog', () => ({ MealOmnibarDialog: () => null }));
-vi.mock('./RecipePreviewDialog', () => ({ default: () => null }));
+vi.mock('@/components/planning/suggestions/MealSuggestionPanel', () => ({
+  MealSuggestionPanel: ({ open }: { open: boolean }) => (open ? <div data-testid="suggestion-panel-open" /> : null),
+}));
 vi.mock('@/components/planning/MealActionsMenu', () => ({ MealActionsMenu: () => null }));
 vi.mock('@/components/recipe/RecipeThumbnail', () => ({ default: () => null }));
 

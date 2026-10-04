@@ -12,6 +12,7 @@ import { useOmnibarShortcut } from '@/hooks/useOmnibarShortcut';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/lib/api';
 import { toast } from 'sonner';
+import type { SuggestionContextValue } from '@/components/planning/suggestions/SuggestionContextFields';
 import {
   Dialog,
   DialogContent,
@@ -327,6 +328,14 @@ export default function MealPlanDetailPage() {
     });
   };
 
+  /** Toast action that removes a just-added meal item again. */
+  const undoAddAction = (newItem: { id: number } | null | undefined) => ({
+    duration: 6000,
+    action: newItem
+      ? { label: 'Rückgängig', onClick: () => removeMealItemMutation.mutate(newItem.id) }
+      : undefined,
+  });
+
   const handleAddRecipe = (mealId: number, recipeId: number) => {
     const meal = plan?.meals?.find((m) => m.id === mealId);
     const effectivePortions =
@@ -336,7 +345,7 @@ export default function MealPlanDetailPage() {
       { mealId, recipe_id: recipeId },
       {
         onSuccess: (newItem) => {
-          toast.success('Rezept hinzugefügt');
+          toast.success('Rezept hinzugefügt', undoAddAction(newItem));
           if (newItem && typeof newItem === 'object' && 'id' in newItem) {
             setVariantDialog({
               open: true,
@@ -363,8 +372,8 @@ export default function MealPlanDetailPage() {
         quantity,
       },
       {
-        onSuccess: () => {
-          toast.success('Zutat hinzugefügt');
+        onSuccess: (newItem) => {
+          toast.success('Zutat hinzugefügt', undoAddAction(newItem));
         },
         onError: (err) => toast.error('Fehler', { description: err.message }),
       },
@@ -382,7 +391,7 @@ export default function MealPlanDetailPage() {
     start_datetime?: string | null;
     end_datetime?: string | null;
     nutritional_tag_ids?: number[];
-  }) => {
+  } & Partial<SuggestionContextValue>) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
         toast.success(

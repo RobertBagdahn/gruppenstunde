@@ -1,6 +1,7 @@
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealPlanWizardState } from '@/schemas/mealPlan';
 import { formatNumber } from '@/lib/format';
+import { SuggestionContextFields } from '@/components/planning/suggestions/SuggestionContextFields';
 
 interface ExtendedSettingsSectionProps {
   state: MealPlanWizardState;
@@ -80,6 +81,17 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
           </select>
         </div>
       </div>
+
+      <SuggestionContextFields
+        value={{
+          age_groups: state.age_groups,
+          setting: state.setting,
+          cooking_sources: state.cooking_sources,
+          cooling: state.cooling,
+          season_hint: state.season_hint,
+        }}
+        onChange={onChange}
+      />
 
       <label className="flex items-center gap-2 cursor-pointer">
         <input

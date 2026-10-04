@@ -7,14 +7,14 @@ import {
   X,
   RefreshCw,
   FileText,
-  Shuffle,
+  Sparkles,
   ChevronDown,
   ChevronUp,
   Users,
   LayoutGrid,
   TriangleAlert,
 } from 'lucide-react';
-import { useRandomRecipeSuggestion, useIngredientScan } from '@/api/mealPlans';
+import { useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import {
   MEAL_TYPE_LABELS,
@@ -25,13 +25,13 @@ import {
   effectivePortions,
   formatMealTime,
 } from '@/schemas/mealPlan';
-import type { Meal, RecipeSearchResult } from '@/schemas/mealPlan';
+import type { Meal } from '@/schemas/mealPlan';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
 import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
 import { mealTargetLabel } from '@/lib/mealTargetLabel';
 import { tagDisplayName } from '@/lib/tagLabels';
 import { BUFFET_ROLE_ORDER, buffetRoleName, itemBuffetRole } from '@/lib/buffetRoles';
-import RecipePreviewDialog from './RecipePreviewDialog';
+import { MealSuggestionPanel } from '@/components/planning/suggestions/MealSuggestionPanel';
 import { FactorInput } from './FactorInput';
 import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
 import { QuantityInput } from './QuantityInput';
@@ -94,7 +94,7 @@ export function MealSlot({
   const { data: scanData } = useIngredientScan(mealPlanId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [randomPreviewRecipe, setRandomPreviewRecipe] = useState<RecipeSearchResult | null>(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [showBuffetBuilder, setShowBuffetBuilder] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -140,32 +140,8 @@ export function MealSlot({
     setShowBuffetBuilder(true);
   };
 
-  const randomQuery = useRandomRecipeSuggestion({
-    mealType: meal.meal_type,
-    excludeNutritionalTagIds: nutritionalTagIds?.length ? nutritionalTagIds : undefined,
-  });
-
   const handleSelect = (recipeId: number) => {
     onAddRecipe(meal.id, recipeId);
-  };
-
-  const handleRandomSuggest = () => {
-    randomQuery.refetch().then((result) => {
-      const suggestions = result.data;
-      if (suggestions && suggestions.length > 0) {
-        const s = suggestions[0];
-        setRandomPreviewRecipe({
-          id: s.id,
-          title: s.title,
-          slug: '',
-          recipe_type: s.recipe_type ?? '',
-          image_url: s.image_url,
-          recipe_badge: (s.recipe_badge as RecipeSearchResult['recipe_badge']) ?? 'community',
-          price_per_serving: s.price_per_serving ?? null,
-          usage_count: s.usage_count,
-        });
-      }
-    });
   };
 
   const mealColors = MEAL_TYPE_COLORS[meal.meal_type] || MEAL_TYPE_COLORS.snack;
@@ -278,15 +254,20 @@ export function MealSlot({
         normPortions={effPortions}
       />
 
-      {/* Random Recipe Preview */}
-      <RecipePreviewDialog
-        recipe={randomPreviewRecipe}
-        open={!!randomPreviewRecipe}
-        onOpenChange={(open) => { if (!open) setRandomPreviewRecipe(null); }}
-        onConfirm={(recipeId) => {
-          handleSelect(recipeId);
-          setRandomPreviewRecipe(null);
-        }}
+      {/* Suggestion panel: 16 cards in 4 directions, assistant and magic wand */}
+      <MealSuggestionPanel
+        open={suggestionsOpen}
+        onOpenChange={setSuggestionsOpen}
+        planId={mealPlanId}
+        mealId={meal.id}
+        mealType={meal.meal_type}
+        targetLabel={targetLabel}
+        addedRecipeIds={excludedRecipeIds}
+        addedIngredientIds={excludedIngredientIds}
+        onSelectRecipe={(recipeId) => handleSelect(recipeId)}
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) =>
+          onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity)
+        }
       />
     </>
   );
@@ -346,12 +327,11 @@ export function MealSlot({
                 </button>
                 <button
                   type="button"
-                  onClick={handleRandomSuggest}
-                  disabled={randomQuery.isFetching}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-caption font-semibold border border-border bg-card hover:bg-muted/60 transition-all disabled:opacity-50"
-                  title="Schneller KI-Vorschlag"
+                  onClick={() => setSuggestionsOpen(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-caption font-semibold border border-border bg-card hover:bg-muted/60 transition-all"
+                  title="Vorschläge für diese Mahlzeit"
                 >
-                  <Shuffle className="w-3.5 h-3.5 text-primary" />
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
                   Was passt hier?
                 </button>
               </>

@@ -666,6 +666,11 @@ class MealPlanDetailOut(Schema):
     activity_factor: float = 1.5
     reserve_factor: float
     budget_per_person_per_day: float | None = None
+    age_groups: list[AgeGroup] = []
+    setting: PlanSetting = ""
+    cooking_sources: list[CookingSource] = []
+    cooling: PlanCooling = ""
+    season_hint: PlanSeasonHint = ""
     event_id: int | None = None
     event_name: str = ""
     start_datetime: dt.datetime | None = None
