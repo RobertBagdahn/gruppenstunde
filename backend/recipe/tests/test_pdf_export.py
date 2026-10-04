@@ -49,6 +49,24 @@ class TestRecipePdfService:
         assert isinstance(pdf, bytes)
 
     @pytest.mark.django_db
+    def test_recipe_pdf_with_image_on_storage_without_path(self):
+        """Cloud storage (GCS) has no local ``path``; the image must be embedded via the storage API."""
+        import io
+
+        from django.core.files.base import ContentFile
+        from PIL import Image
+
+        buf = io.BytesIO()
+        Image.new("RGB", (4, 4), "red").save(buf, format="PNG")
+        recipe = make_recipe(title="Bildkuchen")
+        make_recipe_item(recipe=recipe, quantity=200)
+        recipe.image.save("bild.png", ContentFile(buf.getvalue()), save=True)
+        export = RecipePdfExport.build(recipe)
+        assert export.image_path is not None
+        assert export.image_path.startswith("data:image/png;base64,")
+        assert generate_recipe_pdf(recipe).startswith(b"%PDF")
+
+    @pytest.mark.django_db
     def test_recipe_pdf_collects_materials(self):
         recipe = make_recipe(title="Spieße")
         make_recipe_item(recipe=recipe, quantity=200)
