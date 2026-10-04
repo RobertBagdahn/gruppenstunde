@@ -533,3 +533,15 @@ class RecipeAiCreateIn(Schema):
     """Input for AI recipe creation."""
 
     prompt: str
+
+
+class RecipeUsagePlanOut(Schema):
+    id: int
+    name: str
+
+
+class RecipeUsageOut(Schema):
+    """Meal plans that use a recipe; ``plan_count`` also counts plans the user cannot see."""
+
+    plan_count: int
+    plans: list[RecipeUsagePlanOut]

@@ -198,7 +198,9 @@ def preview_recipe_ingredients(
                 for candidate in match.candidates
             ]
             draft = None
-            if match.ingredient_id is None:
+            # A new ingredient is only pre-filled when nothing existing comes close: with candidates
+            # the user is offered those first and can still choose "Neue Zutat anlegen" explicitly.
+            if match.ingredient_id is None and not match.candidates:
                 draft_quantity = ingredient.quantity if ingredient.quantity and ingredient.quantity > 0 else 1.0
                 draft = _temporary_draft(ingredient.original_name.strip(), user, quantity=draft_quantity)
 

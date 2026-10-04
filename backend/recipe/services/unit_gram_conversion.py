@@ -55,6 +55,27 @@ STANDARD_MEASURE_KEYS: dict[str, str] = {
     "messerspitze": "msp",
 }
 
+# Names under which an ingredient's own portion can stand for a recipe unit
+# ("2 EL Olivenöl" ↔ portion "Esslöffel"). Matched against the normalized portion name.
+PORTION_NAMES_FOR_UNIT: dict[str, frozenset[str]] = {
+    "el": frozenset({"el", "esslöffel"}),
+    "tl": frozenset({"tl", "teelöffel"}),
+    "tasse": frozenset({"tasse"}),
+    "tassen": frozenset({"tasse"}),
+    "prise": frozenset({"prise"}),
+    "prisen": frozenset({"prise"}),
+    "msp": frozenset({"msp", "messerspitze"}),
+    "messerspitze": frozenset({"msp", "messerspitze"}),
+    "bund": frozenset({"bund"}),
+    "dose": frozenset({"dose"}),
+    "glas": frozenset({"glas"}),
+    "becher": frozenset({"becher"}),
+    "packung": frozenset({"packung"}),
+    "zehe": frozenset({"zehe"}),
+    "scheibe": frozenset({"scheibe"}),
+}
+PIECE_UNITS: frozenset[str] = frozenset({"", "stück", "stueck", "stk", "stk."})
+
 # Mass units are already grams — density must never be applied to them.
 MASS_GRAMS_PER_UNIT: dict[str, float] = {
     "g": 1.0,
@@ -103,6 +124,10 @@ class UnitGramConverter:
         if quantity <= 0:
             return None
 
+        direct = cls._direct_portion_count(quantity, unit, ingredient)
+        if direct is not None:
+            return direct
+
         total_grams = cls.convert_to_grams(
             quantity, unit, ingredient, user=user, _memo=_memo, allow_ai_estimate=allow_ai_estimate
         )
@@ -117,6 +142,43 @@ class UnitGramConverter:
             return None
 
         return max(round(total_grams / weight_g, 2), 0.01)
+
+    @classmethod
+    def _direct_portion_count(cls, quantity: float, unit: str, ingredient: Ingredient) -> float | None:
+        """Portion count when the recipe unit *is* one of the ingredient's own portions.
+
+        "2 EL Olivenöl" with a portion "Esslöffel" is 2 portions; going through grams
+        and the density would turn it into 1,84. A piece unit ("Stück" or none) maps to a
+        piece-like portion ("mittelgroße Zwiebel"). Only portions with a trusted weight count.
+        """
+        from supply.models import Portion
+        from supply.services.portion_resolution import is_piece_like_name, normalize_portion_name
+
+        unit_key = (unit or "").strip().lower()
+        if unit_key in MASS_GRAMS_PER_UNIT or unit_key in VOLUME_ML_PER_UNIT:
+            return None
+        if unit_key in PIECE_UNITS:
+
+            def matches(name: str) -> bool:
+                return is_piece_like_name(name)
+
+        elif unit_key in PORTION_NAMES_FOR_UNIT:
+            wanted = PORTION_NAMES_FOR_UNIT[unit_key]
+
+            def matches(name: str) -> bool:
+                return normalize_portion_name(name) in wanted
+
+        else:
+            return None
+
+        portions = Portion.objects.active().filter(ingredient_id=ingredient.id).order_by("rank", "id")
+        for portion in portions:
+            weight = _trusted_weight(portion)
+            if weight is None or weight <= 0 or not matches(portion.name):
+                continue
+            per_portion = float(portion.quantity or 1) or 1.0
+            return max(round(quantity / per_portion, 2), 0.01)
+        return None
 
     @classmethod
     def convert_to_grams(

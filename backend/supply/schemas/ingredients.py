@@ -264,6 +264,14 @@ class IngredientListOut(Schema):
         return [{"id": g.id, "name": g.name, "slug": g.slug} for g in obj.groups.all()]
 
 
+class NutritionWarningOut(Schema):
+    """Soft nutrition plausibility finding returned after saving (never blocks)."""
+
+    code: str
+    label: str
+    fields: list[str]
+
+
 class IngredientDetailOut(Schema):
     """Full ingredient detail with portions, prices, aliases, tags."""
 
@@ -273,6 +281,7 @@ class IngredientDetailOut(Schema):
     description: str
     status: IngredientStatus
     name_warning: str | None = None
+    nutrition_warnings: list[NutritionWarningOut] = []
 
     # Ownership & Visibility (for breakfast wizard user-generated items)
     owner_id: int | None = None

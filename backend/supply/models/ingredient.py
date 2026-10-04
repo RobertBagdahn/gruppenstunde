@@ -377,7 +377,8 @@ class Ingredient(SoftDeleteModel):
                 base_slug = "zutat"
             slug = base_slug
             counter = 1
-            while Ingredient.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            # all_objects: soft-deleted ingredients keep their slug, which stays unique in the table.
+            while Ingredient.all_objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             self.slug = slug

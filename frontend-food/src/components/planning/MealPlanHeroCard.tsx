@@ -103,7 +103,10 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       </div>
 
       {/* Name */}
-      <h3 className="font-display font-bold text-section md:text-section text-foreground truncate group-hover:text-primary transition-colors mb-1">
+      <h3
+        title={plan.name}
+        className="font-display font-bold text-section md:text-section text-foreground line-clamp-2 break-words group-hover:text-primary transition-colors mb-1"
+      >
         {plan.name}
       </h3>
 

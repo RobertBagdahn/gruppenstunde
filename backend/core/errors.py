@@ -21,11 +21,14 @@ class ApiError(HttpError):
         detail: str,
         *,
         retry_after_seconds: int | None = None,
+        extra: dict[str, object] | None = None,
     ) -> None:
         super().__init__(status_code, detail)
         self.code = code
         self.detail = detail
         self.retry_after_seconds = retry_after_seconds
+        # Additional machine-readable keys merged into the payload (e.g. ``fields``).
+        self.extra = extra or {}
 
 
 # Fallback codes for plain HttpErrors so the frontend can still branch on status.
@@ -46,10 +49,17 @@ def default_code_for_status(status_code: int) -> str:
     return _DEFAULT_CODES.get(status_code, "error")
 
 
-def error_payload(detail: object, code: str, retry_after_seconds: int | None = None) -> dict[str, object]:
+def error_payload(
+    detail: object,
+    code: str,
+    retry_after_seconds: int | None = None,
+    extra: dict[str, object] | None = None,
+) -> dict[str, object]:
     payload: dict[str, object] = {"detail": detail, "code": code}
     if retry_after_seconds is not None:
         payload["retry_after_seconds"] = retry_after_seconds
+    if extra:
+        payload.update({key: value for key, value in extra.items() if key not in payload})
     return payload
 
 
@@ -61,7 +71,7 @@ def register_error_handlers(api: NinjaAPI) -> None:
         if not isinstance(exc, HttpError):
             raise TypeError("handle_http_error received a non-HttpError")
         if isinstance(exc, ApiError):
-            payload = error_payload(exc.detail, exc.code, exc.retry_after_seconds)
+            payload = error_payload(exc.detail, exc.code, exc.retry_after_seconds, exc.extra)
         else:
             code = getattr(exc, "code", None) or default_code_for_status(exc.status_code)
             payload = error_payload(str(exc), code)

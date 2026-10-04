@@ -209,3 +209,34 @@ class TestReviewMissingQuantityAndGrouping:
         )
 
         assert result.rows[0].selected_portion.name == "Tasse Mehl"
+
+
+@pytest.mark.django_db
+class TestReviewKeepsRecipeAmounts:
+    """Production test of 2026-10-03: "2 EL Olivenöl" became 1,84 EL and "1 Zwiebel" 1,25 Zwiebeln."""
+
+    def test_tablespoons_and_onion_keep_their_amounts(self, django_user_model):
+        user = django_user_model.objects.create_user(username="r-amounts", password="x")
+        oil = make_ingredient(name="Olivenöl", physical_density=0.92)
+        make_portion(oil, name="Esslöffel", quantity=1.0, weight_g=15.0, rank=1)
+        onion = make_ingredient(name="Zwiebel")
+        make_portion(onion, name="mittelgroße Zwiebel", quantity=1.0, weight_g=80.0, rank=1, weight_status="confirmed")
+
+        extraction = _extraction(
+            [
+                GeminiIngredientMatch(original_name="Olivenöl", quantity=2, unit="EL"),
+                GeminiIngredientMatch(original_name="Zwiebel", quantity=1, unit="Stück"),
+            ]
+        )
+        result = _preview(
+            extraction,
+            [
+                ImportedIngredient(name="2 EL Olivenöl", quantity="2", unit="EL"),
+                ImportedIngredient(name="1 Zwiebel", quantity="1", unit="Stück"),
+            ],
+            user,
+        )
+
+        by_ingredient = {row.selected_ingredient_id: row for row in result.rows}
+        assert by_ingredient[oil.id].quantity == 2
+        assert by_ingredient[onion.id].quantity == 1

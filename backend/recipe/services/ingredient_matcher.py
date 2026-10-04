@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from recipe.services.ingredient_name_normalization import NormalizedName, normalize_ingredient_name
 from recipe.services.ingredient_parser import IngredientNameParser
 
 if TYPE_CHECKING:
@@ -44,6 +45,10 @@ EMBEDDING_THRESHOLD = _get_setting("INGREDIENT_MATCHER_EMBEDDING_THRESHOLD", 0.5
 GREY_ZONE_MIN = _get_setting("INGREDIENT_MATCHER_GREY_ZONE_MIN", 0.30)
 MULTI_MATCH_SCORE_DIFF = _get_setting("INGREDIENT_MATCHER_MULTI_MATCH_DIFF", 0.05)
 MAX_CANDIDATES_PER_STAGE = 8
+HEAD_MATCH_CONFIDENCE = 0.90
+NORMALIZED_MATCH_CONFIDENCE = 0.95
+
+_BRACKET_ADDITION = re.compile(r"\s*\([^)]*\)")
 
 # Fallback quantity/unit stripping — applied when the parser could not split
 # cleanly. Longer alternatives first so "Liter" wins over "l".
@@ -140,14 +145,19 @@ class IngredientMatcher:
         of other users.
         """
         candidate_qs = cls._candidate_queryset(user)
-        parsed = IngredientNameParser.parse(raw_name)
+        # Plural brackets, amount words, sizes and additions are resolved first; the parser,
+        # the stages and the exact comparison then work on the cleaned name.
+        normalized = normalize_ingredient_name(raw_name)
+        working_name = normalized.text if normalized.changed and normalized.text else raw_name
+        parsed = IngredientNameParser.parse(working_name)
+        note = parsed.note or ", ".join(normalized.qualifiers)
         # Low-confidence parser matches are suggestions only. Keep the raw
         # spelling so typoed input can reach the fuzzy stage.
-        clean_name = parsed.name if parsed.confidence >= 0.9 else raw_name.strip()
+        clean_name = parsed.name if parsed.confidence >= 0.9 else working_name.strip()
         strip_details: dict[str, Any] = {}
 
         if parsed.confidence < 0.9:
-            stripped = cls._strip_quantity_unit(raw_name)
+            stripped = cls._strip_quantity_unit(working_name)
             if stripped is not None and stripped["rest"].strip():
                 clean_name = stripped["rest"].strip()
                 strip_details = {
@@ -158,25 +168,35 @@ class IngredientMatcher:
             strip_details = {"parsed_quantity": parsed.quantity, "parsed_unit": parsed.unit}
 
         # Stage 1: Wort-Jaccard
-        result = cls._stage_jaccard(clean_name, raw_name.strip(), parsed.note, candidate_qs)
+        result = cls._stage_jaccard(clean_name, working_name.strip(), note, candidate_qs)
+        if result is not None and result.ingredient_id is not None:
+            result.technical_details.update(strip_details)
+            return result
+
+        # Stage 1b: head noun / plural / bracket-insensitive match. Runs before a grey-zone
+        # Jaccard result so "Mineralwasser mit Kohlensäure" finds "Mineralwasser".
+        head_result = cls._stage_normalized(normalized, clean_name, note, candidate_qs, grey_zone=result)
+        if head_result is not None:
+            head_result.technical_details.update(strip_details)
+            return head_result
         if result is not None:
             result.technical_details.update(strip_details)
             return result
 
         # Stage 2: pg_trgm + Levenshtein
-        result = cls._stage_fuzzy(clean_name, raw_name.strip(), parsed.note, candidate_qs)
+        result = cls._stage_fuzzy(clean_name, working_name.strip(), note, candidate_qs)
         if result is not None:
             result.technical_details.update(strip_details)
             return result
 
         # Stage 3: Embedding
-        result = cls._stage_embedding(clean_name, parsed.note, candidate_qs)
+        result = cls._stage_embedding(clean_name, note, candidate_qs)
         if result is not None:
             result.technical_details.update(strip_details)
             return result
 
         # Stage 4: No algorithmic match → HITL
-        result = cls._stage_human_dialog(clean_name, parsed.note)
+        result = cls._stage_human_dialog(clean_name, note)
         result.technical_details.update(strip_details)
         return result
 
@@ -373,6 +393,91 @@ class IngredientMatcher:
     # Stage 2: pg_trgm + Levenshtein
     # -------------------------------------------------------------------
 
+    # -------------------------------------------------------------------
+    # Stage 1b: normalized / head-noun match
+    # -------------------------------------------------------------------
+
+    @staticmethod
+    def _comparison_key(name: str) -> str:
+        """Name without bracket additions, stemmed so that singular and plural agree."""
+        from supply.services.term_normalization import normalize_term
+
+        return normalize_term(_BRACKET_ADDITION.sub("", name).strip())
+
+    @classmethod
+    def _stage_normalized(
+        cls,
+        normalized: NormalizedName,
+        clean_name: str,
+        note: str,
+        candidate_qs: QuerySet,
+        grey_zone: MatchResult | None = None,
+    ) -> MatchResult | None:
+        """Match on bracket-insensitive, stemmed names; fall back to the head noun.
+
+        ``Ei`` finds ``Eier (Größe M)``; ``Mineralwasser mit Kohlensäure`` finds ``Mineralwasser``.
+        Candidates stay ordered by usage; the result keeps the cut-off addition as a note.
+        """
+        from supply.models import IngredientAlias
+
+        targets: list[tuple[str, str]] = []
+        for label, value in (("normalized", clean_name), ("normalized", normalized.text), ("head", normalized.head)):
+            if value and value.strip() and all(value.strip().lower() != seen.lower() for _, seen in targets):
+                targets.append((label, value.strip()))
+        if not targets:
+            return None
+
+        keys = {cls._comparison_key(value): label for label, value in targets}
+        candidates = cls._get_candidates_ordered(candidate_qs)
+        matches = [
+            (keys[key], cand) for cand in candidates if (key := cls._comparison_key(cand["name"])) in keys and key
+        ]
+
+        if not matches:
+            for _label, value in targets:
+                alias = (
+                    IngredientAlias.objects.filter(name__iexact=value, ingredient_id__in=candidate_qs.values("pk"))
+                    .select_related("ingredient")
+                    .filter(ingredient__deleted_at__isnull=True)
+                    .first()
+                )
+                if alias:
+                    matches.append(
+                        (
+                            "head" if value == normalized.head else "normalized",
+                            {"id": alias.ingredient_id, "name": alias.ingredient.name, "slug": alias.ingredient.slug},
+                        )
+                    )
+                    break
+        if not matches:
+            return None
+
+        via, best = matches[0]
+        confidence = HEAD_MATCH_CONFIDENCE if via == "head" else NORMALIZED_MATCH_CONFIDENCE
+        listed = [
+            MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=confidence)
+            for _via, cand in matches
+        ]
+        seen_ids = {cand.id for cand in listed}
+        if grey_zone is not None:
+            listed.extend(cand for cand in grey_zone.candidates if cand.id not in seen_ids)
+
+        reason = (
+            "Die Zutat stimmt bis auf einen Zusatz mit einer vorhandenen Zutat überein."
+            if via == "head"
+            else "Der Name entspricht einer vorhandenen Zutat (Plural und Klammerzusatz ignoriert)."
+        )
+        return MatchResult(
+            ingredient_id=best["id"],
+            name=best["name"],
+            confidence=confidence,
+            matched_via=via,
+            note=note,
+            candidates=listed[:5],
+            reason=reason,
+            technical_details={"stage": "normalized", "comparison": via},
+        )
+
     @classmethod
     def _stage_fuzzy(cls, clean_name: str, raw_name: str, note: str, candidate_qs: QuerySet) -> MatchResult | None:
         from django.db import connection
@@ -411,6 +516,13 @@ class IngredientMatcher:
 
         return cls._fuzzy_result(clean_name, note, trigram_results)
 
+    @staticmethod
+    def _similarity_hint(confidence: float) -> str:
+        """Hint text that never claims more than the score supports."""
+        if confidence >= FUZZY_THRESHOLD:
+            return "Der Name ist einer vorhandenen Zutat ausreichend ähnlich."
+        return "Ähnlich zu einer vorhandenen Zutat, bitte prüfen."
+
     @classmethod
     def _fuzzy_result(cls, clean_name: str, note: str, results: list[MatchCandidate]) -> MatchResult | None:
         if not results:
@@ -431,7 +543,7 @@ class IngredientMatcher:
                 candidates=results[:5],
                 matched_via="fuzzy",
                 confidence=best.confidence,
-                reason="Der Name ähnelt einer vorhandenen Zutat ausreichend stark.",
+                reason=cls._similarity_hint(best.confidence),
                 technical_details={"stage": "fuzzy", "score": best.confidence},
             )
 
@@ -453,7 +565,7 @@ class IngredientMatcher:
                 candidates=results[:5],
                 matched_via="fuzzy",
                 confidence=best.confidence,
-                reason="Die semantische Ähnlichkeit zu einer vorhandenen Zutat ist ausreichend hoch.",
+                reason=cls._similarity_hint(best.confidence),
                 technical_details={"stage": "embedding", "score": best.confidence},
             )
 

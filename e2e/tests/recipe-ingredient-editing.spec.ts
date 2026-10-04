@@ -24,7 +24,7 @@ async function login(page: Page) {
   await page.goto(`${FOOD_URL}/`);
 }
 
-async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
+async function openManualRecipeIngredientsStep(page: Page, title = 'E2E Rezept'): Promise<void> {
   // Mirrors `IngredientReviewPreviewSchema`. Empty `rows` skips the
   // "Zutaten prüfen" step, so the wizard goes straight to the ingredient editor.
   await page.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({
@@ -61,9 +61,12 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible({
     timeout: 15000,
   });
+  // Title and type live in this step; the mocked analysis already pre-selects "Warme Mahlzeit".
+  await page.getByTestId('recipe-basis-title').fill(title);
   await page.getByTestId('recipe-serving-context-confirm').click();
   await page.getByTestId('recipe-wizard-next').click();
-  await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible({
+  // The ingredient editor has its own step "Zutaten" since the wizard split title/type into "Basis & Portionen".
+  await expect(page.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible({
     timeout: 15000,
   });
   await expect(page.getByRole('combobox', { name: /Zutat/i }).first()).toBeVisible({
@@ -78,15 +81,7 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
  *  checks — the wizard has no per-step URL/route, so reloading it resets to
  *  step 0 even though the draft was already saved server-side. */
 async function createManualRecipe(page: Page, title: string): Promise<string> {
-  await openManualRecipeIngredientsStep(page);
-
-  const titleInput = page.locator('input[placeholder="z.B. Nudelauflauf mit Hackfleisch"]');
-  await expect(titleInput).toBeVisible({ timeout: 8000 });
-  await titleInput.fill(title);
-
-  const warmMealBtn = page.locator('button:has-text("Warme Mahlzeit")').first();
-  await warmMealBtn.click();
-  await page.waitForTimeout(300);
+  await openManualRecipeIngredientsStep(page, title);
 
   await addIngredient(page, 'Jodsalz');
 
@@ -241,6 +236,10 @@ test.describe('Recipe ingredient autocomplete — touch scrolling', () => {
     await openManualRecipeIngredientsStep(page);
 
     const input = page.getByRole('combobox', { name: /Zutat/i }).first();
+    // The ingredient step is short since the wizard split up its steps: a low viewport keeps the
+    // field below the fold, which is the situation this test is about.
+    const width = page.viewportSize()?.width ?? 375;
+    await page.setViewportSize({ width, height: 480 });
     await page.evaluate(() => window.scrollTo(0, 0));
     const before = await input.boundingBox();
     const viewportHeight = page.viewportSize()?.height ?? 0;

@@ -87,4 +87,43 @@ describe('ShoppingListItemRow', () => {
     renderRow(item({ name: 'Milch', quantity_g: 9400, quantity: 9126, unit: 'ml', piece_equivalent: null }));
     expect(screen.getByText('9,1 l')).toBeInTheDocument();
   });
+
+  describe('deleting manual entries', () => {
+    it('offers delete for a manual entry (no sources) and reports the item', () => {
+      const onDelete = vi.fn();
+      const manual = item({ name: 'ZZ-TEST Klebeband', quantity_g: 0, piece_equivalent: null, estimated_price_eur: null });
+      render(
+        <MemoryRouter>
+          <ShoppingListItemRow item={manual} canEdit onCheck={vi.fn()} onDelete={onDelete} />
+        </MemoryRouter>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Eintrag „ZZ-TEST Klebeband“ löschen' }));
+
+      expect(onDelete).toHaveBeenCalledWith(manual);
+    });
+
+    it('offers no delete for entries generated from a recipe', () => {
+      const generated = item({
+        sources: [{ recipe_id: 4, recipe_name: 'Chili', recipe_slug: 'chili', meal_label: '', quantity_g: 320 }],
+      });
+      render(
+        <MemoryRouter>
+          <ShoppingListItemRow item={generated} canEdit onCheck={vi.fn()} onDelete={vi.fn()} />
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByRole('button', { name: /löschen/ })).toBeNull();
+    });
+
+    it('offers no delete without edit permission', () => {
+      render(
+        <MemoryRouter>
+          <ShoppingListItemRow item={item({ piece_equivalent: null })} canEdit={false} onCheck={vi.fn()} onDelete={vi.fn()} />
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByRole('button', { name: /löschen/ })).toBeNull();
+    });
+  });
 });

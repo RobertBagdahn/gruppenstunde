@@ -6,6 +6,8 @@ export type ApiErrorBody = {
   errors?: unknown;
   error_code?: unknown;
   retry_after_seconds?: unknown;
+  fields?: unknown;
+  existing?: unknown;
 };
 
 export class ApiError extends Error {
@@ -13,6 +15,10 @@ export class ApiError extends Error {
   readonly code?: string;
   readonly details: unknown;
   readonly retryAfterSeconds?: number;
+  /** Field names the backend flagged (e.g. nutrition validation), when present. */
+  readonly fields: string[];
+  /** Existing entity of a duplicate (409), when present. */
+  readonly existing?: { id: number; slug: string; name: string };
 
   // statusText is kept for call compatibility but never shown: users see German `detail` texts only.
   constructor(status: number, _statusText: string, body: ApiErrorBody = {}) {
@@ -23,6 +29,11 @@ export class ApiError extends Error {
     this.code = typeof code === 'string' ? code : undefined;
     this.details = body.errors;
     this.retryAfterSeconds = typeof body.retry_after_seconds === 'number' ? body.retry_after_seconds : undefined;
+    this.fields = Array.isArray(body.fields) ? body.fields.filter((field): field is string => typeof field === 'string') : [];
+    const existing = body.existing as { id?: unknown; slug?: unknown; name?: unknown } | undefined;
+    if (existing && typeof existing.id === 'number' && typeof existing.slug === 'string' && typeof existing.name === 'string') {
+      this.existing = { id: existing.id, slug: existing.slug, name: existing.name };
+    }
   }
 }
 

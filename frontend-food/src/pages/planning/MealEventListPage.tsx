@@ -126,6 +126,7 @@ function MealPlanListPageInner() {
   const [copyEnabled, setCopyEnabled] = useState(false);
   const [copySourceId, setCopySourceId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const deletePlan = mealPlans?.find((plan) => plan.id === deleteId) ?? null;
   const [nutritionalTagIds, setNutritionalTagIds] = useState<number[]>([]);
   const [pastOpen, setPastOpen] = useState(false);
 
@@ -197,7 +198,7 @@ function MealPlanListPageInner() {
       duplicateMutation.mutate(
         {
           id: copySourceId,
-          name: createName.trim() + ' (Kopie)',
+          name: createName.trim(),
           start_datetime: createStartDatetime + ':00',
           end_datetime: createEndDatetime + ':00',
           norm_portions: createPortions,
@@ -276,17 +277,21 @@ function MealPlanListPageInner() {
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-display font-bold text-emphasis text-foreground truncate group-hover:text-primary transition-colors">
-                {plan.name}
-              </h3>
-              {badgeConfig && (
-                <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+            {/* The name wins over the badge: up to two lines, the badge sits on its own row. */}
+            <h3
+              title={plan.name}
+              className="font-display font-bold text-emphasis text-foreground line-clamp-2 break-words group-hover:text-primary transition-colors"
+            >
+              {plan.name}
+            </h3>
+            {badgeConfig && (
+              <div className="mt-1 mb-1">
+                <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
                   <Icon name={badgeConfig.icon} size={16} />
                   {badgeConfig.label}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
             {dateRange && (
               <p className="text-caption text-muted-foreground font-medium mb-2">
                 {dateRange}
@@ -326,7 +331,8 @@ function MealPlanListPageInner() {
                   onClick={(e) => {
                     e.stopPropagation();
                     const w = getNextWeekend();
-                    setCreateName('Neuer Essensplan');
+                    // Only a suggestion in the name field: the submitted name is used as typed.
+                    setCreateName(`${plan.name} (Kopie)`);
                     setCreateStartDatetime(w.friday);
                     setCreateEndDatetime(w.sunday);
                     setCreatePortions(10);
@@ -613,7 +619,7 @@ function MealPlanListPageInner() {
         open={deleteId !== null}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
-        title="Essensplan löschen?"
+        title={deletePlan ? `Essensplan „${deletePlan.name}“ löschen?` : 'Essensplan löschen?'}
         description="Der Essensplan und alle zugehörigen Tage, Mahlzeiten und Rezeptzuordnungen werden unwiderruflich gelöscht."
         confirmLabel="Löschen"
         loading={deleteMutation.isPending}

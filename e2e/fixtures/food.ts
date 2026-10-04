@@ -92,6 +92,20 @@ export async function loginFoodPage(
   await page.evaluate(() => localStorage.clear());
 }
 
+/**
+ * Seed accounts that never finished onboarding get the modal "Willkommen bei Inspi!" on the first
+ * page load; it hides the page for assertions. Closes it with "Später" when it shows up.
+ */
+export async function dismissOnboardingIfShown(page: Page): Promise<void> {
+  const dialog = page.getByRole('dialog', { name: 'Willkommen bei Inspi!' });
+  // The dialog appears once the session request answered, so give it a moment.
+  const shown = await dialog.waitFor({ state: 'visible', timeout: 8000 }).then(() => true, () => false);
+  if (shown) {
+    await dialog.getByRole('button', { name: 'Später' }).click();
+    await expect(dialog).toBeHidden();
+  }
+}
+
 function cookieValue(page: Page, name: string): Promise<string> {
   return page.context().cookies().then((cookies) => {
     // If multiple cookies match (e.g. localhost vs specific domain), take the last or most specific one

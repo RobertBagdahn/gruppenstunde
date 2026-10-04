@@ -45,6 +45,7 @@ import {
   type PlanCheckResponse,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
+import { removeItemFromPlan, scaleItemInPlan } from '@/api/mealPlanOptimistic';
 import { AiApplyOutSchema, AiSuggestOutSchema } from '@/schemas/mealPlan';
 import type { AiApplyOut, AiSuggestOut } from '@/schemas/mealPlan';
 
@@ -365,27 +366,13 @@ export function useRemoveMealItem(mealPlanId: number) {
       const previousPlan = queryClient.getQueryData<MealPlanDetail>(['meal-plan', mealPlanId]);
 
       if (previousPlan) {
-        let removedItem: (typeof previousPlan.meals)[0]['items'][0] | null = null;
-        let removedFromMealId: number | null = null;
-        const nextMeals = previousPlan.meals.map((meal) => {
-          const matching = meal.items.find((it) => it.id === itemId);
-          if (matching) {
-            removedItem = matching;
-            removedFromMealId = meal.id;
-            return {
-              ...meal,
-              items: meal.items.filter((it) => it.id !== itemId),
-            };
-          }
-          return meal;
-        });
+        const removedMeal = previousPlan.meals.find((meal) => meal.items.some((it) => it.id === itemId));
+        const removedItem = removedMeal?.items.find((it) => it.id === itemId) ?? null;
 
-        queryClient.setQueryData<MealPlanDetail>(['meal-plan', mealPlanId], {
-          ...previousPlan,
-          meals: nextMeals,
-        });
+        // Remove the item and take its cost/energy out of the meal totals that feed the plan header.
+        queryClient.setQueryData<MealPlanDetail>(['meal-plan', mealPlanId], removeItemFromPlan(previousPlan, itemId));
 
-        return { previousPlan, removedItem, removedFromMealId };
+        return { previousPlan, removedItem, removedFromMealId: removedMeal?.id ?? null };
       }
       return { previousPlan: undefined, removedItem: null, removedFromMealId: null };
     },
@@ -409,7 +396,23 @@ export function useUpdateMealItem(mealPlanId: number) {
         { ...(factor !== undefined ? { factor } : {}), ...(quantity !== undefined ? { quantity } : {}) },
         MealItemSchema,
       ),
-    onSuccess: () => {
+    onMutate: async ({ itemId, factor, quantity }) => {
+      await queryClient.cancelQueries({ queryKey: ['meal-plan', mealPlanId] });
+      const previousPlan = queryClient.getQueryData<MealPlanDetail>(['meal-plan', mealPlanId]);
+      if (previousPlan) {
+        queryClient.setQueryData<MealPlanDetail>(
+          ['meal-plan', mealPlanId],
+          scaleItemInPlan(previousPlan, itemId, { factor, quantity }),
+        );
+      }
+      return { previousPlan };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousPlan) {
+        queryClient.setQueryData(['meal-plan', mealPlanId], context.previousPlan);
+      }
+    },
+    onSettled: () => {
       invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });

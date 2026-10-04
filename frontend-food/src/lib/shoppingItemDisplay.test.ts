@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatPackageLabel,
   formatPackageNeed,
+  formatItemPackageReserve,
   formatPackageReserve,
   formatPieceEquivalent,
   formatPortionOption,
@@ -72,5 +73,79 @@ describe('formatPackageNeed for liquids', () => {
 
   it('keeps the weight label for solids', () => {
     expect(formatPackageNeed({ count: 2, package_name: 'Packung', weight_g: 500 })).toBe('2 × 500-g-Packung');
+  });
+
+  describe('formatItemPackageReserve (reserve = package size − shown amount)', () => {
+    const base: Parameters<typeof formatItemPackageReserve>[0] = {
+      quantity: 0,
+      unit: 'g',
+      package_options: [],
+      package_surplus_g: null,
+    };
+
+    it('keeps shown amount + reserve equal to a 1-kg net (Zwiebel 275 g shows 280 g)', () => {
+      const item = {
+        ...base,
+        quantity: 275,
+        package_options: [{ count: 1, package_name: 'Netz', weight_g: 1000 }],
+        package_surplus_g: 725,
+      };
+      expect(formatShoppingAmount(275, 'g')).toBe('280 g');
+      expect(formatItemPackageReserve(item)).toBe('+ 720 g Reserve');
+    });
+
+    it('matches a 200-g piece for 137,5 g shown as 140 g', () => {
+      const item = {
+        ...base,
+        quantity: 137.5,
+        package_options: [{ count: 1, package_name: 'Stück', weight_g: 200 }],
+        package_surplus_g: 62.5,
+      };
+      expect(formatItemPackageReserve(item)).toBe('+ 60 g Reserve');
+    });
+
+    it('shows small amounts exactly (75 g in 1 kg leaves 925 g)', () => {
+      const item = {
+        ...base,
+        quantity: 75,
+        package_options: [{ count: 1, package_name: 'Netz', weight_g: 1000 }],
+      };
+      expect(formatItemPackageReserve(item)).toBe('+ 925 g Reserve');
+    });
+
+    it('gives liquids the reserve in ml, not grams (22 ml in an 815-ml bottle)', () => {
+      const item = {
+        ...base,
+        quantity: 22,
+        unit: 'ml',
+        package_options: [{ count: 1, package_name: 'Flasche', weight_g: 750, volume_ml: 815 }],
+        package_surplus_g: 730,
+      };
+      expect(formatItemPackageReserve(item)).toBe('+ 793 ml Reserve');
+    });
+
+    it('shows no reserve for a liquid without a volume package instead of a wrong unit', () => {
+      const item = {
+        ...base,
+        quantity: 22,
+        unit: 'ml',
+        package_options: [{ count: 1, package_name: 'Flasche', weight_g: 750 }],
+        package_surplus_g: 730,
+      };
+      expect(formatItemPackageReserve(item)).toBe('');
+    });
+
+    it('falls back to the backend gram surplus without a package option', () => {
+      expect(formatItemPackageReserve({ ...base, quantity: 300, package_surplus_g: 50 })).toBe('+ 50 g Reserve');
+    });
+
+    it('shows nothing when the package is smaller than the shown amount', () => {
+      const item = {
+        ...base,
+        quantity: 1000,
+        package_options: [{ count: 2, package_name: 'Packung', weight_g: 500 }],
+      };
+      expect(formatItemPackageReserve(item)).toBe('');
+    });
   });
 });

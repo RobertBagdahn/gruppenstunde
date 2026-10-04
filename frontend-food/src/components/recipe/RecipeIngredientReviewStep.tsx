@@ -17,6 +17,11 @@ import {
   useRecipeIngredientReviewStore,
 } from '@/store/useRecipeIngredientReviewStore';
 import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
+import {
+  validateNutritionValues,
+  type NutritionFieldErrors,
+  type NutritionValues,
+} from '@/lib/nutritionValidation';
 
 interface RecipeIngredientReviewStepProps {
   onAddIngredient?: () => void;
@@ -36,6 +41,17 @@ const DRAFT_NUMERIC_FIELDS = [
   { field: 'salt_g', label: 'Salz (g/100g)' },
 ] as const;
 
+/** Hard nutrition rules (same as the backend) for the draft's numeric values. */
+function draftNutritionErrors(values: Record<string, unknown>): NutritionFieldErrors {
+  const numeric: NutritionValues = {};
+  for (const { field } of DRAFT_NUMERIC_FIELDS) {
+    const raw = values[field];
+    const value = typeof raw === 'number' ? raw : typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : null;
+    numeric[field] = value !== null && Number.isFinite(value) ? value : null;
+  }
+  return validateNutritionValues(numeric);
+}
+
 function NewIngredientDialog({
   row,
   open,
@@ -49,6 +65,7 @@ function NewIngredientDialog({
   const draft = row.new_ingredient_draft;
 
   if (!draft) return null;
+  const nutritionErrors = draftNutritionErrors(draft.values);
 
   const updateDraft = (patch: Record<string, unknown>) => {
     updateRow(row.key, { new_ingredient_draft: { ...draft, ...patch } });
@@ -82,6 +99,7 @@ function NewIngredientDialog({
   };
 
   const handleConfirm = () => {
+    if (Object.keys(nutritionErrors).length > 0) return;
     const portion = draft.portions[0];
     const quantity = draft.quantity && draft.quantity > 0 ? draft.quantity : 1;
     if (!portion) {
@@ -138,8 +156,14 @@ function NewIngredientDialog({
                   min="0"
                   value={String(draft.values[field] ?? '')}
                   onChange={(event) => updateValue(field, event.target.value)}
+                  aria-invalid={nutritionErrors[field] ? true : undefined}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
+                {nutritionErrors[field] && (
+                  <span role="alert" className="mt-1 block text-destructive">
+                    {nutritionErrors[field]}
+                  </span>
+                )}
               </label>
             ))}
           </div>
@@ -194,7 +218,8 @@ function NewIngredientDialog({
             <button
               type="button"
               onClick={handleConfirm}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body text-primary-foreground hover:bg-primary/90 transition-colors"
+              disabled={Object.keys(nutritionErrors).length > 0}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <Check className="h-4 w-4" />
               Zutat und Menge übernehmen
@@ -260,6 +285,8 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       selected_ingredient_slug: slug,
       selected_portion: null,
       quantity: null,
+      // An existing ingredient replaces any pending "Neue Zutat prüfen" draft.
+      new_ingredient_draft: null,
       status: 'changed',
       reason: 'Die Zutat wurde vom Menschen ausgewählt. Bitte prüfe noch die Portion.',
     });
@@ -281,7 +308,12 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
     setAlternativesOpen(false);
   };
 
-  const focusSearch = () => searchRef.current?.querySelector('input')?.focus();
+  // Focus with the current text selected, so typing replaces it instead of appending to it.
+  const focusSearch = () => {
+    const input = searchRef.current?.querySelector('input');
+    input?.focus();
+    input?.select();
+  };
 
   const handleNameChange = (value: string) => {
     const current = useRecipeIngredientReviewStore.getState().rows.find((candidate) => candidate.key === row.key);
@@ -350,6 +382,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   };
 
   const showDraftFields = draft && !newIngredientOpen;
+  const inlineNutritionErrors: NutritionFieldErrors = draft ? draftNutritionErrors(draft.values) : {};
   const alternativeCandidates = row.candidates.filter(
     (c) => c.id !== row.selected_ingredient_id && c.id !== row.suggested_ingredient_id,
   );
@@ -373,8 +406,8 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
         </span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <div>
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div className="min-w-0">
           <p className="text-caption font-medium text-muted-foreground">Vorgeschlagene Zutat</p>
           <div ref={searchRef}>
           <IngredientAutocomplete
@@ -455,7 +488,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
               <p className="sm:col-span-2 text-caption font-semibold text-warning">Neue Zutat prüfen</p>
               <label className="text-caption text-warning">Name<input value={draft.name} onChange={(event) => updateDraft('name', event.target.value)} className="mt-1 w-full rounded-lg border bg-white px-2 py-1.5 text-body" /></label>
               {DRAFT_NUMERIC_FIELDS.map(({ field, label }) => (
-                <label key={field} className="text-caption text-warning">{label}<input type="number" min="0" value={String(draft.values[field] ?? '')} onChange={(event) => updateDraft(field, event.target.value)} className="mt-1 w-full rounded-lg border bg-white px-2 py-1.5 text-body" /></label>
+                <label key={field} className="text-caption text-warning">{label}<input type="number" min="0" value={String(draft.values[field] ?? '')} onChange={(event) => updateDraft(field, event.target.value)} aria-invalid={inlineNutritionErrors[field] ? true : undefined} className="mt-1 w-full rounded-lg border bg-white px-2 py-1.5 text-body" />{inlineNutritionErrors[field] && <span role="alert" className="mt-1 block text-destructive">{inlineNutritionErrors[field]}</span>}</label>
               ))}
               <button
                 type="button"

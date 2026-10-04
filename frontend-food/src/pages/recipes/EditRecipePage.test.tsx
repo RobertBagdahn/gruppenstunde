@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import EditRecipePage from './EditRecipePage';
@@ -140,5 +140,25 @@ describe('EditRecipePage', () => {
     renderPage();
 
     expect(screen.getByText(/keine Berechtigung/i)).toBeInTheDocument();
+  });
+
+  it('shows an inline error at the title field and does not save when the title is empty', () => {
+    const mutate = vi.fn();
+    (useRecipeBySlug as any).mockReturnValue({ data: mockRecipe, isLoading: false, error: null });
+    (useUpdateRecipe as any).mockReturnValue({ mutate, isPending: false });
+    (useCurrentUser as any).mockReturnValue({ data: regularUser });
+
+    renderPage();
+    const titleInput = screen.getByPlaceholderText(/Lagerfeuer-Stockbrot/) as HTMLInputElement;
+    fireEvent.change(titleInput, { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: /Änderungen speichern/ }));
+
+    expect(screen.getByRole('alert').textContent).toBe('Titel ist erforderlich.');
+    expect(document.activeElement).toBe(titleInput);
+    expect(titleInput.getAttribute('aria-invalid')).toBe('true');
+    expect(mutate).not.toHaveBeenCalled();
+
+    fireEvent.change(titleInput, { target: { value: 'Neuer Titel' } });
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

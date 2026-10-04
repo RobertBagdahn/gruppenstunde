@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe, type RecipeUpdatePayload } from '@/api/recipes';
 import { useAdminEquipment } from '@/api/admin';
@@ -25,6 +25,8 @@ export default function EditRecipePage() {
   const updateRecipe = useUpdateRecipe(recipe?.id ?? 0);
 
   const [title, setTitle] = useState('');
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const [recipeType, setRecipeType] = useState('');
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
@@ -86,7 +88,8 @@ export default function EditRecipePage() {
     e.preventDefault();
 
     if (!title.trim()) {
-      toast.error('Bitte gib einen Titel ein');
+      setTitleError('Titel ist erforderlich.');
+      titleInputRef.current?.focus();
       return;
     }
 
@@ -165,7 +168,7 @@ export default function EditRecipePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Recipe Type */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
@@ -290,13 +293,24 @@ export default function EditRecipePage() {
             Titel *
           </label>
           <input
+            ref={titleInputRef}
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setTitleError(null);
+            }}
             placeholder="z.B. Lagerfeuer-Stockbrot, Pfadfinder-Eintopf..."
-            required
+            aria-required="true"
+            aria-invalid={titleError ? true : undefined}
+            aria-describedby={titleError ? 'recipe-title-error' : undefined}
             className="w-full px-4 py-2.5 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
           />
+          {titleError && (
+            <p id="recipe-title-error" role="alert" className="mt-2 text-caption text-destructive">
+              {titleError}
+            </p>
+          )}
         </div>
 
         {/* Summary */}
@@ -513,7 +527,7 @@ export default function EditRecipePage() {
           </button>
           <button
             type="submit"
-            disabled={!title.trim() || updateRecipe.isPending}
+            disabled={updateRecipe.isPending}
             className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-section font-semibold hover:bg-primary/90 shadow-md hover:shadow-lg disabled:opacity-50 transition-all"
           >
             <Save className="w-6 h-6" />

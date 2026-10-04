@@ -1,4 +1,4 @@
-import { loginFoodPage, test, expect } from '../fixtures/food';
+import { dismissOnboardingIfShown, loginFoodPage, test, expect } from '../fixtures/food';
 import { assertRecord, expectJsonResponse, getCsrfToken } from '../fixtures/api';
 
 interface ShoppingListDetail {
@@ -144,6 +144,7 @@ test.describe('Shopping list permissions and persistence', () => {
           email: credentials.email,
         });
         await rolePage.goto(`/shopping-lists/${list.id}`);
+        await dismissOnboardingIfShown(rolePage);
         await expect(rolePage.getByRole('heading', { name: list.name })).toBeVisible();
         await expect(rolePage.getByRole('button', { name: 'Einkaufsliste löschen' })).toHaveCount(0);
 
@@ -263,7 +264,12 @@ test.describe('Shopping list permissions and persistence', () => {
     });
     await foodPage.reload();
     const exportedIngredient = String(ingredient.name);
-    await foodPage.getByText(exportedIngredient, { exact: true }).locator('..').locator('..').click();
+    // The item name is a link to the ingredient; the content area (chevron side) toggles the sources.
+    await expect(foodPage.getByText(exportedIngredient, { exact: true })).toBeVisible();
+    await foodPage
+      .getByTestId(`shopping-item-${exported.items[0]?.id}`)
+      .locator('div.cursor-pointer')
+      .click({ position: { x: 6, y: 6 } });
     await expect(foodPage.getByText(recipe.title, { exact: true })).toBeVisible();
   });
 

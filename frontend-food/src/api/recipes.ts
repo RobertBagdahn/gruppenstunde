@@ -16,6 +16,7 @@ import {
   AdoptCurrentPortionsOutSchema,
   RecipeItemExchangeGroupSchema,
   RecipeSimilarSchema,
+  RecipeUsageSchema,
   NutriScoreDetailSchema,
   RecipeNutritionBreakdownSchema,
   ImprovementListSchema,
@@ -366,6 +367,15 @@ export function useUpdateRecipe(recipeId: number) {
       queryClient.setQueryData(['recipe', 'slug', updatedRecipe.slug], updatedRecipe);
       invalidateRecipeData(queryClient, recipeId);
     },
+  });
+}
+
+export function useRecipeUsage(recipeId: number, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['recipe-usage', recipeId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/usage/`, RecipeUsageSchema),
+    enabled: recipeId > 0 && (options.enabled ?? true),
+    staleTime: 0,
   });
 }
 

@@ -24,6 +24,9 @@ _IRREGULAR_FORMS: dict[str, str] = {
     "nüsse": "nuss",
     "kraut": "kraut",
     "kräuter": "kraut",
+    "ei": "ei",
+    "eier": "ei",
+    "eiern": "ei",
 }
 
 

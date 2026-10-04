@@ -13,6 +13,7 @@
  *     loading={deleteMutation.isPending}
  *   />
  */
+import type { ReactNode } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,10 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   loading?: boolean;
   variant?: 'destructive' | 'default';
+  /** Extra content below the description (e.g. a list of affected items). */
+  children?: ReactNode;
+  /** Disables the confirm button, e.g. while a precondition is unmet. */
+  confirmDisabled?: boolean;
 }
 
 export default function ConfirmDialog({
@@ -44,6 +49,8 @@ export default function ConfirmDialog({
   cancelLabel = 'Abbrechen',
   loading = false,
   variant = 'destructive',
+  children,
+  confirmDisabled = false,
 }: ConfirmDialogProps) {
   const confirmButtonClass =
     variant === 'destructive'
@@ -65,6 +72,7 @@ export default function ConfirmDialog({
             {description}
           </DialogDescription>
         </DialogHeader>
+        {children}
         <div className="flex justify-end gap-3 pt-4">
           <button
             type="button"
@@ -77,7 +85,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || confirmDisabled}
             className={`px-4 py-2 rounded-lg text-body transition disabled:opacity-50 flex items-center gap-1.5 ${confirmButtonClass}`}
           >
             {loading && (

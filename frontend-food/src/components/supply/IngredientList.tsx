@@ -13,6 +13,7 @@ import type { AvailableConversionBatchItem, Portion } from '@/schemas/supply';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
+import { formatPortionAmount, isGramPortion, shortUnit } from '@/lib/ingredientAmount';
 import { cn } from '@/lib/utils';
 import UnitSwitcher from '@/components/recipe/UnitSwitcher';
 
@@ -35,36 +36,6 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 
 const UNCATEGORIZED_LABEL = 'Sonstiges';
 
-/** Short display names for measuring units */
-const UNIT_SHORT: Record<string, string> = {
-  'Esslöffel': 'EL',
-  'Teelöffel': 'TL',
-  'Kilogramm': 'kg',
-  'Gramm': 'g',
-  'Milliliter': 'ml',
-  'Liter': 'l',
-  'Prise': 'Pr.',
-  'Tasse': 'Tasse',
-  'Messerspitze': 'Msp.',
-  'Schuss': 'Schuss',
-};
-
-const BASE_METRIC_UNIT_NAMES = new Set(['Gramm', 'g', 'kg', 'Kilogramm', 'Milliliter', 'ml', 'Liter', 'l']);
-
-/**
- * A portion is metric when its *name* is a plain metric amount ("Gramm", "100g Reis").
- * The measuring unit only decides for unnamed portions — named portions such as "Stück"
- * are often stored in grams but still describe a natural portion.
- */
-function isGramPortion(portionName?: string | null, unitName?: string | null): boolean {
-  if (!portionName) return BASE_METRIC_UNIT_NAMES.has(unitName ?? '');
-  return BASE_METRIC_UNIT_NAMES.has(portionName) || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg|ml|l)\b/i.test(portionName);
-}
-
-function shortUnit(name: string): string {
-  return UNIT_SHORT[name] ?? name;
-}
-
 function formatPrice(priceEur: number): string {
   if (priceEur < 0.01) return '< 0,01 €';
   return `${priceEur.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
@@ -73,21 +44,6 @@ function formatPrice(priceEur: number): string {
 function formatShare(part: number, total: number): string {
   const percent = (part / total) * 100;
   return percent > 0 && percent < 1 ? '< 1 %' : `${Math.round(percent)} %`;
-}
-
-function formatCount(value: number): string {
-  return value.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: value < 1 ? 2 : 1 });
-}
-
-function formatPortionAmount(amount: number, portionName: string): string {
-  // Pre-weighed metric portions ("100g Reis") read as a multiple of the portion.
-  if (/^\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l)\b/i.test(portionName)) return `${formatCount(amount)} × ${portionName}`;
-
-  const match = portionName.match(/^(\d+(?:[.,]\d+)?)\s+(.*)$/);
-  const count = match ? amount * parseFloat(match[1].replace(',', '.')) : amount;
-  const name = match ? match[2] : portionName;
-
-  return `${formatCount(count)} ${name}`;
 }
 
 function PortionPill({

@@ -11,12 +11,22 @@ test('unauthenticated access to protected and public Food collection endpoints',
       expect(response.status()).toBe(200);
     }
 
-    // MealPlans and ShoppingLists are personal/collaborative and require authentication
-    const protectedEndpoints = ['/api/meal-plans/', '/api/shopping-lists/'];
-    for (const endpoint of protectedEndpoints) {
-      const response = await context.request.get(endpoint);
-      expect([401, 403]).toContain(response.status());
+    // MealPlans are readable by visitors, but only the public, verified and template plans.
+    const plansResponse = await context.request.get('/api/meal-plans/');
+    expect(plansResponse.status()).toBe(200);
+    const plans = (await plansResponse.json()) as Array<{
+      owner_id: number | null;
+      visibility: string;
+      is_template?: boolean;
+    }>;
+    for (const plan of plans) {
+      const isVisibleToVisitors = plan.owner_id === null || plan.visibility === 'public' || plan.is_template === true;
+      expect(isVisibleToVisitors, `plan with visibility "${plan.visibility}" must not reach visitors`).toBe(true);
     }
+
+    // ShoppingLists are personal/collaborative and require authentication
+    const response = await context.request.get('/api/shopping-lists/');
+    expect([401, 403]).toContain(response.status());
   } finally {
     await context.close();
   }

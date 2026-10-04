@@ -367,6 +367,43 @@ def get_ingredient(request, slug: str):
     return ingredient
 
 
+def _nutrition_warnings_or_422(values: dict[str, float | None], name: str) -> list[dict]:
+    """Reject impossible nutrition values (422 with ``fields``); return soft findings as warnings."""
+    from supply.services.nutrition_plausibility import check_nutrition_for_save
+
+    errors, warnings = check_nutrition_for_save(values, name=name)
+    if errors:
+        fields = list(dict.fromkeys(field for issue in errors for field in issue.fields))
+        raise ApiError(
+            422,
+            "nutrition_implausible",
+            "Nährwerte unplausibel: " + "; ".join(issue.label for issue in errors),
+            extra={"fields": fields},
+        )
+    return [{"code": issue.code, "label": issue.label, "fields": list(issue.fields)} for issue in warnings]
+
+
+def _raise_if_ingredient_exists(user, name: str) -> None:
+    """409 with the existing ingredient when a visible one already has exactly this name.
+
+    Aliases are not checked: generic aliases (e.g. "Nudeln") may exist on several ingredients and
+    only produce a ``name_warning``.
+    """
+    from content.services.food_access import matchable_ingredient_queryset
+
+    cleaned = (name or "").strip()
+    if not cleaned:
+        return
+    existing = matchable_ingredient_queryset(user).filter(name__iexact=cleaned).order_by("-usage_count", "id").first()
+    if existing is not None:
+        raise ApiError(
+            409,
+            "ingredient_exists",
+            f"Die Zutat „{existing.name}“ gibt es schon.",
+            extra={"existing": {"id": existing.id, "slug": existing.slug, "name": existing.name}},
+        )
+
+
 @ingredient_router.post("/", response=IngredientDetailOut)
 def create_ingredient(request, payload: IngredientCreateIn):
     """Create a new ingredient.
@@ -382,6 +419,15 @@ def create_ingredient(request, payload: IngredientCreateIn):
         invalid_group_ids = set(payload.shared_group_ids) - user_group_ids
         if invalid_group_ids:
             raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
+
+    _raise_if_ingredient_exists(request.user, payload.name)
+
+    from supply.services.nutrition_plausibility import NUTRITION_FIELDS
+
+    nutrition_values = {field: getattr(payload, field, None) for field in NUTRITION_FIELDS}
+    nutrition_warnings: list[dict] = []
+    if any(value is not None for value in nutrition_values.values()):
+        nutrition_warnings = _nutrition_warnings_or_422(nutrition_values, payload.name)
 
     data = payload.dict(exclude={"nutritional_tag_ids", "group_ids", "tag_ids", "visibility", "shared_group_ids"})
     data["retail_section_id"] = data.pop("retail_section_id", None)
@@ -432,6 +478,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
             pass
 
     ingredient.refresh_from_db()
+    ingredient.nutrition_warnings = nutrition_warnings
     ingredient.can_edit = True
     ingredient.can_delete = True
     ingredient.can_verify = _can_verify_ingredient(request.user)
@@ -485,6 +532,18 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     nutri_changed = False
 
     data = payload.dict(exclude_unset=True)
+
+    # Only check nutrition when a nutrition value actually changes (forms send all fields every time),
+    # merged over the stored values, so editing e.g. the price of an implausible legacy ingredient is not blocked.
+    from supply.services.nutrition_plausibility import NUTRITION_FIELDS, ingredient_nutrition_values
+
+    nutrition_warnings: list[dict] = []
+    stored_nutrition = ingredient_nutrition_values(ingredient)
+    if any(field in data and data[field] != stored_nutrition[field] for field in NUTRITION_FIELDS):
+        merged = dict(stored_nutrition)
+        merged.update({field: data[field] for field in NUTRITION_FIELDS if field in data})
+        nutrition_warnings = _nutrition_warnings_or_422(merged, data.get("name") or ingredient.name)
+
     tag_ids = data.pop("nutritional_tag_ids", None)
     group_ids = data.pop("group_ids", None)
     breakfast_tag_ids = data.pop("tag_ids", None)
@@ -553,6 +612,7 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
             pass
 
     ingredient.refresh_from_db()
+    ingredient.nutrition_warnings = nutrition_warnings
     ingredient.can_edit = _can_edit_ingredient(ingredient, request.user)
     ingredient.can_delete = _can_edit_ingredient(ingredient, request.user)
     ingredient.can_verify = _can_verify_ingredient(request.user)

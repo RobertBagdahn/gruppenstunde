@@ -10,6 +10,8 @@ interface RecipeIngredientReviewState {
   sources: IngredientReviewPreview['sources'];
   aiInteractionId: string | null;
   isDirty: boolean;
+  /** True once ingredients were removed, added or replaced after the import, so imported steps may be outdated. */
+  ingredientsChangedSinceImport: boolean;
   error: string | null;
   fieldErrors: Record<string, string>;
   initialize: (preview: IngredientReviewPreview) => void;
@@ -19,6 +21,8 @@ interface RecipeIngredientReviewState {
   restoreRow: (row: IngredientReviewRow, index: number) => void;
   /** Appends an empty, unresolved row for an ingredient the AI did not list. */
   addEmptyRow: () => string;
+  /** The user has seen the outdated-steps hint (or edited the steps). */
+  acknowledgeIngredientChange: () => void;
   confirmRow: (key: string) => void;
   confirmCompleteRows: () => void;
   reset: () => void;
@@ -38,6 +42,7 @@ export const useRecipeIngredientReviewStore = create<RecipeIngredientReviewState
   sources: [],
   aiInteractionId: null,
   isDirty: false,
+  ingredientsChangedSinceImport: false,
   error: null,
   fieldErrors: {},
 
@@ -46,24 +51,39 @@ export const useRecipeIngredientReviewStore = create<RecipeIngredientReviewState
     sources: preview.sources,
     aiInteractionId: preview.ai_interaction_id,
     isDirty: false,
+    ingredientsChangedSinceImport: false,
     error: null,
     fieldErrors: {},
   }),
 
   // An edit marks the row as changed unless the caller sets the status itself
   // (e.g. "unresolved" for a rejected suggestion).
-  updateRow: (key, updates) => set((state) => ({
-    rows: state.rows.map((row) => row.key === key ? { ...row, status: 'changed', ...updates } : row),
-    isDirty: true,
-    error: null,
-  })),
+  updateRow: (key, updates) => set((state) => {
+    const current = state.rows.find((row) => row.key === key);
+    // Only a different ingredient counts; quantity or portion edits never outdate the steps.
+    const replaced = current !== undefined
+      && (('selected_ingredient_id' in updates && updates.selected_ingredient_id !== current.selected_ingredient_id)
+        || ('selected_ingredient_name' in updates
+          && updates.selected_ingredient_name !== current.selected_ingredient_name));
+    return {
+      rows: state.rows.map((row) => row.key === key ? { ...row, status: 'changed', ...updates } : row),
+      isDirty: true,
+      ingredientsChangedSinceImport: state.ingredientsChangedSinceImport || replaced,
+      error: null,
+    };
+  }),
 
   removeRow: (key) => {
     const { rows } = get();
     const index = rows.findIndex((row) => row.key === key);
     if (index === -1) return null;
     const row = rows[index];
-    set({ rows: rows.filter((candidate) => candidate.key !== key), isDirty: true, error: null });
+    set({
+      rows: rows.filter((candidate) => candidate.key !== key),
+      isDirty: true,
+      ingredientsChangedSinceImport: true,
+      error: null,
+    });
     return { row, index };
   },
 
@@ -96,9 +116,11 @@ export const useRecipeIngredientReviewStore = create<RecipeIngredientReviewState
       new_ingredient_draft: null,
       status: 'unresolved',
     };
-    set((state) => ({ rows: [...state.rows, row], isDirty: true, error: null }));
+    set((state) => ({ rows: [...state.rows, row], isDirty: true, ingredientsChangedSinceImport: true, error: null }));
     return key;
   },
+
+  acknowledgeIngredientChange: () => set({ ingredientsChangedSinceImport: false }),
 
   confirmRow: (key) => set((state) => ({
     rows: state.rows.map((row) => row.key === key && isComplete(row)
@@ -121,6 +143,7 @@ export const useRecipeIngredientReviewStore = create<RecipeIngredientReviewState
     sources: [],
     aiInteractionId: null,
     isDirty: false,
+    ingredientsChangedSinceImport: false,
     error: null,
     fieldErrors: {},
   }),

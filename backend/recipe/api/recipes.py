@@ -40,6 +40,7 @@ from recipe.schemas import (
     RecipeSimilarOut,
     RecipeSuggestAllOut,
     RecipeUpdateIn,
+    RecipeUsageOut,
     VerifyRequestIn,
     VerifyStatusOut,
     VisibilityUpdateIn,
@@ -1074,25 +1075,34 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     return recipe
 
 
+@router.get("/{recipe_id}/usage/", response=RecipeUsageOut)
+def get_recipe_usage(request, recipe_id: int):
+    """Meal plans that use the recipe. ``plans`` only lists plans the user may see."""
+    require_login(request)
+
+    from content.services.food_access import get_visible_recipe_or_404
+    from recipe.services.recipe_usage import recipe_plan_usage
+
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
+    plan_count, plans = recipe_plan_usage(recipe.id, request.user)
+    return {"plan_count": plan_count, "plans": plans}
+
+
 @router.delete("/{recipe_id}/")
 def delete_recipe(request, recipe_id: int):
-    """Soft-delete a recipe."""
+    """Soft-delete a recipe that is not used in any meal plan."""
     require_login(request)
 
     from content.services.food_access import get_visible_recipe_or_404, require_action
+    from recipe.services.recipe_usage import plans_using_recipe
 
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
     require_action(recipe, request.user, "delete")
 
-    from planner.models import MealItem
-
-    recipe_item_ids = set(recipe.recipe_items.values_list("id", flat=True))
-    has_active_variant = any(
-        recipe_item_ids.intersection(meal_item.active_recipe_item_ids or [])
-        for meal_item in MealItem.objects.filter(recipe=recipe).only("active_recipe_item_ids")
-    )
-    if has_active_variant:
-        raise HttpError(409, "Das Rezept wird mit aktiven Varianten in einem Essensplan verwendet.")
+    plan_count = plans_using_recipe(recipe.id).count()
+    if plan_count:
+        noun = "einem Essensplan" if plan_count == 1 else f"{plan_count} Essensplänen"
+        raise HttpError(409, f"Das Rezept wird in {noun} verwendet und kann nicht gelöscht werden.")
 
     recipe.soft_delete()
     return {"success": True}

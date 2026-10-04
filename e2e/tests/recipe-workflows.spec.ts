@@ -127,7 +127,7 @@ test.describe('Recipe Workflows', () => {
     await expect(page.locator('#recipe-basis-title')).toHaveValue('Smart E2E Rezept');
     await page.getByTestId('recipe-serving-context-confirm').click();
     await page.getByTestId('recipe-wizard-next').click();
-    await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible();
     await expect.poll(() => new URL(page.url()).searchParams.get('draft')).toBe('101');
     expect(new URL(page.url()).searchParams.get('step')).toBe('ingredients');
   });

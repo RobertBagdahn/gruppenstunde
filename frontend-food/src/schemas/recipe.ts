@@ -210,6 +210,13 @@ export const RecipeSimilarSchema = z.object({
 });
 export type RecipeSimilar = z.infer<typeof RecipeSimilarSchema>;
 
+/** Meal plans using a recipe. Mirrors backend `RecipeUsageOut`; `plans` only lists plans the user may see. */
+export const RecipeUsageSchema = z.object({
+  plan_count: z.number().int(),
+  plans: z.array(z.object({ id: z.number().int(), name: z.string() })),
+});
+export type RecipeUsage = z.infer<typeof RecipeUsageSchema>;
+
 // --- Recipe Detail (extends ContentDetail) ---
 
 export const RecipeDetailSchema = ContentDetailSchema.extend({
