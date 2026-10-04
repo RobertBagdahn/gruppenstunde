@@ -28,17 +28,17 @@ function getUnitForSuggestion(suggestion: Suggestion): string {
 
 const suggestionStyles = {
   green: {
-    card: 'bg-primary/[0.04] dark:bg-primary/[0.02] border border-primary/20',
+    card: 'bg-primary/[0.04] border border-primary/20',
     text: 'text-success',
     bullet: 'bg-primary',
   },
   yellow: {
-    card: 'bg-warning/[0.04] dark:bg-warning/[0.02] border border-warning-border',
+    card: 'bg-warning/[0.04] border border-warning-border',
     text: 'text-warning',
     bullet: 'bg-warning',
   },
   red: {
-    card: 'bg-destructive/[0.04] dark:bg-destructive/[0.02] border border-destructive/20',
+    card: 'bg-destructive/[0.04] border border-destructive/20',
     text: 'text-destructive',
     bullet: 'bg-destructive',
   },

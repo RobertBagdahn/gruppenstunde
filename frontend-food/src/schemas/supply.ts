@@ -442,9 +442,9 @@ export type NutriScoreDetail = z.infer<typeof NutriScoreDetailSchema>;
 /** Official Nutri-Score colors, keyed by letter. */
 export const NUTRI_SCORE_COLORS_BY_LETTER: Record<string, { bg: string; text: string }> = {
   A: { bg: 'bg-nutri-a', text: 'text-white' },
-  B: { bg: 'bg-nutri-b', text: 'text-white' },
+  B: { bg: 'bg-nutri-b', text: 'text-nutri-dark-text' },
   C: { bg: 'bg-nutri-c', text: 'text-nutri-dark-text' },
-  D: { bg: 'bg-nutri-d', text: 'text-white' },
+  D: { bg: 'bg-nutri-d', text: 'text-nutri-dark-text' },
   E: { bg: 'bg-nutri-e', text: 'text-white' },
 };
 

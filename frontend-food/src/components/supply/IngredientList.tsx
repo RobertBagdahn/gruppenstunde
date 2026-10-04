@@ -62,11 +62,11 @@ function PortionPill({
       title={title}
       className={cn(
         'inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-0.5 text-body text-foreground',
-        tone === 'selected' ? 'border-primary/25 bg-primary/[0.06]' : 'border-border bg-background',
+        tone === 'selected' ? 'border-border bg-secondary' : 'border-border bg-background',
       )}
     >
       {tone === 'selected' ? (
-        <ChefHat className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+        <ChefHat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
       ) : (
         <span className="shrink-0 text-muted-foreground" aria-hidden="true">≈</span>
       )}
@@ -79,7 +79,7 @@ function PortionPill({
 
 function Fact({ icon: Icon, children, className }: { icon: LucideIcon; children: ReactNode; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 sm:whitespace-nowrap tabular-nums', className)}>
+    <span className={cn('inline-flex min-w-0 items-center gap-1 tabular-nums', className)}>
       <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
       {children}
     </span>
@@ -116,6 +116,17 @@ export default function IngredientList({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const sortMode: SortMode = searchParams.get('ingredient_sort') === 'category' ? 'category' : 'amount';
+  const compact = searchParams.get('ingredient_view') === 'compact';
+
+  const setCompact = (value: boolean) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) {
+      next.set('ingredient_view', 'compact');
+    } else {
+      next.delete('ingredient_view');
+    }
+    setSearchParams(next, { replace: true });
+  };
 
   const setSortMode = (mode: SortMode) => {
     const next = new URLSearchParams(searchParams);
@@ -194,7 +205,9 @@ export default function IngredientList({
   // Totals over the default ingredients — exchange alternatives are not added up.
   const totalWeightG = sortedItems.reduce((sum, item) => sum + item.weight_g * portionsMultiplier, 0);
   const totalPriceEur = sortedItems.reduce((sum, item) => sum + (itemPrice(item) ?? 0), 0);
-  const maxPriceEur = Math.max(0, ...sortedItems.map((item) => itemPrice(item) ?? 0));
+  const sortedPrices = sortedItems.map((item) => itemPrice(item) ?? 0).sort((a, b) => b - a);
+  const maxPriceEur = sortedPrices[0] ?? 0;
+  const secondPriceEur = sortedPrices[1] ?? 0;
   const unpricedCount = sortedItems.filter((item) => itemPrice(item) == null).length;
 
   const toggleExpanded = (itemId: number) => {
@@ -255,7 +268,10 @@ export default function IngredientList({
     const showShares = sortedItems.length > 1;
     const priceShare = showShares && priceEur != null && totalPriceEur > 0 ? formatShare(priceEur, totalPriceEur) : null;
     const weightShare = showShares && totalWeightG > 0 ? formatShare(weightG, totalWeightG) : null;
-    const isCostDriver = showShares && priceEur != null && priceEur === maxPriceEur && priceEur > 0;
+    // Cost driver only when one ingredient is clearly the most expensive: at least twice the runner-up
+    // and more than half of the total cost.
+    const isCostDriver = showShares && priceEur != null && priceEur > 0 && priceEur === maxPriceEur
+      && priceEur >= 2 * secondPriceEur && priceEur / totalPriceEur > 0.5;
 
     const itemConversions = item.ingredient_id && availableConversions
       ? availableConversions.find((ac) => ac.ingredient_id === item.ingredient_id)?.conversions ?? []
@@ -274,8 +290,9 @@ export default function IngredientList({
     const showSection = Boolean(item.ingredient_retail_section_name) && sortMode === 'amount';
 
     const pricePerKg = item.ingredient_price_per_kg;
-    const hasFactsRow = showSection || item.is_optional || showWeightWarning || item.has_missing_weight
-      || pricePerKg != null || weightShare != null || priceShare != null || furtherPortions.length > 0;
+    const hasBadges = item.is_optional || item.has_missing_weight || showWeightWarning || isCostDriver;
+    const hasFactsRow = showSection || weightShare != null || pricePerKg != null || priceShare != null
+      || furtherPortions.length > 0;
 
     return (
       // Row layout: 1) amount · name · score/price, 2) portions, 3) facts and badges.
@@ -325,49 +342,58 @@ export default function IngredientList({
           </span>
         </div>
 
-        {/* Row 2: selected (recipe) portion and primary portion */}
-        {(selectedDisplay || primaryDisplay) && (
-          <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-1.5">
-            {selectedDisplay && (
-              <PortionPill title="Im Rezept" amount={selectedDisplay} perUnit={selectedPerUnit} tone="selected" />
-            )}
-            {primaryDisplay && (
-              <PortionPill title="Entspricht ungefähr" amount={primaryDisplay} perUnit={primaryPerUnit} tone="approx" />
+        {/* Row 2: portions on the left, status badges in a fixed slot on the right */}
+        {(selectedDisplay || primaryDisplay || hasBadges) && (
+          <div className="col-span-2 col-start-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              {selectedDisplay && (
+                <PortionPill title="Im Rezept" amount={selectedDisplay} perUnit={selectedPerUnit} tone="selected" />
+              )}
+              {primaryDisplay && (
+                <PortionPill title="Entspricht ungefähr" amount={primaryDisplay} perUnit={primaryPerUnit} tone="approx" />
+              )}
+            </div>
+            {hasBadges && (
+              <div className="flex flex-wrap items-center justify-end gap-1.5 text-caption">
+                {item.is_optional && (
+                  <span className="rounded-full border border-dashed border-border px-2 font-medium leading-5 text-muted-foreground">
+                    optional
+                  </span>
+                )}
+                {item.has_missing_weight && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-danger-border bg-danger-soft px-2 font-medium leading-5 text-danger">
+                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />Gewicht unbekannt
+                  </span>
+                )}
+                {showWeightWarning && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-warning-border bg-warning-soft px-2 font-medium leading-5 text-warning">
+                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />Dominiert das Rezept
+                  </span>
+                )}
+                {isCostDriver && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-warning-border bg-warning-soft px-2 font-medium leading-5 text-warning">
+                    <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />Kostentreiber
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}
 
-        {/* Row 3: badges and facts, each with a quiet icon */}
-        {hasFactsRow && (
-          <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
-            {item.is_optional && (
-              <span className="rounded-lg border border-dashed border-foreground/25 px-1.5 font-medium leading-5 text-foreground/70">
-                optional
-              </span>
-            )}
-            {item.has_missing_weight && (
-              <Fact icon={AlertTriangle} className="font-medium text-destructive">Gewicht unbekannt</Fact>
-            )}
-            {showWeightWarning && (
-              <Fact icon={AlertTriangle} className="font-medium text-foreground">Dominiert das Rezept</Fact>
-            )}
-            {showSection && <Fact icon={Tag}>{item.ingredient_retail_section_name}</Fact>}
-            {weightShare && <Fact icon={Scale}>{weightShare} der Menge</Fact>}
-            {pricePerKg != null && <Fact icon={Coins}>{formatPrice(pricePerKg)}/kg</Fact>}
-            {priceShare && (
-              isCostDriver ? (
-                <Fact icon={TrendingUp} className="rounded-lg bg-accent/15 px-1.5 font-medium leading-5 text-foreground">
-                  Kostentreiber · {priceShare} der Kosten
-                </Fact>
-              ) : (
-                <Fact icon={TrendingUp}>{priceShare} der Kosten</Fact>
-              )
-            )}
+        {/* Row 3: facts in fixed slots — category, share of amount, price per kg, share of cost */}
+        {hasFactsRow && !compact && (
+          <div className="col-span-2 col-start-2 grid grid-cols-2 gap-x-3 gap-y-1 text-caption text-muted-foreground sm:grid-cols-[minmax(0,1fr)_6.5rem_7rem_6.5rem]">
+            <span className="col-span-2 min-w-0 sm:col-span-1">
+              {showSection && <Fact icon={Tag}><span className="truncate">{item.ingredient_retail_section_name}</span></Fact>}
+            </span>
+            <span>{weightShare && <Fact icon={Scale}>{weightShare} Menge</Fact>}</span>
+            <span>{pricePerKg != null && <Fact icon={Coins}>{formatPrice(pricePerKg)}/kg</Fact>}</span>
+            <span>{priceShare && <Fact icon={TrendingUp}>{priceShare} Kosten</Fact>}</span>
             {furtherPortions.length > 0 && (
               <button
                 type="button"
                 onClick={() => toggleExpanded(item.id)}
-                className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+                className="col-span-2 inline-flex items-center gap-0.5 justify-self-start font-medium text-foreground underline-offset-2 hover:underline sm:col-span-4"
                 aria-expanded={isExpanded}
               >
                 <ChevronDown
@@ -407,6 +433,15 @@ export default function IngredientList({
             />
           </div>
         )}
+        <label className="inline-flex cursor-pointer items-center gap-1.5 text-caption text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={compact}
+            onChange={(e) => setCompact(e.target.checked)}
+            className="h-4 w-4"
+          />
+          Kompakt
+        </label>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-caption text-muted-foreground">Sortieren nach</span>
           <div role="radiogroup" aria-label="Zutaten sortieren" className="inline-flex rounded-lg border bg-muted p-0.5">
