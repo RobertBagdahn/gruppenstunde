@@ -21,6 +21,12 @@ const plans = [
     start_datetime: '2099-10-09T18:00:00Z',
     end_datetime: '2099-10-11T14:00:00Z',
     event_name: null,
+    nutritional_tag_names: [],
+    has_group_members: false,
+    group_members_count: 0,
+    collaborators_count: 0,
+    budget_per_person_per_day: null,
+    owner_name: null,
     can_edit: true,
     can_delete: true,
   },
@@ -35,6 +41,12 @@ const plans = [
     start_datetime: '2099-11-09T18:00:00Z',
     end_datetime: '2099-11-11T14:00:00Z',
     event_name: null,
+    nutritional_tag_names: [],
+    has_group_members: false,
+    group_members_count: 0,
+    collaborators_count: 0,
+    budget_per_person_per_day: null,
+    owner_name: null,
     can_edit: true,
     can_delete: true,
   },
@@ -58,7 +70,7 @@ function renderPage() {
   );
 }
 
-describe('MealEventListPage plan cards', () => {
+describe('MealEventListPage plan rows', () => {
   beforeEach(() => {
     duplicate.mockReset();
     remove.mockReset();
@@ -73,6 +85,14 @@ describe('MealEventListPage plan cards', () => {
     expect(heading.className).not.toContain('truncate');
     expect(heading.getAttribute('title')).toBe(plans[0].name);
     expect(within(heading).queryByText('Mein Plan')).toBeNull();
+  });
+
+  it('shows plan details in the row', async () => {
+    window.history.pushState({}, '', '/');
+    renderPage();
+
+    expect(screen.getByText('40 Portionen')).toBeTruthy();
+    expect(screen.getAllByText('7 Mahlzeiten')).toHaveLength(2);
   });
 
   it('names the plan in the delete dialog', async () => {

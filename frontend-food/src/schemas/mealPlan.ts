@@ -973,10 +973,39 @@ export const MEALPLAN_ORIGIN_OPTIONS = [
 ] as const;
 
 export const MEALPLAN_SORT_OPTIONS = [
+  { value: 'date_upcoming', label: 'Nächste Termine zuerst' },
   { value: 'date_newest', label: 'Neuestes Datum' },
   { value: 'date_oldest', label: 'Ältestes Datum' },
   { value: 'name_asc', label: 'Name A-Z' },
   { value: 'name_desc', label: 'Name Z-A' },
+] as const;
+
+export const MEALPLAN_WHEN_OPTIONS = [
+  { value: 'all', label: 'Alle' },
+  { value: 'upcoming', label: 'Bevorstehend' },
+  { value: 'running', label: 'Laufend' },
+  { value: 'past', label: 'Vergangen' },
+] as const;
+
+export const MEALPLAN_SIZE_OPTIONS = [
+  { value: 'all', label: 'Alle Größen' },
+  { value: 'small', label: 'Klein (bis 15 Portionen)' },
+  { value: 'medium', label: 'Mittel (16–40)' },
+  { value: 'large', label: 'Groß (über 40)' },
+] as const;
+
+export const MEALPLAN_DURATION_OPTIONS = [
+  { value: 'all', label: 'Jede Dauer' },
+  { value: 'day', label: 'Ein Tag' },
+  { value: 'weekend', label: 'Wochenende (2–3 Tage)' },
+  { value: 'week', label: 'Länger (ab 4 Tagen)' },
+] as const;
+
+export const MEALPLAN_VISIBILITY_OPTIONS = [
+  { value: 'all', label: 'Alle' },
+  { value: 'private', label: 'Privat' },
+  { value: 'group', label: 'Gruppe' },
+  { value: 'public', label: 'Öffentlich' },
 ] as const;
 
 // ==========================================================================

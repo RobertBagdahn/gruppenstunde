@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { RecipeFilterSchema, RECIPE_SORT_OPTIONS } from '@/schemas/recipe';
-import { MEALPLAN_ORIGIN_OPTIONS, MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
+import {
+  MEALPLAN_ORIGIN_OPTIONS,
+  MEALPLAN_SORT_OPTIONS,
+  MEALPLAN_WHEN_OPTIONS,
+  MEALPLAN_SIZE_OPTIONS,
+  MEALPLAN_DURATION_OPTIONS,
+  MEALPLAN_VISIBILITY_OPTIONS,
+} from '@/schemas/mealPlan';
 import { IngredientStatusSchema } from '@/schemas/supply';
 import { RECIPE_COST_RANGE_VALUES } from '@/lib/recipeCostRanges';
 
@@ -61,6 +68,13 @@ export const MealPlanListStateSchema = lenient({
   q: z.string(),
   origin: z.enum(values(MEALPLAN_ORIGIN_OPTIONS)),
   sort: z.enum(values(MEALPLAN_SORT_OPTIONS)),
+  when: z.enum(values(MEALPLAN_WHEN_OPTIONS)),
+  size: z.enum(values(MEALPLAN_SIZE_OPTIONS)),
+  duration: z.enum(values(MEALPLAN_DURATION_OPTIONS)),
+  visibility: z.enum(values(MEALPLAN_VISIBILITY_OPTIONS)),
+  with_members: z.enum(['1']),
+  with_event: z.enum(['1']),
+  tags: z.array(z.string()),
 });
 
 export const SHOPPING_SORT_VALUES = ['newest', 'oldest', 'name_asc'] as const;

@@ -10,8 +10,10 @@ import {
   Trash2,
   Calculator,
   ArrowUpDown,
-  ChevronDown,
-  ChevronRight,
+  Wallet,
+  UserRound,
+  Lock,
+  Globe,
 } from 'lucide-react';
 import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
@@ -24,6 +26,16 @@ import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import { MealPlanListStateSchema } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
+import { CardTable, DataCardRow } from '@/components/shared/CardTable';
+import {
+  matchesMealPlanFilters,
+  sortMealPlansByDate,
+  planTiming,
+  planDurationDays,
+  monthKey,
+  monthLabel,
+  type PlanTiming,
+} from '@/lib/mealPlanListFilters';
 import EmptyState from '@/components/shared/EmptyState';
 import MealPlanFilterSidebar from '@/components/planning/MealPlanFilterSidebar';
 import {
@@ -41,7 +53,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { MealPlan } from '@/schemas/mealPlan';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, formatEuro } from '@/lib/format';
 import { sourceBadgeHelp } from '@/lib/sourceBadgeHelp';
 import { Icon } from '@/components/ui/icon';
 
@@ -92,7 +104,38 @@ export default function MealPlanListPage() {
   return <MealPlanListPageInner />;
 }
 
-const MEAL_PLAN_LIST_DEFAULTS = { origin: 'all', sort: 'date_newest' } as const;
+const MEAL_PLAN_LIST_DEFAULTS = {
+  origin: 'all',
+  sort: 'date_upcoming',
+  when: 'all',
+  size: 'all',
+  duration: 'all',
+  visibility: 'all',
+} as const;
+
+const TIMING_LABEL: Record<PlanTiming, string | null> = {
+  upcoming: null,
+  running: 'Läuft gerade',
+  past: 'Vorbei',
+  undated: 'Ohne Datum',
+};
+
+const VISIBILITY_LABEL: Record<string, { label: string; icon: typeof Lock } | undefined> = {
+  private: { label: 'Privat', icon: Lock },
+  group: { label: 'Gruppe', icon: Users },
+  public: { label: 'Öffentlich', icon: Globe },
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function relativeStart(plan: MealPlan, now: number): string | null {
+  if (!plan.start_datetime || planTiming(plan, now) !== 'upcoming') return null;
+  const days = Math.ceil((new Date(plan.start_datetime).getTime() - now) / DAY_MS);
+  if (days <= 1) return 'Morgen oder früher';
+  if (days < 14) return `in ${days} Tagen`;
+  if (days < 70) return `in ${Math.round(days / 7)} Wochen`;
+  return `in ${Math.round(days / 30)} Monaten`;
+};
 
 function MealPlanListPageInner() {
   const navigate = useNavigate();
@@ -101,14 +144,18 @@ function MealPlanListPageInner() {
     schema: MealPlanListStateSchema,
     defaults: MEAL_PLAN_LIST_DEFAULTS,
   });
-  const { origin, sort, q: searchQuery } = state;
+  const { origin, sort, when, size, duration, visibility, q: searchQuery } = state;
+  const withMembers = state.with_members === '1';
+  const withEvent = state.with_event === '1';
+  const selectedTags = useMemo(() => state.tags ?? [], [state.tags]);
   const search = useDebouncedSearchInput(searchQuery ?? '', (value) => {
     patch({ q: value.trim() || undefined }, { replace: true });
   });
 
   const filters = useMemo(() => ({
     origin: origin === 'all' ? undefined : origin,
-    sort,
+    // Date order is applied on the client so that upcoming plans come first.
+    sort: sort.startsWith('date_') ? undefined : sort,
     search: searchQuery || undefined,
   }), [origin, sort, searchQuery]);
 
@@ -128,25 +175,35 @@ function MealPlanListPageInner() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const deletePlan = mealPlans?.find((plan) => plan.id === deleteId) ?? null;
   const [nutritionalTagIds, setNutritionalTagIds] = useState<number[]>([]);
-  const [pastOpen, setPastOpen] = useState(false);
 
-  const now = useMemo(() => new Date().toISOString(), []);
+  const now = useMemo(() => Date.now(), []);
 
-  const { futurePlans, pastPlans } = useMemo(() => {
-    if (!mealPlans) return { futurePlans: [], pastPlans: [] };
-    const future: MealPlan[] = [];
-    const past: MealPlan[] = [];
-    for (const plan of mealPlans) {
-      if (!plan.end_datetime || plan.end_datetime >= now) {
-        future.push(plan);
-      } else {
-        past.push(plan);
-      }
+  const availableTags = useMemo(() => {
+    const names = new Set<string>(selectedTags);
+    for (const plan of mealPlans ?? []) plan.nutritional_tag_names.forEach((name) => names.add(name));
+    return [...names].sort((a, b) => a.localeCompare(b, 'de'));
+  }, [mealPlans, selectedTags]);
+
+  const visiblePlans = useMemo(() => {
+    if (!mealPlans) return [];
+    const filters = { when, size, duration, visibility, withMembers, withEvent, tags: selectedTags };
+    const matching = mealPlans.filter((plan) => matchesMealPlanFilters(plan, filters, now));
+    return sort.startsWith('date_') ? sortMealPlansByDate(matching, sort, now) : matching;
+  }, [mealPlans, when, size, duration, visibility, withMembers, withEvent, selectedTags, sort, now]);
+
+  const monthGroups = useMemo(() => {
+    if (!sort.startsWith('date_')) return [{ key: '', plans: visiblePlans }];
+    const groups: { key: string; plans: MealPlan[] }[] = [];
+    for (const plan of visiblePlans) {
+      const key = monthKey(plan);
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.plans.push(plan);
+      else groups.push({ key, plans: [plan] });
     }
-    return { futurePlans: future, pastPlans: past };
-  }, [mealPlans, now]);
+    return groups;
+  }, [visiblePlans, sort]);
 
-  const totalCount = mealPlans?.length;
+  const totalCount = visiblePlans.length;
 
   const copySource = useMemo(
     () => (copyEnabled && copySourceId ? mealPlans?.find((p) => p.id === copySourceId) ?? null : null),
@@ -246,38 +303,69 @@ function MealPlanListPageInner() {
     });
   };
 
+  const formatDateTime = (value: string) =>
+    new Date(value).toLocaleString('de-DE', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).replace(',', '');
+
+  const formatDay = (value: string) =>
+    new Date(value).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+
   const formatDateRange = (plan: MealPlan) => {
-    if (!plan.start_datetime && !plan.end_datetime) return null;
-    const start = plan.start_datetime ? new Date(plan.start_datetime) : null;
-    const end = plan.end_datetime ? new Date(plan.end_datetime) : null;
-    const fmt = (d: Date) =>
-      d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const { start_datetime: start, end_datetime: end } = plan;
+    if (!start && !end) return null;
     if (start && end) {
-      if (start.toDateString() === end.toDateString()) return fmt(start);
-      return `${fmt(start)} – ${fmt(end)}`;
+      if (new Date(start).toDateString() === new Date(end).toDateString()) return formatDateTime(start);
+      return `${formatDay(start)} – ${formatDay(end)}`;
     }
-    if (start) return `ab ${fmt(start)}`;
-    if (end) return `bis ${fmt(end)}`;
-    return null;
+    if (start) return `ab ${formatDay(start)}`;
+    return `bis ${formatDay(end as string)}`;
   };
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
-
-  const PlanCard = ({ plan }: { plan: MealPlan }) => {
+  const PlanRow = ({ plan }: { plan: MealPlan }) => {
     const badge = getPlanBadge(plan);
     const badgeConfig = badge ? BADGE_CONFIG[badge] : null;
     const dateRange = formatDateRange(plan);
+    const timing = planTiming(plan, now);
+    const timingLabel = TIMING_LABEL[timing] ?? relativeStart(plan, now);
+    const days = planDurationDays(plan);
+    const visibilityInfo = VISIBILITY_LABEL[plan.visibility];
+    const startDate = plan.start_datetime ?? plan.end_datetime;
+    const dateBlock = startDate ? new Date(startDate) : null;
+    const tagNames = plan.nutritional_tag_names;
+    const budgetPerDay = plan.budget_per_person_per_day;
 
     return (
-      <div
-        key={plan.id}
+      <DataCardRow
+        clickable
         onClick={() => navigate(`/meal-plans/${plan.id}`)}
-        className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all cursor-pointer border-l-4 border-l-primary"
+        className={`group border-l-4 ${timing === 'past' ? 'border-l-border opacity-80' : 'border-l-primary'}`}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            {/* The name wins over the badge: up to two lines, the badge sits on its own row. */}
+        <div
+          className="hidden md:flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 py-1.5 text-primary"
+          aria-hidden="true"
+        >
+          {dateBlock ? (
+            <>
+              <span className="font-display font-bold text-section leading-none">{dateBlock.getDate()}</span>
+              <span className="text-caption font-semibold uppercase">
+                {dateBlock.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}
+              </span>
+            </>
+          ) : (
+            <Calendar className="w-5 h-5" />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h3
               title={plan.name}
               className="font-display font-bold text-emphasis text-foreground line-clamp-2 break-words group-hover:text-primary transition-colors"
@@ -285,35 +373,84 @@ function MealPlanListPageInner() {
               {plan.name}
             </h3>
             {badgeConfig && (
-              <div className="mt-1 mb-1">
-                <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
-                  <Icon name={badgeConfig.icon} size={16} />
-                  {badgeConfig.label}
-                </span>
-              </div>
-            )}
-            {dateRange && (
-              <p className="text-caption text-muted-foreground font-medium mb-2">
-                {dateRange}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-3 text-caption font-semibold text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}
+              <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+                <Icon name={badgeConfig.icon} size={16} />
+                {badgeConfig.label}
               </span>
-              <span className="inline-flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
+            )}
+            {timingLabel && (
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-bold ${timing === 'running' ? 'bg-success-soft border border-success-border text-success' : 'bg-muted text-muted-foreground'}`}>
+                {timingLabel}
               </span>
-              {plan.event_name && (
-                <span className="inline-flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-                  {plan.event_name}
-                </span>
-              )}
-            </div>
+            )}
           </div>
+
+          {dateRange && (
+            <p className="text-body text-muted-foreground font-medium">
+              {dateRange}
+              {days !== null && days > 1 && <span className="text-caption"> · {days} Tage</span>}
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption font-semibold text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Users className="w-4 h-4" />
+              {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
+            </span>
+            {plan.has_group_members && (
+              <span className="inline-flex items-center gap-1">
+                <UserRound className="w-4 h-4" />
+                {plan.group_members_count} in der Teilnehmerliste
+              </span>
+            )}
+            {budgetPerDay !== null && (
+              <span className="inline-flex items-center gap-1">
+                <Wallet className="w-4 h-4" />
+                {formatEuro(budgetPerDay)} p. P./Tag
+              </span>
+            )}
+            {plan.event_name && (
+              <span className="inline-flex items-center gap-1">
+                <Sparkles className="w-4 h-4" />
+                {plan.event_name}
+              </span>
+            )}
+            {visibilityInfo && (
+              <span className="inline-flex items-center gap-1">
+                <visibilityInfo.icon className="w-4 h-4" />
+                {visibilityInfo.label}
+              </span>
+            )}
+            {plan.owner_name && !plan.is_owner && (
+              <span className="inline-flex items-center gap-1">
+                <UserRound className="w-4 h-4" />
+                von {plan.owner_name}
+              </span>
+            )}
+            {plan.collaborators_count > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                {plan.collaborators_count} {plan.collaborators_count === 1 ? 'Mitarbeiter' : 'Mitarbeitende'}
+              </span>
+            )}
+          </div>
+
+          {tagNames.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tagNames.map((tag) => (
+                <span key={tag} className="rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="self-start md:self-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -360,30 +497,7 @@ function MealPlanListPageInner() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
-    );
-  };
-
-  const PlanSection = ({ title, plans, open, onToggle }: { title: string; plans: MealPlan[]; open: boolean; onToggle: () => void }) => {
-    if (plans.length === 0) return null;
-    return (
-      <div className="mb-6">
-        <button
-          onClick={onToggle}
-          className="flex items-center gap-2 mb-3 text-body font-bold text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          {title}
-          <span className="text-caption font-semibold text-muted-foreground">({plans.length})</span>
-        </button>
-        {open && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {plans.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} />
-            ))}
-          </div>
-        )}
-      </div>
+      </DataCardRow>
     );
   };
 
@@ -425,9 +539,22 @@ function MealPlanListPageInner() {
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         {/* Filter Sidebar */}
         <MealPlanFilterSidebar
-          origin={origin}
-          onOriginChange={(o) => patch({ origin: MealPlanListStateSchema.shape.origin.parse(o) })}
-          onReset={() => patch({ origin: undefined })}
+          values={{ origin, when, size, duration, visibility, withMembers, withEvent, tags: selectedTags }}
+          availableTags={availableTags}
+          activeCount={activeCount}
+          onChange={(partial) =>
+            patch({
+              ...(partial.origin !== undefined && { origin: MealPlanListStateSchema.shape.origin.parse(partial.origin) }),
+              ...(partial.when !== undefined && { when: MealPlanListStateSchema.shape.when.parse(partial.when) }),
+              ...(partial.size !== undefined && { size: MealPlanListStateSchema.shape.size.parse(partial.size) }),
+              ...(partial.duration !== undefined && { duration: MealPlanListStateSchema.shape.duration.parse(partial.duration) }),
+              ...(partial.visibility !== undefined && { visibility: MealPlanListStateSchema.shape.visibility.parse(partial.visibility) }),
+              ...(partial.withMembers !== undefined && { with_members: partial.withMembers ? ('1' as const) : undefined }),
+              ...(partial.withEvent !== undefined && { with_event: partial.withEvent ? ('1' as const) : undefined }),
+              ...(partial.tags !== undefined && { tags: partial.tags }),
+            })
+          }
+          onReset={reset}
         />
 
         {/* Results */}
@@ -455,12 +582,12 @@ function MealPlanListPageInner() {
           </div>
 
           {isLoading || !restored ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CardTable>
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-primary/10 via-muted/50 to-primary/5 animate-pulse" />
               ))}
-            </div>
-          ) : futurePlans.length === 0 && pastPlans.length === 0 ? (
+            </CardTable>
+          ) : visiblePlans.length === 0 ? (
             <EmptyState
               icon="restaurant_menu"
               title="Keine Essenspläne gefunden"
@@ -473,12 +600,23 @@ function MealPlanListPageInner() {
               onCtaClick={activeCount > 0 ? reset : () => navigate('/meal-plans/new')}
             />
           ) : (
-            <>
-              <PlanSection title="Zukünftige Pläne" plans={futurePlans} open={true} onToggle={() => {}} />
-              {pastPlans.length > 0 && (
-                <PlanSection title="Vergangene Pläne" plans={pastPlans} open={pastOpen} onToggle={() => setPastOpen(!pastOpen)} />
-              )}
-            </>
+            <div className="space-y-6">
+              {monthGroups.map((group) => (
+                <section key={group.key || 'all'}>
+                  {group.key && (
+                    <h2 className="mb-3 flex items-center gap-2 text-body font-bold text-muted-foreground">
+                      {monthLabel(group.key)}
+                      <span className="text-caption font-semibold">({group.plans.length})</span>
+                    </h2>
+                  )}
+                  <CardTable>
+                    {group.plans.map((plan) => (
+                      <PlanRow key={plan.id} plan={plan} />
+                    ))}
+                  </CardTable>
+                </section>
+              ))}
+            </div>
           )}
         </div>
       </div>
