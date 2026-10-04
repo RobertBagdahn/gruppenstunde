@@ -1,12 +1,21 @@
 import { test, expect } from '../fixtures/food';
 import { assertRecord } from '../fixtures/api';
 
+// Mirrors `SessionSchema` (`GET /api/auth/me/`): the app only treats the visitor as logged in
+// when the session carries a complete `user`.
 const mockUser = {
-  id: 1,
-  email: 'e2e@example.test',
-  first_name: 'E2E',
-  last_name: 'Test',
-  is_staff: true,
+  is_authenticated: true,
+  user: {
+    id: 1,
+    email: 'e2e@example.test',
+    first_name: 'E2E',
+    last_name: 'Test',
+    display_name: 'E2E Test',
+    is_staff: true,
+    is_superuser: false,
+    needs_onboarding: false,
+    providers: [],
+  },
 };
 
 function recipeDetail(title: string, slug: string) {
@@ -110,7 +119,7 @@ test('unified smart recipe wizard accepts one AI result and preserves the draft 
   await expect(foodPage.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
   await foodPage.getByTestId('recipe-serving-context-confirm').click();
   await foodPage.getByTestId('recipe-wizard-next').click();
-  await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+  await expect(foodPage.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible();
   await expect.poll(() => new URL(foodPage.url()).searchParams.get('draft')).toBe('101');
 });
 

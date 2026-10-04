@@ -24,7 +24,7 @@ async function login(page: Page) {
   await page.goto(`${FOOD_URL}/`);
 }
 
-async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
+async function openManualRecipeIngredientsStep(page: Page, title = 'E2E Rezept'): Promise<void> {
   // Mirrors `IngredientReviewPreviewSchema`. Empty `rows` skips the
   // "Zutaten prüfen" step, so the wizard goes straight to the ingredient editor.
   await page.route('**/api/recipes/ingredient-review/preview/', (route) => route.fulfill({
@@ -61,6 +61,8 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible({
     timeout: 15000,
   });
+  // Title and type live in this step; the mocked analysis already pre-selects "Warme Mahlzeit".
+  await page.getByTestId('recipe-basis-title').fill(title);
   await page.getByTestId('recipe-serving-context-confirm').click();
   await page.getByTestId('recipe-wizard-next').click();
   // The ingredient editor has its own step "Zutaten" since the wizard split title/type into "Basis & Portionen".
@@ -79,15 +81,7 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
  *  checks — the wizard has no per-step URL/route, so reloading it resets to
  *  step 0 even though the draft was already saved server-side. */
 async function createManualRecipe(page: Page, title: string): Promise<string> {
-  await openManualRecipeIngredientsStep(page);
-
-  const titleInput = page.locator('input[placeholder="z.B. Nudelauflauf mit Hackfleisch"]');
-  await expect(titleInput).toBeVisible({ timeout: 8000 });
-  await titleInput.fill(title);
-
-  const warmMealBtn = page.locator('button:has-text("Warme Mahlzeit")').first();
-  await warmMealBtn.click();
-  await page.waitForTimeout(300);
+  await openManualRecipeIngredientsStep(page, title);
 
   await addIngredient(page, 'Jodsalz');
 

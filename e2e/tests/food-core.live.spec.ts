@@ -116,7 +116,7 @@ test.describe('Food core CRUD', () => {
     });
 
     await foodPage.goto(`/ingredients/${created.slug}`);
-    await foodPage.getByRole('button', { name: 'Zauberstab' }).click();
+    await foodPage.getByRole('button', { name: 'Zauberstab', exact: true }).click();
     await expect(foodPage.getByRole('dialog')).toBeVisible();
     await expect(foodPage.getByText('Stück', { exact: true })).toBeVisible();
     await expect(foodPage.getByText('Neue Grammzahl: 150 g', { exact: true })).toBeVisible();

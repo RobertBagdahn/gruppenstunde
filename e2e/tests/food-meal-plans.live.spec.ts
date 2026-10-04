@@ -146,7 +146,7 @@ test.describe('MealPlan persistence and controls', () => {
     expect(planId).toBeGreaterThan(0);
     resources.track({ kind: 'meal-plan', id: planId });
     await expect(foodPage.getByRole('heading', { name })).toBeVisible();
-    await expect(foodPage.getByText('7.0 Portionen', { exact: true })).toBeVisible();
+    await expect(foodPage.getByText('7 Portionen', { exact: true })).toBeVisible();
 
     const settings = await openSettings(foodPage);
     await settings.locator('input[type="text"]').first().fill(updatedName);
@@ -163,7 +163,7 @@ test.describe('MealPlan persistence and controls', () => {
     expect(updated.norm_portions).toBe(9);
     await foodPage.reload();
     await expect(foodPage.getByRole('heading', { name: updatedName })).toBeVisible();
-    await expect(foodPage.getByText('9.0 Portionen', { exact: true })).toBeVisible();
+    await expect(foodPage.getByText('9 Portionen', { exact: true })).toBeVisible();
   });
 
   test('persists custom default meal times and applies them to a new meal', async ({ foodPage, api, resources, uniqueName }) => {
@@ -316,7 +316,7 @@ test.describe('MealPlan persistence and controls', () => {
     expect(updateBody).not.toHaveProperty('norm_portions_manual');
     await expect(settings).toBeHidden();
     await foodPage.reload();
-    await expect(foodPage.getByText('13.0 Portionen', { exact: true })).toBeVisible();
+    await expect(foodPage.getByText('13 Portionen', { exact: true })).toBeVisible();
   });
 
   test('covers MealPlan day and meal mutations plus detail tabs and PDF routes', async ({ foodPage, api, resources, uniqueName }) => {
@@ -353,7 +353,8 @@ test.describe('MealPlan persistence and controls', () => {
     expect(recordArray(withSecondDay.meals).filter((meal) => meal.is_reference !== true)).toHaveLength(8);
 
     const note = uniqueName('E2E Mahlzeitnotiz');
-    const breakfastCard = foodPage.locator('#meal-2026-09-07-breakfast');
+    // `#meal-<date>-<type>` is only a scroll anchor; the card itself is `#meal-<id>`.
+    const breakfastCard = foodPage.locator(`#meal-${breakfast?.id}`);
     await breakfastCard.getByTitle('Aktionen').click();
     await foodPage.getByRole('menuitem', { name: 'Einstellungen', exact: true }).click();
     const mealSettings = foodPage.getByRole('dialog');
@@ -381,8 +382,9 @@ test.describe('MealPlan persistence and controls', () => {
     await expect.poll(() => new URL(foodPage.url()).searchParams.get('view')).toBe('table');
     await expect(foodPage.getByRole('columnheader', { name: 'Mahlzeit' })).toBeVisible();
 
-    await foodPage.getByRole('link', { name: /Kochplan/ }).click();
-    await foodPage.waitForURL(new RegExp(`/meal-plans/${plan.id}/cooking-schedule$`));
+    // The workflow tabs are "Planen", "Einkaufen" and "Kochen"; the cooking schedule is its default sub tab.
+    await foodPage.getByRole('link', { name: /^Kochen\b/ }).first().click();
+    await foodPage.waitForURL(new RegExp(`/meal-plans/${plan.id}/cooking(\\?sub=schedule)?$`));
     await expect(foodPage.getByRole('heading', { name: 'Kochplan' })).toBeVisible();
     await expect(foodPage.getByText('Keine Rezepte im Kochplan', { exact: true })).toBeVisible();
 
@@ -393,7 +395,7 @@ test.describe('MealPlan persistence and controls', () => {
     await cookingPdfDialog.getByRole('button', { name: 'PDF öffnen', exact: true }).click();
     await expectOpenedUrl(foodPage, new RegExp(`/api/meal-plans/${plan.id}/cooking-schedule/export/pdf/`));
 
-    await foodPage.getByRole('link', { name: /Einkaufsliste/ }).click();
+    await foodPage.getByRole('link', { name: /^Einkaufen\b/ }).first().click();
     await foodPage.waitForURL(new RegExp(`/meal-plans/${plan.id}/shopping$`));
     await expect(foodPage.getByText('Noch keine Zutaten', { exact: true })).toBeVisible();
     await foodPage.reload();
@@ -419,7 +421,7 @@ test.describe('MealPlan persistence and controls', () => {
     await foodPage.goto(`/meal-plans/${plan.id}/plan`);
     await expect(foodPage.getByText('Tagesbudget / Person')).toBeVisible();
     await expect(foodPage.getByText('Kalorienschnitt / Tag')).toBeVisible();
-    await expect(foodPage.getByText('10.0 Personen')).toBeVisible();
+    await expect(foodPage.getByText('10 Personen')).toBeVisible();
 
     // The view toggle is URL state (`?view=table`) on the plan tab.
     await foodPage.getByRole('button', { name: 'Tabelle', exact: true }).click();

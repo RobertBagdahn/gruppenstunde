@@ -24,16 +24,18 @@ test.describe('Recipe wizard draft resume', () => {
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
 
-    await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect(foodPage.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible();
     await expect(foodPage).toHaveURL(/[?&]step=ingredients/);
     const draftId = Number(new URL(foodPage.url()).searchParams.get('draft'));
     expect(draftId).toBeGreaterThan(0);
     resources.track({ kind: 'recipe', id: draftId });
 
     await foodPage.reload();
-    await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect(foodPage.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible();
     await expect(foodPage.getByTestId('recipe-source-servings')).toContainText('Originalrezept für 4 Personen');
-    await expect(foodPage.getByLabel('Titel *')).toHaveValue(title);
+    // The title belongs to the "Basis & Portionen" step; the saved draft must still carry it after the reload.
+    const stored = await foodPage.request.get(`/api/recipes/${draftId}/`).then((response) => response.json());
+    expect(stored.title).toBe(title);
     await expect(foodPage.getByTestId('recipe-wizard-back')).toBeDisabled();
 
     await foodPage.getByTestId('recipe-wizard-next').click();

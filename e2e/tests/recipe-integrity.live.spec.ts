@@ -76,9 +76,9 @@ test.describe('Recipe persistence integrity', () => {
     await foodPage.getByTestId('recipe-wizard-next').click();
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
-    await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect(foodPage.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible();
     resources.track({ kind: 'recipe', id: Number(new URL(foodPage.url()).searchParams.get('draft')) });
-    await foodPage.getByRole('button', { name: 'Warme Mahlzeit' }).first().click();
+    // Title and type were set in "Basis & Portionen" (the mocked analysis pre-selects "Warme Mahlzeit").
     await foodPage.getByTestId('recipe-wizard-next').click();
     await confirmIngredientSave(foodPage);
     await expect(foodPage.getByRole('heading', { name: 'Materialien', exact: true })).toBeVisible();
@@ -123,7 +123,7 @@ test.describe('Recipe persistence integrity', () => {
     await foodPage.getByTestId('recipe-wizard-next').click();
     await expect(foodPage.getByRole('heading', { name: 'Zutaten prüfen' })).toBeVisible();
     await foodPage.getByTestId('recipe-wizard-next').click();
-    await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect(foodPage.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible();
     const draftId = Number(new URL(foodPage.url()).searchParams.get('draft'));
     resources.track({ kind: 'recipe', id: draftId });
 
@@ -132,7 +132,7 @@ test.describe('Recipe persistence integrity', () => {
     expect((stored.recipe_items as Array<Record<string, unknown>>)[0].quantity).toBe(42);
 
     await foodPage.reload();
-    await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
+    await expect(foodPage.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible();
     await expect(foodPage.getByTestId('recipe-source-servings')).toContainText('Originalrezept für 4 Personen');
     await expect(foodPage.locator('input[data-testid^="item-quantity-"]').first()).toHaveValue('168');
     await foodPage.getByTestId('recipe-wizard-next').click();

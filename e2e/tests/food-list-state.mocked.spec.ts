@@ -1,11 +1,20 @@
 import { test, expect } from '../fixtures/food';
 
+// Mirrors `SessionSchema` (`GET /api/auth/me/`): the app only treats the visitor as logged in
+// when the session carries a complete `user`.
 const mockUser = {
-  id: 1,
-  email: 'e2e@example.test',
-  first_name: 'E2E',
-  last_name: 'Test',
-  is_staff: true,
+  is_authenticated: true,
+  user: {
+    id: 1,
+    email: 'e2e@example.test',
+    first_name: 'E2E',
+    last_name: 'Test',
+    display_name: 'E2E Test',
+    is_staff: true,
+    is_superuser: false,
+    needs_onboarding: false,
+    providers: [],
+  },
 };
 
 function ingredientItem(name: string) {
@@ -70,7 +79,7 @@ test('restores Ingredient search, filter, sort, and page from the URL after relo
     });
   });
 
-  await foodPage.goto('/ingredients?name=URL%20E2E&status=draft&sort=name_asc&page=2');
+  await foodPage.goto('/ingredients?q=URL%20E2E&status=draft&sort=name_asc&page=2');
   await expect(foodPage.getByPlaceholder('Zutat suchen...')).toHaveValue('URL E2E');
   await expect(foodPage.locator('select').last()).toHaveValue('name_asc');
   await expect(foodPage.getByText('URL E2E Zutat', { exact: true })).toBeVisible();
