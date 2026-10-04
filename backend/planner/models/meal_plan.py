@@ -68,6 +68,31 @@ def default_meal_default_times() -> dict[str, list[str]]:
     }
 
 
+class MealPlanSetting(models.TextChoices):
+    CAMP = "camp", _("Zeltlager")
+    HOUSE_TRIP = "house_trip", _("Hausfahrt")
+    DAY_EVENT = "day_event", _("Tagesaktion")
+    GROUP_MEETING = "group_meeting", _("Gruppenstunde")
+    HIKE = "hike", _("Wanderung")
+    OTHER = "other", _("Sonstiges")
+
+
+class MealPlanCooling(models.TextChoices):
+    FRIDGE = "fridge", _("Kühlschrank")
+    COOLER_BOX = "cooler_box", _("Kühlbox")
+    NONE = "none", _("Keine Kühlung")
+
+
+class MealPlanSeasonHint(models.TextChoices):
+    HOT = "hot", _("Heiß")
+    MILD = "mild", _("Mild")
+    COLD = "cold", _("Kalt")
+
+
+AGE_GROUP_CHOICES: tuple[str, ...] = ("toddlers", "children", "teens", "adults")
+COOKING_SOURCE_CHOICES: tuple[str, ...] = ("stove_oven", "gas_burner", "campfire", "grill", "none")
+
+
 class MealPlanVisibility(models.TextChoices):
     PRIVATE = "private", _("Privat")
     GROUP = "group", _("Gruppe")
@@ -144,6 +169,41 @@ class MealPlan(models.Model):
         blank=True,
         related_name="meal_plans",
         verbose_name=_("Ernährungseinschränkungen"),
+    )
+    # Context for meal suggestions (all optional)
+    age_groups = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Altersgruppen"),
+        help_text=_("Liste aus: toddlers, children, teens, adults. Leer = aus Gruppenmitgliedern ableiten."),
+    )
+    setting = models.CharField(
+        max_length=20,
+        choices=MealPlanSetting.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Veranstaltungsart"),
+    )
+    cooking_sources = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Kochmöglichkeiten"),
+        help_text=_("Liste aus: stove_oven, gas_burner, campfire, grill, none"),
+    )
+    cooling = models.CharField(
+        max_length=20,
+        choices=MealPlanCooling.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Kühlmöglichkeit"),
+    )
+    season_hint = models.CharField(
+        max_length=10,
+        choices=MealPlanSeasonHint.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Jahreszeit/Wetter"),
+        help_text=_("Leer = aus dem Startdatum ableiten"),
     )
     is_template = models.BooleanField(
         default=False,
