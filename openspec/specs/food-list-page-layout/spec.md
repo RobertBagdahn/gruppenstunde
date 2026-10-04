@@ -9,14 +9,18 @@ Alle Listen-Seiten im frontend-food MUST `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
 - **THEN** ist der Inhaltsbereich auf max-w-7xl begrenzt mit konsistentem Padding
 
 ### Requirement: ListPageHero mit Count-Badge
-Jede Listenseite zeigt einen ListPageHero mit einem Header im neuen Design-Token-System (grün-basierte Leitfarbe, ruhige Fläche statt buntem Gradient-Mix) und einem Count-Badge, das die Gesamtanzahl der Items anzeigt. Der Hero MUST die Display-Schrift für den Titel verwenden und sich klar vom Seitenhintergrund abheben.
+Jede Listenseite SHALL einen hellen Seitenkopf (`PageHeader`, ersetzt den bisherigen Verlaufs-Hero) zeigen: Icon-Kachel in der Bereichsfarbe (Ton auf Tönung), Titel in der Display-Schrift in `text-title`, eine Beschreibung in `text-muted-foreground` und ein ruhiges Count-Badge mit der Gesamtanzahl. Der Kopf MUST auf dem Seitenhintergrund ohne eigene farbige Fläche oder Verlauf liegen. Während die Anzahl noch lädt, MUST das Badge als Skeleton erscheinen.
 
 #### Scenario: Listenseite mit vorhandenen Items
 - **WHEN** die Seite geladen ist und Items vorhanden sind
-- **THEN** zeigt der Hero den Titel in der Display-Schrift, eine Beschreibung, das passende Icon und ein Badge mit der Gesamtanzahl, abgehoben über Token-Farben
+- **THEN** zeigt der Kopf Icon-Kachel, Titel, Beschreibung und das Badge „211 Rezepte“ auf hellem Hintergrund
+
+#### Scenario: Anzahl lädt noch
+- **WHEN** die Liste noch lädt
+- **THEN** sind Titel und Beschreibung sichtbar und das Badge ist ein Skeleton
 
 ### Requirement: Gradient-Search-Container
-Jede Listenseite MUST eine Suchleiste in einem Container haben, der das zentrale Design-Token-System verwendet (sichtbare Border/Card-Fläche statt blasser Hellgrau-Fläche), mit Such-Input, Such-Button und "Neu erstellen"-Button.
+Jede Listenseite MUST eine Suchleiste direkt unter dem Seitenkopf haben, ohne umgebende Karte oder Box: ein abgerundetes Such-Input mit feinem Schatten, der Such-Button und der „Neu erstellen“-Button in einer Zeile, die auf schmalen Viewports umbricht.
 
 #### Scenario: Benutzer sucht nach Items
 - **WHEN** der Benutzer einen Suchbegriff eingibt und absendet
@@ -27,8 +31,8 @@ Jede Listenseite MUST eine Suchleiste in einem Container haben, der das zentrale
 - **THEN** wird er zur Erstellungsseite navigiert oder ein Erstellungs-Dialog geöffnet
 
 #### Scenario: Such-Container ist klar abgegrenzt
-- **WHEN** der Such-Container auf dem Seitenhintergrund liegt
-- **THEN** ist er durch eine sichtbare Border und/oder Schatten klar vom Hintergrund abgegrenzt (kein Hellgrau-in-Hellgrau)
+- **WHEN** die Suchleiste gerendert wird
+- **THEN** liegt das Input direkt auf dem Seitenhintergrund und ist durch Schatten und Rand als Eingabefeld erkennbar, ohne zusätzlichen Container
 
 ### Requirement: Responsive Grid-Layout
 Items SHALL in einem responsiven CSS-Grid angezeigt werden mit sektionsspezifischer Spaltenanzahl.
@@ -49,11 +53,16 @@ Jede Listenseite MUST einen Sort-Dropdown ueber dem Grid (rechtsseitig) mit mind
 - **THEN** wird die Liste neu sortiert und die URL-Parameter aktualisiert
 
 ### Requirement: Filter-Sidebar (wo sinnvoll)
-Rezepte und Zutaten MUST eine Filter-Sidebar links vom Grid haben. Essensplan und Einkaufslisten haben keine Sidebar.
+Rezepte, Zutaten und Essenspläne MUST eine Filter-Sidebar links vom Grid haben; Einkaufslisten haben keine Sidebar. Die Sidebar SHALL ohne Rahmen und ohne Kartenfläche auskommen; Filtergruppen werden durch Abstand und eine kleine Überschrift getrennt. Höchstens drei Filtergruppen sind direkt sichtbar, alle weiteren liegen unter „Weitere Filter“ (siehe `food-progressive-disclosure`). Auf Viewports unter 768 px MUST die Sidebar eingeklappt hinter einem Knopf „Filter (N)“ liegen.
 
 #### Scenario: Zutaten-Filter
 - **WHEN** der Benutzer die Zutatenseite oeffnet
-- **THEN** zeigt eine Sidebar Filter fuer Retail-Section und Status
+- **THEN** zeigt die Sidebar ohne Rahmen die Gruppen Abteilung, Status und Herkunft und darunter „Weitere Filter“
+
+#### Scenario: Mobil
+- **GIVEN** ein Viewport von 375 px Breite
+- **WHEN** der Benutzer die Rezeptliste öffnet
+- **THEN** sieht er statt der Sidebar den Knopf „Filter“ und kann die Filter darüber aufklappen
 
 ### Requirement: Pagination
 Jede Listenseite mit mehr als 20 Items MUST eine Pagination-Komponente unterhalb des Grids zeigen.
@@ -63,11 +72,11 @@ Jede Listenseite mit mehr als 20 Items MUST eine Pagination-Komponente unterhalb
 - **THEN** wird die Pagination-Komponente sichtbar mit Seitennummern
 
 ### Requirement: Listen-Karten verwenden das Card-Pattern
-Item-Karten und tabellarische Listenzeilen im frontend-food MUST das zentrale Card-Pattern des Design-Systems verwenden: sichtbare Border, sparsamer Schatten, klare Abstände und Token-Farben. Sie SHALL NOT auf blassen Hellgrau-Flächen ohne erkennbare Abgrenzung dargestellt werden.
+Item-Karten und tabellarische Listenzeilen im frontend-food MUST das zentrale Card-Pattern des Design-Systems verwenden: weiße Fläche, feiner Schatten (`shadow-card`), sehr helle oder keine Border, klare Abstände und Token-Farben. Karten MUST eine Kernauswahl an Informationen zeigen (Titel, Bild, höchstens drei Kennzahlen inklusive Nutri-Score); weitere Details gehören auf die Detailseite.
 
 #### Scenario: Item-Karte im Grid
 - **WHEN** eine Item-Karte in einem Listen-Grid gerendert wird
-- **THEN** hat sie eine sichtbare Border und/oder Schatten und hebt sich klar vom Hintergrund ab
+- **THEN** hebt sie sich durch Schatten klar vom hellen Hintergrund ab und zeigt höchstens drei Kennzahlen
 
 #### Scenario: Lesbarkeit auf Mobile
 - **WHEN** der Viewport 320px breit ist
