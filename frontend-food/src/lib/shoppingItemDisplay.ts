@@ -5,7 +5,7 @@
  * `meal-plan-integrity-and-number-formatting`) but composes it client-side
  * from the raw numeric fields via `@/lib/format`.
  */
-import { formatExactWeight, formatNumber, formatVolume, formatWeight } from '@/lib/format';
+import { formatCount, formatExactWeight, formatNumber, formatVolume, formatWeight } from '@/lib/format';
 
 interface PieceEquivalentLike {
   count: number;
@@ -77,6 +77,53 @@ export const PACKAGE_RESERVE_HELP =
 /** "+ 50 g Reserve" for a positive package surplus, otherwise empty. */
 export function formatPackageReserve(surplusG: number | null | undefined): string {
   return surplusG && surplusG > 0 ? `+ ${formatWeight(surplusG)} Reserve` : '';
+}
+
+/**
+ * The value a formatted amount actually shows, i.e. the number behind `formatShoppingAmount`
+ * after its display rounding (10 g steps from 100 g, 5 g steps from 50 g, 0,1 kg / 0,1 l above 1.000).
+ * The reserve is derived from it so that shown amount + shown reserve = package size.
+ */
+export function displayedAmountValue(quantity: number, unit: 'g' | 'ml'): number {
+  const step = (value: number, size: number) => Math.round(value / size) * size;
+  if (unit === 'ml') return quantity < 1000 ? Math.round(quantity) : step(quantity / 1000, 0.1) * 1000;
+  if (quantity < 1) return quantity;
+  if (quantity >= 1000) return Math.round(quantity / 100) * 100;
+  if (quantity >= 100) return step(quantity, 10);
+  if (quantity >= 50) return step(quantity, 5);
+  return Math.round(quantity);
+}
+
+interface ReserveItemLike {
+  quantity?: number | null;
+  quantity_g?: number | null;
+  total_quantity_g?: number | null;
+  unit: string;
+  package_options: PackageOptionLike[];
+  package_surplus_g: number | null;
+}
+
+/**
+ * "+ 925 g Reserve" / "+ 793 ml Reserve": the rest of the package in the unit of the amount and
+ * computed from the *shown* (rounded) amount. Without a package of the same unit it falls back to
+ * the gram surplus from the backend; liquids without a volume package show no reserve instead of a wrong unit.
+ */
+export function formatItemPackageReserve(item: ReserveItemLike): string {
+  const option = item.package_options[0];
+  const amount = item.quantity || item.quantity_g || item.total_quantity_g || 0;
+  if (option && amount > 0) {
+    if (item.unit === 'g' && option.weight_g > 0) {
+      const reserve = Math.round(option.count * option.weight_g - displayedAmountValue(amount, 'g'));
+      return reserve > 0 ? `+ ${formatExactWeight(reserve)} Reserve` : '';
+    }
+    if (item.unit === 'ml' && option.volume_ml != null && option.volume_ml > 0) {
+      const reserve = Math.round(option.count * option.volume_ml - displayedAmountValue(amount, 'ml'));
+      if (reserve <= 0) return '';
+      return `+ ${reserve < 1000 ? `${formatCount(reserve)} ml` : formatVolume(reserve)} Reserve`;
+    }
+  }
+  if (item.unit === 'ml') return '';
+  return formatPackageReserve(item.package_surplus_g);
 }
 
 /**

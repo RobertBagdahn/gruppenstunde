@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ApiError } from '@/lib/api';
+import {
+  fieldErrorsFromApi,
+  validateNutritionValues,
+  type NutritionFieldErrors,
+} from '@/lib/nutritionValidation';
 import { useCurrentUser } from '@/api/auth';
 import {
   useIngredient,
@@ -48,15 +54,22 @@ function Field({
   label,
   children,
   className = '',
+  error,
 }: {
   label: string;
   children: React.ReactNode;
   className?: string;
+  error?: string;
 }) {
   return (
     <div className={className}>
       <label className="text-caption text-muted-foreground mb-1 block">{label}</label>
       {children}
+      {error && (
+        <p role="alert" className="mt-1 text-caption text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -222,12 +235,36 @@ export default function IngredientEditPage() {
     return v.trim() === '' || isNaN(n) ? null : n;
   };
 
+  const [serverNutritionErrors, setServerNutritionErrors] = useState<NutritionFieldErrors>({});
+  const clientNutritionErrors = useMemo(
+    () =>
+      validateNutritionValues({
+        energy_kcal: toNum(energyKcal),
+        protein_g: toNum(proteinG),
+        fat_g: toNum(fatG),
+        fat_sat_g: toNum(fatSatG),
+        carbohydrate_g: toNum(carbohydrateG),
+        sugar_g: toNum(sugarG),
+        fibre_g: toNum(fibreG),
+        salt_g: toNum(saltG),
+        sodium_mg: toNum(sodiumMg),
+      }),
+    [energyKcal, proteinG, fatG, fatSatG, carbohydrateG, sugarG, fibreG, saltG, sodiumMg],
+  );
+  // Server messages stay until the next save attempt; client rules always apply live.
+  const nutritionFieldErrors: NutritionFieldErrors = { ...serverNutritionErrors, ...clientNutritionErrors };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error('Name ist erforderlich');
       return;
     }
+    if (Object.keys(clientNutritionErrors).length > 0) {
+      toast.error('Bitte korrigiere die markierten Nährwerte.');
+      return;
+    }
+    setServerNutritionErrors({});
 
     const payload: Record<string, unknown> = {
       name: name.trim(),
@@ -282,11 +319,21 @@ export default function IngredientEditPage() {
     }
 
     updateIngredient.mutate(payload, {
-      onSuccess: () => {
-        toast.success('Zutat gespeichert');
+      onSuccess: (saved) => {
+        const warnings = saved.nutrition_warnings ?? [];
+        if (warnings.length > 0) {
+          toast.warning('Zutat gespeichert – bitte Nährwerte prüfen', {
+            description: warnings.map((warning) => warning.label).join('; '),
+          });
+        } else {
+          toast.success('Zutat gespeichert');
+        }
         navigate(`/ingredients/${slug}`);
       },
       onError: (err) => {
+        if (err instanceof ApiError && err.code === 'nutrition_implausible') {
+          setServerNutritionErrors(fieldErrorsFromApi(err.fields, err.message));
+        }
         toast.error('Fehler beim Speichern', { description: err.message });
       },
     });
@@ -412,31 +459,31 @@ export default function IngredientEditPage() {
         {/* Nährwerte */}
         <FormSection title="Nährwerte pro 100g" icon="nutrition">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <Field label="Energie (kcal)">
+            <Field label="Energie (kcal)" error={nutritionFieldErrors.energy_kcal}>
               <input type="number" step="0.1" value={energyKcal} onChange={(e) => setEnergyKcal(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Protein (g)">
+            <Field label="Protein (g)" error={nutritionFieldErrors.protein_g}>
               <input type="number" step="0.01" value={proteinG} onChange={(e) => setProteinG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Fett (g)">
+            <Field label="Fett (g)" error={nutritionFieldErrors.fat_g}>
               <input type="number" step="0.01" value={fatG} onChange={(e) => setFatG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="ges. Fettsäuren (g)">
+            <Field label="ges. Fettsäuren (g)" error={nutritionFieldErrors.fat_sat_g}>
               <input type="number" step="0.01" value={fatSatG} onChange={(e) => setFatSatG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Kohlenhydrate (g)">
+            <Field label="Kohlenhydrate (g)" error={nutritionFieldErrors.carbohydrate_g}>
               <input type="number" step="0.01" value={carbohydrateG} onChange={(e) => setCarbohydrateG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Zucker (g)">
+            <Field label="Zucker (g)" error={nutritionFieldErrors.sugar_g}>
               <input type="number" step="0.01" value={sugarG} onChange={(e) => setSugarG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Ballaststoffe (g)">
+            <Field label="Ballaststoffe (g)" error={nutritionFieldErrors.fibre_g}>
               <input type="number" step="0.01" value={fibreG} onChange={(e) => setFibreG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Salz (g)">
+            <Field label="Salz (g)" error={nutritionFieldErrors.salt_g}>
               <input type="number" step="0.01" value={saltG} onChange={(e) => setSaltG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Natrium (mg)">
+            <Field label="Natrium (mg)" error={nutritionFieldErrors.sodium_mg}>
               <input type="number" step="0.01" value={sodiumMg} onChange={(e) => setSodiumMg(e.target.value)} className={inputClass} />
             </Field>
             <Field label="Fructose (g)">

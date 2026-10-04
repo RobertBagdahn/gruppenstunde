@@ -17,6 +17,14 @@ from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.schemas.reference import NutritionalTagOut
 
 
+def _live_recipe(item):
+    """The item's recipe, or None when it is missing or soft-deleted (ignored in calculations)."""
+    recipe = item.recipe
+    if recipe is None or recipe.deleted_at is not None:
+        return None
+    return recipe
+
+
 class MealItemOverrideOut(Schema):
     id: int
     recipe_item_id: int
@@ -111,10 +119,11 @@ class MealItemOut(Schema):
 
     @staticmethod
     def resolve_energy_kcal(obj) -> float | None:
-        if obj.recipe and obj.recipe.cached_energy_total_kcal is not None:
+        recipe = _live_recipe(obj)
+        if recipe and recipe.cached_energy_total_kcal is not None:
             from planner.services.variant_service import compute_variant_energy
 
-            servings = obj.recipe.portions or 1
+            servings = recipe.portions or 1
             effective_portions = obj.meal.effective_portions
             total = compute_variant_energy(obj)
             return cast(float, total * obj.factor * (effective_portions / servings))
@@ -128,9 +137,10 @@ class MealItemOut(Schema):
             from planner.services.meal_item_helpers import resolve_ingredient_cost_eur as ric
 
             return ric(obj, effective_portions=obj.meal.effective_portions)
-        if not obj.recipe or obj.recipe.cached_price_total is None:
+        recipe = _live_recipe(obj)
+        if not recipe or recipe.cached_price_total is None:
             return None
-        servings = obj.recipe.portions or 1
+        servings = recipe.portions or 1
         effective_portions = obj.meal.effective_portions
         from planner.services.variant_service import compute_variant_cost
 
@@ -336,10 +346,11 @@ class MealOut(Schema):
             return cast(float, NORM_PERSON_DAILY_KCAL * obj.day_part_factor * effective_portions)
         total = 0.0
         for item in obj.items.all():
-            if item.recipe and item.recipe.cached_energy_total_kcal is not None:
+            recipe = _live_recipe(item)
+            if recipe and recipe.cached_energy_total_kcal is not None:
                 from planner.services.variant_service import compute_variant_energy
 
-                servings = item.recipe.portions or 1
+                servings = recipe.portions or 1
                 total += compute_variant_energy(item) * item.factor * (effective_portions / servings)
             elif item.ingredient:
                 kcal = resolve_ingredient_energy_kcal(item, effective_portions=effective_portions)
@@ -356,10 +367,11 @@ class MealOut(Schema):
             return 0.0
         total = 0.0
         for item in obj.items.all():
-            if item.recipe and item.recipe.cached_price_total is not None:
+            recipe = _live_recipe(item)
+            if recipe and recipe.cached_price_total is not None:
                 from planner.services.variant_service import compute_variant_cost
 
-                servings = item.recipe.portions or 1
+                servings = recipe.portions or 1
                 total += compute_variant_cost(item) * item.factor * (effective_portions / servings)
             elif item.ingredient:
                 cost = resolve_ingredient_cost_eur(item, effective_portions=effective_portions)
@@ -375,10 +387,11 @@ class MealOut(Schema):
         priced = 0
         missing = 0
         for item in obj.items.all():
-            if item.recipe and item.recipe.cached_price_ingredient_count:
-                total += item.recipe.cached_price_ingredient_count
-                priced += item.recipe.cached_price_priced_count or 0
-                missing += item.recipe.cached_price_missing_count or 0
+            recipe = _live_recipe(item)
+            if recipe and recipe.cached_price_ingredient_count:
+                total += recipe.cached_price_ingredient_count
+                priced += recipe.cached_price_priced_count or 0
+                missing += recipe.cached_price_missing_count or 0
             elif item.ingredient:
                 total += 1
                 if is_missing_price(item.ingredient.price_per_kg):

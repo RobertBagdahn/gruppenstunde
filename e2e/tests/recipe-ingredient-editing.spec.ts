@@ -63,7 +63,8 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
   });
   await page.getByTestId('recipe-serving-context-confirm').click();
   await page.getByTestId('recipe-wizard-next').click();
-  await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible({
+  // The ingredient editor has its own step "Zutaten" since the wizard split title/type into "Basis & Portionen".
+  await expect(page.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible({
     timeout: 15000,
   });
   await expect(page.getByRole('combobox', { name: /Zutat/i }).first()).toBeVisible({
@@ -241,6 +242,10 @@ test.describe('Recipe ingredient autocomplete — touch scrolling', () => {
     await openManualRecipeIngredientsStep(page);
 
     const input = page.getByRole('combobox', { name: /Zutat/i }).first();
+    // The ingredient step is short since the wizard split up its steps: a low viewport keeps the
+    // field below the fold, which is the situation this test is about.
+    const width = page.viewportSize()?.width ?? 375;
+    await page.setViewportSize({ width, height: 480 });
     await page.evaluate(() => window.scrollTo(0, 0));
     const before = await input.boundingBox();
     const viewportHeight = page.viewportSize()?.height ?? 0;

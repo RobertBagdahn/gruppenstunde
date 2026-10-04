@@ -26,14 +26,15 @@ class TestMatchIngredientsIntegration:
         assert result.ingredient_id == existing.id
         assert result.is_new_ingredient is False
 
-    def test_plural_creates_new_when_no_definitive_match(self):
-        make_ingredient(name="Zwiebel frisch", usage_count=10)
+    def test_plural_matches_existing_ingredient(self):
+        existing = make_ingredient(name="Zwiebel frisch", usage_count=10)
         service = RecipeAiIngredientsService()
         suggestion = AiIngredientSuggestion(name="Zwiebeln frisch", estimated_grams=80)
         results = service.match_ingredients([suggestion])
         assert len(results) == 1
-        # Partial match triggers needs_review → new ingredient on SQLite
-        assert results[0].is_new_ingredient is True
+        # Plural-insensitive match (spec ingredient-plural-matching): reuse instead of creating a duplicate.
+        assert results[0].ingredient_id == existing.id
+        assert results[0].is_new_ingredient is False
 
     def test_matched_ingredient_id_present_when_definitive(self):
         existing = make_ingredient(name="Mehl", usage_count=20)

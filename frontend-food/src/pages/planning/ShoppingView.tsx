@@ -10,7 +10,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
 import { formatEuro, formatWeight } from '@/lib/format';
 import { HelpHint } from '@/components/ui/help-hint';
-import { PACKAGE_RESERVE_HELP, formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
+import { PACKAGE_RESERVE_HELP, formatItemPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 type TransientShoppingItem = ShoppingListItem;
 
@@ -77,9 +77,9 @@ function ShoppingItemWithSources({
                 {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
               </span>
             )}
-            {formatPackageReserve(item.package_surplus_g) && (
+            {formatItemPackageReserve(item) && (
               <span className="flex items-center justify-end gap-1 text-caption text-muted-foreground/70">
-                {formatPackageReserve(item.package_surplus_g)}
+                {formatItemPackageReserve(item)}
                 <HelpHint label="Was bedeutet Reserve?">{PACKAGE_RESERVE_HELP}</HelpHint>
               </span>
             )}

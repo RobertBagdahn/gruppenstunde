@@ -9,10 +9,11 @@
  * Ist der KI-Modus aktiv, wurde die Zutat bereits per ai-create erstellt;
  * dann wird nur noch ein PATCH für eventuelle Änderungen aus Step 1 gemacht.
  */
-import { Fragment, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Pencil, Sparkles, Eye, Link } from 'lucide-react';
 import { toast } from 'sonner';
+import { ApiError } from '@/lib/api';
 import { useCurrentUser } from '@/api/auth';
 import {
   useCreateIngredient,
@@ -211,6 +212,9 @@ export default function CreateIngredientPage() {
   const { data: genericTerms } = useGenericTerms();
 
   const [step, setStep] = useState(prefillName ? 1 : 0);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [existingIngredient, setExistingIngredient] = useState<{ slug: string; name: string } | null>(null);
   const [formData, setFormData] = useState<IngredientFormData>(
     prefillName ? { ...EMPTY_FORM, name: prefillName } : EMPTY_FORM,
   );
@@ -246,6 +250,15 @@ export default function CreateIngredientPage() {
     // Only once per login round trip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  /** Inline name validation: message at the field, focus on it. Returns false when the name is missing. */
+  function requireName(): boolean {
+    if (formData.name.trim()) return true;
+    setNameError('Bitte gib einen Namen ein.');
+    setStep(1);
+    window.setTimeout(() => nameInputRef.current?.focus(), 0);
+    return false;
+  }
 
   function updateForm(partial: Partial<IngredientFormData>) {
     setFormData((prev) => ({ ...prev, ...partial }));
@@ -330,10 +343,7 @@ export default function CreateIngredientPage() {
   // -------------------------------------------------------------------------
   async function handleSave() {
     if (honeyField) return;
-    if (!formData.name.trim()) {
-      toast.error('Bitte gib einen Namen ein');
-      return;
-    }
+    if (!requireName()) return;
     guard(saveIngredient, {
       reason: 'Melde dich an, um deine Zutat zu speichern. Deine Eingaben bleiben erhalten.',
       draftKey: INGREDIENT_DRAFT_KEY,
@@ -382,7 +392,17 @@ export default function CreateIngredientPage() {
             toast.success('Zutat erstellt');
             navigate(getRedirectUrl(ingredient.slug));
           },
-          onError: () => toast.error('Fehler beim Erstellen der Zutat'),
+          onError: (err) => {
+            if (err instanceof ApiError && err.existing) {
+              // Duplicate name: point to the existing ingredient at the name field instead of a generic toast.
+              setExistingIngredient({ slug: err.existing.slug, name: err.existing.name });
+              setNameError(err.message);
+              setStep(1);
+              window.setTimeout(() => nameInputRef.current?.focus(), 0);
+              return;
+            }
+            toast.error('Fehler beim Erstellen der Zutat', { description: err.message });
+          },
         },
       );
     }
@@ -601,10 +621,27 @@ export default function CreateIngredientPage() {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => updateForm({ name: e.target.value })}
+              ref={nameInputRef}
+              onChange={(e) => {
+                updateForm({ name: e.target.value });
+                setNameError(null);
+                setExistingIngredient(null);
+              }}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? 'ingredient-name-error' : undefined}
               placeholder="Name der Zutat"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
+            {nameError && (
+              <p id="ingredient-name-error" role="alert" className="mt-2 text-caption text-destructive">
+                {nameError}{' '}
+                {existingIngredient && (
+                  <RouterLink to={`/ingredients/${existingIngredient.slug}`} className="underline">
+                    Zur vorhandenen Zutat „{existingIngredient.name}“
+                  </RouterLink>
+                )}
+              </p>
+            )}
             {isNameTooGeneric && (
               <p className="mt-2 text-caption text-warning flex items-start gap-1">
                 <Icon name="warning" size={16} />
@@ -670,10 +707,7 @@ export default function CreateIngredientPage() {
             <button
               type="button"
               onClick={() => {
-                if (!formData.name.trim()) {
-                  toast.error('Bitte gib einen Namen ein');
-                  return;
-                }
+                if (!requireName()) return;
                 setStep(2);
               }}
               className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50"

@@ -86,6 +86,18 @@ export function getVisibleSteps(ctx: WizardCtx): WizardStepDef[] {
   return WIZARD_STEPS.filter((step) => step.isVisible(ctx));
 }
 
+/**
+ * Steps shown in the progress indicator. Before a creation method is chosen the AI path
+ * (with the ingredient review) is assumed, so the total does not jump from 6 to 7 once the
+ * recipe was analysed. Choosing "manual" lowers it to 6 right away.
+ */
+export function getProgressSteps(ctx: WizardCtx): WizardStepDef[] {
+  if (ctx.creationMethod === null) {
+    return getVisibleSteps({ creationMethod: 'smart', reviewRowCount: Math.max(ctx.reviewRowCount, 1) });
+  }
+  return getVisibleSteps(ctx);
+}
+
 export function getStepDef(id: WizardStepId): WizardStepDef {
   const step = WIZARD_STEPS.find((candidate) => candidate.id === id);
   if (!step) throw new Error(`Unbekannter Wizard-Schritt: ${id}`);

@@ -52,16 +52,18 @@ export default function MealPlanCompactCard({
       {/* Header row */}
       <div className="flex items-start gap-2 mb-1">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h3 className="font-display font-bold text-body text-foreground truncate group-hover:text-primary transition-colors">
-              {plan.name}
-            </h3>
-            {badgeConfig && (
-              <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
-                {badgeConfig.label}
-              </span>
-            )}
-          </div>
+          {/* The name wins over the badge: up to two lines, the badge sits on its own row. */}
+          <h3
+            title={plan.name}
+            className="font-display font-bold text-body text-foreground line-clamp-2 break-words group-hover:text-primary transition-colors"
+          >
+            {plan.name}
+          </h3>
+          {badgeConfig && (
+            <span title={badge ? sourceBadgeHelp(badge) : undefined} className={`mt-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-caption font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+              {badgeConfig.label}
+            </span>
+          )}
         </div>
       </div>
 

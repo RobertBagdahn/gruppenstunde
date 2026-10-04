@@ -281,8 +281,11 @@ export function IngredientAutocomplete({
 
       {/* Filter pills */}
       {isOpen && retailSections.length > 0 && (
-        <div className="flex items-center gap-1.5 mt-2">
-          <div data-testid="ingredient-category-pills" className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+        <div className="flex min-w-0 max-w-full items-center gap-1.5 mt-2">
+          <div
+            data-testid="ingredient-category-pills"
+            className="flex min-w-0 max-w-full gap-1.5 overflow-x-auto pb-0.5 scrollbar-none"
+          >
             <button
               type="button"
               onPointerDown={handleRetailSectionPointerDown}

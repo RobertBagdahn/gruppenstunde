@@ -754,6 +754,8 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
             meals_copied += 1
 
             for item in meal.items.all():
+                if item.recipe_id is not None and item.recipe.deleted_at is not None:
+                    continue
                 new_item = MealItem.objects.create(
                     meal=new_meal,
                     recipe=item.recipe,

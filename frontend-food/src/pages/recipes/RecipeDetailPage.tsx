@@ -19,6 +19,7 @@ import {
   useRecipeNutritionBreakdown,
   useUpdateRecipe,
   useDeleteRecipe,
+  useRecipeUsage,
   useForkRecipe,
   useForkAndSaveRecipe,
   useUpdateVisibility,
@@ -55,6 +56,7 @@ import RecipeMetaCard from '@/components/recipe/RecipeMetaCard';
 import RecipeSidebar from '@/components/recipe/RecipeSidebar';
 import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
 import RecipeUsageInMealPlans from '@/components/recipe/RecipeUsageInMealPlans';
+import RecipeDeleteUsageNotice from '@/components/recipe/RecipeDeleteUsageNotice';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
 import StepEditor from '@/components/recipe/StepEditor';
 import RecipeStepsReadOnly from '@/components/recipe/RecipeStepsReadOnly';
@@ -145,6 +147,8 @@ export default function RecipeDetailPage() {
 
   const [portionsMultiplier, setPortionsMultiplier] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { data: recipeUsage } = useRecipeUsage(recipeId, { enabled: showDeleteConfirm });
+  const deleteBlockedByUsage = (recipeUsage?.plan_count ?? 0) > 0;
   const [showShoppingExport, setShowShoppingExport] = useState(false);
   const [exportPortions, setExportPortions] = useState(1);
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
@@ -405,7 +409,10 @@ export default function RecipeDetailPage() {
         description="Das Rezept wird gelöscht und ist nicht mehr sichtbar."
         confirmLabel="Löschen"
         loading={deleteRecipe.isPending}
-      />
+        confirmDisabled={deleteBlockedByUsage}
+      >
+        <RecipeDeleteUsageNotice usage={recipeUsage} />
+      </ConfirmDialog>
 
       {/* Leave Confirmation when modifications present (10.6) */}
       <ConfirmDialog

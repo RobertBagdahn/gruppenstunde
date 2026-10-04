@@ -315,6 +315,14 @@ export const IngredientListItemSchema = z.object({
 });
 export type IngredientListItem = z.infer<typeof IngredientListItemSchema>;
 
+/** Soft nutrition plausibility finding returned after saving (mirrors backend `NutritionWarningOut`). */
+export const NutritionWarningSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  fields: z.array(z.string()),
+});
+export type NutritionWarning = z.infer<typeof NutritionWarningSchema>;
+
 export const IngredientDetailSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -322,6 +330,7 @@ export const IngredientDetailSchema = z.object({
   description: z.string(),
   status: IngredientStatusSchema,
   name_warning: z.string().nullable().optional(),
+  nutrition_warnings: z.array(NutritionWarningSchema).default([]),
   owner_id: z.number().nullable().optional(),
   owner_name: z.string().nullable().optional(),
   visibility: IngredientVisibilitySchema,

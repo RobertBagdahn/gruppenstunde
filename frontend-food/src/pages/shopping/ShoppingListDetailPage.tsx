@@ -11,6 +11,7 @@ import {
   useShoppingList,
   useUpdateShoppingListItem,
   useAddShoppingListItem,
+  useDeleteShoppingListItem,
   useDeleteShoppingList,
   useUpdateShoppingList,
 } from '@/api/shoppingLists';
@@ -47,6 +48,7 @@ export default function ShoppingListDetailPage() {
   const warnings = navigationState?.warnings ?? list?.warnings ?? [];
   const updateItem = useUpdateShoppingListItem(listId);
   const addItem = useAddShoppingListItem(listId);
+  const deleteItem = useDeleteShoppingListItem(listId);
   const deleteList = useDeleteShoppingList();
   const updateList = useUpdateShoppingList(listId);
 
@@ -169,6 +171,32 @@ export default function ShoppingListDetailPage() {
     );
   };
 
+  const handleDeleteItem = (item: ShoppingListItem) => {
+    deleteItem.mutate(item.id, {
+      onSuccess: () => {
+        sendEvent('item.removed', { item_id: item.id });
+        toast.success(`„${item.name}“ gelöscht`, {
+          action: {
+            label: 'Rückgängig',
+            onClick: () =>
+              addItem.mutate(
+                {
+                  name: item.name,
+                  quantity_g: item.quantity_g,
+                  unit: item.unit,
+                  note: item.note,
+                  retail_section_id: item.retail_section_id ?? null,
+                  ingredient_id: item.ingredient_id ?? null,
+                },
+                { onError: (err) => toast.error('Wiederherstellen fehlgeschlagen', { description: err.message }) },
+              ),
+          },
+        });
+      },
+      onError: (err) => toast.error('Fehler beim Löschen', { description: err.message }),
+    });
+  };
+
   const handleSaveName = () => {
     if (!editName.trim()) return;
     updateList.mutate(
@@ -200,7 +228,7 @@ export default function ShoppingListDetailPage() {
           });
         }}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Einkaufsliste löschen?"
+        title={list ? `Einkaufsliste „${list.name}“ löschen?` : 'Einkaufsliste löschen?'}
         description="Alle Einträge werden unwiderruflich gelöscht."
         confirmLabel="Löschen"
         loading={deleteList.isPending}
@@ -331,6 +359,7 @@ export default function ShoppingListDetailPage() {
                     item={item}
                     canEdit={canEdit}
                     onCheck={handleCheck}
+                    onDelete={handleDeleteItem}
                     recentChecker={recentCheckers[item.id]}
                   />
                 ))}

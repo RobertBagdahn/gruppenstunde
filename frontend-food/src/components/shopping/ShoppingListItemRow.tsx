@@ -6,15 +6,17 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
-import { Check, ChevronRight, ChevronDown } from 'lucide-react';
+import { Check, ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
 import { formatEuro, formatWeight } from '@/lib/format';
 import { HelpHint } from '@/components/ui/help-hint';
-import { PACKAGE_RESERVE_HELP, formatPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
+import { PACKAGE_RESERVE_HELP, formatItemPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
   canEdit: boolean;
   onCheck: (itemId: number, isChecked: boolean) => void;
+  /** Deletes the item. Only offered for manual entries (without recipe/plan sources). */
+  onDelete?: (item: ShoppingListItem) => void;
   /** Name of the user who just checked this item (for real-time indicator) */
   recentChecker?: string | null;
 }
@@ -23,6 +25,7 @@ export default function ShoppingListItemRow({
   item,
   canEdit,
   onCheck,
+  onDelete,
   recentChecker,
 }: ShoppingListItemRowProps) {
   const [showChecker, setShowChecker] = useState(false);
@@ -31,6 +34,8 @@ export default function ShoppingListItemRow({
 
   const hasSources = item.sources && item.sources.length > 0;
   const hasPortionOptions = item.portion_options && item.portion_options.length > 1;
+  // Entries generated from recipes or plans are rebuilt from their source; only manual ones can be removed.
+  const canDelete = canEdit && !!onDelete && !hasSources;
 
   // Show the recent checker name briefly, then fade out
   useEffect(() => {
@@ -49,7 +54,7 @@ export default function ShoppingListItemRow({
     item.piece_equivalent,
     item.package_options[0],
   );
-  const reserveLabel = formatPackageReserve(item.package_surplus_g);
+  const reserveLabel = formatItemPackageReserve(item);
 
   return (
     <div className="font-sans" data-testid={`shopping-item-${item.id}`}>
@@ -182,6 +187,18 @@ export default function ShoppingListItemRow({
             </p>
           )}
         </div>
+
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete?.(item)}
+            aria-label={`Eintrag „${item.name}“ löschen`}
+            title="Eintrag löschen"
+            className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Checked-by indicator */}
         {item.is_checked && item.checked_by_username && !showChecker && (

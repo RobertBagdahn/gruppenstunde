@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useRecipeBySlug } from '@/api/recipes';
 import StepEditor, { type StepEditorHandle } from './StepEditor';
+import StaleStepsNotice from './StaleStepsNotice';
 import { useWizardStep } from './wizardContext';
 
 interface WizardStepStepsProps {
@@ -23,6 +24,8 @@ export default function WizardStepSteps({ recipeSlug }: WizardStepStepsProps) {
           Definiere die Zubereitungsschritte deines Rezepts.
         </p>
       </div>
+
+      <StaleStepsNotice />
 
       <StepEditor
         ref={editorRef}

@@ -316,6 +316,21 @@ def propose_deterministic_repair(values: Mapping[str, float | None], *, name: st
     return changes
 
 
+# Findings that are physically impossible: saving is rejected. Everything else only warns.
+HARD_ISSUE_CODES: frozenset[str] = frozenset({"invalid_value", "macro_sum_gt_100", "sugar_gt_carbs", "sat_fat_gt_fat"})
+
+
+def check_nutrition_for_save(
+    values: Mapping[str, float | None], *, name: str = ""
+) -> tuple[list[NutritionIssue], list[NutritionIssue]]:
+    """Split plausibility findings into ``(errors, warnings)`` for create/update endpoints."""
+    errors: list[NutritionIssue] = []
+    warnings: list[NutritionIssue] = []
+    for issue in detect_nutrition_issues(values, name=name):
+        (errors if issue.code in HARD_ISSUE_CODES else warnings).append(issue)
+    return errors, warnings
+
+
 def ingredient_nutrition_values(ingredient: object) -> dict[str, float | None]:
     """Read the nutrition fields from an ingredient-like object."""
     return {field: getattr(ingredient, field, None) for field in NUTRITION_FIELDS}

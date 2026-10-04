@@ -97,7 +97,8 @@ class TestCandidateListOnAllResults:
     def test_confident_fuzzy_match_carries_candidates(self):
         make_ingredient(name="Kirschen", usage_count=30)
         result = IngredientMatcher.match("Kirsche(n)")
-        assert result.matched_via == "fuzzy"
+        # The plural bracket is resolved by the name normalisation before the fuzzy stage.
+        assert result.matched_via in {"fuzzy", "normalized"}
         assert result.ingredient_id is not None
         assert len(result.candidates) >= 1
         assert all(c.slug for c in result.candidates)

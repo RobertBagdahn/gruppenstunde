@@ -118,3 +118,45 @@ class TestPortionBase:
         ing = make_ingredient(name="Mehl")
         make_portion(ing, name="Portion", quantity=1.0, weight_g=100.0)
         assert UnitGramConverter.convert_to_grams(2, "", ing) is None
+
+
+@pytest.mark.django_db
+class TestDirectPortionMatch:
+    """The recipe unit equals one of the ingredient's own portions: no detour via grams."""
+
+    def test_two_tablespoons_olive_oil_is_two_portions(self):
+        ing = make_ingredient(name="Olivenöl", physical_density=0.92)
+        make_portion(ing, name="Esslöffel", quantity=1.0, weight_g=15.0, rank=1)
+        assert UnitGramConverter.convert_to_portion_count(2, "EL", ing) == 2
+
+    def test_one_onion_is_one_piece_portion(self):
+        ing = make_ingredient(name="Zwiebel")
+        make_portion(ing, name="mittelgroße Zwiebel", quantity=1.0, weight_g=80.0, rank=1, weight_status="confirmed")
+        assert UnitGramConverter.convert_to_portion_count(1, "Stück", ing) == 1
+        assert UnitGramConverter.convert_to_portion_count(1, "", ing) == 1
+
+    def test_pinch_of_salt(self):
+        ing = make_ingredient(name="Salz")
+        make_portion(ing, name="Prise", quantity=1.0, weight_g=0.3, rank=1)
+        assert UnitGramConverter.convert_to_portion_count(2, "Prise", ing) == 2
+
+    def test_portion_quantity_divides(self):
+        ing = make_ingredient(name="Öl")
+        make_portion(ing, name="Esslöffel", quantity=2.0, weight_g=30.0, rank=1)
+        assert UnitGramConverter.convert_to_portion_count(1, "EL", ing) == 0.5
+
+    def test_metric_units_keep_the_gram_path(self):
+        ing = make_ingredient(name="Mehl")
+        make_portion(ing, name="Esslöffel", quantity=1.0, weight_g=10.0, rank=1)
+        assert UnitGramConverter.convert_to_portion_count(50, "g", ing) == 5
+
+    def test_unrelated_portion_falls_back_to_grams(self):
+        ing = make_ingredient(name="Öl", physical_density=0.9)
+        make_portion(ing, name="Portion", quantity=1.0, weight_g=13.5, rank=1)
+        assert UnitGramConverter.convert_to_portion_count(1, "EL", ing) == 1
+
+    def test_unconfirmed_piece_weight_is_not_trusted(self):
+        ing = make_ingredient(name="Zwiebel")
+        make_portion(ing, name="mittelgroße Zwiebel", quantity=1.0, weight_g=80.0, rank=1, weight_status="ai_proposed")
+        with patch("core.services.gemini.gemini_call", return_value=(None, None)):
+            assert UnitGramConverter.convert_to_portion_count(1, "Stück", ing) is None

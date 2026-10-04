@@ -26,6 +26,7 @@ import {
   FIRST_DRAFT_STEP,
   WIZARD_STEP_IDS,
   getCreationStepId,
+  getProgressSteps,
   getVisibleSteps,
   resolveStepId,
   type CreationMethod,
@@ -376,6 +377,8 @@ export default function RecipeWizard() {
   }, [updateRecipe]);
 
   const activeIndex = Math.max(0, visibleSteps.findIndex((step) => step.id === activeStepId));
+  const progressSteps = getProgressSteps(ctx);
+  const progressActiveIndex = Math.max(0, progressSteps.findIndex((step) => step.id === activeStepId));
   const isFirst = activeIndex === 0;
   const isLast = activeIndex === visibleSteps.length - 1;
   const backLocked = draftId !== null && activeStepId === FIRST_DRAFT_STEP;
@@ -530,7 +533,7 @@ export default function RecipeWizard() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
       <div className="mb-8">
-        <StepIndicator steps={visibleSteps} activeIndex={activeIndex} />
+        <StepIndicator steps={progressSteps} activeIndex={progressActiveIndex} />
       </div>
 
       <div className="min-h-[400px]" data-testid={`recipe-wizard-step-${activeStepId}`}>

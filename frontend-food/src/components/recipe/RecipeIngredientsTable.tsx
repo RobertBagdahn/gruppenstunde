@@ -1,6 +1,6 @@
 /**
  * RecipeIngredientsTable — Displays recipe ingredients as a formatted table
- * with quantity, unit, portion, name, and ingredient status.
+ * with amount (portion count and unit, grams as secondary line), name, and ingredient status.
  *
  * Shows whether each ingredient exists in the database (✓ or ⚠️).
  */
@@ -9,24 +9,12 @@ import { type RecipeItem } from '@/schemas/recipe';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { Check, AlertCircle } from 'lucide-react';
+import { formatRecipeItemAmount } from '@/lib/ingredientAmount';
 
 interface RecipeIngredientsTableProps {
   items: RecipeItem[];
   portions?: number | null;
 }
-
-const UNIT_SHORT: Record<string, string> = {
-  'Esslöffel': 'EL',
-  'Teelöffel': 'TL',
-  'Kilogramm': 'kg',
-  'Gramm': 'g',
-  'Milliliter': 'ml',
-  'Liter': 'l',
-  'Prise': 'Pr.',
-  'Tasse': 'Tasse',
-  'Messerspitze': 'Msp.',
-  'Schuss': 'Schuss',
-};
 
 export default function RecipeIngredientsTable({ items, portions: _portions = 1 }: RecipeIngredientsTableProps) {
   if (!items || items.length === 0) {
@@ -42,34 +30,26 @@ export default function RecipeIngredientsTable({ items, portions: _portions = 1 
       <table className="w-full text-body border-collapse">
         <thead>
           <tr className="border-b">
-            <th className="text-left py-2 px-3 font-semibold text-muted-foreground w-20">Menge</th>
-            <th className="text-left py-2 px-3 font-semibold text-muted-foreground w-16">Einheit</th>
+            <th className="text-left py-2 px-3 font-semibold text-muted-foreground w-40">Menge</th>
             <th className="text-left py-2 px-3 font-semibold text-muted-foreground flex-1">Zutat</th>
             <th className="text-center py-2 px-3 font-semibold text-muted-foreground w-24">Status</th>
           </tr>
         </thead>
         <tbody>
           {items.map((item) => {
-            const quantity = item.quantity ? Number(item.quantity).toLocaleString('de-DE', {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 2
-            }) : '—';
-            const unitName = item.measuring_unit_name ?? 'Gramm';
-            const unitShort = UNIT_SHORT[unitName] ?? unitName;
+            const amount = formatRecipeItemAmount(item);
             const ingredientName = item.ingredient_name || item.note || 'Unbekannte Zutat';
             const ingredientExists = !!item.ingredient_id;
             const ingredientSlug = item.ingredient_slug;
 
             return (
               <tr key={item.id} className="border-b hover:bg-muted/50 transition-colors">
-                {/* Quantity */}
-                <td className="py-3 px-3 font-medium text-foreground text-right">
-                  {quantity}
-                </td>
-
-                {/* Unit */}
-                <td className="py-3 px-3 text-muted-foreground">
-                  {unitShort}
+                {/* Amount (portion count with its unit, grams as secondary line) */}
+                <td className="py-3 px-3 text-foreground">
+                  <span className="font-medium">{amount.primary}</span>
+                  {amount.secondary && (
+                    <span className="block text-caption text-muted-foreground">{amount.secondary}</span>
+                  )}
                 </td>
 
                 {/* Ingredient Name */}
