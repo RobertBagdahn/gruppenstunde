@@ -16,10 +16,11 @@ import {
   useAcceptPriceProposal,
   useCreatePriceProposal,
   useRejectPriceProposal,
+  useUpdateIngredient,
 } from '@/api/supplies';
 import type { IngredientPriceProposal } from '@/schemas/supply';
 import { toast } from 'sonner';
-import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import { Check, Loader2, Pencil, Sparkles, X } from 'lucide-react';
 import { formatNumber } from '@/lib/format';
 
 interface PriceProposalCardProps {
@@ -49,6 +50,9 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
   const createProposal = useCreatePriceProposal(ingredient.slug);
   const acceptProposal = useAcceptPriceProposal(ingredient.slug);
   const rejectProposal = useRejectPriceProposal(ingredient.slug);
+  const updateIngredient = useUpdateIngredient(ingredient.slug);
+  const [editing, setEditing] = useState(false);
+  const [priceInput, setPriceInput] = useState('');
 
   const pending = ingredient.pending_price_proposal;
   const hasPositivePrice = ingredient.price_per_kg != null && ingredient.price_per_kg > 0;
@@ -75,6 +79,30 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
           toast.success('Preis übernommen');
         },
         onError: (err) => toast.error('Bestätigung fehlgeschlagen', { description: err.message }),
+      },
+    );
+  };
+
+  const startEditing = () => {
+    setPriceInput(ingredient.price_per_kg != null ? String(ingredient.price_per_kg).replace('.', ',') : '');
+    setEditing(true);
+  };
+
+  const handleSavePrice = () => {
+    const normalized = priceInput.trim().replace(',', '.');
+    const value = normalized === '' ? null : Number(normalized);
+    if (value !== null && (!Number.isFinite(value) || value < 0)) {
+      toast.error('Ungültiger Preis', { description: 'Bitte eine Zahl ab 0 eingeben.' });
+      return;
+    }
+    updateIngredient.mutate(
+      { price_per_kg: value },
+      {
+        onSuccess: () => {
+          setEditing(false);
+          toast.success('Preis gespeichert');
+        },
+        onError: (err) => toast.error('Speichern fehlgeschlagen', { description: err.message }),
       },
     );
   };
@@ -112,6 +140,43 @@ export default function PriceProposalCard({ ingredient }: PriceProposalCardProps
           ? 'Kein Preis hinterlegt'
           : formatPrice(ingredient.price_per_kg)}
       </p>
+
+      {canManage && !editing && (
+        <Button size="sm" variant="outline" onClick={startEditing}>
+          <Pencil className="h-4 w-4 mr-1.5" />
+          Preis eingeben
+        </Button>
+      )}
+
+      {canManage && editing && (
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSavePrice();
+          }}
+        >
+          <Label htmlFor="manual-price" className="sr-only">Preis pro kg in Euro</Label>
+          <input
+            id="manual-price"
+            type="text"
+            inputMode="decimal"
+            autoFocus
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+            placeholder="z. B. 2,49"
+            className="w-28 rounded-lg border border-input bg-background px-3 py-1.5 text-body focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          <span className="text-body text-muted-foreground">€/kg</span>
+          <Button size="sm" type="submit" disabled={updateIngredient.isPending}>
+            {updateIngredient.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Check className="h-4 w-4 mr-1.5" />}
+            Speichern
+          </Button>
+          <Button size="sm" type="button" variant="outline" onClick={() => setEditing(false)} disabled={updateIngredient.isPending}>
+            Abbrechen
+          </Button>
+        </form>
+      )}
 
       {pending && (
         <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
