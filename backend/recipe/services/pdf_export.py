@@ -105,6 +105,24 @@ def _format_step_ingredient(si: dict) -> str:
     return label
 
 
+def _load_image_data_uri(image) -> str | None:
+    """Read the image through the storage API (works for local and cloud storage) as a data URI."""
+    if not image:
+        return None
+    import base64
+    import logging
+    import mimetypes
+
+    try:
+        with image.open("rb") as fh:
+            data = fh.read()
+    except Exception:
+        logging.getLogger(__name__).warning("Could not load recipe image for PDF export", exc_info=True)
+        return None
+    mime = mimetypes.guess_type(image.name)[0] or "image/jpeg"
+    return f"data:{mime};base64,{base64.b64encode(data).decode()}"
+
+
 @dataclass
 class RecipePdfExport:
     """Request-scoped view model for the recipe PDF template.
@@ -149,8 +167,7 @@ class RecipePdfExport:
         return self.servings / recipe_servings
 
     def _build_image(self) -> None:
-        if self.recipe.image:
-            self.image_path = self.recipe.image.path if hasattr(self.recipe.image, "path") else None
+        self.image_path = _load_image_data_uri(self.recipe.image)
 
     def _build_description(self) -> None:
         self.description_plain = _extract_plain_text(self.recipe.description or "")

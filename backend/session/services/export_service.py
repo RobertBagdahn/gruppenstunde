@@ -57,8 +57,9 @@ def generate_instagram_slides(session) -> list[str]:
     # If session has an image, use it as background with overlay
     if session.image:
         try:
-            bg_img: Image.Image = Image.open(session.image.path)
-            bg_img = bg_img.resize(SIZE, Image.Resampling.LANCZOS)
+            with session.image.open("rb") as fh:
+                bg_img: Image.Image = Image.open(fh)
+                bg_img = bg_img.convert("RGB").resize(SIZE, Image.Resampling.LANCZOS)
             # Dark overlay
             overlay = Image.new("RGBA", SIZE, (0, 0, 0, 150))
             img1 = bg_img.convert("RGB")
