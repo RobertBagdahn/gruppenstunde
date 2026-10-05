@@ -27,18 +27,22 @@ interface Props {
 export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPending }: Props) {
   const [selectedStufe, setSelectedStufe] = useState<string | null>(null);
   const [count, setCount] = useState(3);
+  const [countInput, setCountInput] = useState('3');
+  const countInputValue = /^\d+$/.test(countInput.trim()) ? Number(countInput.trim()) : null;
+  const isCountValid = countInputValue !== null && countInputValue >= 1 && countInputValue <= 50;
 
   const handleConfirm = () => {
-    if (!selectedStufe || count < 1) return;
+    if (!selectedStufe || !isCountValid || countInputValue === null) return;
     const stufe = STUFEN.find((s) => s.key === selectedStufe);
     onBulkCreate({
-      count,
+      count: countInputValue,
       stufe: selectedStufe as GroupMemberBulkCreate['stufe'],
       default_age: stufe?.defaultAge,
       gender: 'no_answer',
     });
     setSelectedStufe(null);
     setCount(3);
+    setCountInput('3');
     onOpenChange(false);
   };
 
@@ -66,6 +70,7 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
                 onClick={() => {
                   setSelectedStufe(stufe.key);
                   setCount(3);
+                  setCountInput('3');
                 }}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                   selectedStufe === stufe.key
@@ -96,25 +101,39 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="text-body font-medium text-foreground">Anzahl:</label>
+                <label htmlFor="quick-add-stufen-count" className="text-body font-medium text-foreground">Anzahl:</label>
                 <button
                   type="button"
-                  onClick={() => setCount(Math.max(1, count - 1))}
+                  onClick={() => {
+                    const nextCount = Math.max(1, count - 1);
+                    setCount(nextCount);
+                    setCountInput(String(nextCount));
+                  }}
                   className="px-3 py-1 rounded-lg border border-border hover:bg-muted text-body"
                 >
                   −
                 </button>
                 <input
-                  type="number"
-                  value={count}
-                  onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
-                  min={1}
-                  max={50}
+                  id="quick-add-stufen-count"
+                  type="text"
+                  inputMode="numeric"
+                  value={countInput}
+                  onChange={(event) => {
+                    const nextInput = event.target.value;
+                    setCountInput(nextInput);
+                    const parsedCount = /^\d+$/.test(nextInput.trim()) ? Number(nextInput.trim()) : null;
+                    if (parsedCount !== null && parsedCount >= 1 && parsedCount <= 50) setCount(parsedCount);
+                  }}
+                  aria-invalid={!isCountValid}
                   className="w-20 rounded-lg border border-border px-3 py-2 text-body text-center font-semibold"
                 />
                 <button
                   type="button"
-                  onClick={() => setCount(Math.min(50, count + 1))}
+                  onClick={() => {
+                    const nextCount = Math.min(50, count + 1);
+                    setCount(nextCount);
+                    setCountInput(String(nextCount));
+                  }}
                   className="px-3 py-1 rounded-lg border border-border hover:bg-muted text-body"
                 >
                   +
@@ -136,7 +155,7 @@ export function QuickAddStufenDialog({ open, onOpenChange, onBulkCreate, isPendi
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={isPending || !selectedStufe || count < 1}
+            disabled={isPending || !selectedStufe || !isCountValid}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-body font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <Users className="w-4 h-4" />

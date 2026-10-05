@@ -56,10 +56,37 @@ describe('IngredientQuantityDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Portion wählen' }));
     fireEvent.click(screen.getByRole('option', { name: /^Gramm/ }));
-    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '250' } });
+    fireEvent.change(screen.getByLabelText('Menge'), { target: { value: '250' } });
     fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
 
     expect(onConfirm).toHaveBeenCalledWith(11, 6, 250);
+  });
+
+  it('accepts a German decimal comma without replacing the input while typing', () => {
+    const onConfirm = renderDialog([cup, gram]);
+    const quantityInput = screen.getByLabelText('Menge') as HTMLInputElement;
+
+    fireEvent.change(quantityInput, { target: { value: '' } });
+    expect(quantityInput.value).toBe('');
+    expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeDisabled();
+
+    fireEvent.change(quantityInput, { target: { value: '0,' } });
+    expect(quantityInput.value).toBe('0,');
+    expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeDisabled();
+
+    fireEvent.change(quantityInput, { target: { value: '0,6' } });
+    expect(quantityInput.value).toBe('0,6');
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(10, 5, 0.6);
+  });
+
+  it('accepts a decimal point as an alternative separator', () => {
+    const onConfirm = renderDialog([cup, gram]);
+    fireEvent.change(screen.getByLabelText('Menge'), { target: { value: '0.6' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(10, 5, 0.6);
   });
 
   it('does not offer "Gramm" when the ingredient has no gram portion', () => {

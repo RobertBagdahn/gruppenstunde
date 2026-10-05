@@ -9,6 +9,7 @@ import {
 import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
 import type { Portion } from '@/schemas/supply';
 import { formatExactWeight, formatWeight } from '@/lib/format';
+import { formatDecimalInput, parseDecimalInput } from '@/lib/decimalInput';
 
 interface IngredientQuantityDialogProps {
   ingredient: { id: number; name: string; slug: string; portions: Portion[] };
@@ -55,20 +56,24 @@ export default function IngredientQuantityDialog({
   const [selectedPortionId, setSelectedPortionId] = useState<string | null>(
     defaultPortion ? String(defaultPortion.id) : null,
   );
-  const [quantity, setQuantity] = useState<number>(initialQuantity > 0 ? initialQuantity : 1);
+  const [quantityInput, setQuantityInput] = useState(() =>
+    formatDecimalInput(initialQuantity > 0 ? initialQuantity : 1),
+  );
+  const quantity = parseDecimalInput(quantityInput);
+  const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
 
   const selectedPortion = ingredient.portions.find(
     (p) => String(p.id) === selectedPortionId,
   ) ?? null;
 
-  const totalWeightG = selectedPortion?.weight_g
-    ? quantity * selectedPortion.weight_g
+  const totalWeightG = selectedPortion?.weight_g && validQuantity !== null
+    ? validQuantity * selectedPortion.weight_g
     : null;
 
   const handleSelectStandardMeasure = (measure: PickerStandardMeasure) => {
     if (!gramPortion) return;
     setSelectedPortionId(String(gramPortion.id));
-    setQuantity(measure.grams);
+    setQuantityInput(formatDecimalInput(measure.grams));
   };
 
   const handleSelectGrams = () => {
@@ -78,8 +83,8 @@ export default function IngredientQuantityDialog({
   // A confirmed quantity always belongs to a concrete portion — grams map to the
   // ingredient's gram portion, never to "whatever is first".
   const handleConfirm = () => {
-    if (!selectedPortion) return;
-    onConfirm(selectedPortion.id, selectedPortion.measuring_unit_id ?? null, quantity);
+    if (!selectedPortion || validQuantity === null) return;
+    onConfirm(selectedPortion.id, selectedPortion.measuring_unit_id ?? null, validQuantity);
   };
 
   return (
@@ -94,13 +99,14 @@ export default function IngredientQuantityDialog({
 
         <div className="space-y-4">
           <div>
-            <label className="text-body font-medium">Menge</label>
+            <label htmlFor="ingredient-quantity" className="text-body font-medium">Menge</label>
             <input
-              type="number"
-              min={0.1}
-              step={0.5}
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(0.1, parseFloat(e.target.value) || 1))}
+              id="ingredient-quantity"
+              type="text"
+              inputMode="decimal"
+              value={quantityInput}
+              onChange={(event) => setQuantityInput(event.target.value)}
+              aria-invalid={validQuantity === null}
               className="w-full mt-1 rounded-lg border px-3 py-2.5 text-emphasis focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -139,7 +145,7 @@ export default function IngredientQuantityDialog({
 
           {totalWeightG && selectedPortion?.weight_g && (
             <p className="text-caption text-muted-foreground">
-              {quantity} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
+              {validQuantity} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
             </p>
           )}
 
@@ -152,7 +158,7 @@ export default function IngredientQuantityDialog({
             </button>
             <button
               onClick={handleConfirm}
-              disabled={!selectedPortion}
+              disabled={!selectedPortion || validQuantity === null}
               className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {confirmLabel}

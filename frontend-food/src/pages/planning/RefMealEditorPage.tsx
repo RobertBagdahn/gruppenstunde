@@ -22,6 +22,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { RefMealSyncConfirmDialog } from '@/components/planning/RefMealSyncConfirmDialog';
 import { formatNumber } from '@/lib/format';
 import { PageSkeleton } from '@/components/ui/skeleton';
+import { DecimalInput } from '@/components/ui/DecimalInput';
 
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
@@ -457,15 +458,12 @@ export default function RefMealEditorPage() {
                     </span>
                     <label className="flex items-center gap-1 text-caption text-muted-foreground">
                       ×
-                      <input
-                        type="number"
+                      <DecimalInput
                         value={item.factor}
-                        onChange={(e) =>
-                          handleFactorChange(index, parseFloat(e.target.value) || 1)
-                        }
-                        step={0.1}
+                        onChange={(factor) => handleFactorChange(index, factor)}
                         min={0.1}
                         max={5}
+                        aria-label={`Faktor für ${item.display_name || `Rezept ${item.recipe_id ?? ''}`}`}
                         className="w-16 px-1 py-0.5 border rounded-lg text-body text-center"
                       />
                     </label>

@@ -3,6 +3,7 @@ import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import type { BreakfastCatalog } from '@/schemas/breakfast';
 import RecipeSearchDialog from '../RecipeSearchDialog';
+import { DecimalInput } from '@/components/ui/DecimalInput';
 
 interface StepExtrasProps {
   wiz: UseWizardStateReturn;
@@ -71,12 +72,11 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
                   <span className="flex-1 text-body font-medium">{name}</span>
                   <div className="flex items-center gap-1">
                     <span className="text-caption text-muted-foreground">×</span>
-                    <input
-                      type="number"
+                    <DecimalInput
                       min={0.1}
-                      step={0.5}
                       value={factor}
-                      onChange={(e) => setWarmDishFactor(recipeId, Math.max(0.1, Number(e.target.value)))}
+                      onChange={(nextFactor) => setWarmDishFactor(recipeId, nextFactor)}
+                      aria-label={`Faktor für ${name}`}
                       className="w-16 rounded-lg border px-2 py-1 text-body text-right"
                     />
                   </div>
@@ -150,12 +150,11 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
               <div key={id} className="py-2 flex items-center gap-3">
                 <span className="flex-1 text-body font-medium">{state.extraIngredientNames[String(id)] ?? `Zutat #${id}`}</span>
                 <div className="flex items-center gap-1">
-                  <input
-                    type="number"
+                  <DecimalInput
                     min={1}
-                    step={5}
                     value={gramsPerPerson}
-                    onChange={(e) => setExtraIngredient(id, Math.max(1, Number(e.target.value)))}
+                    onChange={(grams) => setExtraIngredient(id, grams)}
+                    aria-label={`Menge pro Person für ${state.extraIngredientNames[String(id)] ?? `Zutat ${id}`}`}
                     className="w-20 rounded-lg border px-2 py-1 text-body text-right"
                   />
                   <span className="text-caption text-muted-foreground">g/P</span>

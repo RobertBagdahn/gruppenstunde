@@ -13,6 +13,7 @@ import type { RecipeStepIngredient } from '@/schemas/recipeStep';
 import IngredientAssignmentDropdown from './IngredientAssignmentDropdown';
 import IngredientSuggestions from './IngredientSuggestions';
 import { useSuggestIngredientAssignment } from '@/hooks/useRecipeSteps';
+import { DecimalInput } from '@/components/ui/DecimalInput';
 
 interface StepZutatenPanelProps {
   stepIngredients: RecipeStepIngredient[];
@@ -249,17 +250,13 @@ export default function StepZutatenPanel({
                     <label className="block text-caption font-medium text-foreground mb-1">
                       Mengenmodifikator
                     </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0.1"
-                      value={ing.quantity_modifier || 1}
-                      onChange={(e) =>
-                        handleUpdateIngredient(ing.id, {
-                          quantity_modifier: parseFloat(e.target.value) || 1.0,
-                        })
+                    <DecimalInput
+                      min={0.1}
+                      value={ing.quantity_modifier ?? 1}
+                      onChange={(quantityModifier) =>
+                        handleUpdateIngredient(ing.id, { quantity_modifier: quantityModifier })
                       }
-                      placeholder="z. B. 1.5 oder 0.5"
+                      aria-label="Mengenmodifikator"
                       className="w-full p-2 border border-input bg-background rounded-lg text-body"
                     />
                     <p className="text-caption text-muted-foreground mt-1">

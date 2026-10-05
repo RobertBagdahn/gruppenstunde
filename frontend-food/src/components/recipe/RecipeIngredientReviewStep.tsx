@@ -17,6 +17,7 @@ import {
   useRecipeIngredientReviewStore,
 } from '@/store/useRecipeIngredientReviewStore';
 import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
+import { formatDecimalInput, parseDecimalInput } from '@/lib/decimalInput';
 import {
   validateNutritionValues,
   type NutritionFieldErrors,
@@ -63,6 +64,11 @@ function NewIngredientDialog({
 }) {
   const updateRow = useRecipeIngredientReviewStore((state) => state.updateRow);
   const draft = row.new_ingredient_draft;
+  const [quantityInput, setQuantityInput] = useState(() =>
+    formatDecimalInput(draft?.quantity ?? 1),
+  );
+  const quantity = parseDecimalInput(quantityInput);
+  const validQuantity = quantity !== null && quantity >= 0.01 ? quantity : null;
 
   if (!draft) return null;
   const nutritionErrors = draftNutritionErrors(draft.values);
@@ -101,7 +107,7 @@ function NewIngredientDialog({
   const handleConfirm = () => {
     if (Object.keys(nutritionErrors).length > 0) return;
     const portion = draft.portions[0];
-    const quantity = draft.quantity && draft.quantity > 0 ? draft.quantity : 1;
+    if (validQuantity === null) return;
     if (!portion) {
       updateRow(row.key, {
         selected_ingredient_name: draft.name,
@@ -111,11 +117,11 @@ function NewIngredientDialog({
       return;
     }
     updateRow(row.key, {
-      new_ingredient_draft: { ...draft, quantity },
+      new_ingredient_draft: { ...draft, quantity: validQuantity },
       selected_ingredient_name: draft.name,
       selected_portion: { ...portion, is_new: true },
       suggested_portion: { ...portion, is_new: true },
-      quantity,
+      quantity: validQuantity,
       status: 'changed',
       reason: 'Neue Zutat vom Menschen bestätigt.',
     });
@@ -191,19 +197,19 @@ function NewIngredientDialog({
             <label className="block text-caption font-medium text-muted-foreground">
               Menge (Anzahl Portionen)
               <input
-                type="number"
-                min="0.01"
-                step="0.1"
-                value={String(draft.quantity ?? 1)}
-                onChange={(event) => updateDraft({ quantity: Number(event.target.value) || null })}
+                type="text"
+                inputMode="decimal"
+                value={quantityInput}
+                onChange={(event) => setQuantityInput(event.target.value)}
+                aria-invalid={validQuantity === null}
                 className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
           </div>
 
-          {draft.portions[0]?.weight_g && draft.quantity && (
+          {draft.portions[0]?.weight_g && validQuantity !== null && (
             <p className="text-caption text-muted-foreground">
-              {draft.quantity} × {formatExactWeight(draft.portions[0].weight_g)} = {formatWeight(draft.quantity * draft.portions[0].weight_g)}
+              {formatNumber(validQuantity, { maxDecimals: 2 })} × {formatExactWeight(draft.portions[0].weight_g)} = {formatWeight(validQuantity * draft.portions[0].weight_g)}
             </p>
           )}
 
@@ -218,7 +224,7 @@ function NewIngredientDialog({
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={Object.keys(nutritionErrors).length > 0}
+              disabled={Object.keys(nutritionErrors).length > 0 || validQuantity === null}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <Check className="h-4 w-4" />
@@ -236,6 +242,9 @@ function NewIngredientDialog({
 // ---------------------------------------------------------------------------
 
 function ReviewRow({ row }: { row: IngredientReviewRow }) {
+  const [searchValue, setSearchValue] = useState(
+    () => row.selected_ingredient_name || row.suggested_ingredient_name,
+  );
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [alternativesOpen, setAlternativesOpen] = useState(false);
   const [newIngredientOpen, setNewIngredientOpen] = useState(false);
@@ -278,6 +287,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   // A different ingredient invalidates portion and quantity; the dialog then
   // asks for both again.
   const selectIngredient = (id: number, name: string, slug: string) => {
+    setSearchValue(name);
     setQuantityIngredient({ id, name, slug });
     updateRow(row.key, {
       selected_ingredient_id: id,
@@ -316,6 +326,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   };
 
   const handleNameChange = (value: string) => {
+    setSearchValue(value);
     const current = useRecipeIngredientReviewStore.getState().rows.find((candidate) => candidate.key === row.key);
     if (!current || value === current.selected_ingredient_name) return;
     if (current.selected_ingredient_id === null) {
@@ -412,13 +423,14 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
           <p className="text-caption font-medium text-muted-foreground">Vorgeschlagene Zutat</p>
           <div ref={searchRef}>
           <IngredientAutocomplete
-            value={row.selected_ingredient_name || row.suggested_ingredient_name}
+            value={searchValue}
             onChange={handleNameChange}
             onSelect={(ingredient) => selectIngredient(ingredient.id, ingredient.name, ingredient.slug)}
             onCreateNew={(name) => {
               // "No existing ingredient fits": start a new-ingredient draft from the
               // typed name; the draft dialog completes values, portion and quantity.
               const draftName = (name || row.source_text).trim();
+              setSearchValue(draftName);
               updateRow(row.key, {
                 selected_ingredient_id: null,
                 selected_ingredient_slug: '',

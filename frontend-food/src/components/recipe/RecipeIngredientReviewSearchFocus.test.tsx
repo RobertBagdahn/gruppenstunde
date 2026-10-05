@@ -46,6 +46,26 @@ describe('review row: "Zutat ändern"', () => {
     useRecipeIngredientReviewStore.setState({ rows: [row], error: null });
   });
 
+  it('keeps the search field empty after clearing the suggested ingredient name', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RecipeIngredientReviewStep />
+      </QueryClientProvider>,
+    );
+    const input = screen.getByLabelText('Zutat suchen') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '' } });
+
+    expect(input.value).toBe('');
+    expect(useRecipeIngredientReviewStore.getState().rows[0].selected_ingredient_id).toBeNull();
+    expect(useRecipeIngredientReviewStore.getState().rows[0].status).toBe('unresolved');
+    expect(useRecipeIngredientReviewStore.getState().getFinalizedRows()).toBeNull();
+
+    fireEvent.change(input, { target: { value: 'Margarine' } });
+    expect(input.value).toBe('Margarine');
+    expect(useRecipeIngredientReviewStore.getState().rows[0].selected_ingredient_id).toBeNull();
+  });
+
   it('focuses the search field with its text selected so typing replaces it', () => {
     render(
       <QueryClientProvider client={new QueryClient()}>

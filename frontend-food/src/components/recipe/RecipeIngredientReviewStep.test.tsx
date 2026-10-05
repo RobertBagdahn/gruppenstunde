@@ -132,7 +132,7 @@ describe('RecipeIngredientReviewStep', () => {
 
     expect(screen.getByText('Ananas hinzufügen')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Menge'), { target: { value: '3' } });
     fireEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
 
     const row = useRecipeIngredientReviewStore.getState().rows[0];
@@ -257,6 +257,21 @@ describe('RecipeIngredientReviewStep', () => {
     const rows = useRecipeIngredientReviewStore.getState().rows;
     expect(rows).toHaveLength(1);
     expect(rows[0].status).toBe('unresolved');
+  });
+
+  it('accepts a decimal comma when editing a new ingredient quantity', () => {
+    useRecipeIngredientReviewStore.setState({ rows: [newIngredientRow()] });
+    renderReviewStep();
+
+    fireEvent.click(screen.getByRole('button', { name: /Portion & Menge festlegen/ }));
+    const dialog = screen.getByRole('dialog');
+    const quantityInput = within(dialog).getByLabelText('Menge (Anzahl Portionen)') as HTMLInputElement;
+    fireEvent.change(quantityInput, { target: { value: '0,6' } });
+    expect(quantityInput.value).toBe('0,6');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Zutat und Menge übernehmen/ }));
+
+    expect(useRecipeIngredientReviewStore.getState().rows[0].quantity).toBe(0.6);
   });
 
   it('new ingredient draft is reviewed in a complete dialog and becomes confirmable', () => {

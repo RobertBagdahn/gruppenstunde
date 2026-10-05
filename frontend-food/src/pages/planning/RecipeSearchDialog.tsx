@@ -21,6 +21,7 @@ import CategoryPills from '@/components/recipe/CategoryPills';
 import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 import { formatExactWeight, formatNumber, formatWeight } from '@/lib/format';
+import { formatDecimalInput, parseDecimalInput } from '@/lib/decimalInput';
 import { HelpHint } from '@/components/ui/help-hint';
 import { SOURCE_BADGE_HELP } from '@/lib/sourceBadgeHelp';
 
@@ -484,13 +485,13 @@ export default function RecipeSearchDialog({
 // Ingredient Quantity Inline (rendered inside RecipeSearchDialog)
 // ==========================================================================
 
-interface IngredientQuantityInlineProps {
+export interface IngredientQuantityInlineProps {
   ingredient: IngredientSearchResult;
   onConfirm: (ingredientId: number, portion: IngredientPortion | null, quantity: number) => void;
   onCancel: () => void;
 }
 
-function IngredientQuantityInline({
+export function IngredientQuantityInline({
   ingredient,
   onConfirm,
   onCancel,
@@ -498,14 +499,16 @@ function IngredientQuantityInline({
   const [selectedPortionId, setSelectedPortionId] = useState<string>(
     ingredient.portions.length > 0 ? String(ingredient.portions[0].id) : '',
   );
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantityInput, setQuantityInput] = useState(() => formatDecimalInput(1));
+  const quantity = parseDecimalInput(quantityInput);
+  const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
 
   const selectedPortion = ingredient.portions.find(
     (p) => String(p.id) === selectedPortionId,
   ) ?? null;
 
-  const totalWeightG = selectedPortion?.weight_g
-    ? quantity * selectedPortion.weight_g
+  const totalWeightG = selectedPortion?.weight_g && validQuantity !== null
+    ? validQuantity * selectedPortion.weight_g
     : null;
 
   return (
@@ -517,13 +520,14 @@ function IngredientQuantityInline({
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
         <div>
-          <label className="text-body font-medium">Menge</label>
+          <label htmlFor="recipe-search-ingredient-quantity" className="text-body font-medium">Menge</label>
           <input
-            type="number"
-            min={0.1}
-            step={0.5}
-            value={quantity}
-            onChange={(e) => setQuantity(Math.max(0.1, parseFloat(e.target.value) || 1))}
+            id="recipe-search-ingredient-quantity"
+            type="text"
+            inputMode="decimal"
+            value={quantityInput}
+            onChange={(event) => setQuantityInput(event.target.value)}
+            aria-invalid={validQuantity === null}
             className="w-full mt-1 rounded-lg border px-3 py-2.5 text-emphasis focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
@@ -550,7 +554,7 @@ function IngredientQuantityInline({
 
         {totalWeightG && selectedPortion?.weight_g && (
           <p className="text-caption text-muted-foreground">
-            {formatNumber(quantity, { maxDecimals: 2 })} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
+            {formatNumber(validQuantity ?? 0, { maxDecimals: 2 })} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
           </p>
         )}
       </div>
@@ -563,8 +567,11 @@ function IngredientQuantityInline({
           Abbrechen
         </button>
         <button
-          onClick={() => onConfirm(ingredient.id, selectedPortion, quantity)}
-          className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          onClick={() => {
+            if (validQuantity !== null) onConfirm(ingredient.id, selectedPortion, validQuantity);
+          }}
+          disabled={validQuantity === null}
+          className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           Hinzufügen
         </button>

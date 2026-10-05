@@ -11,6 +11,13 @@
 - [x] 2.2 `selectIngredient`: `new_ingredient_draft` löschen, Formular ausblenden
 - [x] 2.3 `IngredientAutocomplete.tsx`: Chip-Reihe mit Umbruch oder Scroll im Container, kein Überlauf ab 320 px
 - [x] 2.4 Komponententests: Ersetzen statt Anhängen, Alternative räumt Formular, bewusste Neuanlage behält es
+- [x] 2.5 Suchtext im Review als editierbaren Zustand führen; Löschen darf nicht auf den KI-Vorschlag zurückfallen, die alte Ingredient-ID bleibt aufgehoben
+- [x] 2.6 Gemeinsamen Parser für Dezimaleingaben mit Komma/Punkt ergänzen; Review-Dialog und Rezept-Suchdialog halten Rohtext bis zum gültigen Bestätigen und erlauben keine ungültige Menge
+- [x] 2.7 Mengenfeld im Dialog für neue Zutaten an dieselbe Rohtexteingabe und Validierung anschließen
+- [x] 2.8 Regressionstests: Suchfeld leeren/neu tippen, `0,6` und `0.6` schrittweise eingeben, ungültigen/zu kleinen Wert nicht bestätigen
+- [x] 2.9 Wiederverwendbares `DecimalInput` in Rezeptschritt-Modifikatoren, Referenzmahlzeit-Faktoren und Frühstücks-Extras einsetzen; Rohtext erhalten und ungültige Werte beim Blur verwerfen
+- [x] 2.10 Ganzzahliges Stufen-Schnellhinzufügen auf Rohtexteingabe mit 1–50-Validierung umstellen; ungültige Werte blockieren die Bestätigung
+- [x] 2.11 Komponententests für `DecimalInput` und Stufen-Schnellhinzufügen: führende Null, Komma/Punkt, ungültige Zwischenstände und gültiger Submit
 
 ## 3. Frontend: Schritte-Hinweis
 
@@ -22,3 +29,4 @@
 
 - [x] 4.1 `uv run pytest backend/recipe`, Frontend-Typecheck, Lint, Tests
 - [ ] 4.2 Manuell: Freitext-Rezept aus dem Produktivtest erneut durchspielen (Zwiebel, Olivenöl, Zutat ändern, Alternative wählen, Schritte-Hinweis)
+- [ ] 4.3 Manuell: Suchfeld vollständig leeren und `0,6` / `0.6` in Review- und Suchdialog-Mengenfeldern testen (Desktop und mobil)

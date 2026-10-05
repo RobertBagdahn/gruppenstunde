@@ -15,7 +15,9 @@ Mengen:
 
 ## What Changes
 
-- Fokus auf „Zutat ändern“ markiert den vorhandenen Text, sodass Tippen ihn ersetzt.
+- Fokus auf „Zutat ändern“ markiert den vorhandenen Text, sodass Tippen ihn ersetzt. Ein vollständig gelöschter Suchtext bleibt leer und wird nicht durch den KI-Vorschlag überschrieben.
+- Dezimalmengen lassen sich schrittweise und mit deutschem Komma eingeben; Zwischenstände wie `0,` werden nicht sofort durch einen Standardwert ersetzt. Ungültige oder leere Werte können nicht bestätigt werden.
+- Die gleiche robuste Dezimaleingabe gilt für den Rezept-Zutaten-Review, das Rezept-Suchdialog-Zutatenformular und neue Zutaten. Verwandte Mengen-/Faktor-Felder für Rezeptschritte, Referenzmahlzeiten und Frühstücks-Extras behalten ebenfalls Dezimal-Zwischenstände, statt sie während des Tippens zu ersetzen. Das ganzzahlige Stufen-Schnellhinzufügen bewahrt leere/ungültige Zwischenstände ebenfalls, statt sie sofort auf 1 zu setzen.
 - Beim Auswählen einer vorhandenen Zutat wird `new_ingredient_draft` gelöscht und das Formular „Neue Zutat prüfen“ ausgeblendet. Beim bewussten „Neu anlegen“ bleibt es.
 - Der Autocomplete-Dropdown und die Warengruppen-Chips umbrechen oder scrollen innerhalb der Spaltenbreite, ohne horizontalen Seitenüberlauf (ab 320 px).
 - Die Mengenumrechnung bevorzugt eine passende eigene Portion: Entspricht die importierte Einheit dem Namen oder der Messeinheit einer aktiven Portion der Zutat, ist die Portionszahl gleich der Menge (2 EL → 2 × Portion EL). Stück/leere Einheit mit Stückportion: Menge = Portionszahl.
@@ -24,12 +26,14 @@ Mengen:
 ## Capabilities
 
 ### Modified Capabilities
-- `recipe-ingredient-review`: Fokus-/Ersetzverhalten, Auswahl räumt Neu-Formular auf, Layout ohne Überlauf.
+- `recipe-ingredient-review`: Fokus-/Ersetzverhalten, Auswahl räumt Neu-Formular auf, Dezimalmengen und Layout ohne Überlauf.
+- `recipe-quantity-input`: Robuste Dezimaleingabe in Mengen- und Faktor-Feldern des Food-Frontends.
+- `meal-plan-group-members`: Stufen-Schnellhinzufügen erlaubt das Bearbeiten der Anzahl ohne sofortigen Mindestwert-Fallback.
 - `recipe-ai-quantity-estimate`: Einheit mit passender eigener Portion wird eins zu eins übernommen.
 - `recipe-creation-wizard`: Hinweis auf veraltete Zubereitungsschritte nach Zutatenänderung.
 
 ## Impact
 
 - **Backend:** `backend/recipe/services/unit_gram_conversion.py` (`convert_to_portion_count`), `backend/recipe/services/ingredient_review_service.py` (`_suggested_portion_count`), Tests in `backend/recipe/tests/`.
-- **Frontend (frontend-food):** `components/recipe/RecipeIngredientReviewStep.tsx` (`focusSearch`, `selectIngredient`), `components/recipe/IngredientAutocomplete.tsx` (Layout), Wizard-Schritt Zubereitung (`WizardStepSteps.tsx`/Wizard-Context).
+- **Frontend (frontend-food):** `components/recipe/RecipeIngredientReviewStep.tsx` (Suchtext und Mengen-Rohwert), `components/recipe/IngredientQuantityDialog.tsx`, `pages/planning/RecipeSearchDialog.tsx` (Mengen-Rohwert), `components/ui/DecimalInput.tsx` (kontrollierte Faktor-/Mengenfelder), `lib/decimalInput.ts` (Komma-/Punkt-Parsing), `components/recipe/StepZutatenPanel.tsx`, `pages/planning/RefMealEditorPage.tsx`, `pages/planning/breakfast/StepExtras.tsx`, `components/groupMembers/QuickAddStufenDialog.tsx` (ganzzahlige Rohtexteingabe), `components/recipe/IngredientAutocomplete.tsx` (Layout), Wizard-Schritt Zubereitung (`WizardStepSteps.tsx`/Wizard-Context).
 - **Schemas:** unverändert erwartet.
