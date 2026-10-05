@@ -4,7 +4,6 @@ import os
 from typing import cast
 
 from django.template.loader import render_to_string
-from weasyprint import HTML
 
 from planner.models import Meal, MealPlan
 from planner.services.cooking_schedule_service import local_time
@@ -156,7 +155,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
     from collections import defaultdict
 
     days_map: dict[str, list] = defaultdict(list)
-    for meal in meals:
+    for meal in meals.iterator(chunk_size=100):
         if meal.start_datetime:
             date_str = local_time(meal.start_datetime).strftime("%Y-%m-%d")
         else:
@@ -308,6 +307,9 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
     else:
         date_label = ""
 
+    # Release prefetched ORM graphs before WeasyPrint allocates its page tree.
+    days_map.clear()
+
     context = {
         "meal_plan": meal_plan,
         "logo_path": _get_logo_path(),
@@ -323,4 +325,6 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
     }
 
     html = render_to_string("planner/cooking_schedule_pdf.html", context)
-    return cast(bytes, HTML(string=html).write_pdf())
+    from core.services.pdf_rendering import render_html_to_pdf
+
+    return render_html_to_pdf(html, export_type="cooking_schedule")

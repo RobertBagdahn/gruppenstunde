@@ -218,6 +218,8 @@ resource "google_cloud_run_v2_service" "backend" {
   }
 
   template {
+    max_instance_request_concurrency = 1
+
     containers {
       image = "${local.backend_image}:latest"
 

@@ -7,7 +7,6 @@ from typing import cast
 
 from django.conf import settings
 from django.template.loader import render_to_string
-from weasyprint import HTML
 
 from content.choices import ExecutionTimeChoices, PreparationTimeChoices
 from planner.models import Meal, MealItem, MealPlan
@@ -869,10 +868,16 @@ def generate_meal_plan_pdf(
     """Generate a PDF for a meal plan."""
     days = _build_meal_context(meal_plan)
     group_members = _build_group_member_context(meal_plan)
-    shopping_list = _aggregate_shopping_list(meal_plan)
-    allergen_matrix = _build_allergen_matrix(days)
-    nutrition_data = _build_nutrition_table(days, group_members)
-    if not any(day.get("day_meals_raw") and any(meal.items.exists() for meal in day["day_meals_raw"]) for day in days):
+    shopping_list = (
+        _aggregate_shopping_list(meal_plan)
+        if not exclude_shopping_list
+        else {"per_day": None, "total": [], "total_count": 0, "fresh_count": 0}
+    )
+    allergen_matrix = None if exclude_allergens else _build_allergen_matrix(days)
+    nutrition_data = [] if exclude_nutrition else _build_nutrition_table(days, group_members)
+    if not exclude_nutrition and not any(
+        day.get("day_meals_raw") and any(meal.items.exists() for meal in day["day_meals_raw"]) for day in days
+    ):
         nutrition_data = []
 
     for i, day in enumerate(days):
@@ -911,6 +916,11 @@ def generate_meal_plan_pdf(
         }
         for day in days
     ]
+
+    # Raw ORM objects are needed while deriving nutrition/allergens, but not by the template.
+    # Drop their prefetched relation caches before WeasyPrint builds its in-memory page tree.
+    for day in days:
+        day.pop("day_meals_raw", None)
 
     start_date = meal_plan.start_datetime.date() if meal_plan.start_datetime else None
     end_date = meal_plan.end_datetime.date() if meal_plan.end_datetime else None
@@ -957,4 +967,6 @@ def generate_meal_plan_pdf(
     }
 
     html = render_to_string("planner/meal_plan_pdf.html", context)
-    return cast(bytes, HTML(string=html).write_pdf())
+    from core.services.pdf_rendering import render_html_to_pdf
+
+    return render_html_to_pdf(html, export_type="meal_plan")

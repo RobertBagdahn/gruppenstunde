@@ -232,6 +232,43 @@ class TestMealPlanPdfGeneration:
         assert isinstance(pdf, bytes)
         assert len(pdf) > 0
 
+    @pytest.mark.django_db
+    def test_excluded_sections_skip_expensive_calculations(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        plan = make_meal_plan()
+
+        def unexpected_calculation(*args: object, **kwargs: object) -> None:
+            pytest.fail("An excluded PDF section should not be calculated")
+
+        monkeypatch.setattr("planner.services.pdf_export._aggregate_shopping_list", unexpected_calculation)
+        monkeypatch.setattr("planner.services.pdf_export._build_allergen_matrix", unexpected_calculation)
+        monkeypatch.setattr("planner.services.pdf_export._build_nutrition_table", unexpected_calculation)
+
+        pdf = generate_meal_plan_pdf(
+            plan,
+            exclude_shopping_list=True,
+            exclude_allergens=True,
+            exclude_nutrition=True,
+        )
+
+        assert pdf.startswith(b"%PDF-")
+
+    @pytest.mark.django_db
+    def test_requested_page_format_is_applied(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        plan = make_meal_plan()
+        rendered_html: dict[str, str] = {}
+
+        def capture_html(html: str, *, export_type: str) -> bytes:
+            rendered_html["html"] = html
+            assert export_type == "meal_plan"
+            return b"%PDF-test"
+
+        monkeypatch.setattr("core.services.pdf_rendering.render_html_to_pdf", capture_html)
+
+        pdf = generate_meal_plan_pdf(plan, page_format="letter")
+
+        assert pdf == b"%PDF-test"
+        assert "@page { size: letter; }" in rendered_html["html"]
+
 
 class TestMealPlanEnhancedFeatures:
     @pytest.mark.django_db

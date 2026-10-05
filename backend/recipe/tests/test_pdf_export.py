@@ -8,6 +8,7 @@ from recipe.services.pdf_export import (
     RecipePdfExport,
     _get_allergens,
     _get_recipe_materials,
+    _load_image_data_uri,
     _parse_markdown_steps,
     generate_recipe_pdf,
 )
@@ -63,8 +64,29 @@ class TestRecipePdfService:
         recipe.image.save("bild.png", ContentFile(buf.getvalue()), save=True)
         export = RecipePdfExport.build(recipe)
         assert export.image_path is not None
-        assert export.image_path.startswith("data:image/png;base64,")
+        assert export.image_path.startswith("data:image/jpeg;base64,")
         assert generate_recipe_pdf(recipe).startswith(b"%PDF")
+
+    @pytest.mark.django_db
+    def test_large_recipe_image_is_resized_and_compressed(self):
+        import base64
+        import io
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        source = io.BytesIO()
+        Image.new("RGB", (2400, 1800), "blue").save(source, format="PNG")
+        upload = SimpleUploadedFile("large.png", source.getvalue(), content_type="image/png")
+
+        image_data_uri = _load_image_data_uri(upload)
+
+        assert image_data_uri is not None
+        assert image_data_uri.startswith("data:image/jpeg;base64,")
+        jpeg_bytes = base64.b64decode(image_data_uri.split(",", maxsplit=1)[1])
+        with Image.open(io.BytesIO(jpeg_bytes)) as compressed:
+            assert compressed.size == (1600, 1200)
+        assert len(jpeg_bytes) < len(source.getvalue())
 
     @pytest.mark.django_db
     def test_recipe_pdf_collects_materials(self):

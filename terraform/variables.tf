@@ -63,7 +63,7 @@ variable "backend_cpu" {
 variable "backend_memory" {
   description = "Memory allocation for backend Cloud Run service"
   type        = string
-  default     = "512Mi"
+  default     = "1Gi"
 }
 
 variable "cloudbuild_region" {

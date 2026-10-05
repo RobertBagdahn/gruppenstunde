@@ -5,6 +5,7 @@
 <title>{{ meal_plan.name }} — Essens- &amp; Kochplan</title>
 <style>
   {% include "planner/meal_plan_pdf.css" %}
+  @page { size: {{ page_format|lower }}; }
 </style>
 </head>
 <body class="{% if compact_mode %}is-compact{% endif %}">

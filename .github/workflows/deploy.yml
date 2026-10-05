@@ -151,7 +151,9 @@ jobs:
           set -euo pipefail
           gcloud run deploy "$BACKEND_SERVICE" \
             --image "$REGISTRY/backend:$GITHUB_SHA" \
-            --region "$REGION"
+            --region "$REGION" \
+            --memory 1Gi \
+            --concurrency 1
           gcloud run services update-traffic "$BACKEND_SERVICE" \
             --region "$REGION" --to-latest
 

@@ -49,6 +49,8 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA
       - --region=${_REGION}
       - --port=8000
+      - --memory=1Gi
+      - --concurrency=1
       - --allow-unauthenticated
       - --update-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID
     id: deploy-backend

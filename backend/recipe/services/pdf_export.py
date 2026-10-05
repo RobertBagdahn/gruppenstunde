@@ -1,10 +1,9 @@
 """PDF export service for Recipe using WeasyPrint."""
 
 from dataclasses import dataclass, field
-from typing import cast
 
+from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
-from weasyprint import HTML
 
 from content.choices import DifficultyChoices, PreparationTimeChoices
 from recipe.models import Recipe
@@ -105,22 +104,36 @@ def _format_step_ingredient(si: dict) -> str:
     return label
 
 
-def _load_image_data_uri(image) -> str | None:
-    """Read the image through the storage API (works for local and cloud storage) as a data URI."""
+def _load_image_data_uri(image: FieldFile | None) -> str | None:
+    """Read and compress a bounded-resolution image through the storage API."""
     if not image:
         return None
+
     import base64
     import logging
-    import mimetypes
+    from io import BytesIO
+
+    from PIL import Image, ImageOps
 
     try:
-        with image.open("rb") as fh:
-            data = fh.read()
+        with image.open("rb") as source_file, Image.open(source_file) as source_image:
+            export_image = ImageOps.exif_transpose(source_image)
+            export_image.thumbnail((1600, 1200), Image.Resampling.LANCZOS)
+            if export_image.mode in {"RGBA", "LA"} or "transparency" in export_image.info:
+                rgba_image = export_image.convert("RGBA")
+                white_background = Image.new("RGB", rgba_image.size, "white")
+                white_background.paste(rgba_image, mask=rgba_image.getchannel("A"))
+                export_image = white_background
+            elif export_image.mode != "RGB":
+                export_image = export_image.convert("RGB")
+            compressed = BytesIO()
+            export_image.save(compressed, format="JPEG", quality=82, optimize=True)
     except Exception:
         logging.getLogger(__name__).warning("Could not load recipe image for PDF export", exc_info=True)
         return None
-    mime = mimetypes.guess_type(image.name)[0] or "image/jpeg"
-    return f"data:{mime};base64,{base64.b64encode(data).decode()}"
+
+    encoded = base64.b64encode(compressed.getvalue()).decode("ascii")
+    return f"data:image/jpeg;base64,{encoded}"
 
 
 @dataclass
@@ -289,7 +302,9 @@ class RecipePdfExport:
 
     def render_pdf(self) -> bytes:
         """Render the HTML to PDF bytes via WeasyPrint."""
-        return cast(bytes, HTML(string=self.render_html()).write_pdf())
+        from core.services.pdf_rendering import render_html_to_pdf
+
+        return render_html_to_pdf(self.render_html(), export_type="recipe")
 
 
 def generate_recipe_pdf(recipe: Recipe, page_format: str = "A4", servings: int = 1) -> bytes:
