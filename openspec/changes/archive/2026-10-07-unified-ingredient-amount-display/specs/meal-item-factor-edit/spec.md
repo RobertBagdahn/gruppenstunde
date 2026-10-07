@@ -1,19 +1,4 @@
-# Meal Item Factor Edit
-
-## Purpose
-
-Definiert, wie der Skalierungsfaktor eines Rezept-Eintrags im Essensplan per API geändert wird und wie Plan-Zeilen Faktor bzw. Menge anzeigen.
-## Requirements
-### Requirement: MealItem factor can be updated via API
-The system SHALL provide a PATCH endpoint at `/{meal_plan_id}/meal-items/{item_id}/` that accepts a JSON body with `factor` (float) and updates the MealItem's factor field.
-
-#### Scenario: Successful factor update
-- **WHEN** authenticated user sends PATCH to `/{meal_plan_id}/meal-items/{item_id}/` with `{"factor": 0.33}`
-- **THEN** the MealItem's factor is updated to 0.33 and the updated MealItem is returned as JSON
-
-#### Scenario: Invalid meal item
-- **WHEN** user sends PATCH with a non-existent item_id
-- **THEN** the system returns HTTP 404
+## MODIFIED Requirements
 
 ### Requirement: MealItem factor is editable in the meal plan UI
 

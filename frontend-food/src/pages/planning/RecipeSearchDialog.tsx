@@ -63,7 +63,7 @@ function BadgePill({ value, selected, onChange, icon, label }: BadgePillProps) {
 interface RecipeSearchDialogProps {
   mealType: string;
   onSelect?: (recipeId: number, recipeTitle?: string) => void;
-  onSelectIngredient?: (ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number, ingredientName: string) => void;
+  onSelectIngredient?: (ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number, ingredientName: string, note?: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nutritionalTagIds?: number[];
@@ -172,6 +172,7 @@ export default function RecipeSearchDialog({
     ingredientId: number,
     portion: IngredientPortion | null,
     quantity: number,
+    note: string,
   ) => {
     if (onSelectIngredient) {
       onSelectIngredient(
@@ -180,6 +181,7 @@ export default function RecipeSearchDialog({
         portion?.measuring_unit_id ?? null,
         quantity,
         ingredientDialog?.name ?? '',
+        note,
       );
     }
     setIngredientDialog(null);
@@ -487,7 +489,7 @@ export default function RecipeSearchDialog({
 
 export interface IngredientQuantityInlineProps {
   ingredient: IngredientSearchResult;
-  onConfirm: (ingredientId: number, portion: IngredientPortion | null, quantity: number) => void;
+  onConfirm: (ingredientId: number, portion: IngredientPortion | null, quantity: number, note: string) => void;
   onCancel: () => void;
 }
 
@@ -500,6 +502,7 @@ export function IngredientQuantityInline({
     ingredient.portions.length > 0 ? String(ingredient.portions[0].id) : '',
   );
   const [quantityInput, setQuantityInput] = useState(() => formatDecimalInput(1));
+  const [note, setNote] = useState('');
   const quantity = parseDecimalInput(quantityInput);
   const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
 
@@ -552,6 +555,19 @@ export function IngredientQuantityInline({
           </div>
         )}
 
+        <div>
+          <label htmlFor="recipe-search-ingredient-note" className="text-body font-medium">Notiz (optional)</label>
+          <input
+            id="recipe-search-ingredient-note"
+            type="text"
+            value={note}
+            maxLength={500}
+            placeholder="z. B. ohne Zwiebeln"
+            onChange={(event) => setNote(event.target.value)}
+            className="w-full mt-1 rounded-lg border px-3 py-2.5 text-body focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+
         {totalWeightG && selectedPortion?.weight_g && (
           <p className="text-caption text-muted-foreground">
             {formatNumber(validQuantity ?? 0, { maxDecimals: 2 })} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
@@ -568,7 +584,7 @@ export function IngredientQuantityInline({
         </button>
         <button
           onClick={() => {
-            if (validQuantity !== null) onConfirm(ingredient.id, selectedPortion, validQuantity);
+            if (validQuantity !== null) onConfirm(ingredient.id, selectedPortion, validQuantity, note.trim());
           }}
           disabled={validQuantity === null}
           className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"

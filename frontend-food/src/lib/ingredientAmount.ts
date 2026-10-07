@@ -5,6 +5,7 @@
 import type { RecipeItem } from '@/schemas/recipe';
 import type { Portion } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
+import { formatWeight } from '@/lib/format';
 
 /** Short display names for measuring units */
 export const UNIT_SHORT: Record<string, string> = {
@@ -81,4 +82,39 @@ export function formatRecipeItemAmount(item: RecipeItem): RecipeItemAmount {
   if (metricName) return { primary: `${formatCount(quantity)} ${shortUnit(metricName)}`, secondary: null };
 
   return { primary: `${formatCount(quantity)} —`, secondary: null };
+}
+
+/** Structural subset of a meal-plan item needed to format its amount. */
+export interface MealItemAmountInput {
+  quantity: number | null;
+  quantity_g: number | null;
+  measuring_unit_name: string;
+  portion_name?: string;
+}
+
+/**
+ * Amount of a single ingredient in the meal plan, formatted like the recipe views.
+ * With a portion the quantity is a portion count ("0,5 EL" + "7,5 g"); the portion's own
+ * measuring unit ("Gramm" of a pre-weighed "EL 15 g") is never used as the label.
+ */
+export function formatMealItemAmount(item: MealItemAmountInput): RecipeItemAmount {
+  const quantity = item.quantity;
+  const grams = item.quantity_g != null && item.quantity_g > 0 ? item.quantity_g : null;
+  if (quantity != null && quantity > 0) {
+    const portionName = item.portion_name || null;
+    const unitName = item.measuring_unit_name || null;
+
+    if (portionName && !BASE_METRIC_UNIT_NAMES.has(portionName)) {
+      return { primary: formatPortionAmount(quantity, shortUnit(portionName)), secondary: grams != null ? formatWeight(grams) : null };
+    }
+    const metricName = portionName ?? unitName;
+    if (metricName && BASE_METRIC_UNIT_NAMES.has(metricName)) {
+      return { primary: `${formatCount(quantity)} ${shortUnit(metricName)}`, secondary: null };
+    }
+    const count = formatCount(quantity);
+    const label = metricName && metricName.toLowerCase() !== 'stück' ? `${count} ${shortUnit(metricName)}` : count;
+    return { primary: label, secondary: grams != null ? formatWeight(grams) : null };
+  }
+  if (grams != null) return { primary: formatWeight(grams), secondary: null };
+  return { primary: '—', secondary: null };
 }

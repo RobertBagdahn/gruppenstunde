@@ -40,6 +40,16 @@ describe('RecipeSearchDialog ingredient quantity input', () => {
     expect(input.value).toBe('0,6');
     fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
 
-    expect(onConfirm).toHaveBeenCalledWith(4, ingredient.portions[0], 0.6);
+    expect(onConfirm).toHaveBeenCalledWith(4, ingredient.portions[0], 0.6, '');
+  });
+
+  it('passes the trimmed note with the confirmed amount', () => {
+    const onConfirm = vi.fn();
+    render(<IngredientQuantityInline ingredient={ingredient} onConfirm={onConfirm} onCancel={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Notiz (optional)'), { target: { value: '  Bio  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(4, ingredient.portions[0], 1, 'Bio');
   });
 });

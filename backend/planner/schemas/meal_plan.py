@@ -53,6 +53,7 @@ class MealItemOut(Schema):
     portion_id: int | None = None
     portion_name: str = ""
     display_name: str | None = None
+    note: str = ""
     factor: float
     active_recipe_item_ids: list[int] = []
     variant_group_id: str | None = None
@@ -214,6 +215,7 @@ class MealItemCreateIn(Schema):
     measuring_unit_id: int | None = None
     portion_id: int | None = None
     display_name: str | None = None
+    note: str = Field(default="", max_length=500)
     factor: float = 1.0
 
     @model_validator(mode="after")
@@ -227,6 +229,9 @@ class MealItemUpdateIn(Schema):
     factor: float | None = None
     quantity: float | None = None
     servings: float | None = None
+    portion_id: int | None = None
+    measuring_unit_id: int | None = None
+    note: str | None = Field(default=None, max_length=500)
 
     @model_validator(mode="after")
     def validate_quantity_not_cleared(self):

@@ -34,7 +34,7 @@ import { BUFFET_ROLE_ORDER, buffetRoleName, itemBuffetRole } from '@/lib/buffetR
 import { MealSuggestionPanel } from '@/components/planning/suggestions/MealSuggestionPanel';
 import { FactorInput } from './FactorInput';
 import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
-import { QuantityInput } from './QuantityInput';
+import { MealItemAmountEditor, MealItemAmountText, MealItemNote, type MealItemPatch } from '@/components/planning/MealItemAmountEditor';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { formatCount, formatNumber } from '@/lib/format';
@@ -53,7 +53,7 @@ export function MealSlot({
   onActivate,
   onDeleteItem,
   onUpdateItemFactor,
-  onUpdateItemQuantity,
+  onUpdateItem,
   onUpdateMeal,
   onScaleMeal,
   onCopyFromPlan,
@@ -67,12 +67,12 @@ export function MealSlot({
   siblingMeals?: Meal[];
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
-  onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number, note?: string) => void;
   /** Reports the slot the user last interacted with (target of the Cmd+K shortcut). */
   onActivate?: (mealId: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
-  onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
+  onUpdateItem?: (itemId: number, patch: MealItemPatch) => void;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
     override_portions?: number | null;
@@ -162,15 +162,6 @@ export function MealSlot({
   const mealIsTooExpensive = mealTargetCost > 0 && mealActualCost > mealTargetCost;
   const mealIsUnhealthy = meal.items.some((item) => (item.nutri_class ?? 0) >= 4);
 
-  const isPortionUnit = (name: string) => !['g', 'ml'].includes(name.toLowerCase());
-  const formatPortion = (item: Meal['items'][number]): string => {
-    if (isPortionUnit(item.measuring_unit_name) && item.quantity != null) {
-      return `×${formatNumber(item.quantity, { maxDecimals: 2 }).replace('.', ',')} ${item.measuring_unit_name}`;
-    }
-    if (item.quantity_g != null) return `${Math.round(item.quantity_g)}g`;
-    return 'Menge nicht angegeben';
-  };
-
   const renderMealItemCard = (it: Meal['items'][number]): React.ReactNode => {
     const isIng = !it.recipe_id && it.ingredient_id;
     const viol = (scanData?.violations.filter((v) => v.meal_id === meal.id && v.recipe_id === it.recipe_id) || []);
@@ -197,24 +188,13 @@ export function MealSlot({
               <div className="flex items-center gap-2 text-body text-muted-foreground flex-wrap">
                 {it.energy_kcal != null && <span>{Math.round(it.energy_kcal / effPortions)} kcal</span>}
                 {it.cost_eur != null && <span>{formatNumber((it.cost_eur / effPortions), { maxDecimals: 2 })} €</span>}
-                {isIng && !meal.is_synced && isPortionUnit(it.measuring_unit_name) ? (
-                  // NEW format: portion-based, editable
-                  <>
-                    {onUpdateItemQuantity ? <QuantityInput value={it.quantity ?? 0} onChange={(q) => onUpdateItemQuantity(it.id, q)} /> : <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} />}
-                    <span className="text-caption text-muted-foreground">{it.measuring_unit_name}{it.quantity_g != null ? <span className="text-muted-foreground/60 ml-0.5">({Math.round(it.quantity_g)}g)</span> : ''}</span>
-                  </>
-                ) : isIng && !meal.is_synced ? (
-                  <span className={`text-caption ${it.has_missing_weight ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    {formatPortion(it)}
-                  </span>
-                ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
-                   // Portion-based, read-only fallback
-                    <span>{formatPortion(it)}</span>
-                 ) : isIng ? (
-                   // Raw unit, read-only fallback
-                    <span className="text-caption">{formatPortion(it)}</span>
+                {isIng ? (
+                  canEdit && !meal.is_synced && onUpdateItem
+                    ? <MealItemAmountEditor item={it} onUpdateItem={onUpdateItem} />
+                    : <span className="text-caption"><MealItemAmountText item={it} /></span>
                  ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{formatNumber(it.factor, { maxDecimals: 2 }).replace('.', ',')}</span>)}
               </div>
+              {isIng && <MealItemNote item={it} canEdit={canEdit && !meal.is_synced} onUpdateItem={onUpdateItem} />}
             </div>
             {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(it.id)} className="p-1 rounded-lg text-muted-foreground hover:text-destructive transition-colors"><X className="w-4 h-4" /></button>}
           </div>
@@ -235,8 +215,8 @@ export function MealSlot({
         targetLabel={targetLabel}
         normPortions={effPortions}
         onSelectRecipe={(recipeId) => handleSelect(recipeId)}
-        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
-          onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity);
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _name, note) => {
+          onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity, note);
           setDialogOpen(false);
         }}
         nutritionalTagIds={nutritionalTagIds}
@@ -613,29 +593,16 @@ export function MealSlot({
                                 </span>
                               )}
                             </div>
+                            {isIngredient && <MealItemNote item={item} canEdit={canEdit && !meal.is_synced} onUpdateItem={onUpdateItem} />}
                           </div>
                           <div className="flex items-center gap-2 text-caption text-muted-foreground shrink-0">
                             {item.energy_kcal != null && (
                               <span>{Math.round(item.energy_kcal / effPortions)} kcal</span>
                             )}
-                            {isIngredient && !meal.is_synced && isPortionUnit(item.measuring_unit_name) ? (
-                              <>
-                                {onUpdateItemQuantity ? (
-                                  <QuantityInput value={item.quantity ?? 0} onChange={(q) => onUpdateItemQuantity(item.id, q)} />
-                                ) : (
-                                  <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor(item.id, f)} />
-                                )}
-                                <span>
-                                  {item.measuring_unit_name}
-                                  {item.quantity_g != null && <span className="text-muted-foreground/60 ml-0.5">({Math.round(item.quantity_g)}g)</span>}
-                                </span>
-                              </>
-                            ) : isIngredient && !meal.is_synced ? (
-                              <span className="text-caption">{Math.round(item.quantity_g ?? 0)}g</span>
-                            ) : isIngredient && isPortionUnit(item.measuring_unit_name) ? (
-                               <span>{formatPortion(item)}</span>
-                            ) : isIngredient ? (
-                               <span className="text-caption">{formatPortion(item)}</span>
+                            {isIngredient ? (
+                              canEdit && !meal.is_synced && onUpdateItem
+                                ? <MealItemAmountEditor item={item} onUpdateItem={onUpdateItem} />
+                                : <MealItemAmountText item={item} />
                             ) : (
                               <>
                                 {canEdit && !meal.is_synced ? (

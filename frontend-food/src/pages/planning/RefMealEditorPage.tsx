@@ -3,6 +3,7 @@
  * Route: /meal-plans/:id/ref-meals/:mealType
  */
 import { useState, useMemo } from 'react';
+import { MealItemAmountText } from '@/components/planning/MealItemAmountEditor';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import {
@@ -338,7 +339,7 @@ export default function RefMealEditorPage() {
                         {item.display_name || item.recipe_title || item.ingredient_name || 'Unbekannt'}
                       </span>
                       <span className="text-muted-foreground">
-                        {item.quantity ? `${Math.round(item.quantity)} ${item.measuring_unit_name || 'g'}` : `×${item.factor}`}
+                        {item.quantity ? <MealItemAmountText item={item} /> : `×${item.factor}`}
                         {item.energy_kcal != null && ` · ${Math.round(item.energy_kcal)} kcal`}
                       </span>
                     </div>
