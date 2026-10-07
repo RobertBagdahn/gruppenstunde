@@ -1,5 +1,5 @@
 import type { MealItem } from '@/schemas/mealPlan';
-import { formatWeight } from '@/lib/format';
+import { formatMealItemAmount } from '@/lib/ingredientAmount';
 
 /**
  * Formats a number with comma as decimal separator, max 2 decimals.
@@ -15,33 +15,13 @@ export function formatQuantityNumber(value: number): string {
 /**
  * Generates a clean portion label for an ingredient or meal item from its
  * structured quantity fields (recipe items have no per-portion quantity and
- * fall through to the empty string).
+ * fall through to the empty string). Shares its amount logic with the recipe views.
  */
 export function formatItemPortion(item: MealItem): string {
+  const { primary, secondary } = formatMealItemAmount(item);
+  if (primary === '—') return '';
   const perPersonSuffix = item.is_per_norm_person ? ' / P.' : '';
-
-  if (item.quantity != null && item.quantity > 0 && item.portion_name) {
-    // A chosen portion defines what the quantity counts: "1 Scheibe / P. (30 g)".
-    const weight = item.quantity_g != null && item.quantity_g > 0 ? ` (${formatWeight(item.quantity_g)})` : '';
-    return `${formatQuantityNumber(item.quantity)} ${item.portion_name}${perPersonSuffix}${weight}`;
-  }
-
-  if (item.quantity != null && item.quantity > 0) {
-    const qtyStr = formatQuantityNumber(item.quantity);
-    const unit = item.measuring_unit_name && item.measuring_unit_name.toLowerCase() !== 'stück'
-      ? ` ${item.measuring_unit_name}`
-      : '';
-    const weightStr = item.quantity_g != null && item.measuring_unit_name?.toLowerCase() !== 'gramm' && item.measuring_unit_name?.toLowerCase() !== 'g'
-      ? ` (${Math.round(item.quantity_g)}g)`
-      : '';
-    return `${qtyStr}${unit}${weightStr}${perPersonSuffix}`;
-  }
-
-  if (item.quantity_g != null && item.quantity_g > 0) {
-    return `${Math.round(item.quantity_g)} g${perPersonSuffix}`;
-  }
-
-  return '';
+  return `${primary}${perPersonSuffix}${secondary ? ` (${secondary})` : ''}`;
 }
 
 export interface BreakfastSummary {

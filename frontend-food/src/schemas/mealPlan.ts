@@ -63,6 +63,7 @@ export const MealItemSchema = z.object({
   portion_id: z.number().nullable().optional(),
   portion_name: z.string().optional(),
   display_name: z.string().nullable(),
+  note: z.string().optional(),
   factor: z.number(),
   active_recipe_item_ids: z.array(z.number()),
   variant_group_id: z.string().nullable(),

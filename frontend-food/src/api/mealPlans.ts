@@ -379,6 +379,7 @@ export function useAddMealItem(mealPlanId: number) {
       quantity?: number;
       measuring_unit_id?: number;
       portion_id?: number;
+      note?: string;
       factor?: number;
     }) => postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/items/`, body, MealItemSchema),
     onSuccess: () => {
@@ -418,19 +419,31 @@ export function useRemoveMealItem(mealPlanId: number) {
   });
 }
 
+export interface UpdateMealItemVars {
+  itemId: number;
+  factor?: number;
+  quantity?: number;
+  /** Unit change: the backend converts the quantity so the grams stay the same. */
+  portion_id?: number | null;
+  measuring_unit_id?: number | null;
+  note?: string;
+}
+
 export function useUpdateMealItem(mealPlanId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, factor, quantity }: { itemId: number; factor?: number; quantity?: number }) =>
+    mutationFn: ({ itemId, ...body }: UpdateMealItemVars) =>
       patchJson(
         `${API_BASE}/${mealPlanId}/meal-items/${itemId}/`,
-        { ...(factor !== undefined ? { factor } : {}), ...(quantity !== undefined ? { quantity } : {}) },
+        Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined)),
         MealItemSchema,
       ),
-    onMutate: async ({ itemId, factor, quantity }) => {
+    onMutate: async ({ itemId, factor, quantity, portion_id, measuring_unit_id }) => {
       await queryClient.cancelQueries({ queryKey: ['meal-plan', mealPlanId] });
       const previousPlan = queryClient.getQueryData<MealPlanDetail>(['meal-plan', mealPlanId]);
-      if (previousPlan) {
+      const changesUnit = portion_id !== undefined || measuring_unit_id !== undefined;
+      // A unit change is converted by the backend, so only plain scaling is applied optimistically.
+      if (previousPlan && !changesUnit && (factor !== undefined || quantity !== undefined)) {
         queryClient.setQueryData<MealPlanDetail>(
           ['meal-plan', mealPlanId],
           scaleItemInPlan(previousPlan, itemId, { factor, quantity }),

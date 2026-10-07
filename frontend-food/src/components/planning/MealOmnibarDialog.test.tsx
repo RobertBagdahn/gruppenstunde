@@ -149,4 +149,36 @@ describe('MealOmnibarDialog', () => {
 
     expect(handleOpenChange).not.toHaveBeenCalled();
   });
+
+  it('asks for unit, amount and note before adding an ingredient', () => {
+    searchData.current = {
+      recipes: [],
+      ingredients: [
+        {
+          ...baseIngredient,
+          portions: [{ id: 5, name: 'EL', measuring_unit: 'Gramm', measuring_unit_id: 1, quantity: 1, weight_g: 15 }],
+        },
+      ],
+    };
+    const handleSelectIngredient = vi.fn();
+    render(
+      <MealOmnibarDialog
+        open={true}
+        onOpenChange={() => {}}
+        onSelectRecipe={() => {}}
+        onSelectIngredient={handleSelectIngredient}
+      />
+    );
+
+    fireEvent.click(screen.getAllByText('Haferflocken')[0]);
+    const addButtons = screen.getAllByRole('button', { name: /Zutat hinzufügen/ });
+    fireEvent.click(addButtons[addButtons.length - 1]);
+    expect(handleSelectIngredient).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Menge'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Notiz (optional)'), { target: { value: 'Bio' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(handleSelectIngredient).toHaveBeenCalledWith(201, 5, 1, 2, 'Haferflocken', 'Bio');
+  });
 });

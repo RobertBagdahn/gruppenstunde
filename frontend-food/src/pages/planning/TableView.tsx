@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { formatItemPortion, getBreakfastSummary } from '@/utils/formatItemDisplay';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
-import { QuantityInput } from './QuantityInput';
+import { MealItemAmountEditor, MealItemNote, type MealItemPatch } from '@/components/planning/MealItemAmountEditor';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import { formatCount, formatNumber } from '@/lib/format';
 import {
@@ -56,11 +56,12 @@ interface TableViewProps {
     ingredientId: number,
     portionId: number | null,
     measuringUnitId: number | null,
-    quantity: number
+    quantity: number,
+    note?: string
   ) => void;
   onDeleteItem?: (id: number) => void;
   onUpdateItemFactor?: (itemId: number, factor: number) => void;
-  onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
+  onUpdateItem?: (itemId: number, patch: MealItemPatch) => void;
   onDeleteMeal?: (id: number) => void;
   onUpdateMeal?: (
     mealId: number,
@@ -93,7 +94,7 @@ export default function TableView({
   onAddIngredient,
   onDeleteItem,
   onUpdateItemFactor,
-  onUpdateItemQuantity,
+  onUpdateItem,
   onDeleteMeal,
   onUpdateMeal,
   onScaleMeal,
@@ -473,7 +474,8 @@ export default function TableView({
                                             (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
                                           ) || [];
                                           const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
-                                          const portionLabel = item.ingredient_id && !item.recipe_id ? formatItemPortion(item) : null;
+                                          const isEditableIngredient = !!item.ingredient_id && !item.recipe_id && !!onUpdateItem && item.quantity != null && canEdit && !meal.is_synced;
+                                          const portionLabel = item.ingredient_id && !item.recipe_id && !isEditableIngredient ? formatItemPortion(item) : null;
 
                                           return (
                                             <div
@@ -526,8 +528,8 @@ export default function TableView({
 
                                                 <div className="flex items-center gap-1 shrink-0">
                                                   {canEdit && !meal.is_synced ? (
-                                                    item.ingredient_id && !item.recipe_id && onUpdateItemQuantity && item.quantity != null ? (
-                                                      <QuantityInput value={item.quantity} onChange={(q) => onUpdateItemQuantity(item.id, q)} />
+                                                    item.ingredient_id && !item.recipe_id && onUpdateItem && item.quantity != null ? (
+                                                      <MealItemAmountEditor item={item} onUpdateItem={onUpdateItem} />
                                                     ) : (
                                                       <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor?.(item.id, f)} />
                                                     )
@@ -551,6 +553,9 @@ export default function TableView({
                                                   )}
                                                 </div>
                                               </div>
+                                              {item.ingredient_id && !item.recipe_id && (
+                                                <MealItemNote item={item} canEdit={canEdit && !meal.is_synced} onUpdateItem={onUpdateItem} />
+                                              )}
                                             </div>
                                           );
                                         };
@@ -887,9 +892,9 @@ export default function TableView({
           onAddRecipe?.(searchDialogMeal.id, recipeId);
           setSearchDialogMeal(null);
         }}
-        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _ingredientName) => {
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _ingredientName, note) => {
           if (!searchDialogMeal) return;
-          onAddIngredient?.(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
+          onAddIngredient?.(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity, note);
           setSearchDialogMeal(null);
         }}
         nutritionalTagIds={nutritionalTagIds}

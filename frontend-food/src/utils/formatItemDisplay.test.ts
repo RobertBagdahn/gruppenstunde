@@ -43,7 +43,7 @@ describe('formatItemDisplay', () => {
     const label = formatItemPortion(item);
     // Should NOT contain the ingredient name
     expect(label).not.toContain('Emmentaler');
-    expect(label).toBe('16,7 Gramm / P.');
+    expect(label).toBe('16,7 g / P.');
   });
 
   it('formats a named-portion item using quantity and unit', () => {
@@ -77,7 +77,7 @@ describe('formatItemDisplay', () => {
     };
 
     const label = formatItemPortion(item);
-    expect(label).toBe('2 Scheibe (100g) / P.');
+    expect(label).toBe('2 Scheibe / P. (100 g)');
   });
 
   it('summarizes breakfast items accurately', () => {
@@ -180,5 +180,41 @@ describe('formatItemDisplay', () => {
     } satisfies MealItem;
 
     expect(formatItemPortion(item)).toBe('1 Scheibe / P. (30 g)');
+  });
+
+  it('names a pre-weighed portion instead of its gram unit', () => {
+    const item = {
+      id: 4,
+      recipe_id: null,
+      recipe_title: '',
+      recipe_slug: '',
+      image_url: null,
+      ingredient_id: 12,
+      ingredient_name: 'Frischkäse',
+      ingredient_slug: 'frischkaese',
+      quantity: 0.5,
+      measuring_unit_id: 1,
+      measuring_unit_name: 'Gramm',
+      portion_id: 8,
+      portion_name: 'EL',
+      display_name: null,
+      factor: 1,
+      active_recipe_item_ids: [],
+      variant_group_id: null,
+      energy_kcal: 37,
+      cost_eur: 0.1,
+      quantity_g: 15,
+      ingredient_tags: [],
+      recipe_type: '',
+      overrides: [],
+      has_missing_weight: false,
+      is_per_norm_person: true,
+      buffet_role: '',
+      is_breakfast_assistant: false,
+      warnings: [],
+    } satisfies MealItem;
+
+    expect(formatItemPortion(item)).toBe('0,5 EL / P. (15 g)');
+    expect(formatItemPortion({ ...item, portion_id: null, portion_name: '', quantity: 15 })).toBe('15 g / P.');
   });
 });

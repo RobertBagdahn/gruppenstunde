@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  MealItemSchema,
   PlanSuggestionContextSchema,
   RecipeSearchResultSchema,
   RecipeSuggestionSchema,
@@ -89,5 +90,18 @@ describe('suggestion panel contract', () => {
 
   it('rejects unknown context values', () => {
     expect(() => PlanSuggestionContextSchema.parse({ cooking_sources: ['microwave'] })).toThrow();
+  });
+
+  it('carries the optional note of a meal item', () => {
+    const base = {
+      id: 1, recipe_id: null, recipe_title: '', recipe_slug: '', image_url: null, ingredient_id: 2,
+      ingredient_name: 'Gurke', ingredient_slug: 'gurke', quantity: 100, measuring_unit_id: 1,
+      measuring_unit_name: 'Gramm', display_name: null, factor: 1, active_recipe_item_ids: [],
+      variant_group_id: null, energy_kcal: 15, cost_eur: null, quantity_g: 100, ingredient_tags: [],
+      recipe_type: '', overrides: [],
+    };
+
+    expect(MealItemSchema.parse({ ...base, note: 'ohne Schale' }).note).toBe('ohne Schale');
+    expect(MealItemSchema.parse(base).note).toBeUndefined();
   });
 });

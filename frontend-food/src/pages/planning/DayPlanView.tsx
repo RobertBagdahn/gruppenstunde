@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { MealItemPatch } from '@/components/planning/MealItemAmountEditor';
 import { Plus, Trash2 } from 'lucide-react';
 import { useReorderMeals } from '@/api/mealPlans';
 import { notify } from '@/lib/notify';
@@ -31,7 +32,7 @@ export function DayPlanView({
   onActivateMeal,
   onDeleteItem,
   onUpdateItemFactor,
-  onUpdateItemQuantity,
+  onUpdateItem,
   onUpdateMeal,
   onScaleMeal,
   onCopyFromPlan,
@@ -53,11 +54,11 @@ export function DayPlanView({
   onAddMealType: (date: string, mealType: string) => Promise<Meal>;
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
-  onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number, note?: string) => void;
   onActivateMeal?: (mealId: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
-  onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
+  onUpdateItem?: (itemId: number, patch: MealItemPatch) => void;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
     override_portions?: number | null;
@@ -231,7 +232,7 @@ export function DayPlanView({
                       onActivate={onActivateMeal}
                       onDeleteItem={onDeleteItem}
                       onUpdateItemFactor={onUpdateItemFactor}
-                      onUpdateItemQuantity={onUpdateItemQuantity}
+                      onUpdateItem={onUpdateItem}
                       onUpdateMeal={onUpdateMeal}
                       onScaleMeal={onScaleMeal}
                       onCopyFromPlan={onCopyFromPlan}

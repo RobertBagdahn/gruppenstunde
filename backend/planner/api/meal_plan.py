@@ -1176,6 +1176,7 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
         measuring_unit_id=chosen_portion.measuring_unit_id if chosen_portion else payload.measuring_unit_id,
         portion=chosen_portion,
         display_name=payload.display_name,
+        note=payload.note.strip(),
         factor=payload.factor,
     )
     return _attach_warnings(item)
@@ -1419,6 +1420,52 @@ def remove_meal_item(request, meal_plan_id: int, item_id: int):
     return {"success": True}
 
 
+def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
+    """Apply quantity / unit / portion changes of an update request.
+
+    A pure unit or portion change keeps the grams per person: the quantity is
+    recomputed in the new unit. A quantity sent together with the unit is taken
+    as the amount in that unit and is not converted.
+    """
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+    from supply.services.portion_resolution import resolve_trusted_weight
+
+    fields = payload.model_fields_set
+    changes_unit = "portion_id" in fields or "measuring_unit_id" in fields
+    if not changes_unit:
+        if payload.quantity is not None:
+            item.quantity = payload.quantity
+            item.save(update_fields=["quantity"])
+        return
+
+    if item.ingredient is None:
+        raise HttpError(422, "Einheit und Portion können nur für Zutaten gewählt werden")
+
+    grams = _resolve_ingredient_weight_g(item)
+    if payload.portion_id:
+        portion = _resolve_chosen_portion(item.ingredient, payload.portion_id)
+        if resolve_trusted_weight(portion) is None:
+            raise HttpError(422, "Für diese Portion fehlt das Gewicht, die Menge kann nicht umgerechnet werden.")
+        item.portion = portion
+        item.measuring_unit_id = portion.measuring_unit_id
+    else:
+        _require_defined_unit(item.ingredient, payload.measuring_unit_id)
+        item.portion = None
+        item.measuring_unit_id = payload.measuring_unit_id
+
+    if payload.quantity is not None:
+        item.quantity = payload.quantity
+    else:
+        item.quantity = 1
+        grams_per_unit = _resolve_ingredient_weight_g(item)
+        if grams <= 0 or grams_per_unit <= 0:
+            raise HttpError(422, "Für diese Einheit fehlt das Gewicht, die Menge kann nicht umgerechnet werden.")
+        item.quantity = round(grams / grams_per_unit, 2)
+        if item.quantity <= 0:
+            raise HttpError(422, "Die Menge ist in dieser Einheit zu klein.")
+    item.save(update_fields=["quantity", "measuring_unit", "portion"])
+
+
 @meal_plan_router.patch("/{meal_plan_id}/meal-items/{item_id}/", response=MealItemOut)
 def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItemUpdateIn):
     """Update a meal item (e.g. factor)."""
@@ -1443,9 +1490,10 @@ def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItem
             effective = float(item.meal.effective_portions or 1)
             item.factor = round(payload.servings / effective, 4)
             item.save(update_fields=["factor"])
-    if payload.quantity is not None:
-        item.quantity = payload.quantity
-        item.save(update_fields=["quantity"])
+    _apply_unit_change(item, payload)
+    if payload.note is not None:
+        item.note = payload.note.strip()
+        item.save(update_fields=["note"])
     return _attach_warnings(item)
 
 

@@ -1,4 +1,5 @@
 import { MealPlanDetailStateSchema } from '@/schemas/listState';
+import type { MealItemPatch } from '@/components/planning/MealItemAmountEditor';
 import { usePersistedListState } from '@/hooks/usePersistedListState';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -245,11 +246,11 @@ export default function MealPlanDetailPage() {
     );
   }, [updateMealItemMutation]);
 
-  const handleUpdateItemQuantity = useCallback((itemId: number, quantity: number) => {
+  const handleUpdateItem = useCallback((itemId: number, patch: MealItemPatch) => {
     updateMealItemMutation.mutate(
-      { itemId, quantity },
+      { itemId, ...patch },
       {
-        onError: (err: { message: string }) => notify.error('Menge konnte nicht geändert werden', { error: err }),
+        onError: (err: { message: string }) => notify.error('Zutat konnte nicht geändert werden', { error: err }),
       },
     );
   }, [updateMealItemMutation]);
@@ -360,7 +361,7 @@ export default function MealPlanDetailPage() {
     );
   };
 
-  const handleAddIngredient = (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => {
+  const handleAddIngredient = (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number, note?: string) => {
     addMealItemMutation.mutate(
       {
         mealId,
@@ -369,6 +370,7 @@ export default function MealPlanDetailPage() {
         portion_id: portionId ?? undefined,
         measuring_unit_id: measuringUnitId ?? undefined,
         quantity,
+        note: note || undefined,
       },
       {
         onSuccess: (newItem) => {
@@ -642,7 +644,7 @@ export default function MealPlanDetailPage() {
               onAddIngredient={handleAddIngredient}
               onDeleteItem={handleDeleteItem}
               onUpdateItemFactor={handleUpdateItemFactor}
-              onUpdateItemQuantity={handleUpdateItemQuantity}
+              onUpdateItem={handleUpdateItem}
               onUpdateMeal={handleUpdateMeal}
               onScaleMeal={handleScaleMeal}
               onCopyFromPlan={setCopyDialogTargetMealId}
@@ -665,7 +667,7 @@ export default function MealPlanDetailPage() {
               onAddIngredient={handleAddIngredient}
               onDeleteItem={handleDeleteItem}
               onUpdateItemFactor={handleUpdateItemFactor}
-              onUpdateItemQuantity={handleUpdateItemQuantity}
+              onUpdateItem={handleUpdateItem}
               onDeleteMeal={setDeleteMealId}
               onUpdateMeal={handleUpdateMeal}
               onScaleMeal={handleScaleMeal}
@@ -867,8 +869,8 @@ export default function MealPlanDetailPage() {
             handleAddRecipe(omnibarMeal.id, recipeId);
             setOmnibarMealId(null);
           }}
-          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
-            handleAddIngredient(omnibarMeal.id, ingredientId, portionId, measuringUnitId, quantity);
+          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _name, note) => {
+            handleAddIngredient(omnibarMeal.id, ingredientId, portionId, measuringUnitId, quantity, note);
             setOmnibarMealId(null);
           }}
           nutritionalTagIds={plan.nutritional_tag_ids}

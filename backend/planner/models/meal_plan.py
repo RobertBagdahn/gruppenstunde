@@ -653,6 +653,13 @@ class MealItem(models.Model):
         verbose_name=_("Anzeigename"),
         help_text=_("Überschreibt den automatischen Rezept-/Zutatennamen"),
     )
+    note = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        verbose_name=_("Notiz"),
+        help_text=_("Freitext-Notiz zum Eintrag, z. B. 'ohne Zwiebeln'"),
+    )
     factor = models.FloatField(default=1.0, verbose_name=_("Skalierungsfaktor"))
     active_recipe_item_ids = models.JSONField(default=list, blank=True, verbose_name=_("Aktive Rezept-Zutaten"))
     variant_group_id = models.UUIDField(default=None, null=True, blank=True, verbose_name=_("Varianten-Gruppe"))

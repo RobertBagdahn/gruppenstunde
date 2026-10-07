@@ -499,6 +499,12 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
     return result
 
 
+def _direct_ingredient_line(item: MealItem, quantity_display: str) -> str:
+    """Line for a single ingredient entry, with its note when present."""
+    line = f"{item.ingredient.name} — {quantity_display}"
+    return f"{line} ({item.note})" if item.note else line
+
+
 def _build_sub_meal(item: MealItem, portions: float, reserve_factor: float, overrides: dict) -> dict:
     """Build a sub-meal block for exchange-split variants."""
     recipe_name = item.display_name or (
@@ -516,7 +522,7 @@ def _build_sub_meal(item: MealItem, portions: float, reserve_factor: float, over
         lead_minutes = _compute_recipe_lead_minutes(item.recipe)
     elif item.ingredient:
         quantity_display = _format_scaled_direct_quantity(item, portions, reserve_factor)
-        ingredients = [f"{item.ingredient.name} — {quantity_display}"]
+        ingredients = [_direct_ingredient_line(item, quantity_display)]
         steps = []
         allergens = _get_ingredient_allergens(item.ingredient)
         lead_minutes = 15
@@ -552,7 +558,7 @@ def _build_item_data(item: MealItem, portions: float, reserve_factor: float, ove
         lead_minutes = _compute_recipe_lead_minutes(item.recipe)
     elif item.ingredient:
         quantity_display = _format_scaled_direct_quantity(item, portions, reserve_factor)
-        ingredients = [f"{item.ingredient.name} — {quantity_display}"]
+        ingredients = [_direct_ingredient_line(item, quantity_display)]
         steps = []
         allergens = _get_ingredient_allergens(item.ingredient)
         lead_minutes = 15
@@ -574,13 +580,23 @@ def _build_item_data(item: MealItem, portions: float, reserve_factor: float, ove
 
 
 def _format_scaled_direct_quantity(item: MealItem, portions: float, reserve_factor: float) -> str:
-    """Format a direct ingredient quantity scaled by portions * reserve_factor * item.factor."""
-    quantity_display = (
-        f"{_format_decimal(float(item.quantity or 0), 1)} {item.measuring_unit.name if item.measuring_unit else ''}"
+    """Format a direct ingredient quantity scaled by portions * reserve_factor * item.factor.
+
+    With a chosen portion the quantity is a portion count: the portion is named and the
+    weight added ("5 × EL (150 g)"), never labelled with the portion's measuring unit.
+    """
+    scale = (
+        1.0
+        if item.factor == 1.0 and portions == 1 and reserve_factor == 1.0
+        else item.factor * portions * reserve_factor
     )
-    if item.factor == 1.0 and portions == 1 and reserve_factor == 1.0:
-        return quantity_display.strip()
-    scaled = float(item.quantity or 0) * item.factor * portions * reserve_factor
+    scaled = float(item.quantity or 0) * scale
+    if item.portion_id:
+        from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+
+        grams = _resolve_ingredient_weight_g(item) * scale
+        weight = f" ({_format_decimal(grams, 0)} g)" if grams > 0 else ""
+        return f"{_format_decimal(scaled, 1)} × {item.portion.name}{weight}"
     return f"{_format_decimal(scaled, 1)} {item.measuring_unit.name if item.measuring_unit else ''}".strip()
 
 

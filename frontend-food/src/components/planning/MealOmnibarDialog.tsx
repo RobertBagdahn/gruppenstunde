@@ -3,6 +3,7 @@ import { Search, ChefHat, Carrot, Sparkles, Check, X, Users, Euro, AlertCircle, 
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRecipeSearch } from '@/api/mealPlans';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
+import { IngredientQuantityInline } from '@/pages/planning/RecipeSearchDialog';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/format';
 
@@ -42,7 +43,8 @@ export interface MealOmnibarDialogProps {
     portionId: number | null,
     measuringUnitId: number | null,
     quantity: number,
-    ingredientName: string
+    ingredientName: string,
+    note?: string
   ) => void;
   nutritionalTagIds?: number[];
   excludedRecipeIds?: Set<number>;
@@ -64,6 +66,7 @@ export function MealOmnibarDialog({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterPill>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [quantityIngredient, setQuantityIngredient] = useState<IngredientSearchResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus input when opening
@@ -72,6 +75,7 @@ export function MealOmnibarDialog({
       setQuery('');
       setFilter('all');
       setSelectedIndex(0);
+      setQuantityIngredient(null);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
@@ -132,24 +136,35 @@ export function MealOmnibarDialog({
       onSelectRecipe(item.data.id, item.data.title);
       onOpenChange(false);
     } else if (item.type === 'ingredient') {
-      const ing = item.data;
-      const defaultPortion = ing.portions?.[0] || null;
-      if (onSelectIngredient) {
-        onSelectIngredient(
-          ing.id,
-          defaultPortion?.id || null,
-          defaultPortion?.measuring_unit_id || null,
-          1,
-          ing.name
-        );
-      }
-      onOpenChange(false);
+      // The unit and amount are chosen first, like for recipe ingredients.
+      setQuantityIngredient(item.data);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[min(760px,90dvh)] max-h-[90dvh] min-h-0 p-0 overflow-hidden shadow-2xl border-border flex flex-col gap-0">
+        {quantityIngredient ? (
+          <div className="flex flex-1 min-h-0 flex-col p-4">
+            <IngredientQuantityInline
+              ingredient={quantityIngredient}
+              onCancel={() => setQuantityIngredient(null)}
+              onConfirm={(ingredientId, portion, quantity, note) => {
+                onSelectIngredient?.(
+                  ingredientId,
+                  portion?.id ?? null,
+                  portion?.measuring_unit_id ?? null,
+                  quantity,
+                  quantityIngredient.name,
+                  note,
+                );
+                setQuantityIngredient(null);
+                onOpenChange(false);
+              }}
+            />
+          </div>
+        ) : (
+        <>
         {targetLabel && (
           <p className="px-4 pt-3 text-caption text-muted-foreground">
             Hinzufügen zu: <span className="font-semibold text-foreground">{targetLabel}</span>
@@ -440,6 +455,8 @@ export function MealOmnibarDialog({
               {activeItem.type === 'recipe' ? `Gericht hinzufügen (${normPortions} P.)` : 'Zutat hinzufügen'}
             </button>
           </div>
+        )}
+        </>
         )}
       </DialogContent>
     </Dialog>
