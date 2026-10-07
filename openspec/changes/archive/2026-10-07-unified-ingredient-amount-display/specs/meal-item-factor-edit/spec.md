@@ -8,7 +8,7 @@ The system SHALL display an always-visible numeric input field for each recipe-b
 - **WHEN** a MealItem has a `recipe_id`
 - **THEN** the input field shows "× {factor}" as an editable FactorInput
 
-#### Scenario: Ingredient item shows quantity with unit selection
+#### Scenario: Ingredient item shows quantity instead of factor
 - **WHEN** a MealItem has an `ingredient_id` but no `recipe_id` and the user may edit
 - **THEN** the row shows an editable quantity input and a unit/portion selection (e.g., "150" and "Gramm" or "0,5" and "EL")
 - **AND** the factor value is not shown (it is internal to the backend calculation)
