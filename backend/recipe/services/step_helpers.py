@@ -71,34 +71,29 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None,
 def _format_quantity(recipe_item: RecipeItem, scale: float = 1.0) -> str:
     """Format a RecipeItem as 'quantity unit ingredient_name'.
 
-    Example: "500g Mehl" or "2 Tassen Zucker"
+    Plain metric portions keep the compact form ("500g Mehl"). Every other
+    portion is a multiple of its weight ("0,3 x 100g Gurke"), so the amount is
+    derived from the portion weight: "1,05 kg Salatgurke".
     """
+    from supply.services.amount_formatting import format_portion_amount
+    from supply.services.portion_resolution import is_direct_metric_portion
+
     portion = recipe_item.portion
+    quantity = recipe_item.quantity * scale
     if portion is None:
-        quantity = recipe_item.quantity * scale
         qty_str = str(int(quantity)) if quantity == int(quantity) else f"{quantity:.1f}".rstrip("0").rstrip(".")
         return f"{qty_str}g"
-    quantity = recipe_item.quantity * scale
-    unit = portion.measuring_unit
+
     ingredient = portion.ingredient
-    note = recipe_item.note
-
-    # Format quantity
-    if quantity == int(quantity):
-        qty_str = str(int(quantity))
+    if is_direct_metric_portion(portion):
+        qty_str = str(int(quantity)) if quantity == int(quantity) else f"{quantity:.1f}".rstrip("0").rstrip(".")
+        unit_str = portion.measuring_unit.unit if portion.measuring_unit else ""
+        result = f"{qty_str}{unit_str} {ingredient.name}"
     else:
-        qty_str = f"{quantity:.1f}".rstrip("0").rstrip(".")
+        result = f"{format_portion_amount(quantity, portion)} {ingredient.name}"
 
-    # Format unit
-    unit_str = unit.unit if unit else ""
-
-    # Combine
-    result = f"{qty_str}{unit_str} {ingredient.name}"
-
-    # Add note if present
-    if note:
-        result += f", {note}"
-
+    if recipe_item.note:
+        result += f", {recipe_item.note}"
     return result
 
 

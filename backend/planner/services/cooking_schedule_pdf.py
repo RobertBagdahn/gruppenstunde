@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 
 from planner.models import Meal, MealPlan
 from planner.services.cooking_schedule_service import local_time
+from supply.services.amount_formatting import format_cooking_weight, format_portion_amount
 from supply.services.price_service import price_or_none
 
 MEAL_TYPE_LABELS = {
@@ -201,6 +202,9 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                     weight_g = _resolve_ingredient_weight_g(item) * scale
                     qty = float(item.quantity or 0) * scale
                     unit = item.measuring_unit.name if item.measuring_unit else ""
+                    amount = (
+                        format_cooking_weight(weight_g) if weight_g > 0 else f"{_format_decimal(qty, 1)} {unit}".strip()
+                    )
                     price_per_kg = price_or_none(ing.price_per_kg)
                     recipe_cost = (float(price_per_kg)) * weight_g / 1000.0 if price_per_kg is not None else 0.0
                     day_cost += recipe_cost
@@ -226,7 +230,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                             "ingredients": [
                                 {
                                     "name": ing.name,
-                                    "amount": f"{_format_decimal(qty, 1)} {unit}",
+                                    "amount": amount,
                                     "optional": False,
                                 }
                             ],
@@ -252,11 +256,10 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                     if ri.portion and ri.portion.ingredient:
                         scale = recipe_scale
                         qty = float(ri.quantity) * scale
-                        unit = ri.portion.measuring_unit.name if ri.portion.measuring_unit else ""
                         ingredients.append(
                             {
                                 "name": ri.portion.ingredient.name,
-                                "amount": f"{_format_decimal(qty, 1)} {unit}",
+                                "amount": format_portion_amount(qty, ri.portion),
                                 "optional": ri.is_optional if hasattr(ri, "is_optional") else False,
                             }
                         )

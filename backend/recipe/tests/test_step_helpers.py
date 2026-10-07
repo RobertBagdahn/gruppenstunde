@@ -78,7 +78,7 @@ class TestResolvePlaceholders:
 
         assert "500g Mehl" in result
         assert "200g Zucker" in result
-        assert "2stk Zwiebel" in result
+        assert "2 Stück (≈ 240 g) Zwiebel" in result
 
     def test_resolve_mixed_placeholders(self, setup):
         """Test resolving both numeric and name-based placeholders together."""

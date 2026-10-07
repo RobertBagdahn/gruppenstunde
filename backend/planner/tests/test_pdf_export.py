@@ -150,8 +150,40 @@ class TestShoppingListAggregation:
         )
         data = _build_item_data(item, portions=4, reserve_factor=1.5, overrides={})
         # 100 g * 2.0 * 4 * 1.5 = 1200 g
-        assert "1.200" in data["ingredients"][0] or "1200" in data["ingredients"][0]
-        assert data["ingredients"][0].endswith("g")
+        assert data["ingredients"][0] == "Haferflocken — 1,2 kg · à 200 g p. P."
+
+    @pytest.mark.django_db
+    def test_direct_ingredient_with_chosen_portion_uses_portion_weight(self):
+        """0,16 x "100g" for 33 persons is 528 g, not 5,3 "Gramm" (Bundesrat 2026 regression)."""
+        from planner.models import MealItem
+        from supply.tests import make_ingredient, make_measuring_unit, make_portion
+
+        plan = make_meal_plan(norm_portions=33, reserve_factor=1.0)
+        ing = make_ingredient(name="Margarine")
+        unit = make_measuring_unit(name="Gramm")
+        portion = make_portion(ingredient=ing, name="100g", quantity=100.0, weight_g=100.0, measuring_unit=unit)
+        meal = make_meal(meal_plan=plan)
+        item = MealItem.objects.create(
+            meal=meal, recipe=None, ingredient=ing, quantity=0.16, measuring_unit=unit, portion=portion, factor=1.0
+        )
+        data = _build_item_data(item, portions=33, reserve_factor=1.0, overrides={})
+        assert data["ingredients"][0] == "Margarine — 528 g · à 16 g p. P."
+
+    @pytest.mark.django_db
+    def test_recipe_ingredient_with_pre_weighed_portion_uses_portion_weight(self):
+        """0,3 x "100g Gurke" for 35 persons is 1,05 kg, not 10,5 "Gramm"."""
+        from supply.tests import make_ingredient, make_measuring_unit, make_portion
+
+        plan = make_meal_plan(norm_portions=35, reserve_factor=1.0)
+        recipe = make_recipe(title="Gurkensalat", portions=1)
+        ing = make_ingredient(name="Salatgurke")
+        unit = make_measuring_unit(name="Gramm")
+        portion = make_portion(ingredient=ing, name="100g Gurke", quantity=1.0, weight_g=100.0, measuring_unit=unit)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=0.3)
+        meal = make_meal(meal_plan=plan)
+        item = make_meal_item(meal=meal, recipe=recipe)
+        data = _build_item_data(item, portions=35, reserve_factor=1.0, overrides={})
+        assert data["ingredients"][0] == "Salatgurke — 1,05 kg · à 30 g p. P."
 
 
 class TestAllergenMatrix:
@@ -381,3 +413,127 @@ class TestMealPlanPdfAPI:
         plan = make_meal_plan(created_by=user)
         resp = auth_client.get(f"/api/meal-plans/{plan.id}/export/pdf/?page_format=A3")
         assert resp.status_code == 422
+
+
+class TestStepHints:
+    @pytest.mark.django_db
+    def test_description_sentence_is_not_a_step(self):
+        recipe = make_recipe(title="Burger", description="Ein vegetarisches Rezept im Pulled-Pork-Stil.")
+        assert _get_recipe_steps(recipe) == []
+
+    @pytest.mark.django_db
+    def test_numbered_description_is_still_parsed(self):
+        recipe = make_recipe(title="Suppe", description="1. Kochen\n2. Servieren")
+        assert [s["instruction"] for s in _get_recipe_steps(recipe)] == ["Kochen", "Servieren"]
+
+    @pytest.mark.django_db
+    def test_recipe_without_steps_is_flagged_and_summarised(self):
+        plan = make_meal_plan()
+        recipe = make_recipe(title="Burger", description="Ein vegetarisches Rezept im Pulled-Pork-Stil.")
+        make_recipe_item(recipe=recipe, quantity=100)
+        meal = make_meal(meal_plan=plan)
+        item = make_meal_item(meal=meal, recipe=recipe)
+        data = _build_item_data(item, portions=10, reserve_factor=1.0, overrides={})
+        assert data["is_recipe"] is True
+        assert data["steps"] == []
+        assert data["summary"] == "Ein vegetarisches Rezept im Pulled-Pork-Stil."
+
+    @pytest.mark.django_db
+    def test_factor_label_names_portions_per_person(self):
+        plan = make_meal_plan()
+        recipe = make_recipe(title="Burger")
+        make_recipe_item(recipe=recipe, quantity=100)
+        meal = make_meal(meal_plan=plan)
+        item = make_meal_item(meal=meal, recipe=recipe, factor=1.5)
+        data = _build_item_data(item, portions=37, reserve_factor=1.0, overrides={})
+        assert data["portions_label"] == "37 Personen × 1,5 Portionen"
+
+    @pytest.mark.django_db
+    def test_step_placeholders_are_scaled(self):
+        from supply.tests import make_ingredient, make_measuring_unit, make_portion
+
+        plan = make_meal_plan()
+        recipe = make_recipe(title="Gurkensalat", portions=1)
+        ing = make_ingredient(name="Salatgurke")
+        unit = make_measuring_unit(name="Gramm")
+        portion = make_portion(ingredient=ing, name="100g Gurke", quantity=1.0, weight_g=100.0, measuring_unit=unit)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=0.3)
+        RecipeStep.objects.create(recipe=recipe, instruction="Schneide {Salatgurke}.", sort_order=1)
+        meal = make_meal(meal_plan=plan)
+        item = make_meal_item(meal=meal, recipe=recipe)
+        data = _build_item_data(item, portions=35, reserve_factor=1.0, overrides={})
+        assert data["steps"][0]["instruction"] == "Schneide 1,05 kg Salatgurke."
+
+
+class TestShoppingListAmountFormat:
+    @pytest.mark.django_db
+    def test_pdf_shopping_amount_matches_app_format(self):
+        from supply.tests import make_ingredient, make_measuring_unit, make_portion
+
+        plan = make_meal_plan(norm_portions=35, reserve_factor=1.0)
+        recipe = make_recipe(title="Gurkensalat", portions=1)
+        ing = make_ingredient(name="Salatgurke")
+        unit = make_measuring_unit(name="Gramm")
+        portion = make_portion(ingredient=ing, name="100g Gurke", quantity=1.0, weight_g=100.0, measuring_unit=unit)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=0.3)
+        meal = make_meal(meal_plan=plan)
+        make_meal_item(meal=meal, recipe=recipe)
+        sl = _aggregate_shopping_list(plan)
+        amounts = {i["name"]: i["amount"] for sec in sl["total"] for i in sec["items"]}
+        assert amounts["Salatgurke"].startswith("1,1 kg")  # 1.050 g, rounded for purchase
+        assert "ca." not in amounts["Salatgurke"]
+
+
+class TestLayoutData:
+    @pytest.mark.django_db
+    def test_breakfast_of_direct_ingredients_becomes_one_card(self):
+        from planner.models import MealItem
+        from supply.tests import make_ingredient, make_measuring_unit, make_portion
+
+        plan = make_meal_plan(norm_portions=33, reserve_factor=1.0)
+        unit = make_measuring_unit(name="Gramm")
+        meal = make_meal(meal_plan=plan, meal_type="breakfast")
+        for name, qty in (("Margarine", 0.16), ("Nutella", 0.2)):
+            ing = make_ingredient(name=name)
+            portion = make_portion(ingredient=ing, name="100g", quantity=100.0, weight_g=100.0, measuring_unit=unit)
+            MealItem.objects.create(
+                meal=meal, recipe=None, ingredient=ing, quantity=qty, measuring_unit=unit, portion=portion
+            )
+        days = _build_meal_context(plan)
+        card = days[0]["meals"][0]["breakfast_card"]
+        assert [r["name"] for r in card["rows"]] == ["Margarine", "Nutella"]
+        assert card["rows"][0]["total"] == "528 g"
+        assert card["rows"][0]["per_person"] == "16 g"
+        assert 3 <= len(card["steps"]) <= 5
+
+    @pytest.mark.django_db
+    def test_open_meal_is_shown_as_open_in_schedule(self):
+        from planner.services import pdf_export
+
+        plan = make_meal_plan()
+        make_meal(meal_plan=plan)  # no items
+        captured: dict = {}
+
+        def fake_render(html, export_type):
+            captured["html"] = html
+            return b"%PDF"
+
+        import core.services.pdf_rendering as rendering
+
+        original = rendering.render_html_to_pdf
+        rendering.render_html_to_pdf = fake_render
+        try:
+            pdf_export.generate_meal_plan_pdf(plan, exclude_shopping_list=True)
+        finally:
+            rendering.render_html_to_pdf = original
+        assert "Gerichte offen" in captured["html"]
+
+    @pytest.mark.django_db
+    def test_generated_pdf_renders_with_new_layout(self):
+        plan = make_meal_plan()
+        recipe = make_recipe(title="Testgericht")
+        make_recipe_item(recipe=recipe, quantity=100)
+        meal = make_meal(meal_plan=plan)
+        make_meal_item(meal=meal, recipe=recipe)
+        pdf = generate_meal_plan_pdf(plan)
+        assert pdf.startswith(b"%PDF")

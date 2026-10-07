@@ -204,7 +204,28 @@ def _extract_steps_from_markdown(markdown_text: str) -> list[dict]:
     return steps
 
 
-def _get_recipe_steps(recipe) -> list[dict]:
+def _is_summary_only(markdown_text: str) -> bool:
+    """True when a description is one plain sentence — a summary, not a list of steps."""
+    lines = [line.strip() for line in (markdown_text or "").strip().split("\n") if line.strip()]
+    if len(lines) != 1:
+        return False
+    return not re.match(r"^(\d+[.)]|[-*]\s|#{1,3}\s)", lines[0])
+
+
+def _get_recipe_summary(recipe) -> str:
+    """Short description shown instead of a fake "step 1" when a recipe has no steps."""
+    if not recipe or not recipe.description or recipe.steps.exists():
+        return ""
+    return recipe.description.strip() if _is_summary_only(recipe.description) else ""
+
+
+def _recipe_step_scale(item: MealItem, portions: float, reserve_factor: float) -> float:
+    """Quantity scale of a meal item relative to the recipe's own portion count."""
+    recipe_servings = max((item.recipe.portions if item.recipe else 1) or 1, 1)
+    return portions * item.factor * reserve_factor / recipe_servings
+
+
+def _get_recipe_steps(recipe, scale: float = 1.0) -> list[dict]:
     """Get structured recipe steps with resolved placeholders or parsed from description."""
     if not recipe:
         return []
@@ -219,7 +240,7 @@ def _get_recipe_steps(recipe) -> list[dict]:
         result: list[dict] = []
         for idx, s in enumerate(steps_qs, 1):
             try:
-                instruction = resolve_placeholders(s, recipe_items_map)
+                instruction = resolve_placeholders(s, recipe_items_map, scale)
             except Exception:
                 instruction = s.instruction
             instruction = re.sub(r"\{([^{}]+)\}", r"\1", instruction)
@@ -235,7 +256,7 @@ def _get_recipe_steps(recipe) -> list[dict]:
             )
         return result
 
-    if recipe.description:
+    if recipe.description and not _is_summary_only(recipe.description):
         return _extract_steps_from_markdown(recipe.description)
 
     return []
@@ -358,6 +379,7 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
             "items__ingredient__retail_section",
             "items__ingredient__nutritional_tags",
             "items__measuring_unit",
+            "items__portion__measuring_unit",
             "items__overrides__recipe_item__portion__ingredient",
         )
         .order_by("start_datetime")
@@ -457,6 +479,7 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                         "dishes": dishes,
                         "allergens": meal_allergens,
                         "sub_meals": sub_meals,
+                        "breakfast_card": None,
                         "items": [],
                         "note": meal.note if (meal.note and meal.note_is_published) else "",
                     }
@@ -482,6 +505,11 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                         "dishes": dishes,
                         "allergens": meal_allergens,
                         "sub_meals": [],
+                        "breakfast_card": (
+                            _build_breakfast_card(items, portions, meal_plan.reserve_factor)
+                            if meal.meal_type == "breakfast"
+                            else None
+                        ),
                         "items": items_data,
                         "note": meal.note if (meal.note and meal.note_is_published) else "",
                     }
@@ -511,7 +539,7 @@ def _build_sub_meal(item: MealItem, portions: float, reserve_factor: float, over
 
     if item.recipe:
         ingredients = _get_recipe_ingredients(item, portions, reserve_factor, overrides.get(item.id, {}))
-        steps = _get_recipe_steps(item.recipe)
+        steps = _get_recipe_steps(item.recipe, _recipe_step_scale(item, portions, reserve_factor))
         allergens = _get_recipe_allergens(item.recipe)
         lead_minutes = _compute_recipe_lead_minutes(item.recipe)
     elif item.ingredient:
@@ -531,8 +559,48 @@ def _build_sub_meal(item: MealItem, portions: float, reserve_factor: float, over
         "portions_display": portions_display,
         "ingredients": ingredients,
         "steps": steps,
+        "is_recipe": bool(item.recipe),
+        "summary": _get_recipe_summary(item.recipe),
         "allergens": allergens,
         "lead_minutes": lead_minutes,
+    }
+
+
+def _format_portions_label(portions: float, factor: float) -> str | None:
+    """ "37 Personen × 1,5 Portionen" when an item runs with a factor, otherwise nothing."""
+    if factor == 1.0:
+        return None
+    persons = f"{portions:g}".replace(".", ",")
+    return f"{persons} Personen × {_format_decimal(factor, 2).rstrip('0').rstrip(',')} Portionen"
+
+
+BREAKFAST_CARD_STEPS = [
+    "Getränke zubereiten und warm beziehungsweise kühl halten.",
+    "Brot und Brötchen aufschneiden und bereitstellen.",
+    "Aufstriche, Aufschnitt, Käse und Beilagen anrichten.",
+    "Buffet aufbauen und Allergene kennzeichnen.",
+]
+
+
+def _build_breakfast_card(items: list[MealItem], portions: float, reserve_factor: float) -> dict | None:
+    """One compact card for a breakfast made only of direct ingredients."""
+    if not items or any(item.recipe for item in items):
+        return None
+    rows = []
+    for item in items:
+        if not item.ingredient:
+            return None
+        total, per_person = _direct_quantity_parts(item, portions, reserve_factor)
+        rows.append(
+            {
+                "name": item.display_name or item.ingredient.name,
+                "total": total,
+                "per_person": per_person if portions > 1 else "",
+            }
+        )
+    return {
+        "rows": rows,
+        "steps": [{"number": idx, "instruction": text} for idx, text in enumerate(BREAKFAST_CARD_STEPS, 1)],
     }
 
 
@@ -541,13 +609,13 @@ def _build_item_data(item: MealItem, portions: float, reserve_factor: float, ove
     recipe_name = item.display_name or (
         item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?")
     )
-    portions_label = f"{_format_decimal(portions * item.factor, 0)} Pers." if item.factor != 1.0 else None
+    portions_label = _format_portions_label(portions, item.factor)
     item_overrides = overrides.get(item.id, {})
 
     excluded = item_overrides.get("excluded", False)
     if item.recipe:
         ingredients = _get_recipe_ingredients(item, portions, reserve_factor, item_overrides)
-        steps = _get_recipe_steps(item.recipe)
+        steps = _get_recipe_steps(item.recipe, _recipe_step_scale(item, portions, reserve_factor))
         allergens = _get_recipe_allergens(item.recipe)
         lead_minutes = _compute_recipe_lead_minutes(item.recipe)
     elif item.ingredient:
@@ -568,25 +636,63 @@ def _build_item_data(item: MealItem, portions: float, reserve_factor: float, ove
         "ingredients": ingredients,
         "excluded": excluded,
         "steps": steps,
+        "is_recipe": bool(item.recipe),
+        "summary": _get_recipe_summary(item.recipe),
         "allergens": allergens,
         "lead_minutes": lead_minutes,
     }
 
 
-def _format_scaled_direct_quantity(item: MealItem, portions: float, reserve_factor: float) -> str:
-    """Format a direct ingredient quantity scaled by portions * reserve_factor * item.factor."""
-    quantity_display = (
-        f"{_format_decimal(float(item.quantity or 0), 1)} {item.measuring_unit.name if item.measuring_unit else ''}"
+def _per_person_suffix(per_person: str, portions: float) -> str:
+    """Small second figure "à 16 g p. P." — omitted when the card is for one person."""
+    return f" · à {per_person} p. P." if per_person and portions > 1 else ""
+
+
+def _direct_quantity_parts(item: MealItem, portions: float, reserve_factor: float) -> tuple[str, str]:
+    """Return (total amount, per-person amount) of a direct ingredient.
+
+    The quantity is a multiple of the chosen portion (or of the measuring unit),
+    so printed amounts are derived from the portion weight, never from the
+    portion count next to the unit name. Per-person is empty when unknown.
+    """
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+    from supply.services.amount_formatting import (
+        format_cooking_volume,
+        format_cooking_weight,
+        format_portion_amount,
     )
-    if item.factor == 1.0 and portions == 1 and reserve_factor == 1.0:
-        return quantity_display.strip()
-    scaled = float(item.quantity or 0) * item.factor * portions * reserve_factor
-    return f"{_format_decimal(scaled, 1)} {item.measuring_unit.name if item.measuring_unit else ''}".strip()
+
+    quantity = float(item.quantity or 0)
+    scaled = quantity * item.factor * portions * reserve_factor
+    per_person_qty = quantity * item.factor
+    chosen = item.portion if item.portion is not None and item.portion.deleted_at is None else None
+    if chosen is not None:
+        return format_portion_amount(scaled, chosen), format_portion_amount(per_person_qty, chosen)
+
+    unit_name = (item.measuring_unit.name if item.measuring_unit else "").strip()
+    unit_lower = unit_name.lower()
+    if unit_lower in ("g", "gramm"):
+        return format_cooking_weight(scaled), format_cooking_weight(per_person_qty)
+    if unit_lower in ("ml", "milliliter"):
+        return format_cooking_volume(scaled), format_cooking_volume(per_person_qty)
+
+    weight_g = _resolve_ingredient_weight_g(item) * item.factor * portions * reserve_factor
+    text = f"{_format_decimal(scaled, 1)} {unit_name}".strip()
+    if weight_g > 0:
+        text += f" (≈ {format_cooking_weight(weight_g)})"
+    return text, ""
+
+
+def _format_scaled_direct_quantity(item: MealItem, portions: float, reserve_factor: float) -> str:
+    """Format a direct ingredient amount scaled by portions * reserve_factor * item.factor."""
+    total, per_person = _direct_quantity_parts(item, portions, reserve_factor)
+    return total + _per_person_suffix(per_person, portions)
 
 
 def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: float, item_overrides: dict) -> list[str]:
     """Get formatted ingredient strings for a recipe item, scaled to effective portions and active variants."""
     from planner.services.calculation_context import active_recipe_items
+    from supply.services.amount_formatting import format_portion_amount
 
     recipe = item.recipe
     if not recipe:
@@ -610,9 +716,11 @@ def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: flo
 
             scale = (portions * item.factor * reserve_factor) / recipe_servings
             scaled_qty = base_qty * scale
-            unit = ri.portion.measuring_unit.name if ri.portion.measuring_unit else ""
+            per_person_qty = base_qty * item.factor / recipe_servings
+            amount = format_portion_amount(scaled_qty, ri.portion)
+            suffix = _per_person_suffix(format_portion_amount(per_person_qty, ri.portion), portions)
             note = f" ({ri.note})" if ri.note else ""
-            ingredients.append(f"{ri.portion.ingredient.name} — {_format_decimal(scaled_qty, 1)} {unit}{note}")
+            ingredients.append(f"{ri.portion.ingredient.name} — {amount}{suffix}{note}")
 
     return ingredients
 
@@ -670,12 +778,11 @@ def _collect_ingredient_overrides(meal_plan: MealPlan) -> dict:
 def _aggregate_shopping_list(meal_plan: MealPlan) -> dict:
     """Aggregate the shopping list using the domain service.
 
-    Reuses `generate_shopping_list(meal_plan)` which provides verified retail
-    section grouping, weight-based unit formatting, natural portion options,
-    and portion-option resolution — replacing the former fragile regex parsing.
+    Reuses `generate_shopping_list(meal_plan)` for retail section grouping and
+    trusted weights; amounts are printed like the app ("8,8 kg · 18 × 500-g-Packung").
     """
-    from supply.services.shopping_service import _format_natural_portion, generate_shopping_list
-    from supply.utils import format_weight
+    from supply.services.amount_formatting import format_shopping_item
+    from supply.services.shopping_service import generate_shopping_list
 
     items = generate_shopping_list(meal_plan)
 
@@ -685,13 +792,7 @@ def _aggregate_shopping_list(meal_plan: MealPlan) -> dict:
 
     for item in items:
         section_name = item.retail_section or "Sonstiges"
-        # The PDF is rendered server-side, so — unlike the JSON API — it needs
-        # an actual formatted string; prefer the natural-portion equivalent
-        # (e.g. "≈ 3 Scheiben") over the raw gram amount.
-        if item.piece_equivalent:
-            amount = _format_natural_portion(item.piece_equivalent["count"], item.piece_equivalent["portion_name"])
-        else:
-            amount = format_weight(item.total_quantity_g) if item.total_quantity_g else "0 g"
+        amount = format_shopping_item(item)
         total_by_section[section_name].append(
             {
                 "name": item.ingredient_name,
@@ -845,6 +946,30 @@ def _build_cooking_timeline(meals) -> list[dict]:
     return []
 
 
+def _estimate_total_cost(days: list[dict], reserve_factor: float) -> float | None:
+    """Sum recipe and direct-ingredient costs over all meals; None when nothing has a price."""
+    from planner.services.meal_item_helpers import resolve_ingredient_cost_eur
+
+    total = 0.0
+    has_price = False
+    for day in days:
+        for meal in day.get("day_meals_raw") or []:
+            portions = meal.effective_portions
+            for item in meal.items.all():
+                if item.recipe:
+                    price = item.recipe.cached_price_total
+                    if price:
+                        servings = max(item.recipe.portions or 1, 1)
+                        total += float(price) * portions * item.factor * reserve_factor / servings
+                        has_price = True
+                elif item.ingredient:
+                    cost = resolve_ingredient_cost_eur(item, portions)
+                    if cost is not None:
+                        total += cost * reserve_factor
+                        has_price = True
+    return total if has_price else None
+
+
 def _get_logo_path() -> str | None:
     """Get the Inspi logo path from settings or None if not found."""
     logo_path = getattr(settings, "INSPI_LOGO_PATH", None)
@@ -899,10 +1024,11 @@ def generate_meal_plan_pdf(
                     "meal_type": meal["meal_type"],
                     "meal_type_label": meal["meal_type_label"],
                     "icon": meal["icon"],
-                    "dishes_text": ", ".join(meal["dishes"]) if meal["dishes"] else "—",
-                    "cook_start_time": meal["cook_start_time"],
+                    "is_open": not meal["dishes"],
+                    "dishes_text": ", ".join(meal["dishes"]) if meal["dishes"] else "Gerichte offen",
+                    "cook_start_time": meal["cook_start_time"] if meal["dishes"] else "—",
                     "eating_time": meal["eating_time"],
-                    "lead_display": meal["lead_display"],
+                    "lead_display": meal["lead_display"] if meal["dishes"] else "—",
                     "portions": portions_str,
                     "allergens": meal["allergens"],
                 }
@@ -916,6 +1042,9 @@ def generate_meal_plan_pdf(
         }
         for day in days
     ]
+
+    total_cost = _estimate_total_cost(days, float(meal_plan.reserve_factor or 1.0))
+    total_cost_display = f"{_format_decimal(total_cost, 2)} €" if total_cost is not None else ""
 
     # Raw ORM objects are needed while deriving nutrition/allergens, but not by the template.
     # Drop their prefetched relation caches before WeasyPrint builds its in-memory page tree.
@@ -958,6 +1087,7 @@ def generate_meal_plan_pdf(
         "schedule_table": schedule_table,
         "eating_schedule": eating_schedule,
         "total_meals_count": total_meals_count,
+        "total_cost_display": total_cost_display,
         "include_notes": include_notes,
         "exclude_shopping_list": exclude_shopping_list,
         "exclude_nutrition": exclude_nutrition,

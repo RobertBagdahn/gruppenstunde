@@ -44,7 +44,26 @@
       <div class="meta-card-value">{{ scaling_factor_display }}</div>
     </div>
     {% endif %}
+    {% if total_cost_display %}
+    <div class="cover-meta-card">
+      <div class="meta-card-icon">05</div>
+      <div class="meta-card-label">Geschätzte Gesamtkosten</div>
+      <div class="meta-card-value">{{ total_cost_display }}</div>
+    </div>
+    {% endif %}
   </div>
+
+  {% if eating_schedule %}
+  <div class="cover-short-schedule">
+    <div class="cover-short-title">Kurzzeitplan</div>
+    {% for day in eating_schedule %}
+    <div class="cover-short-day"><strong>{{ day.day_short }}</strong>
+      {% for meal in day.meals %}{{ meal.meal_type_label }} {{ meal.eating_time }}{% if not meal.dishes %} (offen){% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="cover-allergen-hint">Allergene stehen bei jedem Gericht und in der Allergen-Matrix am Ende des Plans.</div>
 </div>
 
 {# ==================== 2. ZEITPLAN & ESSENSZEITEN ==================== #}
@@ -53,45 +72,12 @@
   <div class="section-hero">
     <div class="section-tag">ÜBERSICHT</div>
     <h2>Zeitplan &amp; Essenszeiten</h2>
-    <div class="section-desc">Vollständiger Überblick über Kochstart, Essensbeginn und Zubereitungszeiten</div>
-  </div>
-
-  {# 2a. Wann wird gegessen? (Essenszeiten im Überblick) #}
-  <div class="eating-times-overview">
-    <h3 class="subsection-title"><span class="title-icon">01</span> Wann wird gegessen? (Essenszeiten im Überblick)</h3>
-    <div class="eating-days-container">
-      {% for day in eating_schedule %}
-      <div class="eating-day-card">
-        <div class="eating-day-header">{{ day.day_label }}</div>
-        <div class="eating-meals-list">
-          {% for meal in day.meals %}
-          <div class="eating-meal-item meal-theme-{{ meal.meal_type }}">
-            <div class="meal-type-pill">
-              <span class="pill-name">{{ meal.meal_type_label }}</span>
-            </div>
-            <div class="meal-timing-badges">
-              <span class="badge-eat">Essen: <strong>{{ meal.eating_time }}</strong></span>
-              <span class="badge-cook">Kochen ab: <strong>{{ meal.cook_start_time }}</strong></span>
-              <span class="badge-lead">{{ meal.lead_display }}</span>
-            </div>
-            <div class="meal-dishes-summary">
-              {% if meal.dishes %}
-                <strong>{{ meal.dishes|join:", " }}</strong>
-              {% else %}
-                <span class="muted">—</span>
-              {% endif %}
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
+    <div class="section-desc">Kochstart, Essensbeginn und Zubereitungszeiten im Überblick</div>
   </div>
 
   {# 2b. Zeitplan-Tabelle #}
   <div class="schedule-table-wrap">
-    <h3 class="subsection-title"><span class="title-icon">02</span> Zeitplan-Tabelle</h3>
+
     <table class="schedule-table">
       <thead>
         <tr>
@@ -112,7 +98,7 @@
             <span class="table-meal-badge badge-{{ row.meal_type }}">{{ row.meal_type_label }}</span>
           </td>
           <td class="cell-dishes">
-            <span class="dishes-text">{{ row.dishes_text }}</span>
+            <span class="dishes-text{% if row.is_open %} dishes-open{% endif %}">{{ row.dishes_text }}</span>
             {% if row.allergens %}
             <div class="table-allergens">
               {% for a in row.allergens %}
@@ -250,7 +236,37 @@
 
     {# --- Gerichte, Zutaten & Zubereitung --- #}
     <div class="sheet-content">
-      {% if meal.sub_meals %}
+      {% if meal.breakfast_card %}
+      <div class="dish-card">
+        <div class="dish-card-header">
+          <h3 class="dish-title">{{ meal.meal_type_label }}</h3>
+        </div>
+        <div class="breakfast-card-body">
+          <div class="breakfast-col">
+            <h4 class="col-heading">Zutaten (skaliert)</h4>
+            <table class="breakfast-table">
+              <thead><tr><th>Zutat</th><th class="num">Gesamt</th><th class="num">p. P.</th></tr></thead>
+              <tbody>
+                {% for row in meal.breakfast_card.rows %}
+                <tr><td>{{ row.name }}</td><td class="num"><strong>{{ row.total }}</strong></td><td class="num">{{ row.per_person }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="breakfast-col">
+            <h4 class="col-heading">Schritt-für-Schritt-Anleitung</h4>
+            <div class="steps-flow">
+              {% for step in meal.breakfast_card.steps %}
+              <div class="step-card">
+                <div class="step-number-bubble">{{ step.number }}</div>
+                <div class="step-details"><div class="step-instruction">{{ step.instruction }}</div></div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% elif meal.sub_meals %}
         {# Exchange-Split Varianten (z.B. Normal vs Vegan) #}
         {% for sub in meal.sub_meals %}
         <div class="dish-card">
@@ -301,7 +317,12 @@
               </div>
               {% else %}
               <div class="no-steps-notice">
+                {% if sub.is_recipe %}
+                {% if sub.summary %}<span>{{ sub.summary }}</span><br>{% endif %}
+                <span>Für dieses Rezept sind noch keine Zubereitungsschritte hinterlegt.</span>
+                {% else %}
                 <span>Servierfertig — keine gesonderten Kochschritte erforderlich.</span>
+                {% endif %}
               </div>
               {% endif %}
             </div>
@@ -362,7 +383,12 @@
               </div>
               {% else %}
               <div class="no-steps-notice">
+                {% if item.is_recipe %}
+                {% if item.summary %}<span>{{ item.summary }}</span><br>{% endif %}
+                <span>Für dieses Rezept sind noch keine Zubereitungsschritte hinterlegt.</span>
+                {% else %}
                 <span>Servierfertig — keine gesonderten Kochschritte erforderlich.</span>
+                {% endif %}
               </div>
               {% endif %}
             </div>
@@ -376,7 +402,6 @@
     {% if include_notes %}
     <div class="kitchen-handwritten-box">
       <div class="handwritten-title">Küchen-Notizen (Mengenanpassung, Feedback, Reste):</div>
-      <div class="handwritten-line"></div>
       <div class="handwritten-line"></div>
     </div>
     {% endif %}
