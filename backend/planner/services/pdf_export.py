@@ -480,13 +480,21 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                         "allergens": meal_allergens,
                         "sub_meals": sub_meals,
                         "breakfast_card": None,
+                        "direct_card": None,
                         "items": [],
                         "note": meal.note if (meal.note and meal.note_is_published) else "",
                     }
                 )
             else:
+                breakfast_card = (
+                    _build_breakfast_card(items, portions, meal_plan.reserve_factor)
+                    if meal.meal_type == "breakfast"
+                    else None
+                )
+                direct_card = None if breakfast_card else _build_direct_card(items, portions, meal_plan.reserve_factor)
+                card_items = [i for i in items if i.recipe or not direct_card]
                 items_data = []
-                for item in items:
+                for item in card_items:
                     items_data.append(_build_item_data(item, portions, meal_plan.reserve_factor, overrides))
                 meal_data.append(
                     {
@@ -505,11 +513,8 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                         "dishes": dishes,
                         "allergens": meal_allergens,
                         "sub_meals": [],
-                        "breakfast_card": (
-                            _build_breakfast_card(items, portions, meal_plan.reserve_factor)
-                            if meal.meal_type == "breakfast"
-                            else None
-                        ),
+                        "breakfast_card": breakfast_card,
+                        "direct_card": direct_card,
                         "items": items_data,
                         "note": meal.note if (meal.note and meal.note_is_published) else "",
                     }
@@ -588,26 +593,38 @@ BREAKFAST_CARD_STEPS = [
 ]
 
 
-def _build_breakfast_card(items: list[MealItem], portions: float, reserve_factor: float) -> dict | None:
-    """One compact card for a breakfast made only of direct ingredients."""
-    if not items or any(item.recipe for item in items):
-        return None
+def _direct_rows(items: list[MealItem], portions: float, reserve_factor: float) -> list[dict]:
+    """Table rows (name, total, per person, note) for direct ingredients."""
     rows = []
     for item in items:
-        if not item.ingredient:
-            return None
         total, per_person = _direct_quantity_parts(item, portions, reserve_factor)
         rows.append(
             {
                 "name": item.display_name or item.ingredient.name,
+                "note": item.note or "",
                 "total": total,
                 "per_person": per_person if portions > 1 else "",
             }
         )
+    return rows
+
+
+def _build_breakfast_card(items: list[MealItem], portions: float, reserve_factor: float) -> dict | None:
+    """One compact card for a breakfast made only of direct ingredients."""
+    if not items or any(item.recipe or not item.ingredient for item in items):
+        return None
     return {
-        "rows": rows,
+        "rows": _direct_rows(items, portions, reserve_factor),
         "steps": [{"number": idx, "instruction": text} for idx, text in enumerate(BREAKFAST_CARD_STEPS, 1)],
     }
+
+
+def _build_direct_card(items: list[MealItem], portions: float, reserve_factor: float) -> dict | None:
+    """One table card for the ready-to-serve ingredients of a meal (instead of one card each)."""
+    direct = [item for item in items if not item.recipe and item.ingredient]
+    if not direct:
+        return None
+    return {"rows": _direct_rows(direct, portions, reserve_factor), "has_recipes": len(direct) < len(items)}
 
 
 def _build_item_data(item: MealItem, portions: float, reserve_factor: float, overrides: dict) -> dict:
