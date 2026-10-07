@@ -508,9 +508,6 @@ h1, h2, h3, h4, h5 {
 .meal-sheet {
   page-break-before: always;
   break-before: page;
-  min-height: 660pt;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Sheet Header Banner */
@@ -703,10 +700,11 @@ h1, h2, h3, h4, h5 {
 
 /* Content: Dish Cards */
 .sheet-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10pt;
+  display: block;
+}
+
+.sheet-content > * + * {
+  margin-top: 10pt;
 }
 
 .dish-card {
@@ -880,7 +878,8 @@ h1, h2, h3, h4, h5 {
 
 /* Handwritten Kitchen Notes */
 .kitchen-handwritten-box {
-  margin-top: auto;
+  margin-top: 6pt;
+  break-before: avoid;
   padding: 6pt 10pt;
   background: #f8fafc;
   border: 1pt dashed #cbd5e1;
@@ -897,7 +896,7 @@ h1, h2, h3, h4, h5 {
 
 .handwritten-line {
   border-bottom: 0.5pt solid #cbd5e1;
-  height: 14pt;
+  height: 12pt;
   margin-bottom: 2pt;
 }
 
@@ -1157,3 +1156,20 @@ h1, h2, h3, h4, h5 {
   border: 1pt dashed #cbd5e1;
   border-radius: 4pt;
 }
+
+/* Cover short overview, open meals, breakfast card */
+.cover-short-schedule { margin-top: 18pt; width: 100%; text-align: left; font-size: 9pt; color: #334155; }
+.cover-short-title { font-size: 8pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 4pt; }
+.cover-short-day { padding: 3pt 0; border-bottom: 0.5pt solid #e2e8f0; }
+.cover-allergen-hint { margin-top: 14pt; font-size: 8pt; color: #64748b; }
+.dishes-open { color: #92400e; font-style: italic; }
+.breakfast-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+.breakfast-table th { text-align: left; font-size: 7.5pt; color: #64748b; border-bottom: 0.75pt solid #cbd5e1; padding: 2pt 3pt; }
+.breakfast-table td { padding: 2.5pt 3pt; border-bottom: 0.5pt solid #eef2f7; }
+.breakfast-table .num { text-align: right; white-space: nowrap; }
+.breakfast-card-body { display: block; padding: 6pt 10pt 10pt; }
+.breakfast-col { width: 100%; margin-bottom: 8pt; }
+.breakfast-table .num { white-space: normal; }
+/* Keep the notes box with the last card so it never sits alone on a page */
+.sheet-content { break-after: avoid; }
+.sheet-content .dish-card:last-child { break-after: avoid; }
