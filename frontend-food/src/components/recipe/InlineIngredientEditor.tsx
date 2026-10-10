@@ -1235,12 +1235,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const portions = await parseApiResponse(res, PortionSchema.array());
 
         // Use rank=1 (Normalportion) as the best portion for exchange groups
-        const sortedPortions = [...portions].sort(
-          (a: { rank?: number | null }, b: { rank?: number | null }) => (a.rank ?? 999) - (b.rank ?? 999),
-        );
-        const bestPortion = sortedPortions.find((p: { rank?: number | null; weight_g?: number | null }) =>
-          p.rank === 1 && (p.weight_g ?? 0) > 0
-        ) ?? sortedPortions[0] ?? portions[0];
+        const sortedPortions = [...portions].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
+        const bestPortion = sortedPortions.find((portion) => portion.rank === 1 && (portion.weight_g ?? 0) > 0)
+          ?? sortedPortions[0]
+          ?? portions[0];
 
         if (!bestPortion) {
           notify.error('Keine Portion für diese Zutat gefunden');
@@ -1277,27 +1275,16 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             measuring_unit_name: portionDisplayLabel(bestPortion),
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map(
-              (p: {
-                id: number;
-                name: string;
-                quantity: number;
-                weight_g: number | null;
-                measuring_unit_name: string | null;
-                rank?: number | null;
-                is_weight_trusted?: boolean | null;
-                is_piece_like?: boolean | null;
-              }) => ({
-                id: p.id,
-                name: p.name,
-                quantity: p.quantity,
-                weight_g: p.weight_g,
-                measuring_unit_name: p.measuring_unit_name,
-                rank: p.rank ?? 999,
-                is_weight_trusted: p.is_weight_trusted,
-                is_piece_like: p.is_piece_like,
-              }),
-            ),
+            ingredient_portions: portions.map((portion) => ({
+              id: portion.id,
+              name: portion.name,
+              quantity: portion.quantity,
+              weight_g: portion.weight_g,
+              measuring_unit_name: portion.measuring_unit_name,
+              rank: portion.rank ?? 999,
+              is_weight_trusted: portion.is_weight_trusted ?? undefined,
+              is_piece_like: portion.is_piece_like,
+            })),
             is_optional: false,
             exchange_group_id: groupId,
             exchange_position: nextPosition,
