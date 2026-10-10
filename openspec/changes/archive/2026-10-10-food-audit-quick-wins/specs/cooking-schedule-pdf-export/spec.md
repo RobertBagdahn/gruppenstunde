@@ -1,8 +1,5 @@
-# cooking-schedule-pdf-export Specification
+## MODIFIED Requirements
 
-## Purpose
-Defines the cooking schedule (Kochplan) PDF export: cookbook layout with cover page, day sections, recipe cards, ingredients and preparation steps scaled to effective portions, allergen badges and cost overviews.
-## Requirements
 ### Requirement: Kochplan-PDF-Export
 Der Server SHALL GET /api/meal-plans/{id}/cooking-schedule/export/pdf/ bereitstellen, das eine PDF-Datei des Kochplans mit WeasyPrint generiert. Das PDF SHALL im Kochbuch-Layout mit Deckblatt, Tagesabschnitten, Rezept-Karten, Zutatenlisten, Zubereitungsschritten, Allergen-Badges und Kosten-Übersichten gerendert werden. Eine Kochplan-Rezeptkarte SHALL strukturierte RecipeSteps bevorzugen, Platzhalter und Mengen im Planmaßstab auflösen und nur bei fehlenden Steps die Markdown-Beschreibung verwenden. Caching-Preise SHALL vor Float-basierter Skalierung konsistent in einen numerischen Typ umgewandelt werden.
 
