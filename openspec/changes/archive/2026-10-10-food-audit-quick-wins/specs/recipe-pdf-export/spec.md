@@ -1,8 +1,5 @@
-# recipe-pdf-export Specification
+## MODIFIED Requirements
 
-## Purpose
-Defines the recipe PDF export with description, structured preparation steps, ingredient list, nutrition and allergen notes, scalable to a temporary target serving count without changing stored recipes.
-## Requirements
 ### Requirement: Rezept-PDF-Export
 Der Server SHALL GET `/api/recipes/{slug}/export/pdf/` bereitstellen, das eine PDF-Datei mit Beschreibung, strukturierter Zubereitung, Zutatenliste, Nährwerten und Allergen-Hinweisen generiert. Der optionale Parameter `servings` SHALL die temporäre Zielpersonenzahl bestimmen; die gespeicherte Normportion SHALL unverändert bleiben. Die Nährwerte pro Portion SHALL anhand der gespeicherten Rezeptportionen berechnet werden; `servings` ändert diese Werte nicht.
 
