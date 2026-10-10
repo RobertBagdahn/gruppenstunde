@@ -1,45 +1,60 @@
 /* ==========================================================================
-   Inspi Meal Plan PDF Styling
-   Clean, vibrant, high-readability design for kitchen and camp planning.
+   Inspi Meal Plan PDF
+   One design system: a 4pt spacing grid, one border style (0.75pt hairline),
+   one radius (8pt cards / 4pt chips), calm neutrals with a single accent per
+   meal type. DejaVu Sans is the font installed in production.
    ========================================================================== */
 
+:root {
+  --ink: #0f172a;
+  --text: #1e293b;
+  --muted: #64748b;
+  --soft: #94a3b8;
+  --line: #e2e8f0;
+  --hairline: #eef2f7;
+  --surface: #f8fafc;
+  --brand: #0f9d6e;
+  --brand-dark: #047857;
+  --brand-tint: #ecfdf5;
+  --radius: 8pt;
+  --radius-sm: 4pt;
+  --accent: #0f9d6e;
+  --accent-dark: #047857;
+  --accent-tint: #ecfdf5;
+}
+
 @page {
-  margin: 12mm 14mm 16mm 14mm;
   size: A4;
+  margin: 18mm 15mm 18mm 15mm;
 
   @top-left {
     content: "Inspi · Essensplaner";
-    font-size: 8pt;
-    font-weight: 600;
+    font-family: 'DejaVu Sans', sans-serif;
+    font-size: 7.5pt;
+    font-weight: 700;
     color: #64748b;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-
-  @top-right {
-    content: string(doc-title, first);
-    font-size: 8pt;
-    color: #64748b;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    vertical-align: bottom;
+    padding-bottom: 4pt;
   }
 
   @bottom-left {
     content: "essensplan.app · Alle Angaben ohne Gewähr";
-    font-size: 7.5pt;
+    font-family: 'DejaVu Sans', sans-serif;
+    font-size: 7pt;
     color: #94a3b8;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    vertical-align: top;
+    padding-top: 8pt;
   }
 
   @bottom-right {
     content: "Seite " counter(page) " von " counter(pages);
-    font-size: 7.5pt;
-    font-weight: 600;
+    font-family: 'DejaVu Sans', sans-serif;
+    font-size: 7pt;
+    font-weight: 700;
     color: #64748b;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    vertical-align: top;
+    padding-top: 8pt;
   }
-}
-
-@page letter {
-  size: letter;
 }
 
 * {
@@ -47,356 +62,275 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 9.5pt;
-  line-height: 1.45;
-  color: #1e293b;
+  font-family: 'DejaVu Sans', sans-serif;
+  font-size: 8.5pt;
+  line-height: 1.5;
+  color: var(--text);
   margin: 0;
   padding: 0;
 }
 
-/* ==========================================================================
-   Typography & Shared Elements
-   ========================================================================== */
 h1, h2, h3, h4, h5 {
   margin: 0;
-  color: #0f172a;
+  color: var(--ink);
   font-weight: 700;
 }
 
 .muted {
-  color: #94a3b8;
+  color: var(--soft);
   font-style: italic;
 }
 
+/* ==========================================================================
+   Shared: section headers, chips
+   ========================================================================== */
 .section-hero {
-  margin-bottom: 12pt;
-  padding-bottom: 8pt;
-  border-bottom: 2pt solid #e2e8f0;
+  margin-bottom: 16pt;
 }
 
 .section-tag {
   display: inline-block;
-  font-size: 7pt;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #059669;
-  background: #ecfdf5;
-  padding: 2pt 6pt;
-  border-radius: 3pt;
-  margin-bottom: 3pt;
+  color: var(--brand-dark);
+  background: var(--brand-tint);
+  padding: 2pt 8pt;
+  border-radius: 10pt;
+  margin-bottom: 6pt;
 }
 
 .section-hero h2 {
-  font-size: 17pt;
-  color: #0f172a;
-  margin-bottom: 2pt;
+  font-size: 18pt;
+  line-height: 1.2;
+  margin-bottom: 4pt;
 }
 
 .section-desc {
-  font-size: 8.5pt;
-  color: #64748b;
+  font-size: 8pt;
+  color: var(--muted);
+  padding-bottom: 10pt;
+  border-bottom: 0.75pt solid var(--line);
 }
 
 .subsection-title {
-  font-size: 11pt;
-  font-weight: 700;
-  color: #334155;
-  margin: 10pt 0 6pt 0;
-  display: flex;
-  align-items: center;
-}
-
-.subsection-title .title-icon {
-  margin-right: 4pt;
+  font-size: 10pt;
+  margin: 12pt 0 6pt 0;
 }
 
 /* ==========================================================================
-   1. Cover Page
+   1. Cover
    ========================================================================== */
 .cover-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 680pt;
   text-align: center;
+  padding-top: 70pt;
   page-break-after: always;
   break-after: page;
-  padding: 20pt;
 }
 
 .cover-top-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #059669, #10b981);
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   color: #ffffff;
-  font-size: 8.5pt;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  padding: 4pt 12pt;
+  background: var(--brand);
+  padding: 4pt 14pt;
   border-radius: 12pt;
-  margin-bottom: 16pt;
-  text-transform: uppercase;
+  margin-bottom: 22pt;
 }
 
 .cover-logo {
-  max-width: 100pt;
-  max-height: 100pt;
-  margin-bottom: 16pt;
+  display: block;
+  margin: 0 auto 16pt auto;
+  max-height: 60pt;
 }
 
 .cover-title {
-  font-size: 26pt;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.2;
-  margin-bottom: 6pt;
-  max-width: 500pt;
-  string-set: doc-title attr(data-title);
+  font-size: 30pt;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin-bottom: 8pt;
 }
 
 .cover-subtitle {
-  font-size: 11pt;
-  color: #64748b;
-  margin-bottom: 24pt;
-  max-width: 420pt;
+  font-size: 9.5pt;
+  color: var(--muted);
+  max-width: 320pt;
+  margin: 0 auto 34pt auto;
 }
 
 .cover-meta-grid {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 10pt;
-  max-width: 460pt;
-  margin-top: 8pt;
-}
-
-.cover-meta-card {
-  flex: 1 1 200pt;
-  background: #f8fafc;
-  border: 1pt solid #e2e8f0;
-  border-radius: 6pt;
-  padding: 10pt 12pt;
+  margin: 0 -5pt;
   text-align: left;
 }
 
+.cover-meta-card {
+  flex: 1 1 40%;
+  margin: 0 5pt 10pt 5pt;
+  background: var(--surface);
+  border: 0.75pt solid var(--line);
+  border-radius: var(--radius);
+  padding: 10pt 12pt;
+}
+
+.cover-meta-card:last-child:nth-child(odd) {
+  flex-basis: 90%;
+}
+
 .meta-card-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20pt;
-  height: 20pt;
-  border-radius: 5pt;
-  background: #d1fae5;
-  color: #047857;
-  font-size: 7pt;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  margin-bottom: 2pt;
+  display: none;
 }
 
 .meta-card-label {
-  font-size: 7.5pt;
-  text-transform: uppercase;
+  font-size: 6.5pt;
   font-weight: 700;
-  color: #64748b;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3pt;
 }
 
 .meta-card-value {
-  font-size: 10.5pt;
+  font-size: 10pt;
   font-weight: 700;
-  color: #0f172a;
-  margin-top: 1pt;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.cover-short-schedule {
+  margin-top: 26pt;
+  text-align: left;
+  border: 0.75pt solid var(--line);
+  border-radius: var(--radius);
+  padding: 10pt 14pt 6pt 14pt;
+}
+
+.cover-short-title {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4pt;
+}
+
+.cover-short-day {
+  font-size: 8pt;
+  padding: 5pt 0;
+  border-top: 0.75pt solid var(--hairline);
+  color: var(--text);
+}
+
+.cover-short-day strong {
+  display: inline-block;
+  width: 56pt;
+  color: var(--ink);
+}
+
+.cover-allergen-hint {
+  margin-top: 16pt;
+  font-size: 7.5pt;
+  color: var(--soft);
 }
 
 /* ==========================================================================
-   2. Zeitplan & Essenszeiten (Schedule & Eating Times)
+   2. Schedule table
    ========================================================================== */
 .schedule-section {
-  page-break-before: always;
-  break-before: page;
+  page-break-after: always;
+  break-after: page;
 }
 
-.eating-times-overview {
-  margin-bottom: 14pt;
-}
-
-.eating-days-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8pt;
-}
-
-.eating-day-card {
-  background: #ffffff;
-  border: 1pt solid #e2e8f0;
-  border-radius: 6pt;
-  overflow: hidden;
-  break-inside: avoid;
-}
-
-.eating-day-header {
-  background: #f1f5f9;
-  padding: 5pt 10pt;
-  font-size: 9.5pt;
-  font-weight: 700;
-  color: #1e293b;
-  border-bottom: 1pt solid #e2e8f0;
-}
-
-.eating-meals-list {
-  padding: 4pt 8pt;
-}
-
-.eating-meal-item {
-  display: flex;
-  align-items: center;
-  gap: 12pt;
-  padding: 5pt 6pt;
-  border-bottom: 0.5pt solid #f1f5f9;
-  font-size: 8.5pt;
-}
-
-.eating-meal-item:last-child {
-  border-bottom: none;
-}
-
-.meal-type-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4pt;
-  min-width: 95pt;
-  font-weight: 700;
-  padding: 2.5pt 7pt;
-  border-radius: 4pt;
-  flex: 0 0 auto;
-}
-
-.meal-theme-breakfast .meal-type-pill {
-  background: #fef3c7;
-  color: #92400e;
-  border: 0.5pt solid #fde68a;
-}
-
-.meal-theme-lunch .meal-type-pill {
-  background: #d1fae5;
-  color: #065f46;
-  border: 0.5pt solid #a7f3d0;
-}
-
-.meal-theme-snack .meal-type-pill {
-  background: #ede9fe;
-  color: #5b21b6;
-  border: 0.5pt solid #ddd6fe;
-}
-
-.meal-theme-dinner .meal-type-pill {
-  background: #dbeafe;
-  color: #1e40af;
-  border: 0.5pt solid #bfdbfe;
-}
-
-.meal-timing-badges {
-  display: inline-flex;
-  align-items: center;
-  gap: 8pt;
-  flex: 0 0 auto;
-}
-
-.badge-eat {
-  background: #ecfdf5;
-  border: 1pt solid #a7f3d0;
-  color: #065f46;
-  padding: 2pt 6pt;
-  border-radius: 4pt;
-  font-size: 8.5pt;
-}
-
-.badge-eat strong {
-  font-size: 9.5pt;
-}
-
-.badge-cook {
-  background: #fffbeb;
-  border: 0.5pt solid #fde68a;
-  color: #92400e;
-  padding: 2pt 5pt;
-  border-radius: 4pt;
-  font-size: 8pt;
-}
-
-.badge-lead {
-  color: #64748b;
-  font-size: 7.5pt;
-  margin-right: 6pt;
-}
-
-.meal-dishes-summary {
-  flex: 1;
-  color: #334155;
-  font-size: 8.5pt;
-  padding-left: 4pt;
-}
-
-/* Schedule Table */
 .schedule-table-wrap {
-  margin-top: 10pt;
-  break-inside: avoid;
+  border: 0.75pt solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .schedule-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8.5pt;
-  border: 1pt solid #cbd5e1;
-  border-radius: 4pt;
-}
-
-.schedule-table thead th {
-  background: #1e293b;
-  color: #ffffff;
-  padding: 5pt 7pt;
+  table-layout: fixed;
   font-size: 8pt;
+}
+
+.schedule-table th {
+  background: var(--ink);
+  color: #ffffff;
+  font-size: 7pt;
   font-weight: 700;
+  letter-spacing: 0.04em;
   text-align: left;
-  border: none;
-}
-
-.schedule-table tbody tr {
-  border-bottom: 0.5pt solid #e2e8f0;
-}
-
-.schedule-table tbody tr:nth-child(even) {
-  background: #f8fafc;
+  padding: 7pt 8pt;
+  vertical-align: middle;
 }
 
 .schedule-table td {
-  padding: 4.5pt 6pt;
+  padding: 8pt;
+  border-top: 0.75pt solid var(--hairline);
   vertical-align: middle;
+  line-height: 1.4;
+}
+
+.schedule-table tbody tr:nth-child(even) td {
+  background: var(--surface);
+}
+
+.schedule-table .cell-time,
+.schedule-table .cell-lead {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.schedule-table th:last-child,
+.schedule-table td:last-child {
+  padding-right: 14pt;
+}
+
+.schedule-table .cell-portions {
+  text-align: right;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cell-day {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.cell-cook {
+  color: #b45309;
+}
+
+.cell-eat {
+  color: var(--brand-dark);
+}
+
+.cell-lead {
+  color: var(--muted);
+  font-size: 7.5pt;
+}
+
+.dishes-text {
+  color: var(--text);
+}
+
+.dishes-open {
+  color: #b45309;
+  font-style: italic;
 }
 
 .table-meal-badge {
   display: inline-block;
-  padding: 2pt 5pt;
-  font-size: 7.5pt;
+  font-size: 7pt;
   font-weight: 700;
-  border-radius: 3pt;
+  padding: 2pt 8pt;
+  border-radius: 10pt;
   white-space: nowrap;
-}
-
-.table-meal-code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12pt;
-  height: 12pt;
-  margin-right: 2pt;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 6.5pt;
-  font-weight: 800;
 }
 
 .badge-breakfast { background: #fef3c7; color: #92400e; }
@@ -404,504 +338,492 @@ h1, h2, h3, h4, h5 {
 .badge-snack { background: #ede9fe; color: #5b21b6; }
 .badge-dinner { background: #dbeafe; color: #1e40af; }
 
-.cell-time {
-  font-size: 8pt;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.cell-eat {
-  color: #065f46;
-  font-weight: 700;
-}
-
-.cell-cook {
-  color: #92400e;
-}
-
-.cell-lead {
-  font-size: 7.5pt;
-  color: #64748b;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.cell-portions {
-  font-weight: 600;
-  text-align: right;
-  white-space: nowrap;
-}
-
 .table-allergens {
-  margin-top: 2pt;
+  margin-top: 3pt;
 }
 
 .allergen-mini {
   display: inline-block;
-  font-size: 6.5pt;
-  padding: 1pt 3pt;
-  border-radius: 2pt;
+  font-size: 6pt;
+  padding: 1pt 5pt;
+  border-radius: 8pt;
+  background: #fee2e2;
+  color: #991b1b;
   margin-right: 2pt;
-  font-weight: 600;
 }
 
 /* ==========================================================================
-   3. Personenliste
-   ========================================================================= */
+   3. Person list
+   ========================================================================== */
 .person-section {
-  page-break-before: always;
-  break-before: page;
+  margin-bottom: 18pt;
 }
 
-.person-table {
+.person-table,
+.allergen-table,
+.nutrition-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8.5pt;
-  border: 1pt solid #cbd5e1;
+  font-size: 8pt;
+  border: 0.75pt solid var(--line);
 }
 
-.person-table thead th {
-  background: #0f172a;
+.person-table th,
+.allergen-table th,
+.nutrition-table th {
+  background: var(--ink);
   color: #ffffff;
-  padding: 5pt 8pt;
-  font-size: 8pt;
+  font-size: 7pt;
   font-weight: 700;
+  padding: 6pt 8pt;
   text-align: left;
 }
 
-.person-table td {
-  padding: 5pt 8pt;
-  border-bottom: 0.5pt solid #e2e8f0;
+.person-table td,
+.allergen-table td,
+.nutrition-table td {
+  padding: 6pt 8pt;
+  border-top: 0.75pt solid var(--hairline);
   vertical-align: middle;
 }
 
-.person-table tbody tr:nth-child(even) {
-  background: #f8fafc;
-}
-
-.date-range-badge {
-  font-size: 7pt;
-  color: #64748b;
-  background: #e2e8f0;
-  padding: 1pt 4pt;
-  border-radius: 3pt;
-  margin-left: 4pt;
+.person-table tbody tr:nth-child(even) td,
+.allergen-table tbody tr:nth-child(even) td {
+  background: var(--surface);
 }
 
 .member-tag {
   display: inline-block;
+  font-size: 6.5pt;
+  padding: 1pt 6pt;
+  border-radius: 8pt;
   background: #fee2e2;
   color: #991b1b;
-  border: 0.5pt solid #fca5a5;
-  font-size: 7.5pt;
-  font-weight: 600;
-  padding: 1pt 5pt;
-  border-radius: 3pt;
-  margin: 1pt 2pt 1pt 0;
+  margin-right: 2pt;
+}
+
+.date-range-badge {
+  font-size: 6.5pt;
+  color: var(--muted);
 }
 
 /* ==========================================================================
-   4. Mahlzeiten-Blätter (Single Sheet Per Meal)
-   Jedes Mahlzeit soll ein einzelnes Blatt bekommen mit allen Infos, Essen und
-   Schritt für Schritt Anleitung.
+   4. Meal sheets
    ========================================================================== */
 .meal-sheet {
   page-break-before: always;
   break-before: page;
 }
 
-/* Sheet Header Banner */
+.meal-sheet-breakfast { --accent: #d97706; --accent-dark: #92400e; --accent-tint: #fffbeb; }
+.meal-sheet-lunch { --accent: #059669; --accent-dark: #065f46; --accent-tint: #ecfdf5; }
+.meal-sheet-snack { --accent: #7c3aed; --accent-dark: #5b21b6; --accent-tint: #f5f3ff; }
+.meal-sheet-dinner { --accent: #2563eb; --accent-dark: #1e40af; --accent-tint: #eff6ff; }
+
 .sheet-banner {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8pt 12pt;
-  border-radius: 6pt 6pt 0 0;
-  color: #ffffff;
-}
-
-.banner-breakfast {
-  background: linear-gradient(135deg, #d97706, #f59e0b);
-}
-
-.banner-lunch {
-  background: linear-gradient(135deg, #047857, #10b981);
-}
-
-.banner-snack {
-  background: linear-gradient(135deg, #6d28d9, #8b5cf6);
-}
-
-.banner-dinner {
-  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  justify-content: space-between;
+  background: var(--accent-tint);
+  border: 0.75pt solid var(--line);
+  border-left: 4pt solid var(--accent);
+  border-radius: var(--radius);
+  padding: 12pt 14pt;
+  margin-bottom: 10pt;
 }
 
 .banner-left {
   display: flex;
   align-items: center;
-  gap: 6pt;
 }
 
 .banner-icon-box {
-  width: 28pt;
-  min-width: 28pt;
-  height: 28pt;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 6pt;
-}
-
-.banner-icon {
-  font-size: 22pt;
-  line-height: 1;
+  display: none;
 }
 
 .banner-titles {
-  display: flex;
-  flex-direction: column;
+  display: block;
 }
 
 .banner-type {
-  font-size: 14pt;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  line-height: 1.1;
+  display: block;
+  font-size: 15pt;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--accent-dark);
 }
 
 .banner-date {
-  font-size: 9pt;
-  opacity: 0.95;
-  font-weight: 500;
+  display: block;
+  font-size: 8.5pt;
+  color: var(--muted);
+  margin-top: 2pt;
 }
 
 .banner-portions-pill {
-  background: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
-  padding: 4pt 10pt;
-  border-radius: 12pt;
-  font-size: 9pt;
+  display: inline-block;
+  font-size: 8pt;
   font-weight: 700;
-  border: 1pt solid rgba(255, 255, 255, 0.4);
+  color: var(--accent-dark);
+  background: #ffffff;
+  border: 0.75pt solid var(--accent);
+  border-radius: 12pt;
+  padding: 3pt 12pt;
+  white-space: nowrap;
 }
 
-/* Quick-Info Bar */
+/* Info bar: one rounded strip with four equal cells */
 .sheet-info-bar {
   display: flex;
-  gap: 6pt;
-  background: #f8fafc;
-  border: 1pt solid #e2e8f0;
-  border-top: none;
-  padding: 6pt 10pt;
-  margin-bottom: 8pt;
+  border: 0.75pt solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 12pt;
+  overflow: hidden;
 }
 
 .info-pill {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6pt;
-  background: #ffffff;
-  border: 1pt solid #cbd5e1;
-  border-radius: 4pt;
-  padding: 4pt 8pt;
+  flex: 1 1 25%;
+  padding: 8pt 12pt;
+  text-align: center;
+  border-left: 0.75pt solid var(--line);
+}
+
+.info-pill:first-child {
+  border-left: none;
 }
 
 .info-pill-icon {
-  font-size: 8pt;
-  font-weight: 800;
-  color: #475569;
-  line-height: 1;
-  min-width: 18pt;
-  margin-right: 4pt;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: none;
 }
 
 .info-pill-text {
-  display: flex;
-  flex-direction: column;
+  display: block;
 }
 
 .info-pill-label {
+  display: block;
   font-size: 6.5pt;
-  text-transform: uppercase;
   font-weight: 700;
-  color: #64748b;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2pt;
 }
 
 .info-pill-value {
-  font-size: 9.5pt;
+  display: block;
+  font-size: 10pt;
   font-weight: 700;
-  color: #0f172a;
-}
-
-.info-pill.pill-eat {
-  border-color: #86efac;
-  background: #f0fdf4;
+  color: var(--ink);
 }
 
 .info-pill-value.value-eat {
-  color: #166534;
-  font-size: 10.5pt;
+  color: var(--brand-dark);
 }
 
-.info-pill.pill-cook {
-  border-color: #fde68a;
-  background: #fffbeb;
-}
-
-/* Allergens Bar */
 .sheet-allergens-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4pt;
+  border: 0.75pt solid #fecaca;
   background: #fef2f2;
-  border: 1pt solid #fecaca;
-  border-radius: 4pt;
-  padding: 4pt 8pt;
-  margin-bottom: 8pt;
+  border-radius: var(--radius);
+  padding: 7pt 12pt;
+  margin-bottom: 10pt;
 }
 
 .allergens-title {
-  font-size: 7.5pt;
+  font-size: 7pt;
   font-weight: 700;
   color: #991b1b;
-  margin-right: 4pt;
+  margin-right: 8pt;
 }
 
-.allergens-badges-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 3pt;
+.allergens-badges-list,
+.dish-allergens {
+  display: inline-block;
 }
 
-/* Note box */
+.allergen-badge {
+  display: inline-block;
+  font-size: 6.5pt;
+  font-weight: 700;
+  padding: 2pt 8pt;
+  border-radius: 10pt;
+  background: #fee2e2;
+  color: #991b1b;
+  margin-right: 3pt;
+}
+
 .sheet-note-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 6pt;
+  border: 0.75pt solid #fde68a;
   background: #fffbeb;
-  border: 1pt solid #fde68a;
-  border-radius: 4pt;
-  padding: 6pt 10pt;
-  margin-bottom: 8pt;
-  font-size: 8.5pt;
-  color: #78350f;
+  border-radius: var(--radius);
+  padding: 8pt 12pt;
+  margin-bottom: 10pt;
+  font-size: 8pt;
 }
 
 .note-box-icon {
-  font-size: 11pt;
+  display: none;
 }
 
-/* Content: Dish Cards */
 .sheet-content {
   display: block;
+  break-after: avoid;
 }
 
 .sheet-content > * + * {
   margin-top: 10pt;
 }
 
+/* Dish cards */
 .dish-card {
-  border: 1.5pt solid #cbd5e1;
-  border-radius: 6pt;
+  border: 0.75pt solid var(--line);
+  border-radius: var(--radius);
   overflow: hidden;
   background: #ffffff;
   break-inside: avoid;
 }
 
+.sheet-content .dish-card:last-child {
+  break-after: avoid;
+}
+
 .dish-card-header {
-  background: #f1f5f9;
-  border-bottom: 1pt solid #e2e8f0;
-  padding: 6pt 10pt;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border-bottom: 0.75pt solid var(--line);
+  padding: 8pt 14pt;
 }
 
 .dish-title {
-  font-size: 12pt;
-  font-weight: 800;
-  color: #0f172a;
+  font-size: 10.5pt;
+  line-height: 1.3;
 }
 
 .dish-subtitle {
-  font-size: 9pt;
-  font-weight: 600;
-  color: #475569;
+  font-size: 7.5pt;
+  font-weight: 400;
+  color: var(--muted);
   margin-left: 4pt;
 }
 
 .dish-portions-badge {
-  font-size: 7.5pt;
+  font-size: 7pt;
   font-weight: 700;
-  background: #e2e8f0;
-  color: #334155;
-  padding: 2pt 6pt;
+  color: var(--accent-dark);
+  background: var(--accent-tint);
   border-radius: 10pt;
+  padding: 2pt 9pt;
+  white-space: nowrap;
 }
 
 .excluded-marker {
-  color: #dc2626;
-  font-size: 9pt;
+  color: #b91c1c;
+  font-weight: 400;
 }
 
 .dish-allergens {
-  padding: 4pt 10pt;
-  background: #fafafa;
-  border-bottom: 0.5pt solid #f1f5f9;
+  display: block;
+  padding: 6pt 14pt 0 14pt;
 }
 
-/* Two Columns: Ingredients + Steps */
 .dish-two-columns {
   display: flex;
-  gap: 14pt;
-  padding: 10pt 12pt;
+  gap: 16pt;
+  padding: 12pt 14pt 12pt 14pt;
 }
 
 .dish-col-ingredients {
-  flex: 0 0 38%;
-  border-right: 1pt solid #e2e8f0;
-  padding-right: 12pt;
+  flex: 0 0 42%;
+  min-width: 0;
 }
 
 .dish-col-steps {
-  flex: 1 1 62%;
+  flex: 1 1 auto;
+  min-width: 0;
+  border-left: 0.75pt solid var(--hairline);
+  padding-left: 16pt;
 }
 
 .col-heading {
-  font-size: 9.5pt;
+  font-size: 6.5pt;
   font-weight: 700;
-  color: #334155;
-  border-bottom: 1pt solid #e2e8f0;
-  padding-bottom: 3pt;
-  margin-bottom: 6pt;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding-bottom: 5pt;
+  margin-bottom: 4pt;
+  border-bottom: 0.75pt solid var(--line);
 }
 
-/* Ingredient list */
 .ingredient-items {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
 .ingredient-items li {
-  font-size: 9pt;
-  line-height: 1.5;
-  padding: 2.5pt 0;
-  border-bottom: 0.5pt solid #f8fafc;
-  color: #1e293b;
+  padding: 4pt 0 4pt 10pt;
+  border-bottom: 0.75pt solid var(--hairline);
+  font-size: 8pt;
+  line-height: 1.4;
+  position: relative;
+}
+
+.ingredient-items li:last-child {
+  border-bottom: none;
 }
 
 .ing-bullet {
-  color: #10b981;
-  font-weight: bold;
-  margin-right: 2pt;
+  position: absolute;
+  left: 0;
+  top: 4pt;
+  color: var(--accent);
+  font-weight: 700;
 }
 
-/* Steps list */
+/* Steps: number bubble and text share one top line */
 .steps-flow {
-  display: flex;
-  flex-direction: column;
-  gap: 6pt;
+  display: block;
 }
 
 .step-card {
   display: flex;
   align-items: flex-start;
-  gap: 8pt;
-  background: #f8fafc;
-  border: 0.5pt solid #e2e8f0;
-  border-radius: 4pt;
-  padding: 6pt 8pt;
+  padding: 5pt 0;
+  border-bottom: 0.75pt solid var(--hairline);
+}
+
+.step-card:last-child {
+  border-bottom: none;
 }
 
 .step-number-bubble {
-  flex: 0 0 18pt;
-  width: 18pt;
-  height: 18pt;
+  display: block;
+  flex: 0 0 15pt;
+  flex-shrink: 0;
+  min-width: 15pt;
+  max-width: 15pt;
+  width: 15pt;
+  height: 15pt;
+  line-height: 15pt;
   border-radius: 50%;
-  background: #059669;
+  background: var(--accent);
   color: #ffffff;
-  font-size: 8.5pt;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 7.5pt;
+  font-weight: 700;
   text-align: center;
-  line-height: 18pt;
 }
 
-.meal-sheet-breakfast .step-number-bubble { background: #d97706; }
-.meal-sheet-lunch .step-number-bubble { background: #059669; }
-.meal-sheet-snack .step-number-bubble { background: #7c3aed; }
-.meal-sheet-dinner .step-number-bubble { background: #2563eb; }
-
 .step-details {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 9pt;
 }
 
 .step-instruction {
-  font-size: 9pt;
-  line-height: 1.45;
-  color: #1e293b;
+  font-size: 8.5pt;
+  line-height: 15pt;
+  color: var(--text);
 }
 
 .step-timer-badge {
   display: inline-block;
-  margin-top: 3pt;
-  font-size: 7.5pt;
+  font-size: 6.5pt;
   font-weight: 700;
-  color: #0369a1;
-  background: #e0f2fe;
-  padding: 1pt 5pt;
-  border-radius: 3pt;
+  color: var(--accent-dark);
+  background: var(--accent-tint);
+  border-radius: 8pt;
+  padding: 1pt 7pt;
+  margin-top: 2pt;
 }
 
 .no-steps-notice {
-  padding: 8pt;
-  background: #f8fafc;
-  border: 0.5pt dashed #cbd5e1;
-  border-radius: 4pt;
-  font-size: 8pt;
-  color: #64748b;
+  font-size: 7.5pt;
   font-style: italic;
+  color: var(--muted);
+  background: var(--surface);
+  border: 0.75pt dashed var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8pt 10pt;
   text-align: center;
 }
 
-/* Handwritten Kitchen Notes */
+/* Breakfast card */
+.breakfast-card-body {
+  display: block;
+  padding: 12pt 14pt;
+}
+
+.breakfast-col {
+  width: 100%;
+}
+
+.breakfast-col + .breakfast-col {
+  margin-top: 12pt;
+}
+
+.breakfast-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+
+.breakfast-table th {
+  text-align: left;
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 0 5pt 0;
+  border-bottom: 0.75pt solid var(--line);
+}
+
+.breakfast-table td {
+  padding: 4pt 0;
+  border-bottom: 0.75pt solid var(--hairline);
+  vertical-align: middle;
+}
+
+.breakfast-table tr:last-child td {
+  border-bottom: none;
+}
+
+.breakfast-table .num {
+  text-align: right;
+  white-space: normal;
+}
+
+/* Kitchen notes: sits under the last card, never on its own page */
 .kitchen-handwritten-box {
-  margin-top: 6pt;
+  margin-top: 10pt;
+  padding: 8pt 14pt 4pt 14pt;
+  background: var(--surface);
+  border: 0.75pt solid var(--line);
+  border-radius: var(--radius);
   break-before: avoid;
-  padding: 6pt 10pt;
-  background: #f8fafc;
-  border: 1pt dashed #cbd5e1;
-  border-radius: 4pt;
   break-inside: avoid;
 }
 
 .handwritten-title {
-  font-size: 7.5pt;
+  font-size: 7pt;
   font-weight: 700;
-  color: #64748b;
-  margin-bottom: 6pt;
+  color: var(--muted);
+  margin-bottom: 4pt;
 }
 
 .handwritten-line {
-  border-bottom: 0.5pt solid #cbd5e1;
-  height: 12pt;
-  margin-bottom: 2pt;
+  border-bottom: 0.75pt solid var(--line);
+  height: 16pt;
 }
 
 /* ==========================================================================
-   5. Einkaufsliste (Shopping List)
+   5. Shopping list
    ========================================================================== */
 .shopping-list-section {
   page-break-before: always;
@@ -909,267 +831,158 @@ h1, h2, h3, h4, h5 {
 }
 
 .shopping-summary-bar {
-  display: flex;
-  gap: 8pt;
-  margin-bottom: 10pt;
+  margin-bottom: 12pt;
 }
 
 .sum-pill {
-  background: #f1f5f9;
-  border: 1pt solid #cbd5e1;
-  color: #334155;
-  font-size: 8.5pt;
-  padding: 3pt 8pt;
+  display: inline-block;
+  font-size: 7.5pt;
+  color: var(--muted);
+  border: 0.75pt solid var(--line);
   border-radius: 12pt;
+  padding: 3pt 12pt;
+  margin-right: 6pt;
 }
 
-.sum-pill.sum-fresh {
-  background: #ecfdf5;
+.sum-pill strong {
+  color: var(--ink);
+}
+
+.sum-fresh {
+  background: var(--brand-tint);
   border-color: #a7f3d0;
-  color: #065f46;
+  color: var(--brand-dark);
 }
 
 .shopping-grid {
   column-count: 2;
-  column-gap: 10pt;
+  column-gap: 12pt;
 }
 
 .shopping-category-card {
-  display: inline-block;
-  width: 100%;
-  background: #ffffff;
-  border: 1pt solid #e2e8f0;
-  border-radius: 4pt;
-  padding: 6pt 10pt;
   break-inside: avoid;
+  border: 0.75pt solid var(--line);
+  border-radius: var(--radius);
+  padding: 10pt 12pt 6pt 12pt;
   margin-bottom: 10pt;
+  background: #ffffff;
 }
 
 .category-title {
-  font-size: 9.5pt;
-  font-weight: 700;
-  color: #0f172a;
-  border-bottom: 1.5pt solid #059669;
-  padding-bottom: 3pt;
-  margin-bottom: 6pt;
+  font-size: 9pt;
+  padding-bottom: 6pt;
+  margin-bottom: 2pt;
+  border-bottom: 1.5pt solid var(--brand);
 }
 
 .shopping-items-list {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
 .shopping-items-list li {
-  font-size: 8.5pt;
-  line-height: 1.45;
-  padding: 2pt 0;
-  border-bottom: 0.5pt solid #f1f5f9;
-  display: grid;
-  grid-template-columns: 10pt minmax(0, 1fr) minmax(60pt, 38%);
-  align-items: baseline;
-  gap: 4pt;
+  padding: 5pt 0 5pt 14pt;
+  border-bottom: 0.75pt solid var(--hairline);
+  position: relative;
+  line-height: 1.35;
+}
+
+.shopping-items-list li:last-child {
+  border-bottom: none;
 }
 
 .item-check {
+  position: absolute;
+  left: 0;
+  top: 5pt;
+  color: var(--soft);
   font-size: 9pt;
-  color: #94a3b8;
+  line-height: 1.2;
 }
 
 .item-name {
-  font-weight: 600;
-  color: #1e293b;
-  min-width: 0;
-  overflow-wrap: anywhere;
+  display: block;
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .item-amount {
-  color: #475569;
-  min-width: 0;
-  overflow-wrap: anywhere;
+  display: block;
+  font-size: 7.5pt;
+  color: var(--muted);
 }
 
 .fresh-pill {
-  font-size: 7pt;
-  color: #047857;
-  background: #d1fae5;
-  padding: 1pt 4pt;
-  border-radius: 3pt;
-  margin-left: auto;
+  display: inline-block;
+  font-size: 6pt;
   font-weight: 700;
+  color: var(--brand-dark);
+  background: var(--brand-tint);
+  border-radius: 8pt;
+  padding: 1pt 6pt;
+  margin-top: 2pt;
 }
 
 /* ==========================================================================
-   6. Allergen-Matrix
+   6. Allergen matrix, 7. Nutrition
    ========================================================================== */
-.allergen-matrix-section {
-  page-break-before: always;
-  break-before: page;
-}
-
-.allergen-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 8pt;
-  border: 1pt solid #cbd5e1;
-}
-
-.allergen-table thead th {
-  background: #1e293b;
-  color: #ffffff;
-  padding: 5pt 6pt;
-  font-size: 7.5pt;
-  font-weight: 700;
-  border: 0.5pt solid #334155;
-}
-
-.allergen-table td {
-  padding: 4pt 6pt;
-  border: 0.5pt solid #cbd5e1;
-  vertical-align: middle;
-}
-
-.allergen-table tbody tr:nth-child(even) {
-  background: #f8fafc;
-}
-
-.cell-allergen-name {
-  color: #0f172a;
-}
-
-.cell-allergen-mark {
-  text-align: center;
-}
-
-.allergen-cross {
-  color: #dc2626;
-  font-weight: 800;
-  background: #fee2e2;
-  padding: 1pt 4pt;
-  border-radius: 2pt;
-}
-
-.cross-empty {
-  color: #cbd5e1;
-}
-
-/* ==========================================================================
-   7. Nährwert-Übersicht
-   ========================================================================== */
+.allergen-matrix-section,
 .nutrition-section {
   page-break-before: always;
   break-before: page;
 }
 
+.allergen-table th,
+.allergen-table td {
+  text-align: center;
+}
+
+.allergen-table th:first-child,
+.allergen-table td:first-child {
+  text-align: left;
+}
+
+.allergen-cross {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.cross-empty {
+  color: var(--line);
+}
+
 .nutrition-day-card {
-  margin-bottom: 12pt;
-  border: 1pt solid #e2e8f0;
-  border-radius: 4pt;
-  overflow: hidden;
+  margin-bottom: 14pt;
   break-inside: avoid;
 }
 
 .nutrition-day-title {
-  background: #f1f5f9;
-  padding: 4pt 8pt;
   font-size: 9pt;
-  font-weight: 700;
-  color: #1e293b;
-  border-bottom: 1pt solid #e2e8f0;
+  margin-bottom: 5pt;
 }
 
-.nutrition-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 8.5pt;
-}
-
-.nutrition-table thead th {
-  background: #334155;
-  color: #ffffff;
-  padding: 4pt 8pt;
-  font-size: 7.5pt;
-  font-weight: 700;
-}
-
-.nutrition-table td {
-  padding: 4pt 8pt;
-  border-bottom: 0.5pt solid #f1f5f9;
-}
-
-.cell-row-label {
-  font-weight: 600;
-  color: #334155;
-}
-
-.cell-num {
+.nutrition-table th,
+.nutrition-table td.cell-num {
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 
-.row-delta {
-  background: #f8fafc;
+.nutrition-table th:first-child,
+.cell-row-label {
+  text-align: left;
+}
+
+.row-delta td {
   font-weight: 700;
+  background: var(--surface);
 }
 
-.delta-pos {
-  color: #059669;
-}
+.delta-pos { color: #047857; }
+.delta-neg { color: #b91c1c; }
 
-.delta-neg {
-  color: #dc2626;
-}
+/* Compact mode keeps everything but trims the rhythm */
+.is-compact .dish-two-columns { padding-top: 8pt; padding-bottom: 8pt; }
+.is-compact .step-card { padding: 3pt 0; }
 
-/* ==========================================================================
-   Allergen Badge Styles (14 EU allergens)
-   ========================================================================== */
-.allergen-badge {
-  display: inline-block;
-  padding: 1.5pt 5pt;
-  font-size: 7pt;
-  font-weight: 700;
-  border-radius: 3pt;
-  white-space: nowrap;
-}
-
-.allergen-badge.gluten { background: #ffedd5; color: #9a3412; border: 0.5pt solid #fdba74; }
-.allergen-badge.lactose { background: #dbeafe; color: #1e40af; border: 0.5pt solid #93c5fd; }
-.allergen-badge.eggs { background: #fef3c7; color: #92400e; border: 0.5pt solid #fcd34d; }
-.allergen-badge.nuts { background: #fee2e2; color: #991b1b; border: 0.5pt solid #fca5a5; }
-.allergen-badge.fish { background: #cffafe; color: #155e75; border: 0.5pt solid #67e8f9; }
-.allergen-badge.crustaceans { background: #ffe4e6; color: #9f1239; border: 0.5pt solid #fda4af; }
-.allergen-badge.soy { background: #f3e8ff; color: #6b21a8; border: 0.5pt solid #d8b4fe; }
-.allergen-badge.celery { background: #ecfccb; color: #3f6212; border: 0.5pt solid #bef264; }
-.allergen-badge.mustard { background: #fef9c3; color: #854d0e; border: 0.5pt solid #fde047; }
-.allergen-badge.sesame { background: #ffedd5; color: #9a3412; border: 0.5pt solid #fdba74; }
-.allergen-badge.sulfites { background: #f1f5f9; color: #334155; border: 0.5pt solid #cbd5e1; }
-.allergen-badge.lupin { background: #fae8ff; color: #86198f; border: 0.5pt solid #f0abfc; }
-.allergen-badge.molluscs { background: #e0e7ff; color: #3730a3; border: 0.5pt solid #a5b4fc; }
-.allergen-badge.default { background: #f1f5f9; color: #475569; border: 0.5pt solid #cbd5e1; }
-
-.empty-state {
-  padding: 16pt;
-  text-align: center;
-  color: #94a3b8;
-  font-size: 9.5pt;
-  background: #f8fafc;
-  border: 1pt dashed #cbd5e1;
-  border-radius: 4pt;
-}
-
-/* Cover short overview, open meals, breakfast card */
-.cover-short-schedule { margin-top: 18pt; width: 100%; text-align: left; font-size: 9pt; color: #334155; }
-.cover-short-title { font-size: 8pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 4pt; }
-.cover-short-day { padding: 3pt 0; border-bottom: 0.5pt solid #e2e8f0; }
-.cover-allergen-hint { margin-top: 14pt; font-size: 8pt; color: #64748b; }
-.dishes-open { color: #92400e; font-style: italic; }
-.breakfast-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-.breakfast-table th { text-align: left; font-size: 7.5pt; color: #64748b; border-bottom: 0.75pt solid #cbd5e1; padding: 2pt 3pt; }
-.breakfast-table td { padding: 2.5pt 3pt; border-bottom: 0.5pt solid #eef2f7; }
-.breakfast-table .num { text-align: right; white-space: nowrap; }
-.breakfast-card-body { display: block; padding: 6pt 10pt 10pt; }
-.breakfast-col { width: 100%; margin-bottom: 8pt; }
-.breakfast-table .num { white-space: normal; }
-/* Keep the notes box with the last card so it never sits alone on a page */
-.sheet-content { break-after: avoid; }
-.sheet-content .dish-card:last-child { break-after: avoid; }
+.row-note { color: var(--muted); font-size: 7.5pt; }

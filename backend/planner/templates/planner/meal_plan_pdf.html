@@ -248,7 +248,7 @@
               <thead><tr><th>Zutat</th><th class="num">Gesamt</th><th class="num">p. P.</th></tr></thead>
               <tbody>
                 {% for row in meal.breakfast_card.rows %}
-                <tr><td>{{ row.name }}</td><td class="num"><strong>{{ row.total }}</strong></td><td class="num">{{ row.per_person }}</td></tr>
+                <tr><td>{{ row.name }}{% if row.note %} <span class="row-note">({{ row.note }})</span>{% endif %}</td><td class="num"><strong>{{ row.total }}</strong></td><td class="num">{{ row.per_person }}</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -395,6 +395,24 @@
           </div>
         </div>
         {% endfor %}
+        {% if meal.direct_card %}
+        <div class="dish-card">
+          <div class="dish-card-header">
+            <h3 class="dish-title">{% if meal.direct_card.has_recipes %}Weitere Zutaten{% else %}{{ meal.meal_type_label }}{% endif %}</h3>
+            <span class="dish-portions-badge">servierfertig</span>
+          </div>
+          <div class="breakfast-card-body">
+            <table class="breakfast-table">
+              <thead><tr><th>Zutat</th><th class="num">Gesamt</th><th class="num">p. P.</th></tr></thead>
+              <tbody>
+                {% for row in meal.direct_card.rows %}
+                <tr><td>{{ row.name }}{% if row.note %} <span class="row-note">({{ row.note }})</span>{% endif %}</td><td class="num"><strong>{{ row.total }}</strong></td><td class="num">{{ row.per_person }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
       {% endif %}
     </div>
 
@@ -435,7 +453,7 @@
         <li>
           <span class="item-check">☐</span>
           <span class="item-name">{{ item.name }}</span>
-          <span class="item-amount">— {{ item.amount }}</span>
+          <span class="item-amount">{{ item.amount }}</span>
           {% if item.fresh %}<span class="fresh-pill">frisch</span>{% endif %}
         </li>
       {% endfor %}
