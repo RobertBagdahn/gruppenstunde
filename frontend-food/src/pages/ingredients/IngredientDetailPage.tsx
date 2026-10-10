@@ -6,7 +6,7 @@ import SlowLoadingHint from '@/components/shared/SlowLoadingHint';
 import { Skeleton, SkeletonDetailHeader, SkeletonSection } from '@/components/ui/skeleton';
 import IngredientSummary from './detail/IngredientSummary';
 import { useAiAccess } from '@/hooks/useAiAccess';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import { Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2, Wand2 } from 'lucide-react';
 import { useAiFillMissingIngredient } from '@/api/dataQuality';
@@ -542,10 +542,12 @@ function PortionCard({
   portion,
   slug,
   canEdit = false,
+  autoEdit = false,
 }: {
   portion: Portion;
   slug: string;
   canEdit?: boolean;
+  autoEdit?: boolean;
 }) {
   const updatePortion = useUpdatePortion(slug);
   const deletePortion = useDeletePortion(slug);
@@ -554,6 +556,13 @@ function PortionCard({
   const [editing, setEditing] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (canEdit && autoEdit) {
+      setEditing(true);
+      document.getElementById('portions')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [autoEdit, canEdit]);
 
   const handleSavePortion = (values: PortionFormSubmission) => {
     updatePortion.mutate(
@@ -760,6 +769,7 @@ interface PortionsSectionProps {
   isOpeningMagicWand: boolean;
   /** Set when the AI quota is used up; disables AI actions and explains why. */
   aiDisabledHint?: string;
+  autoEditPortionId?: number | null;
 }
 
 function PortionsSection({
@@ -773,6 +783,7 @@ function PortionsSection({
   onOpenMagicWand,
   isOpeningMagicWand,
   aiDisabledHint,
+  autoEditPortionId = null,
 }: PortionsSectionProps) {
   const reorderPortions = useReorderPortions(ingredient.slug);
   const [portions, setPortions] = useState(ingredient.portions);
@@ -852,7 +863,7 @@ function PortionsSection({
   const showPackungWarning = packungPortion && !packungHasWeight;
 
   return (
-    <div className="mb-8">
+    <div id="portions" className="mb-8 scroll-mt-20">
       {showPackungWarning && (
         <div className="mb-4 p-3 bg-warning-soft border border-warning-border rounded-lg flex items-start gap-3">
           <Icon name="warning" size={20} className="text-warning shrink-0 mt-0.5" />
@@ -923,7 +934,7 @@ function PortionsSection({
             <div className="space-y-3">
               {sortedPortions.map((portion) => (
                 <SortablePortionItem key={portion.id} portion={portion} canEdit={canEdit}>
-                  <PortionCard portion={portion} slug={ingredient.slug} canEdit={canEdit} />
+                  <PortionCard portion={portion} slug={ingredient.slug} canEdit={canEdit} autoEdit={portion.id === autoEditPortionId} />
                 </SortablePortionItem>
               ))}
             </div>
@@ -933,7 +944,7 @@ function PortionsSection({
         <div className="space-y-3">
           {sortedPortions.map((portion) => (
             <SortablePortionItem key={portion.id} portion={portion} canEdit={canEdit}>
-              <PortionCard portion={portion} slug={ingredient.slug} canEdit={canEdit} />
+              <PortionCard portion={portion} slug={ingredient.slug} canEdit={canEdit} autoEdit={portion.id === autoEditPortionId} />
             </SortablePortionItem>
           ))}
         </div>
@@ -949,6 +960,8 @@ export default function IngredientDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
+  const [searchParams] = useSearchParams();
+  const requestedEditPortionId = Number(searchParams.get('editPortion')) || null;
 
   const { data: ingredient, isLoading, error, refetch } = useIngredient(slug || '');
   const updateIngredient = useUpdateIngredient(slug || '');
@@ -1449,6 +1462,7 @@ export default function IngredientDetailPage() {
         onOpenMagicWand={openPortionMagicWand}
         isOpeningMagicWand={previewMagicWand.isPending}
         aiDisabledHint={ai.disabled ? ai.hint : undefined}
+        autoEditPortionId={requestedEditPortionId}
       />
 
         <CollapsibleSection title="Alle Nährwerte" summary="pro 100 g" icon="nutrition" storageKey="ingredient-nutrition">

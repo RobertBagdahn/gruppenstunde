@@ -4,6 +4,7 @@
  */
 import { useState, useMemo } from 'react';
 import { MealItemAmountText } from '@/components/planning/MealItemAmountEditor';
+import { UnitViewToggle } from '@/components/quantity/UnitViewToggle';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import {
@@ -95,6 +96,8 @@ export default function RefMealEditorPage() {
         ingredient_id: item.ingredient_id,
         quantity: item.quantity,
         measuring_unit_id: item.measuring_unit_id,
+        portion_id: item.portion_id ?? null,
+        standard_measure_key: item.standard_measure_key || null,
         display_name: item.display_name,
         factor: item.factor,
       }))
@@ -308,7 +311,8 @@ export default function RefMealEditorPage() {
 
       {/* Wizard button for existing breakfast RefMeal */}
       {refMeal && isBreakfast && (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <UnitViewToggle />
           <button
             onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
             className="flex items-center gap-2 px-3 py-1.5 text-body border rounded-lg hover:bg-muted transition-colors"

@@ -498,10 +498,11 @@ export function IngredientQuantityInline({
   onConfirm,
   onCancel,
 }: IngredientQuantityInlineProps) {
+  const startPortionId = ingredient.start_portion_id ?? null;
   const [selectedPortionId, setSelectedPortionId] = useState<string>(
-    ingredient.portions.length > 0 ? String(ingredient.portions[0].id) : '',
+    startPortionId != null ? String(startPortionId) : '',
   );
-  const [quantityInput, setQuantityInput] = useState(() => formatDecimalInput(1));
+  const [quantityInput, setQuantityInput] = useState(() => formatDecimalInput(startPortionId != null ? 1 : 100));
   const [note, setNote] = useState('');
   const quantity = parseDecimalInput(quantityInput);
   const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
@@ -546,7 +547,6 @@ export function IngredientQuantityInline({
                 {ingredient.portions.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>
                     {p.name}
-                    {p.measuring_unit ? ` (${p.measuring_unit})` : ''}
                     {p.weight_g ? ` — ${formatExactWeight(p.weight_g)}` : ''}
                   </SelectItem>
                 ))}

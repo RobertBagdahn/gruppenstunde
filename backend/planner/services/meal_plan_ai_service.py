@@ -714,11 +714,22 @@ class MealPlanAiService:
                                 if not measuring_unit:
                                     measuring_unit = MeasuringUnit.objects.filter(name__in=["g", "Gramm"]).first()
 
+                                from ninja.errors import HttpError
+
+                                from planner.services.meal_item_units import (
+                                    UnitFields,
+                                    unit_fields_for_measuring_unit,
+                                )
+
+                                try:
+                                    unit_fields = unit_fields_for_measuring_unit(ing, measuring_unit)
+                                except HttpError:
+                                    unit_fields = UnitFields(None, "", measuring_unit)
                                 MealItem.objects.create(
                                     meal=meal,
                                     ingredient_id=i_id,
                                     quantity=it.get("quantity") or 100.0,
-                                    measuring_unit=measuring_unit,
+                                    **unit_fields.as_kwargs(),
                                     factor=1.0,
                                 )
                                 created_any = True

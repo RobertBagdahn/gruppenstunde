@@ -1,0 +1,12 @@
+[
+  {"quantity": 0.5, "unit_kind": "portion", "unit_label": "Portion", "grams": 15, "is_approx": false, "missing": false, "expected": "0,5 Portion (15 g)"},
+  {"quantity": 1.5, "unit_kind": "portion", "unit_label": "Stück", "grams": 90, "is_approx": false, "missing": false, "expected": "1,5 Stück (90 g)"},
+  {"quantity": 24, "unit_kind": "portion", "unit_label": "Stück", "grams": 1440, "is_approx": false, "missing": false, "expected": "24 Stück (1,4 kg)"},
+  {"quantity": 0.333, "unit_kind": "portion", "unit_label": "Stück", "grams": 20, "is_approx": false, "missing": false, "expected": "0,33 Stück (20 g)"},
+  {"quantity": 2, "unit_kind": "portion", "unit_label": "Stück", "grams": 0, "is_approx": false, "missing": true, "expected": "2 Stück (Gewicht fehlt)"},
+  {"quantity": 80, "unit_kind": "grams", "unit_label": "g", "grams": 80, "is_approx": false, "missing": false, "expected": "80 g"},
+  {"quantity": 1, "unit_kind": "standard", "unit_label": "TL", "grams": 5, "is_approx": true, "missing": false, "expected": "1 TL (≈ 5 g)"},
+  {"quantity": 2, "unit_kind": "standard", "unit_label": "EL", "grams": 27.6, "is_approx": false, "missing": false, "expected": "2 EL (28 g)"},
+  {"quantity": 1, "unit_kind": "standard", "unit_label": "Prise", "grams": 0.5, "is_approx": true, "missing": false, "expected": "1 Prise (≈ 500 mg)"},
+  {"quantity": 250, "unit_kind": "milliliters", "unit_label": "ml", "grams": 250, "is_approx": true, "missing": false, "expected": "250 ml (≈ 250 g)"}
+]

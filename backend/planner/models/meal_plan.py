@@ -646,6 +646,13 @@ class MealItem(models.Model):
         verbose_name=_("Portion"),
         help_text=_("Gewählte Portion der Einzelzutat; dann ist die Menge die Anzahl Portionen pro Person"),
     )
+    standard_measure_key = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        verbose_name=_("Standardmaß"),
+        help_text=_("EL, TL, Tasse, Prise oder Msp; dann ist die Menge die Anzahl dieses Maßes pro Person"),
+    )
     display_name = models.CharField(
         max_length=200,
         blank=True,
@@ -696,6 +703,19 @@ class MealItem(models.Model):
                 fields=["meal", "ingredient", "buffet_role"],
                 condition=models.Q(ingredient__isnull=False),
                 name="unique_ingredient_role_per_meal",
+            ),
+            # Exactly one unit kind: portion, standard measure or a g/ml measuring unit.
+            models.CheckConstraint(
+                condition=~(models.Q(portion__isnull=False) & ~models.Q(standard_measure_key="")),
+                name="meal_item_portion_xor_standard_measure",
+            ),
+            models.CheckConstraint(
+                condition=~(models.Q(portion__isnull=False) & models.Q(measuring_unit__isnull=False)),
+                name="meal_item_portion_without_measuring_unit",
+            ),
+            models.CheckConstraint(
+                condition=~(~models.Q(standard_measure_key="") & models.Q(measuring_unit__isnull=False)),
+                name="meal_item_standard_measure_without_measuring_unit",
             ),
             models.CheckConstraint(
                 condition=models.Q(buffet_share_percent__isnull=True)

@@ -52,6 +52,10 @@ class MealItemOut(Schema):
     measuring_unit_name: str = ""
     portion_id: int | None = None
     portion_name: str = ""
+    standard_measure_key: str = ""
+    unit_kind: Literal["grams", "milliliters", "portion", "standard"] | None = None
+    unit_label: str = ""
+    is_weight_approx: bool = False
     display_name: str | None = None
     note: str = ""
     factor: float
@@ -83,6 +87,45 @@ class MealItemOut(Schema):
     @staticmethod
     def resolve_portion_name(obj) -> str:
         return obj.portion.name if obj.portion else ""
+
+    @staticmethod
+    def resolve_unit_kind(obj) -> str | None:
+        if not obj.ingredient_id:
+            return None
+        from supply.services.quantity_units import resolve_unit
+
+        return resolve_unit(
+            portion=obj.portion,
+            standard_measure_key=obj.standard_measure_key,
+            measuring_unit=obj.measuring_unit,
+        ).kind
+
+    @staticmethod
+    def resolve_unit_label(obj) -> str:
+        if not obj.ingredient_id:
+            return ""
+        from supply.services.quantity_units import resolve_unit
+
+        return resolve_unit(
+            portion=obj.portion,
+            standard_measure_key=obj.standard_measure_key,
+            measuring_unit=obj.measuring_unit,
+        ).label
+
+    @staticmethod
+    def resolve_is_weight_approx(obj) -> bool:
+        if not obj.ingredient_id or not obj.quantity:
+            return False
+        from supply.services.quantity_units import resolve_grams
+
+        result = resolve_grams(
+            ingredient=obj.ingredient,
+            quantity=float(obj.quantity),
+            portion=obj.portion,
+            standard_measure_key=obj.standard_measure_key,
+            measuring_unit=obj.measuring_unit,
+        )
+        return bool(result and result.is_approx and not result.missing)
 
     @staticmethod
     def resolve_recipe_title(obj) -> str:
@@ -154,19 +197,19 @@ class MealItemOut(Schema):
 
     @staticmethod
     def resolve_has_missing_weight(obj) -> bool:
-        """Return True if the ingredient has a portion-based unit but no weight_g."""
-        if obj.ingredient and obj.quantity and obj.portion_id:
-            from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+        """Return True if the selected portion has no trusted gram weight."""
+        if not (obj.ingredient and obj.quantity):
+            return False
+        from supply.services.quantity_units import resolve_grams
 
-            return _resolve_ingredient_weight_g(obj) <= 0
-        if obj.ingredient and obj.quantity and obj.measuring_unit:
-            name_lower = obj.measuring_unit.name.lower()
-            if name_lower in ("g", "ml"):
-                return False
-            portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
-            if portion is None or not portion.weight_g:
-                return True
-        return False
+        result = resolve_grams(
+            ingredient=obj.ingredient,
+            quantity=float(obj.quantity),
+            portion=obj.portion,
+            standard_measure_key=obj.standard_measure_key,
+            measuring_unit=obj.measuring_unit,
+        )
+        return bool(result and result.missing)
 
     @staticmethod
     def resolve_ingredient_tags(obj) -> list[str]:
@@ -214,6 +257,7 @@ class MealItemCreateIn(Schema):
     quantity: float | None = None
     measuring_unit_id: int | None = None
     portion_id: int | None = None
+    standard_measure_key: str | None = None
     display_name: str | None = None
     note: str = Field(default="", max_length=500)
     factor: float = Field(default=1.0, gt=0)
@@ -231,6 +275,7 @@ class MealItemUpdateIn(Schema):
     servings: float | None = Field(default=None, gt=0)
     portion_id: int | None = None
     measuring_unit_id: int | None = None
+    standard_measure_key: str | None = None
     note: str | None = Field(default=None, max_length=500)
 
     @model_validator(mode="after")
@@ -953,6 +998,8 @@ class RefMealItemIn(Schema):
     ingredient_id: int | None = None
     quantity: float | None = None
     measuring_unit_id: int | None = None
+    portion_id: int | None = None
+    standard_measure_key: str | None = None
     display_name: str | None = None
     factor: float = Field(default=1.0, gt=0)
 
@@ -1224,6 +1271,7 @@ class IngredientSearchResultOut(Schema):
     status: str = ""
     nutritional_tags: list[NutritionalTagPreviewOut] = []
     portions: list[IngredientPortionPreviewOut] = []
+    start_portion_id: int | None = None
 
 
 class SearchRecipesResponseOut(Schema):

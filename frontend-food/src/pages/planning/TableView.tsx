@@ -20,7 +20,9 @@ import { compareMealsByTime, MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS
 import { useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import { cn } from '@/lib/utils';
-import { formatItemPortion, getBreakfastSummary } from '@/utils/formatItemDisplay';
+import { getBreakfastSummary } from '@/utils/formatItemDisplay';
+import { QuantityUnitLabel } from '@/components/quantity/QuantityUnit';
+import { useUnitViewMode } from '@/hooks/useUnitViewMode';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
 import { MealItemAmountEditor, MealItemNote, type MealItemPatch } from '@/components/planning/MealItemAmountEditor';
@@ -106,6 +108,7 @@ export default function TableView({
   const { data: scanData } = useIngredientScan(mealPlanId);
 
   // Dialog state for recipe details/search
+  const [unitViewMode] = useUnitViewMode();
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
   const [searchDialogIngredientOnly, setSearchDialogIngredientOnly] = useState(false);
 
@@ -475,7 +478,7 @@ export default function TableView({
                                           ) || [];
                                           const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
                                           const isEditableIngredient = !!item.ingredient_id && !item.recipe_id && !!onUpdateItem && item.quantity != null && canEdit && !meal.is_synced;
-                                          const portionLabel = item.ingredient_id && !item.recipe_id && !isEditableIngredient ? formatItemPortion(item) : null;
+                                          const hasReadOnlyIngredientAmount = item.ingredient_id && !item.recipe_id && !isEditableIngredient;
 
                                           return (
                                             <div
@@ -505,16 +508,12 @@ export default function TableView({
                                                   <NutriTagBadge allergenTags={itemAllergenTags} />
                                                 </div>
 
-                                                {portionLabel && (
-                                                  <span
-                                                    className={cn(
-                                                      "text-caption font-semibold px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground shrink-0 max-w-[130px] truncate",
-                                                       item.has_missing_weight && "text-destructive"
-                                                    )}
-                                                    title={portionLabel}
-                                                  >
-                                                    {portionLabel}
-                                                  </span>
+                                                {hasReadOnlyIngredientAmount && (
+                                                  <QuantityUnitLabel
+                                                    item={item}
+                                                    viewMode={unitViewMode}
+                                                    className={cn('shrink-0 max-w-[170px]', item.has_missing_weight && 'text-destructive')}
+                                                  />
                                                 )}
                                               </div>
 

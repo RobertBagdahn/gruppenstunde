@@ -156,6 +156,7 @@ describe('MealOmnibarDialog', () => {
       ingredients: [
         {
           ...baseIngredient,
+          start_portion_id: 5,
           portions: [{ id: 5, name: 'EL', measuring_unit: 'Gramm', measuring_unit_id: 1, quantity: 1, weight_g: 15 }],
         },
       ],

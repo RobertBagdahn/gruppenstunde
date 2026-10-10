@@ -7,6 +7,7 @@ import { UtensilsCrossed, Moon, Cookie, GlassWater } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
 import { PriceCoverageSchema } from './recipe';
 import { QuantityWarningSchema } from './buffet';
+import { UnitKindSchema } from './quantityUnits';
 import { planDateKey } from '@/lib/mealPlanDateTime';
 
 // Lightweight nutritional tag schema for search results (backend only returns id+name)
@@ -62,6 +63,10 @@ export const MealItemSchema = z.object({
   measuring_unit_name: z.string(),
   portion_id: z.number().nullable().optional(),
   portion_name: z.string().optional(),
+  standard_measure_key: z.string().default(''),
+  unit_kind: UnitKindSchema.nullable().default(null),
+  unit_label: z.string().default(''),
+  is_weight_approx: z.boolean().default(false),
   display_name: z.string().nullable(),
   note: z.string().optional(),
   factor: z.number(),
@@ -500,6 +505,8 @@ export const IngredientSearchResultSchema = z.object({
   status: z.string().optional(),
   nutritional_tags: z.array(NutritionalTagPreviewSchema).optional(),
   portions: z.array(IngredientPortionSchema),
+  /** Portion preselected when adding (lowest rank with a trusted weight); null → 100 g. */
+  start_portion_id: z.number().nullable().default(null),
 });
 export type IngredientSearchResult = z.infer<typeof IngredientSearchResultSchema>;
 
@@ -949,6 +956,8 @@ export const RefMealItemInSchema = z.object({
   ingredient_id: z.number().nullable().optional(),
   quantity: z.number().nullable().optional(),
   measuring_unit_id: z.number().nullable().optional(),
+  portion_id: z.number().nullable().optional(),
+  standard_measure_key: z.string().nullable().optional(),
   display_name: z.string().nullable().optional(),
   factor: z.number().default(1.0),
 });

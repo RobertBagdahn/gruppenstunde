@@ -46,20 +46,23 @@ def _format_number(value: float) -> str:
 
 def _piece_count(item: Any) -> float | None:
     """Per-person piece count if the item's unit is a piece-like portion."""
+    portion = getattr(item, "portion", None)
+    if portion is not None:
+        return float(item.quantity) if is_piece_like_name(portion.name) else None
     unit = item.measuring_unit
     if unit is None or unit.name.lower() in GRAM_UNIT_NAMES + MILLILITER_UNIT_NAMES:
         return None
     if is_piece_like_name(unit.name):
         return float(item.quantity)
-    portion = item.ingredient.portions.active().filter(measuring_unit=unit).first()
-    if portion is not None and is_piece_like_name(portion.name):
+    legacy_portion = item.ingredient.portions.active().filter(measuring_unit=unit).first()
+    if legacy_portion is not None and is_piece_like_name(legacy_portion.name):
         return float(item.quantity)
     return None
 
 
 def check_item(item: Any, portions: float) -> QuantityWarning | None:
     """Return a warning when an ingredient item's per-person amount is implausible."""
-    if item.ingredient_id is None or not item.quantity or item.measuring_unit is None:
+    if item.ingredient_id is None or not item.quantity:
         return None
     portions = max(float(portions or 1), 1.0)
     name = item.display_name or item.ingredient.name

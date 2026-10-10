@@ -1,26 +1,18 @@
 import { useState } from 'react';
 import { StickyNote } from 'lucide-react';
-import { useIngredientPortions } from '@/api/supplies';
-import PortionPicker from '@/components/recipe/PortionPicker';
-import { formatMealItemAmount } from '@/lib/ingredientAmount';
-import { QuantityInput } from '@/pages/planning/QuantityInput';
+import { QuantityUnitInput, QuantityUnitLabel } from '@/components/quantity/QuantityUnit';
+import { useUnitViewMode } from '@/hooks/useUnitViewMode';
 import type { MealItem } from '@/schemas/mealPlan';
 import type { UpdateMealItemVars } from '@/api/mealPlans';
 
 export type MealItemPatch = Omit<UpdateMealItemVars, 'itemId'>;
 
-const METRIC_UNITS = new Set(['g', 'gramm', 'ml', 'milliliter']);
 const NOTE_MAX_LENGTH = 500;
 
 /** Read-only amount text, identical to the recipe views ("0,5 EL (15 g)"). */
 export function MealItemAmountText({ item }: { item: MealItem }) {
-  const { primary, secondary } = formatMealItemAmount(item);
-  return (
-    <span className={item.has_missing_weight ? 'text-destructive' : undefined}>
-      {primary}
-      {secondary && <span className="text-muted-foreground/60 ml-0.5">({secondary})</span>}
-    </span>
-  );
+  const [viewMode] = useUnitViewMode();
+  return <QuantityUnitLabel item={item} viewMode={viewMode} />;
 }
 
 /** Quantity plus unit/portion selection for a single ingredient of the plan. */
@@ -31,36 +23,13 @@ export function MealItemAmountEditor({
   item: MealItem;
   onUpdateItem: (itemId: number, patch: MealItemPatch) => void;
 }) {
-  const { data: portions = [] } = useIngredientPortions(item.ingredient_slug);
-  const portionId = item.portion_id ?? null;
-  const unitName = item.measuring_unit_name;
-  const hasLegacyUnit = portionId == null && unitName !== '' && !METRIC_UNITS.has(unitName.toLowerCase());
-  const missingPortion = portionId != null && !portions.some((p) => p.id === portionId);
-  const selectedFallback = hasLegacyUnit
-    ? { id: -1, name: unitName, weight_g: item.quantity_g != null && item.quantity ? item.quantity_g / item.quantity : null }
-    : missingPortion
-      ? { id: portionId, name: item.portion_name || unitName, weight_g: item.quantity_g != null && item.quantity ? item.quantity_g / item.quantity : null }
-      : null;
-
+  const [viewMode] = useUnitViewMode();
   return (
-    <span className="inline-flex items-center gap-1">
-      <QuantityInput value={item.quantity ?? 0} onChange={(quantity) => onUpdateItem(item.id, { quantity })} />
-      <PortionPicker
-        className="w-32"
-        portions={portions}
-        value={selectedFallback ? selectedFallback.id : portionId}
-        selectedFallback={selectedFallback}
-        showGramsSection={false}
-        onSelectPortion={(id) => {
-          if (id !== portionId) onUpdateItem(item.id, { portion_id: id });
-        }}
-        onSelectStandardMeasure={() => undefined}
-        onSelectGrams={() => undefined}
-      />
-      {item.quantity_g != null && item.quantity_g > 0 && portionId != null && !METRIC_UNITS.has((item.portion_name ?? '').toLowerCase()) && (
-        <span className="text-caption text-muted-foreground/60">({formatMealItemAmount(item).secondary})</span>
-      )}
-    </span>
+    <QuantityUnitInput
+      item={item}
+      viewMode={viewMode}
+      onCommit={(change) => onUpdateItem(item.id, change)}
+    />
   );
 }
 

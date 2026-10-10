@@ -108,6 +108,7 @@ def generate_shopping_list(
             "ingredient",
             "ingredient__retail_section",
             "measuring_unit",
+            "portion__measuring_unit",
         )
         .prefetch_related(
             "recipe__recipe_items__portion__ingredient__retail_section",
@@ -228,7 +229,9 @@ def generate_shopping_list(
 
             if base_weight_g <= 0:
                 # No weight resolved — track as raw quantity for display
-                portion = portion_lookup.get((ing.id, mi.measuring_unit_id)) if mi.measuring_unit_id else None
+                portion = mi.portion or (
+                    portion_lookup.get((ing.id, mi.measuring_unit_id)) if mi.measuring_unit_id else None
+                )
                 raw_qty = float(mi.quantity or 0) * mi.factor * meal_scaling
                 portion_name = portion.name if portion else (mi.measuring_unit.name if mi.measuring_unit else "")
                 if ing.id in raw_quantities:

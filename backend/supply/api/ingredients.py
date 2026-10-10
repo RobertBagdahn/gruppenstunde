@@ -39,6 +39,7 @@ from supply.schemas import (
     IngredientSimilarOut,
     IngredientSuggestAllOut,
     IngredientSuggestionOut,
+    IngredientUnitOptionsOut,
     IngredientUpdateIn,
     PackageCreateIn,
     PackageOut,
@@ -294,6 +295,44 @@ def list_generic_terms(request):
     return sorted(get_generic_terms())
 
 
+@ingredient_router.get("/unit-options/", response=list[IngredientUnitOptionsOut])
+def list_unit_options(request, ids: str = ""):
+    """All units (portions, standard measures, g/ml) for up to 200 visible ingredients.
+
+    Comma-separated `ids`; invisible or unknown ids are skipped. Must stay
+    registered before the `/{slug}/` route.
+    """
+    from content.services.food_access import visible_ingredient_queryset
+    from supply.services.quantity_units import unit_options
+
+    try:
+        id_list = list(dict.fromkeys(int(part) for part in ids.split(",") if part.strip()))
+    except ValueError as exc:
+        raise HttpError(422, "Ungültige Zutaten-IDs.") from exc
+    if len(id_list) > 200:
+        raise HttpError(422, "Höchstens 200 Zutaten pro Anfrage.")
+    if not id_list:
+        return []
+
+    ingredients = (
+        visible_ingredient_queryset(request.user).filter(id__in=id_list).prefetch_related("portions__measuring_unit")
+    )
+    by_id = {ingredient.id: ingredient for ingredient in ingredients}
+    result: list[IngredientUnitOptionsOut] = []
+    for ingredient_id in id_list:
+        ingredient = by_id.get(ingredient_id)
+        if ingredient is None:
+            continue
+        portions = [p for p in ingredient.portions.all() if p.deleted_at is None and p.superseded_by_id is None]
+        result.append(
+            IngredientUnitOptionsOut(
+                ingredient_id=ingredient.id,
+                options=[option.__dict__ for option in unit_options(ingredient, portions)],
+            )
+        )
+    return result
+
+
 @ingredient_router.get("/{slug}/standard-measures/", response=list[StandardMeasureOut])
 def list_standard_measures(request, slug: str):
     """Standard kitchen measures (EL, TL, Tasse, …) for an ingredient.
@@ -303,28 +342,18 @@ def list_standard_measures(request, slug: str):
     persisted as portions. Must stay registered before the `/{slug}/` route.
     """
     from supply.data.standard_measures import STANDARD_MEASURES
+    from supply.services.quantity_units import standard_measure_grams
 
     ingredient = get_object_or_404(Ingredient, slug=slug, deleted_at__isnull=True)
 
-    density = ingredient.physical_density or 0
-    # Default density is 1.0 — treat it as "not explicitly set" so the
-    # frontend can mark the gram amount as approximate.
-    has_explicit_density = density > 0 and density != 1.0
-    multiplier = density if has_explicit_density else 1.0
-
     measures: list[StandardMeasureOut] = []
     for measure in STANDARD_MEASURES:
-        if measure.volume_ml is not None:
-            grams = round(measure.volume_ml * multiplier, 2)
-            is_approx = not has_explicit_density
-        else:
-            grams = measure.grams or 0.0
-            is_approx = True
+        grams, is_approx = standard_measure_grams(ingredient, measure.key)
         measures.append(
             StandardMeasureOut(
                 key=measure.key,
                 name=measure.name,
-                grams=grams,
+                grams=round(grams, 2),
                 volume_ml=measure.volume_ml,
                 unit_name=measure.unit_name,
                 is_approx=is_approx,

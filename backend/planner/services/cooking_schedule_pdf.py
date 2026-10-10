@@ -205,9 +205,30 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
 
                     weight_g = _resolve_ingredient_weight_g(item) * scale
                     qty = float(item.quantity or 0) * scale
-                    unit = item.measuring_unit.name if item.measuring_unit else ""
+                    from supply.services.quantity_units import GramResult, format_amount, resolve_grams, resolve_unit
+
+                    unit = resolve_unit(
+                        portion=item.portion,
+                        standard_measure_key=item.standard_measure_key,
+                        measuring_unit=item.measuring_unit,
+                    )
+                    result = resolve_grams(
+                        ingredient=ing,
+                        quantity=float(item.quantity or 0),
+                        portion=item.portion,
+                        standard_measure_key=item.standard_measure_key,
+                        measuring_unit=item.measuring_unit,
+                    )
                     amount = (
-                        format_cooking_weight(weight_g) if weight_g > 0 else f"{_format_decimal(qty, 1)} {unit}".strip()
+                        format_amount(
+                            quantity=qty,
+                            unit=unit,
+                            result=GramResult(weight_g, result.is_approx, result.missing),
+                        )
+                        if result is not None and unit.kind is not None
+                        else format_cooking_weight(weight_g)
+                        if weight_g > 0
+                        else f"{_format_decimal(qty, 1)} {unit.label}".strip()
                     )
                     price_per_kg = price_or_none(ing.price_per_kg)
                     recipe_cost = (float(price_per_kg)) * weight_g / 1000.0 if price_per_kg is not None else 0.0

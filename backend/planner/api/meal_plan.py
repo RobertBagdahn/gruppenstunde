@@ -240,26 +240,6 @@ def _create_meal_item(**kwargs):
         )
 
 
-def _require_defined_unit(ingredient, measuring_unit_id: int | None) -> None:
-    """Reject units the ingredient has no active portion for (grams/milliliters always work).
-
-    Portions are never created here: a silent fallback weight turned unit
-    mix-ups into absurd amounts.
-    """
-    if ingredient is None or not measuring_unit_id:
-        return
-    from planner.services.meal_item_helpers import GRAM_UNIT_NAMES, MILLILITER_UNIT_NAMES
-    from supply.models import MeasuringUnit
-
-    unit = MeasuringUnit.objects.filter(id=measuring_unit_id).first()
-    if unit is None:
-        raise HttpError(422, "Einheit nicht gefunden.")
-    if unit.name.lower() in GRAM_UNIT_NAMES + MILLILITER_UNIT_NAMES:
-        return
-    if not ingredient.portions.active().filter(measuring_unit=unit).exists():
-        raise HttpError(422, f"Einheit {unit.name} ist für {ingredient.name} nicht definiert.")
-
-
 def _resolve_chosen_portion(ingredient, portion_id: int | None):
     """Return the active portion chosen for a single ingredient, or None.
 
@@ -272,6 +252,41 @@ def _resolve_chosen_portion(ingredient, portion_id: int | None):
     if portion is None:
         raise HttpError(422, "Die Portion gehört nicht zu dieser Zutat")
     return portion
+
+
+def _search_portions(ingredient_ids: list[int]) -> tuple[dict[int, list[dict]], dict[int, int | None]]:
+    """Active portions by rank and default portion id for ingredient search results."""
+    from supply.models import Portion
+    from supply.services.quantity_units import start_portion
+
+    grouped: dict[int, list[Portion]] = {}
+    portions = (
+        Portion.objects.active()
+        .filter(ingredient_id__in=ingredient_ids)
+        .select_related("measuring_unit", "ingredient")
+        .order_by("rank", "name")
+    )
+    for portion in portions:
+        grouped.setdefault(portion.ingredient_id, []).append(portion)
+    by_ingredient = {
+        ingredient_id: [
+            {
+                "id": portion.id,
+                "name": portion.name,
+                "measuring_unit": portion.measuring_unit.name if portion.measuring_unit else None,
+                "measuring_unit_id": portion.measuring_unit_id,
+                "quantity": float(portion.quantity) if portion.quantity else None,
+                "weight_g": float(portion.weight_g) if portion.weight_g else None,
+            }
+            for portion in rows
+        ]
+        for ingredient_id, rows in grouped.items()
+    }
+    starts = {
+        ingredient_id: (default.id if (default := start_portion(rows[0].ingredient, rows)) else None)
+        for ingredient_id, rows in grouped.items()
+    }
+    return by_ingredient, starts
 
 
 def _attach_warnings(item: MealItem) -> MealItem:
@@ -851,12 +866,13 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
             for item in meal.items.all():
                 if item.recipe_id is not None and item.recipe.deleted_at is not None:
                     continue
+                from planner.services.meal_item_units import copy_unit_fields
+
                 new_item = MealItem.objects.create(
                     meal=new_meal,
                     recipe=item.recipe,
                     ingredient=item.ingredient,
-                    quantity=item.quantity,
-                    measuring_unit=item.measuring_unit,
+                    **copy_unit_fields(item),
                     display_name=item.display_name,
                     factor=item.factor,
                     active_recipe_item_ids=item.active_recipe_item_ids,
@@ -1166,16 +1182,21 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
 
         ingredient = get_visible_ingredient_or_404(request.user, payload.ingredient_id, allow_system_draft=True)
 
-    chosen_portion = _resolve_chosen_portion(ingredient, payload.portion_id)
+    from planner.services.meal_item_units import resolve_unit_fields
+
+    unit_fields = resolve_unit_fields(
+        ingredient,
+        portion_id=payload.portion_id,
+        standard_measure_key=payload.standard_measure_key,
+        measuring_unit_id=payload.measuring_unit_id,
+    )
 
     item = _create_meal_item(
         meal=meal,
         recipe=recipe,
         ingredient=ingredient,
         quantity=payload.quantity,
-        # The portion's own unit wins so all views agree on what "1 Scheibe" means.
-        measuring_unit_id=chosen_portion.measuring_unit_id if chosen_portion else payload.measuring_unit_id,
-        portion=chosen_portion,
+        **unit_fields.as_kwargs(),
         display_name=payload.display_name,
         note=payload.note.strip(),
         factor=payload.factor,
@@ -1235,7 +1256,14 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
 
                 ingredient = get_visible_ingredient_or_404(request.user, item_in.ingredient_id, allow_system_draft=True)
 
-            _require_defined_unit(ingredient, item_in.measuring_unit_id)
+            from planner.services.meal_item_units import resolve_unit_fields
+
+            unit_fields = resolve_unit_fields(
+                ingredient,
+                portion_id=item_in.portion_id,
+                standard_measure_key=item_in.standard_measure_key,
+                measuring_unit_id=item_in.measuring_unit_id,
+            )
 
             if payload.manual_items_policy == "preserve" and (
                 item_in.ingredient_id in existing_ingredient_ids or item_in.recipe_id in existing_recipe_ids
@@ -1248,7 +1276,7 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
                     recipe=recipe,
                     ingredient=ingredient,
                     quantity=item_in.quantity,
-                    measuring_unit_id=item_in.measuring_unit_id,
+                    **unit_fields.as_kwargs(),
                     display_name=item_in.display_name,
                     factor=item_in.factor,
                     is_breakfast_assistant=meal.meal_type == "breakfast",
@@ -1306,8 +1334,15 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
             if item_in.ingredient_id
             else None
         )
-        _require_defined_unit(ingredient, item_in.measuring_unit_id)
-        resolved_items.append((item_in, recipe, ingredient))
+        from planner.services.meal_item_units import resolve_unit_fields
+
+        unit_fields = resolve_unit_fields(
+            ingredient,
+            portion_id=item_in.portion_id,
+            standard_measure_key=item_in.standard_measure_key,
+            measuring_unit_id=item_in.measuring_unit_id,
+        )
+        resolved_items.append((item_in, recipe, ingredient, unit_fields))
 
     with transaction.atomic():
         for meal in meals:
@@ -1327,7 +1362,7 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
                 existing_ingredient_ids = set()
                 existing_recipe_ids = set()
 
-            for item_in, recipe, ingredient in resolved_items:
+            for item_in, recipe, ingredient, unit_fields in resolved_items:
                 if payload.manual_items_policy == "preserve" and (
                     item_in.ingredient_id in existing_ingredient_ids or item_in.recipe_id in existing_recipe_ids
                 ):
@@ -1337,7 +1372,7 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
                     recipe=recipe,
                     ingredient=ingredient,
                     quantity=item_in.quantity,
-                    measuring_unit_id=item_in.measuring_unit_id,
+                    **unit_fields.as_kwargs(),
                     display_name=item_in.display_name,
                     factor=item_in.factor,
                     is_breakfast_assistant=True,
@@ -1422,17 +1457,12 @@ def remove_meal_item(request, meal_plan_id: int, item_id: int):
 
 
 def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
-    """Apply quantity / unit / portion changes of an update request.
-
-    A pure unit or portion change keeps the grams per person: the quantity is
-    recomputed in the new unit. A quantity sent together with the unit is taken
-    as the amount in that unit and is not converted.
-    """
+    """Apply quantity / unit / portion changes while preserving grams on pure unit changes."""
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
-    from supply.services.portion_resolution import resolve_trusted_weight
+    from planner.services.meal_item_units import resolve_unit_fields
 
     fields = payload.model_fields_set
-    changes_unit = "portion_id" in fields or "measuring_unit_id" in fields
+    changes_unit = bool({"portion_id", "measuring_unit_id", "standard_measure_key"} & fields)
     if not changes_unit:
         if payload.quantity is not None:
             item.quantity = payload.quantity
@@ -1443,16 +1473,15 @@ def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
         raise HttpError(422, "Einheit und Portion können nur für Zutaten gewählt werden")
 
     grams = _resolve_ingredient_weight_g(item)
-    if payload.portion_id:
-        portion = _resolve_chosen_portion(item.ingredient, payload.portion_id)
-        if resolve_trusted_weight(portion) is None:
-            raise HttpError(422, "Für diese Portion fehlt das Gewicht, die Menge kann nicht umgerechnet werden.")
-        item.portion = portion
-        item.measuring_unit_id = portion.measuring_unit_id
-    else:
-        _require_defined_unit(item.ingredient, payload.measuring_unit_id)
-        item.portion = None
-        item.measuring_unit_id = payload.measuring_unit_id
+    unit_fields = resolve_unit_fields(
+        item.ingredient,
+        portion_id=payload.portion_id,
+        standard_measure_key=payload.standard_measure_key,
+        measuring_unit_id=payload.measuring_unit_id,
+    )
+    item.portion = unit_fields.portion
+    item.standard_measure_key = unit_fields.standard_measure_key
+    item.measuring_unit = unit_fields.measuring_unit
 
     if payload.quantity is not None:
         item.quantity = payload.quantity
@@ -1464,7 +1493,7 @@ def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
         item.quantity = round(grams / grams_per_unit, 2)
         if item.quantity <= 0:
             raise HttpError(422, "Die Menge ist in dieser Einheit zu klein.")
-    item.save(update_fields=["quantity", "measuring_unit", "portion"])
+    item.save(update_fields=["quantity", "measuring_unit", "portion", "standard_measure_key"])
 
 
 @meal_plan_router.patch("/{meal_plan_id}/meal-items/{item_id}/", response=MealItemOut)
@@ -1639,12 +1668,13 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
 
     copied_items = []
     for item in items_to_copy:
+        from planner.services.meal_item_units import copy_unit_fields
+
         copied = _create_meal_item(
             meal=target_meal,
             recipe=item.recipe,
             ingredient=item.ingredient,
-            quantity=item.quantity,
-            measuring_unit=item.measuring_unit,
+            **copy_unit_fields(item),
             display_name=item.display_name,
             factor=item.factor,
         )
@@ -2442,7 +2472,6 @@ def search_recipes(
     # 'ingredient' mode: only standalone ingredients, no recipes
     if parsed_types == ["ingredient"]:
         recipes_data: list[dict] = []
-        from supply.models import Portion
         from supply.models.reference import NutritionalTag
 
         ing_qs = _meal_plan_ingredient_search_queryset(request, q)
@@ -2495,21 +2524,10 @@ def search_recipes(
             for iid, tid in through_rows:
                 nutritional_tags_only.setdefault(iid, []).append({"id": tid, "name": tags_map.get(tid, "")})
 
-            portions_only = Portion.objects.active().filter(ingredient_id__in=ing_ids).select_related("measuring_unit")
-            portions_by_ing_only: dict[int, list[dict]] = {}
-            for p in portions_only:
-                portions_by_ing_only.setdefault(p.ingredient_id, []).append(
-                    {
-                        "id": p.id,
-                        "name": p.name,
-                        "measuring_unit": p.measuring_unit.name if p.measuring_unit else None,
-                        "measuring_unit_id": p.measuring_unit_id,
-                        "quantity": float(p.quantity) if p.quantity else None,
-                        "weight_g": float(p.weight_g) if p.weight_g else None,
-                    }
-                )
+            portions_by_ing_only, start_ids_only = _search_portions(ing_ids)
             for ing in ing_list_only:
                 ing["portions"] = portions_by_ing_only.get(ing["id"], [])
+                ing["start_portion_id"] = start_ids_only.get(ing["id"])
                 ing["nutritional_tags"] = nutritional_tags_only.get(ing["id"], [])
 
         return {"recipes": recipes_data, "ingredients": ing_list_only, "fallback_applied": False}
@@ -2654,8 +2672,6 @@ def search_recipes(
         )
 
     # --- Standalone Ingredients ---
-    from supply.models import Portion
-
     ing_qs = _meal_plan_ingredient_search_queryset(request, q)
 
     if nutritional_tag_ids:
@@ -2710,21 +2726,10 @@ def search_recipes(
             nutritional_tags_by_ing.setdefault(iid, []).append({"id": tid, "name": ing_tags_map.get(tid, "")})
 
         # Portions
-        portions = Portion.objects.active().filter(ingredient_id__in=ing_ids).select_related("measuring_unit")
-        portions_by_ing: dict[int, list[dict]] = {}
-        for p in portions:
-            portions_by_ing.setdefault(p.ingredient_id, []).append(
-                {
-                    "id": p.id,
-                    "name": p.name,
-                    "measuring_unit": p.measuring_unit.name if p.measuring_unit else None,
-                    "measuring_unit_id": p.measuring_unit_id,
-                    "quantity": float(p.quantity) if p.quantity else None,
-                    "weight_g": float(p.weight_g) if p.weight_g else None,
-                }
-            )
+        portions_by_ing, start_ids = _search_portions(ing_ids)
         for ing in ing_list:
             ing["portions"] = portions_by_ing.get(ing["id"], [])
+            ing["start_portion_id"] = start_ids.get(ing["id"])
             ing["nutritional_tags"] = nutritional_tags_by_ing.get(ing["id"], [])
 
     return {"recipes": recipes, "ingredients": ing_list, "fallback_applied": fallback_applied}

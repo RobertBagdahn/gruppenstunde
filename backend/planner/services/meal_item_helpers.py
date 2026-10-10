@@ -6,13 +6,12 @@ from typing import TYPE_CHECKING
 
 from supply.services.portion_resolution import resolve_trusted_weight
 
+# Re-exported for callers that still classify measuring units by name.
+from supply.services.quantity_units import GRAM_UNIT_NAMES, MILLILITER_UNIT_NAMES  # noqa: F401
+
 if TYPE_CHECKING:
     from planner.models import MealItem
     from supply.models import Portion
-
-
-GRAM_UNIT_NAMES = ("g", "gramm")
-MILLILITER_UNIT_NAMES = ("ml", "milliliter")
 
 
 def resolve_ingredient_energy_kcal(item: MealItem, effective_portions: float = 1.0) -> float | None:
@@ -57,11 +56,9 @@ def _resolve_ingredient_weight_g(
 ) -> float:
     """Resolve the total weight in grams for an ingredient-based MealItem.
 
-    Supports four paths:
-    0. If a portion was chosen → portion weight × quantity (portion count)
-    1. If measuring_unit name is "g" → quantity directly (grams)
-    2. If measuring_unit name is "ml" → quantity × density (fallback: 1 g/ml)
-    3. Otherwise → portion lookup (weight_g × quantity)
+    Portion, standard-measure, gram and milliliter entries are resolved by
+    `supply.services.quantity_units.resolve_grams`; only legacy rows with
+    another measuring unit fall back to a portion lookup by that unit.
 
     Args:
         item: A MealItem with ingredient and measuring_unit set.
@@ -73,22 +70,22 @@ def _resolve_ingredient_weight_g(
     if not item.quantity:
         return 0.0
 
-    # An explicitly chosen portion wins: quantity is the portion count per person.
-    chosen_portion = getattr(item, "portion", None)
-    if chosen_portion is not None and getattr(chosen_portion, "deleted_at", None) is None:
-        chosen_weight = resolve_trusted_weight(chosen_portion)
-        if chosen_weight is not None:
-            return chosen_weight * float(item.quantity)
+    from supply.services.quantity_units import resolve_grams
 
+    resolved = resolve_grams(
+        ingredient=item.ingredient,
+        quantity=float(item.quantity),
+        portion=getattr(item, "portion", None),
+        standard_measure_key=getattr(item, "standard_measure_key", ""),
+        measuring_unit=item.measuring_unit,
+    )
+    if resolved is not None:
+        return resolved.grams
+
+    # Legacy rows with a non-metric measuring unit (normalized by
+    # `normalize_meal_item_units`): look the portion up by its unit.
     if not item.measuring_unit:
         return 0.0
-
-    name_lower = item.measuring_unit.name.lower()
-    if name_lower in GRAM_UNIT_NAMES:
-        return float(item.quantity)
-    if name_lower in MILLILITER_UNIT_NAMES:
-        density = getattr(item.ingredient, "physical_density", None) or 1.0
-        return float(item.quantity) * density
 
     # Portion-unit path — use cache when available to avoid extra DB hit
     if portion_cache is not None:

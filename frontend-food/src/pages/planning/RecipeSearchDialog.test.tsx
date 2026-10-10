@@ -8,6 +8,7 @@ const ingredient: IngredientSearchResult = {
   id: 4,
   name: 'Olivenöl',
   slug: 'olivenoel',
+  start_portion_id: 12,
   portions: [
     {
       id: 12,

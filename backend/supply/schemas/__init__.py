@@ -22,6 +22,7 @@ from .ingredients import (
     IngredientSimilarOut,
     IngredientSuggestAllOut,
     IngredientSuggestionOut,
+    IngredientUnitOptionsOut,
     IngredientUpdateIn,
     PackageApplySuggestionIn,
     PackageCreateIn,
@@ -40,6 +41,7 @@ from .ingredients import (
     PortionUpdateOut,
     SharedGroupOut,
     StandardMeasureOut,
+    UnitOptionOut,
 )
 from .materials import (
     ContentMaterialItemIn,
@@ -116,6 +118,7 @@ __all__ = [
     "IngredientSimilarOut",
     "IngredientSuggestAllOut",
     "IngredientSuggestionOut",
+    "IngredientUnitOptionsOut",
     "IngredientUpdateIn",
     "MaterialCreateIn",
     "MaterialListOut",
@@ -166,4 +169,5 @@ __all__ = [
     "SharedGroupOut",
     "StandardMeasureOut",
     "UnitConversionResultOut",
+    "UnitOptionOut",
 ]

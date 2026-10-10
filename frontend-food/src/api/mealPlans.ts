@@ -377,6 +377,7 @@ export function useAddMealItem(mealPlanId: number) {
       quantity?: number;
       measuring_unit_id?: number;
       portion_id?: number;
+      standard_measure_key?: string;
       note?: string;
       factor?: number;
     }) => postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/items/`, body, MealItemSchema),
@@ -424,6 +425,7 @@ export interface UpdateMealItemVars {
   /** Unit change: the backend converts the quantity so the grams stay the same. */
   portion_id?: number | null;
   measuring_unit_id?: number | null;
+  standard_measure_key?: string | null;
   note?: string;
 }
 
@@ -436,10 +438,10 @@ export function useUpdateMealItem(mealPlanId: number) {
         Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined)),
         MealItemSchema,
       ),
-    onMutate: async ({ itemId, factor, quantity, portion_id, measuring_unit_id }) => {
+    onMutate: async ({ itemId, factor, quantity, portion_id, measuring_unit_id, standard_measure_key }) => {
       await queryClient.cancelQueries({ queryKey: ['meal-plan', mealPlanId] });
       const previousPlan = queryClient.getQueryData<MealPlanDetail>(['meal-plan', mealPlanId]);
-      const changesUnit = portion_id !== undefined || measuring_unit_id !== undefined;
+      const changesUnit = portion_id !== undefined || measuring_unit_id !== undefined || standard_measure_key !== undefined;
       // A unit change is converted by the backend, so only plain scaling is applied optimistically.
       if (previousPlan && !changesUnit && (factor !== undefined || quantity !== undefined)) {
         queryClient.setQueryData<MealPlanDetail>(

@@ -685,11 +685,7 @@ def _direct_quantity_parts(item: MealItem, portions: float, reserve_factor: floa
     portion count next to the unit name. Per-person is empty when unknown.
     """
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
-    from supply.services.amount_formatting import (
-        format_cooking_volume,
-        format_cooking_weight,
-        format_portion_amount,
-    )
+    from supply.services.amount_formatting import format_cooking_weight, format_portion_amount
 
     quantity = float(item.quantity or 0)
     scaled = quantity * item.factor * portions * reserve_factor
@@ -698,13 +694,39 @@ def _direct_quantity_parts(item: MealItem, portions: float, reserve_factor: floa
     if chosen is not None:
         return format_portion_amount(scaled, chosen), format_portion_amount(per_person_qty, chosen)
 
-    unit_name = (item.measuring_unit.name if item.measuring_unit else "").strip()
-    unit_lower = unit_name.lower()
-    if unit_lower in ("g", "gramm"):
-        return format_cooking_weight(scaled), format_cooking_weight(per_person_qty)
-    if unit_lower in ("ml", "milliliter"):
-        return format_cooking_volume(scaled), format_cooking_volume(per_person_qty)
+    from supply.services.quantity_units import format_amount, resolve_grams, resolve_unit
 
+    unit = resolve_unit(
+        portion=item.portion,
+        standard_measure_key=item.standard_measure_key,
+        measuring_unit=item.measuring_unit,
+    )
+    result = resolve_grams(
+        ingredient=item.ingredient,
+        quantity=quantity,
+        portion=item.portion,
+        standard_measure_key=item.standard_measure_key,
+        measuring_unit=item.measuring_unit,
+    )
+    if unit.kind is not None and result is not None:
+        from supply.services.quantity_units import GramResult
+
+        total_result = GramResult(
+            grams=result.grams * item.factor * portions * reserve_factor,
+            is_approx=result.is_approx,
+            missing=result.missing,
+        )
+        per_person_result = GramResult(
+            grams=result.grams * item.factor,
+            is_approx=result.is_approx,
+            missing=result.missing,
+        )
+        return (
+            format_amount(quantity=scaled, unit=unit, result=total_result),
+            format_amount(quantity=per_person_qty, unit=unit, result=per_person_result),
+        )
+
+    unit_name = (item.measuring_unit.name if item.measuring_unit else "").strip()
     weight_g = _resolve_ingredient_weight_g(item) * item.factor * portions * reserve_factor
     text = f"{_format_decimal(scaled, 1)} {unit_name}".strip()
     if weight_g > 0:

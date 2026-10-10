@@ -16,6 +16,10 @@ vi.mock('@/api/mealPlans', () => ({
   useIngredientScan: () => ({ data: undefined }),
 }));
 
+vi.mock('@/api/supplies', () => ({
+  useUnitOptions: () => ({ data: undefined, isLoading: false }),
+}));
+
 vi.mock('@/components/buffet/BuffetBuilder', () => ({
   BuffetBuilder: ({ open }: { open: boolean }) => (open ? <div data-testid="buffet-builder-open" /> : null),
 }));
@@ -39,6 +43,10 @@ function makeItem(overrides: Partial<MealItem> = {}): MealItem {
     quantity: 150,
     measuring_unit_id: 1,
     measuring_unit_name: 'Gramm',
+    standard_measure_key: '',
+    unit_kind: 'grams',
+    unit_label: 'g',
+    is_weight_approx: false,
     display_name: null,
     factor: 1,
     active_recipe_item_ids: [],
@@ -236,5 +244,29 @@ describe('MealSlot buffet builder trigger', () => {
     openDetails();
     fireEvent.click(screen.getByText('Im Buffet-Builder bearbeiten'));
     expect(screen.getByTestId('buffet-builder-open')).toBeInTheDocument();
+  });
+});
+
+describe('MealSlot quantity units', () => {
+  it('labels a portion count with the portion, never as "Gramm" (Peter\'s screenshot)', () => {
+    const meal = makeMeal([
+      makeItem({
+        ingredient_name: 'Frischkäse Doppelrahmstufe',
+        buffet_role: 'buffet-savory',
+        quantity: 0.5,
+        quantity_g: 15,
+        measuring_unit_id: null,
+        measuring_unit_name: '',
+        portion_id: 7,
+        portion_name: 'Portion',
+        unit_kind: 'portion',
+        unit_label: 'Portion',
+      }),
+    ]);
+    renderMealSlot(meal, false);
+    openDetails();
+
+    expect(screen.getAllByText('0,5 Portion (15 g)').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Gramm/)).toBeNull();
   });
 });

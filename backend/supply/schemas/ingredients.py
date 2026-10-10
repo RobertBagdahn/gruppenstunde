@@ -758,6 +758,27 @@ class IngredientSimilarOut(Schema):
     similarity_pct: float
 
 
+class UnitOptionOut(Schema):
+    """A unit an ingredient amount can be viewed or entered in."""
+
+    key: str
+    kind: Literal["grams", "milliliters", "portion", "standard"]
+    label: str
+    grams_per_unit: float | None = None
+    is_approx: bool = False
+    has_weight: bool = True
+    portion_id: int | None = None
+    measuring_unit_id: int | None = None
+    standard_measure_key: str | None = None
+
+
+class IngredientUnitOptionsOut(Schema):
+    """Unit options of one ingredient (batch endpoint item)."""
+
+    ingredient_id: int
+    options: list[UnitOptionOut]
+
+
 class StandardMeasureOut(Schema):
     """A standard kitchen measure (EL, TL, Tasse, …) for an ingredient.
 

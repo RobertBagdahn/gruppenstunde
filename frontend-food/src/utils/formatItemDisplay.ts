@@ -1,29 +1,4 @@
 import type { MealItem } from '@/schemas/mealPlan';
-import { formatMealItemAmount } from '@/lib/ingredientAmount';
-
-/**
- * Formats a number with comma as decimal separator, max 2 decimals.
- */
-export function formatQuantityNumber(value: number): string {
-  if (Number.isInteger(value)) {
-    return value.toString();
-  }
-  const fixed = value.toFixed(2).replace(/\.?0+$/, '');
-  return fixed.replace('.', ',');
-}
-
-/**
- * Generates a clean portion label for an ingredient or meal item from its
- * structured quantity fields (recipe items have no per-portion quantity and
- * fall through to the empty string). Shares its amount logic with the recipe views.
- */
-export function formatItemPortion(item: MealItem): string {
-  const { primary, secondary } = formatMealItemAmount(item);
-  if (primary === '—') return '';
-  const perPersonSuffix = item.is_per_norm_person ? ' / P.' : '';
-  return `${primary}${perPersonSuffix}${secondary ? ` (${secondary})` : ''}`;
-}
-
 export interface BreakfastSummary {
   totalKcalPerPerson: number;
   totalCostPerPerson: number;

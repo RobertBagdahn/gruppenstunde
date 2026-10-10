@@ -504,7 +504,9 @@ def _build_direct_ingredient_block(
         if not ing or ing.deleted_at is not None:
             continue
 
-        unit_name = meal_item.measuring_unit.name if meal_item.measuring_unit else ""
+        from planner.services.meal_item_units import unit_label as meal_item_unit_label
+
+        unit_name = meal_item_unit_label(meal_item)
         scale = meal_item.factor * portions
         quantity = round(float(meal_item.quantity or 0) * scale, 2)
         weight_g = _resolve_ingredient_weight_g(meal_item) * scale

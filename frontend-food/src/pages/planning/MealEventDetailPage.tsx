@@ -8,6 +8,7 @@ import { BackButton } from '@/components/shared/BackButton';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { PlanCheckFlyout } from '@/components/planning/PlanCheckFlyout';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
+import { UnitViewToggle } from '@/components/quantity/UnitViewToggle';
 import { mealTargetLabel } from '@/lib/mealTargetLabel';
 import { useOmnibarShortcut } from '@/hooks/useOmnibarShortcut';
 import { cn } from '@/lib/utils';
@@ -591,7 +592,7 @@ export default function MealPlanDetailPage() {
       {activeTab === 'plan' && (
         <div className="space-y-4">
           {/* Header View Switcher */}
-          <div className="flex items-center justify-between pb-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
             <div className="inline-flex items-center p-1 rounded-xl bg-muted/60 border border-border">
               <button
                 type="button"
@@ -620,6 +621,7 @@ export default function MealPlanDetailPage() {
                 Tabelle
               </button>
             </div>
+            <UnitViewToggle />
           </div>
 
           {planView === 'cards' ? (

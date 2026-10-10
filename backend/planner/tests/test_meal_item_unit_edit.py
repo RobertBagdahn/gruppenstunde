@@ -34,7 +34,7 @@ def setup(client: Client):
     spoon = make_portion(
         cheese, name="EL", quantity=1.0, weight_g=30.0, rank=1, weight_status="confirmed", measuring_unit=gram
     )
-    item = MealItem.objects.create(meal=meal, ingredient=cheese, quantity=0.5, portion=spoon, measuring_unit=gram)
+    item = MealItem.objects.create(meal=meal, ingredient=cheese, quantity=0.5, portion=spoon)
     return plan, meal, cheese, spoon, gram, item
 
 
@@ -81,7 +81,11 @@ class TestUnitChange:
         plan, _meal, _cheese, _spoon, _gram, item = setup
         unit = make_measuring_unit(name="Tasse", unit="piece")
         resp = _patch(client, plan, item, {"portion_id": None, "measuring_unit_id": unit.id})
-        assert resp.status_code == 422
+        # Named kitchen measures are valid standard units, even when their legacy
+        # MeasuringUnit row is selected by an older client.
+        assert resp.status_code == 200, resp.content
+        assert resp.json()["unit_kind"] == "standard"
+        assert resp.json()["standard_measure_key"] == "tasse"
 
     def test_target_without_weight_rejected(self, client, setup):
         plan, _meal, cheese, _spoon, _gram, item = setup

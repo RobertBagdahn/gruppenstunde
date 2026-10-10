@@ -39,6 +39,7 @@ import {
   type PortionMagicOperation,
 } from '@/schemas/supply';
 import { PaginatedRecipesSchema } from '@/schemas/recipe';
+import { IngredientUnitOptionsSchema } from '@/schemas/quantityUnits';
 
 const INGREDIENT_BASE = `${API_BASE_URL}/api/ingredients`;
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
@@ -307,6 +308,31 @@ export function useStandardMeasures(slug: string) {
     queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/standard-measures/`, z.array(StandardMeasureSchema)),
     enabled: !!slug,
     staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * All units (portions, standard measures, g/ml) for a set of ingredients, loaded in one call.
+ * Ids are sorted so every page with the same ingredients shares one cache entry.
+ */
+export function useUnitOptions(ingredientIds: number[], enabled = true) {
+  const ids = [...new Set(ingredientIds)].sort((a, b) => a - b);
+  return useQuery({
+    queryKey: ['unit-options', ids] as const,
+    queryFn: async () => {
+      // The endpoint accepts at most 200 ids per request.
+      const chunks: number[][] = [];
+      for (let i = 0; i < ids.length; i += 200) chunks.push(ids.slice(i, i + 200));
+      const results = await Promise.all(
+        chunks.map((chunk) =>
+          fetchJson(`${INGREDIENT_BASE}/unit-options/?ids=${chunk.join(',')}`, z.array(IngredientUnitOptionsSchema)),
+        ),
+      );
+      return new Map(results.flat().map((entry) => [entry.ingredient_id, entry.options]));
+    },
+    enabled: enabled && ids.length > 0,
+    // Refetch after returning from the ingredient portion editor so corrected weights are visible.
+    staleTime: 0,
   });
 }
 

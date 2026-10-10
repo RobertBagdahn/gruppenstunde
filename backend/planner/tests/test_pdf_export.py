@@ -164,7 +164,7 @@ class TestShoppingListAggregation:
         portion = make_portion(ingredient=ing, name="100g", quantity=100.0, weight_g=100.0, measuring_unit=unit)
         meal = make_meal(meal_plan=plan)
         item = MealItem.objects.create(
-            meal=meal, recipe=None, ingredient=ing, quantity=0.16, measuring_unit=unit, portion=portion, factor=1.0
+            meal=meal, recipe=None, ingredient=ing, quantity=0.16, portion=portion, factor=1.0
         )
         data = _build_item_data(item, portions=33, reserve_factor=1.0, overrides={})
         assert data["ingredients"][0] == "Margarine — 528 g · à 16 g p. P."
@@ -496,9 +496,7 @@ class TestLayoutData:
         for name, qty in (("Margarine", 0.16), ("Nutella", 0.2)):
             ing = make_ingredient(name=name)
             portion = make_portion(ingredient=ing, name="100g", quantity=100.0, weight_g=100.0, measuring_unit=unit)
-            MealItem.objects.create(
-                meal=meal, recipe=None, ingredient=ing, quantity=qty, measuring_unit=unit, portion=portion
-            )
+            MealItem.objects.create(meal=meal, recipe=None, ingredient=ing, quantity=qty, portion=portion)
         days = _build_meal_context(plan)
         card = days[0]["meals"][0]["breakfast_card"]
         assert [r["name"] for r in card["rows"]] == ["Margarine", "Nutella"]

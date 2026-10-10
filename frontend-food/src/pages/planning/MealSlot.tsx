@@ -37,7 +37,7 @@ import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
 import { MealItemAmountEditor, MealItemAmountText, MealItemNote, type MealItemPatch } from '@/components/planning/MealItemAmountEditor';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
-import { formatCount, formatNumber } from '@/lib/format';
+import { formatCount, formatNumber, formatWeight } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 import { HelpHint } from '@/components/ui/help-hint';
 
@@ -550,11 +550,10 @@ export function MealSlot({
             const items = roleGroups.get(role);
             if (!items || items.length === 0) continue;
             const kcalSum = items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-            const units = new Set(items.map((it) => it.measuring_unit_name).filter(Boolean));
-            const quantitySum = units.size === 1 && items.every((it) => it.quantity != null)
-              ? items.reduce((s, it) => s + (it.quantity ?? 0), 0)
-              : null;
-            const quantityUnit = units.size === 1 ? [...units][0] : '';
+            const roleGrams = items.reduce(
+              (sum, item) => sum + (item.ingredient_id && !item.recipe_id ? item.quantity_g ?? 0 : 0),
+              0,
+            );
 
             rendered.push(
               <div key={role} className="pl-7 py-1" data-testid={`buffet-role-group-${role}`}>
@@ -633,7 +632,7 @@ export function MealSlot({
                   <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-caption font-medium">
                     <span>{buffetRoleName(role)} gesamt</span>
                     <span className="text-muted-foreground">
-                      {quantitySum != null && `\u00d7${formatNumber(quantitySum, { maxDecimals: 2 }).replace('.', ',')} ${quantityUnit} \u00b7 `}
+                      {roleGrams > 0 && `${formatWeight(roleGrams)} \u00b7 `}
                       {Math.round(kcalSum)} kcal
                     </span>
                   </div>

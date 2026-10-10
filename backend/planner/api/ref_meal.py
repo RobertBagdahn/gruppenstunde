@@ -1,5 +1,7 @@
 """Django Ninja API routes for RefMeal (reference meals)."""
 
+from typing import Any
+
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from ninja import Router, Status
@@ -17,9 +19,26 @@ from planner.models import (
 from planner.schemas import (
     LinkMealIn,
     RefMealCreateIn,
+    RefMealItemIn,
     RefMealOut,
     RefMealUpdateIn,
 )
+from planner.services.meal_item_units import copy_unit_fields, resolve_unit_fields
+
+
+def _ref_item_unit_kwargs(item_in: RefMealItemIn) -> dict[str, Any]:
+    """Validated unit fields of an incoming RefMeal item."""
+    if not item_in.ingredient_id:
+        return {}
+    from supply.models import Ingredient
+
+    ingredient = get_object_or_404(Ingredient, id=item_in.ingredient_id)
+    return resolve_unit_fields(
+        ingredient,
+        portion_id=item_in.portion_id,
+        standard_measure_key=item_in.standard_measure_key,
+        measuring_unit_id=item_in.measuring_unit_id,
+    ).as_kwargs()
 
 
 def _create_ref_meal_item(**kwargs):
@@ -87,8 +106,7 @@ def _sync_ref_meal_to_targets(ref_meal: Meal) -> int:
                 meal=target,
                 recipe=item.recipe,
                 ingredient=item.ingredient,
-                quantity=item.quantity,
-                measuring_unit=item.measuring_unit,
+                **copy_unit_fields(item),
                 display_name=item.display_name,
                 factor=item.factor,
             )
@@ -152,7 +170,7 @@ def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
                 recipe_id=item_in.recipe_id,
                 ingredient_id=item_in.ingredient_id,
                 quantity=item_in.quantity,
-                measuring_unit_id=item_in.measuring_unit_id,
+                **_ref_item_unit_kwargs(item_in),
                 display_name=item_in.display_name,
                 factor=item_in.factor,
             )
@@ -212,7 +230,7 @@ def update_ref_meal(request, plan_id: int, ref_meal_id: int, payload: RefMealUpd
                 recipe_id=item_in.recipe_id,
                 ingredient_id=item_in.ingredient_id,
                 quantity=item_in.quantity,
-                measuring_unit_id=item_in.measuring_unit_id,
+                **_ref_item_unit_kwargs(item_in),
                 display_name=item_in.display_name,
                 factor=item_in.factor,
             )
@@ -287,8 +305,7 @@ def link_meal(request, plan_id: int, meal_id: int, payload: LinkMealIn):
             meal=meal,
             recipe=item.recipe,
             ingredient=item.ingredient,
-            quantity=item.quantity,
-            measuring_unit=item.measuring_unit,
+            **copy_unit_fields(item),
             display_name=item.display_name,
             factor=item.factor,
         )
