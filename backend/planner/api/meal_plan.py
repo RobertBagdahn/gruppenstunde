@@ -1485,11 +1485,17 @@ def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItem
     elif payload.servings is not None:
         if item.recipe:
             recipe_servings = float(item.recipe.portions or 1)
-            item.factor = round(payload.servings / recipe_servings, 4)
+            factor = round(payload.servings / recipe_servings, 4)
+            if factor <= 0:
+                raise HttpError(422, "Der Faktor muss größer als 0 sein.")
+            item.factor = factor
             item.save(update_fields=["factor"])
         elif item.meal:
             effective = float(item.meal.effective_portions or 1)
-            item.factor = round(payload.servings / effective, 4)
+            factor = round(payload.servings / effective, 4)
+            if factor <= 0:
+                raise HttpError(422, "Der Faktor muss größer als 0 sein.")
+            item.factor = factor
             item.save(update_fields=["factor"])
     _apply_unit_change(item, payload)
     if payload.note is not None:

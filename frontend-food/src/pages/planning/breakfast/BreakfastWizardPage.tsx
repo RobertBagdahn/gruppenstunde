@@ -376,6 +376,7 @@ export default function BreakfastWizardPage() {
 
   const savePending = saveMode === 'directMeal' ? saveWizardDirectMeal.isPending || saveBreakfastBulk.isPending : saveWizardRefMeal.isPending;
   const isCockpit = step === 'cockpit';
+  const hasActiveBasis = state.basis.some((item) => item.sharePercent > 0);
 
   const handleBack = () => {
     if (saveMode === 'refMeal') {
@@ -472,7 +473,21 @@ export default function BreakfastWizardPage() {
             </div>
           </section>
         )}
-        {!directMealLoading && !directMealNotFound && step === 'basis' && <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />}
+        {!directMealLoading && !directMealNotFound && step === 'basis' && (
+          <>
+            <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />
+            {!hasActiveBasis && !catalogLoading && (
+              <div className="mt-4 rounded-xl bg-warning-soft p-4 text-body" role="alert">
+                <p>Wähle eine Basis-Zutat aus, bevor du fortfährst.</p>
+                {catalog && catalog.base_ingredients.length === 0 && (
+                  <button type="button" onClick={() => wiz.openCreateModal('ingredient', 'breakfast-base')} className="mt-3 rounded-lg bg-primary-soft px-3 py-2 font-medium text-primary">
+                    Basis-Zutat erstellen
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        )}
         {!directMealLoading && !directMealNotFound && step === 'fett' && <StepStreichfett wiz={wiz} />}
         {!directMealLoading && !directMealNotFound && step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
         {!directMealLoading && !directMealNotFound && step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
@@ -522,7 +537,8 @@ export default function BreakfastWizardPage() {
             <button
               type="button"
               onClick={goNext}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-body font-medium"
+              disabled={step === 'basis' && !hasActiveBasis}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-body font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
               Weiter
               <ArrowRight className="w-4 h-4" />

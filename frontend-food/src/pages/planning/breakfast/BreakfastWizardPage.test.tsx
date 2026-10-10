@@ -149,6 +149,19 @@ describe('BreakfastWizardPage profiles', () => {
     expect(screen.getByRole('button', { name: /Freies Buffet/ })).toBeInTheDocument();
   });
 
+  it('blocks continuing when the required base catalog is empty', () => {
+    mocks.useBreakfastCatalog.mockReturnValue({
+      data: { ...catalog, base_ingredients: [] },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: /Nur Müsli/ }));
+    expect(screen.getByRole('button', { name: /Basis-Zutat erstellen/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Weiter/ })).toBeDisabled();
+  });
+
   it('starts the muesli profile with cereal, fruit, and no spread selection', () => {
     renderWizard();
     fireEvent.click(screen.getByRole('button', { name: /Nur Müsli/ }));

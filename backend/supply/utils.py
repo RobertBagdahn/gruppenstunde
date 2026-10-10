@@ -31,7 +31,7 @@ def format_weight(grams: float) -> str:
         mg = _round_half_up(grams * 1000)
         return f"{int(mg)} mg"
     if grams >= 1000:
-        kg = grams / 1000
+        kg = _round_half_up(grams, 100) / 1000
         # Always 1 decimal, German locale: dot → comma
         return f"{kg:.1f} kg".replace(".", ",")
     if grams >= 100:

@@ -509,7 +509,7 @@ function IngredientRow({
         !isSource && !isAlt ? 'border rounded-lg border-border hover:bg-muted/30' : ''
       } ${isSource ? 'hover:bg-muted/30' : ''}`}
     >
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex flex-wrap items-center gap-2 p-3 sm:flex-nowrap sm:gap-3">
       <input
         type="text"
         inputMode="decimal"
@@ -555,7 +555,7 @@ function IngredientRow({
           return `= ${Math.round(weightG * 10) / 10} g`;
         })()}
       </span>
-      <span className="flex-1 text-body font-medium truncate">{item.ingredient_name}</span>
+      <span className="order-first min-w-0 flex-1 truncate text-body font-medium sm:order-none">{item.ingredient_name}</span>
       {expandedNotes.has(item.id) || item.note ? (
         <input
           type="text"

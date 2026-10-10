@@ -80,6 +80,7 @@ export default function StepCockpit({
   const fixKcal = extrasKcalPerPerson(state, warmDishDataMap);
   const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
 
+  const hasActiveBasis = state.basis.some((item) => item.sharePercent > 0);
   const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
   const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
 
@@ -161,6 +162,11 @@ export default function StepCockpit({
           </label>
         </fieldset>
       )}
+      {!hasActiveBasis && (
+        <p className="rounded-xl bg-warning-soft p-4 text-body text-warning" role="status">
+          Nährwertsummen sind ohne ausgewählte Basis-Zutat nicht verfügbar.
+        </p>
+      )}
       {/* SollIstBar */}
       <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <div className="flex items-center justify-between">
@@ -180,7 +186,7 @@ export default function StepCockpit({
         </div>
         <div className="space-y-1.5">
           <div className="flex justify-between text-body">
-            <span className="text-muted-foreground">Ist: {Math.round(totalKcal)} kcal/Person</span>
+            <span className="text-muted-foreground">Ist: {hasActiveBasis ? `${Math.round(totalKcal)} kcal/Person` : '—'}</span>
             <span className="text-muted-foreground">Soll: {Math.round(target)} kcal/Person</span>
           </div>
           <div className="h-3 bg-muted rounded-full overflow-hidden">
@@ -190,7 +196,7 @@ export default function StepCockpit({
             />
           </div>
           <p className="text-caption text-muted-foreground text-right">
-            {Math.round(coverage * 100)}% des Tagesziels (× {dayPartFactor} Faktor)
+            {hasActiveBasis ? `${Math.round(coverage * 100)}% des Tagesziels` : 'Nährwertdaten unvollständig'} (× {dayPartFactor} Faktor)
             {hasDrinks && drinksKcal > 0 && ` · inkl. Getränke: +${Math.round(drinksKcal)} kcal`}
           </p>
         </div>
@@ -369,7 +375,7 @@ export default function StepCockpit({
           <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30">
             <span>Gesamt (Brot + Streichfett + Belag + Extras)</span>
             <span className="text-right">—</span>
-            <span className="text-right">{kcalRow(totalKcal)}</span>
+            <span className="text-right">{hasActiveBasis ? kcalRow(totalKcal) : '—'}</span>
             <span className="text-right">100%</span>
           </div>
 
