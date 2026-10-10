@@ -4,7 +4,7 @@ import datetime as dt
 from typing import Literal
 
 from ninja import Schema
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from content.base_schemas import (
     ContentCreateIn,
@@ -398,6 +398,16 @@ class RecipeCreateIn(ContentCreateIn):
     """Schema for creating a recipe."""
 
     recipe_type: str = ""
+
+    @field_validator("recipe_type")
+    @classmethod
+    def validate_recipe_type(cls, value: str) -> str:
+        from supply.choices import RecipeTypeChoices
+
+        if value and value not in RecipeTypeChoices.values:
+            raise ValueError("Der Rezepttyp ist unbekannt.")
+        return value
+
     portions: int = 1
     preparation_method: str = ""
     equipment_ids: list[int] = []
@@ -426,6 +436,16 @@ class RecipeUpdateIn(ContentUpdateIn):
     """
 
     recipe_type: str | None = None
+
+    @field_validator("recipe_type")
+    @classmethod
+    def validate_recipe_type(cls, value: str | None) -> str | None:
+        from supply.choices import RecipeTypeChoices
+
+        if value and value not in RecipeTypeChoices.values:
+            raise ValueError("Der Rezepttyp ist unbekannt.")
+        return value
+
     portions: int | None = None
     source_servings: int | None = Field(None, ge=1, le=100)
     preparation_method: str | None = None

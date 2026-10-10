@@ -166,15 +166,15 @@ class TestRecipePdfServingScaling:
         assert any("4 kleine Zwiebeln (240 g)" in row["display"] for row in export.ingredients)
 
     @pytest.mark.django_db
-    def test_nutrition_per_portion_uses_target_servings(self):
-        recipe = make_recipe(portions=1)
+    def test_nutrition_per_portion_uses_stored_recipe_portions(self):
+        recipe = make_recipe(portions=4)
         make_recipe_item(recipe=recipe, quantity=100)
         Recipe.objects.filter(pk=recipe.pk).update(
             cached_protein_g=10.0,
             cached_weight_g=400.0,
             cached_energy_total_kcal=800.0,
         )
-        export = RecipePdfExport.build(Recipe.objects.get(pk=recipe.pk), servings=4)
+        export = RecipePdfExport.build(Recipe.objects.get(pk=recipe.pk), servings=2)
         assert export.nutrition["protein_per_portion"] == "10,0"
         assert export.nutrition["energy_kcal_per_portion"] == "200"
 

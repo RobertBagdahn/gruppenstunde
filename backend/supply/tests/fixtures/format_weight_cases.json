@@ -20,6 +20,8 @@
     { "grams": 145, "expected": "150 g" },
     { "grams": 999.5, "expected": "1000 g" },
     { "grams": 1000, "expected": "1,0 kg" },
+    { "grams": 1150, "expected": "1,2 kg" },
+    { "grams": 1250, "expected": "1,3 kg" },
     { "grams": 1500, "expected": "1,5 kg" },
     { "grams": 9400, "expected": "9,4 kg" }
   ],

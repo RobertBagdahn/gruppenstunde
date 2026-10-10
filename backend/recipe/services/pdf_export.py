@@ -227,11 +227,12 @@ class RecipePdfExport:
 
     def _build_nutrition(self) -> None:
         servings = max(self.servings, 1)
+        recipe_servings = max(self.recipe.portions or 1, 1)
         weight_g = self.recipe.cached_weight_g
         if weight_g:
-            factor = (float(weight_g) / 100.0) / servings
+            factor = (float(weight_g) / 100.0) / recipe_servings
         else:
-            factor = 1.0 / servings
+            factor = 1.0 / recipe_servings
 
         def per_portion(per100: float | None, digits: int) -> str | None:
             if per100 is None:
@@ -240,7 +241,7 @@ class RecipePdfExport:
 
         total_energy = self.recipe.cached_energy_total_kcal
         if total_energy is not None:
-            energy_per_portion = float(total_energy) / servings
+            energy_per_portion = float(total_energy) / recipe_servings
         else:
             energy_per_portion = float(self.recipe.cached_energy_kcal or 0) * factor
 

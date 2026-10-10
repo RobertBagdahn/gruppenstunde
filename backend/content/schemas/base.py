@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import cast
 
 from ninja import Schema
-from pydantic import ConfigDict, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 # ---------------------------------------------------------------------------
 # Shared Sub-Schemas (Tag, ScoutLevel, Author)
@@ -245,7 +245,7 @@ class ContentSimilarOut(Schema):
 class ContentCreateIn(Schema):
     """Base input schema for creating content. Extend per content type."""
 
-    title: str
+    title: str = Field(min_length=1, max_length=255)
     summary: str = ""
     summary_long: str = ""
     description: str = ""
@@ -255,11 +255,19 @@ class ContentCreateIn(Schema):
     tag_ids: list[str] = []
     scout_level_ids: list[int] = []
 
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Der Titel darf nicht leer sein.")
+        return value
+
 
 class ContentUpdateIn(Schema):
     """Base input schema for updating content. All fields optional."""
 
-    title: str | None = None
+    title: str | None = Field(default=None, max_length=255)
     summary: str | None = None
     summary_long: str | None = None
     description: str | None = None
@@ -269,6 +277,16 @@ class ContentUpdateIn(Schema):
     status: str | None = None
     tag_ids: list[str] | None = None
     scout_level_ids: list[int] | None = None
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("Der Titel darf nicht leer sein.")
+        return value
 
 
 # ---------------------------------------------------------------------------

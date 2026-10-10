@@ -9,6 +9,7 @@ import {
 import type { RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { formatNumber } from '@/lib/format';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -146,7 +147,7 @@ export default function RecipePreviewDialog({
 
           {/* Description */}
           {recipe.description && (
-            <p className="text-body text-muted-foreground">{recipe.description}</p>
+            <MarkdownRenderer content={recipe.description} className="text-body text-muted-foreground" />
           )}
 
           {/* Actions */}

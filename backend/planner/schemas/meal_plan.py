@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Literal, cast
 
 from ninja import Schema
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from planner.schemas.buffet import QuantityWarningOut
 from planner.services.meal_item_helpers import (
@@ -216,7 +216,7 @@ class MealItemCreateIn(Schema):
     portion_id: int | None = None
     display_name: str | None = None
     note: str = Field(default="", max_length=500)
-    factor: float = 1.0
+    factor: float = Field(default=1.0, gt=0)
 
     @model_validator(mode="after")
     def validate_ingredient_quantity(self):
@@ -226,9 +226,9 @@ class MealItemCreateIn(Schema):
 
 
 class MealItemUpdateIn(Schema):
-    factor: float | None = None
+    factor: float | None = Field(default=None, gt=0)
     quantity: float | None = None
-    servings: float | None = None
+    servings: float | None = Field(default=None, gt=0)
     portion_id: int | None = None
     measuring_unit_id: int | None = None
     note: str | None = Field(default=None, max_length=500)
@@ -570,8 +570,17 @@ class MealPlanDuplicateIn(Schema):
 
 
 class MealPlanCreateIn(Schema):
-    name: str
+    name: str = Field(min_length=1, max_length=200)
     description: str = ""
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Der Planname darf nicht leer sein.")
+        return value
+
     norm_portions: float = Field(10.0, gt=0, le=1000)
     reserve_factor: float = 1.1
     budget_per_person_per_day: float | None = None
@@ -591,7 +600,18 @@ class MealPlanCreateIn(Schema):
 
 
 class MealPlanUpdateIn(Schema):
-    name: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("Der Planname darf nicht leer sein.")
+        return value
+
     description: str | None = None
     norm_portions: float | None = Field(None, gt=0, le=1000)
     norm_portions_manual: bool | None = None
@@ -934,7 +954,7 @@ class RefMealItemIn(Schema):
     quantity: float | None = None
     measuring_unit_id: int | None = None
     display_name: str | None = None
-    factor: float = 1.0
+    factor: float = Field(default=1.0, gt=0)
 
     @model_validator(mode="after")
     def validate_ingredient_quantity(self):

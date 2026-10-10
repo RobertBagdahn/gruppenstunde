@@ -73,7 +73,7 @@ export function formatWeight(grams: number): string {
     return `${roundHalfUp(grams * 1000)} mg`;
   }
   if (grams >= 1000) {
-    const kg = grams / 1000;
+    const kg = roundHalfUp(grams, 100) / 1000;
     return `${kg.toFixed(1).replace('.', ',')} kg`;
   }
   if (grams >= 100) {
