@@ -8,6 +8,7 @@ export type ApiErrorBody = {
   retry_after_seconds?: unknown;
   fields?: unknown;
   existing?: unknown;
+  request_id?: unknown;
 };
 
 export class ApiError extends Error {
@@ -21,10 +22,16 @@ export class ApiError extends Error {
   readonly fieldMessages: Record<string, string>;
   /** Existing entity of a duplicate (409), when present. */
   readonly existing?: { id: number; slug: string; name: string };
+  readonly requestId?: string;
 
-  // statusText is kept for call compatibility but never shown: users see German `detail` texts only.
-  constructor(status: number, _statusText: string, body: ApiErrorBody = {}) {
-    super(formatApiErrorBody(body) || `Ein Fehler ist aufgetreten (${status}).`);
+  constructor(status: number, _statusText: string, body: ApiErrorBody = {}, requestId?: string) {
+    const bodyRequestId = typeof body.request_id === 'string' ? body.request_id : undefined;
+    const resolvedRequestId = bodyRequestId ?? requestId;
+    const supportReference = resolvedRequestId ? ` Referenz: ${resolvedRequestId}` : '';
+    const message = status >= 500
+      ? `Serverfehler (HTTP ${status}). Bitte versuche es später erneut.${supportReference}`
+      : formatApiErrorBody(body) || `Ein Fehler ist aufgetreten (${status}).`;
+    super(message);
     this.name = 'ApiError';
     this.status = status;
     const code = typeof body.code === 'string' ? body.code : body.error_code;
@@ -39,6 +46,7 @@ export class ApiError extends Error {
     if (existing && typeof existing.id === 'number' && typeof existing.slug === 'string' && typeof existing.name === 'string') {
       this.existing = { id: existing.id, slug: existing.slug, name: existing.name };
     }
+    this.requestId = resolvedRequestId;
   }
 }
 
@@ -181,6 +189,7 @@ export async function parseApiResponse<T>(response: Response, schema?: { parse(d
       response.status,
       response.statusText,
       body && typeof body === 'object' ? body as ApiErrorBody : {},
+      response.headers.get('X-Request-ID') ?? undefined,
     );
   }
   if (!schema) return body as T;

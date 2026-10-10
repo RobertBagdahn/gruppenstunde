@@ -8,7 +8,7 @@ from django.db import connection
 
 # Bounded thread pool prevents DB connection exhaustion on small DB instances
 # (e.g. Cloud SQL db-f1-micro) when many post_save signals fire simultaneously.
-_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="bg-task")
+_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bg-task")
 
 
 def run_in_background(fn: Callable[[], None]) -> None:

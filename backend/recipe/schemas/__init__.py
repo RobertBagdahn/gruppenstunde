@@ -5,6 +5,7 @@ from .dashboard import (
     FoodDashboardOut,
     RecipeInsightOut,
 )
+from .import_schemas import RecipeDraftOut
 from .ingredient_review import (
     IngredientMatchCandidateOut,
     IngredientReviewErrorOut,
@@ -28,6 +29,7 @@ from .items import (
     EstimateQuantitiesOut,
     EstimateQuantityItemOut,
     ExchangeGroupMemberOut,
+    RecipeItemAlternativeCreateIn,
     RecipeItemCreateIn,
     RecipeItemExchangeGroupCreateIn,
     RecipeItemExchangeGroupOut,
@@ -140,9 +142,11 @@ __all__ = [
     "RecipeAiCreateIn",
     "RecipeCreateIn",
     "RecipeDetailOut",
+    "RecipeDraftOut",
     "RecipeFilterIn",
     "RecipeImportSourceIn",
     "RecipeInsightOut",
+    "RecipeItemAlternativeCreateIn",
     "RecipeItemCreateIn",
     "RecipeItemExchangeGroupCreateIn",
     "RecipeItemExchangeGroupOut",

@@ -369,6 +369,7 @@ class TestAiInteractionStats:
         """Timeline entry for today includes embedding costs of background calls."""
         from content.models import AiInteraction
 
+        created_at = timezone.now()
         fg = AiInteraction.objects.create(
             context="ingredient_ai_suggest_all",
             prompt={"input": "fg"},
@@ -389,13 +390,15 @@ class TestAiInteractionStats:
             is_background=True,
             cost_eur=0.01,
         )
-        AiInteraction.objects.filter(id=fg.id).update(created_at=timezone.now())
-        AiInteraction.objects.filter(id=bg.id).update(created_at=timezone.now())
+        AiInteraction.objects.filter(id=fg.id).update(created_at=created_at)
+        AiInteraction.objects.filter(id=bg.id).update(created_at=created_at)
 
         client.force_login(staff_user)
         res = client.get(self.STATS_URL)
         timeline = res.json()["timeline"]
-        today_entry = next(e for e in timeline if e["date"] == timezone.localdate().isoformat())
+        expected_date = timezone.localdate(created_at).isoformat()
+        today_entry = next((e for e in timeline if e["date"] == expected_date), None)
+        assert today_entry is not None, timeline
         assert round(today_entry["embedding_cost_eur"], 2) == 0.01
         assert round(today_entry["total_cost_eur"], 2) == 0.05
 

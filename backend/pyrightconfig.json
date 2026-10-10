@@ -1,0 +1,13 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.13",
+  "include": ["."],
+  "exclude": [".venv", "**/migrations"],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [".venv/lib/python3.13/site-packages"]
+    }
+  ]
+}

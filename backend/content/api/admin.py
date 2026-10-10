@@ -4,6 +4,7 @@ Content API — Admin endpoints (approval queue, embedding viewer, embedding fee
 
 import logging
 import math
+from typing import Protocol, cast
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
@@ -33,6 +34,10 @@ from content.schemas.ai_interaction import (
 )
 
 router = Router(tags=["content"])
+
+
+class ContentTitle(Protocol):
+    title: str
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +93,7 @@ def admin_approval_action(request, content_type_name: str, object_id: int, paylo
     if model_class is None:
         raise HttpError(400, f"Unbekannter Content-Typ: {content_type_name}")
     try:
-        content_obj = model_class.objects.get(pk=object_id)  # type: ignore[attr-defined]
+        content_obj = cast(ContentTitle, model_class.objects.get(pk=object_id))  # type: ignore[attr-defined]
     except ObjectDoesNotExist:
         raise HttpError(404, "Inhalt nicht gefunden")
 
@@ -141,7 +146,7 @@ def admin_approval_history(request, content_type_name: str, object_id: int):
 
     return [
         {
-            "id": log.id,
+            "id": cast(int, log.pk),
             "content_type": content_type_name,
             "object_id": object_id,
             "action": log.action,
@@ -323,7 +328,7 @@ def admin_embedding_feedback(
 
         items.append(
             {
-                "id": fb.id,
+                "id": cast(int, fb.pk),
                 "content_link_id": link.id,
                 "source_content_type": link.source_content_type.model,
                 "source_title": src_title,
@@ -373,6 +378,8 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
     if not include_background:
         base_qs = base_qs.filter(is_background=False)
 
+    parsed_from: date | None = None
+    parsed_to: date | None = None
     if date_from:
         try:
             parsed_from = date.fromisoformat(date_from)
@@ -447,8 +454,8 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
     by_model.sort(key=lambda entry: entry["total_calls"], reverse=True)
 
     if date_from or date_to:
-        timeline_start = parsed_from if date_from else today - timedelta(days=29)
-        timeline_end = parsed_to if date_to else today
+        timeline_start = parsed_from if parsed_from is not None else today - timedelta(days=29)
+        timeline_end = parsed_to if parsed_to is not None else today
     else:
         timeline_start = today - timedelta(days=29)
         timeline_end = today

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import cast
 
 from ninja import Schema
+from pydantic import Field
 
 from supply.schemas.ingredients import PortionOut
 
@@ -240,6 +241,12 @@ class RecipeItemCreateIn(Schema):
     sort_order: int = 0
     note: str = ""
     is_optional: bool = False
+
+
+class RecipeItemAlternativeCreateIn(Schema):
+    portion_id: int
+    quantity: float = Field(gt=0)
+    client_request_id: str = Field(min_length=1, max_length=64)
 
 
 class RecipeItemUpdateIn(Schema):

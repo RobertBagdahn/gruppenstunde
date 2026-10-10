@@ -5,10 +5,10 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, getApiErrorMessage, parseApiResponse } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { z } from 'zod';
+import { PaginatedIngredientSchema } from '@/schemas/supply';
 import { cn } from '@/lib/utils';
 import { useRetailSections } from '@/api/supplies';
 import { UnknownIngredientDialog } from './UnknownIngredientDialog';
@@ -38,19 +38,6 @@ interface IngredientSuggestion {
   nutri_class?: number | null;
   price_per_kg?: number | null;
 }
-
-const IngredientListItemSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  slug: z.string(),
-  energy_kcal: z.number().nullable().optional(),
-  protein_g: z.number().nullable().optional(),
-  fat_g: z.number().nullable().optional(),
-  carbohydrate_g: z.number().nullable().optional(),
-  nutri_class: z.number().nullable().optional(),
-  price_per_kg: z.number().nullable().optional(),
-  retail_section: z.object({ name: z.string() }).nullable().optional(),
-});
 
 interface IngredientAutocompleteProps {
   value: string;
@@ -95,7 +82,12 @@ export function IngredientAutocomplete({
 
   // Primary search (with optional retail_section filter)
   const primaryFilter = selectedRetailSection ?? undefined;
-  const { data: primaryResults = [] } = useQuery({
+  const {
+    data: primaryResults = [],
+    error: primaryError,
+    isFetching: primaryFetching,
+    refetch: refetchPrimary,
+  } = useQuery({
     queryKey: ['ingredient-autocomplete', debouncedQuery, primaryFilter] as const,
     queryFn: async (): Promise<IngredientSuggestion[]> => {
       const params = new URLSearchParams();
@@ -103,20 +95,18 @@ export function IngredientAutocomplete({
       params.set('page_size', '8');
       if (primaryFilter) params.set('retail_section', String(primaryFilter));
       const res = await fetch(`${API_BASE_URL}/api/ingredients/?${params}`, { credentials: 'include' });
-      if (!res.ok) return [];
-      const json = await res.json();
-      const items = z.array(IngredientListItemSchema).parse(json.items ?? []);
-      return items.map((i) => ({
-        id: i.id,
-        name: i.name,
-        slug: i.slug,
-        retail_section_name: i.retail_section?.name ?? undefined,
-        energy_kcal: i.energy_kcal ?? undefined,
-        protein_g: i.protein_g ?? undefined,
-        fat_g: i.fat_g ?? undefined,
-        carbohydrate_g: i.carbohydrate_g ?? undefined,
-        nutri_class: i.nutri_class ?? undefined,
-        price_per_kg: i.price_per_kg ?? undefined,
+      const response = await parseApiResponse(res, PaginatedIngredientSchema);
+      return response.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        retail_section_name: item.retail_section_name ?? undefined,
+        energy_kcal: item.energy_kcal ?? undefined,
+        protein_g: item.protein_g ?? undefined,
+        fat_g: item.fat_g ?? undefined,
+        carbohydrate_g: item.carbohydrate_g ?? undefined,
+        nutri_class: item.nutri_class ?? undefined,
+        price_per_kg: item.price_per_kg ?? undefined,
       }));
     },
     enabled: debouncedQuery.length >= 2,
@@ -124,37 +114,44 @@ export function IngredientAutocomplete({
   });
 
   // Fallback: retry without filter if primary returns no results and a filter is active
-  const primaryEmpty = primaryResults.length === 0;
-  const { data: fallbackResults = [] } = useQuery({
+  const primaryEmpty = primaryError === null && !primaryFetching && primaryResults.length === 0;
+  const {
+    data: fallbackResults = [],
+    error: fallbackError,
+    isFetching: fallbackFetching,
+    refetch: refetchFallback,
+  } = useQuery({
     queryKey: ['ingredient-autocomplete-fallback', debouncedQuery] as const,
     queryFn: async (): Promise<IngredientSuggestion[]> => {
       const params = new URLSearchParams();
       params.set('name', debouncedQuery);
       params.set('page_size', '8');
       const res = await fetch(`${API_BASE_URL}/api/ingredients/?${params}`, { credentials: 'include' });
-      if (!res.ok) return [];
-      const json = await res.json();
-      const items = z.array(IngredientListItemSchema).parse(json.items ?? []);
-      return items.map((i) => ({
-        id: i.id,
-        name: i.name,
-        slug: i.slug,
-        retail_section_name: i.retail_section?.name ?? undefined,
-        energy_kcal: i.energy_kcal ?? undefined,
-        protein_g: i.protein_g ?? undefined,
-        fat_g: i.fat_g ?? undefined,
-        carbohydrate_g: i.carbohydrate_g ?? undefined,
-        nutri_class: i.nutri_class ?? undefined,
-        price_per_kg: i.price_per_kg ?? undefined,
+      const response = await parseApiResponse(res, PaginatedIngredientSchema);
+      return response.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        retail_section_name: item.retail_section_name ?? undefined,
+        energy_kcal: item.energy_kcal ?? undefined,
+        protein_g: item.protein_g ?? undefined,
+        fat_g: item.fat_g ?? undefined,
+        carbohydrate_g: item.carbohydrate_g ?? undefined,
+        nutri_class: item.nutri_class ?? undefined,
+        price_per_kg: item.price_per_kg ?? undefined,
       }));
     },
     enabled: debouncedQuery.length >= 2 && primaryEmpty && selectedRetailSection != null,
     staleTime: 30_000,
   });
 
-  const suggestions = primaryEmpty && hasFallenBack && selectedRetailSection != null
-    ? fallbackResults
-    : primaryResults;
+  const usingFallback = primaryEmpty && hasFallenBack && selectedRetailSection != null;
+  const suggestions = usingFallback ? fallbackResults : primaryResults;
+  const searchError = usingFallback ? fallbackError : primaryError;
+  const isSearching = primaryFetching || fallbackFetching;
+  const retrySearch = () => {
+    void (usingFallback ? refetchFallback() : refetchPrimary());
+  };
 
   // Track fallback state
   useEffect(() => {
@@ -325,7 +322,18 @@ export function IngredientAutocomplete({
           className="absolute top-full z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg"
           role="listbox"
         >
-          {hasFallenBack && selectedRetailSection != null && (
+          {searchError && (
+            <div role="alert" className="flex items-center justify-between gap-2 border-b border-danger-border bg-danger-soft px-3.5 py-2 text-caption text-danger-foreground">
+              <span>{getApiErrorMessage(searchError, 'Zutaten konnten nicht geladen werden.')}</span>
+              <button type="button" onClick={retrySearch} className="shrink-0 font-semibold underline">
+                Erneut versuchen
+              </button>
+            </div>
+          )}
+          {isSearching && suggestions.length === 0 && (
+            <div className="p-3 text-caption text-muted-foreground">Suche läuft…</div>
+          )}
+          {!searchError && hasFallenBack && selectedRetailSection != null && (
             <div className="px-3.5 py-2 text-caption text-muted-foreground border-b bg-muted/30">
               Keine Treffer in dieser Abteilung — zeige alle Ergebnisse
             </div>
@@ -389,6 +397,10 @@ export function IngredientAutocomplete({
           {suggestions.length > 0 && debouncedQuery.length >= 2 && (
             <div className="border-t mx-1" />
           )}
+          {!searchError && !isSearching && suggestions.length === 0 && debouncedQuery.length >= 2 && (
+            <div className="px-3.5 py-2 text-caption text-muted-foreground">Keine Zutaten gefunden.</div>
+          )}
+          {!searchError && !isSearching && debouncedQuery.length >= 2 && (
           <button
             className={cn(
               'flex w-full items-center gap-3 px-3.5 py-3 text-body text-left border-l-2 border-transparent hover:bg-muted transition-colors',
@@ -408,6 +420,7 @@ export function IngredientAutocomplete({
               &ldquo;{debouncedQuery}&rdquo; neu anlegen
             </span>
           </button>
+          )}
         </div>
       )}
 

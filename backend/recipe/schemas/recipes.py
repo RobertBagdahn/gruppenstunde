@@ -367,7 +367,7 @@ class RecipeDetailOut(ContentDetailOut):
         from supply.models import ContentMaterialItem
 
         ct = ContentType.objects.get_for_model(obj.__class__, for_concrete_model=False)
-        return ContentMaterialItem.objects.filter(content_type=ct, object_id=obj.pk).select_related("material")
+        return list(ContentMaterialItem.objects.filter(content_type=ct, object_id=obj.pk).select_related("material"))
 
     @staticmethod
     def resolve_has_structured_steps(obj) -> bool:

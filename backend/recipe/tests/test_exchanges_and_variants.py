@@ -3,6 +3,9 @@ Tests for recipe exchange groups, optional items, and variant meal items.
 Replaces test_exchanges_and_splits.py — uses variant items instead of MealItemSplit.
 """
 
+# Pyright does not apply django-stubs' model plugin; these ORM tests are checked by mypy and pytest.
+# pyright: reportAttributeAccessIssue=false
+
 import json
 
 import pytest
@@ -147,6 +150,128 @@ class TestExchangeGroupCRUD:
         item_default.refresh_from_db()
         assert item_default.exchange_group_id is None
         assert item_default.exchange_position is None
+
+
+# ---------------------------------------------------------------------------
+# Atomic recipe-item alternative creation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestAtomicExchangeAlternative:
+    def test_readable_draft_ingredient_is_added_and_retry_is_idempotent(self) -> None:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        author = User.objects.create_user(username="draft_alt_author", password="pass")
+        recipe = make_recipe(status="draft", owner=author, created_by=author)
+        client = Client()
+        client.force_login(author)
+
+        source_ingredient = _make_ingredient("Pulled Soja")
+        source_portion = _make_portion(source_ingredient)
+        source = make_recipe_item(recipe=recipe, portion=source_portion)
+        draft_ingredient = _make_ingredient("Jackfruit")
+        draft_ingredient.owner = author
+        draft_ingredient.created_by = author
+        draft_ingredient.status = "draft"
+        draft_ingredient.save(update_fields=["owner", "created_by", "status"])
+        draft_portion = _make_portion(draft_ingredient)
+        payload = {
+            "portion_id": draft_portion.id,
+            "quantity": 1,
+            "client_request_id": "jackfruit-alternative-1",
+        }
+        url = f"/api/recipes/{recipe.id}/recipe-items/{source.id}/alternatives/"
+
+        response = client.post(url, json.dumps(payload), content_type="application/json")
+        assert response.status_code == 201, response.content
+        created = response.json()
+        assert created["ingredient_name"] == "Jackfruit"
+        assert created["portion_id"] == draft_portion.id
+        assert created["exchange_position"] == 1
+
+        retry = client.post(url, json.dumps(payload), content_type="application/json")
+        assert retry.status_code == 201
+        assert retry.json()["id"] == created["id"]
+        assert RecipeItem.objects.filter(recipe=recipe).count() == 2
+        draft_ingredient.refresh_from_db()
+        assert draft_ingredient.status == "draft"
+
+    def test_unreadable_private_draft_is_rejected_without_partial_group(self) -> None:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        author = User.objects.create_user(username="draft_alt_owner", password="pass")
+        other_user = User.objects.create_user(username="private_draft_owner", password="pass")
+        recipe = make_recipe(status="draft", owner=author, created_by=author)
+        client = Client()
+        client.force_login(author)
+
+        source = make_recipe_item(recipe=recipe, portion=_make_portion(_make_ingredient("Bohnen")))
+        private_draft = _make_ingredient("Private Jackfruit")
+        private_draft.owner = other_user
+        private_draft.created_by = other_user
+        private_draft.status = "draft"
+        private_draft.save(update_fields=["owner", "created_by", "status"])
+        payload = {
+            "portion_id": _make_portion(private_draft).id,
+            "quantity": 1,
+            "client_request_id": "private-jackfruit-alternative",
+        }
+
+        response = client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/{source.id}/alternatives/",
+            json.dumps(payload),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 404
+        source.refresh_from_db()
+        assert source.exchange_group_id is None
+        assert RecipeItemExchangeGroup.objects.filter(recipe=recipe).count() == 0
+
+    def test_invalid_portion_does_not_create_an_exchange_group(self) -> None:
+        client, _ = _make_staff_client()
+        recipe = make_recipe()
+        source = make_recipe_item(recipe=recipe, portion=_make_portion(_make_ingredient("Tempeh")))
+        response = client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/{source.id}/alternatives/",
+            json.dumps({"portion_id": 999999, "quantity": 1, "client_request_id": "invalid-portion"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 422
+        source.refresh_from_db()
+        assert source.exchange_group_id is None
+        assert RecipeItemExchangeGroup.objects.filter(recipe=recipe).count() == 0
+
+    def test_failure_after_group_creation_rolls_back_all_changes(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        client, _ = _make_staff_client()
+        recipe = make_recipe()
+        source = make_recipe_item(recipe=recipe, portion=_make_portion(_make_ingredient("Pilze")))
+        alternative_portion = _make_portion(_make_ingredient("Jackfruit"))
+
+        def fail_save(self, *args: object, **kwargs: object) -> None:
+            raise RuntimeError("simulated recipe item write failure")
+
+        monkeypatch.setattr(RecipeItem, "save", fail_save)
+        response = client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/{source.id}/alternatives/",
+            json.dumps(
+                {
+                    "portion_id": alternative_portion.id,
+                    "quantity": 1,
+                    "client_request_id": "rollback-alternative",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 500
+        source.refresh_from_db()
+        assert source.exchange_group_id is None
+        assert RecipeItemExchangeGroup.objects.filter(recipe=recipe).count() == 0
 
 
 # ---------------------------------------------------------------------------
