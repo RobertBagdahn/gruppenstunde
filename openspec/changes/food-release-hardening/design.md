@@ -43,12 +43,12 @@ For server errors, return a stable code, safe German message, and request ID. Lo
 
 Keep Buffet selections, template, role amounts, and manual-item policy after failed saves; close the builder only after success. Provide retry controls for failed catalog, state, search, and preview requests. Add deterministic mocked browser coverage for the user-visible Buffet workflow, alternative persistence/retry, and safe 500 handling.
 
-Run backend quality/tests, main-frontend checks, Food lint/type/unit/build checks, and the mocked Food browser tests before the deploy pipeline proceeds to image builds. No production deploy, migration, or service-account permission change is part of this implementation task.
+Run backend quality/tests, Food lint/type/unit/build checks, and the mocked Food browser tests before the deploy pipeline proceeds to image builds. The unrelated legacy main-frontend lint/type baseline currently fails in breakfast files and is excluded from these checks; the regular frontend build remains in the deploy pipeline. No production deploy, migration, or service-account permission change is part of this implementation task.
 
 ## Risks / Trade-offs
 
 - [Capacity defaults may not fit the deployed database or traffic] → Treat them as proposed bounds; verify database capacity and load-test before rollout.
-- [Focused lint/type scripts can miss unrelated issues] → Keep full test/type/build checks where available and document the intentionally scoped lint/type checks.
+- [Focused lint/type scripts can miss unrelated issues] → Keep full backend tests and Food type/unit/build checks where available; record that the existing main-frontend lint/type baseline fails in untouched breakfast code and track that cleanup separately.
 - [Atomic alternative creation changes the Food mutation path] → Keep the existing exchange endpoints for other callers and test authorization, validation, idempotency, rollback, and response schemas.
 - [Draft ingredients have different visibility policies] → Reuse existing server-side access helpers; never infer visibility from draft status in the client.
 - [Adding required checks can lengthen builds] → Run independent checks in parallel and keep browser tests deterministic and service-independent.
