@@ -6,7 +6,7 @@ import { forwardRef, useState, useCallback, useEffect, useImperativeHandle, useR
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@/lib/notify';
-import { API_BASE_URL, getApiErrorMessage } from '@/lib/api';
+import { API_BASE_URL, getApiErrorMessage, parseApiResponse } from '@/lib/api';
 import { Sparkles, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import {
   useUpdateRecipeItem,
@@ -14,7 +14,7 @@ import {
   useCreateRecipeItem,
   useEstimateQuantities,
   usePatchRecipeItem,
-  useCreateExchangeGroup,
+  useCreateRecipeAlternative,
   useReplaceRecipeItem,
   useAdoptCurrentPortions,
 } from '@/api/recipes';
@@ -28,6 +28,7 @@ import { normalizeServingContext, scaleQuantity, toBasePerServing } from '@/lib/
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { Button } from '@/components/ui/button';
 import type { RecipeItem } from '@/schemas/recipe';
+import { PortionSchema } from '@/schemas/supply';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 import { AiIngredientSuggestionSchema, type AiIngredientSuggestion } from '@/schemas/recipe';
 
@@ -738,7 +739,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
   const createItem = useCreateRecipeItem(persistedRecipeId);
   const estimateQuantities = useEstimateQuantities(persistedRecipeId);
   const patchItem = usePatchRecipeItem(persistedRecipeId);
-  const createExchangeGroup = useCreateExchangeGroup(persistedRecipeId);
+  const createRecipeAlternative = useCreateRecipeAlternative(persistedRecipeId);
   const replaceItem = useReplaceRecipeItem(persistedRecipeId);
   const adoptCurrentPortions = useAdoptCurrentPortions(persistedRecipeId);
 
@@ -1227,10 +1228,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       if (!targetItem) return;
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredientSlug}/portions/`, {
+        const res = await fetch(`${API_BASE_URL}/api/ingredients/${encodeURIComponent(ingredientSlug)}/portions/`, {
           credentials: 'include',
         });
-        const portions = await res.json();
+        const portions = await parseApiResponse(res, PortionSchema.array());
 
         // Use rank=1 (Normalportion) as the best portion for exchange groups
         const sortedPortions = [...portions].sort(
@@ -1245,23 +1246,11 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           return;
         }
 
-        let groupId = targetItem.exchange_group_id;
-
-        if (!groupId) {
-          const group = await createExchangeGroup.mutateAsync('');
-          groupId = group.id;
-
-          await patchItem.mutateAsync({
-            itemId: targetItem.id,
-            data: { exchange_group_id: groupId, exchange_position: 0 },
-          });
-        }
-
+        const groupId = targetItem.exchange_group_id ?? -Date.now();
         const existingPositions = editItems
-          .filter((i) => i.exchange_group_id === groupId && i.id !== targetItem.id)
-          .map((i) => i.exchange_position ?? 0);
-        const nextPosition =
-          existingPositions.length > 0 ? Math.max(...existingPositions) + 1 : 1;
+          .filter((item) => item.exchange_group_id === groupId && item.alternativeTargetItemId === targetItem.id)
+          .map((item) => item.exchange_position ?? 0);
+        const nextPosition = existingPositions.length > 0 ? Math.max(...existingPositions) + 1 : 1;
 
         const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
@@ -1271,10 +1260,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const displayedAlternativeQuantity = scaleQuantity(alternativeQuantity, scale);
         const altKey = `ing-alt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         setEditItems((prev) => [
-          ...prev.map((i) =>
-            i.id === targetItem.id && !i.exchange_group_id
-              ? { ...i, exchange_group_id: groupId, exchange_position: 0 }
-              : i,
+          ...prev.map((item) =>
+            item.id === targetItem.id && item.exchange_group_id == null
+              ? { ...item, exchange_group_id: groupId, exchange_position: 0 }
+              : item,
           ),
           {
             id: -Date.now(),
@@ -1311,6 +1300,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             is_optional: false,
             exchange_group_id: groupId,
             exchange_position: nextPosition,
+            alternativeTargetItemId: targetItem.id,
             baseWeightG: alternativeWeightG,
             baseQuantity: 1,
             currentPortion: null,
@@ -1327,7 +1317,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         notify.error('Alternative konnte nicht hinzugefügt werden', { error: err });
       }
     },
-    [alternativeTargetId, editItems, createExchangeGroup, patchItem, scale],
+    [alternativeTargetId, editItems, scale],
   );
 
   // --- Save ---
@@ -1410,6 +1400,21 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       // Create new items (convert metric grams to portion multiplier, keep non-metric portion count, then divide by scale)
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
         const requestKey = item.clientRequestId || `ingredient-${item.id}`;
+        if (item.alternativeTargetItemId !== undefined) {
+          if (recipeId === null || item.portion_id === null) {
+            throw new Error('Für eine Alternative muss ein gespeichertes Rezept und eine Portion ausgewählt sein.');
+          }
+          const alternative = await createRecipeAlternative.mutateAsync({
+            itemId: item.alternativeTargetItemId,
+            data: {
+              portion_id: item.portion_id,
+              quantity: toPersistedRecipeItemQuantity(item, scale),
+              client_request_id: requestKey,
+            },
+          });
+          createdItems.set(item.id, alternative);
+          continue;
+        }
         const promise = createItem
           .mutateAsync({
             portion_id: item.portion_id,
@@ -1490,7 +1495,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     } finally {
       saveInFlightRef.current = null;
     }
-  }, [editItems, scale, deleteItem, createItem, updateItem, patchItem, onSave, onSaved, onCreateDraft, queryClient, recipeId, persistedRecipeId]);
+  }, [editItems, scale, deleteItem, createItem, createRecipeAlternative, updateItem, patchItem, onSave, onSaved, onCreateDraft, queryClient, recipeId, persistedRecipeId]);
 
   const confirmSave = useCallback(() => {
     setShowSaveConfirmation(false);

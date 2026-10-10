@@ -9,10 +9,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, getApiErrorMessage, parseApiResponse } from '@/lib/api';
+import { notify } from '@/lib/notify';
 import { useIngredientSearch } from '@/api/supplies';
 import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/api/supplies';
-import type { Portion } from '@/schemas/supply';
+import { PortionSchema, type Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
 import { roundToDecimals } from '@/lib/format';
 
@@ -177,7 +178,7 @@ export default function IngredientDetailSearchDialog({
   const { data: ingredientGroups = [] } = useIngredientGroups();
 
   // Only pass ordering to API if not 'relevance' (relevance = default backend ordering)
-  const { data: results, isFetching } = useIngredientSearch({
+  const { data: results, isFetching, error: searchError, refetch: refetchIngredients } = useIngredientSearch({
     name: deferredQuery || undefined,
     retail_section: selectedRetailSection ?? undefined,
     group: selectedGroup ?? undefined,
@@ -220,11 +221,11 @@ export default function IngredientDetailSearchDialog({
     }
     setLoadingPortionsFor(slug);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/ingredients/${slug}/portions/`, { credentials: 'include' });
-      const portions: Portion[] = await res.json();
+      const res = await fetch(`${API_BASE_URL}/api/ingredients/${encodeURIComponent(slug)}/portions/`, { credentials: 'include' });
+      const portions = await parseApiResponse(res, PortionSchema.array());
       setQuantityDialogIngredient({ id, name, slug, portions });
-    } catch {
-      // Portion load failed — fall through without opening dialog
+    } catch (error) {
+      notify.error('Portionen konnten nicht geladen werden', { error });
     } finally {
       setLoadingPortionsFor(null);
     }
@@ -393,11 +394,25 @@ export default function IngredientDetailSearchDialog({
 
           {/* Ergebnisliste */}
           <div className="flex-1 overflow-y-auto rounded-lg border divide-y min-h-0">
-            {isFetching && items.length === 0 && (
+            {searchError && (
+              <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center">
+                <p className="text-body text-danger-foreground">
+                  {getApiErrorMessage(searchError, 'Zutaten konnten nicht geladen werden.')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { void refetchIngredients(); }}
+                  className="rounded-lg border border-border px-4 py-2 text-body font-semibold hover:bg-muted"
+                >
+                  Erneut versuchen
+                </button>
+              </div>
+            )}
+            {isFetching && items.length === 0 && !searchError && (
               <div className="p-6 text-center text-body text-muted-foreground">Suche läuft…</div>
             )}
 
-            {!isFetching && items.length === 0 && (
+            {!searchError && !isFetching && items.length === 0 && (
               <div className="p-6 text-center text-body text-muted-foreground">
                 Keine Zutaten gefunden
               </div>

@@ -17,16 +17,20 @@ Endpoints:
 import logging
 import math
 from datetime import timedelta
-from typing import cast
+from typing import Protocol, cast
 
+from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User as AuthUser
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Manager, Model, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
+from core.auth.providers import user_provider_ids
 from core.errors import ApiError
 from core.permissions import require_login, require_staff
 
@@ -40,7 +44,7 @@ from recipe.models import Recipe
 from session.models import GroupSession
 from supply.models import Material, MeasuringUnit
 
-User = get_user_model()
+User = cast(type[AuthUser], get_user_model())
 
 router = Router(tags=["admin"])
 
@@ -293,6 +297,17 @@ CONTENT_TYPE_LABELS = {
 }
 
 
+class ContentSummaryObject(Protocol):
+    id: int
+    title: str
+    slug: str
+
+
+def _model_id(instance: Model) -> int:
+    """Return the integer primary key for a persisted Django model instance."""
+    return cast(int, instance.pk)
+
+
 def _get_all_content_qs():
     """Return list of (model, queryset) for all content types."""
     return [(m, m.objects.all()) for m in CONTENT_MODELS]
@@ -366,17 +381,19 @@ def admin_trending(request):
     most_viewed = []
     for vc in view_counts:
         ct = ContentType.objects.get(id=vc["content_type_id"])
+        if ct.model_class() is None:
+            continue
         try:
-            obj = ct.get_object_for_this_type(id=vc["object_id"])
+            obj = cast(ContentSummaryObject, ct.get_object_for_this_type(id=vc["object_id"]))
             most_viewed.append(
                 {
-                    "id": obj.id,
+                    "id": _model_id(cast(Model, obj)),
                     "title": obj.title,
                     "slug": obj.slug,
                     "views_7d": vc["views_7d"],
                 }
             )
-        except ct.model_class().DoesNotExist:
+        except ObjectDoesNotExist:
             continue
 
     # Most liked: count ContentEmotion records in last 7 days
@@ -390,17 +407,19 @@ def admin_trending(request):
     most_liked = []
     for lc in like_counts:
         ct = ContentType.objects.get(id=lc["content_type_id"])
+        if ct.model_class() is None:
+            continue
         try:
-            obj = ct.get_object_for_this_type(id=lc["object_id"])
+            obj = cast(ContentSummaryObject, ct.get_object_for_this_type(id=lc["object_id"]))
             most_liked.append(
                 {
-                    "id": obj.id,
+                    "id": _model_id(cast(Model, obj)),
                     "title": obj.title,
                     "slug": obj.slug,
                     "likes_7d": lc["likes_7d"],
                 }
             )
-        except ct.model_class().DoesNotExist:
+        except ObjectDoesNotExist:
             continue
 
     return {"most_viewed": most_viewed, "most_liked": most_liked}
@@ -427,10 +446,10 @@ def admin_recent_activity(request):
                 title = obj.title
                 slug = obj.slug
         except Exception:
-            logger.warning("Could not resolve content_object for ContentView %d", v.id)
+            logger.warning("Could not resolve content_object for ContentView %d", _model_id(v))
         recent_views.append(
             {
-                "id": v.id,
+                "id": _model_id(v),
                 "created_at": v.created_at.isoformat(),
                 "content_title": title,
                 "content_slug": slug,
@@ -442,7 +461,7 @@ def admin_recent_activity(request):
     recent_searches_qs = SearchLog.objects.select_related("user").order_by("-created_at")[:20]
     recent_searches = [
         {
-            "id": s.id,
+            "id": _model_id(s),
             "query": s.query,
             "results_count": s.results_count,
             "created_at": s.created_at.isoformat(),
@@ -486,9 +505,10 @@ def admin_recent_activity(request):
 @router.get("/users/", response=PaginatedUserOut)
 def admin_users(request, page: int = 1, page_size: int = 50, provider: str | None = None, q: str = ""):
     require_staff(request)
-    qs = User.objects.prefetch_related("socialaccount_set").order_by("-date_joined")
+    qs = User.objects.order_by("-date_joined")
     if provider:
-        qs = qs.filter(socialaccount__provider=provider).distinct()
+        provider_user_ids = SocialAccount.objects.filter(provider=provider).values("user_id")
+        qs = qs.filter(id__in=provider_user_ids)
     if q:
         qs = qs.filter(Q(email__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q))
     total = qs.count()
@@ -531,13 +551,13 @@ def admin_user_detail(request, user_id: int):
         model_name = model.__name__.lower()
         label = CONTENT_TYPE_LABELS.get(model_name, model_name)
         manager = cast(Manager[Model], model.objects)
-        for item in manager.filter(created_by=user).values("id", "title", "slug", "status", "created_at"):
+        for item in manager.filter(created_by_id=_model_id(user)).values("id", "title", "slug", "status", "created_at"):
             item["content_type"] = label
             user_content.append(item)
     user_content.sort(key=lambda x: x["created_at"], reverse=True)
 
     # Gather comments
-    comments_qs = ContentComment.objects.filter(user=user).select_related("content_type")
+    comments_qs = ContentComment.objects.filter(user_id=_model_id(user)).select_related("content_type")
     comments = []
     for c in comments_qs:
         title = None
@@ -548,10 +568,10 @@ def admin_user_detail(request, user_id: int):
                 title = obj.title
                 slug = obj.slug
         except Exception:
-            logger.warning("Could not resolve content_object for ContentComment %d", c.id)
+            logger.warning("Could not resolve content_object for ContentComment %d", _model_id(c))
         comments.append(
             {
-                "id": c.id,
+                "id": _model_id(c),
                 "text": c.text,
                 "status": c.status,
                 "created_at": c.created_at.isoformat(),
@@ -561,7 +581,7 @@ def admin_user_detail(request, user_id: int):
         )
 
     return {
-        "id": user.id,
+        "id": _model_id(user),
         "email": user.email,
         "first_name": user.first_name,
         "last_name": user.last_name,
@@ -569,7 +589,7 @@ def admin_user_detail(request, user_id: int):
         "is_active": user.is_active,
         "date_joined": user.date_joined.isoformat(),
         "last_login": user.last_login.isoformat() if user.last_login else None,
-        "providers": sorted(set(user.socialaccount_set.values_list("provider", flat=True))),
+        "providers": sorted(set(user_provider_ids(user))),
         **_ai_usage_for(user),
         "content": user_content,
         "comments": comments,
@@ -643,7 +663,7 @@ def admin_materials(request, filters: Query[MaterialFilterIn]):
     for m in qs[offset : offset + filters.page_size]:
         items.append(
             {
-                "id": m.id,
+                "id": _model_id(m),
                 "name": m.name,
                 "slug": m.slug,
                 "default_unit": None,
@@ -668,7 +688,7 @@ def admin_create_material(request, payload: MaterialAdminCreateIn):
         description=payload.description,
         created_by=request.user,
     )
-    return Status(201, {"id": material.id, "name": material.name, "slug": material.slug, "default_unit": None})
+    return Status(201, {"id": _model_id(material), "name": material.name, "slug": material.slug, "default_unit": None})
 
 
 @router.patch("/materials/{material_id}/", response=MaterialAdminOut)
@@ -682,7 +702,7 @@ def admin_update_material(request, material_id: int, payload: MaterialAdminUpdat
         material.description = payload.description
     material.updated_by = request.user
     material.save()
-    return {"id": material.id, "name": material.name, "slug": material.slug, "default_unit": None}
+    return {"id": _model_id(material), "name": material.name, "slug": material.slug, "default_unit": None}
 
 
 @router.delete("/materials/{material_id}/", response={204: None})
@@ -759,7 +779,7 @@ def admin_update_user_role(request, user_id: int, payload: UserRoleUpdateIn):
     profile, _created = UserProfile.objects.get_or_create(user=target)
     profile.role = payload.role
     profile.save(update_fields=["role"])
-    return {"id": target.id, "role": profile.role}
+    return {"id": _model_id(target), "role": profile.role}
 
 
 # ---------------------------------------------------------------------------
@@ -785,7 +805,7 @@ def admin_approval_queue(request, page_size: int = 50):
     for ing in Ingredient.objects.filter(status="draft").order_by("-created_at")[:page_size]:
         items.append(
             {
-                "id": ing.id,
+                "id": _model_id(ing),
                 "content_type": "ingredient",
                 "title": ing.name,
                 "created_at": ing.created_at.isoformat(),
@@ -794,7 +814,7 @@ def admin_approval_queue(request, page_size: int = 50):
     for recipe in Recipe.objects.filter(status=ContentStatus.DRAFT).order_by("-created_at")[:page_size]:
         items.append(
             {
-                "id": recipe.id,
+                "id": _model_id(recipe),
                 "content_type": "recipe",
                 "title": recipe.title,
                 "created_at": recipe.created_at.isoformat(),
@@ -814,4 +834,4 @@ def admin_verify_ingredient(request, ingredient_id: int):
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     ingredient.status = "verified"
     ingredient.save(update_fields=["status", "updated_at"])
-    return {"id": ingredient.id, "status": ingredient.status}
+    return {"id": _model_id(ingredient), "status": ingredient.status}

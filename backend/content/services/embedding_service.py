@@ -209,19 +209,26 @@ def build_recipe_embedding_text(recipe) -> str:
         if items:
             ingredient_parts = []
             for item in items:
-                ing = item.portion.ingredient
-                ing_text = ing.name
-                if ing.energy_kcal is not None:
-                    ing_text += f" ({ing.energy_kcal:.0f} kcal"
-                    if ing.protein_g is not None:
-                        ing_text += f", {ing.protein_g:.1f}g Eiweiß"
-                    if ing.fat_g is not None:
-                        ing_text += f", {ing.fat_g:.1f}g Fett"
-                    if ing.carbohydrate_g is not None:
-                        ing_text += f", {ing.carbohydrate_g:.1f}g Kohlenhydrate"
+                portion = item.portion
+                ingredient = portion.ingredient if portion is not None else None
+                if ingredient is None:
+                    if item.note:
+                        ingredient_parts.append(item.note[:150])
+                    continue
+
+                ing_text = ingredient.name
+                if ingredient.energy_kcal is not None:
+                    ing_text += f" ({ingredient.energy_kcal:.0f} kcal"
+                    if ingredient.protein_g is not None:
+                        ing_text += f", {ingredient.protein_g:.1f}g Eiweiß"
+                    if ingredient.fat_g is not None:
+                        ing_text += f", {ingredient.fat_g:.1f}g Fett"
+                    if ingredient.carbohydrate_g is not None:
+                        ing_text += f", {ingredient.carbohydrate_g:.1f}g Kohlenhydrate"
                     ing_text += ")"
                 ingredient_parts.append(ing_text[:150])
-            parts.append("Zutaten: " + "; ".join(ingredient_parts) + ".")
+            if ingredient_parts:
+                parts.append("Zutaten: " + "; ".join(ingredient_parts) + ".")
     except Exception:
         logger.warning("Could not include ingredients in embedding text for recipe", exc_info=True)
 
@@ -376,22 +383,23 @@ def find_similar_ingredients(
         .exclude(embedding__isnull=True)
         .annotate(distance=CosineDistance("embedding", ingredient.embedding))
         .filter(distance__lt=1.0)  # Filter to valid cosine distances (0-2, but we only care about 0-1 range)
-        .order_by("distance")[:limit]
+        .order_by("distance")
+        .values_list("id", "name", "slug", "distance")[:limit]
     )
 
     similar = []
-    for item in results:
+    for item_id, name, slug, distance in results:
         # Convert distance to cosine similarity
-        cosine_sim = 1.0 - float(item.distance)
+        cosine_sim = 1.0 - float(distance)
         # Convert to percentage using sigmoid calibration
         similarity_pct = similarity_to_pct(cosine_sim)
 
         if similarity_pct >= similarity_threshold_pct:
             similar.append(
                 {
-                    "id": item.id,
-                    "name": item.name,
-                    "slug": item.slug,
+                    "id": item_id,
+                    "name": name,
+                    "slug": slug,
                     "similarity_pct": round(similarity_pct, 1),
                 }
             )
@@ -487,17 +495,18 @@ def find_similar_recipes(recipe, threshold: float = 0.05, limit: int = 20) -> li
         .exclude(embedding__isnull=True)
         .annotate(distance=CosineDistance("embedding", recipe.embedding))
         .filter(distance__lt=threshold)
-        .order_by("distance")[:limit]
+        .order_by("distance")
+        .values_list("id", "title", "slug", "distance")[:limit]
     )
 
     return [
         {
-            "id": item.id,
-            "title": item.title,
-            "slug": item.slug,
-            "distance": round(float(item.distance), 4),
+            "id": item_id,
+            "title": title,
+            "slug": slug,
+            "distance": round(float(distance), 4),
         }
-        for item in results
+        for item_id, title, slug, distance in results
     ]
 
 

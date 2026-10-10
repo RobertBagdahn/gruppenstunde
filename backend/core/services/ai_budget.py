@@ -66,9 +66,9 @@ def client_ip(request: HttpRequest) -> str:
     if hops > 0 and forwarded:
         entries = [entry.strip() for entry in forwarded.split(",") if entry.strip()]
         if len(entries) >= hops:
-            return entries[-hops]
+            return str(entries[-hops])
         if entries:
-            return entries[0]
+            return str(entries[0])
     return str(request.META.get("REMOTE_ADDR", ""))
 
 

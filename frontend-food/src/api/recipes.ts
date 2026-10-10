@@ -13,6 +13,7 @@ import {
   PaginatedRecipesSchema,
   RecipeDetailSchema,
   RecipeItemSchema,
+  RecipeItemAlternativeCreateInSchema,
   AdoptCurrentPortionsOutSchema,
   RecipeItemExchangeGroupSchema,
   RecipeSimilarSchema,
@@ -28,6 +29,7 @@ import {
   VerifyStatusSchema,
   type RecipeFilter,
   type RecipeAiCreateIn,
+  type RecipeItemAlternativeCreateIn,
   type RecipeItemReplaceIn,
   type VerifyRequest,
 } from '@/schemas/recipe';
@@ -752,6 +754,19 @@ export function useCreateExchangeGroup(recipeId: number) {
       queryClient.invalidateQueries({ queryKey: ['exchange-groups', recipeId] });
       queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
     },
+  });
+}
+
+export function useCreateRecipeAlternative(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, data }: { itemId: number; data: RecipeItemAlternativeCreateIn }) =>
+      postJson(
+        `${API_BASE}/${recipeId}/recipe-items/${itemId}/alternatives/`,
+        RecipeItemAlternativeCreateInSchema.parse(data),
+        RecipeItemSchema,
+      ),
+    onSuccess: () => invalidateRecipeData(queryClient, recipeId),
   });
 }
 

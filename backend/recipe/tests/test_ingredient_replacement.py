@@ -1,5 +1,8 @@
 """Tests for ingredient replacement mappings, matcher integration and the replace endpoint."""
 
+# Pyright cannot resolve Django-generated test model fields; mypy-django checks production modules.
+# pyright: reportAttributeAccessIssue=false
+
 from unittest.mock import patch
 
 import pytest

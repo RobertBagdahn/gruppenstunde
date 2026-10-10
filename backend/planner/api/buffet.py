@@ -193,7 +193,7 @@ def save_meal_buffet(request: HttpRequest, meal_plan_id: int, meal_id: int, payl
                         share_percent=selection.share_percent,
                     )
                 )
-            else:
+            elif selection.recipe_id is not None:
                 recipe = get_visible_recipe_or_404(request.user, selection.recipe_id, allow_system_draft=True)
                 selections.append(
                     BuffetSelection(
@@ -202,6 +202,8 @@ def save_meal_buffet(request: HttpRequest, meal_plan_id: int, meal_id: int, payl
                         share_percent=selection.share_percent,
                     )
                 )
+            else:
+                raise HttpError(422, "Jede Buffet-Auswahl braucht eine Zutat oder ein Rezept")
         except Http404:
             raise HttpError(404, "Zutat oder Rezept nicht gefunden") from None
 
