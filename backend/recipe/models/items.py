@@ -41,8 +41,8 @@ class RecipeItemExchangeGroup(models.Model):
 class RecipeItem(models.Model):
     """Ingredient item for a recipe (Zutat im Rezept).
 
-    quantity is always a multiplier on the portion.
-    Total weight = quantity × portion.weight_g
+    With a portion, quantity is a multiplier on that portion. Without a portion,
+    quantity is stored directly in grams.
     """
 
     recipe = models.ForeignKey(
@@ -59,6 +59,15 @@ class RecipeItem(models.Model):
         related_name="recipe_items",
         verbose_name=_("Portion"),
         help_text=_("NULL = Gramm (quantity wird direkt als Gramm interpretiert)"),
+    )
+    ingredient = models.ForeignKey(
+        "supply.Ingredient",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="direct_recipe_items",
+        verbose_name=_("Direkte Zutat"),
+        help_text=_("Zutat für direkte Gramm-Mengen ohne Portion"),
     )
     quantity = models.FloatField(default=1, verbose_name=_("Menge"))
     client_request_id = models.CharField(max_length=64, null=True, blank=True)
@@ -111,8 +120,8 @@ class RecipeItem(models.Model):
             ),
         ]
 
-    def __str__(self):
-        name = self.portion or "?"
+    def __str__(self) -> str:
+        name = self.portion or self.ingredient or "?"
         return f"{self.quantity} x {name}"
 
 

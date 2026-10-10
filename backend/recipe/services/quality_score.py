@@ -19,15 +19,16 @@ def calculate_recipe_quality_score(recipe) -> int:
     scores = []
 
     # Ingredients (30%) — materialise once, reuse for cache freshness check
-    items = list(recipe.recipe_items.select_related("portion", "portion__ingredient").all())
+    items = list(recipe.recipe_items.select_related("portion", "portion__ingredient", "ingredient").all())
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     if items:
         valid_items = sum(
             1
             for item in items
-            if item.portion
-            and item.portion.ingredient
-            and item.portion.ingredient.energy_kcal
-            and item.portion.ingredient.energy_kcal > 0
+            if (ingredient := get_recipe_item_ingredient(item)) is not None
+            and ingredient.energy_kcal
+            and ingredient.energy_kcal > 0
         )
         ingredient_score = (valid_items / len(items)) * 100
     else:
@@ -49,7 +50,7 @@ def calculate_recipe_quality_score(recipe) -> int:
     # Cache freshness (20%) — reuse materialised items list
     if recipe.cached_at:
         stale = any(
-            item.portion and item.portion.ingredient and item.portion.ingredient.updated_at > recipe.cached_at
+            (ingredient := get_recipe_item_ingredient(item)) is not None and ingredient.updated_at > recipe.cached_at
             for item in items
         )
         cache_score = 0.0 if stale else 100.0

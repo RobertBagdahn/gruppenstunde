@@ -39,7 +39,7 @@ from recipe.schemas.ingredient_review import (
     ReviewPortionOut,
     ReviewTechnicalDetailsOut,
 )
-from supply.models import Portion
+from supply.models import Ingredient, Portion
 from supply.services.portion_resolution import resolve_trusted_weight
 
 
@@ -84,6 +84,26 @@ def _require_weighted_portion(portion: Portion) -> None:
         raise HttpError(422, "Diese Portion hat kein bestätigtes Gewicht und kann nicht im Rezept verwendet werden.")
 
 
+def _resolve_recipe_item_links(
+    portion_id: int | None,
+    ingredient_id: int | None,
+) -> tuple[Portion | None, int | None]:
+    """Validate links and normalize ingredient storage to direct-gram items only."""
+    if portion_id is not None:
+        portion = Portion.objects.active().filter(id=portion_id).select_related("ingredient").first()
+        if portion is None:
+            raise HttpError(400, "Portion existiert nicht")
+        if ingredient_id is not None and ingredient_id != portion.ingredient_id:
+            raise HttpError(422, "Die Portion gehört nicht zur angeforderten Zutat.")
+        return portion, None
+
+    if ingredient_id is None:
+        return None, None
+    if not Ingredient.objects.filter(id=ingredient_id, deleted_at__isnull=True).exists():
+        raise HttpError(400, "Zutat existiert nicht oder ist nicht verfügbar")
+    return None, ingredient_id
+
+
 @router.get("/{recipe_id}/recipe-items/", response=list[RecipeItemOut])
 def list_recipe_items(request, recipe_id: int):
     """List recipe items for a recipe."""
@@ -93,6 +113,7 @@ def list_recipe_items(request, recipe_id: int):
         "portion__ingredient",
         "portion__measuring_unit",
         "portion__superseded_by",
+        "ingredient",
     )
 
 
@@ -138,6 +159,7 @@ def adopt_current_portions(request, recipe_id: int, payload: AdoptCurrentPortion
             "portion__ingredient",
             "portion__measuring_unit",
             "portion__superseded_by",
+            "ingredient",
         )
     )
     return {"updated_count": len(items), "items": items}
@@ -146,6 +168,7 @@ def adopt_current_portions(request, recipe_id: int, payload: AdoptCurrentPortion
 def _compute_item_payload_hash(payload: RecipeItemCreateIn) -> str:
     data = {
         "portion_id": payload.portion_id,
+        "ingredient_id": payload.ingredient_id,
         "quantity": payload.quantity,
         "sort_order": payload.sort_order,
         "note": payload.note.strip(),
@@ -201,17 +224,16 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
                     item = existing_item
 
         if item is None:
-            if payload.portion_id is not None:
-                portion = Portion.objects.active().filter(id=payload.portion_id).first()
-                if portion is None:
-                    raise HttpError(400, "Portion existiert nicht")
+            portion, direct_ingredient_id = _resolve_recipe_item_links(payload.portion_id, payload.ingredient_id)
+            if portion is not None:
                 _require_weighted_portion(portion)
             if payload.quantity <= 0:
                 raise HttpError(400, "Menge muss größer als 0 sein")
 
             item = RecipeItem.objects.create(
                 recipe=recipe,
-                portion_id=payload.portion_id,
+                portion=portion,
+                ingredient_id=direct_ingredient_id,
                 client_request_id=request_key,
                 quantity=payload.quantity,
                 sort_order=payload.sort_order,
@@ -250,6 +272,7 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
         "portion",
         "portion__ingredient",
         "portion__measuring_unit",
+        "ingredient",
     ).get(id=item.id)
     return item
 
@@ -367,6 +390,19 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     if data.get("quantity") is None:
         data.pop("quantity", None)
 
+    if "portion_id" in data or "ingredient_id" in data:
+        next_portion_id = data.get("portion_id", item.portion_id)
+        if "ingredient_id" in data:
+            requested_ingredient_id = data["ingredient_id"]
+        elif next_portion_id is None:
+            requested_ingredient_id = item.ingredient_id or (item.portion.ingredient_id if item.portion else None)
+        else:
+            requested_ingredient_id = None
+        portion, direct_ingredient_id = _resolve_recipe_item_links(next_portion_id, requested_ingredient_id)
+        data["portion"] = portion
+        data.pop("portion_id", None)
+        data["ingredient_id"] = direct_ingredient_id
+
     # DB constraint recipe_item_quantity_positive would crash with a 500 for
     # invalid client values — reject them explicitly instead. Pydantic v2 lets
     # NaN/Inf through by default, so non-finite values must be caught here.
@@ -399,18 +435,16 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     # variations and floating-point noise while still catching catastrophic
     # mismatches (factor 10+ errors from client bugs).
     if expected_grams_total is not None:
-        result_portion_id = data.get("portion_id", item.portion_id)
         result_quantity = data.get("quantity", item.quantity)
-        portion = (
-            item.portion if result_portion_id == item.portion_id else get_object_or_404(Portion, id=result_portion_id)
-        )
+        portion = data.get("portion", item.portion)
         if portion is None:
-            raise HttpError(400, "Zutat hat keine Portion")
-        _require_weighted_portion(portion)
-        resulting_weight_g = resolve_trusted_weight(portion)
-        if resulting_weight_g is None:
-            raise HttpError(422, "Die Portion hat kein bestätigtes Gewicht.")
-        resulting_grams = result_quantity * resulting_weight_g
+            resulting_grams = float(result_quantity)
+        else:
+            _require_weighted_portion(portion)
+            resulting_weight_g = resolve_trusted_weight(portion)
+            if resulting_weight_g is None:
+                raise HttpError(422, "Die Portion hat kein bestätigtes Gewicht.")
+            resulting_grams = result_quantity * resulting_weight_g
         tolerance = max(abs(expected_grams_total) * 0.15, 2.0)
         if abs(resulting_grams - expected_grams_total) > tolerance:
             raise HttpError(
@@ -429,6 +463,7 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
         "portion",
         "portion__ingredient",
         "portion__measuring_unit",
+        "ingredient",
     ).get(id=item.id)
     return item
 
@@ -557,8 +592,9 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
             new_quantity = rounded_quantity
 
             item.portion = target_portion
+            item.ingredient = None
             item.quantity = new_quantity
-            item.save(update_fields=["portion", "quantity"])
+            item.save(update_fields=["portion", "ingredient", "quantity"])
 
             if request_key:
                 try:

@@ -45,6 +45,24 @@ def test_active_recipe_items_applies_exclusion_and_quantity_override():
 
 
 @pytest.mark.django_db
+def test_active_recipe_items_uses_direct_gram_quantity_and_explicit_ingredient():
+    meal_item = make_meal_item()
+    ingredient = baker.make(Ingredient, name="Grammzutat")
+    recipe_item = baker.make(
+        RecipeItem,
+        recipe=meal_item.recipe,
+        portion=None,
+        ingredient=ingredient,
+        quantity=72.5,
+    )
+
+    active = active_recipe_items(meal_item)
+
+    resolved = next(item for item in active if item.recipe_item.id == recipe_item.id)
+    assert resolved.weight_g == pytest.approx(72.5)
+
+
+@pytest.mark.django_db
 def test_active_recipe_items_ignores_soft_deleted_portions():
     meal_item = make_meal_item()
     unit = baker.make(MeasuringUnit, name="EL", quantity=15)

@@ -12,6 +12,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from ninja.errors import HttpError
 from pydantic import BaseModel, Field
@@ -188,7 +189,7 @@ def invalidate_dependent_recipe_caches(ingredient: Ingredient) -> int:
     from recipe.services.recipe_checks import recalculate_recipe_cache
 
     recipe_ids = list(
-        RecipeItem.objects.filter(portion__ingredient=ingredient)
+        RecipeItem.objects.filter(Q(portion__ingredient=ingredient) | Q(portion__isnull=True, ingredient=ingredient))
         .exclude(portion__deleted_at__isnull=False)
         .values_list("recipe_id", flat=True)
         .distinct()

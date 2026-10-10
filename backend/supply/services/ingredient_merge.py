@@ -16,6 +16,7 @@ from typing import Any
 from django.contrib.contenttypes.models import ContentType
 from django.db import models as db_models
 from django.db import transaction
+from django.db.models import Q
 
 from content.choices import LinkType
 
@@ -57,7 +58,9 @@ def preview_ingredient_merge(source: Any, target: Any) -> dict[str, Any]:
         "source_name": source.name,
         "target_id": target.id,
         "target_name": target.name,
-        "affected_recipe_items": RecipeItem.objects.filter(portion__ingredient=source).count(),
+        "affected_recipe_items": RecipeItem.objects.filter(
+            Q(portion__ingredient=source) | Q(portion__isnull=True, ingredient=source)
+        ).count(),
         "affected_meal_items": MealItem.objects.filter(ingredient=source).count(),
         "affected_portions": Portion.objects.filter(ingredient=source).count(),
         "affected_unit_conversions": UnitConversion.objects.filter(ingredient=source).count(),
@@ -96,7 +99,9 @@ def merge_ingredient(source: Any, target: Any, *, user: Any | None = None) -> Me
     created_by = user if user is not None and getattr(user, "is_authenticated", False) else None
 
     with transaction.atomic():
-        affected = RecipeItem.objects.filter(portion__ingredient=source).count()
+        affected = RecipeItem.objects.filter(
+            Q(portion__ingredient=source) | Q(portion__isnull=True, ingredient=source)
+        ).count()
         target_max_alias_rank = (
             IngredientAlias.objects.filter(ingredient=target).aggregate(m=db_models.Max("rank"))["m"] or 0
         )
@@ -144,6 +149,18 @@ def merge_ingredient(source: Any, target: Any, *, user: Any | None = None) -> Me
         # deferred field could pull in the same not-yet-existing columns.
         MealItem.objects.filter(ingredient=source, meal_id__in=meals_with_target).only("pk", "recipe_id").delete()
         MealItem.objects.filter(ingredient=source).update(ingredient=target)
+        direct_recipe_ids = list(
+            RecipeItem.objects.filter(portion__isnull=True, ingredient=source)
+            .values_list("recipe_id", flat=True)
+            .distinct()
+        )
+        RecipeItem.objects.filter(portion__isnull=True, ingredient=source).update(ingredient=target)
+        if direct_recipe_ids:
+            from recipe.models import Recipe
+            from recipe.services.recipe_checks import recalculate_recipe_cache
+
+            for recipe in Recipe.objects.filter(id__in=direct_recipe_ids):
+                recalculate_recipe_cache(recipe)
         target.tags.add(*source.tags.all())
         if not target.energy_kcal and source.energy_kcal:
             # e.g. "Brötchen" with 0 kcal absorbing "Brötchen (ganzes)" with 265 kcal

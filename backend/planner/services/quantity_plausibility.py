@@ -115,8 +115,10 @@ def check_recipe_item(item: Any, portions: float) -> list[QuantityWarning]:
         return []
     portions = max(float(portions or 1), 1.0)
     warnings = []
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     for active in active_recipe_items(item):
-        ingredient = active.recipe_item.portion.ingredient if active.recipe_item.portion else None
+        ingredient = get_recipe_item_ingredient(active.recipe_item)
         if ingredient is None or not active.weight_g:
             continue
         grams = active.weight_g * item.factor / recipe.portions

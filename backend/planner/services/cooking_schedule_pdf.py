@@ -118,10 +118,13 @@ def _resolve_recipe_steps_for_pdf(recipe, scale: float) -> list[dict]:
 
 def _get_recipe_allergens(recipe) -> list[dict]:
     """Get distinct dangerous allergen tags from recipe's ingredients."""
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     allergens = {}
-    for ri in recipe.recipe_items.select_related("portion__ingredient").all():
-        if ri.portion and ri.portion.ingredient:
-            for tag in ri.portion.ingredient.nutritional_tags.filter(is_dangerous=True):
+    for ri in recipe.recipe_items.select_related("portion__ingredient", "ingredient").all():
+        ingredient = get_recipe_item_ingredient(ri)
+        if ingredient:
+            for tag in ingredient.nutritional_tags.filter(is_dangerous=True):
                 if tag.name not in allergens:
                     allergens[tag.name] = {
                         "name": tag.name,
@@ -147,6 +150,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
         .select_related("meal_plan")
         .prefetch_related(
             "items__recipe__recipe_items__portion__ingredient__nutritional_tags",
+            "items__recipe__recipe_items__ingredient__nutritional_tags",
             "items__recipe__recipe_items__portion__measuring_unit",
             "items__recipe__nutritional_tags",
         )
@@ -252,17 +256,28 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                 recipe_energy = (recipe.cached_energy_total_kcal or 0) * recipe_scale
 
                 ingredients = []
-                for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").all():
-                    if ri.portion and ri.portion.ingredient:
-                        scale = recipe_scale
-                        qty = float(ri.quantity) * scale
-                        ingredients.append(
-                            {
-                                "name": ri.portion.ingredient.name,
-                                "amount": format_portion_amount(qty, ri.portion),
-                                "optional": ri.is_optional if hasattr(ri, "is_optional") else False,
-                            }
-                        )
+                from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+                from supply.utils import format_weight
+
+                for ri in recipe.recipe_items.select_related(
+                    "portion__ingredient", "portion__measuring_unit", "ingredient"
+                ).all():
+                    ingredient = get_recipe_item_ingredient(ri)
+                    scale = recipe_scale
+                    qty = float(ri.quantity) * scale
+                    if ri.portion is None:
+                        amount = format_weight(qty)
+                    elif ingredient:
+                        amount = format_portion_amount(qty, ri.portion)
+                    else:
+                        continue
+                    ingredients.append(
+                        {
+                            "name": ingredient.name if ingredient else (ri.note or "Zutat"),
+                            "amount": amount,
+                            "optional": ri.is_optional,
+                        }
+                    )
 
                 steps = _resolve_recipe_steps_for_pdf(
                     recipe,

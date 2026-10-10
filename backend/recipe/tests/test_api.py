@@ -794,6 +794,42 @@ class TestRecipeItems:
         assert resp.status_code == 200
         assert resp.json()["quantity"] == 200
 
+    def test_create_direct_gram_item_with_ingredient(self, auth_client, db, ingredient):
+        user = auth_client._user
+        recipe = Recipe.objects.create(title="Direkt Gramm", status=ContentStatus.DRAFT, created_by=user)
+        recipe.authors.add(user)
+
+        response = auth_client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/",
+            data=json.dumps({"portion_id": None, "ingredient_id": ingredient.id, "quantity": 80}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        assert response.json()["ingredient_id"] == ingredient.id
+        assert response.json()["ingredient_name"] == ingredient.name
+        assert response.json()["weight_g"] == pytest.approx(80)
+        item = RecipeItem.objects.get(recipe=recipe)
+        assert item.portion_id is None
+        assert item.ingredient_id == ingredient.id
+
+    def test_create_direct_gram_item_rejects_mismatched_ingredient(self, auth_client, db, portion, ingredient):
+        from model_bakery import baker
+
+        unrelated_ingredient = baker.make(Ingredient, name="Andere Zutat", slug="andere-zutat")
+        user = auth_client._user
+        recipe = Recipe.objects.create(title="Falsche Zutat", status=ContentStatus.DRAFT, created_by=user)
+        recipe.authors.add(user)
+
+        response = auth_client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/",
+            data=json.dumps({"portion_id": portion.id, "ingredient_id": unrelated_ingredient.id, "quantity": 1}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 422
+        assert not RecipeItem.objects.filter(recipe=recipe).exists()
+
     def test_delete_item(self, auth_client, db, portion):
         user = auth_client._user
         recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, created_by=user)

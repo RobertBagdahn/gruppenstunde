@@ -113,7 +113,8 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     items = (
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
-        .select_related("portion", "portion__ingredient", "portion__measuring_unit")
+        .exclude(portion__deleted_at__isnull=False)
+        .select_related("portion", "portion__ingredient", "portion__measuring_unit", "ingredient")
     )
 
     from recipe.services.recipe_checks import MICRONUTRIENT_FIELDS
@@ -136,14 +137,16 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     micro_totals: dict[str, float] = {f: 0.0 for f in MICRONUTRIENT_FIELDS}
 
     # First pass: calculate weights
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     item_data: list[dict[str, Any]] = []
     for item in items:
-        ingredient = item.portion.ingredient if item.portion else None
-        if not ingredient:
-            continue
-
         weight_g = _calculate_item_weight_g(item)
         if not weight_g:
+            continue
+        total_weight_g += weight_g
+        ingredient = get_recipe_item_ingredient(item)
+        if not ingredient:
             continue
 
         # Price
@@ -154,7 +157,6 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             item_price = float(price_per_kg) * weight_g / 1000.0
             total_price += item_price
 
-        total_weight_g += weight_g
         factor = weight_g / 100.0
 
         item_nutrition = {}
@@ -182,7 +184,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             "ingredient_id": ingredient.id,
             "ingredient_name": ingredient.name,
             "quantity": item.quantity,
-            "portion_name": item.portion.name if item.portion else "Stück",
+            "portion_name": item.portion.name if item.portion else "g",
             "weight_g": weight_g,
             "price_eur": item_price,
             "energy_kcal": energy_kcal,

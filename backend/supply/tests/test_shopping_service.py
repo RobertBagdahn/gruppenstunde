@@ -12,6 +12,26 @@ from supply.tests import make_ingredient
 
 @pytest.mark.django_db
 class TestShoppingService:
+    def test_recipe_direct_gram_item_is_included_in_shopping_list(self):
+        from planner.tests import make_meal_item
+        from recipe.models import RecipeItem
+        from recipe.tests import make_recipe
+
+        meal_plan = make_meal_plan(norm_portions=2, reserve_factor=1.0)
+        meal = make_meal(meal_plan=meal_plan)
+        recipe = make_recipe(portions=1)
+        ingredient = make_ingredient(name="Direkte Rezeptzutat", price_per_kg=10.0)
+        RecipeItem.objects.create(recipe=recipe, portion=None, ingredient=ingredient, quantity=125.0)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        items = generate_shopping_list(meal_plan)
+
+        assert len(items) == 1
+        assert items[0].ingredient_name == "Direkte Rezeptzutat"
+        assert items[0].total_quantity_g == pytest.approx(250.0)
+        assert items[0].estimated_price_eur == pytest.approx(2.5)
+        assert items[0].sources[0].quantity_g == pytest.approx(250.0)
+
     def test_direct_ingredient_aggregation_basic(self):
         """Should aggregate and scale direct ingredient items without recipes."""
         # 1. Create a meal plan

@@ -87,8 +87,11 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_ingredient_name(obj) -> str:
-        if obj.portion and obj.portion.ingredient:
-            return cast(str, obj.portion.ingredient.name)
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        if ingredient:
+            return cast(str, ingredient.name)
         if obj.portion and obj.portion.name:
             return cast(str, obj.portion.name)
         if obj.note:
@@ -97,15 +100,17 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_ingredient_id(obj) -> int | None:
-        if obj.portion and obj.portion.ingredient_id:
-            return cast(int, obj.portion.ingredient_id)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(int, ingredient.id) if ingredient else None
 
     @staticmethod
     def resolve_ingredient_slug(obj) -> str | None:
-        if obj.portion and obj.portion.ingredient:
-            return cast(str, obj.portion.ingredient.slug)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(str, ingredient.slug) if ingredient else None
 
     @staticmethod
     def resolve_measuring_unit_name(obj) -> str | None:
@@ -121,12 +126,10 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_ingredient_portions(obj) -> list:
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
         from supply.services.portion_resolution import is_piece_like_name
 
-        ingredient = None
-        if obj.portion and obj.portion.ingredient:
-            ingredient = obj.portion.ingredient
-
+        ingredient = get_recipe_item_ingredient(obj)
         if not ingredient:
             return []
 
@@ -151,44 +154,52 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_ingredient_density(obj) -> float | None:
-        if obj.portion and obj.portion.ingredient:
-            return cast(float, obj.portion.ingredient.physical_density)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(float, ingredient.physical_density) if ingredient else None
 
     @staticmethod
     def resolve_ingredient_viscosity(obj) -> str | None:
-        if obj.portion and obj.portion.ingredient:
-            return cast(str, obj.portion.ingredient.physical_viscosity)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(str, ingredient.physical_viscosity) if ingredient else None
 
     @staticmethod
     def resolve_ingredient_price_per_kg(obj) -> float | None:
-        if obj.portion and obj.portion.ingredient:
-            return cast(float, obj.portion.ingredient.price_per_kg)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(float, ingredient.price_per_kg) if ingredient else None
 
     @staticmethod
     def resolve_ingredient_nutri_class(obj) -> int | None:
-        if obj.portion and obj.portion.ingredient:
-            return cast(int, obj.portion.ingredient.nutri_class)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(int, ingredient.nutri_class) if ingredient else None
 
     @staticmethod
     def resolve_ingredient_retail_section_id(obj) -> int | None:
-        if obj.portion and obj.portion.ingredient and obj.portion.ingredient.retail_section_id:
-            return cast(int, obj.portion.ingredient.retail_section_id)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(int, ingredient.retail_section_id) if ingredient and ingredient.retail_section_id else None
 
     @staticmethod
     def resolve_ingredient_retail_section_name(obj) -> str | None:
-        if obj.portion and obj.portion.ingredient and obj.portion.ingredient.retail_section:
-            return cast(str, obj.portion.ingredient.retail_section.name)
-        return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(str, ingredient.retail_section.name) if ingredient and ingredient.retail_section else None
 
     @staticmethod
     def resolve_weight_g(obj) -> float:
         from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
 
+        if obj.portion is None:
+            return cast(float, obj.quantity)
         if obj.portion:
             trusted = resolve_trusted_weight(obj.portion)
             if trusted is not None:
@@ -203,16 +214,25 @@ class RecipeItemOut(Schema):
     def resolve_portion_display(obj) -> str:
         from supply.utils import build_portion_display
 
-        ingredient = obj.portion.ingredient if obj.portion else None
-        display, _ = build_portion_display(obj.quantity, obj.portion, ingredient)
+        if obj.portion is None:
+            from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+            from supply.utils import format_weight
+
+            ingredient = get_recipe_item_ingredient(obj)
+            amount = format_weight(float(obj.quantity))
+            return f"{amount} {ingredient.name}" if ingredient else amount
+
+        display, _ = build_portion_display(obj.quantity, obj.portion, obj.portion.ingredient)
         return display
 
     @staticmethod
     def resolve_has_missing_weight(obj) -> bool:
+        if obj.portion is None:
+            return False
+
         from supply.utils import build_portion_display
 
-        ingredient = obj.portion.ingredient if obj.portion else None
-        _, has_missing = build_portion_display(obj.quantity, obj.portion, ingredient)
+        _, has_missing = build_portion_display(obj.quantity, obj.portion, obj.portion.ingredient)
         return has_missing
 
     @staticmethod
@@ -235,6 +255,7 @@ class RecipeItemOut(Schema):
 
 class RecipeItemCreateIn(Schema):
     portion_id: int | None = None  # NULL means quantity is stored directly in grams
+    ingredient_id: int | None = None  # Required for ingredient-based calculations when portion_id is NULL
     client_request_id: str | None = None
     idempotency_key: str | None = None
     quantity: float = 1
@@ -251,6 +272,7 @@ class RecipeItemAlternativeCreateIn(Schema):
 
 class RecipeItemUpdateIn(Schema):
     portion_id: int | None = None
+    ingredient_id: int | None = None
     quantity: float | None = None
     sort_order: int | None = None
     note: str | None = None

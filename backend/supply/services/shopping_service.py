@@ -111,6 +111,7 @@ def generate_shopping_list(
         )
         .prefetch_related(
             "recipe__recipe_items__portion__ingredient__retail_section",
+            "recipe__recipe_items__ingredient__retail_section",
             "overrides",
         )
     )
@@ -161,20 +162,19 @@ def generate_shopping_list(
                 )
                 continue
             from planner.services.calculation_context import active_recipe_items
+            from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
             for active_item in active_recipe_items(mi):
                 ri = active_item.recipe_item
                 portion = ri.portion
-                if portion is None:
-                    continue
-                ing = portion.ingredient
+                ing = get_recipe_item_ingredient(ri)
                 if not ing:
                     continue
 
                 recipe_servings = recipe.portions or 1
                 weight_g = (active_item.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
 
-                if resolve_trusted_weight(portion) is None:
+                if portion is not None and resolve_trusted_weight(portion) is None:
                     raw_qty = active_item.quantity * mi.factor * meal_scaling / recipe_servings
                     portion_name = portion.name or ""
                     if ing.id in raw_quantities:

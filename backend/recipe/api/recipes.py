@@ -526,6 +526,7 @@ def get_recipe(request, recipe_id: int):
         "tags__parent",
         "nutritional_tags",
         "recipe_items__portion__ingredient__retail_section",
+        "recipe_items__ingredient__retail_section",
         "recipe_items__portion__ingredient__portions__measuring_unit",
         "recipe_items__portion__measuring_unit",
         "recipe_items__portion__superseded_by",
@@ -566,6 +567,7 @@ def get_recipe_by_slug(request, slug: str):
             "tags__parent",
             "nutritional_tags",
             "recipe_items__portion__ingredient__retail_section",
+            "recipe_items__ingredient__retail_section",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
             "recipe_items__portion__superseded_by",
@@ -855,9 +857,29 @@ def create_recipe(request, payload: RecipeCreateIn):
                     created_by=request.user,
                 )
                 portion_id = portion.id
+        from supply.models import Ingredient, Portion
+
+        direct_ingredient_id = item_data.ingredient_id
+        if portion_id is not None:
+            selected_portion = Portion.objects.active().filter(id=portion_id).first()
+            if selected_portion is None:
+                raise HttpError(400, "Portion existiert nicht")
+            if direct_ingredient_id is not None and direct_ingredient_id != selected_portion.ingredient_id:
+                raise HttpError(422, "Die Portion gehört nicht zur angeforderten Zutat.")
+            direct_ingredient_id = None
+        elif (
+            direct_ingredient_id is not None
+            and not Ingredient.objects.filter(
+                id=direct_ingredient_id,
+                deleted_at__isnull=True,
+            ).exists()
+        ):
+            raise HttpError(400, "Zutat existiert nicht oder ist nicht verfügbar")
+
         RecipeItem.objects.create(
             recipe=recipe,
             portion_id=portion_id,
+            ingredient_id=direct_ingredient_id,
             client_request_id=item_data.client_request_id,
             quantity=item_data.quantity / servings_divisor,
             sort_order=item_data.sort_order,
@@ -1017,17 +1039,38 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         if not recipe_items_data and recipe.status != "draft":
             raise HttpError(400, "Bei veröffentlichten Rezepten können nicht alle Zutaten entfernt werden")
 
-        from supply.models import Portion
+        from supply.models import Ingredient, Portion
 
         portion_ids = {
             item_data["portion_id"] for item_data in recipe_items_data if item_data["portion_id"] is not None
         }
+        direct_ingredient_ids = {
+            item_data.get("ingredient_id")
+            for item_data in recipe_items_data
+            if item_data.get("portion_id") is None and item_data.get("ingredient_id") is not None
+        }
+        valid_direct_ingredient_ids = set(
+            Ingredient.objects.filter(id__in=direct_ingredient_ids, deleted_at__isnull=True).values_list(
+                "id", flat=True
+            )
+        )
+        if direct_ingredient_ids - valid_direct_ingredient_ids:
+            raise HttpError(400, "Eine direkte Zutat existiert nicht oder ist nicht verfügbar")
         valid_portion_ids = set(Portion.objects.active().filter(id__in=portion_ids).values_list("id", flat=True))
         missing_portion_ids = portion_ids - valid_portion_ids
         if missing_portion_ids:
             raise HttpError(400, f"Portionen nicht gefunden: {missing_portion_ids}")
         from supply.services.portion_resolution import resolve_trusted_weight
 
+        selected_portions = {
+            portion.id: portion
+            for portion in Portion.objects.active().filter(id__in=portion_ids).select_related("measuring_unit")
+        }
+        for item_data in recipe_items_data:
+            if item_data.get("portion_id") is not None and item_data.get("ingredient_id") is not None:
+                portion = selected_portions.get(item_data["portion_id"])
+                if portion is None or portion.ingredient_id != item_data["ingredient_id"]:
+                    raise HttpError(422, "Die Portion gehört nicht zur angeforderten Zutat.")
         unweighted_portion_ids = {
             portion.id
             for portion in Portion.objects.active().filter(id__in=portion_ids).select_related("measuring_unit")
@@ -1041,6 +1084,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
             RecipeItem.objects.create(
                 recipe=recipe,
                 portion_id=item_data["portion_id"],
+                ingredient_id=item_data.get("ingredient_id") if item_data["portion_id"] is None else None,
                 client_request_id=item_data.get("client_request_id"),
                 quantity=item_data.get("quantity", 1),
                 sort_order=item_data.get("sort_order", 0),

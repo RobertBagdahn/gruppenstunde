@@ -149,6 +149,8 @@ def _recipe_candidates(config: MealTypeConfig, user: AbstractBaseUser | None) ->
             "manual_nutritional_tags",
             "recipe_items__portion__ingredient__nutritional_tags",
             "recipe_items__portion__ingredient__retail_section",
+            "recipe_items__ingredient__nutritional_tags",
+            "recipe_items__ingredient__retail_section",
         )
     )
     from supply.models import NutritionalTag
@@ -161,8 +163,10 @@ def _recipe_candidates(config: MealTypeConfig, user: AbstractBaseUser | None) ->
         tags = list(r.nutritional_tags.all()) + list(r.manual_nutritional_tags.all())
         tag_ids = {tag.id for tag in tags}
         tag_names = {tag.name for tag in tags}
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
         ingredients = [
-            item.portion.ingredient for item in r.recipe_items.all() if item.portion and item.portion.ingredient
+            ingredient for item in r.recipe_items.all() if (ingredient := get_recipe_item_ingredient(item)) is not None
         ]
         if ingredients:
             # A recipe carries a tag when every ingredient does (recipe tags are not synced on all systems).

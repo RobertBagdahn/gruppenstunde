@@ -565,20 +565,23 @@ def _build_ingredient_list(recipe: Recipe) -> str:
         "portion",
         "portion__ingredient",
         "portion__measuring_unit",
+        "ingredient",
     )
+
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
     lines: list[str] = []
     for item in items:
-        ingredient = item.portion.ingredient if item.portion else None
+        ingredient = get_recipe_item_ingredient(item)
         if not ingredient:
             continue
 
         name = ingredient.name
         qty = item.quantity
 
-        unit_label = ""
-        if item.portion and item.portion.measuring_unit:
-            unit_label = item.portion.measuring_unit.name
+        unit_label = (
+            "g" if item.portion is None else (item.portion.measuring_unit.name if item.portion.measuring_unit else "")
+        )
 
         lines.append(f"- {qty} {unit_label} {name}".strip())
 

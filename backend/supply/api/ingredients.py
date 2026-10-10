@@ -1566,7 +1566,8 @@ def list_recipes_by_ingredient(request, slug: str, page: int = 1, page_size: int
     base_qs = (
         visible_recipe_queryset(request.user)
         .filter(
-            recipe_items__portion__ingredient=ingredient,
+            Q(recipe_items__portion__ingredient=ingredient)
+            | Q(recipe_items__portion__isnull=True, recipe_items__ingredient=ingredient),
             status="approved",
         )
         .distinct()

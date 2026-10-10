@@ -370,6 +370,7 @@ export function useCreateRecipeItem(recipeId: number) {
   return useMutation({
     mutationFn: (data: {
       portion_id: number | null;
+      ingredient_id?: number | null;
       quantity?: number;
       sort_order?: number;
       note?: string;

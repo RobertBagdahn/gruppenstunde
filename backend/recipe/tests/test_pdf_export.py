@@ -149,6 +149,16 @@ class TestRecipePdfServingScaling:
         assert any(row["display"] == "800 g" for row in export.ingredients)
 
     @pytest.mark.django_db
+    def test_direct_gram_item_shows_linked_ingredient_name(self):
+        ingredient = make_ingredient(name="Direkte Möhre")
+        recipe = make_recipe(portions=1)
+        RecipeItem.objects.create(recipe=recipe, portion=None, ingredient=ingredient, quantity=200)
+
+        export = RecipePdfExport.build(recipe, servings=4)
+
+        assert any(row["display"] == "800 g Direkte Möhre" for row in export.ingredients)
+
+    @pytest.mark.django_db
     def test_named_portion_display_includes_gram_value(self):
         ingredient = make_ingredient(name="Zwiebel")
         unit = MeasuringUnit.objects.get_or_create(name="Stück", defaults={"quantity": 1.0, "unit": "stk"})[0]

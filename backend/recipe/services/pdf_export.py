@@ -47,10 +47,13 @@ def _extract_plain_text(markdown_text: str) -> str:
 
 def _get_allergens(recipe) -> list[str]:
     """Extract allergen names from recipe's nutritional tags."""
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     allergens = set()
-    for ri in recipe.recipe_items.select_related("portion__ingredient").all():
-        if ri.portion and ri.portion.ingredient:
-            for tag in ri.portion.ingredient.nutritional_tags.filter(is_dangerous=True):
+    for ri in recipe.recipe_items.select_related("portion__ingredient", "ingredient").all():
+        ingredient = get_recipe_item_ingredient(ri)
+        if ingredient:
+            for tag in ingredient.nutritional_tags.filter(is_dangerous=True):
                 allergens.add(tag.name)
     return sorted(allergens)
 
@@ -187,15 +190,22 @@ class RecipePdfExport:
 
     def _build_ingredients(self) -> None:
         rows = []
-        for ri in self.recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").order_by(
-            "sort_order"
-        ):
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        for ri in self.recipe.recipe_items.select_related(
+            "portion__ingredient",
+            "portion__measuring_unit",
+            "ingredient",
+        ).order_by("sort_order"):
             note = ri.note or ""
             if ri.portion is None:
                 # Direct gram item: quantity is stored in grams.
-                rows.append({"display": format_weight(float(ri.quantity) * self.scale), "note": note})
+                amount = format_weight(float(ri.quantity) * self.scale)
+                ingredient = get_recipe_item_ingredient(ri)
+                display = f"{amount} {ingredient.name}" if ingredient else amount
+                rows.append({"display": display, "note": note})
                 continue
-            ingredient = ri.portion.ingredient
+            ingredient = get_recipe_item_ingredient(ri)
             if ingredient is None:
                 continue
             display, _ = build_portion_display(float(ri.quantity) * self.scale, ri.portion, ingredient)

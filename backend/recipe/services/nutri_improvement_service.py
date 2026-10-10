@@ -146,25 +146,25 @@ def _find_contributing_ingredients(recipe: Recipe, parameter: str) -> list[dict]
     """
     from recipe.models import RecipeItem
 
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related(
+        "portion", "portion__ingredient", "portion__measuring_unit", "ingredient"
+    )
 
     # sodium_mg is stored as salt_g on the ingredient model
     ingredient_field = "salt_g" if parameter == "sodium_mg" else parameter
+
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient, get_recipe_item_weight_g
 
     contributions: list[dict] = []
     total_contribution = 0.0
 
     for item in items:
-        ingredient = item.portion.ingredient if item.portion else None
+        ingredient = get_recipe_item_ingredient(item)
         if not ingredient:
             continue
 
-        weight_g = 0.0
-        if item.portion and item.portion.weight_g:
-            weight_g = item.quantity * item.portion.weight_g
-        elif item.portion and item.portion.measuring_unit:
-            weight_g = item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
-        else:
+        weight_g = get_recipe_item_weight_g(item)
+        if weight_g <= 0:
             continue
 
         val = getattr(ingredient, ingredient_field, None)

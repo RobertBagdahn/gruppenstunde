@@ -33,9 +33,9 @@ def resolve_active_recipe_items(
     override_map = {override.recipe_item_id: override for override in (overrides or [])}
     result: list[ActiveRecipeItem] = []
 
-    for recipe_item in recipe.recipe_items.select_related("portion", "portion__ingredient").all():
+    for recipe_item in recipe.recipe_items.select_related("portion", "portion__ingredient", "ingredient").all():
         portion = recipe_item.portion
-        if portion is None or portion.deleted_at is not None:
+        if portion is not None and portion.deleted_at is not None:
             continue
 
         if recipe_item.exchange_group_id is not None:
@@ -53,10 +53,13 @@ def resolve_active_recipe_items(
         quantity = float(
             override.quantity_override if override and override.quantity_override is not None else recipe_item.quantity
         )
-        # Only trusted weights may drive gram-based calculations; unresolved
-        # piece weights (unknown/AI-proposed) contribute nothing.
-        trusted_weight = resolve_trusted_weight(portion)
-        weight_g = float(trusted_weight) * quantity if trusted_weight is not None else None
+        if portion is None:
+            weight_g = quantity
+        else:
+            # Only trusted weights may drive gram-based calculations; unresolved
+            # piece weights (unknown/AI-proposed) contribute nothing.
+            trusted_weight = resolve_trusted_weight(portion)
+            weight_g = float(trusted_weight) * quantity if trusted_weight is not None else None
         result.append(ActiveRecipeItem(recipe_item=recipe_item, quantity=quantity, weight_g=weight_g))
 
     return result

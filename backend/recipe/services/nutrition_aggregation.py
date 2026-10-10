@@ -57,6 +57,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
         )
         .prefetch_related(
             "recipe__recipe_items__portion__ingredient",
+            "recipe__recipe_items__ingredient",
             "overrides",
         )
     )
@@ -80,10 +81,11 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                 # test_person_factors_do_not_affect_aggregation). This differs from the
                 # user-facing nutrition-summary endpoint, which reports totals.
                 from planner.services.calculation_context import active_recipe_items
+                from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
                 for active_item in active_recipe_items(item):
                     ri = active_item.recipe_item
-                    ing = ri.portion.ingredient if ri.portion else None
+                    ing = get_recipe_item_ingredient(ri)
                     if not ing:
                         continue
                     weight_g = active_item.weight_g or 0.0

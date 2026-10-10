@@ -247,17 +247,31 @@ def _compute_scaled_ingredients(
         from planner.services.calculation_context import active_recipe_items
 
         scale = factor * (portions / recipe_portions)
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
         for entry in active_recipe_items(meal_item):
-            portion = entry.recipe_item.portion
+            recipe_item = entry.recipe_item
+            portion = recipe_item.portion
             if portion is None:
+                ingredient = get_recipe_item_ingredient(recipe_item)
+                ingredients.append(
+                    CookingScheduleIngredient(
+                        name=ingredient.name if ingredient else (recipe_item.note or "Zutat"),
+                        quantity=round(entry.quantity * scale, 2),
+                        unit="g",
+                        note=recipe_item.note or "",
+                        is_optional=recipe_item.is_optional,
+                        weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
+                    )
+                )
                 continue
             ingredients.append(
                 CookingScheduleIngredient(
                     name=portion.ingredient.name if portion.ingredient else portion.name,
                     quantity=round(entry.quantity * portion.quantity * scale, 2),
                     unit=portion.measuring_unit.name if portion.measuring_unit else "",
-                    note=entry.recipe_item.note or "",
-                    is_optional=entry.recipe_item.is_optional,
+                    note=recipe_item.note or "",
+                    is_optional=recipe_item.is_optional,
                     weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
                 )
             )
@@ -283,7 +297,20 @@ def _compute_scaled_ingredients(
             continue
 
         portion = ri.portion
-        if not portion:
+        if portion is None:
+            from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+            ingredient = get_recipe_item_ingredient(ri)
+            ingredients.append(
+                CookingScheduleIngredient(
+                    name=ingredient.name if ingredient else (ri.note or "Zutat"),
+                    quantity=round(ri.quantity * scale, 2),
+                    unit="g",
+                    note=ri.note or "",
+                    is_optional=ri.is_optional,
+                    weight_g=round(ri.quantity * scale, 1),
+                )
+            )
             continue
         ingredient = portion.ingredient
         measuring_unit = portion.measuring_unit
@@ -309,10 +336,14 @@ def _collect_nutritional_tags(recipe) -> list[dict]:
 
     tags: list[dict] = []
 
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     ingredient_ids = list(
-        recipe.recipe_items.filter(portion__ingredient__isnull=False)
-        .values_list("portion__ingredient_id", flat=True)
-        .distinct()
+        {
+            ingredient.id
+            for recipe_item in recipe.recipe_items.select_related("portion__ingredient", "ingredient")
+            if (ingredient := get_recipe_item_ingredient(recipe_item)) is not None
+        }
     )
 
     if ingredient_ids:
@@ -385,11 +416,10 @@ def _compute_item_nutrition(item, meal_item, effective_portions: int) -> dict[st
             "carbohydrate_g": float(meal_item.recipe.cached_carbohydrate_g or 0) * scale,
         }
 
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     for entry in active_items:
-        portion = entry.recipe_item.portion
-        if portion is None:
-            continue
-        ingredient = portion.ingredient
+        ingredient = get_recipe_item_ingredient(entry.recipe_item)
         if not ingredient or entry.weight_g is None:
             continue
         for key in values:
@@ -412,11 +442,13 @@ def _compute_item_cost(meal_item: MealItem, effective_portions: int) -> float:
         return float(meal_item.recipe.cached_price_total or 0) * scale
 
     total = 0.0
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     for entry in active_items:
-        portion = entry.recipe_item.portion
-        if portion is None or portion.ingredient is None:
+        ingredient = get_recipe_item_ingredient(entry.recipe_item)
+        if ingredient is None:
             continue
-        price_per_kg = price_or_none(portion.ingredient.price_per_kg)
+        price_per_kg = price_or_none(ingredient.price_per_kg)
         if price_per_kg is None:
             continue
         total += float(price_per_kg) * float(entry.weight_g or 0) / 1000.0 * scale

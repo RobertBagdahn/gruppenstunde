@@ -31,7 +31,9 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None,
     if recipe_items_map is None:
         # Load all recipe items for this step's recipe
         recipe_items_map = {}
-        for recipe_item in step.recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit"):
+        for recipe_item in step.recipe.recipe_items.select_related(
+            "portion__ingredient", "portion__measuring_unit", "ingredient"
+        ):
             recipe_items_map[recipe_item.id] = recipe_item
 
     instruction = step.instruction
@@ -58,8 +60,11 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: dict | None = None,
         if re.match(r"\d+(\.\d+)?\s*(g|ml|l|stk|Stück|EL|TL)\b", name):
             return match.group(0)
         # Find matching recipe item by name
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
         for item in recipe_items_map.values():
-            if item.portion and item.portion.ingredient and item.portion.ingredient.name.lower() == name.lower():
+            ingredient = get_recipe_item_ingredient(item)
+            if ingredient and ingredient.name.lower() == name.lower():
                 return _format_quantity(item, scale)
         return match.group(0)  # Leave unresolved if not found
 
@@ -75,16 +80,19 @@ def _format_quantity(recipe_item: RecipeItem, scale: float = 1.0) -> str:
     portion is a multiple of its weight ("0,3 x 100g Gurke"), so the amount is
     derived from the portion weight: "1,05 kg Salatgurke".
     """
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
     from supply.services.amount_formatting import format_portion_amount
     from supply.services.portion_resolution import is_direct_metric_portion
 
     portion = recipe_item.portion
     quantity = recipe_item.quantity * scale
+    ingredient = get_recipe_item_ingredient(recipe_item)
     if portion is None:
         qty_str = str(int(quantity)) if quantity == int(quantity) else f"{quantity:.1f}".rstrip("0").rstrip(".")
-        return f"{qty_str}g"
-
-    ingredient = portion.ingredient
+        result = f"{qty_str}g {ingredient.name if ingredient else ''}".rstrip()
+        if recipe_item.note and ingredient:
+            result += f", {recipe_item.note}"
+        return result
     if is_direct_metric_portion(portion):
         qty_str = str(int(quantity)) if quantity == int(quantity) else f"{quantity:.1f}".rstrip("0").rstrip(".")
         unit_str = portion.measuring_unit.unit if portion.measuring_unit else ""
@@ -111,13 +119,15 @@ def resolve_recipe_steps(recipe: Recipe, scale: float = 1.0) -> list[dict] | Non
         recipe.steps.prefetch_related(
             "step_ingredients__recipe_item__portion__ingredient",
             "step_ingredients__recipe_item__portion__measuring_unit",
+            "step_ingredients__recipe_item__ingredient",
         ).order_by("sort_order")
     )
     if not steps_qs:
         return None
 
     recipe_items_map = {
-        ri.id: ri for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit")
+        ri.id: ri
+        for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit", "ingredient")
     }
 
     result: list[dict] = []
@@ -128,15 +138,21 @@ def resolve_recipe_steps(recipe: Recipe, scale: float = 1.0) -> list[dict] | Non
             instruction = step.instruction
 
         step_ingredients = []
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
         for si in step.step_ingredients.all():
             ri = si.recipe_item
-            if ri is None or ri.portion is None or ri.portion.ingredient is None:
+            if ri is None:
                 continue
+            ingredient = get_recipe_item_ingredient(ri)
+            if ingredient is None:
+                continue
+            unit = "g" if ri.portion is None else (ri.portion.measuring_unit.unit if ri.portion.measuring_unit else "")
             step_ingredients.append(
                 {
-                    "name": ri.portion.ingredient.name,
+                    "name": ingredient.name,
                     "quantity": float(ri.quantity * si.quantity_modifier * scale),
-                    "unit": ri.portion.measuring_unit.unit if ri.portion.measuring_unit else "",
+                    "unit": unit,
                     "note": ri.note or "",
                 }
             )

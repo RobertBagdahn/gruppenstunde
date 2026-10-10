@@ -20,44 +20,15 @@ if TYPE_CHECKING:
     from recipe.models import Recipe
 
 from recipe.models import RecipeItem, Rule
-from supply.choices import MeasuringUnitType, RecipeTypeChoices
+from supply.choices import RecipeTypeChoices
 from supply.services.price_service import price_or_none
 
 
 def _calculate_item_weight_g(item: RecipeItem) -> float:
-    """Calculate the weight in grams for a RecipeItem.
+    """Calculate the weight in grams for a RecipeItem."""
+    from recipe.services.recipe_item_helpers import get_recipe_item_weight_g
 
-    Uses the portion's trusted weight when available; the measuring-unit
-    conversion fallback only applies to definitionally derived weights
-    (metric base units and canonical kitchen units). Unresolved piece
-    weights (unknown/AI-proposed) contribute 0 instead of a fabricated
-    gram amount.
-    """
-    from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
-
-    portion = item.portion
-    if not portion:
-        return 0.0
-
-    trusted_weight = resolve_trusted_weight(portion)
-    if trusted_weight is not None:
-        return item.quantity * trusted_weight
-
-    # Piece-like named portions without a trusted weight must never receive an
-    # implicit gram value from their (usually fallback) measuring unit.
-    if is_piece_like_name(portion.name):
-        return 0.0
-
-    if portion.measuring_unit:
-        raw = item.quantity * float(portion.quantity) * float(portion.measuring_unit.quantity)
-
-        ingredient = getattr(portion, "ingredient", None)
-        if ingredient and portion.measuring_unit.unit == MeasuringUnitType.VOLUME:
-            density = getattr(ingredient, "physical_density", 1.0) or 1.0
-            raw *= density
-        return raw
-
-    return 0.0
+    return get_recipe_item_weight_g(item)
 
 
 # Micronutrient fields tracked on Ingredient — used for aggregation
@@ -83,7 +54,7 @@ def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
         .exclude(portion__deleted_at__isnull=False)
-        .select_related("portion", "portion__ingredient", "portion__measuring_unit")
+        .select_related("portion", "portion__ingredient", "portion__measuring_unit", "ingredient")
     )
 
     total_weight_g = 0.0
@@ -110,16 +81,18 @@ def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
     for field in MICRONUTRIENT_FIELDS:
         totals[field] = 0.0
 
-    for item in items:
-        ingredient = item.portion.ingredient if item.portion else None
-        if not ingredient:
-            continue
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
+    for item in items:
         weight_g = _calculate_item_weight_g(item)
         if not weight_g:
             continue
 
         total_weight_g += weight_g
+        ingredient = get_recipe_item_ingredient(item)
+        if not ingredient:
+            continue
+
         factor = weight_g / 100.0  # nutritional values are per 100g
 
         for field in totals:
@@ -149,12 +122,10 @@ def get_recipe_total_weight_g(recipe: Recipe) -> float:
     if recipe.cached_weight_g is not None:
         return float(recipe.cached_weight_g)
 
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
     total_weight_g = 0.0
     for item in items:
-        if not (item.portion and item.portion.ingredient):
-            continue
-        if item.portion.deleted_at is not None:
+        if item.portion and item.portion.deleted_at is not None:
             continue
         if item.exchange_group_id is not None and item.exchange_position and item.exchange_position > 0:
             continue
@@ -436,7 +407,7 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
         .exclude(portion__deleted_at__isnull=False)
-        .select_related("portion", "portion__ingredient", "portion__measuring_unit")
+        .select_related("portion", "portion__ingredient", "portion__measuring_unit", "ingredient")
     )
     total_price = Decimal("0.00")
     total_weight_g = 0.0
@@ -444,14 +415,15 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
     ingredient_count = 0
     priced_count = 0
     missing_count = 0
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     for item in items:
-        if not (item.portion and item.portion.ingredient):
+        if item.portion and item.portion.deleted_at is not None:
             continue
-        ingredient = item.portion.ingredient
         weight_g = _calculate_item_weight_g(item)
         total_weight_g += float(weight_g)
-
-        if not weight_g:
+        ingredient = get_recipe_item_ingredient(item)
+        if ingredient is None or not weight_g:
             continue
 
         ingredient_count += 1
@@ -510,14 +482,17 @@ def sync_recipe_nutritional_tags(recipe: Recipe) -> int:
     from django.db.models import Count, Q
 
     from recipe.models import RecipeItem
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
     from supply.models.reference import NutritionalTag
 
-    ingredient_ids = list(
+    active_items = (
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
         .exclude(portion__deleted_at__isnull=False)
-        .values_list("portion__ingredient_id", flat=True)
-        .distinct()
+        .select_related("portion__ingredient", "ingredient")
+    )
+    ingredient_ids = list(
+        {ingredient.id for item in active_items if (ingredient := get_recipe_item_ingredient(item)) is not None}
     )
 
     if ingredient_ids:

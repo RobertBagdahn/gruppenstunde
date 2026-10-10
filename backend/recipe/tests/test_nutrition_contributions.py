@@ -3,6 +3,8 @@
 import pytest
 from django.test import Client
 
+from recipe.models import RecipeItem
+from recipe.services.recipe_checks import get_recipe_nutritional_values, get_recipe_total_weight_g
 from recipe.tests import make_recipe, make_recipe_item
 from supply.choices import MeasuringUnitType
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
@@ -10,6 +12,31 @@ from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 @pytest.mark.django_db
 class TestNutritionContributions:
+    def test_direct_gram_item_contributes_to_recipe_nutrition_and_weight(self):
+        ingredient = make_ingredient(name="Direkte Zutat", energy_kcal=250.0, protein_g=10.0)
+        recipe = make_recipe(portions=1)
+        RecipeItem.objects.create(recipe=recipe, ingredient=ingredient, portion=None, quantity=80.0)
+
+        values = get_recipe_nutritional_values(recipe)
+
+        assert get_recipe_total_weight_g(recipe) == pytest.approx(80.0)
+        assert values["energy_kcal"] == pytest.approx(250.0)
+        assert values["protein_g"] == pytest.approx(10.0)
+
+    def test_direct_gram_item_appears_in_nutrition_breakdown(self):
+        ingredient = make_ingredient(name="Direkte Zutat", energy_kcal=250.0, protein_g=10.0)
+        recipe = make_recipe(portions=1)
+        RecipeItem.objects.create(recipe=recipe, ingredient=ingredient, portion=None, quantity=80.0)
+
+        response = Client().get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_weight_g"] == pytest.approx(80.0)
+        assert data["items"][0]["ingredient_name"] == "Direkte Zutat"
+        assert data["items"][0]["weight_g"] == pytest.approx(80.0)
+        assert data["items"][0]["energy_kcal"] == pytest.approx(200.0)
+
     def _make_recipe_with_items(self):
         """Create a recipe with 3 items for contribution testing."""
         recipe = make_recipe()

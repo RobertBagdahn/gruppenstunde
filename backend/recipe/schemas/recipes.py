@@ -69,13 +69,14 @@ def build_price_coverage(total: int, priced: int, missing: int, affected_items: 
 
 def build_recipe_price_coverage(recipe) -> dict:
     """Build price coverage and identify recipe items without usable prices."""
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
     from supply.services.price_service import is_missing_price
 
-    items = list(recipe.recipe_items.select_related("portion__ingredient").all())
+    items = list(recipe.recipe_items.select_related("portion__ingredient", "ingredient").all())
     affected_items = []
     priced = 0
     for item in items:
-        ingredient = item.portion.ingredient if item.portion else None
+        ingredient = get_recipe_item_ingredient(item)
         if ingredient is None or is_missing_price(ingredient.price_per_kg):
             affected_items.append(
                 {

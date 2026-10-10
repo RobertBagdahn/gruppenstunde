@@ -20,16 +20,21 @@ def _item_total_for_field(ri: RecipeItem, field: str, quantity_override: float |
     field: an Ingredient attribute per 100g (e.g. 'energy_kcal') or 'price'.
     quantity_override: when set, replaces ri.quantity (same unit: portion count).
     """
-    if not ri.portion or not ri.portion.ingredient:
-        return 0.0
-    ing = ri.portion.ingredient
-    effective_quantity = quantity_override if quantity_override is not None else float(ri.quantity)
-    from supply.services.portion_resolution import resolve_trusted_weight
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
-    trusted_weight = resolve_trusted_weight(ri.portion)
-    if trusted_weight is None:
+    ing = get_recipe_item_ingredient(ri)
+    if ing is None:
         return 0.0
-    weight_g = effective_quantity * trusted_weight
+    effective_quantity = quantity_override if quantity_override is not None else float(ri.quantity)
+    if ri.portion is None:
+        weight_g = effective_quantity
+    else:
+        from supply.services.portion_resolution import resolve_trusted_weight
+
+        trusted_weight = resolve_trusted_weight(ri.portion)
+        if trusted_weight is None:
+            return 0.0
+        weight_g = effective_quantity * float(trusted_weight)
     if field == "price":
         from supply.services.price_service import price_or_none
 
@@ -48,7 +53,7 @@ def _active_items(meal_item: MealItem) -> list[RecipeItem]:
     ids = list(meal_item.active_recipe_item_ids or [])
     if not ids or not meal_item.recipe:
         return []
-    return list(meal_item.recipe.recipe_items.select_related("portion__ingredient").filter(id__in=ids))
+    return list(meal_item.recipe.recipe_items.select_related("portion__ingredient", "ingredient").filter(id__in=ids))
 
 
 def _build_overrides_map(meal_item: MealItem) -> dict[int, MealItemOverride]:
@@ -69,7 +74,7 @@ def compute_variant_energy(meal_item: MealItem) -> float:
     base = float(meal_item.recipe.cached_energy_total_kcal)
     active_ids = set(meal_item.active_recipe_item_ids or [])
 
-    recipe_items = list(meal_item.recipe.recipe_items.select_related("portion__ingredient").all())
+    recipe_items = list(meal_item.recipe.recipe_items.select_related("portion__ingredient", "ingredient").all())
 
     # If there are overrides, recompute from scratch to correctly apply them
     if overrides_map:
@@ -94,7 +99,7 @@ def compute_variant_cost(meal_item: MealItem) -> float:
     base = float(meal_item.recipe.cached_price_total)
     active_ids = set(meal_item.active_recipe_item_ids or [])
 
-    recipe_items = list(meal_item.recipe.recipe_items.select_related("portion__ingredient").all())
+    recipe_items = list(meal_item.recipe.recipe_items.select_related("portion__ingredient", "ingredient").all())
 
     if overrides_map:
         return _compute_total_with_overrides(recipe_items, active_ids, overrides_map, "price")

@@ -15,7 +15,7 @@ current, e.g. list views, cockpit).
 """
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
@@ -30,9 +30,10 @@ def _recipes_using_ingredient(ingredient):
     Looks up RecipeItem via Portion → Ingredient references.
     """
     recipe_ids = set()
-    # Via Portion → Ingredient
-    via_portion = RecipeItem.objects.filter(portion__ingredient=ingredient).values_list("recipe_id", flat=True)
-    recipe_ids.update(via_portion)
+    item_refs = RecipeItem.objects.filter(
+        Q(portion__ingredient=ingredient) | Q(portion__isnull=True, ingredient=ingredient)
+    ).values_list("recipe_id", flat=True)
+    recipe_ids.update(item_refs)
     return recipe_ids
 
 
@@ -70,44 +71,37 @@ def recalculate_recipe_cache_on_item_change(sender, instance, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-def _get_ingredient_id(portion_id):
-    """Resolve ingredient_id from portion_id, or None if portion deleted."""
-    if portion_id is None:
-        return None
-    from supply.models import Portion
-
-    try:
-        return Portion.objects.get(id=portion_id).ingredient_id
-    except Portion.DoesNotExist:
-        return None
+def _get_item_ingredient_id(item: RecipeItem) -> int | None:
+    """Resolve the linked ingredient ID for a recipe item."""
+    if item.portion_id is not None:
+        return item.portion.ingredient_id if item.portion_id and item.portion else None
+    return item.ingredient_id
 
 
 @receiver(post_save, sender=RecipeItem, dispatch_uid="recipe_item_usage_count_save")
 def update_usage_count_on_item_save(sender, instance, created, **kwargs):
     from supply.models import Ingredient
 
-    new_ingredient_id = _get_ingredient_id(instance.portion_id)
+    new_ingredient_id = _get_item_ingredient_id(instance)
 
     if created:
         if new_ingredient_id:
             Ingredient.objects.filter(id=new_ingredient_id).update(usage_count=F("usage_count") + 1)
         return
 
-    # Update: portion may have changed
-    if hasattr(instance, "_old_portion_id"):
-        old_ingredient_id = _get_ingredient_id(instance._old_portion_id)
-        if old_ingredient_id and old_ingredient_id != new_ingredient_id:
-            Ingredient.objects.filter(id=old_ingredient_id).update(usage_count=F("usage_count") - 1)
-            Ingredient.objects.filter(id=old_ingredient_id, usage_count__lt=0).update(usage_count=0)
-        if new_ingredient_id and old_ingredient_id != new_ingredient_id:
-            Ingredient.objects.filter(id=new_ingredient_id).update(usage_count=F("usage_count") + 1)
+    old_ingredient_id = getattr(instance, "_old_ingredient_id", None)
+    if old_ingredient_id and old_ingredient_id != new_ingredient_id:
+        Ingredient.objects.filter(id=old_ingredient_id).update(usage_count=F("usage_count") - 1)
+        Ingredient.objects.filter(id=old_ingredient_id, usage_count__lt=0).update(usage_count=0)
+    if new_ingredient_id and old_ingredient_id != new_ingredient_id:
+        Ingredient.objects.filter(id=new_ingredient_id).update(usage_count=F("usage_count") + 1)
 
 
 @receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe_item_usage_count_delete")
 def update_usage_count_on_item_delete(sender, instance, **kwargs):
     from supply.models import Ingredient
 
-    ingredient_id = _get_ingredient_id(instance.portion_id)
+    ingredient_id = _get_item_ingredient_id(instance)
     if ingredient_id:
         Ingredient.objects.filter(id=ingredient_id).update(usage_count=F("usage_count") - 1)
         Ingredient.objects.filter(id=ingredient_id, usage_count__lt=0).update(usage_count=0)
@@ -115,15 +109,15 @@ def update_usage_count_on_item_delete(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=RecipeItem, dispatch_uid="recipe_item_capture_old_portion")
 def capture_old_portion_id(sender, instance, **kwargs):
-    """Capture old portion_id before save so update handlers can detect changes."""
+    """Capture the old ingredient reference before save for usage-count updates."""
     if instance.pk is None:
-        instance._old_portion_id = None
+        instance._old_ingredient_id = None
         return
     try:
-        old = RecipeItem.objects.get(pk=instance.pk)
-        instance._old_portion_id = old.portion_id
+        old = RecipeItem.objects.select_related("portion").get(pk=instance.pk)
+        instance._old_ingredient_id = _get_item_ingredient_id(old)
     except RecipeItem.DoesNotExist:
-        instance._old_portion_id = None
+        instance._old_ingredient_id = None
 
 
 # ---------------------------------------------------------------------------

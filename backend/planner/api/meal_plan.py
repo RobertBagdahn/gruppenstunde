@@ -625,7 +625,8 @@ def get_meal_plan(request, meal_plan_id: int):
             Prefetch(
                 "meals__items",
                 queryset=MealItem.objects.select_related("recipe", "meal__meal_plan").prefetch_related(
-                    "recipe__recipe_items__portion__ingredient"
+                    "recipe__recipe_items__portion__ingredient",
+                    "recipe__recipe_items__ingredient",
                 ),
             ),
             "meals__items__overrides",
@@ -1780,7 +1781,9 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
 
             for active_item in active_recipe_items(mi):
                 ri = active_item.recipe_item
-                ing = ri.portion.ingredient if ri.portion else None
+                from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+                ing = get_recipe_item_ingredient(ri)
                 if not ing:
                     continue
 
@@ -1840,6 +1843,7 @@ def cost_summary(request, meal_plan_id: int):
 
     meals = Meal.objects.filter(meal_plan=meal_plan).prefetch_related(
         "items__recipe__recipe_items__portion__ingredient",
+        "items__recipe__recipe_items__ingredient",
         "items__ingredient",
         "items__ingredient__portions",
         "items__measuring_unit",
@@ -1914,7 +1918,9 @@ def cost_summary(request, meal_plan_id: int):
 
                 for active_item in active_recipe_items(item):
                     ri = active_item.recipe_item
-                    ing = ri.portion.ingredient if ri.portion else None
+                    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+                    ing = get_recipe_item_ingredient(ri)
                     if not ing:
                         continue
 

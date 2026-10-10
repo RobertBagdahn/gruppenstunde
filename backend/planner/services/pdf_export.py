@@ -102,10 +102,13 @@ def _get_recipe_allergens(recipe) -> list[dict]:
     """Get distinct dangerous allergen tags from recipe's ingredients."""
     if not recipe:
         return []
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
     allergens = {}
-    for ri in recipe.recipe_items.select_related("portion__ingredient").all():
-        if ri.portion and ri.portion.ingredient:
-            for tag in ri.portion.ingredient.nutritional_tags.all():
+    for ri in recipe.recipe_items.select_related("portion__ingredient", "ingredient").all():
+        ingredient = get_recipe_item_ingredient(ri)
+        if ingredient:
+            for tag in ingredient.nutritional_tags.all():
                 if _get_eu_allergen(tag.name) and tag.name not in allergens:
                     allergens[tag.name] = {
                         "name": tag.name,
@@ -233,7 +236,8 @@ def _get_recipe_steps(recipe, scale: float = 1.0) -> list[dict]:
     steps_qs = recipe.steps.all().order_by("sort_order")
     if steps_qs.exists():
         recipe_items_map = {
-            ri.id: ri for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit")
+            ri.id: ri
+            for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit", "ingredient")
         }
         from recipe.services.step_helpers import resolve_placeholders
 
@@ -373,6 +377,8 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
         .prefetch_related(
             "items__recipe__recipe_items__portion__ingredient__retail_section",
             "items__recipe__recipe_items__portion__ingredient__nutritional_tags",
+            "items__recipe__recipe_items__ingredient__retail_section",
+            "items__recipe__recipe_items__ingredient__nutritional_tags",
             "items__recipe__recipe_items__portion__measuring_unit",
             "items__recipe__nutritional_tags",
             "items__recipe__steps",
@@ -724,10 +730,13 @@ def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: flo
     ingredients = []
     active_items = active_recipe_items(item)
     recipe_servings = max(recipe.portions or 1, 1)
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+    from supply.utils import format_weight
 
     for active in active_items:
         ri = active.recipe_item
-        if ri.portion and ri.portion.ingredient:
+        ingredient = get_recipe_item_ingredient(ri)
+        if ingredient:
             override_key = str(ri.id)
             if override_key in item_overrides.get("excluded_items", set()):
                 continue
@@ -738,12 +747,20 @@ def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: flo
                 base_qty = float(override_qty)
 
             scale = (portions * item.factor * reserve_factor) / recipe_servings
-            scaled_qty = base_qty * scale
-            per_person_qty = base_qty * item.factor / recipe_servings
-            amount = format_portion_amount(scaled_qty, ri.portion)
-            suffix = _per_person_suffix(format_portion_amount(per_person_qty, ri.portion), portions)
+            per_person_scale = item.factor / recipe_servings
+            if ri.portion is None:
+                amount = format_weight(base_qty * scale)
+                per_person_amount = format_weight(base_qty * per_person_scale)
+            else:
+                amount = format_portion_amount(base_qty * scale, ri.portion)
+                per_person_amount = format_portion_amount(base_qty * per_person_scale, ri.portion)
+            suffix = _per_person_suffix(per_person_amount, portions)
             note = f" ({ri.note})" if ri.note else ""
-            ingredients.append(f"{ri.portion.ingredient.name} — {amount}{suffix}{note}")
+            ingredients.append(f"{ingredient.name} — {amount}{suffix}{note}")
+        elif ri.portion is None:
+            scale = (portions * item.factor * reserve_factor) / recipe_servings
+            quantity = float(active.quantity) * scale
+            ingredients.append(f"{ri.note or 'Zutat'} — {format_weight(quantity)}")
 
     return ingredients
 
@@ -856,10 +873,13 @@ def _build_allergen_matrix(meals) -> dict | None:
             for item in meal.items.all():
                 if item.recipe:
                     # Collect from active recipe items
+                    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
                     for active in active_recipe_items(item):
                         ri = active.recipe_item
-                        if ri.portion and ri.portion.ingredient:
-                            for tag in ri.portion.ingredient.nutritional_tags.all():
+                        ingredient = get_recipe_item_ingredient(ri)
+                        if ingredient:
+                            for tag in ingredient.nutritional_tags.all():
                                 allergen = _get_eu_allergen(tag.name)
                                 if allergen:
                                     day_set.add(allergen_map.get(allergen, allergen.title()))

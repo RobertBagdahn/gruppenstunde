@@ -97,6 +97,7 @@ interface InlineIngredientEditorProps {
 
 export interface DraftIngredientItem {
   portion_id: number | null;
+  ingredient_id: number | null;
   client_request_id?: string;
   idempotency_key?: string;
   quantity: number;
@@ -1328,6 +1329,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             const requestKey = item.clientRequestId || `ingredient-${item.id}`;
             return {
               portion_id: item.portion_id,
+              ingredient_id: item.ingredient_id,
               client_request_id: requestKey,
               idempotency_key: requestKey,
               quantity: toPersistedRecipeItemQuantity(item, scale),
@@ -1406,6 +1408,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const promise = createItem
           .mutateAsync({
             portion_id: item.portion_id,
+            ingredient_id: item.ingredient_id,
             client_request_id: requestKey,
             idempotency_key: requestKey,
             quantity: toPersistedRecipeItemQuantity(item, scale),
@@ -1435,6 +1438,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             itemId: item.id,
             data: {
               portion_id: item.portion_id,
+              ingredient_id: item.ingredient_id,
               quantity: toPersistedRecipeItemQuantity(item, scale),
               note: item.note,
               sort_order: item.sort_order,
