@@ -137,6 +137,7 @@ function buffetResult(saved: boolean, selected: Array<Record<string, unknown>>) 
       const name = id === 10 ? 'Baguette' : 'Ciabatta';
       return {
         role_slug: 'buffet-bread',
+        share_percent: Number(selection.share_percent ?? 100),
         kind: 'ingredient',
         id,
         name,
@@ -192,10 +193,24 @@ test('Buffet action opens, saves, and restores the buffet after reload', async (
     if (path === '/api/meal-plans/42/meals/101/buffet/') {
       buffetRequests.push(method === 'GET' ? 'state' : 'preview-or-save');
       if (method === 'GET') {
+        const stateSelections = savedSelections.map((selection) => {
+          const ingredientId = Number(selection.ingredient_id);
+          return {
+            role_slug: String(selection.role_slug),
+            share_percent: Number(selection.share_percent ?? 100),
+            ingredient_id: ingredientId,
+            recipe_id: null,
+            kind: 'ingredient',
+            name: ingredientId === 10 ? 'Baguette' : 'Ciabatta',
+            energy_kcal_per_100g: null,
+            price_per_kg: null,
+            weight_per_serving_g: null,
+          };
+        });
         return route.fulfill({
           json: {
             template_id: savedTemplateId,
-            selections: savedSelections,
+            selections: stateSelections,
             role_amounts: savedRoleAmounts,
           },
         });
@@ -237,27 +252,37 @@ test('Buffet action opens, saves, and restores the buffet after reload', async (
   await expect(openBuilder).toBeVisible();
   await openBuilder.click();
 
-  await expect(foodPage.getByRole('heading', { name: 'Buffet zusammenstellen' })).toBeVisible();
-  await expect(foodPage.getByText('Brot & Gebäck')).toBeVisible();
+  await expect(foodPage.getByRole('heading', { name: 'Buffet auswählen' })).toBeVisible();
+  await foodPage.getByRole('button', { name: 'Mittagsbuffet' }).click();
+  await expect(foodPage.getByRole('heading', { name: 'Mittagsbuffet' })).toBeVisible();
+  await expect(foodPage.getByRole('button', { name: 'Brot & Gebäck' })).toBeVisible();
   await foodPage.getByText('Ciabatta').click();
+  await foodPage.getByRole('button', { name: 'Prüfen' }).click();
   await foodPage.getByTestId('buffet-save').click();
   await expect(foodPage.getByText(/Serverfehler \(HTTP 500\)/)).toBeVisible();
-  await expect(foodPage.getByRole('heading', { name: 'Buffet zusammenstellen' })).toBeVisible();
+  await expect(foodPage.getByRole('heading', { name: 'Buffet prüfen', exact: true })).toBeVisible();
+  await foodPage.getByRole('button', { name: 'Zurück' }).click();
   await expect(foodPage.getByRole('button', { name: 'Ciabatta' })).toHaveClass(/border-primary/);
   expect(saveRequests).toHaveLength(1);
 
+  await foodPage.getByRole('button', { name: 'Prüfen' }).click();
   await foodPage.getByTestId('buffet-save').click();
   await expect.poll(() => saveRequests).toHaveLength(2);
-  await expect(foodPage.getByRole('heading', { name: 'Buffet zusammenstellen' })).toBeHidden();
-  await foodPage.getByText('Mittagessen').first().click();
-  await expect(foodPage.getByText('Ciabatta')).toBeVisible();
+  await expect(foodPage.getByRole('heading', { name: 'Buffet prüfen', exact: true })).toBeHidden();
+  await foodPage.getByRole('button', { name: 'Aktionen' }).click();
+  await foodPage.getByText('Buffetassistent', { exact: true }).click();
+  await expect(foodPage.getByRole('heading', { name: 'Mittagsbuffet' })).toBeVisible();
+  await expect(foodPage.getByRole('button', { name: 'Ciabatta' })).toHaveClass(/border-primary/);
   expect(buffetRequests).toContain('templates');
   expect(buffetRequests).toContain('catalog');
   expect(buffetRequests).toContain('state');
 
+  await foodPage.getByRole('button', { name: 'Abbrechen' }).click();
   await foodPage.reload();
-  await foodPage.getByText('Mittagessen').first().click();
-  await expect(foodPage.getByText('Ciabatta')).toBeVisible();
+  await foodPage.getByRole('button', { name: 'Aktionen' }).click();
+  await foodPage.getByText('Buffetassistent', { exact: true }).click();
+  await expect(foodPage.getByRole('heading', { name: 'Mittagsbuffet' })).toBeVisible();
+  await expect(foodPage.getByRole('button', { name: 'Ciabatta' })).toHaveClass(/border-primary/);
 });
 
 function ingredientPortion(id: number, name: string) {
@@ -459,7 +484,8 @@ test('a readable draft ingredient persists as a named recipe alternative', async
   await expect(foodPage.getByTestId('recipe-ingredient-editor')).toContainText(/100 g\s*Jackfruit/);
   await foodPage.getByTestId('ingredient-editor-save').click();
   await expect.poll(() => alternativeRequests).toHaveLength(1);
-  await expect(foodPage.getByText(/Serverfehler \(HTTP 500\)/)).toBeVisible();
+  const visibleFailureFeedback = await foodPage.locator('body').innerText();
+  expect(visibleFailureFeedback).toContain('Serverfehler (HTTP 500)');
   await expect(foodPage.getByTestId('recipe-ingredient-editor')).toBeVisible();
   await expect(foodPage.getByTestId('recipe-ingredient-editor')).toContainText(/100 g\s*Jackfruit/);
 
