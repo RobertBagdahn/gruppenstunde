@@ -28,7 +28,7 @@
 
 ## 5. Require release checks
 
-- [ ] 5.1 Add backend and Food frontend checks to release verification; keep the existing main frontend production build in the deploy pipeline. The unrelated main-frontend lint/type baseline is excluded because it currently fails in untouched breakfast files.
+- [ ] 5.1 Add backend, main-frontend TypeScript, and Food frontend checks to release verification. Keep full main-frontend ESLint cleanup separate from this change.
 - [ ] 5.2 Add deterministic mocked browser coverage for Buffet persistence/recovery, recipe-alternative persistence/retry, and safe server-error feedback.
 - [ ] 5.3 Make required checks block image build/deployment and validate Cloud Build configuration syntax.
 - [ ] 5.4 Run relevant local checks and report results accurately. No production inspection, data repair, migration, or deployment is included in this change.
