@@ -49,6 +49,7 @@ export interface EditableItem {
   is_optional: boolean;
   exchange_group_id: number | null;
   exchange_position: number | null;
+  alternativeTargetItemId?: number;
   ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number; is_weight_trusted?: boolean; is_piece_like?: boolean | null; weight_status?: string | null }[];
   /** Backend-computed weight (grams) for `baseQuantity` — authoritative, unlike
    *  the client-side `ingredient_portions[].weight_g` lookup (which can be
