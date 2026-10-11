@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { calendarDaysBetween } from '@/lib/mealPlanListDisplay';
 import type { MealPlan } from '@/schemas/mealPlan';
 import MealEventListPage from './MealEventListPage';
 
@@ -52,8 +53,10 @@ const plans = [
   },
 ] as unknown as MealPlan[];
 
+let listedPlans: MealPlan[] = plans;
+
 vi.mock('@/api/mealPlans', () => ({
-  useMealPlans: () => ({ data: plans, error: null, isLoading: false, refetch: vi.fn() }),
+  useMealPlans: () => ({ data: listedPlans, error: null, isLoading: false, refetch: vi.fn() }),
   useCreateMealPlan: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteMealPlan: () => ({ mutate: remove, isPending: false }),
   useDuplicateMealPlan: () => ({ mutate: duplicate, isPending: false }),
@@ -74,7 +77,12 @@ describe('MealEventListPage plan rows', () => {
   beforeEach(() => {
     duplicate.mockReset();
     remove.mockReset();
+    listedPlans = plans;
     window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('keeps the plan name readable: up to two lines, badge outside the heading, full name as tooltip', () => {
@@ -119,5 +127,68 @@ describe('MealEventListPage plan rows', () => {
 
     expect(duplicate).toHaveBeenCalledTimes(1);
     expect(duplicate.mock.calls[0][0]).toMatchObject({ id: 20, name: 'Sommerlager 2027' });
+  });
+
+  it('separates current and past plans so a month heading and its key appear once per section', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-11T12:00:00'));
+    const consoleError = vi.spyOn(console, 'error');
+    // Server order for date_upcoming: upcoming ascending, then past descending — October appears in both parts.
+    listedPlans = [
+      { ...plans[0], id: 31, name: 'Herbstfahrt', start_datetime: '2026-10-16T18:00:00', end_datetime: '2026-10-18T14:00:00' },
+      { ...plans[0], id: 32, name: 'Wochenendlager', start_datetime: '2026-10-02T18:00:00', end_datetime: '2026-10-04T14:00:00' },
+      { ...plans[0], id: 33, name: 'Sommerlager', start_datetime: '2026-08-01T10:00:00', end_datetime: '2026-08-08T10:00:00' },
+    ];
+
+    renderPage();
+    vi.useRealTimers();
+
+    const current = screen.getByRole('region', { name: 'Aktuell & kommend' });
+    const past = screen.getByRole('region', { name: 'Vergangen' });
+    expect(within(current).getByText('Herbstfahrt')).toBeTruthy();
+    expect(within(current).getByRole('heading', { name: /Oktober 2026/ })).toBeTruthy();
+    expect(within(past).getByText('Wochenendlager')).toBeTruthy();
+    expect(within(past).getByText('Sommerlager')).toBeTruthy();
+    expect(within(past).getByRole('heading', { name: /Oktober 2026/ })).toBeTruthy();
+    expect(within(current).queryByText('Wochenendlager')).toBeNull();
+    const duplicateKeyWarnings = consoleError.mock.calls.filter((call) => String(call[0]).includes('same key'));
+    expect(duplicateKeyWarnings).toEqual([]);
+  });
+
+  it('prefills the template end with the same number of calendar days and the source end time', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Aktionen für Bundesrat 2026' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage verwenden/ }));
+    await user.click(screen.getByRole('button', { name: 'Erstellen' }));
+
+    expect(duplicate).toHaveBeenCalledTimes(1);
+    const { start_datetime: start, end_datetime: end } = duplicate.mock.calls[0][0] as { start_datetime: string; end_datetime: string };
+    const sourceEnd = new Date(plans[1].end_datetime as string);
+    expect(calendarDaysBetween(start, end)).toBe(calendarDaysBetween(plans[1].start_datetime as string, plans[1].end_datetime as string));
+    expect(new Date(end).getHours()).toBe(sourceEnd.getHours());
+    expect(new Date(end).getMinutes()).toBe(sourceEnd.getMinutes());
+  });
+
+  it('blocks a template copy whose day count differs from the source with a German message', async () => {
+    const user = userEvent.setup();
+    const { baseElement } = renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Aktionen für Bundesrat 2026' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage verwenden/ }));
+    const [startInput, endInput] = Array.from(
+      baseElement.querySelectorAll<HTMLInputElement>('input[type="datetime-local"]'),
+    );
+    const startDate = startInput.value.slice(0, 10);
+    const longerEnd = new Date(`${startDate}T12:00`);
+    longerEnd.setDate(longerEnd.getDate() + 4);
+    fireEvent.change(endInput, { target: { value: `${longerEnd.toISOString().slice(0, 10)}T12:00` } });
+    await user.click(screen.getByRole('button', { name: 'Erstellen' }));
+
+    expect(duplicate).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toBe(
+      'Der Zeitraum muss wie die Vorlage 3 Tage umfassen (aktuell 5 Tage).',
+    );
   });
 });

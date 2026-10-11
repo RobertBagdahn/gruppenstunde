@@ -13,6 +13,7 @@ Planübersicht:
 - In der Kartenansicht werden Plannamen mit „Mein Plan“-Badge bei schmalen Karten auf einen Buchstaben gekürzt („H…“, „Z…“, „B…“).
 - Der Lösch-Dialog nennt den Plan nicht beim Namen, bei mehreren ähnlichen Plänen ist unklar, welcher gelöscht wird.
 - „Als Vorlage verwenden“ hängt automatisch „ (Kopie)“ an den vom Nutzer gewählten Namen an.
+- Review 2026-10-11: Bei „Demnächst“ erscheint ein Monat doppelt („Oktober 2026“ für kommende und vergangene Pläne, doppelter React-Key). „Als Vorlage verwenden“ belegt das Ende mit der Dauer in Millisekunden vor; startet die Kopie abends, zählt das Backend einen Kalendertag mehr und lehnt mit „Tagesanzahl muss übereinstimmen“ ab.
 
 ## What Changes
 
@@ -22,6 +23,8 @@ Planübersicht:
 - Plan-Karten: Der Name hat Vorrang vor dem Badge. Das Badge wandert in eine eigene Zeile oder wird bei schmaler Karte zum Icon, der Name bricht auf bis zu zwei Zeilen um (statt auf einen Buchstaben zu kürzen).
 - Lösch-Dialog für Pläne nennt den Plannamen („Essensplan „X“ löschen?“). Gleiches für Einkaufslisten, falls dort noch nicht der Fall.
 - „Als Vorlage verwenden“ verwendet den eingegebenen Namen unverändert. Vorbelegung des Dialogfelds ist „<Quellname> (Kopie)“, der Nutzer kann es ändern.
+- „Als Vorlage verwenden“ belegt das Ende so vor, dass die Kalendertage der Vorlage übereinstimmen, und meldet Abweichungen vor dem Absenden.
+- Die Planliste trennt bei „Demnächst“ aktuelle/kommende und vergangene Pläne, damit kein Monat doppelt erscheint.
 
 ## Capabilities
 
@@ -33,6 +36,6 @@ Planübersicht:
 
 ## Impact
 
-- **Backend:** keine Änderung (Menge, Einheit und `package_options[].volume_ml` liegen bereits vor).
-- **Frontend (frontend-food):** `components/shopping/ShoppingListItemRow.tsx` und `pages/planning/ShoppingView.tsx`, `lib/shoppingItemDisplay.ts` (`formatItemPackageReserve`), bestehender Hook `useDeleteShoppingListItem` (jetzt in der UI genutzt) in `pages/shopping/ShoppingListDetailPage.tsx`, `components/planning/MealPlanCompactCard.tsx` und `MealPlanHeroCard.tsx`, `pages/planning/MealEventListPage.tsx` (Duplizieren, Lösch-Dialog).
+- **Backend:** Menge, Einheit und `package_options[].volume_ml` liegen bereits vor; `duplicate_meal_plan` zählt die Kalendertage von Quelle und Ziel in Ortszeit.
+- **Frontend (frontend-food):** `components/shopping/ShoppingListItemRow.tsx` und `pages/planning/ShoppingView.tsx`, `lib/shoppingItemDisplay.ts` (`formatItemPackageReserve`), bestehender Hook `useDeleteShoppingListItem` (jetzt in der UI genutzt) in `pages/shopping/ShoppingListDetailPage.tsx`, `pages/planning/MealEventListPage.tsx` (`PlanRow`, Monatsgruppen, Duplizieren, Lösch-Dialog), `lib/mealPlanListDisplay.ts`; die ungenutzten Karten `MealPlanSection`, `MealPlanCompactCard` und `MealPlanHeroCard` entfallen.
 - **Schemas:** unverändert.

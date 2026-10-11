@@ -788,7 +788,10 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
     if not source.end_datetime:
         raise HttpError(400, "Quell-Essensplan hat kein Enddatum")
 
-    source_days = (source.end_datetime.date() - source.start_datetime.date()).days
+    # Calendar days in local time on both sides; the dialog counts days in the user's local time as well.
+    source_days = (
+        timezone.localtime(source.end_datetime).date() - timezone.localtime(source.start_datetime).date()
+    ).days
 
     start_dt = (
         timezone.make_aware(payload.start_datetime)
@@ -798,7 +801,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
     end_dt = (
         timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
     )
-    target_days = (end_dt.date() - start_dt.date()).days
+    target_days = (timezone.localtime(end_dt).date() - timezone.localtime(start_dt).date()).days
 
     if target_days != source_days:
         raise HttpError(
