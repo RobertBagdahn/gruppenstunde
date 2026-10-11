@@ -11,7 +11,7 @@ def legacy_recipe_portions(db) -> Iterator[None]:
     """Allow rows that violate the ``portions = 1`` check constraint.
 
     Only the legacy normalization paths (``normalize_recipe_servings`` and the
-    0012 migration guard) still need recipes with ``portions != 1``. The test
+    0013 migration guard) still need recipes with ``portions != 1``. The test
     database is SQLite, which can skip CHECK constraints per connection.
     """
     assert connection.vendor == "sqlite"

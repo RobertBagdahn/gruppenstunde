@@ -1,4 +1,4 @@
-"""Tests for the 0012 migration guard before the ``portions = 1`` constraint."""
+"""Tests for the 0013 migration guard before the ``portions = 1`` constraint."""
 
 import importlib
 from types import SimpleNamespace
@@ -11,7 +11,7 @@ from recipe.models import Recipe
 from recipe.tests import make_recipe
 
 ensure_recipe_portions_one = importlib.import_module(
-    "recipe.migrations.0012_recipe_portions_guard"
+    "recipe.migrations.0013_recipe_portions_guard"
 ).ensure_recipe_portions_one
 
 

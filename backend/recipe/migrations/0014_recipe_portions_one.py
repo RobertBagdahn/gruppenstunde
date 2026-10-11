@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("content", "0018_add_buffet_roles"),
         ("profiles", "0003_userprofile_onboarded_at"),
-        ("recipe", "0012_recipe_portions_guard"),
+        ("recipe", "0013_recipe_portions_guard"),
         ("supply", "0022_buffet_data_proposal"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

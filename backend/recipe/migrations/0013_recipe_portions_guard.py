@@ -1,4 +1,4 @@
-"""Prepare ``Recipe.portions`` for the ``portions = 1`` constraint in 0013.
+"""Prepare ``Recipe.portions`` for the ``portions = 1`` constraint in 0014.
 
 NULL and values below 1 were read as 1 by every consumer (``portions or 1`` /
 ``max(portions, 1)``), so setting them to 1 keeps all quantities unchanged.
@@ -29,7 +29,7 @@ def ensure_recipe_portions_one(apps: Apps, schema_editor: BaseDatabaseSchemaEdit
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("recipe", "0011_recipeitem_ingredient"),
+        ("recipe", "0012_recipeitem_standard_measure_key"),
     ]
 
     operations = [
