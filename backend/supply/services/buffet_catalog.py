@@ -291,7 +291,7 @@ def search_buffet_items(
         return []
 
     matching_recipe_types = MEAL_TYPE_RECIPE_PRIORITIES[meal_type]
-    results: list[tuple[tuple[int, int, str, str, int], BuffetCatalogItem]] = []
+    results: list[tuple[tuple[int, int, int, str, str, int], BuffetCatalogItem]] = []
 
     if kind in ("all", "ingredient"):
         from supply.models import Portion
@@ -321,7 +321,7 @@ def search_buffet_items(
             aliases = [alias.name for alias in ingredient.aliases.all()]
             relevance_group = 0 if item.is_favorite else 1 if ingredient.is_standalone_food else 3
             prefix_rank = 0 if _starts_with_query(ingredient.name, aliases, normalized_query) else 1
-            results.append(((relevance_group, prefix_rank, item.name.casefold(), item.kind, item.id), item))
+            results.append(((relevance_group, 0, prefix_rank, item.name.casefold(), item.kind, item.id), item))
 
     if kind in ("all", "recipe"):
         recipes = (
@@ -338,14 +338,19 @@ def search_buffet_items(
             item.is_favorite = role_slug in item.role_slugs and not alcoholic
             if exclude_alcohol and alcoholic:
                 continue
+            # Within matching recipes, the meal type's priority order wins (e.g. breakfast before cold_meal).
+            recipe_type_rank = 0
             if item.is_favorite:
                 relevance_group = 0
             elif recipe.recipe_type in matching_recipe_types:
                 relevance_group = 2
+                recipe_type_rank = matching_recipe_types.index(recipe.recipe_type)
             else:
                 relevance_group = 3
             prefix_rank = 0 if _starts_with_query(recipe.title, [], normalized_query) else 1
-            results.append(((relevance_group, prefix_rank, item.name.casefold(), item.kind, item.id), item))
+            results.append(
+                ((relevance_group, recipe_type_rank, prefix_rank, item.name.casefold(), item.kind, item.id), item)
+            )
 
     results.sort(key=lambda result: result[0])
     capped_limit = max(1, min(limit, 50))

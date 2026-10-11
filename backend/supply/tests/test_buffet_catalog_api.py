@@ -258,6 +258,65 @@ class TestBuffetCatalogSearch:
         assert response.status_code == 200
         assert response.json() == []
 
+    def test_breakfast_search_ranks_breakfast_recipes_before_cold_meal_and_snack(self):
+        make_recipe(title="Brot Aufstrich kalt", recipe_type="cold_meal")
+        make_recipe(title="Brot Snack", recipe_type="snack")
+        make_recipe(title="Brot Frühstück", recipe_type="breakfast")
+        client, _ = _client_with_user()
+
+        response = client.get(
+            "/api/supply/buffet-catalog/search/?q=Brot&role=buffet-dish&meal_type=breakfast&kind=recipe"
+        )
+
+        assert response.status_code == 200
+        assert [(item["name"], item["recipe_type"]) for item in response.json()] == [
+            ("Brot Frühstück", "breakfast"),
+            ("Brot Aufstrich kalt", "cold_meal"),
+            ("Brot Snack", "snack"),
+        ]
+
+    def test_search_limit_is_capped_at_fifty(self):
+        for index in range(55):
+            make_ingredient(name=f"Apfel Sorte {index:02d}", is_standalone_food=True)
+        client, _ = _client_with_user()
+
+        capped = client.get("/api/supply/buffet-catalog/search/?q=Apfel&role=buffet-fresh&meal_type=snack&limit=500")
+        default = client.get("/api/supply/buffet-catalog/search/?q=Apfel&role=buffet-fresh&meal_type=snack")
+        small = client.get("/api/supply/buffet-catalog/search/?q=Apfel&role=buffet-fresh&meal_type=snack&limit=5")
+
+        assert capped.status_code == default.status_code == small.status_code == 200
+        assert len(capped.json()) == 50
+        assert len(default.json()) == 30
+        assert len(small.json()) == 5
+
+    def test_search_hides_system_drafts_from_non_staff_but_shows_them_to_staff(self):
+        make_ingredient(name="Entwurfsbirne", owner=None, status="draft", is_standalone_food=True)
+        user_client, _ = _client_with_user(username="search-user")
+        staff_client, _ = _client_with_user(username="search-staff", is_staff=True)
+        url = "/api/supply/buffet-catalog/search/?q=Entwurfsbirne&role=buffet-fresh&meal_type=snack"
+
+        user_response = user_client.get(url)
+        anonymous_response = Client().get(url)
+        staff_response = staff_client.get(url)
+
+        assert user_response.status_code == anonymous_response.status_code == staff_response.status_code == 200
+        assert user_response.json() == []
+        assert anonymous_response.json() == []
+        assert [item["name"] for item in staff_response.json()] == ["Entwurfsbirne"]
+
+    def test_owner_finds_own_private_ingredient(self):
+        client, owner = _client_with_user(username="private-owner")
+        own = make_ingredient(name="Eigene Cocktailtomaten", owner=owner, visibility="private", is_standalone_food=True)
+        other_client, _ = _client_with_user(username="private-other")
+        url = "/api/supply/buffet-catalog/search/?q=Cocktailtomaten&role=buffet-fresh&meal_type=snack"
+
+        own_response = client.get(url)
+        other_response = other_client.get(url)
+
+        assert own_response.status_code == other_response.status_code == 200
+        assert [item["id"] for item in own_response.json()] == [own.id]
+        assert other_response.json() == []
+
 
 @pytest.mark.django_db
 class TestBreakfastCatalogAdapter:
