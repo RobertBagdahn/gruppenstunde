@@ -64,11 +64,17 @@ test.describe('Food core CRUD', () => {
     await foodPage.goto(`/ingredients/${created.slug}`);
     await foodPage.getByRole('button', { name: 'Portion hinzufügen' }).click();
     const portionDialog = foodPage.getByRole('dialog');
-    await portionDialog.getByPlaceholder('z. B. Esslöffel').fill('E2E Tasse');
-    await portionDialog.getByLabel('Einheit').selectOption({ label: 'Gramm' });
+    const portionName = portionDialog.getByPlaceholder('z. B. Esslöffel');
+    const portionUnit = portionDialog.getByLabel('Einheit');
+    await portionName.fill('E2E Tasse');
+    await portionUnit.selectOption({ label: 'Gramm' });
+    // The dialog must keep the entered values; a reset leaves the submit button disabled.
+    await expect(portionName).toHaveValue('E2E Tasse');
+    await expect(portionUnit).not.toHaveValue('');
     await portionDialog.getByRole('button', { name: 'Portion hinzufügen', exact: true }).click();
     await expect(foodPage.getByText('E2E Tasse', { exact: true })).toBeVisible();
 
+    await foodPage.getByRole('button', { name: /^Packungen/ }).click();
     await foodPage.getByRole('button', { name: 'Packung hinzufügen' }).click();
     await foodPage.getByPlaceholder('Name (z.B. 500g Packung)').fill('E2E Packung');
     await foodPage.getByPlaceholder('Gewicht (g)').fill('500');

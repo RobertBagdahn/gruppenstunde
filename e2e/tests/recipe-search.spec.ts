@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const FOOD_URL = 'http://localhost:5174';
 
@@ -8,14 +8,18 @@ test.describe('Recipe Search Page', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  /** Open the mobile filter sidebar on small viewports */
-  async function openFilters(page: ReturnType<typeof test['info']> extends never ? never : any) {
-    const toggleBtn = page.locator('button:has-text("Filter")');
-    const isToggleVisible = await toggleBtn.isVisible().catch(() => false);
-    if (isToggleVisible) {
-      await toggleBtn.click();
-      await page.waitForTimeout(300);
-    }
+  /** Opens the mobile filter sidebar (the toggle is "Filter" plus an optional active-filter count). */
+  async function openFilters(page: Page): Promise<void> {
+    const toggleBtn = page.getByRole('button', { name: /^Filter( \d+)?$/ });
+    await toggleBtn.click();
+    await expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
+  }
+
+  /** Expands the collapsed "Weitere Filter" groups (Schwierigkeit, Zubereitungsart, Kosten). */
+  async function openMoreFilters(page: Page): Promise<void> {
+    const moreBtn = page.getByRole('button', { name: /^Weitere Filter/ });
+    await moreBtn.click();
+    await expect(moreBtn).toHaveAttribute('aria-expanded', 'true');
   }
 
   test('page loads with default verified recipes', async ({ page }) => {
@@ -99,46 +103,32 @@ test.describe('Recipe Search Page', () => {
   test('filter groups are present when sidebar opened', async ({ page }) => {
     await openFilters(page);
 
-    const filterGroups = ['Typ', 'Anzeigen', 'Schwierigkeit', 'Dauer', 'Zubereitungsart', 'Kosten'];
-    let visibleCount = 0;
-    for (const label of filterGroups) {
-      const el = page.locator('h3').filter({ hasText: label });
-      const visible = await el.isVisible().catch(() => false);
-      if (visible) visibleCount++;
+    for (const label of ['Typ', 'Anzeigen', 'Dauer']) {
+      await expect(page.locator('h3').filter({ hasText: label })).toBeVisible();
     }
-    expect(visibleCount).toBeGreaterThan(0);
+
+    await openMoreFilters(page);
+    for (const label of ['Schwierigkeit', 'Zubereitungsart', 'Kosten']) {
+      await expect(page.locator('h3').filter({ hasText: label })).toBeVisible();
+    }
   });
 
   test('preparation method filter has checkboxes', async ({ page }) => {
     await openFilters(page);
+    await openMoreFilters(page);
 
-    const prepSection = page.locator('h3').filter({ hasText: 'Zubereitungsart' });
-    const visible = await prepSection.isVisible().catch(() => false);
-    if (visible) {
-      const checkboxes = page.locator('h3:has-text("Zubereitungsart") + div input[type="checkbox"]');
-      const count = await checkboxes.count();
-      expect(count).toBeGreaterThanOrEqual(3);
-    } else {
-      test.skip(true, 'Sidebar not opened or filter not visible');
-    }
+    await expect(page.locator('h3').filter({ hasText: 'Zubereitungsart' })).toBeVisible();
+    const checkboxes = page.locator('h3:has-text("Zubereitungsart") + div input[type="checkbox"]');
+    expect(await checkboxes.count()).toBeGreaterThanOrEqual(3);
   });
 
   test('cost filter shows price ranges', async ({ page }) => {
     await openFilters(page);
+    await openMoreFilters(page);
 
-    const costSection = page.locator('h3').filter({ hasText: 'Kosten' });
-    const visible = await costSection.isVisible().catch(() => false);
-    if (visible) {
-      const priceLabels = ['< 2€', '2', '5', '10€'];
-      let found = 0;
-      for (const label of priceLabels) {
-        const el = page.locator('label').filter({ hasText: label });
-        const exists = await el.isVisible().catch(() => false);
-        if (exists) found++;
-      }
-      expect(found).toBeGreaterThan(0);
-    } else {
-      test.skip(true, 'Sidebar not opened');
+    await expect(page.locator('h3').filter({ hasText: 'Kosten' })).toBeVisible();
+    for (const label of ['< 2€', '2 – 5€', '5 – 10€', '> 10€']) {
+      await expect(page.locator('label').filter({ hasText: label })).toBeVisible();
     }
   });
 

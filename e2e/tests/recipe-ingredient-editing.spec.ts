@@ -1,4 +1,5 @@
 import { devLogin } from '../fixtures/auth';
+import { ResourceTracker } from '../fixtures/food';
 import { test, expect, type Page } from '@playwright/test';
 
 /**
@@ -18,6 +19,17 @@ import { test, expect, type Page } from '@playwright/test';
 const FOOD_URL = 'http://localhost:5174';
 
 const SEED_USER = { email: 'admin@admin.de' };
+
+/** Draft recipes the wizard created in the current test; deleted via the API afterwards. */
+let createdRecipes = new ResourceTracker();
+
+test.beforeEach(() => {
+  createdRecipes = new ResourceTracker();
+});
+
+test.afterEach(async ({ page }) => {
+  await createdRecipes.cleanup(page.request, '');
+});
 
 async function login(page: Page) {
   await devLogin(page, SEED_USER.email, FOOD_URL);
@@ -64,7 +76,14 @@ async function openManualRecipeIngredientsStep(page: Page, title = 'E2E Rezept')
   // Title and type live in this step; the mocked analysis already pre-selects "Warme Mahlzeit".
   await page.getByTestId('recipe-basis-title').fill(title);
   await page.getByTestId('recipe-serving-context-confirm').click();
+  // Leaving "Basis & Portionen" creates the draft recipe.
+  const draftCreated = page.waitForResponse((response) => response.request().method() === 'POST'
+    && new URL(response.url()).pathname === '/api/recipes/');
   await page.getByTestId('recipe-wizard-next').click();
+  const draftResponse = await draftCreated;
+  expect(draftResponse.ok()).toBeTruthy();
+  const draft = await draftResponse.json() as { id: number };
+  createdRecipes.track({ kind: 'recipe', id: draft.id });
   // The ingredient editor has its own step "Zutaten" since the wizard split title/type into "Basis & Portionen".
   await expect(page.getByRole('heading', { name: 'Zutaten', exact: true })).toBeVisible({
     timeout: 15000,
@@ -85,66 +104,56 @@ async function createManualRecipe(page: Page, title: string): Promise<string> {
 
   await addIngredient(page, 'Jodsalz');
 
-  const saveBtn = page.locator('[data-testid="ingredient-editor-save"]').first();
-  if (await saveBtn.isVisible({ timeout: 3000 })) {
-    await saveBtn.click();
-    const saveDialog = page.getByRole('dialog');
-    if (await saveDialog.isVisible().catch(() => false)) {
-      await saveDialog.getByRole('button', { name: 'Speichern', exact: true }).click();
-    }
-    await page.waitForTimeout(1500);
-  }
-
+  // Leaving "Zutaten" saves the editor (one person, so without confirmation dialog).
   // Zutaten → Materialien → Zubereitung → Vorschau → Fertigstellen
-  for (let i = 0; i < 3; i++) {
-    const next = page.getByTestId('recipe-wizard-next');
-    if (await next.isVisible({ timeout: 3000 }).catch(() => false)) await next.click();
-    const dialog = page.getByRole('dialog');
-    if (await dialog.isVisible().catch(() => false)) {
-      await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
-    }
-    await page.waitForTimeout(1500);
+  for (const nextStep of ['materials', 'preparation', 'preview']) {
+    await page.getByTestId('recipe-wizard-next').click();
+    await expect(page.getByTestId(`recipe-wizard-step-${nextStep}`)).toBeVisible({ timeout: 15000 });
   }
 
-  const finishBtn = page.locator('button:has-text("Fertigstellen")').first();
-  await expect(finishBtn).toBeVisible({ timeout: 5000 });
-  await finishBtn.click();
-  await page.waitForURL(/\/recipes\/[^/]+$/, { timeout: 10000 });
+  await page.getByTestId('recipe-wizard-finish').click();
+  await page.waitForURL(/\/recipes\/[^/?]+$/, { timeout: 15000 });
 
   const match = page.url().match(/\/recipes\/([^/?]+)$/);
-  return match ? match[1] : '';
+  if (!match) throw new Error(`Wizard did not land on a recipe detail page: ${page.url()}`);
+  return match[1];
 }
 
 /** Enters the ingredient inline-edit mode on a recipe detail page. */
 async function openIngredientEditor(page: Page, slug: string): Promise<void> {
   await page.goto(`${FOOD_URL}/recipes/${slug}`);
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(800);
-  const editTrigger = page.locator('[data-testid="ingredients-edit-trigger"]').first();
-  await expect(editTrigger).toBeVisible({ timeout: 5000 });
+  const editTrigger = page.getByTestId('ingredients-edit-trigger');
+  await expect(editTrigger).toBeVisible({ timeout: 15000 });
   await editTrigger.click();
+  // The serving context is only asked for when the page shows more than one portion.
+  const editor = page.getByTestId('recipe-ingredient-editor');
   const servingConfirm = page.getByTestId('recipe-serving-context-confirm');
-  if (await servingConfirm.isVisible({ timeout: 3000 }).catch(() => false)) {
+  await expect(editor.or(servingConfirm)).toBeVisible();
+  if (await servingConfirm.isVisible()) {
     await servingConfirm.click();
   }
-  await expect(page.getByTestId('recipe-ingredient-editor')).toBeVisible({ timeout: 5000 });
+  await expect(editor).toBeVisible();
 }
 
 
 
-/** Adds an ingredient via the autocomplete and returns its row's item id, read
- *  from the `data-testid` of the newly rendered quantity input. */
+/** Adds an existing ingredient via the autocomplete and waits for its quantity row. */
 async function addIngredient(page: Page, searchTerm: string): Promise<void> {
-  const searchInput = page.getByRole('combobox', { name: /Zutat/i }).first();
-  await expect(searchInput).toBeVisible({ timeout: 5000 });
-  await searchInput.fill(searchTerm);
-  await page.waitForTimeout(1000);
+  const editor = page.getByTestId('recipe-ingredient-editor');
+  const quantityInputs = editor.locator('input[data-testid^="item-quantity-"]');
+  const rowsBefore = await quantityInputs.count();
 
-  const firstSuggestion = page.locator('[role="option"], li, button').filter({ hasText: searchTerm }).first();
-  if (await firstSuggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await firstSuggestion.click();
-    await page.waitForTimeout(500);
-  }
+  const searchInput = editor.getByRole('combobox', { name: /Zutat/i }).first();
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill(searchTerm);
+
+  const suggestion = page.getByRole('option')
+    .filter({ hasText: searchTerm })
+    .filter({ hasNotText: 'neu anlegen' })
+    .first();
+  await expect(suggestion).toBeVisible({ timeout: 15000 });
+  await suggestion.click();
+  await expect(quantityInputs).toHaveCount(rowsBefore + 1, { timeout: 15000 });
 }
 
 test.describe('Recipe ingredient autocomplete — mobile layout', () => {

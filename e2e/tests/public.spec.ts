@@ -1,14 +1,16 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const MAIN_URL = 'http://localhost:5173';
 const FOOD_URL = 'http://localhost:5174';
 
-function collectNonAuthErrors(page: any): string[] {
+function collectNonAuthErrors(page: Page): string[] {
   const errors: string[] = [];
-  page.on('console', (msg: any) => {
+  page.on('console', (msg) => {
     if (msg.type() === 'error') {
       const text = msg.text();
-      if (!text.includes('403') && !text.includes('/api/auth/me/')) {
+      // Local seed data references media files that may be missing from MEDIA_ROOT.
+      const isMissingMedia = text.includes('404') && msg.location().url.includes('/media/');
+      if (!text.includes('403') && !text.includes('/api/auth/me/') && !isMissingMedia) {
         errors.push(text);
       }
     }

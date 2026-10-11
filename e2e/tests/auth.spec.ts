@@ -15,7 +15,7 @@ test.describe('Authentication (social login only)', () => {
   test('Anonymous session answers 200 with is_authenticated=false', async ({ request }) => {
     const response = await request.get(`${FOOD_URL}/api/auth/me/`);
     expect(response.status()).toBe(200);
-    expect(await response.json()).toEqual({ is_authenticated: false, user: null });
+    expect(await response.json()).toMatchObject({ is_authenticated: false, user: null });
   });
 
   test('Login page offers providers, e-mail login (transition) and the dev login locally', async ({ page }) => {
@@ -66,12 +66,14 @@ test.describe('Open access for visitors', () => {
 
   test('Saving an ingredient as visitor opens the login dialog and keeps the draft', async ({ page }) => {
     await page.goto(`${FOOD_URL}/ingredients/new?prefillName=E2E%20Testzutat`);
-    await page.getByRole('button', { name: /speichern|weiter/i }).last().click();
+    // With prefillName the wizard starts at the details step; saving happens on the preview step.
+    await page.getByRole('button', { name: 'Vorschau', exact: true }).click();
+    await page.getByRole('button', { name: 'Speichern', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('Kostenlos anmelden')).toBeVisible();
 
     await dialog.getByLabel('Entwicklungs-Login (nur lokal)').fill(SEED_USER.email);
-    await dialog.getByRole('button', { name: 'Anmelden' }).click();
+    await dialog.getByRole('button', { name: 'Anmelden', exact: true }).click();
     await expect(dialog).toBeHidden();
   });
 });

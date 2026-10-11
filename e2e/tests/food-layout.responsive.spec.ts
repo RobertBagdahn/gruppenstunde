@@ -4,7 +4,8 @@ test('recipe action controls match the viewport', async ({ foodPage }) => {
   await foodPage.goto('/recipes');
   const firstRecipe = foodPage.locator('a[href^="/recipes/"]:not([href$="/new"])').filter({ hasNot: foodPage.locator('span:has-text("Neues Rezept")') }).first();
   await expect(firstRecipe).toBeVisible();
-  await firstRecipe.click();
+  // The card center can hold admin action buttons (e.g. "Clonen"); the title opens the recipe.
+  await firstRecipe.locator('h3').click();
   await expect(foodPage.getByTestId('recipe-detail-actions')).toBeVisible();
 
   if (test.info().project.name === 'desktop') {

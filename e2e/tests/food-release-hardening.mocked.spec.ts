@@ -484,8 +484,7 @@ test('a readable draft ingredient persists as a named recipe alternative', async
   await expect(foodPage.getByTestId('recipe-ingredient-editor')).toContainText(/100 g\s*Jackfruit/);
   await foodPage.getByTestId('ingredient-editor-save').click();
   await expect.poll(() => alternativeRequests).toHaveLength(1);
-  const visibleFailureFeedback = await foodPage.locator('body').innerText();
-  expect(visibleFailureFeedback).toContain('Serverfehler (HTTP 500)');
+  await expect(foodPage.locator('body')).toContainText('Serverfehler (HTTP 500)');
   await expect(foodPage.getByTestId('recipe-ingredient-editor')).toBeVisible();
   await expect(foodPage.getByTestId('recipe-ingredient-editor')).toContainText(/100 g\s*Jackfruit/);
 

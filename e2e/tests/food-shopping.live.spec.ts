@@ -95,7 +95,7 @@ test.describe('Shopping list permissions and persistence', () => {
     const checkbox = foodPage.getByTestId(/^shopping-item-/).getByRole('button', { name: 'Als erledigt markieren' }).first();
     await checkbox.click();
     await expect(checkbox).toHaveClass(/border-muted-foreground/);
-    await expect(foodPage.getByText('Fehler beim Abhaken')).toBeVisible();
+    await expect(foodPage.getByText('Eintrag konnte nicht abgehakt werden')).toBeVisible();
     await expect(foodPage.getByText('Der Eintrag konnte nicht gespeichert werden.')).toBeVisible();
     await expect(foodPage.getByText('0 / 1 erledigt')).toBeVisible();
   });
