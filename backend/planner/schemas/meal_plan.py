@@ -355,7 +355,6 @@ class WizardItemsBulkOut(Schema):
 class CopyItemsFromPlanIn(Schema):
     source_plan_id: int
     source_meal_id: int
-    note: str | None = None
 
 
 class MealOut(Schema):

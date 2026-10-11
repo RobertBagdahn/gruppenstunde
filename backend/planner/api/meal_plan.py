@@ -1713,14 +1713,10 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
         copied.save(update_fields=["active_recipe_item_ids", "variant_group_id"])
         copied_items.append(copied)
 
-    if payload.note:
-        existing = target_meal.note or ""
-        note_prefix = f"Importiert aus «{payload.note}»"
-        if existing:
-            target_meal.note = f"{note_prefix}\n{existing}"
-        else:
-            target_meal.note = note_prefix
-        target_meal.save(update_fields=["note"])
+    existing = target_meal.note or ""
+    note_prefix = f"Importiert aus «{source_plan.name}»"
+    target_meal.note = f"{note_prefix}\n{existing}" if existing else note_prefix
+    target_meal.save(update_fields=["note"])
 
     return copied_items
 

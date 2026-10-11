@@ -1001,7 +1001,6 @@ export type MealUpdateIn = z.infer<typeof MealUpdateInSchema>;
 export const CopyItemsFromPlanInSchema = z.object({
   source_plan_id: z.number(),
   source_meal_id: z.number(),
-  note: z.string().optional(),
 });
 export type CopyItemsFromPlanIn = z.infer<typeof CopyItemsFromPlanInSchema>;
 
