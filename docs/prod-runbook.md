@@ -222,7 +222,7 @@ Migration `planner.0012_mealplan_suggestion_context` (fünf optionale Kontextfel
   - 472 Holländische Käsenudeln mit Gouda → nur `portions=1` (Mengen bereits pro Person)
   - 504 Herzhafte Linsensuppe → Gesamtmenge für 4, Mengen ÷ 4
 - [x] Kontrolllauf: 0 Rezepte mit `portions > 1`
-- [ ] Embedding für Rezept 504 neu erzeugen (Update nach der Korrektur schlug fehl)
+- [x] Embedding für Rezept 504 gezielt neu erzeugt (Cloud Run Job `inspi-migrate`, `update_content_embedding(..., force=True)`, 768 Dimensionen; 11.10.2026)
 - [ ] Folge-Change: DB-Constraint `portions = 1` und Entfernen der Divisionen durch `recipe.portions`
 
 ## 11. food-data-offensive — Ergebnis-Paket übertragen (offen)

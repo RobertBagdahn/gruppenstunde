@@ -99,7 +99,7 @@ test.describe('Shopping list permissions and persistence', () => {
     await checkbox.click();
     await expect(checkbox).toHaveClass(/border-muted-foreground/);
     await expect(foodPage.getByText('Eintrag konnte nicht abgehakt werden')).toBeVisible();
-    await expect(foodPage.getByText('Der Eintrag konnte nicht gespeichert werden.')).toBeVisible();
+    await expect(foodPage.getByText('Serverfehler (HTTP 503). Bitte versuche es später erneut.')).toBeVisible();
     await expect(foodPage.getByText('0 / 1 erledigt')).toBeVisible();
   });
 

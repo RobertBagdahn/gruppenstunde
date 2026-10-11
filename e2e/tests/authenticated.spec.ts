@@ -23,11 +23,9 @@ test.describe('Authenticated Pages', () => {
     });
 
     await page.goto(`${MAIN_URL}/my-dashboard`);
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
 
     expect(errors).toHaveLength(0);
-    await page.screenshot({ path: `output/screenshots/${test.info().title.replace(/\s+/g, '-')}-viewport.png`, fullPage: false });
-    await page.screenshot({ path: `output/screenshots/${test.info().title.replace(/\s+/g, '-')}-fullpage.png`, fullPage: true });
   });
 
   test('My recipes loads', async ({ page }) => {
