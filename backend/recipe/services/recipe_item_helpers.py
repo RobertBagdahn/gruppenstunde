@@ -24,6 +24,19 @@ def get_recipe_item_standard_measure_key(item: RecipeItem) -> str:
     return getattr(item, "standard_measure_key", "") or ""
 
 
+def recipe_item_unit_label(item: RecipeItem) -> str:
+    """Display label of the unit `item.quantity` is stored in."""
+    from supply.services.portion_resolution import is_direct_metric_portion
+    from supply.services.quantity_units import STANDARD_MEASURE_LABELS, portion_label
+
+    standard_key = get_recipe_item_standard_measure_key(item)
+    if standard_key:
+        return STANDARD_MEASURE_LABELS.get(standard_key, standard_key)
+    if item.portion is None or is_direct_metric_portion(item.portion):
+        return "g"
+    return portion_label(item.portion)
+
+
 def resolve_recipe_item_grams(item: RecipeItem, quantity: float | None = None) -> float | None:
     """Trusted grams of a recipe item, or None when the weight is unknown.
 

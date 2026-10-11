@@ -214,15 +214,9 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_unit_label(obj) -> str:
-        from supply.services.portion_resolution import is_direct_metric_portion
-        from supply.services.quantity_units import STANDARD_MEASURE_LABELS, portion_label
+        from recipe.services.recipe_item_helpers import recipe_item_unit_label
 
-        standard_key = getattr(obj, "standard_measure_key", "") or ""
-        if standard_key:
-            return STANDARD_MEASURE_LABELS.get(standard_key, standard_key)
-        if obj.portion is None or is_direct_metric_portion(obj.portion):
-            return "g"
-        return portion_label(obj.portion)
+        return recipe_item_unit_label(obj)
 
     @staticmethod
     def resolve_is_weight_approx(obj) -> bool:
