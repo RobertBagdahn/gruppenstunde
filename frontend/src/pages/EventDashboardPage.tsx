@@ -364,6 +364,8 @@ export default function EventDashboardPage() {
                 <button
                   role="tab"
                   aria-selected={validTab === tab.key}
+                  aria-label={tab.label}
+                  title={tab.label}
                   onClick={() => setTab(tab.key)}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
@@ -372,7 +374,7 @@ export default function EventDashboardPage() {
                       : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30',
                   )}
                 >
-                  <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{tab.icon}</span>
                   <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               </div>

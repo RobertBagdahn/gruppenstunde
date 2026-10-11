@@ -6,6 +6,7 @@
 import type { Stats } from '@/schemas/event';
 import { useEventStats } from '@/api/eventDashboard';
 import { cn } from '@/lib/utils';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   slug: string;
@@ -117,6 +118,7 @@ function CapacitySection({ stats }: { stats: Stats }) {
 
 function PaymentSection({ stats }: { stats: Stats }) {
   const { payment } = stats;
+  const hasParticipants = payment.paid_count + payment.unpaid_count > 0;
 
   return (
     <div className="rounded-xl border p-4">
@@ -126,10 +128,14 @@ function PaymentSection({ stats }: { stats: Stats }) {
       </h3>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
-        <MiniStat label="Erwartet" value={`${parseFloat(payment.total_expected).toFixed(2)} €`} />
-        <MiniStat label="Erhalten" value={`${parseFloat(payment.total_received).toFixed(2)} €`} color="emerald" />
-        <MiniStat label="Ausstehend" value={`${parseFloat(payment.total_outstanding).toFixed(2)} €`} color="amber" />
-        <MiniStat label="Bezahlt-Quote" value={`${Math.round(payment.paid_percentage)}%`} color="violet" />
+        <MiniStat label="Erwartet" value={formatEuro(payment.total_expected)} />
+        <MiniStat label="Erhalten" value={formatEuro(payment.total_received)} color="emerald" />
+        <MiniStat label="Ausstehend" value={formatEuro(payment.total_outstanding)} color="amber" />
+        <MiniStat
+          label="Bezahlt-Quote"
+          value={hasParticipants ? `${Math.round(payment.paid_percentage)}%` : '–'}
+          color="violet"
+        />
       </div>
 
       {/* Paid/Unpaid visual */}
@@ -152,7 +158,7 @@ function PaymentSection({ stats }: { stats: Stats }) {
             <div key={m.method} className="flex justify-between text-sm">
               <span>{m.method}</span>
               <span className="text-muted-foreground">
-                {m.count}x &middot; {parseFloat(m.total_amount).toFixed(2)} €
+                {m.count}x &middot; {formatEuro(m.total_amount)}
               </span>
             </div>
           ))}

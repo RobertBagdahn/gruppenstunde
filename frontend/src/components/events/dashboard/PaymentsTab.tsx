@@ -15,6 +15,7 @@ import {
 } from '@/api/eventDashboard';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
+import { formatEuro } from '@/lib/formatCurrency';
 import { useFilterParams, type FilterField } from './FilterBar';
 
 interface Props {
@@ -90,8 +91,9 @@ export default function PaymentsTab({ event }: Props) {
     return sum + (opt ? parseFloat(opt.price) : 0);
   }, 0);
   const totalOutstanding = Math.max(0, totalExpected - totalReceived);
+  // No expected amount (e.g. no participants yet): there is no meaningful ratio.
   const paidPercentage =
-    totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : 100;
+    totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : null;
 
   const handleDelete = (paymentId: number) => {
     deletePayment.mutate(paymentId, {
@@ -110,19 +112,19 @@ export default function PaymentsTab({ event }: Props) {
         <SummaryCard
           icon="savings"
           label="Gesamteinnahmen"
-          value={`${totalReceived.toFixed(2)}\u00A0\u20AC`}
+          value={formatEuro(totalReceived)}
           color="emerald"
         />
         <SummaryCard
           icon="pending"
           label="Ausstehend"
-          value={`${totalOutstanding.toFixed(2)}\u00A0\u20AC`}
+          value={formatEuro(totalOutstanding)}
           color="amber"
         />
         <SummaryCard
           icon="percent"
           label="Bezahlt-Quote"
-          value={`${paidPercentage}%`}
+          value={paidPercentage === null ? '–' : `${paidPercentage}%`}
           color="violet"
         />
       </div>
@@ -221,7 +223,7 @@ export default function PaymentsTab({ event }: Props) {
               </div>
               <div className="text-right shrink-0">
                 <p className="font-bold text-sm text-emerald-700">
-                  +{parseFloat(payment.amount).toFixed(2)}&nbsp;&euro;
+                  +{formatEuro(payment.amount)}
                 </p>
               </div>
               <button
@@ -380,7 +382,7 @@ function PaymentForm({
               <option key={p.id} value={String(p.id)}>
                 {p.first_name} {p.last_name}
                 {parseFloat(p.remaining_amount) > 0
-                  ? ` (${parseFloat(p.remaining_amount).toFixed(2)}\u00A0\u20AC offen)`
+                  ? ` (${formatEuro(p.remaining_amount)} offen)`
                   : p.is_paid
                     ? ' (bezahlt)'
                     : ''}
