@@ -159,6 +159,11 @@ class TestGetShoppingList:
         res = client_bob.get(f"/api/shopping-lists/{shopping_list.id}/")
         assert res.status_code == 404
 
+    def test_anonymous_read_asks_to_log_in_for_viewing(self, shopping_list):
+        res = Client().get(f"/api/shopping-lists/{shopping_list.id}/")
+        assert res.status_code == 401
+        assert res.json()["detail"] == "Bitte melde dich an, um deine Einkaufslisten zu sehen."
+
 
 @pytest.mark.django_db
 class TestUpdateShoppingList:
@@ -208,6 +213,11 @@ class TestDeleteShoppingList:
         )
         res = client_bob.delete(f"/api/shopping-lists/{shopping_list.id}/")
         assert res.status_code == 403
+
+    def test_unrelated_user_gets_404_and_list_stays(self, client_bob, shopping_list):
+        res = client_bob.delete(f"/api/shopping-lists/{shopping_list.id}/")
+        assert res.status_code == 404
+        assert ShoppingList.objects.filter(id=shopping_list.id).exists()
 
 
 # ---------------------------------------------------------------------------
@@ -326,6 +336,19 @@ class TestAddItem:
         assert item["name"] == "2 kg Zimt"
         assert item["ingredient_id"] is None
 
+    def test_restore_keeps_checked_state_and_sort_order(self, client_alice, shopping_list):
+        res = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "Klebeband", "unit": "Stück", "sort_order": 7, "is_checked": True}),
+            content_type="application/json",
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["is_checked"] is True
+        assert data["sort_order"] == 7
+        assert data["checked_at"] is not None
+        assert data["checked_by_display_name"] == f"Inspi-Nutzer #{client_alice._user.id}"
+
     def test_viewer_cannot_add_item(self, client_bob, shopping_list, other_user):
         ShoppingListCollaborator.objects.create(
             shopping_list=shopping_list, user=other_user, role=CollaboratorRole.VIEWER
@@ -381,6 +404,21 @@ class TestDeleteItem:
         res = client_alice.delete(f"/api/shopping-lists/{sl.id}/items/{item.id}/")
         assert res.status_code == 200
         assert not ShoppingListItem.objects.filter(id=item.id).exists()
+
+    def test_viewer_cannot_delete_item(self, client_bob, shopping_list_with_items, other_user):
+        sl = shopping_list_with_items
+        ShoppingListCollaborator.objects.create(shopping_list=sl, user=other_user, role=CollaboratorRole.VIEWER)
+        item = sl.items.first()
+        res = client_bob.delete(f"/api/shopping-lists/{sl.id}/items/{item.id}/")
+        assert res.status_code == 403
+        assert ShoppingListItem.objects.filter(id=item.id).exists()
+
+    def test_unrelated_user_gets_404_for_item_delete(self, client_bob, shopping_list_with_items):
+        sl = shopping_list_with_items
+        item = sl.items.first()
+        res = client_bob.delete(f"/api/shopping-lists/{sl.id}/items/{item.id}/")
+        assert res.status_code == 404
+        assert ShoppingListItem.objects.filter(id=item.id).exists()
 
 
 # ---------------------------------------------------------------------------
