@@ -1,5 +1,5 @@
 import { MealPlanDetailStateSchema } from '@/schemas/listState';
-import type { MealItemPatch } from '@/components/planning/MealItemAmountEditor';
+import type { MealItemUpdateHandler } from '@/components/planning/MealItemAmountEditor';
 import { usePersistedListState } from '@/hooks/usePersistedListState';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -247,11 +247,13 @@ export default function MealPlanDetailPage() {
     );
   }, [updateMealItemMutation]);
 
-  const handleUpdateItem = useCallback((itemId: number, patch: MealItemPatch) => {
-    updateMealItemMutation.mutate(
-      { itemId, ...patch },
-      {
-        onError: (err: { message: string }) => notify.error('Zutat konnte nicht geändert werden', { error: err }),
+  const handleUpdateItem = useCallback<MealItemUpdateHandler>((itemId, patch, callbacks) => {
+    // mutateAsync (not mutate) so every call reports its own result, e.g. the undo toast of a unit switch.
+    updateMealItemMutation.mutateAsync({ itemId, ...patch }).then(
+      (saved) => callbacks?.onSuccess?.(saved),
+      (err: unknown) => {
+        notify.error('Zutat konnte nicht geändert werden', { error: err });
+        callbacks?.onError?.();
       },
     );
   }, [updateMealItemMutation]);

@@ -25,7 +25,7 @@ import { QuantityUnitLabel } from '@/components/quantity/QuantityUnit';
 import { useUnitViewMode } from '@/hooks/useUnitViewMode';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
-import { MealItemAmountEditor, MealItemNote, type MealItemPatch } from '@/components/planning/MealItemAmountEditor';
+import { MealItemAmountEditor, MealItemNote, type MealItemUpdateHandler } from '@/components/planning/MealItemAmountEditor';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import { formatCount, formatNumber } from '@/lib/format';
 import {
@@ -63,7 +63,7 @@ interface TableViewProps {
   ) => void;
   onDeleteItem?: (id: number) => void;
   onUpdateItemFactor?: (itemId: number, factor: number) => void;
-  onUpdateItem?: (itemId: number, patch: MealItemPatch) => void;
+  onUpdateItem?: MealItemUpdateHandler;
   onDeleteMeal?: (id: number) => void;
   onUpdateMeal?: (
     mealId: number,

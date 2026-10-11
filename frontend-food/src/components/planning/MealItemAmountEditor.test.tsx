@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import type { MealItem } from '@/schemas/mealPlan';
-import { MealItemAmountEditor, MealItemAmountText, MealItemNote } from './MealItemAmountEditor';
+import { notify } from '@/lib/notify';
+import { MealItemAmountEditor, MealItemAmountText, MealItemNote, type MealItemUpdateCallbacks } from './MealItemAmountEditor';
+
+vi.mock('@/lib/notify', () => ({ notify: { changed: vi.fn() } }));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 const portions = [
   { id: 1, name: 'Gramm', quantity: 1, weight_g: 1, rank: 1, is_default: true, measuring_unit_id: 1, measuring_unit_name: 'Gramm' },
@@ -71,9 +78,55 @@ describe('MealItemAmountText', () => {
     expect(screen.getByText(/0,5 EL/)).toBeTruthy();
     expect(screen.queryByText(/Gramm/)).toBeNull();
   });
+
+  it('switches the unit for viewing only (read-only)', () => {
+    render(wrap(<MealItemAmountText item={item} />));
+    fireEvent.click(screen.getByRole('button', { name: 'Menge in anderer Einheit anzeigen' }));
+    const gramsOption = screen.getAllByRole('option').find((option) => option.textContent?.trim() === 'g');
+    fireEvent.click(gramsOption!);
+
+    expect(screen.getByText('15 g')).toBeTruthy();
+    expect(screen.queryByLabelText('Menge')).toBeNull();
+    expect(notify.changed).not.toHaveBeenCalled();
+  });
 });
 
 describe('MealItemAmountEditor', () => {
+  it('converts at constant weight when only the unit is switched and offers undo', () => {
+    const onUpdateItem = vi.fn();
+    render(wrap(<MealItemAmountEditor item={item} onUpdateItem={onUpdateItem} />));
+    fireEvent.click(screen.getByRole('button', { name: 'Einheit wählen' }));
+    const gramsOption = screen.getAllByRole('option').find((option) => option.textContent?.trim() === 'g');
+    fireEvent.click(gramsOption!);
+
+    expect(onUpdateItem).toHaveBeenCalledTimes(1);
+    const [itemId, patch, callbacks] = onUpdateItem.mock.calls[0] as [number, object, MealItemUpdateCallbacks];
+    expect(itemId).toBe(9);
+    expect(patch).toEqual({ portion_id: null, standard_measure_key: null, measuring_unit_id: 1 });
+    expect(screen.getByDisplayValue('15')).toBeTruthy();
+
+    callbacks.onSuccess?.({
+      ...item,
+      quantity: 15,
+      portion_id: null,
+      portion_name: '',
+      unit_kind: 'grams',
+      unit_label: 'g',
+    });
+    expect(notify.changed).toHaveBeenCalledWith('Einheit', expect.any(Function), {
+      description: '0,5 EL (15 g) → 15 g',
+    });
+
+    const undo = vi.mocked(notify.changed).mock.calls[0][1]!;
+    undo();
+    expect(onUpdateItem).toHaveBeenLastCalledWith(9, {
+      quantity: 0.5,
+      portion_id: 2,
+      measuring_unit_id: null,
+      standard_measure_key: null,
+    });
+  });
+
   it('sends the selected unit and count when editing the amount', () => {
     const onUpdateItem = vi.fn();
     render(wrap(<MealItemAmountEditor item={item} onUpdateItem={onUpdateItem} />));

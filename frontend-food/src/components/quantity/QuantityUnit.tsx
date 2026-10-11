@@ -53,6 +53,30 @@ export function storedOption(item: QuantityUnitItem): UnitOption {
   };
 }
 
+/** Unit fields of a PATCH that switches an entry to `option`. */
+export interface UnitChange {
+  portion_id?: number | null;
+  measuring_unit_id?: number | null;
+  standard_measure_key?: string | null;
+}
+
+export function unitChangeFor(option: UnitOption): UnitChange {
+  if (option.kind === 'portion') return { portion_id: option.portion_id, measuring_unit_id: null, standard_measure_key: null };
+  if (option.kind === 'standard') {
+    return { portion_id: null, measuring_unit_id: null, standard_measure_key: option.standard_measure_key };
+  }
+  return { portion_id: null, standard_measure_key: null, measuring_unit_id: option.measuring_unit_id };
+}
+
+/** Unit fields that restore the stored unit of `item` (e.g. for undo). */
+export function storedUnitChange(item: QuantityUnitItem): UnitChange {
+  if (item.unit_kind === 'portion') return { portion_id: item.portion_id ?? null, measuring_unit_id: null, standard_measure_key: null };
+  if (item.unit_kind === 'standard') {
+    return { portion_id: null, measuring_unit_id: null, standard_measure_key: item.standard_measure_key || null };
+  }
+  return { portion_id: null, standard_measure_key: null, measuring_unit_id: item.measuring_unit_id ?? null };
+}
+
 function useLazyUnitOptions(ingredientId: number | null) {
   const [requested, setRequested] = useState(false);
   const query = useUnitOptions(ingredientId ? [ingredientId] : [], requested);
@@ -100,20 +124,21 @@ function parseCount(text: string): number {
 /**
  * Editable amount in any unit. Switching the unit converts the number (grams stay); typing a
  * number and confirming saves exactly that count in the shown unit. Grams are always previewed.
+ *
+ * With `onConvertUnit`, switching to a unit with a known weight (and no typed amount pending)
+ * saves right away at constant weight; the backend converts the count. Without it, or when a
+ * weight is missing, the switch only prepares the field and is saved on confirm.
  */
 export function QuantityUnitInput({
   item,
   viewMode = 'start',
   onCommit,
+  onConvertUnit,
 }: {
   item: QuantityUnitItem;
   viewMode?: UnitViewMode;
-  onCommit: (change: {
-    quantity: number;
-    portion_id?: number | null;
-    measuring_unit_id?: number | null;
-    standard_measure_key?: string | null;
-  }) => void;
+  onCommit: (change: UnitChange & { quantity: number }) => void;
+  onConvertUnit?: (unit: UnitChange, callbacks: { onError: () => void }) => void;
 }) {
   const stored = useMemo(() => storedOption(item), [item]);
   const navigate = useNavigate();
@@ -126,11 +151,15 @@ export function QuantityUnitInput({
   const [dirty, setDirty] = useState(false);
   const { options, isLoading, request } = useLazyUnitOptions(item.ingredient_id);
 
-  // A saved change (or another viewer's change) resets the field to the stored amount.
-  useEffect(() => {
+  const resetToStored = () => {
     setUnit(startOption);
     setText(formatCount(startCount(startOption)));
     setDirty(false);
+  };
+
+  // A saved change (or another viewer's change) resets the field to the stored amount.
+  useEffect(() => {
+    resetToStored();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stored.key, item.quantity, item.quantity_g, viewMode]);
 
@@ -138,11 +167,17 @@ export function QuantityUnitInput({
   const grams = Number.isFinite(count) ? toGrams(count, unit) : null;
 
   const selectUnit = (option: UnitOption) => {
-    const currentGrams = grams ?? item.quantity_g ?? 0;
+    if (option.key === unit.key) return;
+    // Untouched fields show the stored amount, so convert the exact stored grams.
+    const currentGrams = (dirty ? grams : item.quantity_g) ?? 0;
     const converted = currentGrams > 0 ? toCount(currentGrams, option) : null;
     setUnit(option);
     setText(formatCount(converted ?? 1));
-    setDirty(converted == null);
+    if (onConvertUnit && !dirty && converted != null && option.key !== stored.key) {
+      onConvertUnit(unitChangeFor(option), { onError: resetToStored });
+      return;
+    }
+    setDirty(dirty || converted == null);
   };
 
   const commit = () => {
@@ -153,16 +188,7 @@ export function QuantityUnitInput({
       return;
     }
     const unitChanged = unit.key !== stored.key;
-    onCommit({
-      quantity: count,
-      ...(unitChanged
-        ? unit.kind === 'portion'
-          ? { portion_id: unit.portion_id, measuring_unit_id: null, standard_measure_key: null }
-          : unit.kind === 'standard'
-            ? { portion_id: null, measuring_unit_id: null, standard_measure_key: unit.standard_measure_key }
-            : { portion_id: null, standard_measure_key: null, measuring_unit_id: unit.measuring_unit_id }
-        : {}),
-    });
+    onCommit({ quantity: count, ...(unitChanged ? unitChangeFor(unit) : {}) });
     setDirty(false);
   };
 

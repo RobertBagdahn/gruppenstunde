@@ -208,6 +208,15 @@ describe('notify', () => {
     });
   });
 
+  it('offers undo for changes', () => {
+    const undo = vi.fn();
+    notify.changed('Einheit', undo);
+    expect(sonner.toast.success).toHaveBeenCalledWith('Einheit geändert', {
+      duration: UNDO_DURATION_MS,
+      action: { label: 'Rückgängig', onClick: undo },
+    });
+  });
+
   it('switches a promise toast from loading to the result', async () => {
     await notify.promise(Promise.resolve(3), { loading: 'Wird ergänzt …', success: (n) => `${n} ergänzt`, error: 'x' });
     expect(sonner.toast.loading).toHaveBeenCalledWith('Wird ergänzt …');

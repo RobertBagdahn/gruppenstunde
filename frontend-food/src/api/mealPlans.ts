@@ -422,7 +422,7 @@ export interface UpdateMealItemVars {
   itemId: number;
   factor?: number;
   quantity?: number;
-  /** Unit change: the backend converts the quantity so the grams stay the same. */
+  /** Unit change. Without `quantity` the backend converts the count so the grams stay the same. */
   portion_id?: number | null;
   measuring_unit_id?: number | null;
   standard_measure_key?: string | null;
