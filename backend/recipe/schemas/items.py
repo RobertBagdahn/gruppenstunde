@@ -266,8 +266,8 @@ class RecipeItemOut(Schema):
             from supply.utils import format_weight
 
             ingredient = get_recipe_item_ingredient(obj)
-            amount = format_weight(float(obj.quantity))
-            return f"{amount} {ingredient.name}" if ingredient else amount
+            weight_label = format_weight(float(obj.quantity))
+            return f"{weight_label} {ingredient.name}" if ingredient else weight_label
 
         display, _ = build_portion_display(obj.quantity, obj.portion, obj.portion.ingredient)
         return display
