@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
+import HeroBand from '@/components/shared/HeroBand';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
 import type { QuantityWarning } from '@/schemas/buffet';
 import {
@@ -226,10 +227,11 @@ export default function ShoppingListDetailPage() {
         loading={deleteList.isPending}
       />
 
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <BackButton to="/shopping-lists" />
-        <div className="border-l border-border pl-3 flex-1 min-w-0">
+      {/* Header on the hero band */}
+      <HeroBand pullUpClassName="-mt-8" innerClassName="max-w-2xl" className="mb-6">
+      <BackButton to="/shopping-lists" tone="hero" className="mb-5" />
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4">
             {editingName ? (
               <div className="flex items-center gap-2 flex-1">
@@ -238,7 +240,7 @@ export default function ShoppingListDetailPage() {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   data-testid="shopping-list-name-input"
-                  className="flex-1 px-3.5 py-1.5 text-section font-bold border border-border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="flex-1 h-14 px-4 font-display text-title font-extrabold text-foreground rounded-xl bg-card focus:outline-none focus:ring-4 focus:ring-ring/50 transition-all shadow-raised"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName();
@@ -248,7 +250,7 @@ export default function ShoppingListDetailPage() {
                 <button
                   type="button"
                   onClick={handleSaveName}
-                  className="px-4 py-1.5 text-body font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-soft shrink-0"
+                  className="press h-14 px-5 text-body font-bold bg-hero-foreground text-foreground rounded-xl hover:bg-hero-muted transition-colors shrink-0"
                 >
                   OK
                 </button>
@@ -256,8 +258,8 @@ export default function ShoppingListDetailPage() {
             ) : (
               <h1
                 className={cn(
-                  'text-title font-display font-bold text-foreground',
-                  canRename && 'cursor-pointer hover:text-primary transition-colors',
+                  'font-display text-display font-extrabold text-hero-foreground [overflow-wrap:anywhere]',
+                  canRename && 'cursor-pointer decoration-hero-muted/60 underline-offset-8 hover:underline',
                 )}
                 onClick={() => {
                   if (canRename) {
@@ -276,7 +278,7 @@ export default function ShoppingListDetailPage() {
               <div
                 className={cn(
                   'w-2 h-2 rounded-full ring-4 shrink-0 transition-all',
-                  isConnected ? 'bg-primary ring-primary/20' : 'bg-muted-foreground/30 ring-muted/10',
+                  isConnected ? 'bg-success-bright ring-success-bright/25 animate-pulse' : 'bg-hero-muted/40 ring-hero-soft',
                 )}
                 title={isConnected ? 'Verbunden' : 'Nicht verbunden'}
               />
@@ -285,7 +287,7 @@ export default function ShoppingListDetailPage() {
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
                   aria-label="Einkaufsliste löschen"
-                  className="flex items-center justify-center p-2 text-destructive border border-destructive/20 bg-card rounded-xl hover:bg-destructive/10 hover:border-destructive/30 transition-all shadow-soft"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-danger-border transition-colors hover:bg-danger-soft hover:text-danger"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -296,13 +298,14 @@ export default function ShoppingListDetailPage() {
       </div>
 
       {/* Source info */}
-      <div className="flex items-center gap-3 text-caption font-semibold text-muted-foreground mb-4 pl-8">
+      <div className="flex items-center gap-3 text-body text-hero-muted">
         <span>
           {SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type}
         </span>
-        <span className="text-border/85">•</span>
-        <span>von {list.owner_display_name}</span>
+        <span aria-hidden="true">•</span>
+        <span>von <span className="font-semibold text-hero-foreground">{list.owner_display_name}</span></span>
       </div>
+      </HeroBand>
 
       {/* Quantity plausibility warnings from generation */}
       {warnings.length > 0 && (
@@ -335,7 +338,7 @@ export default function ShoppingListDetailPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="stagger space-y-6">
           {Object.entries(groupedItems).map(([section, items]) => (
             <div key={section} className="bg-card rounded-xl p-4 md:p-5 shadow-card">
               {section && (

@@ -9,7 +9,8 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeTable from '@/components/recipe/RecipeTable';
 import RecipeFilterSidebar from '@/components/recipe/RecipeFilterSidebar';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { RECIPE_SORT_OPTIONS, type RecipeFilter } from '@/schemas/recipe';
+import { RECIPE_SORT_OPTIONS, RECIPE_TYPE_OPTIONS, type RecipeFilter } from '@/schemas/recipe';
+import { cn } from '@/lib/utils';
 import { RecipeListStateSchema } from '@/schemas/listState';
 import { takeLegacyValue } from '@/lib/listStateStorage';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
@@ -41,6 +42,10 @@ const RECIPE_LIST_DEFAULTS = {
 // The search text stays URL-only: restoring it silently led to empty lists ("0 Rezepte").
 const PERSIST_EXCLUDE = ['q', 'page', 'seed'] as const;
 const COUNT_EXCLUDE = ['page', 'view', 'seed'] as const;
+/** Quick filters on the hero band: the meal types people browse by. */
+const QUICK_TYPES = RECIPE_TYPE_OPTIONS.filter((opt) =>
+  ['breakfast', 'warm_meal', 'cold_meal', 'dessert', 'drink', 'snack'].includes(opt.value),
+);
 
 /** The view mode used to live in its own key; take it over once. */
 function migrateLegacyView() {
@@ -145,16 +150,44 @@ export default function RecipeListPage() {
         count={data?.total}
         countLoading={isLoading || !restored}
         countLabel={{ one: 'Rezept', other: 'Rezepte' }}
-      />
-
-      <ListPageSearchBar
-        placeholder="Suche nach Rezepten..."
-        value={search.input}
-        onChange={search.setInput}
-        onSubmit={search.submit}
-        createLabel="Neues Rezept"
-        createHref="/recipes/new"
-      />
+      >
+        <ListPageSearchBar
+          placeholder="Suche nach Rezepten, z. B. Nudeln oder Porridge …"
+          value={search.input}
+          onChange={search.setInput}
+          onSubmit={search.submit}
+          createLabel="Neues Rezept"
+          createHref="/recipes/new"
+        />
+        <div role="group" aria-label="Typ" className="flex flex-wrap gap-2">
+          {QUICK_TYPES.map((opt) => {
+            const selected = (filters.recipe_type as string[] | undefined) ?? [];
+            const active = selected.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() =>
+                  handleFilterChange(
+                    'recipe_type',
+                    active ? selected.filter((v) => v !== opt.value) : [...selected, opt.value],
+                  )
+                }
+                className={cn(
+                  'press flex h-10 items-center gap-2 rounded-full px-4 text-body font-semibold transition-colors duration-200',
+                  active
+                    ? 'bg-hero-foreground text-foreground'
+                    : 'border border-hero-muted/40 text-hero-foreground hover:bg-hero-soft',
+                )}
+              >
+                {active && <Icon name="check" size={16} />}
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </PageHeader>
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         <RecipeFilterSidebar
@@ -168,18 +201,19 @@ export default function RecipeListPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <Link
               to="/recipes/new"
-              className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-body font-semibold transition-all"
+              className="press sm:hidden flex h-11 items-center gap-1.5 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-body font-semibold transition-colors"
             >
               <Icon name="add_circle" size={16} />
               Neues Rezept
             </Link>
             <div className="flex flex-wrap items-center justify-end gap-2 ml-auto min-w-0">
-              <div className="flex items-center gap-2 bg-secondary border border-border px-3 py-1.5 rounded-lg min-w-0">
-                <Icon name="sort" size={20} className="text-primary" />
+              <label className="flex h-11 items-center gap-2 rounded-lg bg-card pl-3 pr-1 shadow-soft min-w-0">
+                <Icon name="sort" size={20} className="text-muted-foreground" />
+                <span className="sr-only">Sortieren</span>
                 <select
                   value={filters.sort ?? 'use_count'}
                   onChange={(e) => handleFilterChange('sort', e.target.value)}
-                  className="min-w-0 px-2 py-1 rounded-xl border text-body bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium"
+                  className="min-w-0 h-9 rounded-lg border-0 bg-transparent px-2 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-ring/40"
                 >
                   {RECIPE_SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -187,19 +221,25 @@ export default function RecipeListPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="flex shrink-0 items-center bg-secondary border border-border rounded-lg p-1 gap-0.5">
+              </label>
+              <div role="group" aria-label="Ansicht" className="flex shrink-0 items-center gap-0.5 rounded-lg bg-card p-1 shadow-soft">
                 <button
+                  type="button"
                   onClick={() => toggleView('grid')}
-                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  aria-pressed={viewMode === 'grid'}
+                  className={`press flex h-9 w-10 items-center justify-center rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-hero text-hero-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Kacheln"
+                  aria-label="Kachelansicht"
                 >
                   <Icon name="grid_view" size={20} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => toggleView('table')}
-                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                  aria-pressed={viewMode === 'table'}
+                  className={`press flex h-9 w-10 items-center justify-center rounded-lg transition-colors ${viewMode === 'table' ? 'bg-hero text-hero-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Tabelle"
+                  aria-label="Tabellenansicht"
                 >
                   <Icon name="view_list" size={20} />
                 </button>
@@ -213,7 +253,7 @@ export default function RecipeListPage() {
             viewMode === 'table' ? (
               <RecipeTableSkeleton />
             ) : (
-              <SkeletonCardGrid count={10} label="Rezepte werden geladen" className="md:grid-cols-3 xl:grid-cols-5" />
+              <SkeletonCardGrid count={8} label="Rezepte werden geladen" className="md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4" />
             )
           ) : data?.items.length === 0 ? (
             <EmptyState
@@ -240,7 +280,7 @@ export default function RecipeListPage() {
           ) : (
             <div
               aria-busy={isPlaceholderData}
-              className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
+              className={`stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
             >
               {data?.items.map((recipe) => (
                 <RecipeCard

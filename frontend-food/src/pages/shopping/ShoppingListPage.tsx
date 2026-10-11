@@ -201,17 +201,16 @@ export default function ShoppingListPage() {
         icon="shopping_cart"
         count={data?.total}
         countLabel={{ one: 'Liste', other: 'Listen' }}
-      />
-
-      {/* Search Bar */}
-      <ListPageSearchBar
-        placeholder="Einkaufsliste suchen..."
-        value={search.input}
-        onChange={search.setInput}
-        onSubmit={search.submit}
-        createLabel="Neue Liste"
-        onCreateClick={() => setShowCreate(true)}
-      />
+      >
+        <ListPageSearchBar
+          placeholder="Einkaufsliste suchen..."
+          value={search.input}
+          onChange={search.setInput}
+          onSubmit={search.submit}
+          createLabel="Neue Liste"
+          onCreateClick={() => setShowCreate(true)}
+        />
+      </PageHeader>
 
       <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
 
@@ -295,7 +294,7 @@ export default function ShoppingListPage() {
           onCtaClick={() => setShowCreate(true)}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {sortedLists.map((list) => (
             <ShoppingListCard key={list.id} list={list} />
           ))}

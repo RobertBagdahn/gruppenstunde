@@ -62,8 +62,8 @@ function PortionPill({
     <span
       title={title}
       className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-0.5 text-body text-foreground',
-        tone === 'selected' ? 'border-border bg-secondary' : 'border-border bg-background',
+        'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-body text-foreground',
+        tone === 'selected' ? 'bg-primary-soft' : 'bg-secondary',
       )}
     >
       {tone === 'selected' ? (
@@ -311,12 +311,12 @@ export default function IngredientList({
           if (hasFactsRow && !showDetails) toggleRowDetails(item.id);
         }}
         className={cn(
-          'col-span-3 grid grid-cols-subgrid gap-y-1.5 px-6 py-3 transition-colors hover:bg-muted/30 sm:px-4',
+          'col-span-3 grid grid-cols-subgrid gap-y-1.5 rounded-xl px-6 py-3.5 transition-colors hover:bg-secondary sm:px-4',
           hasFactsRow && !showDetails && 'cursor-pointer',
         )}
       >
         {/* Row 1 */}
-        <div className="min-w-[3rem] justify-self-end whitespace-nowrap text-right leading-6 tabular-nums">
+        <div className="min-w-[3rem] justify-self-end whitespace-nowrap text-right font-display font-extrabold leading-6 tabular-nums">
           <UnitSwitcher originalDisplay={formatted.display} conversions={itemConversions} weightG={weightG} />
         </div>
         <div className="min-w-0 break-words leading-6">

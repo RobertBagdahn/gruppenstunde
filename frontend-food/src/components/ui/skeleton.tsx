@@ -8,14 +8,17 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import SlowLoadingHint from '@/components/shared/SlowLoadingHint';
+import HeroBand from '@/components/shared/HeroBand';
 
 interface SkeletonProps {
   className?: string;
+  /** Skeleton sits on the pine hero band. */
+  onHero?: boolean;
 }
 
-/** Base block: a muted, gently pulsing surface. */
-export function Skeleton({ className }: SkeletonProps) {
-  return <div aria-hidden="true" className={cn('animate-pulse rounded-lg bg-muted', className)} />;
+/** Base block: a muted surface with a soft light sweep. */
+export function Skeleton({ className, onHero = false }: SkeletonProps) {
+  return <div aria-hidden="true" className={cn('skeleton-shimmer rounded-lg', onHero && 'skeleton-on-hero', className)} />;
 }
 
 /** Wrapper that announces the loading state to assistive technology. */
@@ -109,18 +112,33 @@ export function SkeletonTableRows({
   );
 }
 
-/** Header of a detail page: title, subtitle and a row of key facts. */
+/** Header of a detail page on the hero band: breadcrumb, title, meta chips. */
 export function SkeletonDetailHeader({ className }: { className?: string }) {
   return (
-    <div aria-hidden="true" className={cn('space-y-4', className)}>
-      <Skeleton className="h-4 w-40" />
-      <Skeleton className="h-9 w-2/3 max-w-md" />
-      <Skeleton className="h-4 w-full max-w-xl" />
-      <div className="flex flex-wrap gap-3 pt-1">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-14 w-28 rounded-xl" />
+    <div aria-hidden="true" className={cn('space-y-5', className)}>
+      <Skeleton onHero className="h-4 w-48" />
+      <Skeleton onHero className="h-8 w-24 rounded-full" />
+      <Skeleton onHero className="h-14 w-4/5 max-w-xl md:h-16" />
+      <div className="flex flex-wrap gap-2">
+        {Array.from({ length: 3 }, (_, index) => (
+          <Skeleton key={index} onHero className="h-8 w-24 rounded-full" />
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Row of key-figure tiles that overlaps the hero band's lower edge. */
+export function SkeletonKeyFigures({ count = 4, className }: { count?: number; className?: string }) {
+  return (
+    <div aria-hidden="true" className={cn('grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-card shadow-float md:grid-cols-4', className)}>
+      {Array.from({ length: count }, (_, index) => (
+        <div key={index} className="space-y-2 bg-card p-5">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -154,17 +172,26 @@ export function SkeletonForm({ fields = 4, className, label = 'Formular wird gel
   );
 }
 
-/** Whole page: header plus content blocks (route fallback, detail pages). */
+/**
+ * Whole page: hero band with a title, key figures on its edge and content
+ * blocks below (route fallback, detail pages). Same shape as the real pages,
+ * so the switch to content does not jump.
+ */
 export function PageSkeleton({ label = 'Seite wird geladen', className }: { label?: string; className?: string }) {
   return (
-    <LoadingRegion label={label} className={cn('container max-w-6xl space-y-6 py-6', className)}>
-      <SkeletonDetailHeader />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <SkeletonSection lines={5} />
-          <SkeletonSection lines={3} />
+    <LoadingRegion label={label} className={cn('mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8', className)}>
+      <HeroBand pullUpClassName="" overlap>
+        <SkeletonDetailHeader />
+      </HeroBand>
+      <div className="relative -mt-10 space-y-6 md:-mt-12">
+        <SkeletonKeyFigures />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
+            <SkeletonSection lines={5} />
+            <SkeletonSection lines={3} />
+          </div>
+          <SkeletonSection lines={6} />
         </div>
-        <SkeletonSection lines={6} />
       </div>
       <SlowLoadingHint />
     </LoadingRegion>

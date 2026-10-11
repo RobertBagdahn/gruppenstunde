@@ -142,6 +142,7 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 import { formatEuro, formatExactWeight, roundToDecimals } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
+import HeroBand from '@/components/shared/HeroBand';
 import { ApiError } from '@/lib/api';
 import { HelpHint } from '@/components/ui/help-hint';
 
@@ -1090,7 +1091,9 @@ export default function IngredientDetailPage() {
     return (
       <div role="status" aria-busy="true" className="max-w-3xl mx-auto px-4 py-6 space-y-4">
         <span className="sr-only">Zutat wird geladen</span>
-        <SkeletonDetailHeader />
+        <HeroBand pullUpClassName="-mt-6" innerClassName="max-w-3xl" className="mb-6">
+          <SkeletonDetailHeader />
+        </HeroBand>
         <SkeletonSection lines={3} />
         {Array.from({ length: 4 }, (_, index) => (
           <Skeleton key={index} className="h-14 rounded-xl" />
@@ -1293,28 +1296,30 @@ export default function IngredientDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
+      <HeroBand pullUpClassName="-mt-6" innerClassName="max-w-3xl" className="mb-6">
       {/* Back link */}
       <button
+        type="button"
         onClick={() => navigate('/ingredients')}
-        className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground mb-4 transition"
+        className="press mb-5 flex h-10 items-center gap-1 rounded-full bg-hero-soft pl-2 pr-4 text-body font-semibold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
       >
         <Icon name="arrow_back" size={20} />
         Alle Zutaten
       </button>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-title font-display font-extrabold text-foreground truncate">{ingredient.name}</h1>
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <h1 className="font-display text-display font-extrabold text-hero-foreground [overflow-wrap:anywhere]">{ingredient.name}</h1>
             {ingredient.status === 'verified' ? (
-              <span className="text-caption px-2 py-0.5 rounded-full font-medium shrink-0 border bg-success-soft border-success-border text-success flex items-center gap-1">
+              <span className="text-body px-3 py-1 rounded-full font-semibold shrink-0 bg-hero-soft text-hero-foreground flex items-center gap-1.5">
                 <CheckCircle size={12} />
                 Inspi Verified
               </span>
             ) : (
               <>
-                <span className={`text-caption px-2 py-0.5 rounded-full font-medium shrink-0 border ${
+                <span className={`text-body px-3 py-1 rounded-full font-semibold shrink-0 border ${
                   ingredient.status === 'draft'
                     ? 'bg-warning-soft border-warning-border text-warning'
                     : 'bg-danger-soft border-danger-border text-danger'
@@ -1330,7 +1335,7 @@ export default function IngredientDetailPage() {
                       })
                     }
                     disabled={updateIngredient.isPending}
-                    className="text-caption px-2 py-0.5 rounded-full font-medium border border-success-border text-success hover:bg-success-soft shrink-0"
+                    className="press text-body px-3 py-1 rounded-full font-semibold bg-hero-foreground text-foreground hover:bg-hero-muted shrink-0"
                   >
                     Verifizieren
                   </button>
@@ -1339,23 +1344,23 @@ export default function IngredientDetailPage() {
             )}
           </div>
           {ingredient.description && (
-            <p className="text-body text-muted-foreground mb-2">{ingredient.description}</p>
+            <p className="text-emphasis text-hero-muted mb-3 max-w-2xl">{ingredient.description}</p>
           )}
           <div className="flex flex-wrap items-center gap-2">
             {ingredient.camp_suitable && (
-              <span className="flex items-center gap-1 text-caption text-foreground bg-area-shopping-soft px-2 py-1 rounded-lg">
+              <span className="flex items-center gap-1.5 text-body text-hero-foreground bg-hero-soft px-3 py-1 rounded-full">
                 <Icon name="camping" size={16} />
                 Camp-geeignet
               </span>
             )}
             {ingredient.retail_section_name && (
-              <span className="flex items-center gap-1 text-caption text-muted-foreground bg-muted px-2 py-1 rounded-lg">
+              <span className="flex items-center gap-1.5 text-body text-hero-foreground bg-hero-soft px-3 py-1 rounded-full">
                 <Icon name="store" size={16} />
                 {ingredient.retail_section_name}
               </span>
             )}
             {ingredient.is_standalone_food && (
-              <span className="flex items-center gap-1 text-caption text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg font-medium">
+              <span className="flex items-center gap-1.5 text-body text-hero-foreground bg-hero-soft px-3 py-1 rounded-full font-medium">
                 <Icon name="check_circle" size={16} />
                 Roh verzehrbar
               </span>
@@ -1364,19 +1369,19 @@ export default function IngredientDetailPage() {
         </div>
 
         {(canEdit || canAiSuggest) && (
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {canAiSuggest && (
               <>
                 <button
                   onClick={handleFillMissing}
                   disabled={fillMissing.isPending || ai.disabled}
-                  className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground hover:text-primary disabled:opacity-50"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground disabled:opacity-50"
                   title={ai.disabled ? ai.hint : 'Fehlende Stammdaten mit KI ergänzen (bestehende bleiben erhalten)'}
                 >
                   {fillMissing.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Sparkles className="h-4 w-4 text-primary" />
+                    <Sparkles className="h-5 w-5" />
                   )}
                 </button>
                 <button
@@ -1387,7 +1392,7 @@ export default function IngredientDetailPage() {
                     }
                   }}
                   disabled={ai.disabled}
-                  className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground disabled:opacity-50"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground disabled:opacity-50"
                   title={ai.disabled ? ai.hint : 'Alle KI-Vorschläge prüfen & vergleichen'}
                 >
                   <Icon name="auto_fix_high" size={20} />
@@ -1399,15 +1404,16 @@ export default function IngredientDetailPage() {
                 <button
                   onClick={() => navigate(`/ingredients/${ingredient.slug}/edit`)}
                   data-testid="ingredient-edit-button"
-                  className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground"
+                  className="press flex h-11 items-center gap-2 rounded-lg bg-hero-foreground px-4 font-bold text-foreground transition-colors hover:bg-hero-muted"
                   title="Bearbeiten"
                 >
                   <Icon name="edit" size={20} />
+                  <span className="text-body">Bearbeiten</span>
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   data-testid="ingredient-delete-button"
-                  className="p-2 rounded-lg hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-danger-border transition-colors hover:bg-danger-soft hover:text-danger"
                   title="Zutat löschen"
                 >
                   <Icon name="delete" size={20} />
@@ -1417,6 +1423,7 @@ export default function IngredientDetailPage() {
           </div>
         )}
       </div>
+      </HeroBand>
 
       <IngredientSummary
         nutriClass={ingredient.nutri_class}

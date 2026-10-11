@@ -29,7 +29,7 @@ export default function EmptyState({
   ctaIcon,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
+    <div className="animate-rise flex flex-col items-center justify-center rounded-xl bg-card px-6 py-14 text-center shadow-card">
       {mascotSrc ? (
         <img
           src={mascotSrc}
@@ -40,16 +40,16 @@ export default function EmptyState({
           height={160}
         />
       ) : icon ? (
-        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-          <Icon name={icon} size={24} className="text-muted-foreground" />
+        <div className="mb-5 flex h-20 w-20 -rotate-3 items-center justify-center rounded-xl bg-primary-soft">
+          <Icon name={icon} size={48} className="text-primary" />
         </div>
       ) : null}
-      <h2 className="text-section font-semibold text-foreground">{title}</h2>
+      <h2 className="font-display text-section font-extrabold text-foreground">{title}</h2>
       <p className="text-body text-muted-foreground mt-1 max-w-md">{description}</p>
       {ctaLabel && ctaHref && (
         <Link
           to={ctaHref}
-          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-body font-medium hover:bg-primary/90 transition-colors"
+          className="press inline-flex h-11 items-center gap-1.5 mt-5 px-5 bg-primary text-primary-foreground rounded-lg text-body font-semibold shadow-soft hover:bg-primary/90 transition-colors"
         >
           <Icon name="add" size={20} />
           {ctaLabel}
@@ -59,7 +59,7 @@ export default function EmptyState({
         <button
           type="button"
           onClick={onCtaClick}
-          className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 bg-primary-soft text-primary rounded-lg text-body font-medium hover:bg-primary-soft-border/60 transition-colors"
+          className="press inline-flex h-11 items-center gap-1.5 mt-5 px-5 bg-primary-soft text-primary rounded-lg text-body font-semibold hover:bg-primary-soft-border/60 transition-colors"
         >
           {ctaIcon && <Icon name={ctaIcon} size={20} />}
           {ctaLabel}

@@ -59,16 +59,6 @@ export default function MyRecipesPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-      <div className="mb-4">
-        <Link
-          to="/recipes"
-          className="inline-flex items-center gap-1.5 text-body font-semibold text-primary hover:underline"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Alle Rezepte
-        </Link>
-      </div>
-
       {/* Hero Header */}
       <PageHeader
         title="Meine Rezepte"
@@ -77,6 +67,15 @@ export default function MyRecipesPage() {
         icon="menu_book"
         count={data?.total}
         countLabel={{ one: 'persönliches Rezept', other: 'persönliche Rezepte' }}
+        actions={
+          <Link
+            to="/recipes"
+            className="press inline-flex h-11 items-center gap-1.5 rounded-full bg-hero-soft px-4 text-body font-semibold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Alle Rezepte
+          </Link>
+        }
       />
 
       {recipes.length === 0 ? (
@@ -97,7 +96,7 @@ export default function MyRecipesPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {recipes.map((recipe) => (
               <div key={recipe.id} className="relative">
                 <RecipeCard recipe={recipe} />

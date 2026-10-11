@@ -28,26 +28,26 @@ export default function ListPageSearchBar({
   }
 
   const createClass =
-    'shrink-0 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors hidden sm:flex items-center gap-1.5';
+    'press shrink-0 h-14 px-5 rounded-xl bg-hero-foreground text-foreground font-bold hover:bg-hero-muted transition-colors hidden sm:flex items-center gap-2';
 
-  // Search sits directly on the page background: no surrounding card (food-list-page-layout).
+  // Search sits on the hero band, as a child of PageHeader (Feldküche).
   return (
-    <form onSubmit={handleSubmit} className={`mb-6 md:mb-8 flex items-center gap-2 ${className || ''}`}>
+    <form role="search" onSubmit={handleSubmit} className={`flex items-center gap-2 ${className || ''}`}>
       <div className="flex-1 relative min-w-0">
-        <Icon name="search" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Icon name="search" size={20} className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-label={placeholder}
-          className="w-full pl-11 pr-4 py-2.5 rounded-full bg-card text-foreground placeholder:text-muted-foreground border border-border shadow-card focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary transition-all text-body"
+          className="h-14 w-full rounded-xl border-0 bg-card pl-12 pr-4 text-emphasis text-foreground shadow-raised placeholder:text-muted-foreground transition-shadow focus:outline-none focus:ring-4 focus:ring-ring/50"
         />
       </div>
       <button
         type="submit"
         aria-label="Suchen"
-        className="shrink-0 h-11 w-11 rounded-full bg-primary-soft text-primary hover:bg-primary-soft-border/60 transition-colors flex items-center justify-center"
+        className="press shrink-0 h-14 w-14 rounded-xl bg-hero-soft text-hero-foreground hover:bg-hero-foreground hover:text-foreground transition-colors flex items-center justify-center"
       >
         <Icon name="search" size={20} />
       </button>

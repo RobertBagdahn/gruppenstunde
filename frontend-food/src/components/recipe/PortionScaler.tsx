@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
+import { Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Icon } from '@/components/ui/icon';
 
 interface PortionScalerProps {
   /** Current portion count (controlled) */
@@ -11,7 +11,7 @@ interface PortionScalerProps {
   max?: number;
   /** Callback when portions change */
   onChange: (portions: number) => void;
-  /** Compact mode for sidebar use */
+  /** Compact mode for inline use */
   compact?: boolean;
   /** Show factor quick-select buttons (0.5×, 1.5×, 2×) */
   showFactors?: boolean;
@@ -21,6 +21,10 @@ interface PortionScalerProps {
   className?: string;
 }
 
+/**
+ * Portion stepper (Feldküche): two large round buttons around the number on a
+ * muted track; the number can also be typed.
+ */
 export default function PortionScaler({
   value,
   min = 1,
@@ -39,84 +43,69 @@ export default function PortionScaler({
     [min, max, onChange],
   );
 
-  const decrement = () => updatePortions(value - 1);
-  const increment = () => updatePortions(value + 1);
+  const stepButton = cn(
+    'press flex shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-soft',
+    'transition-colors hover:bg-primary-soft hover:text-primary disabled:cursor-not-allowed disabled:opacity-40',
+    compact ? 'h-10 w-10' : 'h-12 w-12',
+  );
 
   return (
-    <div
-      data-testid="recipe-portion-scaler"
-      className={cn(
-        'flex items-center gap-3 rounded-xl bg-warning-soft border border-warning-border',
-        compact ? 'px-3 py-2' : 'px-4 py-3',
-        className,
-      )}
-    >
-      <Icon name="restaurant" size={20} className={cn('text-warning', compact ? '' : '')} />
-      <span className={cn('font-medium text-warning whitespace-nowrap', compact ? 'text-caption' : 'text-body')}>
-        Portionen
-      </span>
-
-      <div className="flex items-center gap-2 ml-auto">
+    <div data-testid="recipe-portion-scaler" className={cn('space-y-3', className)}>
+      <div className={cn('flex items-center justify-between gap-2 rounded-full bg-muted p-1')}>
         <button
           type="button"
-          onClick={decrement}
+          onClick={() => updatePortions(value - 1)}
           disabled={value <= min}
-          className={cn(
-            'flex items-center justify-center rounded-full',
-            'border border-warning-border bg-white text-warning',
-            'hover:bg-warning-soft active:bg-warning-soft transition-colors',
-            'disabled:opacity-40 disabled:cursor-not-allowed',
-            compact ? 'w-7 h-7' : 'w-9 h-9',
-          )}
+          className={stepButton}
           aria-label="Portion verringern"
         >
-          <Icon name="remove" size={16} className={cn(compact ? '' : '')} />
+          <Minus className="h-5 w-5" strokeWidth={2.4} />
         </button>
 
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            if (!isNaN(val)) updatePortions(val);
-          }}
-          min={min}
-          max={max}
-          className={cn(
-            'text-center font-semibold text-warning',
-            'border border-warning-border rounded-lg bg-white',
-            'focus:outline-none focus:ring-2 focus:ring-warning',
-            '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-            compact ? 'w-12 h-7 text-body' : 'w-14 h-9 text-emphasis',
+        <label className="flex min-w-0 flex-1 flex-col items-center leading-none">
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              if (!isNaN(val)) updatePortions(val);
+            }}
+            min={min}
+            max={max}
+            className={cn(
+              'w-full bg-transparent text-center font-display font-extrabold text-foreground',
+              'rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/50',
+              '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+              compact ? 'text-section' : 'text-metric',
+            )}
+            aria-label="Portionszahl"
+          />
+          {!compact && (
+            <span className="mt-1 text-caption font-semibold text-muted-foreground">
+              {value === 1 ? 'Portion' : 'Portionen'}
+            </span>
           )}
-          aria-label="Portionszahl"
-        />
+        </label>
 
         <button
           type="button"
-          onClick={increment}
+          onClick={() => updatePortions(value + 1)}
           disabled={value >= max}
-          className={cn(
-            'flex items-center justify-center rounded-full',
-            'border border-warning-border bg-white text-warning',
-            'hover:bg-warning-soft active:bg-warning-soft transition-colors',
-            'disabled:opacity-40 disabled:cursor-not-allowed',
-            compact ? 'w-7 h-7' : 'w-9 h-9',
-          )}
-           aria-label="Portion erhöhen"
+          className={stepButton}
+          aria-label="Portion erhöhen"
         >
-          <Icon name="add" size={16} className={cn(compact ? '' : '')} />
+          <Plus className="h-5 w-5" strokeWidth={2.4} />
         </button>
       </div>
 
       {showFactors && (
-        <div className="flex items-center gap-1.5 border-t border-warning-border pt-2 mt-2 w-full">
+        <div className="flex items-center gap-1.5">
           {[0.5, 1.5, 2].map((factor) => (
             <button
               key={factor}
               type="button"
               onClick={() => updatePortions(Math.round(defaultValue * factor))}
-              className="flex-1 text-caption font-medium py-1 rounded-lg border border-warning-border bg-white text-warning hover:bg-warning-soft transition-colors"
+              className="press h-9 flex-1 rounded-full bg-primary-soft text-caption font-bold text-primary transition-colors hover:bg-primary-soft-border/70"
             >
               {factor.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}×
             </button>

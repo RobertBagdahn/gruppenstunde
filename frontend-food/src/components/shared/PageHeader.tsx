@@ -1,13 +1,14 @@
 /**
- * Light page header (food-list-page-layout, food-design-system specs).
+ * Page header in the pine hero band (Feldküche, food-list-page-layout).
  *
- * Large title on the page background, an icon tile in the area colour,
- * a muted description and a calm count badge. No coloured surface, no gradient.
+ * Large display title on the band, an icon tile in the area tint, a light
+ * description and a count pill. Search bars and quick filters go in as
+ * children so they sit on the band too.
  */
 import type { ReactNode } from 'react';
 import { formatCount } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
-import { Skeleton } from '@/components/ui/skeleton';
+import HeroBand from '@/components/shared/HeroBand';
 import { cn } from '@/lib/utils';
 
 export type PageArea = 'recipes' | 'ingredients' | 'planner' | 'shopping' | 'neutral';
@@ -41,8 +42,10 @@ interface PageHeaderProps {
   countLabel?: CountLabel;
   /** Buttons on the right (wrap below the title on small screens). */
   actions?: ReactNode;
-  /** Extra content under the description (e.g. the search bar). */
+  /** Extra content under the description, on the band (search bar, quick filters). */
   children?: ReactNode;
+  /** Pull-up offset when the page container pads differently than `py-4 md:py-8`. */
+  pullUpClassName?: string;
   className?: string;
 }
 
@@ -58,32 +61,42 @@ export default function PageHeader({
   countLabel = DEFAULT_COUNT_LABEL,
   actions,
   children,
+  pullUpClassName,
   className,
 }: PageHeaderProps) {
   return (
-    <header className={cn('mb-6 space-y-5 md:mb-8', className)}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-xl md:h-14 md:w-14', AREA_TILE[area])}>
-            <Icon name={icon} size={24} />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="font-display text-title font-extrabold text-foreground">{title}</h1>
-              {countLoading ? (
-                <Skeleton className="h-6 w-24 rounded-full" />
-              ) : count !== undefined ? (
-                <span className="inline-flex items-center rounded-full bg-muted px-3 py-0.5 text-body font-medium text-muted-foreground tabular-nums">
-                  {formatCount(count)} {count === 1 ? countLabel.one : countLabel.other}
-                </span>
-              ) : null}
+    <HeroBand pullUpClassName={pullUpClassName} className={cn('mb-6 md:mb-8', className)}>
+      <header className="space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <div
+              className={cn(
+                'hidden h-14 w-14 shrink-0 -rotate-3 items-center justify-center rounded-xl sm:flex',
+                AREA_TILE[area],
+              )}
+            >
+              <Icon name={icon} size={24} />
             </div>
-            {description && <p className="mt-1 max-w-2xl text-body text-muted-foreground md:text-emphasis">{description}</p>}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <h1 className="font-display text-display font-extrabold text-hero-foreground">{title}</h1>
+                {countLoading ? (
+                  <span aria-hidden="true" className="skeleton-shimmer skeleton-on-hero h-7 w-24 rounded-full" />
+                ) : count !== undefined ? (
+                  <span className="animate-rise inline-flex items-center rounded-full bg-hero-soft px-3 py-1 text-body font-bold text-hero-foreground tabular-nums">
+                    {formatCount(count)} {count === 1 ? countLabel.one : countLabel.other}
+                  </span>
+                ) : null}
+              </div>
+              {description && (
+                <p className="mt-3 max-w-2xl text-emphasis text-hero-muted">{description}</p>
+              )}
+            </div>
           </div>
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-      </div>
-      {children}
-    </header>
+        {children}
+      </header>
+    </HeroBand>
   );
 }

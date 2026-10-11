@@ -1,4 +1,4 @@
-import { UtensilsCrossed, Printer, ShoppingCart, Share2, Copy } from 'lucide-react';
+import { CookingPot, Printer, ShoppingCart, Share2, Copy } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { useNavigate } from 'react-router-dom';
 import PortionScaler from './PortionScaler';
@@ -7,12 +7,16 @@ import type { RecipeDetail } from '@/schemas/recipe';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { useState } from 'react';
 import { API_BASE_URL } from '@/lib/api';
+import { formatEuro, formatWeight } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 interface RecipeSidebarProps {
   recipe: RecipeDetail;
   recipeId: number;
   portions: number;
   totalPriceEur?: number | null;
+  /** Total weight of the displayed portions in grams. */
+  totalWeightG?: number | null;
   onPortionsChange: (portions: number) => void;
   onOpenShoppingList: () => void;
   onClone: () => void;
@@ -26,10 +30,15 @@ interface RecipeSidebarProps {
   canCook?: boolean;
 }
 
+const secondaryAction =
+  'press flex flex-col items-center gap-1 rounded-xl bg-secondary px-2 py-2.5 text-caption font-semibold text-foreground transition-colors hover:bg-primary-soft hover:text-primary';
+
+/** Desktop "Kochpult": portions, the main actions and the recipe's facts. */
 export default function RecipeSidebar({
   recipe,
   portions,
   totalPriceEur,
+  totalWeightG,
   onPortionsChange,
   onOpenShoppingList,
   onClone,
@@ -39,7 +48,6 @@ export default function RecipeSidebar({
   const navigate = useNavigate();
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const handleShare = async () => {
-    // Get current URL safely
     const url = typeof window !== 'undefined' ? window.location.href : '';
     if (!url) return;
 
@@ -59,79 +67,70 @@ export default function RecipeSidebar({
     }
   };
 
+  const summary = [
+    totalWeightG != null && totalWeightG > 0 ? formatWeight(totalWeightG) : null,
+    totalPriceEur != null ? formatEuro(totalPriceEur) : null,
+  ].filter(Boolean).join(' · ');
+
   return (
-    <aside className="hidden lg:flex flex-col gap-4 w-80 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto">
-      {/* Recipe Meta Card (Unified & Compact) */}
-      <RecipeMetaCard recipe={recipe} portions={portions} totalPriceEur={totalPriceEur} />
+    <aside className="hidden lg:flex flex-col gap-6 sticky top-24 self-start">
+      <section aria-labelledby="recipe-desk-heading" className="space-y-4 rounded-xl bg-card p-5 shadow-card">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="recipe-desk-heading" className="font-display text-section font-extrabold">
+            Portionen
+          </h2>
+          {summary && <span className="text-caption text-muted-foreground">{summary}</span>}
+        </div>
 
-      {/* Portion Scaler (compact, controlled) */}
-      {!hidePortionScaler && (
-        <PortionScaler
-          value={portions}
-          onChange={onPortionsChange}
-          defaultValue={portions}
-          compact
-        />
-      )}
-
-      {/* Action Buttons (compact) */}
-      <div className="flex flex-col gap-1.5">
-        {canCook && (
-          <button
-            type="button"
-            onClick={() => {
-              navigate(
-                { search: `?mode=cooking&step=0` },
-                { replace: true },
-              );
-            }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <UtensilsCrossed className="w-4 h-4" />
-            Kochen starten
-          </button>
+        {!hidePortionScaler && (
+          <PortionScaler value={portions} onChange={onPortionsChange} defaultValue={portions} />
         )}
-        <button
-          type="button"
-          onClick={onOpenShoppingList}
-          aria-label="Einkaufsliste erstellen"
-          className="flex items-center justify-center gap-1.5 px-3 py-2 text-body font-medium bg-primary-soft text-primary rounded-lg hover:bg-primary-soft-border/60 transition-colors"
-        >
-          <ShoppingCart className="w-4 h-4" />
-          Einkaufsliste
-        </button>
 
-        {/* Secondary actions as a compact icon row */}
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="space-y-2">
+          {canCook && (
+            <button
+              type="button"
+              onClick={() => navigate({ search: `?mode=cooking&step=0` }, { replace: true })}
+              className="press flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-emphasis font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+            >
+              <CookingPot className="h-5 w-5" />
+              Kochen starten
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => setPdfDialogOpen(true)}
-            title="Als PDF öffnen"
-            className="flex items-center justify-center gap-1 px-2 py-1.5 text-caption font-medium border rounded-lg hover:bg-muted transition-colors"
+            onClick={onOpenShoppingList}
+            aria-label="Einkaufsliste erstellen"
+            className={cn(
+              'press flex h-12 w-full items-center justify-center gap-2 rounded-xl text-emphasis font-bold transition-colors',
+              canCook
+                ? 'bg-primary-soft text-primary hover:bg-primary-soft-border/70'
+                : 'bg-primary text-primary-foreground shadow-soft hover:bg-primary/90',
+            )}
           >
-            <Printer className="w-4 h-4" />
-            <span className="hidden xl:inline">PDF</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleShare}
-            title="Teilen"
-            className="flex items-center justify-center gap-1 px-2 py-1.5 text-caption font-medium border rounded-lg hover:bg-muted transition-colors"
-          >
-            <Share2 className="w-4 h-4" />
-            <span className="hidden xl:inline">Teilen</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClone}
-            title="Rezept clonen"
-            className="flex items-center justify-center gap-1 px-2 py-1.5 text-caption font-medium border border-primary/40 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 hover:border-primary/60 transition-colors"
-          >
-            <Copy className="w-4 h-4" />
-            <span className="hidden xl:inline">Clonen</span>
+            <ShoppingCart className="h-5 w-5" />
+            Auf die Einkaufsliste
           </button>
         </div>
-      </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <button type="button" onClick={() => setPdfDialogOpen(true)} title="Als PDF öffnen" className={secondaryAction}>
+            <Printer className="h-5 w-5" />
+            PDF
+          </button>
+          <button type="button" onClick={handleShare} className={secondaryAction}>
+            <Share2 className="h-5 w-5" />
+            Teilen
+          </button>
+          <button type="button" onClick={onClone} aria-label="Rezept clonen" className={secondaryAction}>
+            <Copy className="h-5 w-5" />
+            Clonen
+          </button>
+        </div>
+      </section>
+
+      <RecipeMetaCard recipe={recipe} />
+
       <PdfExportDialog
         open={pdfDialogOpen}
         onOpenChange={setPdfDialogOpen}

@@ -15,25 +15,29 @@ export default {
         "2xl": "1400px",
       },
     },
-    // Exactly five font sizes (design tokens); Tailwind's default scale is replaced.
+    // Five text sizes plus two display sizes (Feldküche); Tailwind's default scale is replaced.
     fontSize: {
       caption: ["12px", { lineHeight: "16px" }],
       body: ["14px", { lineHeight: "20px" }],
       emphasis: ["16px", { lineHeight: "24px" }],
-      section: ["20px", { lineHeight: "28px" }],
-      title: ["28px", { lineHeight: "36px" }],
+      section: ["20px", { lineHeight: "28px", letterSpacing: "-0.01em" }],
+      title: ["28px", { lineHeight: "34px", letterSpacing: "-0.02em" }],
+      // Key figures (costs, kcal, portions) in stat tiles.
+      metric: ["32px", { lineHeight: "36px", letterSpacing: "-0.02em" }],
+      // Page titles inside the hero band only.
+      display: ["clamp(2.25rem, 1.5rem + 3vw, 4rem)", { lineHeight: "1", letterSpacing: "-0.035em" }],
     },
-    // Exactly three radii: 8 px controls, 12 px cards/dialogs, full for pills.
+    // Exactly three radii: 10 px controls, 16 px cards/dialogs, full for pills.
     borderRadius: {
       none: "0",
-      lg: "8px",
-      xl: "12px",
+      lg: "10px",
+      xl: "16px",
       full: "9999px",
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Figtree', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Bricolage Grotesque', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -41,6 +45,19 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        // Pine hero band behind navigation and page titles (Feldküche).
+        hero: {
+          DEFAULT: "hsl(var(--hero))",
+          foreground: "hsl(var(--hero-foreground))",
+          muted: "hsl(var(--hero-muted))",
+          soft: "hsl(var(--hero-soft))",
+        },
+        // Tomato accent: costs, the logo tile and small highlights. Never a large surface.
+        spice: {
+          DEFAULT: "hsl(var(--spice))",
+          soft: "hsl(var(--spice-soft))",
+          foreground: "hsl(var(--spice-foreground))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -124,10 +141,16 @@ export default {
         },
       },
       boxShadow: {
-        // Cards on the light background: fine, warm shadow instead of a grey border.
-        card: "0 1px 2px rgb(31 41 55 / 0.05), 0 4px 16px rgb(31 41 55 / 0.05)",
-        soft: "0 1px 2px rgb(31 41 55 / 0.05), 0 4px 16px rgb(31 41 55 / 0.05)",
-        raised: "0 2px 4px rgb(31 41 55 / 0.06), 0 12px 28px rgb(31 41 55 / 0.08)",
+        // Cards on the sage background: soft, long shadow instead of a grey border.
+        card: "0 1px 2px rgb(20 35 27 / 0.06), 0 12px 32px -18px rgb(20 35 27 / 0.22)",
+        soft: "0 1px 2px rgb(20 35 27 / 0.06), 0 6px 16px -10px rgb(20 35 27 / 0.18)",
+        raised: "0 2px 4px rgb(20 35 27 / 0.06), 0 22px 40px -20px rgb(20 35 27 / 0.32)",
+        // Surfaces that overlap the hero band (key-figure strip).
+        float: "0 1px 2px rgb(20 35 27 / 0.06), 0 24px 48px -24px rgb(20 35 27 / 0.45)",
+      },
+      transitionTimingFunction: {
+        // Default easing for page and section motion.
+        out: "cubic-bezier(0.2, 0.7, 0.2, 1)",
       },
       keyframes: {
         "shimmer": {
@@ -142,9 +165,33 @@ export default {
           "0%": { opacity: "0", transform: "scale(0.9)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
+        // Route change: the new page settles in from slightly below.
+        "page-in": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        // Cards and sections arriving one after another (see .stagger).
+        rise: {
+          "0%": { opacity: "0", transform: "translateY(14px) scale(0.985)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        // A changed number (portions, totals) gives a small nudge.
+        pop: {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(1.12)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "sheet-up": {
+          "0%": { opacity: "0", transform: "translateY(100%)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
-        shimmer: "shimmer 2s linear infinite",
+        shimmer: "shimmer 1.6s linear infinite",
+        "page-in": "page-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        rise: "rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        pop: "pop 260ms cubic-bezier(0.2, 0.7, 0.2, 1)",
+        "sheet-up": "sheet-up 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
         "fade-in-up": "fade-in-up 0.5s ease-out forwards",
         "scale-in": "scale-in 0.4s ease-out forwards",
       },

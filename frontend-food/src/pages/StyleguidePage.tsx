@@ -57,8 +57,8 @@ const ICON_SIZES = [
 const ICON_EXAMPLES = ['search', 'add', 'delete', 'settings', 'shopping_cart', 'schedule'];
 
 const RADII = [
-  { token: 'rounded-lg', size: '8 px', usage: 'Bedienelemente: Buttons, Inputs, Selects, Chips' },
-  { token: 'rounded-xl', size: '12 px', usage: 'Karten und Dialoge' },
+  { token: 'rounded-lg', size: '10 px', usage: 'Bedienelemente: Buttons, Inputs, Selects, Chips' },
+  { token: 'rounded-xl', size: '16 px', usage: 'Karten und Dialoge' },
   { token: 'rounded-full', size: 'rund', usage: 'Pills, Badges, Avatare, runde Icon-Buttons' },
 ];
 
@@ -158,7 +158,7 @@ export default function StyleguidePage() {
           Inspi Food Design-System & Styleguide
         </h1>
         <p className="text-emphasis text-muted-foreground mt-2 font-sans">
-          Lebendes Showcase und Referenz für das neue, modern-cleane grün-basierte Layout.
+          Lebendes Showcase und Referenz für den Look „Feldküche“.
         </p>
       </div>
 
@@ -191,7 +191,7 @@ export default function StyleguidePage() {
           2. Schriftgrößen-Skala
         </h2>
         <p className="text-body text-muted-foreground">
-          Genau fünf Größen. Überschriften in Plus Jakarta Sans (<code>font-display</code>), Fließtext in Inter. Kleiner
+          Fünf Textgrößen plus <code>text-metric</code> und <code>text-display</code>. Überschriften in Bricolage Grotesque (<code>font-display</code>), Fließtext in Figtree. Kleiner
           als 12 px und freie Werte (<code>text-[…]</code>) gibt es nicht.
         </p>
         <div className="border border-border rounded-xl bg-card shadow-sm divide-y">

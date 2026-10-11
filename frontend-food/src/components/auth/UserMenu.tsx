@@ -29,14 +29,14 @@ export default function UserMenu() {
 
   // Do not flash "Anmelden" for logged-in users while the session is still loading.
   if (isLoading) {
-    return <div className="h-9 w-28 animate-pulse rounded-lg bg-muted" aria-hidden="true" />;
+    return <div className="skeleton-shimmer skeleton-on-hero h-10 w-28 rounded-full" aria-hidden="true" />;
   }
 
   if (!user) {
     return (
       <Button
         variant="ghost"
-        className="gap-2 font-semibold text-primary hover:bg-primary/10"
+        className="press gap-2 rounded-full bg-hero-foreground font-semibold text-foreground hover:bg-hero-muted"
         onClick={() => showLogin({ reason: 'Melde dich an, um Rezepte und Essenspläne zu speichern.' })}
       >
         <LogIn className="h-4 w-4" />
@@ -61,10 +61,10 @@ export default function UserMenu() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-body font-semibold text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+          className="press flex h-11 items-center gap-2 rounded-full bg-hero-soft py-1 pl-1 pr-1 text-body font-semibold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground md:pr-4"
           aria-label="Benutzermenü öffnen"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-spice-soft font-bold text-spice-foreground">
             {initial}
           </span>
           <span className="hidden max-w-[10rem] truncate md:inline">{user.display_name}</span>

@@ -498,28 +498,25 @@ function MealPlanListPageInner() {
         count={totalCount}
         countLoading={isLoading || !restored}
         countLabel={{ one: 'Plan', other: 'Pläne' }}
-      />
-
-      {/* Tool Link */}
-      <div className="mb-4">
-        <Link
-          to="/tools/norm-portion-simulator"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/25 bg-primary/5 text-primary text-body font-semibold hover:bg-primary/10 shadow-soft transition-all"
-        >
-          <Calculator className="w-4 h-4" />
-          Norm-Portion-Simulator
-        </Link>
-      </div>
-
-      {/* Search Bar */}
-              <ListPageSearchBar
-                placeholder="Essensplan suchen..."
-                value={search.input}
-                onChange={search.setInput}
-                onSubmit={search.submit}
-                createLabel="Neuer Essensplan"
-                onCreateClick={() => navigate('/meal-plans/new')}
-              />
+        actions={
+          <Link
+            to="/tools/norm-portion-simulator"
+            className="press inline-flex h-11 items-center gap-2 rounded-full bg-hero-soft px-4 text-body font-semibold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+          >
+            <Calculator className="w-4 h-4" />
+            Norm-Portion-Simulator
+          </Link>
+        }
+      >
+        <ListPageSearchBar
+          placeholder="Essensplan suchen..."
+          value={search.input}
+          onChange={search.setInput}
+          onSubmit={search.submit}
+          createLabel="Neuer Essensplan"
+          onCreateClick={() => navigate('/meal-plans/new')}
+        />
+      </PageHeader>
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         {/* Filter Sidebar */}
@@ -627,7 +624,7 @@ function MealPlanListPageInner() {
           <DialogHeader>
             <DialogTitle className="font-display font-bold text-section text-foreground">Neuen Essensplan erstellen</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          <div className="stagger grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             <div className="sm:col-span-2">
               <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Name *</label>
               <input
