@@ -10,7 +10,7 @@ Die bestehende Omnibar-Spezifikation (`openspec/specs/meal-planner-omnibar-searc
 
 1. **Keine Änderung an der Omnibar auf Basis dieser Rückmeldung.** Die Fünfergrenze ist gewollt. „Alle anzeigen“ muss die entsprechende Rezepte- oder Zutatenansicht öffnen. Das Verhalten ist in der bisherigen Abnahme als getestet dokumentiert; nur ein neuer reproduzierbarer Gegenbefund rechtfertigt einen Code-Fix.
 2. **Keine zweite Suche im Buffet-Builder spezifizieren oder implementieren.** Die vorhandene Suche wird für den konkret gemeldeten Plan-/Rollenfall manuell durchgespielt. Vor dem Test müssen Plan, Rolle, Suchbegriff, ausgewähltes Ergebnis und erwartetes Ergebnis feststehen. Ein Fehler wird anhand dieser Angaben reproduziert und separat spezifiziert.
-3. **Notizen bleiben bis zur Produktklärung außerhalb der Implementierung.** Es ist offen, ob Notizen nur Zutaten, nur Rezepte oder beide betreffen. Zusätzlich sind die Anzeigeorte und der Lebenszyklus (Erstellen/Bearbeiten/Anzeigen) zu entscheiden. Erst danach kann ein umsetzbarer Daten-/API-/UI-Umfang festgelegt werden.
+3. **Notizen bleiben bis zur Produktklärung außerhalb der Implementierung.** (Erledigt: entschieden und umgesetzt als `meal-item-note`.) Es ist offen, ob Notizen nur Zutaten, nur Rezepte oder beide betreffen. Zusätzlich sind die Anzeigeorte und der Lebenszyklus (Erstellen/Bearbeiten/Anzeigen) zu entscheiden. Erst danach kann ein umsetzbarer Daten-/API-/UI-Umfang festgelegt werden.
 4. **Keine unbelegten Brötchen-Stückzahlen.** Eine Näherung darf nur aus bestätigten Gramm-pro-Stück- oder Portionsgewichten abgeleitet werden. Unbestätigte oder fehlende Gewichte müssen zu keiner Anzeige oder zu einer klar als nicht verfügbar gekennzeichneten Schätzung führen, nicht zu einer scheinpräzisen Stückzahl.
 5. **Klarer Übergang bei Befunden.** Falls die manuelle Prüfung einen Bug reproduziert, werden Ist-/Soll-Verhalten, Plan-/Rollenberechtigungen und Reproduktionsschritte in einer separaten Änderung festgehalten. Dieses Vorhaben erfindet keine erwartete Rollenlogik.
 
@@ -24,6 +24,8 @@ Die bestehende Omnibar-Spezifikation (`openspec/specs/meal-planner-omnibar-searc
 - Keine Anpassung vornehmen, wenn dieses Verhalten wie spezifiziert funktioniert.
 
 ### Buffet-Builder – Peters Fall
+
+Verschoben nach `peter-food-feedback-exploration` (Tasks 2.3, 2.3a, 3.2). Die folgenden Vorgaben gelten dort weiter.
 
 Vor Ausführung zu ergänzen: Plan beziehungsweise reproduzierbarer Testdatensatz, ausführende Benutzerrolle/Berechtigung, Mahlzeit, Buffet-Vorlage und -Rolle, Suchbegriff, erwartetes Ergebnis.
 
