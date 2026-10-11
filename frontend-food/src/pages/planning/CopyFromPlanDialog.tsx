@@ -138,14 +138,13 @@ export function CopyFromPlanDialog({
   };
 
   const handleCopy = () => {
-    if (!selectedMealId || !selectedPlan) return;
+    if (!selectedMealId || !selectedPlanId) return;
 
     copyMutation.mutate(
       {
         mealId: targetMealId,
-        source_plan_id: selectedPlanId!,
+        source_plan_id: selectedPlanId,
         source_meal_id: selectedMealId,
-        note: selectedPlan.name,
       },
       {
         onSuccess: (data) => {
@@ -154,7 +153,7 @@ export function CopyFromPlanDialog({
           resetState();
         },
         onError: (err: Error) => {
-          notify.error('Mahlzeiten konnten nicht kopiert werden', { error: err });
+          notify.error('Einträge konnten nicht kopiert werden', { error: err });
         },
       },
     );
@@ -389,7 +388,7 @@ export function CopyFromPlanDialog({
             >
               <ClipboardCopy className="w-4 h-4 mr-2" />
               {isPending
-                ? 'Kopieren...'
+                ? 'Kopieren…'
                 : `Kopieren (${selectedMeal.items.length} ${selectedMeal.items.length === 1 ? 'Eintrag' : 'Einträge'})`}
             </Button>
           )}

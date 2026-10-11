@@ -169,6 +169,20 @@ class TestMealPlanDuplicate:
         assert resp.status_code == 400
         assert "Tagesanzahl" in resp.json()["detail"]
 
+    def test_duplicate_counts_calendar_days_in_local_time(self, client: Client):
+        """A source starting shortly after local midnight has a different UTC date; the local day count wins."""
+        user = baker.make("auth.User")
+        client.force_login(user)
+        plan = make_meal_plan(created_by=user)
+        # 05.10. 00:30 – 06.10. 19:00 Europe/Berlin (UTC+2): two local calendar days, three UTC dates.
+        plan.start_datetime = dt.datetime(2026, 10, 4, 22, 30, tzinfo=UTC)
+        plan.end_datetime = dt.datetime(2026, 10, 6, 17, 0, tzinfo=UTC)
+        plan.save()
+
+        resp = self._duplicate(client, plan.id, "2026-10-16T00:30:00", "2026-10-17T19:00:00")
+
+        assert resp.status_code == 200, resp.content
+
     def test_duplicate_requires_auth(self, client: Client):
         plan = make_meal_plan()
         plan.start_datetime = dt.datetime(2026, 7, 10, 8, 0, tzinfo=UTC)

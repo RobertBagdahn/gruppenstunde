@@ -6,6 +6,7 @@ from ninja import Router
 from ninja.errors import HttpError
 
 from core.permissions import require_login
+from core.services.user_directory import public_display_name
 from planner.models import Planner, PlannerCollaborator, PlannerEntry
 from planner.schemas import (
     InviteIn,
@@ -238,4 +239,4 @@ def invite_collaborator(request, planner_id: int, payload: InviteIn):
         user=user,
         defaults={"role": payload.role},
     )
-    return {"success": True, "message": f"{user.get_username()} eingeladen als {payload.role}"}
+    return {"success": True, "message": f"{public_display_name(user)} eingeladen als {payload.role}"}

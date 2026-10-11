@@ -14,3 +14,12 @@ Der Bestätigungsdialog zum Löschen eines Essensplans SHALL den Namen des betro
 #### Scenario: Dialog öffnen
 - **WHEN** der Nutzer bei „ZZ-TEST Plan“ Löschen wählt
 - **THEN** lautet der Titel „Essensplan „ZZ-TEST Plan“ löschen?“
+
+### Requirement: Monatsgruppen sind eindeutig
+Bei der Sortierung „Demnächst“ (`date_upcoming`) SHALL die Planliste aktuelle und kommende Pläne im Abschnitt „Aktuell & kommend“ und vergangene Pläne im Abschnitt „Vergangen“ zeigen, jeweils nach Monat gruppiert. Ein Monat MUST innerhalb eines Abschnitts genau einmal erscheinen; Pläne ohne Datum stehen unter „Ohne Datum“.
+
+#### Scenario: Kommende und vergangene Pläne im selben Monat
+- **GIVEN** heute ist der 11.10.2026, ein Plan läuft vom 16.10. bis 18.10.2026 und ein Plan lief vom 02.10. bis 04.10.2026
+- **WHEN** der Nutzer die Planliste mit „Demnächst“ öffnet
+- **THEN** steht „Oktober 2026“ einmal im Abschnitt „Aktuell & kommend“ und einmal im Abschnitt „Vergangen“
+- **AND** die Konsole meldet keine doppelten React-Keys

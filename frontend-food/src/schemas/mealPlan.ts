@@ -247,9 +247,7 @@ export const COLLABORATOR_ROLE_LABELS: Record<string, string> = {
 export const MealPlanCollaboratorSchema = z.object({
   id: z.number(),
   user_id: z.number(),
-  username: z.string().default(''),
-  first_name: z.string().default(''),
-  last_name: z.string().default(''),
+  display_name: z.string().default(''),
   role: z.string(),
   created_at: z.string(),
 });
@@ -1001,7 +999,6 @@ export type MealUpdateIn = z.infer<typeof MealUpdateInSchema>;
 export const CopyItemsFromPlanInSchema = z.object({
   source_plan_id: z.number(),
   source_meal_id: z.number(),
-  note: z.string().optional(),
 });
 export type CopyItemsFromPlanIn = z.infer<typeof CopyItemsFromPlanInSchema>;
 
@@ -1198,49 +1195,6 @@ export const CookingScheduleSchema = z.object({
   norm_portions: z.number(),
 });
 export type CookingSchedule = z.infer<typeof CookingScheduleSchema>;
-
-// ==========================================================================
-// MealPlan Card Helpers
-// ==========================================================================
-
-export function getPlanBadge(plan: { owner_id: number | null; visibility: string }, userId?: number): 'verified' | 'community' | 'personal' {
-  if (plan.owner_id === null) return 'verified';
-  if (plan.visibility === 'public') return 'community';
-  if (userId && plan.owner_id === userId) return 'personal';
-  return 'community';
-}
-
-export function formatDateRange(startDatetime?: string | null, endDatetime?: string | null): string | null {
-  if (!startDatetime && !endDatetime) return null;
-  const start = startDatetime ? new Date(startDatetime) : null;
-  const end = endDatetime ? new Date(endDatetime) : null;
-  const options: Intl.DateTimeFormatOptions = {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'Europe/Berlin',
-  };
-  const fmt = (d: Date) => d.toLocaleDateString('de-DE', options);
-  const dateKey = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
-  if (start && end) {
-    if (dateKey(start) === dateKey(end)) return fmt(start);
-    return `${fmt(start)} – ${fmt(end)}`;
-  }
-  if (start) return `ab ${fmt(start)}`;
-  if (end) return `bis ${fmt(end)}`;
-  return null;
-}
-
-export function getDaysCount(startDatetime?: string | null, endDatetime?: string | null): number {
-  if (!startDatetime || !endDatetime) return 0;
-  const start = new Date(startDatetime);
-  const end = new Date(endDatetime);
-  const key = (date: Date) => date.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
-  const startDate = new Date(`${key(start)}T00:00:00Z`);
-  const endDate = new Date(`${key(end)}T00:00:00Z`);
-  const diff = endDate.getTime() - startDate.getTime();
-  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)) + 1);
-}
 
 // ==========================================================================
 // Suggestion panel (16 cards in 4 directions) and magic wand

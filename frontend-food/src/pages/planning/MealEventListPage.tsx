@@ -30,8 +30,10 @@ import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import {
   planTiming,
   planDurationDays,
-  monthKey,
   monthLabel,
+  groupPlansForList,
+  templateEndDatetime,
+  templateDatesError,
   type PlanTiming,
 } from '@/lib/mealPlanListDisplay';
 import EmptyState from '@/components/shared/EmptyState';
@@ -189,17 +191,7 @@ function MealPlanListPageInner() {
 
   const visiblePlans = useMemo(() => mealPlans ?? [], [mealPlans]);
 
-  const monthGroups = useMemo(() => {
-    if (!sort.startsWith('date_')) return [{ key: '', plans: visiblePlans }];
-    const groups: { key: string; plans: MealPlan[] }[] = [];
-    for (const plan of visiblePlans) {
-      const key = monthKey(plan);
-      const last = groups[groups.length - 1];
-      if (last && last.key === key) last.plans.push(plan);
-      else groups.push({ key, plans: [plan] });
-    }
-    return groups;
-  }, [visiblePlans, sort]);
+  const planSections = useMemo(() => groupPlansForList(visiblePlans, sort, now), [visiblePlans, sort, now]);
 
   const totalCount = visiblePlans.length;
 
@@ -209,23 +201,14 @@ function MealPlanListPageInner() {
   );
 
   useEffect(() => {
-    if (!copySource || !copySource.start_datetime || !copySource.end_datetime) return;
-    const sourceStart = new Date(copySource.start_datetime);
-    const sourceEnd = new Date(copySource.end_datetime);
-    const durationMs = sourceEnd.getTime() - sourceStart.getTime();
-    const currentStart = new Date(createStartDatetime);
-    const newEnd = new Date(currentStart.getTime() + durationMs);
-    const fmt = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const h = String(d.getHours()).padStart(2, '0');
-      const min = String(d.getMinutes()).padStart(2, '0');
-      return `${y}-${m}-${day}T${h}:${min}`;
-    };
-    setCreateEndDatetime(fmt(newEnd));
+    if (!copySource) return;
+    const end = templateEndDatetime(copySource, createStartDatetime);
+    if (end) setCreateEndDatetime(end);
     setCreatePortions(copySource.norm_portions);
   }, [copySource, createStartDatetime]);
+
+  const copyDatesError = copySource ? templateDatesError(copySource, createStartDatetime, createEndDatetime) : null;
+  const [showCopyDatesError, setShowCopyDatesError] = useState(false);
 
   const toggleTag = (tagId: number) => {
     setNutritionalTagIds(prev =>
@@ -242,6 +225,7 @@ function MealPlanListPageInner() {
     setCopyEnabled(false);
     setCopySourceId(null);
     setNutritionalTagIds([]);
+    setShowCopyDatesError(false);
   };
 
   const handleSubmit = () => {
@@ -250,6 +234,10 @@ function MealPlanListPageInner() {
     if (copyEnabled && copySourceId) {
       const source = mealPlans?.find((p) => p.id === copySourceId);
       if (!source) return;
+      if (copyDatesError) {
+        setShowCopyDatesError(true);
+        return;
+      }
       duplicateMutation.mutate(
         {
           id: copySourceId,
@@ -597,20 +585,27 @@ function MealPlanListPageInner() {
               onCtaClick={activeCount > 0 ? reset : () => navigate('/meal-plans/new')}
             />
           ) : (
-            <div className="space-y-6">
-              {monthGroups.map((group) => (
-                <section key={group.key || 'all'}>
-                  {group.key && (
-                    <h2 className="mb-3 flex items-center gap-2 text-body font-bold text-muted-foreground">
-                      {monthLabel(group.key)}
-                      <span className="text-caption font-semibold">({group.plans.length})</span>
-                    </h2>
+            <div className="space-y-8">
+              {planSections.map((section) => (
+                <section key={section.key} aria-label={section.title ?? undefined} className="space-y-6">
+                  {section.title && (
+                    <h2 className="font-display text-emphasis font-bold text-foreground">{section.title}</h2>
                   )}
-                  <CardTable>
-                    {group.plans.map((plan) => (
-                      <PlanRow key={plan.id} plan={plan} />
-                    ))}
-                  </CardTable>
+                  {section.months.map((group) => (
+                    <div key={group.key}>
+                      {group.month && (
+                        <h3 className="mb-3 flex items-center gap-2 text-body font-bold text-muted-foreground">
+                          {monthLabel(group.month)}
+                          <span className="text-caption font-semibold">({group.plans.length})</span>
+                        </h3>
+                      )}
+                      <CardTable>
+                        {group.plans.map((plan) => (
+                          <PlanRow key={plan.id} plan={plan} />
+                        ))}
+                      </CardTable>
+                    </div>
+                  ))}
                 </section>
               ))}
             </div>
@@ -712,6 +707,11 @@ function MealPlanListPageInner() {
                 className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
+            {showCopyDatesError && copyDatesError && (
+              <p role="alert" className="sm:col-span-2 text-caption font-semibold text-destructive">
+                {copyDatesError}
+              </p>
+            )}
             <div className="sm:col-span-2">
               <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen)</label>
               <input

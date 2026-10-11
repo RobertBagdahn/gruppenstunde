@@ -214,7 +214,7 @@ class TestScaleAndCopyAPI:
         assert copied.note == "Mit veganer Soße servieren"
 
     def test_copy_items_from_plan_sets_note(self):
-        """Copy items and verify the note is set on the target meal."""
+        """The provenance note names the source plan; a client-sent note is ignored."""
         source_plan = make_meal_plan(created_by=self.user, norm_portions=10, name="Sommerlager 2025")
         source_meal = make_meal(meal_plan=source_plan)
         recipe = make_recipe()
@@ -228,7 +228,7 @@ class TestScaleAndCopyAPI:
                 {
                     "source_plan_id": source_plan.id,
                     "source_meal_id": source_meal.id,
-                    "note": source_plan.name,
+                    "note": "Fremder Text",
                 }
             ),
             content_type="application/json",
@@ -252,7 +252,6 @@ class TestScaleAndCopyAPI:
                 {
                     "source_plan_id": source_plan.id,
                     "source_meal_id": source_meal.id,
-                    "note": source_plan.name,
                 }
             ),
             content_type="application/json",
