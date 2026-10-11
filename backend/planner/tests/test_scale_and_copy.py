@@ -1,3 +1,5 @@
+# Pyright does not model Django ORM descriptors in tests; backend checks use the django-stubs mypy plugin.
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false, reportArgumentType=false
 """Tests for scale-to-target and copy meal item endpoints, plus drinks and external meal behavior."""
 
 import datetime as dt
@@ -14,6 +16,7 @@ from planner.models import Meal, MealItem, MealTypeChoices
 from planner.schemas.meal_plan import MealOut
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe
+from supply.models import MeasuringUnit, Portion
 
 User = get_user_model()
 
@@ -164,6 +167,51 @@ class TestScaleAndCopyAPI:
         titles = {ci.recipe.title for ci in copied_items}
         assert recipe1.title in titles
         assert recipe2.title in titles
+
+    def test_copy_items_from_plan_preserves_ingredient_portion_and_quantity_fields(self):
+        source_plan = make_meal_plan(created_by=self.user, norm_portions=8)
+        source_meal = make_meal(meal_plan=source_plan, meal_type=MealTypeChoices.BREAKFAST)
+        target_meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST)
+        ingredient = baker.make("supply.Ingredient", name="Burger Bun")
+        unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"unit": "g", "quantity": 1.0})[0]
+        portion = Portion.objects.create(
+            ingredient=ingredient,
+            name="Stück",
+            measuring_unit=unit,
+            quantity=1,
+            weight_g=55,
+            rank=2,
+        )
+        source_item = MealItem.objects.create(
+            meal=source_meal,
+            ingredient=ingredient,
+            quantity=1.5,
+            portion=portion,
+            factor=1.25,
+            display_name="Burgerbrötchen",
+            buffet_role="buffet-bread",
+            buffet_share_percent=70,
+            is_breakfast_assistant=True,
+            note="Mit veganer Soße servieren",
+        )
+
+        response = self.client.post(
+            f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
+            data=json.dumps({"source_plan_id": source_plan.id, "source_meal_id": source_meal.id}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200, response.content
+        copied = MealItem.objects.get(meal=target_meal, ingredient=ingredient)
+        assert copied.quantity == source_item.quantity
+        assert copied.measuring_unit_id is None
+        assert copied.portion_id == source_item.portion_id
+        assert copied.factor == source_item.factor
+        assert copied.display_name == source_item.display_name
+        assert copied.buffet_role == source_item.buffet_role
+        assert copied.buffet_share_percent == source_item.buffet_share_percent
+        assert copied.is_breakfast_assistant is True
+        assert copied.note == "Mit veganer Soße servieren"
 
     def test_copy_items_from_plan_sets_note(self):
         """Copy items and verify the note is set on the target meal."""

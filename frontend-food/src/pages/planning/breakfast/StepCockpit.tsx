@@ -16,6 +16,7 @@ import {
   type RecipeEnergyData,
 } from '@/lib/breakfastCalc';
 import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
+import { formatNumber } from '@/lib/format';
 import { notify } from '@/lib/notify';
 
 interface StepCockpitProps {
@@ -362,14 +363,17 @@ export default function StepCockpit({
           )}
           {Object.entries(state.extraIngredients)
             .filter(([, g]) => g > 0)
-            .map(([ingId, grams]) => (
+            .map(([ingId, grams]) => {
+              const selection = state.extraIngredientSelections[ingId];
+              return (
               <div key={`extra-${ingId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{state.extraIngredientNames[ingId] ?? `Zutat #${ingId}`}</span>
-                <span className="text-right">{gramsRow(grams)}</span>
+                <span className="text-right">{selection ? `${formatNumber(selection.quantity, { maxDecimals: 2 })} ${selection.portionName}` : gramsRow(grams)}</span>
                 <span className="text-right text-muted-foreground text-caption">kcal wird geladen…</span>
                 <span className="text-right">—</span>
               </div>
-            ))}
+              );
+            })}
 
           {/* ── Total (Brot + Streichfett + Belag + Extras) ── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30">

@@ -47,11 +47,29 @@ class BuffetCatalogItem:
     energy_kcal_per_100g: float | None
     price_per_kg: float | None
     weight_per_serving_g: float | None
+    piece_weight_g: float | None
     obj: Any
     recipe_type: str | None = None
     is_favorite: bool = False
     is_template_default: bool = False
     role_slugs: tuple[str, ...] = ()
+
+
+def ingredient_piece_weight_g(ingredient: Any) -> float | None:
+    """Return one trusted countable-piece weight; never expose AI-only estimates."""
+    from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
+
+    portions = getattr(ingredient, "_prefetched_objects_cache", {}).get("portions")
+    if portions is None:
+        portions = ingredient.portions.active().select_related("measuring_unit").order_by("rank", "id")
+    candidates = sorted(portions, key=lambda portion: (portion.rank != 1, portion.rank, portion.id))
+    for portion in candidates:
+        if not is_piece_like_name(portion.name):
+            continue
+        weight = resolve_trusted_weight(portion)
+        if weight is not None:
+            return float(weight)
+    return None
 
 
 def recipe_weight_per_serving_g(recipe: Any) -> float | None:
@@ -99,7 +117,11 @@ def ingredients_for_role(user: Any, role_slug: str) -> QuerySet:
         visible_ingredient_queryset(user)
         .filter(tags__slug=role_slug)
         .prefetch_related(
-            Prefetch("portions", queryset=Portion.objects.active().order_by("rank", "id")),
+            Prefetch(
+                "portions",
+                # pi-lens-ignore: reportAttributeAccessIssue
+                queryset=Portion.objects.active().select_related("measuring_unit").order_by("rank", "id"),
+            ),
             "tags",
         )
         .order_by("name")
@@ -142,6 +164,7 @@ def _catalog_item(kind: Literal["ingredient", "recipe"], obj: Any) -> BuffetCata
             energy_kcal_per_100g=obj.energy_kcal,
             price_per_kg=float(price) if price is not None else None,
             weight_per_serving_g=None,
+            piece_weight_g=ingredient_piece_weight_g(obj),
             obj=obj,
             role_slugs=_role_slugs(obj),
         )
@@ -153,6 +176,7 @@ def _catalog_item(kind: Literal["ingredient", "recipe"], obj: Any) -> BuffetCata
         energy_kcal_per_100g=obj.cached_energy_kcal,
         price_per_kg=recipe_price_per_kg(obj),
         weight_per_serving_g=recipe_weight_per_serving_g(obj),
+        piece_weight_g=None,
         obj=obj,
         recipe_type=obj.recipe_type,
         role_slugs=_role_slugs(obj),
@@ -270,10 +294,19 @@ def search_buffet_items(
     results: list[tuple[tuple[int, int, str, str, int], BuffetCatalogItem]] = []
 
     if kind in ("all", "ingredient"):
+        from supply.models import Portion
+
         ingredients = (
             visible_ingredient_queryset(user)
             .filter(_name_query(normalized_query, name_field="name", aliases=True))
-            .prefetch_related("aliases", "tags")
+            .prefetch_related(
+                "aliases",
+                "tags",
+                Prefetch(
+                    "portions",
+                    queryset=Portion.objects.active().select_related("measuring_unit").order_by("rank", "id"),
+                ),
+            )
             .select_related("retail_section")
             .distinct()
         )

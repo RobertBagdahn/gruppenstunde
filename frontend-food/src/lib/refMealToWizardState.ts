@@ -234,7 +234,27 @@ export function refMealItemsToWizardState(
   });
   for (const item of extraItems) {
     if (!item.ingredient_id || !item.quantity) continue;
-    result.extraIngredients[String(item.ingredient_id)] = Math.round(perPerson(item));
+    const key = String(item.ingredient_id);
+    const catalogExtra = catalog.extra_ingredients.find((extra) => extra.id === item.ingredient_id);
+    const catalogPortion = catalogExtra?.portions.find((portion) => portion.id === item.portion_id);
+    const quantity = perPerson(item);
+    const weightG = catalogPortion?.weight_g
+      ?? (item.quantity_g != null && item.quantity > 0 ? item.quantity_g / item.quantity : null);
+    result.extraIngredients[key] = Math.round(
+      item.quantity_g ?? (weightG != null ? quantity * weightG : item.portion_id ? 0 : quantity),
+    );
+    const ingredientName = item.ingredient_name || catalogExtra?.name;
+    if (ingredientName) result.extraIngredientNames[key] = ingredientName;
+    if (item.portion_id) {
+      result.extraIngredientSelections[key] = {
+        portionId: item.portion_id,
+        measuringUnitId: item.measuring_unit_id ?? catalogPortion?.measuring_unit_id ?? null,
+        portionName: item.portion_name || catalogPortion?.name || item.measuring_unit_name,
+        measuringUnitName: item.measuring_unit_name || null,
+        quantity,
+        weightG,
+      };
+    }
   }
 
   return result;

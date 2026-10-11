@@ -248,6 +248,30 @@ describe('StepZutatenPanel', () => {
     expect(screen.getByText('Menge: 1')).toBeInTheDocument();
   });
 
+  it('allows the quantity modifier to be cleared and entered from zero', async () => {
+    const user = userEvent.setup();
+    const props = {
+      ...defaultProps,
+      stepIngredients: [{
+        id: 1,
+        recipe_item_id: 1,
+        quantity_modifier: 1,
+        preparation: '',
+        sort_order: 1,
+      }],
+    };
+    render(<StepZutatenPanel {...props} />, { wrapper });
+    await user.click(screen.getByRole('button', { name: 'Bearbeiten' }));
+    const input = screen.getByRole('textbox', { name: 'Mengenmodifikator' });
+
+    await user.clear(input);
+    expect(input).toHaveValue('');
+    await user.type(input, '0,5');
+
+    expect(input).toHaveValue('0,5');
+    expect(mockOnUpdate.mock.lastCall?.[0][0].quantity_modifier).toBe(0.5);
+  });
+
   it('should support preparation notes editing', () => {
     const props = {
       ...defaultProps,

@@ -12,6 +12,7 @@ class BuffetCatalogItemOut(Schema):
     energy_kcal_per_100g: float | None = None
     price_per_kg: float | None = None
     weight_per_serving_g: float | None = None
+    piece_weight_g: float | None = None
     is_favorite: bool = False
     is_template_default: bool = False
     default_selected: bool = False
@@ -45,6 +46,7 @@ class BuffetCatalogSearchItemOut(Schema):
     energy_kcal_per_100g: float | None = None
     price_per_kg: float | None = None
     weight_per_serving_g: float | None = None
+    piece_weight_g: float | None = None
     recipe_type: str | None = None
     is_favorite: bool
     role_slugs: list[str] = []

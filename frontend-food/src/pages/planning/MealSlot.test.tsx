@@ -15,9 +15,39 @@ vi.mock('react-router-dom', async () => {
 vi.mock('@/api/mealPlans', () => ({
   useIngredientScan: () => ({ data: undefined }),
 }));
-
 vi.mock('@/api/supplies', () => ({
-  useUnitOptions: () => ({ data: undefined, isLoading: false }),
+  useUnitOptions: () => ({
+    data: new Map([
+      [
+        10,
+        [
+          {
+            key: 'grams',
+            kind: 'grams',
+            label: 'g',
+            grams_per_unit: 1,
+            is_approx: false,
+            has_weight: true,
+            portion_id: null,
+            measuring_unit_id: null,
+            standard_measure_key: null,
+          },
+          {
+            key: 'portion:17',
+            kind: 'portion',
+            label: 'Stück',
+            grams_per_unit: 55,
+            is_approx: false,
+            has_weight: true,
+            portion_id: 17,
+            measuring_unit_id: null,
+            standard_measure_key: null,
+          },
+        ],
+      ],
+    ]),
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@/components/buffet/BuffetBuilder', () => ({
@@ -48,6 +78,7 @@ function makeItem(overrides: Partial<MealItem> = {}): MealItem {
     unit_label: 'g',
     is_weight_approx: false,
     display_name: null,
+    note: '',
     factor: 1,
     active_recipe_item_ids: [],
     variant_group_id: null,
@@ -95,7 +126,7 @@ function makeMeal(items: MealItem[], overrides: Partial<Meal> = {}): Meal {
 
 const noop = vi.fn();
 
-function renderMealSlot(meal: Meal, canEdit = true) {
+function renderMealSlot(meal: Meal, canEdit = true, onUpdateItem = vi.fn()) {
   return render(
     <MemoryRouter>
       <MealSlot
@@ -107,6 +138,7 @@ function renderMealSlot(meal: Meal, canEdit = true) {
         onAddIngredient={noop}
         onDeleteItem={noop}
         onUpdateItemFactor={noop}
+        onUpdateItem={onUpdateItem}
         onUpdateMeal={noop}
         onScaleMeal={noop}
         onCopyFromPlan={noop}
@@ -155,6 +187,32 @@ describe('MealSlot buffet grouping', () => {
     expect(screen.getByText('Brot & Gebäck')).toBeInTheDocument();
     expect(screen.queryByText('Weitere')).not.toBeInTheDocument();
     expect(screen.getAllByText('Obstsalat').length).toBeGreaterThan(0);
+  });
+
+  it('lets the editor change an ingredient to another active portion', () => {
+    const updateItem = vi.fn();
+    renderMealSlot(makeMeal([makeItem({ id: 1, portion_id: null })]), true, updateItem);
+    openDetails();
+    fireEvent.click(screen.getByRole('button', { name: 'Einheit wählen' }));
+    fireEvent.click(screen.getByRole('option', { name: /Stück/ }));
+    const quantityInput = screen.getByRole('textbox', { name: 'Menge' });
+    expect(quantityInput).toHaveValue('2,73');
+    fireEvent.change(quantityInput, { target: { value: '3' } });
+    fireEvent.blur(quantityInput);
+
+    expect(updateItem).toHaveBeenCalledWith(1, {
+      quantity: 3,
+      portion_id: 17,
+      measuring_unit_id: null,
+      standard_measure_key: null,
+    });
+  });
+
+  it('does not offer portion changes to a viewer', () => {
+    renderMealSlot(makeMeal([makeItem({ id: 1 })]), false);
+    openDetails();
+
+    expect(screen.queryByRole('button', { name: 'Einheit wählen' })).not.toBeInTheDocument();
   });
 
   it('renders the plain single-card layout when no item has a buffet role', () => {

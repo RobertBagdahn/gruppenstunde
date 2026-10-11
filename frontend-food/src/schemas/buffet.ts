@@ -68,6 +68,7 @@ export const BuffetCatalogItemSchema = z.object({
   energy_kcal_per_100g: z.number().nullable().optional(),
   price_per_kg: z.number().nullable().optional(),
   weight_per_serving_g: z.number().nullable().optional(),
+  piece_weight_g: z.number().nullable().optional(),
   is_favorite: z.boolean().default(false),
   is_template_default: z.boolean().default(false),
   role_slugs: z.array(z.string()).default([]),
@@ -99,6 +100,7 @@ export const BuffetCatalogSearchItemSchema = z.object({
   energy_kcal_per_100g: z.number().nullable(),
   price_per_kg: z.number().nullable(),
   weight_per_serving_g: z.number().nullable(),
+  piece_weight_g: z.number().nullable().optional(),
   recipe_type: z.string().nullable(),
   is_favorite: z.boolean(),
   role_slugs: z.array(z.string()),
@@ -177,6 +179,7 @@ export const BuffetStateSelectionSchema = z.object({
   energy_kcal_per_100g: z.number().nullable(),
   price_per_kg: z.number().nullable(),
   weight_per_serving_g: z.number().nullable(),
+  piece_weight_g: z.number().nullable().optional(),
 });
 export type BuffetStateSelection = z.infer<typeof BuffetStateSelectionSchema>;
 

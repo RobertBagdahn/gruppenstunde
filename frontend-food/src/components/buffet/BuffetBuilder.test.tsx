@@ -142,6 +142,83 @@ function choosePreset(name = 'Belegte Baguettes') {
 }
 
 describe('BuffetBuilder', () => {
+  it('shows an approximate total piece count only when the ingredient has a trusted piece weight', () => {
+    const catalog = makeCatalog();
+    catalog.roles[0].items[0] = { ...catalog.roles[0].items[0], piece_weight_g: 55 };
+    vi.mocked(useBuffetCatalog).mockReturnValue({
+      data: catalog,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBuffetCatalog>);
+
+    renderBuilder({ normPortions: 4 });
+    choosePreset();
+
+    expect(screen.getByText('≈ 11 Stück insgesamt für 4 Personen')).toBeInTheDocument();
+
+    const withoutPieceWeight = makeCatalog();
+    vi.mocked(useBuffetCatalog).mockReturnValue({
+      data: withoutPieceWeight,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBuffetCatalog>);
+  });
+
+  it('estimates total bun pieces from trusted weight, role share and people', () => {
+    const catalog = makeCatalog();
+    catalog.roles[0].items[0] = { ...catalog.roles[0].items[0], piece_weight_g: 55 };
+    vi.mocked(useBuffetCatalog).mockReturnValue({
+      data: catalog,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBuffetCatalog>);
+
+    renderBuilder({ normPortions: 4 });
+    choosePreset();
+
+    expect(screen.getByText('≈ 11 Stück insgesamt für 4 Personen')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Ciabatta'));
+    expect(screen.getByText('≈ 5 Stück insgesamt für 4 Personen')).toBeInTheDocument();
+  });
+
+  it('does not estimate pieces without a trusted piece weight', () => {
+    renderBuilder({ normPortions: 4 });
+    choosePreset();
+
+    expect(screen.queryByTestId('buffet-piece-estimate-10')).not.toBeInTheDocument();
+  });
+
+  it('does not estimate pieces for recipes even if a piece weight is present', () => {
+    const catalog = makeCatalog();
+    catalog.roles[0].items[0] = { ...catalog.roles[0].items[0], kind: 'recipe', piece_weight_g: 55 };
+    vi.mocked(useBuffetCatalog).mockReturnValue({
+      data: catalog,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBuffetCatalog>);
+
+    renderBuilder({ normPortions: 4 });
+    choosePreset();
+
+    expect(screen.queryByTestId('buffet-piece-estimate-10')).not.toBeInTheDocument();
+  });
+
+  it('does not estimate pieces for roles measured in milliliters', () => {
+    const catalog = makeCatalog();
+    catalog.roles = [{
+      ...catalog.roles[0],
+      role: { slug: 'buffet-drink', name: 'Getränke', icon: '' },
+      unit: 'ml',
+      items: [{ ...catalog.roles[0].items[0], piece_weight_g: 55 }],
+    }];
+    vi.mocked(useBuffetCatalog).mockReturnValue({
+      data: catalog,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBuffetCatalog>);
+
+    renderBuilder({ normPortions: 4 });
+    choosePreset();
+
+    expect(screen.queryByTestId('buffet-piece-estimate-10')).not.toBeInTheDocument();
+  });
+
   it('preselects the template for the meal type and shows its roles with default items checked', () => {
     renderBuilder();
     choosePreset();

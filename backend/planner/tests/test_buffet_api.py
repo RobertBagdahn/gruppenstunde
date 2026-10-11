@@ -1,3 +1,5 @@
+# Pyright does not model Django ORM descriptors in tests; backend checks use the django-stubs mypy plugin.
+# pyright: reportAttributeAccessIssue=false
 """Tests for the buffet endpoint (planner/api/buffet.py)."""
 
 import json
@@ -7,6 +9,7 @@ from django.contrib.auth import get_user_model
 
 from planner.models import MealItem, MealPlanCollaborator, MealTypeChoices
 from planner.tests import make_buffet_template, make_meal, make_meal_plan
+from supply.models import Portion
 from supply.tests import make_ingredient
 
 User = get_user_model()
@@ -265,6 +268,16 @@ class TestBuffetEndpoint:
         bread_tag = template.roles.get(role__slug="buffet-bread").role
         ingredient = make_ingredient(name="Brot")
         ingredient.tags.add(bread_tag)
+        Portion.objects.create(
+            ingredient=ingredient,
+            name="Stück",
+            measuring_unit=gram_unit,
+            quantity=1,
+            weight_g=55,
+            rank=2,
+            weight_status="confirmed",
+            weight_source="manual",
+        )
         _post_buffet(
             auth_client,
             meal_plan.id,
@@ -291,5 +304,6 @@ class TestBuffetEndpoint:
                 "energy_kcal_per_100g": ingredient.energy_kcal,
                 "price_per_kg": None,
                 "weight_per_serving_g": None,
+                "piece_weight_g": 55.0,
             }
         ]

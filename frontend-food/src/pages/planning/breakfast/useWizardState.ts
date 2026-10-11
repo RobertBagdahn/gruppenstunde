@@ -11,6 +11,7 @@ import {
   type FatSelection,
   type DrinkRecipeSelection,
   type DrinkIngredientSelection,
+  type ExtraIngredientPortionSelection,
   type ToppingIntensity,
 } from '@/schemas/breakfast';
 import { rebalanceShares } from '@/lib/breakfastCalc';
@@ -181,20 +182,45 @@ export function useWizardState(initialState?: Partial<WizardState>, initialStep:
     }));
   }, []);
 
-  const setExtraIngredient = useCallback((ingredientId: number, gramsPerPerson: number, name?: string) => {
-    setState((s) => ({
-      ...s,
-      extraIngredients: { ...s.extraIngredients, [String(ingredientId)]: gramsPerPerson },
-      extraIngredientNames: name
-        ? { ...s.extraIngredientNames, [String(ingredientId)]: name }
-        : s.extraIngredientNames,
-    }));
+  const setExtraIngredient = useCallback((
+    ingredientId: number,
+    quantity: number,
+    name?: string,
+    selectedPortion?: ExtraIngredientPortionSelection | null,
+  ) => {
+    setState((s) => {
+      const key = String(ingredientId);
+      const portion = selectedPortion === undefined ? s.extraIngredientSelections[key] : selectedPortion;
+      const gramsPerPerson = portion?.weightG != null && portion.weightG > 0
+        ? quantity * portion.weightG
+        : portion
+          ? 0
+          : quantity;
+      return {
+        ...s,
+        extraIngredients: { ...s.extraIngredients, [key]: gramsPerPerson },
+        extraIngredientNames: name
+          ? { ...s.extraIngredientNames, [key]: name }
+          : s.extraIngredientNames,
+        extraIngredientSelections: portion
+          ? { ...s.extraIngredientSelections, [key]: { ...portion, quantity } }
+          : Object.fromEntries(Object.entries(s.extraIngredientSelections).filter(([id]) => id !== key)),
+      };
+    });
   }, []);
 
   const removeExtraIngredient = useCallback((ingredientId: number) => {
     setState((s) => {
-      const { [String(ingredientId)]: _removed, ...rest } = s.extraIngredients;
-      return { ...s, extraIngredients: rest };
+      const key = String(ingredientId);
+      const { [key]: _removed, ...rest } = s.extraIngredients;
+      const { [key]: _removedName, ...restNames } = s.extraIngredientNames;
+      const { [key]: _removedPortion, ...restPortions } = s.extraIngredientSelections;
+      return {
+        ...s,
+        extraIngredients: rest,
+        extraIngredientNames: restNames,
+        extraIngredientSelections: restPortions,
+      };
     });
   }, []);
 

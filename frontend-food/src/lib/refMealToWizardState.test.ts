@@ -27,7 +27,9 @@ describe('refMealItemsToWizardState', () => {
         { id: 1, name: 'Haferflocken', slug: 'haferflocken', is_standalone_food: true, standard_recipe_weight_g: null, energy_kcal: 370, price_per_kg: null, portions: [] },
       ],
       extra_ingredients: [
-        { id: 3, name: 'Apfel', slug: 'apfel', is_standalone_food: true, energy_kcal: 52, price_per_kg: null, portions: [] },
+        { id: 3, name: 'Apfel', slug: 'apfel', is_standalone_food: true, energy_kcal: 52, price_per_kg: null, portions: [
+          { id: 55, name: 'Stück', measuring_unit_id: 7, quantity: 1, weight_g: 50, is_default: true, priority: 1 },
+        ] },
       ],
       drink_ingredients: [
         { id: 4, name: 'Milch', slug: 'milch', is_standalone_food: true, energy_kcal: 64, price_per_kg: null, portions: [] },
@@ -52,6 +54,7 @@ describe('refMealItemsToWizardState', () => {
       unit_label: 'g',
       is_weight_approx: false,
       display_name: null,
+      note: '',
       image_url: null,
       active_recipe_item_ids: [],
       variant_group_id: null,
@@ -69,7 +72,7 @@ describe('refMealItemsToWizardState', () => {
 
     const state = refMealItemsToWizardState([
       mealItem({ id: 1, ingredient_tags: ['buffet-cereal'] }),
-      mealItem({ id: 2, ingredient_id: 3, ingredient_name: 'Apfel', ingredient_slug: 'apfel', ingredient_tags: ['buffet-fresh'], quantity: 50 }),
+      mealItem({ id: 2, ingredient_id: 3, ingredient_name: 'Apfel', ingredient_slug: 'apfel', ingredient_tags: ['buffet-fresh'], quantity: 1, quantity_g: 50, measuring_unit_id: 7, measuring_unit_name: 'Stück', portion_id: 55, portion_name: 'Stück' }),
       mealItem({ id: 3, ingredient_id: 4, ingredient_name: 'Milch', ingredient_slug: 'milch', ingredient_tags: ['buffet-drink'], quantity: 200, measuring_unit_name: 'Milliliter' }),
       mealItem({ id: 4, ingredient_id: 6, ingredient_name: 'Alter Saft', ingredient_slug: 'alter-saft', ingredient_tags: ['breakfast-drink'], quantity: 100, measuring_unit_name: 'Milliliter' }),
       mealItem({ id: 5, ingredient_id: 5, ingredient_name: 'Manuelle Zutat', ingredient_slug: 'manuelle-zutat', ingredient_tags: [], quantity: 30 }),
@@ -77,6 +80,15 @@ describe('refMealItemsToWizardState', () => {
 
     expect(state.basis?.map((item) => item.ingredientId)).toEqual([1]);
     expect(state.extraIngredients).toEqual({ '3': 50 });
+    expect(state.extraIngredientNames).toEqual({ '3': 'Apfel' });
+    expect(state.extraIngredientSelections?.['3']).toEqual({
+      portionId: 55,
+      measuringUnitId: 7,
+      portionName: 'Stück',
+      measuringUnitName: 'Stück',
+      quantity: 1,
+      weightG: 50,
+    });
     expect(state.drinkIngredients?.map((item) => item.ingredientId)).toEqual([4, 6]);
     expect(state.extraIngredients).not.toHaveProperty('5');
   });
@@ -107,6 +119,7 @@ describe('refMealItemsToWizardState', () => {
       unit_label: 'g',
       is_weight_approx: false,
       display_name: null,
+      note: '',
       image_url: null,
       active_recipe_item_ids: [],
       variant_group_id: null,
@@ -158,6 +171,7 @@ describe('refMealItemsToWizardState', () => {
       unit_label: '',
       is_weight_approx: false,
       display_name: null,
+      note: '',
       image_url: null,
       active_recipe_item_ids: [],
       variant_group_id: null,

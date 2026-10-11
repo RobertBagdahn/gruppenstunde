@@ -1,3 +1,5 @@
+# Pyright does not model Django ORM descriptors in tests; backend checks use the django-stubs mypy plugin.
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false, reportArgumentType=false
 """Tests for the smart meal plan duplicate endpoint."""
 
 import datetime as dt
@@ -6,8 +8,9 @@ import pytest
 from django.test import Client
 from model_bakery import baker
 
-from planner.models import MealPlan, MealTypeChoices
+from planner.models import MealItem, MealPlan, MealTypeChoices
 from planner.tests import make_meal, make_meal_plan
+from supply.models import MeasuringUnit, Portion
 
 UTC = dt.UTC
 
@@ -64,6 +67,62 @@ class TestMealPlanDuplicate:
         assert meals[0].end_datetime == dt.datetime(2026, 8, 1, 7, 0, tzinfo=UTC)
         assert meals[1].start_datetime == dt.datetime(2026, 8, 2, 10, 0, tzinfo=UTC)
         assert meals[1].end_datetime == dt.datetime(2026, 8, 2, 11, 0, tzinfo=UTC)
+
+    def test_duplicate_preserves_selected_portions_and_per_person_quantities(self, client: Client):
+        user = baker.make("auth.User")
+        client.force_login(user)
+        plan = make_meal_plan(created_by=user, norm_portions=8)
+        plan.start_datetime = dt.datetime(2026, 7, 10, 8, 0, tzinfo=UTC)
+        plan.end_datetime = dt.datetime(2026, 7, 12, 20, 0, tzinfo=UTC)
+        plan.save()
+        meal = make_meal(
+            meal_plan=plan,
+            start_datetime=dt.datetime(2026, 7, 10, 8, 0, tzinfo=UTC),
+            end_datetime=dt.datetime(2026, 7, 10, 9, 0, tzinfo=UTC),
+            meal_type=MealTypeChoices.BREAKFAST,
+        )
+        ingredient = baker.make("supply.Ingredient", name="Burger Bun")
+        unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"unit": "g", "quantity": 1.0})[0]
+        portion = Portion.objects.create(
+            ingredient=ingredient,
+            name="Stück",
+            measuring_unit=unit,
+            quantity=1,
+            weight_g=55,
+            rank=2,
+        )
+        MealItem.objects.create(
+            meal=meal,
+            ingredient=ingredient,
+            quantity=1.5,
+            portion=portion,
+            factor=1.25,
+            buffet_role="buffet-bread",
+            buffet_share_percent=60,
+            is_breakfast_assistant=True,
+            note="Vor dem Servieren aufschneiden",
+        )
+
+        response = self._duplicate(
+            client,
+            plan.id,
+            "2026-08-01T08:00:00",
+            "2026-08-03T20:00:00",
+            portions=30,
+        )
+
+        assert response.status_code == 200, response.content
+        copied_plan = MealPlan.objects.get(id=response.json()["id"])
+        copied_meal = copied_plan.meals.get(meal_type=MealTypeChoices.BREAKFAST)
+        copied_item = MealItem.objects.get(meal=copied_meal, ingredient=ingredient)
+        assert copied_item.quantity == 1.5
+        assert copied_item.measuring_unit_id is None
+        assert copied_item.portion_id == portion.id
+        assert copied_item.factor == 1.25
+        assert copied_item.buffet_role == "buffet-bread"
+        assert copied_item.buffet_share_percent == 60
+        assert copied_item.is_breakfast_assistant is True
+        assert copied_item.note == "Vor dem Servieren aufschneiden"
 
     def test_duplicate_preserves_times(self, client: Client):
         user = baker.make("auth.User")

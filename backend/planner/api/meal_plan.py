@@ -859,6 +859,9 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                 day_part_factor=meal.day_part_factor,
                 display_name=meal.display_name,
                 override_portions=meal.override_portions,
+                buffet_template=meal.buffet_template,
+                buffet_role_amounts=meal.buffet_role_amounts,
+                breakfast_profile=meal.breakfast_profile,
             )
             _save_meal_or_400(new_meal)
             meals_copied += 1
@@ -874,7 +877,11 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                     ingredient=item.ingredient,
                     **copy_unit_fields(item),
                     display_name=item.display_name,
+                    note=item.note,
                     factor=item.factor,
+                    buffet_role=item.buffet_role,
+                    buffet_share_percent=item.buffet_share_percent,
+                    is_breakfast_assistant=item.is_breakfast_assistant,
                     active_recipe_item_ids=item.active_recipe_item_ids,
                     variant_group_id=item.variant_group_id,
                 )
@@ -1222,6 +1229,11 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
     check_duplicates_in_input(payload.items)
 
     with transaction.atomic():
+        existing_item_notes = {
+            (item.recipe_id, item.ingredient_id, item.display_name): item.note
+            for item in meal.items.all()
+            if item.note
+        }
         if payload.manual_items_policy == "preserve":
             managed_ids = set(payload.managed_item_ids)
             meal.items.filter(Q(id__in=managed_ids) | Q(is_breakfast_assistant=True) | ~Q(buffet_role="")).delete()
@@ -1278,6 +1290,7 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
                     quantity=item_in.quantity,
                     **unit_fields.as_kwargs(),
                     display_name=item_in.display_name,
+                    note=existing_item_notes.get((item_in.recipe_id, item_in.ingredient_id, item_in.display_name), ""),
                     factor=item_in.factor,
                     is_breakfast_assistant=meal.meal_type == "breakfast",
                 )
@@ -1346,6 +1359,11 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
 
     with transaction.atomic():
         for meal in meals:
+            existing_item_notes = {
+                (item.recipe_id, item.ingredient_id, item.display_name): item.note
+                for item in meal.items.all()
+                if item.note
+            }
             if payload.manual_items_policy == "preserve":
                 managed_ids = set(payload.managed_item_ids_by_meal.get(meal.id, []))
                 meal.items.filter(Q(id__in=managed_ids) | Q(is_breakfast_assistant=True) | ~Q(buffet_role="")).delete()
@@ -1374,6 +1392,7 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
                     quantity=item_in.quantity,
                     **unit_fields.as_kwargs(),
                     display_name=item_in.display_name,
+                    note=existing_item_notes.get((item_in.recipe_id, item_in.ingredient_id, item_in.display_name), ""),
                     factor=item_in.factor,
                     is_breakfast_assistant=True,
                 )
@@ -1676,7 +1695,11 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
             ingredient=item.ingredient,
             **copy_unit_fields(item),
             display_name=item.display_name,
+            note=item.note,
             factor=item.factor,
+            buffet_role=item.buffet_role,
+            buffet_share_percent=item.buffet_share_percent,
+            is_breakfast_assistant=item.is_breakfast_assistant,
         )
         copied.active_recipe_item_ids = item.active_recipe_item_ids
         copied.variant_group_id = item.variant_group_id

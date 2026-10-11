@@ -75,6 +75,7 @@ function makeWizardState(overrides: Partial<WizardState> = {}): WizardState {
     warmDishRecipeNames: {},
     extraIngredients: {},
     extraIngredientNames: {},
+    extraIngredientSelections: {},
     drinkRecipes: [],
     drinkIngredients: [],
     ...overrides,

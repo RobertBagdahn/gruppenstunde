@@ -207,6 +207,7 @@ export default function BreakfastWizardPage() {
       drinkIngredients: selectedDrinkIngredients.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, mlPerPerson: 200 })),
       extraIngredients: Object.fromEntries(selectedExtras.map(({ item }) => [String(item.id), 80])),
       extraIngredientNames: Object.fromEntries(selectedExtras.map(({ item }) => [String(item.id), item.name])),
+      extraIngredientSelections: {},
       warmDishRecipeIds: [],
       warmDishFactors: {},
       warmDishRecipeNames: {},
@@ -268,9 +269,11 @@ export default function BreakfastWizardPage() {
     }
 
     // ── Extras (vegetables, garnish) — may overlap with basis/topping ──
+    const gramsBeforeExtras = { ...ingGrams };
     for (const [ingId, grams] of Object.entries(state.extraIngredients)) {
-      if (grams <= 0) continue;
       const id = Number(ingId);
+      const selection = state.extraIngredientSelections[ingId];
+      if (grams <= 0 && !selection) continue;
       ingGrams[id] = (ingGrams[id] ?? 0) + grams;
     }
 
@@ -293,16 +296,28 @@ export default function BreakfastWizardPage() {
     const mergedIds = new Set<number>();
     const out: WizardItemIn[] = [];
     for (const [ingIdStr, grams] of Object.entries(ingGrams)) {
-      if (grams <= 0) continue;
       const ingId = Number(ingIdStr);
+      const selection = state.extraIngredientSelections[ingIdStr];
+      const canKeepSelectedPortion = Boolean(selection && (gramsBeforeExtras[ingId] ?? 0) <= 0);
+      if (grams <= 0 && !canKeepSelectedPortion) continue;
       if (mergedIds.has(ingId)) continue;
       mergedIds.add(ingId);
-      out.push({
-        ingredient_id: ingId,
-        quantity: Math.round(grams * 10) / 10,
-        measuring_unit_id: gramUnitId,
-        factor: 1.0,
-      });
+      if (canKeepSelectedPortion && selection) {
+        out.push({
+          ingredient_id: ingId,
+          quantity: selection.quantity,
+          measuring_unit_id: selection.measuringUnitId ?? undefined,
+          portion_id: selection.portionId,
+          factor: 1.0,
+        });
+      } else {
+        out.push({
+          ingredient_id: ingId,
+          quantity: Math.round(grams * 10) / 10,
+          measuring_unit_id: gramUnitId,
+          factor: 1.0,
+        });
+      }
     }
     for (const [ingIdStr, milliliters] of Object.entries(ingMilliliters)) {
       if (milliliters <= 0) continue;

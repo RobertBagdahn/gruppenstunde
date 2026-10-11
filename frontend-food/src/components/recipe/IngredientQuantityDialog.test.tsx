@@ -51,6 +51,22 @@ describe('IngredientQuantityDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith(10, 5, 1);
   });
 
+  it('keeps an empty quantity editable and validates it only on confirmation', () => {
+    const onConfirm = renderDialog([cup, gram]);
+    const input = screen.getByLabelText('Menge');
+    const confirm = screen.getByRole('button', { name: 'Hinzufügen' }) as HTMLButtonElement;
+
+    fireEvent.change(input, { target: { value: '' } });
+    expect(input).toHaveValue('');
+    expect(confirm.disabled).toBe(true);
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: '0.5' } });
+    expect(confirm.disabled).toBe(false);
+    fireEvent.click(confirm);
+    expect(onConfirm).toHaveBeenCalledWith(10, 5, 0.5);
+  });
+
   it('maps "Gramm" to the gram portion instead of a null portion', () => {
     const onConfirm = renderDialog([cup, gram]);
 

@@ -249,6 +249,7 @@ export function BuffetBuilder({
               energy_kcal_per_100g: selection.energy_kcal_per_100g,
               price_per_kg: selection.price_per_kg,
               weight_per_serving_g: selection.weight_per_serving_g,
+              piece_weight_g: selection.piece_weight_g,
               is_favorite: false,
               is_template_default: false,
               role_slugs: [],
@@ -608,6 +609,7 @@ export function BuffetBuilder({
                 customItems={customItemsByRole[role.role.slug] ?? []}
                 search={roleSearch[role.role.slug] ?? ''}
                 mealType={mealType}
+                normPortions={normPortions}
                 filters={searchFilters}
                 onSearchChange={(value) => setRoleSearch((current) => ({ ...current, [role.role.slug]: value }))}
                 onToggleItem={(item) => toggleItem(role.role.slug, item)}
@@ -800,6 +802,7 @@ function RoleSection({
   search,
   filters,
   mealType,
+  normPortions,
   onSearchChange,
   onToggleItem,
   onAmountChange,
@@ -813,6 +816,7 @@ function RoleSection({
   search: string;
   filters: BuffetSearchFilters;
   mealType: string;
+  normPortions: number;
   onSearchChange: (value: string) => void;
   onToggleItem: (item: BuffetCatalogItem) => void;
   onAmountChange: (amount: number) => void;
@@ -931,16 +935,34 @@ function RoleSection({
           {selectedItems.length > 0 && (
             <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
               <p className="text-caption font-semibold text-foreground">Anteile innerhalb von {role.role.name}</p>
-              {selectedItems.map(({ key, item }) => (
-                <ShareSlider
-                  key={key}
-                  label={item.name}
-                  value={state?.shares[key]?.sharePercent ?? 0}
-                  locked={state?.shares[key]?.locked ?? false}
-                  onChange={(value) => onShareChange(key, value)}
-                  onToggleLock={() => onShareLock(key)}
-                />
-              ))}
+              {selectedItems.map(({ key, item }) => {
+                const sharePercent = state?.shares[key]?.sharePercent ?? 0;
+                const roleAmount = state?.amount ?? role.amount_per_person ?? 0;
+                const estimatedPieces = role.unit === 'g' && roleAmount > 0 && sharePercent > 0 && normPortions > 0
+                  && item.kind === 'ingredient' && item.piece_weight_g != null && item.piece_weight_g > 0
+                  ? Math.round((roleAmount * sharePercent / 100 * normPortions) / item.piece_weight_g)
+                  : null;
+                return (
+                  <div key={key} className="space-y-1">
+                    <ShareSlider
+                      label={item.name}
+                      value={sharePercent}
+                      locked={state?.shares[key]?.locked ?? false}
+                      onChange={(value) => onShareChange(key, value)}
+                      onToggleLock={() => onShareLock(key)}
+                    />
+                    {estimatedPieces != null && (
+                      <p
+                        className="pl-1 text-caption text-muted-foreground"
+                        title={`Näherung auf Basis von ${formatNumber(item.piece_weight_g ?? 0, { maxDecimals: 0 })} g pro Stück`}
+                        data-testid={`buffet-piece-estimate-${item.id}`}
+                      >
+                        ≈ {formatNumber(estimatedPieces, { maxDecimals: 0 })} Stück insgesamt für {formatNumber(normPortions, { maxDecimals: 0 })} Personen
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
           {selectedCustomItems.length > 0 && (
@@ -975,6 +997,7 @@ function RoleSection({
                   energy_kcal_per_100g: result.energy_kcal_per_100g,
                   price_per_kg: result.price_per_kg,
                   weight_per_serving_g: result.weight_per_serving_g,
+                  piece_weight_g: result.piece_weight_g,
                   is_favorite: result.is_favorite,
                   is_template_default: false,
                   role_slugs: result.role_slugs,

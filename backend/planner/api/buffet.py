@@ -1,3 +1,5 @@
+# Pyright lacks Django ORM descriptor types in this backend; the configured mypy run uses django-stubs.
+# pyright: reportAttributeAccessIssue=false
 """Buffet templates and the buffet builder endpoint of a meal."""
 
 from typing import Any
@@ -120,7 +122,11 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
     require_login(request)
     meal = _get_meal(meal_plan_id, meal_id, request, edit=False)
     from content.services.food_access import get_visible_ingredient_or_404, get_visible_recipe_or_404
-    from supply.services.buffet_catalog import recipe_price_per_kg, recipe_weight_per_serving_g
+    from supply.services.buffet_catalog import (
+        ingredient_piece_weight_g,
+        recipe_price_per_kg,
+        recipe_weight_per_serving_g,
+    )
     from supply.services.price_service import price_or_none
 
     selections = []
@@ -142,6 +148,7 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
                         "energy_kcal_per_100g": ingredient.energy_kcal,
                         "price_per_kg": float(price) if price is not None else None,
                         "weight_per_serving_g": None,
+                        "piece_weight_g": ingredient_piece_weight_g(ingredient),
                     }
                 )
             elif item.recipe_id is not None:
@@ -157,6 +164,7 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
                         "energy_kcal_per_100g": recipe.cached_energy_kcal,
                         "price_per_kg": recipe_price_per_kg(recipe),
                         "weight_per_serving_g": recipe_weight_per_serving_g(recipe),
+                        "piece_weight_g": None,
                     }
                 )
         except Http404:

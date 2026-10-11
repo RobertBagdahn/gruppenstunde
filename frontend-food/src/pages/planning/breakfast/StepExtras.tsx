@@ -24,9 +24,10 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
   const [showIngredientSearch, setShowIngredientSearch] = useState(false);
   const [showAvailableDishes, setShowAvailableDishes] = useState(false);
 
-  const extraEntries = Object.entries(state.extraIngredients).map(([id, g]) => ({
+  const extraEntries = Object.entries(state.extraIngredients).map(([id, gramsPerPerson]) => ({
     id: Number(id),
-    gramsPerPerson: g,
+    gramsPerPerson,
+    portion: state.extraIngredientSelections[id],
   }));
 
   const availableWarmDishes = catalog?.warm_meal_recipes ?? [];
@@ -72,11 +73,12 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
                   <span className="flex-1 text-body font-medium">{name}</span>
                   <div className="flex items-center gap-1">
                     <span className="text-caption text-muted-foreground">×</span>
-                    <DecimalInput
+                    <input
+                      type="number"
                       min={0.1}
+                      step={0.5}
                       value={factor}
-                      onChange={(nextFactor) => setWarmDishFactor(recipeId, nextFactor)}
-                      aria-label={`Faktor für ${name}`}
+                      onChange={(e) => setWarmDishFactor(recipeId, Math.max(0.1, Number(e.target.value)))}
                       className="w-16 rounded-lg border px-2 py-1 text-body text-right"
                     />
                   </div>
@@ -146,18 +148,18 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
           <p className="text-body text-muted-foreground py-2">Keine Extras geplant.</p>
         ) : (
           <div className="divide-y divide-border">
-            {extraEntries.map(({ id, gramsPerPerson }) => (
+            {extraEntries.map(({ id, gramsPerPerson, portion }) => (
               <div key={id} className="py-2 flex items-center gap-3">
                 <span className="flex-1 text-body font-medium">{state.extraIngredientNames[String(id)] ?? `Zutat #${id}`}</span>
                 <div className="flex items-center gap-1">
                   <DecimalInput
-                    min={1}
-                    value={gramsPerPerson}
-                    onChange={(grams) => setExtraIngredient(id, grams)}
+                    min={portion ? 0.1 : 1}
+                    value={portion?.quantity ?? gramsPerPerson}
+                    onChange={(quantity) => setExtraIngredient(id, Math.max(portion ? 0.1 : 1, quantity))}
                     aria-label={`Menge pro Person für ${state.extraIngredientNames[String(id)] ?? `Zutat ${id}`}`}
                     className="w-20 rounded-lg border px-2 py-1 text-body text-right"
                   />
-                  <span className="text-caption text-muted-foreground">g/P</span>
+                  <span className="text-caption text-muted-foreground">{portion?.portionName ?? 'g'}/P</span>
                 </div>
                 <button
                   type="button"
@@ -178,8 +180,25 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
         open={showIngredientSearch}
         onOpenChange={setShowIngredientSearch}
         ingredientOnly
-        onSelectIngredient={(ingredientId, _portionId, _measuringUnitId, quantity, ingredientName) => {
-          setExtraIngredient(ingredientId, quantity, ingredientName);
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, ingredientName) => {
+          const portion = catalog?.extra_ingredients
+            .find((item) => item.id === ingredientId)
+            ?.portions.find((candidate) => candidate.id === portionId);
+          setExtraIngredient(
+            ingredientId,
+            quantity,
+            ingredientName,
+            portion && portionId != null
+              ? {
+                  portionId,
+                  measuringUnitId,
+                  portionName: portion.name,
+                  measuringUnitName: null,
+                  quantity,
+                  weightG: portion.weight_g,
+                }
+              : null,
+          );
           setShowIngredientSearch(false);
         }}
       />

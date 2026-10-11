@@ -1,3 +1,5 @@
+# Pyright cannot infer Django model fields/managers in tests; backend static analysis uses django-stubs via mypy.
+# pyright: reportAttributeAccessIssue=false
 """Tests for GET /api/supply/buffet-catalog/ and the breakfast-catalog adapter."""
 
 import pytest
@@ -8,7 +10,7 @@ from content.models import Tag
 from planner.tests import make_buffet_roles, make_buffet_template
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import IngredientAlias
-from supply.tests import make_ingredient, make_retail_section
+from supply.tests import make_ingredient, make_portion, make_retail_section
 
 User = get_user_model()
 
@@ -116,6 +118,41 @@ class TestBuffetCatalogSearch:
     @pytest.fixture(autouse=True)
     def _roles(self, db):
         make_buffet_roles()
+
+    def test_catalog_and_search_expose_only_trusted_piece_weight(self):
+        template = make_buffet_template(roles={"buffet-bread": (140, "g", True)})
+        bread_tag = template.roles.get(role__slug="buffet-bread").role
+        bread = make_ingredient(name="Brötchen", is_standalone_food=True)
+        bread.tags.add(bread_tag)
+        confirmed_piece = make_portion(
+            bread,
+            name="Stück",
+            quantity=1,
+            weight_g=55,
+            rank=2,
+            weight_status="confirmed",
+            weight_source="manual",
+        )
+        client, _ = _client_with_user()
+
+        catalog_response = client.get(f"/api/supply/buffet-catalog/?template={template.slug}")
+        search_response = client.get("/api/supply/buffet-catalog/search/?q=Brötchen&role=buffet-bread&meal_type=lunch")
+
+        assert catalog_response.status_code == search_response.status_code == 200
+        catalog_item = next(item for item in catalog_response.json()["roles"][0]["items"] if item["id"] == bread.id)
+        search_item = next(item for item in search_response.json() if item["id"] == bread.id)
+        assert catalog_item["piece_weight_g"] == 55
+        assert search_item["piece_weight_g"] == 55
+        assert confirmed_piece.weight_status == "confirmed"
+
+        unknown_weight_bread = make_ingredient(name="Brötchen ohne bestätigtes Gewicht", is_standalone_food=True)
+        unknown_weight_bread.tags.add(bread_tag)
+        make_portion(unknown_weight_bread, name="Stück", quantity=1, weight_g=60, rank=2)
+        refreshed = client.get(f"/api/supply/buffet-catalog/?template={template.slug}")
+        untrusted_item = next(
+            item for item in refreshed.json()["roles"][0]["items"] if item["id"] == unknown_weight_bread.id
+        )
+        assert untrusted_item["piece_weight_g"] is None
 
     def test_search_matches_umlaut_transliterations_and_aliases(self):
         ingredient = make_ingredient(name="Käse", is_standalone_food=True)

@@ -1,9 +1,12 @@
+# Pyright does not model Django ORM descriptors in tests; backend checks use the django-stubs mypy plugin.
+# pyright: reportAttributeAccessIssue=false
 """Integration tests for the portion magic wand."""
 
 import json
 from unittest.mock import patch
 
 import pytest
+from django.db import IntegrityError
 from django.test import Client
 
 from supply.models import MeasuringUnit, Portion
@@ -136,6 +139,104 @@ def test_apply_replaces_unweighted_portion_atomically(client, ingredient, gram_u
     assert source.deleted_at is not None
     replacement = Portion.objects.get(ingredient=ingredient, name="Stück neu")
     assert replacement.weight_g == 150
+
+
+@pytest.mark.django_db
+def test_apply_new_rank_one_portion_preserves_existing_normal_portion(client, ingredient, gram_unit):
+    existing = Portion.objects.create(
+        ingredient=ingredient,
+        name="100g",
+        measuring_unit=gram_unit,
+        quantity=100,
+        weight_g=100,
+        rank=1,
+    )
+    from supply.services.portion_magic_wand import _context, _token
+
+    ingredient.refresh_from_db()
+    payload = {
+        "preview_token": _token(_context(ingredient)),
+        "operations": [
+            {
+                "operation_id": "new-piece",
+                "operation": "create",
+                "source_portion_id": None,
+                "name": "Stück",
+                "quantity": 1,
+                "measuring_unit_name": "Gramm",
+                "rank": 1,
+                "proposed_weight_g": 55,
+                "confidence": 0.95,
+                "rationale": "Typisches Burgerbrötchengewicht.",
+                "selected": True,
+                "requires_manual_weight": False,
+                "delete_without_replacement": False,
+            }
+        ],
+    }
+
+    response = client.post(
+        f"{BASE}/{ingredient.slug}/portions/magic-wand/apply/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200, response.content
+    existing.refresh_from_db()
+    piece = Portion.objects.get(ingredient=ingredient, name="Stück")
+    assert existing.deleted_at is None
+    assert existing.rank == 1
+    assert piece.rank == 2
+    assert piece.weight_g == 55
+    assert response.json()["created_portion_ids"] == [piece.id]
+
+
+@pytest.mark.django_db
+def test_apply_rank_collision_returns_conflict_without_partial_changes(client, ingredient, gram_unit):
+    existing = Portion.objects.create(
+        ingredient=ingredient,
+        name="100g",
+        measuring_unit=gram_unit,
+        quantity=100,
+        weight_g=100,
+        rank=1,
+    )
+    from supply.services.portion_magic_wand import _context, _token
+
+    active_ids_before = set(Portion.objects.active().filter(ingredient=ingredient).values_list("id", flat=True))
+    ingredient.refresh_from_db()
+    payload = {
+        "preview_token": _token(_context(ingredient)),
+        "operations": [
+            {
+                "operation_id": "new-piece",
+                "operation": "create",
+                "source_portion_id": None,
+                "name": "Stück",
+                "quantity": 1,
+                "measuring_unit_name": "Gramm",
+                "rank": 1,
+                "proposed_weight_g": 55,
+                "selected": True,
+                "requires_manual_weight": False,
+                "delete_without_replacement": False,
+            }
+        ],
+    }
+
+    with patch("supply.models.Portion.save", side_effect=IntegrityError("unique_rank1_portion_per_ingredient")):
+        response = client.post(
+            f"{BASE}/{ingredient.slug}/portions/magic-wand/apply/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+    assert response.status_code == 409
+    assert "Vorschau" in response.json()["detail"]
+    active_ids_after = set(Portion.objects.active().filter(ingredient=ingredient).values_list("id", flat=True))
+    assert active_ids_after == active_ids_before
+    existing.refresh_from_db()
+    assert existing.rank == 1
 
 
 @pytest.mark.django_db

@@ -119,6 +119,7 @@ class BuffetStateSelectionOut(Schema):
     energy_kcal_per_100g: float | None = None
     price_per_kg: float | None = None
     weight_per_serving_g: float | None = None
+    piece_weight_g: float | None = None
 
 
 class BuffetStateOut(Schema):

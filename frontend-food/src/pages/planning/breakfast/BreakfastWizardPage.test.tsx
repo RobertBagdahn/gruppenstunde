@@ -86,6 +86,7 @@ function makeMealItem(overrides: Partial<MealItem> = {}): MealItem {
     unit_label: 'g',
     is_weight_approx: false,
     display_name: null,
+    note: '',
     factor: 1,
     active_recipe_item_ids: [],
     variant_group_id: null,

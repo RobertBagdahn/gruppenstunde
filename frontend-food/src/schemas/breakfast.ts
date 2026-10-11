@@ -202,6 +202,16 @@ export const DrinkIngredientSelectionSchema = z.object({
 });
 export type DrinkIngredientSelection = z.infer<typeof DrinkIngredientSelectionSchema>;
 
+export const ExtraIngredientPortionSelectionSchema = z.object({
+  portionId: z.number().int(),
+  measuringUnitId: z.number().int().nullable(),
+  portionName: z.string(),
+  measuringUnitName: z.string().nullable(),
+  quantity: z.number(),
+  weightG: z.number().nullable(),
+});
+export type ExtraIngredientPortionSelection = z.infer<typeof ExtraIngredientPortionSelectionSchema>;
+
 /** Complete wizard state */
 export const WizardStateSchema = z.object({
   /** Grams of bread per person */
@@ -220,6 +230,8 @@ export const WizardStateSchema = z.object({
   extraIngredients: z.record(z.string(), z.number()),
   /** Names of extra ingredients for display */
   extraIngredientNames: z.record(z.string(), z.string()),
+  /** Selected unit portions for extras; grams remain stored separately for calculations. */
+  extraIngredientSelections: z.record(z.string(), ExtraIngredientPortionSelectionSchema).default({}),
   /** Drink recipes with share distribution */
   drinkRecipes: z.array(DrinkRecipeSelectionSchema).default([]),
   /** Drink ingredients (Milch, Saft) with share distribution */
@@ -284,6 +296,7 @@ export function defaultWizardState(): WizardState {
     warmDishRecipeNames: {},
     extraIngredients: {},
     extraIngredientNames: {},
+    extraIngredientSelections: {},
     drinkRecipes: [],
     drinkIngredients: [],
   };

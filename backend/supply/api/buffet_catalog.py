@@ -1,3 +1,5 @@
+# Pyright cannot infer Django reverse managers; backend static analysis uses django-stubs via mypy.
+# pyright: reportAttributeAccessIssue=false
 """Buffet catalog grouped by role, optionally for one buffet template."""
 
 from typing import Any, Literal
@@ -32,6 +34,7 @@ def _items_out(
             "energy_kcal_per_100g": item.energy_kcal_per_100g,
             "price_per_kg": item.price_per_kg,
             "weight_per_serving_g": item.weight_per_serving_g,
+            "piece_weight_g": item.piece_weight_g,
             "is_favorite": item.is_favorite,
             "is_template_default": item.is_template_default,
             "default_selected": (item.kind, item.id) in default_ids,
@@ -83,6 +86,7 @@ def search_buffet_catalog(
             "energy_kcal_per_100g": item.energy_kcal_per_100g,
             "price_per_kg": item.price_per_kg,
             "weight_per_serving_g": item.weight_per_serving_g,
+            "piece_weight_g": item.piece_weight_g,
             "recipe_type": item.recipe_type,
             "is_favorite": item.is_favorite,
             "role_slugs": list(item.role_slugs),

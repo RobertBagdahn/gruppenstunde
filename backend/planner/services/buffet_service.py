@@ -118,6 +118,14 @@ def _recipe_values(recipe: Any, factor: float) -> tuple[float | None, float | No
     return kcal, cost
 
 
+def _selection_object(selection: BuffetSelection) -> tuple[str, Any]:
+    if selection.ingredient is not None and selection.recipe is None:
+        return "ingredient", selection.ingredient
+    if selection.recipe is not None and selection.ingredient is None:
+        return "recipe", selection.recipe
+    raise BuffetError("Jede Auswahl muss genau eine Zutat oder ein Rezept enthalten.")
+
+
 def validate_selections(template: BuffetTemplate, selections: list[BuffetSelection]) -> None:
     """Roles must belong to the template; visible items may be assigned freely once."""
     role_slugs = set(template.roles.values_list("role__slug", flat=True))
@@ -125,8 +133,7 @@ def validate_selections(template: BuffetTemplate, selections: list[BuffetSelecti
     for selection in selections:
         if selection.role_slug not in role_slugs:
             raise BuffetError(f"Die Rolle {selection.role_slug} gehört nicht zur Vorlage {template.name}.")
-        obj = selection.ingredient or selection.recipe
-        kind = "ingredient" if selection.ingredient is not None else "recipe"
+        kind, obj = _selection_object(selection)
         name = obj.name if kind == "ingredient" else obj.title
         selection_key = (selection.role_slug, kind, obj.id)
         if selection_key in seen:
@@ -137,8 +144,8 @@ def validate_selections(template: BuffetTemplate, selections: list[BuffetSelecti
 
 
 def _selection_name(selection: BuffetSelection) -> str:
-    item = selection.ingredient if selection.ingredient is not None else selection.recipe
-    return item.name if selection.ingredient is not None else item.title
+    kind, item = _selection_object(selection)
+    return item.name if kind == "ingredient" else item.title
 
 
 def _missing_data_warnings(selections: list[BuffetSelection]) -> list[BuffetWarning]:
@@ -146,16 +153,17 @@ def _missing_data_warnings(selections: list[BuffetSelection]) -> list[BuffetWarn
 
     warnings: list[BuffetWarning] = []
     for selection in selections:
+        kind, item = _selection_object(selection)
         name = _selection_name(selection)
-        if selection.ingredient is not None:
-            ingredient = selection.ingredient
+        if kind == "ingredient":
+            ingredient = item
             if ingredient.energy_kcal is None:
                 warnings.append(BuffetWarning("missing_energy", f"{name}: Nährwertangabe fehlt.", name))
             if price_or_none(ingredient.price_per_kg) is None:
                 warnings.append(BuffetWarning("missing_price", f"{name}: Preisangabe fehlt.", name))
             continue
 
-        recipe = selection.recipe
+        recipe = item
         if recipe.cached_energy_total_kcal is None:
             warnings.append(BuffetWarning("missing_energy", f"{name}: Nährwertangabe fehlt.", name))
         if recipe.cached_price_total is None:
@@ -245,12 +253,16 @@ def compute_buffet(
     preview_items: list[MealItem] = []
     for role_slug, role_selections in by_role.items():
         template_role = template_roles[role_slug]
-        amount = float(role_amounts.get(role_slug, template_role.amount_per_person))
+        configured_amount = role_amounts.get(role_slug, template_role.amount_per_person)
+        if configured_amount is None:
+            raise BuffetError(f"Für die Rolle {role_slug} ist keine Menge konfiguriert.")
+        amount = float(configured_amount)
         shares = _resolved_shares(role_selections)
         for selection, share_percent in zip(role_selections, shares, strict=True):
             share = amount * share_percent / 100
-            if selection.ingredient is not None:
-                ingredient = selection.ingredient
+            kind, selected_object = _selection_object(selection)
+            if kind == "ingredient":
+                ingredient = selected_object
                 kcal, cost = _ingredient_values(ingredient, share, template_role.unit)
                 item = BuffetResultItem(
                     role_slug=role_slug,
@@ -277,7 +289,7 @@ def compute_buffet(
                     )
                 )
             else:
-                recipe = selection.recipe
+                recipe = selected_object
                 serving_g = recipe_weight_per_serving_g(recipe)
                 factor = share / serving_g if serving_g else share_percent / 100
                 kcal, cost = _recipe_values(recipe, factor)
@@ -316,10 +328,7 @@ def save_buffet(
     """Replace buffet items and optionally replace manual meal entries."""
     result = compute_buffet(template, selections, role_amounts, meal, manual_items_policy)
     grams_unit, ml_unit = gram_unit(), milliliter_unit()
-    selection_by_key = {
-        (s.role_slug, "ingredient" if s.ingredient is not None else "recipe", (s.ingredient or s.recipe).id): s
-        for s in selections
-    }
+    selection_by_key = {(s.role_slug, kind, obj.id): s for s in selections for kind, obj in [_selection_object(s)]}
 
     with transaction.atomic():
         breakfast_assistant_items(meal).delete()

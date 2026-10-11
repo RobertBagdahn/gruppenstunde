@@ -1,3 +1,5 @@
+# Pyright cannot infer Django related managers/model fields; backend typing uses django-stubs via mypy.
+# pyright: reportAttributeAccessIssue=false
 """Fresh AI previews and atomic application of complete ingredient portions."""
 
 from __future__ import annotations
@@ -6,7 +8,7 @@ import hashlib
 import json
 from typing import TYPE_CHECKING
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
@@ -133,11 +135,13 @@ def _valid_suggestions(response: MagicResponse) -> list[MagicSuggestion]:
         unit = _resolve_suggestion_unit(suggestion.measuring_unit_name)
         if suggestion.quantity <= 0 or unit is None:
             continue
+        updates: dict[str, str] = {"measuring_unit_name": str(unit.name)}
         if suggestion.name.strip().casefold() == "portion":
-            suggestion.name = "Stück"
-        if suggestion.name.strip().casefold() in PACKAGE_UNIT_ALIASES or "packung" in suggestion.name.casefold():
-            suggestion.operation = "package"
-        suggestion.measuring_unit_name = unit.name
+            updates["name"] = "Stück"
+        name = updates.get("name", suggestion.name)
+        if name.strip().casefold() in PACKAGE_UNIT_ALIASES or "packung" in name.casefold():
+            updates["operation"] = "package"
+        suggestion = suggestion.model_copy(update=updates)
         key = (suggestion.operation, suggestion.name.strip().casefold(), suggestion.source_portion_id)
         if key in seen:
             continue
@@ -281,7 +285,7 @@ def preview_portions(ingredient: Ingredient, *, user) -> dict:
                     "rank": portion.rank,
                     "proposed_weight_g": portion.weight_g,
                     "confidence": None,
-                    "rationale": _existing_weight_note(ingredient.name, portion),
+                    "rationale": _existing_weight_note(str(ingredient.name), portion),
                     "selected": False,
                     "requires_manual_weight": False,
                     "delete_without_replacement": False,
@@ -407,20 +411,34 @@ def apply_portions(ingredient: Ingredient, *, payload: dict, user) -> dict:
         unit = _resolve_suggestion_unit(operation["measuring_unit_name"])
         if unit is None:
             raise ValueError(f"Maßeinheit '{operation['measuring_unit_name']}' ist unbekannt.")
+        rank = operation.get("rank") or 1
+        if rank == 1 and Portion.objects.active().filter(ingredient=ingredient, rank=1).exists():
+            active_ranks = set(Portion.objects.active().filter(ingredient=ingredient).values_list("rank", flat=True))
+            rank = 2
+            while rank in active_ranks:
+                rank += 1
         portion = Portion(
             ingredient=ingredient,
             name=name,
             quantity=operation.get("quantity") or 1,
             measuring_unit=unit,
             weight_g=weight,
-            rank=operation.get("rank") or 1,
+            rank=rank,
             created_by=user,
             weight_status=PortionWeightStatus.CONFIRMED,
             weight_source=PortionWeightSource.AI,
             weight_confirmed_at=timezone.now(),
         )
         validate_active_portion_weight(portion)
-        portion.save()
+        try:
+            with transaction.atomic():
+                portion.save()
+        except IntegrityError as exc:
+            if "unique_rank1_portion_per_ingredient" in str(exc):
+                raise ValueError(
+                    "Die Vorschau ist veraltet. Die Normalportion wurde zwischenzeitlich geändert; bitte erstelle eine neue Vorschau."
+                ) from exc
+            raise
         names.add(name.casefold())
         created.append(portion.id)
     portions = list(ingredient.portions.active().select_related("measuring_unit").order_by("rank", "id"))

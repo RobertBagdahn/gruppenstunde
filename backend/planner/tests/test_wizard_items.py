@@ -1,15 +1,19 @@
+# Pyright does not model Django ORM descriptors in tests; backend checks use the django-stubs mypy plugin.
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false, reportArgumentType=false
 """Tests for the wizard-items endpoint (batch meal item creation)."""
 
+import datetime as dt
 import json
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.utils import timezone
 from model_bakery import baker
 
 from planner.models import MealItem, MealTypeChoices
 from planner.tests import make_meal, make_meal_plan
-from supply.models import MeasuringUnit
+from supply.models import MeasuringUnit, Portion
 
 User = get_user_model()
 
@@ -124,6 +128,192 @@ class TestWizardItemsEndpoint:
         created_item = MealItem.objects.get(meal=meal, ingredient=new_ingredient)
         assert created_item.is_breakfast_assistant is True
         assert MealItem.objects.filter(meal=meal).count() == 2
+
+    def test_persists_selected_portion_for_extra_ingredient(self, client: Client):
+        user = self._login(client)
+        unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
+        plan = make_meal_plan(created_by=user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
+        ingredient = baker.make("supply.Ingredient", name="Apfel")
+        portion = Portion.objects.create(
+            ingredient=ingredient,
+            name="Stück",
+            measuring_unit=unit,
+            quantity=1,
+            weight_g=55,
+            rank=2,
+            weight_status="confirmed",
+            weight_source="manual",
+        )
+
+        response = client.post(
+            self._url(plan.id, meal.id),
+            data=json.dumps(
+                {
+                    "items": [
+                        {
+                            "ingredient_id": ingredient.id,
+                            "quantity": 1,
+                            "measuring_unit_id": unit.id,
+                            "portion_id": portion.id,
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200, response.content
+        saved = MealItem.objects.get(meal=meal, ingredient=ingredient)
+        assert saved.portion_id == portion.id
+        assert saved.measuring_unit_id is None
+        assert response.json()["items"][0]["portion_name"] == "Stück"
+        assert response.json()["items"][0]["quantity_g"] == 55
+
+    def test_wizard_preserves_item_note_when_rebuilding_same_ingredient(self, client: Client):
+        user = self._login(client)
+        gram_unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
+        plan = make_meal_plan(created_by=user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
+        ingredient = baker.make("supply.Ingredient", name="Gurke")
+        MealItem.objects.create(
+            meal=meal,
+            ingredient=ingredient,
+            quantity=20,
+            measuring_unit=gram_unit,
+            is_breakfast_assistant=True,
+            note="In Scheiben schneiden",
+        )
+
+        response = client.post(
+            self._url(plan.id, meal.id),
+            data=json.dumps(
+                {
+                    "items": [{"ingredient_id": ingredient.id, "quantity": 25, "measuring_unit_id": gram_unit.id}],
+                    "manual_items_policy": "replace",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200, response.content
+        rebuilt = MealItem.objects.get(meal=meal, ingredient=ingredient)
+        assert rebuilt.quantity == 25
+        assert rebuilt.note == "In Scheiben schneiden"
+
+    def test_wizard_preserves_note_when_rebuilding_same_ingredient(self, client: Client):
+        user = self._login(client)
+        gram_unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
+        plan = make_meal_plan(created_by=user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
+        ingredient = baker.make("supply.Ingredient", name="Gurke")
+        MealItem.objects.create(
+            meal=meal,
+            ingredient=ingredient,
+            quantity=20,
+            measuring_unit=gram_unit,
+            is_breakfast_assistant=True,
+            note="In Scheiben schneiden",
+        )
+
+        response = client.post(
+            self._url(plan.id, meal.id),
+            data=json.dumps(
+                {
+                    "items": [{"ingredient_id": ingredient.id, "quantity": 25, "measuring_unit_id": gram_unit.id}],
+                    "manual_items_policy": "replace",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200, response.content
+        rebuilt = MealItem.objects.get(meal=meal, ingredient=ingredient)
+        assert rebuilt.quantity == 25
+        assert rebuilt.note == "In Scheiben schneiden"
+
+    def test_wizard_rejects_portion_from_another_ingredient(self, client: Client):
+        user = self._login(client)
+        unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
+        plan = make_meal_plan(created_by=user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
+        ingredient = baker.make("supply.Ingredient", name="Apfel")
+        other_ingredient = baker.make("supply.Ingredient", name="Birne")
+        foreign_portion = Portion.objects.create(
+            ingredient=other_ingredient,
+            name="Stück",
+            measuring_unit=unit,
+            quantity=1,
+            weight_g=120,
+            rank=2,
+        )
+
+        response = client.post(
+            self._url(plan.id, meal.id),
+            data=json.dumps(
+                {
+                    "items": [
+                        {
+                            "ingredient_id": ingredient.id,
+                            "quantity": 1,
+                            "measuring_unit_id": unit.id,
+                            "portion_id": foreign_portion.id,
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 422
+        assert not MealItem.objects.filter(meal=meal).exists()
+
+    def test_bulk_wizard_persists_selected_portion(self, client: Client):
+        user = self._login(client)
+        unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
+        plan = make_meal_plan(created_by=user)
+        start = timezone.now().replace(hour=8, minute=0, second=0, microsecond=0)
+        meals = [
+            make_meal(
+                meal_plan=plan,
+                meal_type=MealTypeChoices.BREAKFAST,
+                start_datetime=start + dt.timedelta(days=index),
+                end_datetime=start + dt.timedelta(days=index, hours=1),
+            )
+            for index in range(2)
+        ]
+        ingredient = baker.make("supply.Ingredient", name="Birne")
+        portion = Portion.objects.create(
+            ingredient=ingredient,
+            name="Stück",
+            measuring_unit=unit,
+            quantity=1,
+            weight_g=120,
+            rank=2,
+            weight_status="confirmed",
+            weight_source="manual",
+        )
+
+        response = client.post(
+            f"/api/meal-plans/{plan.id}/meals/wizard-items/bulk/",
+            data=json.dumps(
+                {
+                    "meal_ids": [meal.id for meal in meals],
+                    "items": [
+                        {
+                            "ingredient_id": ingredient.id,
+                            "quantity": 1,
+                            "measuring_unit_id": unit.id,
+                            "portion_id": portion.id,
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert MealItem.objects.filter(meal__in=meals, ingredient=ingredient, portion=portion).count() == 2
 
     def test_invalid_item_triggers_rollback(self, client: Client):
         user = self._login(client)
