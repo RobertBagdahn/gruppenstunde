@@ -28,6 +28,39 @@ export const MealItemVariantInSchema = z.object({
 });
 export type MealItemVariantIn = z.infer<typeof MealItemVariantInSchema>;
 
+// ==========================================================================
+// MealItem create/update input (backend MealItemCreateIn / MealItemUpdateIn)
+// ==========================================================================
+
+export const MealItemCreateInSchema = z
+  .object({
+    recipe_id: z.number().optional(),
+    ingredient_id: z.number().optional(),
+    quantity: z.number().optional(),
+    measuring_unit_id: z.number().optional(),
+    portion_id: z.number().optional(),
+    standard_measure_key: z.string().optional(),
+    display_name: z.string().optional(),
+    note: z.string().max(500).optional(),
+    factor: z.number().positive().optional(),
+  })
+  .refine((item) => item.ingredient_id === undefined || (item.quantity ?? 0) > 0, {
+    message: 'Für eine Einzelzutat wird eine Menge größer 0 benötigt',
+    path: ['quantity'],
+  });
+export type MealItemCreateIn = z.input<typeof MealItemCreateInSchema>;
+
+export const MealItemUpdateInSchema = z.object({
+  factor: z.number().positive().optional(),
+  quantity: z.number().positive().optional(),
+  /** Unit change. Without `quantity` the backend converts the count so the grams stay the same. */
+  portion_id: z.number().nullable().optional(),
+  measuring_unit_id: z.number().nullable().optional(),
+  standard_measure_key: z.string().nullable().optional(),
+  note: z.string().max(500).optional(),
+});
+export type MealItemUpdateIn = z.input<typeof MealItemUpdateInSchema>;
+
 export const MealItemBatchInSchema = z.object({
   items: z.array(MealItemVariantInSchema),
 });
@@ -141,6 +174,66 @@ export const PlanCoolingSchema = z.enum(['fridge', 'cooler_box', 'none', '']);
 export type PlanCooling = z.infer<typeof PlanCoolingSchema>;
 export const PlanSeasonHintSchema = z.enum(['hot', 'mild', 'cold', '']);
 export type PlanSeasonHint = z.infer<typeof PlanSeasonHintSchema>;
+
+// ==========================================================================
+// MealPlan create/update input (backend MealPlanCreateIn / MealPlanUpdateIn)
+// ==========================================================================
+
+export const MEAL_PLAN_NAME_MAX_LENGTH = 200;
+
+const MealPlanVisibilitySchema = z.enum(['private', 'group', 'public', 'draft']);
+
+/** Backend strips the name and rejects blank values. */
+export const MealPlanNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Der Planname darf nicht leer sein.')
+  .max(MEAL_PLAN_NAME_MAX_LENGTH, `Der Planname darf höchstens ${MEAL_PLAN_NAME_MAX_LENGTH} Zeichen lang sein.`);
+
+export const MealPlanCreateInSchema = z.object({
+  name: MealPlanNameSchema,
+  description: z.string().optional(),
+  norm_portions: z.number().positive().max(1000).optional(),
+  reserve_factor: z.number().optional(),
+  activity_factor: z.number().optional(),
+  budget_per_person_per_day: z.number().nullable().optional(),
+  visibility: MealPlanVisibilitySchema.optional(),
+  event_id: z.number().nullable().optional(),
+  start_datetime: z.string().nullable().optional(),
+  end_datetime: z.string().nullable().optional(),
+  day_part_factors: z.record(z.number()).optional(),
+  meal_default_times: z.record(z.array(z.string())).optional(),
+  nutritional_tag_ids: z.array(z.number()).optional(),
+  age_groups: z.array(AgeGroupSchema).optional(),
+  setting: PlanSettingSchema.optional(),
+  cooking_sources: z.array(CookingSourceSchema).optional(),
+  cooling: PlanCoolingSchema.optional(),
+  season_hint: PlanSeasonHintSchema.optional(),
+});
+export type MealPlanCreateIn = z.input<typeof MealPlanCreateInSchema>;
+
+export const MealPlanUpdateInSchema = z.object({
+  name: MealPlanNameSchema.optional(),
+  description: z.string().optional(),
+  norm_portions: z.number().positive().max(1000).optional(),
+  norm_portions_manual: z.boolean().optional(),
+  reserve_factor: z.number().optional(),
+  activity_factor: z.number().optional(),
+  budget_per_person_per_day: z.number().nullable().optional(),
+  start_datetime: z.string().nullable().optional(),
+  end_datetime: z.string().nullable().optional(),
+  day_part_factors: z.record(z.number()).optional(),
+  meal_default_times: z.record(z.array(z.string())).optional(),
+  visibility: MealPlanVisibilitySchema.optional(),
+  nutritional_tag_ids: z.array(z.number()).optional(),
+  is_template: z.boolean().optional(),
+  age_groups: z.array(AgeGroupSchema).optional(),
+  setting: PlanSettingSchema.optional(),
+  cooking_sources: z.array(CookingSourceSchema).optional(),
+  cooling: PlanCoolingSchema.optional(),
+  season_hint: PlanSeasonHintSchema.optional(),
+});
+export type MealPlanUpdateIn = z.input<typeof MealPlanUpdateInSchema>;
 
 // ==========================================================================
 // MealPlan (list item)
@@ -957,7 +1050,7 @@ export const RefMealItemInSchema = z.object({
   portion_id: z.number().nullable().optional(),
   standard_measure_key: z.string().nullable().optional(),
   display_name: z.string().nullable().optional(),
-  factor: z.number().default(1.0),
+  factor: z.number().positive().default(1.0),
 });
 export type RefMealItemIn = z.infer<typeof RefMealItemInSchema>;
 

@@ -79,7 +79,10 @@ describe('StepEditor save handle', () => {
   });
 
   it('saves immediately when textarea value changes without explicit blur', async () => {
-    const mutateAsync = vi.fn().mockImplementation(async (payload) => payload.steps);
+    // The batch endpoint returns saved steps with their ids.
+    const mutateAsync = vi.fn().mockImplementation(async (payload: { steps: Omit<RecipeStep, 'id'>[] }) =>
+      payload.steps.map((saved, index) => ({ ...step, ...saved, id: index + 1 })),
+    );
     vi.mocked(useBatchUpdateSteps).mockReturnValue({ mutateAsync, isPending: false } as never);
     const ref = { current: null as StepEditorHandle | null };
     render(<StepEditor ref={ref} recipeSlug="recipe-a" />, { wrapper });

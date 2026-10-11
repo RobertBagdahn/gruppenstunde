@@ -8,6 +8,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { useCurrentUser } from '@/api/auth';
 import type { User } from '@/schemas/auth';
 import StaffRoute from './StaffRoute';
@@ -65,7 +66,7 @@ function makeUser(overrides: Partial<User> = {}): User {
 
 function renderAt(path: string): string {
   return renderToStaticMarkup(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={[path]}>
       <Routes>
         <Route element={<StaffRoute />}>
           <Route path="/admin/:section" element={<p>Admin-Inhalt</p>} />

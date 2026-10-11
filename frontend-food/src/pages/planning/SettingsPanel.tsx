@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
-import { MEAL_TYPE_LABELS, type MealPlanTag } from '@/schemas/mealPlan';
+import { MEAL_PLAN_NAME_MAX_LENGTH, MEAL_TYPE_LABELS, type MealPlanTag } from '@/schemas/mealPlan';
 import { useMealPlanTags, useCreateMealPlanTag, useDeleteMealPlanTag } from '@/api/mealPlans';
 import { Switch } from '@/components/ui/switch';
 import { notify } from '@/lib/notify';
@@ -120,6 +120,7 @@ export default function SettingsPanel({
             type="text"
             id="meal-plan-settings-name"
             value={name}
+            maxLength={MEAL_PLAN_NAME_MAX_LENGTH}
             onChange={(e) => setName(e.target.value)}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />

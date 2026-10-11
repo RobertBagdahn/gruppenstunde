@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import type { RecipeFilter } from '@/schemas/recipe';
 import RecipeListPage from './RecipeListPage';
 
@@ -35,7 +36,7 @@ function LocationProbe() {
 
 function renderApp(path = '/recipes') {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={[path]}>
       <Routes>
         <Route path="/recipes" element={<><RecipeListPage /><Link to="/recipes/eintopf">Eintopf</Link></>} />
         <Route path="/recipes/:slug" element={<Link to="/recipes">Rezepte</Link>} />

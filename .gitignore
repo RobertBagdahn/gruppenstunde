@@ -46,3 +46,6 @@ cloud-sql-proxy
 # sql dump
 *.sql
 backend/backup_prod/
+
+# Data offensive transfer package (exported per release, see docs/prod-runbook.md)
+backend/data/food/data_offensive_package.json

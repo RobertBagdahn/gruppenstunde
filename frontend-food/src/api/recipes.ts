@@ -31,6 +31,7 @@ import {
   type RecipeAiCreateIn,
   type RecipeItemAlternativeCreateIn,
   type RecipeItemReplaceIn,
+  type RecipeType,
   type VerifyRequest,
 } from '@/schemas/recipe';
 import type { RecipeStepInput } from '@/schemas/recipeStep';
@@ -230,7 +231,7 @@ export interface RecipeCreatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  recipe_type?: string;
+  recipe_type?: RecipeType | '';
   /** Recipes always store per-person quantities; the API rejects any other value. */
   portions?: 1;
   preparation_method?: string;
@@ -295,7 +296,7 @@ export interface RecipeUpdatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  recipe_type?: string;
+  recipe_type?: RecipeType | '';
   /** Recipes always store per-person quantities; the API rejects any other value. */
   portions?: 1;
   preparation_method?: string;

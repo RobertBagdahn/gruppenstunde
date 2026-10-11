@@ -110,7 +110,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
       )}
 
       <FilterGroup title="Typ" icon="restaurant">
-        {RECIPE_TYPE_OPTIONS.filter((opt) => opt.value !== 'recipe_part' && opt.value !== 'ingredient').map((opt) => (
+        {RECIPE_TYPE_OPTIONS.filter((opt) => opt.value !== 'recipe_part').map((opt) => (
           <FilterCheckbox
             key={opt.value}
             checked={selectedRecipeType.includes(opt.value)}

@@ -274,6 +274,64 @@ class TestAtomicExchangeAlternative:
         assert source.exchange_group_id is None
         assert RecipeItemExchangeGroup.objects.filter(recipe=recipe).count() == 0
 
+    def test_user_without_edit_right_is_forbidden_without_partial_group(self) -> None:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        reader = User.objects.create_user(username="alternative_reader", password="pass")
+        client = Client()
+        client.force_login(reader)
+        recipe = make_recipe()
+        source = make_recipe_item(recipe=recipe, portion=_make_portion(_make_ingredient("Linsen")))
+        alternative_portion = _make_portion(_make_ingredient("Kichererbsen"))
+
+        response = client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/{source.id}/alternatives/",
+            json.dumps({"portion_id": alternative_portion.id, "quantity": 1, "client_request_id": "reader-alt"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 403
+        source.refresh_from_db()
+        assert source.exchange_group_id is None
+        assert RecipeItemExchangeGroup.objects.filter(recipe=recipe).count() == 0
+        assert RecipeItem.objects.filter(recipe=recipe).count() == 1
+
+    @pytest.mark.parametrize("inactive_state", ["deleted", "superseded"])
+    def test_inactive_portion_is_rejected_without_partial_group(self, inactive_state: str) -> None:
+        from django.utils import timezone
+
+        client, _ = _make_staff_client()
+        recipe = make_recipe()
+        source = make_recipe_item(recipe=recipe, portion=_make_portion(_make_ingredient("Hafer")))
+        alternative_ingredient = _make_ingredient("Dinkel")
+        inactive_portion = _make_portion(alternative_ingredient)
+        if inactive_state == "deleted":
+            inactive_portion.deleted_at = timezone.now()
+            inactive_portion.save(update_fields=["deleted_at"])
+        else:
+            inactive_portion.superseded_by = Portion.objects.create(
+                ingredient=alternative_ingredient,
+                name="50g",
+                measuring_unit=inactive_portion.measuring_unit,
+                quantity=50.0,
+                weight_g=50.0,
+                rank=2,
+            )
+            inactive_portion.save(update_fields=["superseded_by"])
+
+        response = client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/{source.id}/alternatives/",
+            json.dumps({"portion_id": inactive_portion.id, "quantity": 1, "client_request_id": "inactive-alt"}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 422
+        source.refresh_from_db()
+        assert source.exchange_group_id is None
+        assert RecipeItemExchangeGroup.objects.filter(recipe=recipe).count() == 0
+        assert RecipeItem.objects.filter(recipe=recipe).count() == 1
+
     def test_failure_after_group_creation_rolls_back_all_changes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         client, _ = _make_staff_client()
         recipe = make_recipe()

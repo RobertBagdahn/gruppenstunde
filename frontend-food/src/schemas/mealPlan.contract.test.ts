@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  MEAL_PLAN_NAME_MAX_LENGTH,
+  MealItemCreateInSchema,
   MealItemSchema,
+  MealItemUpdateInSchema,
+  MealPlanCreateInSchema,
+  MealPlanUpdateInSchema,
   PlanSuggestionContextSchema,
+  RefMealItemInSchema,
   RecipeSearchResultSchema,
   RecipeSuggestionSchema,
   SuggestionPanelResponseSchema,
@@ -103,5 +109,30 @@ describe('suggestion panel contract', () => {
 
     expect(MealItemSchema.parse({ ...base, note: 'ohne Schale' }).note).toBe('ohne Schale');
     expect(MealItemSchema.parse(base).note).toBeUndefined();
+  });
+});
+
+describe('meal-plan input contracts (backend MealPlanCreateIn/UpdateIn, MealItem*In, RefMealItemIn)', () => {
+  it('trims the plan name and rejects blank or too long names', () => {
+    expect(MealPlanCreateInSchema.parse({ name: '  Sommerlager  ' }).name).toBe('Sommerlager');
+    expect(MealPlanCreateInSchema.safeParse({ name: '   ' }).success).toBe(false);
+    expect(MealPlanCreateInSchema.safeParse({ name: 'x'.repeat(MEAL_PLAN_NAME_MAX_LENGTH + 1) }).success).toBe(false);
+    expect(MealPlanUpdateInSchema.safeParse({ name: '' }).success).toBe(false);
+    expect(MealPlanUpdateInSchema.parse({ reserve_factor: 1.2 })).toEqual({ reserve_factor: 1.2 });
+  });
+
+  it('keeps every field the settings panel sends', () => {
+    const payload = { name: 'Lager', meal_default_times: { breakfast: ['08:00'] }, activity_factor: 1.5 };
+    expect(MealPlanUpdateInSchema.parse(payload)).toEqual(payload);
+  });
+
+  it('requires positive factors and quantities like the backend', () => {
+    expect(RefMealItemInSchema.safeParse({ recipe_id: 1, factor: 0 }).success).toBe(false);
+    expect(RefMealItemInSchema.parse({ recipe_id: 1 }).factor).toBe(1);
+    expect(MealItemCreateInSchema.safeParse({ recipe_id: 1, factor: -1 }).success).toBe(false);
+    expect(MealItemCreateInSchema.safeParse({ ingredient_id: 2 }).success).toBe(false);
+    expect(MealItemCreateInSchema.safeParse({ ingredient_id: 2, quantity: 50 }).success).toBe(true);
+    expect(MealItemUpdateInSchema.safeParse({ quantity: 0 }).success).toBe(false);
+    expect(MealItemUpdateInSchema.safeParse({ portion_id: null }).success).toBe(true);
   });
 });

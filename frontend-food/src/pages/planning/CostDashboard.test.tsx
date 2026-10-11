@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { describe, expect, it, vi } from 'vitest';
 import CostDashboard from './CostDashboard';
 import { useMealPlanCosts, useIngredientScan } from '@/api/mealPlans';
@@ -14,7 +15,7 @@ const mockedUseIngredientScan = vi.mocked(useIngredientScan);
 
 function renderDashboard() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <CostDashboard mealPlanId={1} budgetPerPersonPerDay={3} />
     </MemoryRouter>
   );

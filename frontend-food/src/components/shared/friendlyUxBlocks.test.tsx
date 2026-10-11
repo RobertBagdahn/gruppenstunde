@@ -13,6 +13,7 @@ import SectionBoundary from './SectionBoundary';
 import PageHeader from './PageHeader';
 import MissingValuesHint from './MissingValuesHint';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { ApiError, NETWORK_ERROR_MESSAGE, SCHEMA_ERROR_MESSAGE, getApiErrorMessage } from '@/lib/api';
 
 const sonner = vi.hoisted(() => {
@@ -168,7 +169,7 @@ describe('PageHeader', () => {
 describe('MissingValuesHint', () => {
   it('links editors to the edit page', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
         <MissingValuesHint count={5} canEdit editHref="/ingredients/salz/edit" />
       </MemoryRouter>,
     );

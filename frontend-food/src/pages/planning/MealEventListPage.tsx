@@ -18,7 +18,7 @@ import {
 import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
 import { getNextWeekend } from '@/lib/dateUtils';
-import { MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
+import { MEAL_PLAN_NAME_MAX_LENGTH, MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/shared/PageHeader';
@@ -633,6 +633,7 @@ function MealPlanListPageInner() {
               <input
                 type="text"
                 value={createName}
+                maxLength={MEAL_PLAN_NAME_MAX_LENGTH}
                 onChange={(e) => setCreateName(e.target.value)}
                 placeholder="z.B. Sommerlager 2026"
                 className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"

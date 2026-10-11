@@ -5,6 +5,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { useCurrentUser } from '@/api/auth';
 import { TOOL_PACKING_LISTS } from '@/lib/toolColors';
 import type { User } from '@/schemas/auth';
@@ -33,7 +34,7 @@ function mockUser(user: User | null) {
 
 function renderLanding(): string {
   return renderToStaticMarkup(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <ToolLandingPage
         tool={TOOL_PACKING_LISTS}
         subtitle="Untertitel"

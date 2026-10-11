@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@/lib/notify';
 import { Check, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { IngredientReviewPreview } from '@/schemas/ingredientReview';
-import type { RecipeDetail } from '@/schemas/recipe';
+import { RecipeTypeSchema, type RecipeDetail, type RecipeType } from '@/schemas/recipe';
 import { useIngredient } from '@/api/supplies';
 import { useCreateRecipe, useRecipe, useUpdateRecipe, type RecipeCreatePayload } from '@/api/recipes';
 import { useRecipeIngredientReviewStore } from '@/store/useRecipeIngredientReviewStore';
@@ -99,7 +99,7 @@ function errorMessage(error: unknown): string {
 
 interface BasicsState {
   title: string;
-  recipeType: string | null;
+  recipeType: RecipeType | null;
   servings: number | null;
   servingsConfirmed: boolean;
 }
@@ -255,8 +255,13 @@ export default function RecipeWizard() {
 
   const goToStep = useCallback((stepId: WizardStepId, nextDraftId: number | null) => {
     if (nextDraftId !== null) knownDraftIdRef.current = nextDraftId;
-    setActiveStepId(stepId);
-    writeUrl(stepId, nextDraftId, false);
+    // Step and URL must change in the same render, also when the router applies
+    // URL updates in a transition (v7_startTransition); otherwise the URL sync
+    // below sees a back navigation.
+    startTransition(() => {
+      setActiveStepId(stepId);
+      writeUrl(stepId, nextDraftId, false);
+    });
   }, [writeUrl]);
 
   // --- Browser back/forward and manual URL changes ---
@@ -423,7 +428,7 @@ export default function RecipeWizard() {
     setSmartResult(result);
     setBasics({
       title: result.recipe_draft.title,
-      recipeType: result.recipe_draft.recipe_type || 'warm_meal',
+      recipeType: RecipeTypeSchema.catch('warm_meal').parse(result.recipe_draft.recipe_type),
       servings: result.recipe_draft.servings ?? 1,
       servingsConfirmed: false,
     });
@@ -451,8 +456,10 @@ export default function RecipeWizard() {
     setSmartResult(null);
     setBasics(EMPTY_BASICS);
     resetReview();
-    setActiveStepId('input');
-    setSearchParams(new URLSearchParams({ step: 'input' }), { replace: true });
+    startTransition(() => {
+      setActiveStepId('input');
+      setSearchParams(new URLSearchParams({ step: 'input' }), { replace: true });
+    });
   }, [resetReview, setBasics, setSearchParams]);
 
   if (draftNotFound) {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import PackageSuggestionsPanel from './PackageSuggestionsPanel';
 import type { PackageSuggestion, PackageSuggestionFilters } from '@/schemas/dataOffensive';
 
@@ -59,7 +60,7 @@ vi.mock('@/api/dataOffensive', () => ({
 function renderPanel(filters: PackageSuggestionFilters = { status: 'pending', page: 1, page_size: 50 }) {
   const onFiltersChange = vi.fn();
   render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <PackageSuggestionsPanel filters={filters} onFiltersChange={onFiltersChange} onNotify={vi.fn()} />
     </MemoryRouter>,
   );

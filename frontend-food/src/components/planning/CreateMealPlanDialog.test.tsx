@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CreateMealPlanDialog } from './CreateMealPlanDialog';
 import { BrowserRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 
 const mockMutate = vi.fn();
 
@@ -15,7 +16,7 @@ vi.mock('@/api/mealPlans', () => ({
 describe('CreateMealPlanDialog', () => {
   it('renders the 3 core inputs: name, date range, and portions', () => {
     render(
-      <BrowserRouter>
+      <BrowserRouter future={ROUTER_FUTURE_FLAGS}>
         <CreateMealPlanDialog open={true} onOpenChange={() => {}} />
       </BrowserRouter>
     );
@@ -28,7 +29,7 @@ describe('CreateMealPlanDialog', () => {
 
   it('submits form with smart defaults for reserve factor and activity factor', () => {
     render(
-      <BrowserRouter>
+      <BrowserRouter future={ROUTER_FUTURE_FLAGS}>
         <CreateMealPlanDialog open={true} onOpenChange={() => {}} />
       </BrowserRouter>
     );

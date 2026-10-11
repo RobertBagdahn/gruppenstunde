@@ -13,6 +13,7 @@ import {
   RECIPE_DIFFICULTY_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
   RECIPE_PREPARATION_TIME_OPTIONS,
+  type RecipeType,
 } from '@/schemas/recipe';
 import { notify } from '@/lib/notify';
 import { Icon } from '@/components/ui/icon';
@@ -28,7 +29,7 @@ export default function EditRecipePage() {
   const [title, setTitle] = useState('');
   const [titleError, setTitleError] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const [recipeType, setRecipeType] = useState('');
+  const [recipeType, setRecipeType] = useState<RecipeType | ''>('');
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
   // Portions always normalized to 1 in backend (not user-editable)

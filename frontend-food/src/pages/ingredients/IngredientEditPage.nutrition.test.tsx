@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import IngredientEditPage from './IngredientEditPage';
 
@@ -53,7 +54,7 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/ingredients/antipasti-zwiebeln/edit']}>
+      <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={['/ingredients/antipasti-zwiebeln/edit']}>
         <Routes>
           <Route path="/ingredients/:slug/edit" element={<IngredientEditPage />} />
         </Routes>

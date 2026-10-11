@@ -22,6 +22,8 @@ import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import {
+  CONTENT_TITLE_MAX_LENGTH,
+  ContentTitleSchema,
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
 } from '@/schemas/content';
@@ -248,11 +250,12 @@ export default function ContentStepper({
   async function handleSave() {
     // Bot check
     if (honeyField || Date.now() - loadedAt.current < 5000) return;
-    if (!formData.title.trim()) {
-      toast.error('Bitte gib einen Titel ein');
+    const title = ContentTitleSchema.safeParse(formData.title);
+    if (!title.success) {
+      toast.error(title.error.issues[0].message);
       return;
     }
-    await onSave(formData);
+    await onSave({ ...formData, title: title.data });
   }
 
   // Helper to get tag/scout level labels
@@ -473,6 +476,7 @@ export default function ContentStepper({
               <input
                 type="text"
                 value={formData.title}
+                maxLength={CONTENT_TITLE_MAX_LENGTH}
                 onChange={(e) => setFormData({ title: e.target.value })}
                 placeholder="Titel eingeben"
                 className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

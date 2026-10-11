@@ -64,7 +64,6 @@ const DEFAULT_SEARCH_FILTERS: BuffetSearchFilters = {
   includeNonStandalone: false,
   excludeAlcohol: false,
 };
-const RECIPE_TYPE_FILTERS = RECIPE_TYPE_OPTIONS.filter((option) => option.value !== 'ingredient');
 const WIZARD_STEPS = [
   { id: 'preset', label: 'Variante' },
   { id: 'configure', label: 'Zusammenstellen' },
@@ -611,7 +610,7 @@ export function BuffetBuilder({
                     <SelectTrigger aria-label="Rezepttyp filtern"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Alle Rezepttypen</SelectItem>
-                      {RECIPE_TYPE_FILTERS.map((option) => (
+                      {RECIPE_TYPE_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                       ))}
                     </SelectContent>

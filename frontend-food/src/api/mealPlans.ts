@@ -40,14 +40,17 @@ import {
   SuggestionPanelResponseSchema,
   type SuggestionPanelResponse,
   type SuggestionFilters,
-  type AgeGroup,
-  type CookingSource,
-  type PlanSetting,
-  type PlanCooling,
-  type PlanSeasonHint,
   type MealReorderInput,
   PlanCheckResponseSchema,
   type PlanCheckResponse,
+  MealPlanCreateInSchema,
+  type MealPlanCreateIn,
+  MealPlanUpdateInSchema,
+  type MealPlanUpdateIn,
+  MealItemCreateInSchema,
+  type MealItemCreateIn,
+  MealItemUpdateInSchema,
+  type MealItemUpdateIn,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 import { removeItemFromPlan, scaleItemInPlan } from '@/api/mealPlanOptimistic';
@@ -185,25 +188,8 @@ export function useIngredientScan(mealPlanId: number) {
 export function useCreateMealPlan() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: {
-      name: string;
-      description?: string;
-       norm_portions?: number;
-       reserve_factor?: number;
-       budget_per_person_per_day?: number | null;
-       visibility?: 'private' | 'group' | 'public' | 'draft';
-       event_id?: number | null;
-      start_datetime?: string | null;
-      end_datetime?: string | null;
-       day_part_factors?: Record<string, number>;
-       meal_default_times?: Record<string, string[]>;
-      nutritional_tag_ids?: number[];
-      age_groups?: AgeGroup[];
-      setting?: PlanSetting;
-      cooking_sources?: CookingSource[];
-      cooling?: PlanCooling;
-      season_hint?: PlanSeasonHint;
-    }) => postJson(`${API_BASE}/`, body, MealPlanSchema),
+    mutationFn: (body: MealPlanCreateIn) =>
+      postJson(`${API_BASE}/`, MealPlanCreateInSchema.parse(body), MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
     },
@@ -239,24 +225,8 @@ export function useApplyAiSuggestions() {
 export function useUpdateMealPlan(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: {
-      name?: string;
-      description?: string;
-      norm_portions?: number;
-      norm_portions_manual?: boolean;
-      reserve_factor?: number;
-      activity_factor?: number;
-      budget_per_person_per_day?: number | null;
-      start_datetime?: string | null;
-      end_datetime?: string | null;
-      day_part_factors?: Record<string, number>;
-      nutritional_tag_ids?: number[];
-      age_groups?: AgeGroup[];
-      setting?: PlanSetting;
-      cooking_sources?: CookingSource[];
-      cooling?: PlanCooling;
-      season_hint?: PlanSeasonHint;
-    }) => patchJson(`${API_BASE}/${id}/`, body, MealPlanSchema),
+    mutationFn: (body: MealPlanUpdateIn) =>
+      patchJson(`${API_BASE}/${id}/`, MealPlanUpdateInSchema.parse(body), MealPlanSchema),
     onSuccess: () => invalidateMealPlanQueries(queryClient, id),
   });
 }
@@ -367,20 +337,8 @@ export function useRemoveMeal(mealPlanId: number) {
 export function useAddMealItem(mealPlanId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      mealId,
-      ...body
-    }: {
-      mealId: number;
-      recipe_id?: number;
-      ingredient_id?: number;
-      quantity?: number;
-      measuring_unit_id?: number;
-      portion_id?: number;
-      standard_measure_key?: string;
-      note?: string;
-      factor?: number;
-    }) => postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/items/`, body, MealItemSchema),
+    mutationFn: ({ mealId, ...body }: { mealId: number } & MealItemCreateIn) =>
+      postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/items/`, MealItemCreateInSchema.parse(body), MealItemSchema),
     onSuccess: () => {
       invalidateMealPlanQueries(queryClient, mealPlanId);
     },
@@ -418,16 +376,7 @@ export function useRemoveMealItem(mealPlanId: number) {
   });
 }
 
-export interface UpdateMealItemVars {
-  itemId: number;
-  factor?: number;
-  quantity?: number;
-  /** Unit change. Without `quantity` the backend converts the count so the grams stay the same. */
-  portion_id?: number | null;
-  measuring_unit_id?: number | null;
-  standard_measure_key?: string | null;
-  note?: string;
-}
+export type UpdateMealItemVars = { itemId: number } & MealItemUpdateIn;
 
 export function useUpdateMealItem(mealPlanId: number) {
   const queryClient = useQueryClient();
@@ -435,7 +384,7 @@ export function useUpdateMealItem(mealPlanId: number) {
     mutationFn: ({ itemId, ...body }: UpdateMealItemVars) =>
       patchJson(
         `${API_BASE}/${mealPlanId}/meal-items/${itemId}/`,
-        Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined)),
+        MealItemUpdateInSchema.parse(Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined))),
         MealItemSchema,
       ),
     onMutate: async ({ itemId, factor, quantity, portion_id, measuring_unit_id, standard_measure_key }) => {

@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import type { UnitOption } from '@/schemas/quantityUnits';
 import { QuantityUnitInput, QuantityUnitLabel, type QuantityUnitItem } from './QuantityUnit';
 import UnitPicker from './UnitPicker';
@@ -37,7 +38,7 @@ function LocationProbe() {
 }
 
 function renderWithRouter(node: React.ReactNode) {
-  return render(<MemoryRouter>{node}<LocationProbe /></MemoryRouter>);
+  return render(<MemoryRouter future={ROUTER_FUTURE_FLAGS}>{node}<LocationProbe /></MemoryRouter>);
 }
 
 describe('UnitPicker', () => {

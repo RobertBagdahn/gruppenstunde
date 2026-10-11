@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { RecipeListStateSchema, IngredientListStateSchema } from '@/schemas/listState';
 import { listStateStorageKey, writeListState } from '@/lib/listStateStorage';
 import { usePersistedListState } from './usePersistedListState';
@@ -54,7 +55,7 @@ function IngredientList() {
 
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={[path]}>
       <Routes>
         <Route path="/recipes" element={<RecipeList />} />
         <Route path="/ingredients" element={<IngredientList />} />
@@ -112,7 +113,7 @@ describe('usePersistedListState', () => {
 
     auth.isLoading = false;
     view.rerender(
-      <MemoryRouter initialEntries={['/recipes']}>
+      <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={['/recipes']}>
         <Routes>
           <Route path="/recipes" element={<RecipeList />} />
         </Routes>

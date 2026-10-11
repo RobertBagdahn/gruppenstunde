@@ -92,6 +92,17 @@ export const ContentDetailSchema = z.object({
 });
 export type ContentDetail = z.infer<typeof ContentDetailSchema>;
 
+// --- Content Input (backend ContentCreateIn / ContentUpdateIn) ---
+
+export const CONTENT_TITLE_MAX_LENGTH = 255;
+
+/** Backend strips the title and rejects blank values. */
+export const ContentTitleSchema = z
+  .string()
+  .trim()
+  .min(1, 'Bitte gib einen Titel ein')
+  .max(CONTENT_TITLE_MAX_LENGTH, `Der Titel darf höchstens ${CONTENT_TITLE_MAX_LENGTH} Zeichen lang sein`);
+
 // --- Content Similar ---
 
 export const ContentSimilarSchema = z.object({
