@@ -101,7 +101,7 @@ function StatCard({
         </div>
         <div>
           {staticValue !== undefined ? (
-            <p className="text-title font-extrabold text-foreground font-display">{staticValue}</p>
+            <p className="text-section font-extrabold text-foreground font-display">{staticValue}</p>
           ) : value !== undefined ? (
             <p className="text-title font-extrabold text-foreground font-display">
               {formatCount(value)}

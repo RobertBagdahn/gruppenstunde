@@ -157,18 +157,11 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
-        "fade-in-up": {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "scale-in": {
-          "0%": { opacity: "0", transform: "scale(0.9)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
-        // Route change: the new page settles in from slightly below.
+        // Route change: the new page fades in. Opacity only: a transform would make
+        // `position: fixed` bars inside the page position against the wrapper while it runs.
         "page-in": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
         // Cards and sections arriving one after another (see .stagger).
         rise: {
@@ -188,12 +181,10 @@ export default {
       },
       animation: {
         shimmer: "shimmer 1.6s linear infinite",
-        "page-in": "page-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
-        rise: "rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        "page-in": "page-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards",
+        rise: "rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards",
         pop: "pop 260ms cubic-bezier(0.2, 0.7, 0.2, 1)",
-        "sheet-up": "sheet-up 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
-        "fade-in-up": "fade-in-up 0.5s ease-out forwards",
-        "scale-in": "scale-in 0.4s ease-out forwards",
+        "sheet-up": "sheet-up 320ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards",
       },
     },
   },

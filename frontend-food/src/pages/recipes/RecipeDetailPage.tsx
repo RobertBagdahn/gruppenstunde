@@ -103,14 +103,14 @@ function AnalysisSection({
         aria-expanded={open}
         className="w-full flex items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5 text-left transition-colors hover:bg-secondary"
       >
-        <h2 className="flex shrink-0 items-center gap-3 font-display text-section font-extrabold text-foreground">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+        <h2 className="flex shrink-0 items-center gap-3 font-display text-emphasis sm:text-section font-extrabold text-foreground">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
             <Icon name={icon} size={20} />
           </span>
           {title}
         </h2>
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          {preview && <div className="min-w-0 text-right">{preview}</div>}
+          {preview && <div className="min-w-0 whitespace-nowrap text-right [&>*]:whitespace-nowrap">{preview}</div>}
           <Icon name="expand_more" size={24} className={`text-muted-foreground transition-transform duration-300 ease-out ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
@@ -1216,7 +1216,7 @@ export default function RecipeDetailPage() {
                 {recipe.steps_count || legacyPreparationSteps.length} {((recipe.steps_count || legacyPreparationSteps.length) === 1) ? 'Schritt' : 'Schritte'}
               </div>
             ) : (
-              <span className="text-caption text-muted-foreground">Noch keine Schritte – hier anlegen</span>
+              <span className="hidden text-caption text-muted-foreground sm:inline">Noch keine Schritte – hier anlegen</span>
             )
           }
         >
@@ -1288,7 +1288,7 @@ export default function RecipeDetailPage() {
           icon="analytics"
           title="Analyse"
           accentColor="text-primary"
-          preview={<span className="text-caption text-muted-foreground">Preis, Inhaltsstoffe, Gesundheit, Gewicht</span>}
+          preview={<span className="hidden text-caption text-muted-foreground md:inline">Preis, Inhaltsstoffe, Gesundheit, Gewicht</span>}
         >
         <SectionBoundary title="Die Analyse konnte nicht angezeigt werden">
         <RecipeAnalysisTabs
