@@ -7,9 +7,9 @@ from django.template.loader import render_to_string
 
 from content.choices import DifficultyChoices, PreparationTimeChoices
 from recipe.models import Recipe
+from recipe.services.recipe_amount_display import format_amount_label, format_recipe_item_amount
 from recipe.services.step_helpers import resolve_recipe_steps
 from supply.choices import RecipeTypeChoices
-from supply.utils import build_portion_display, format_weight
 
 PREPARATION_TIME_MINUTES: dict[str, int] = {
     PreparationTimeChoices.NONE: 0,
@@ -91,20 +91,6 @@ def _get_recipe_materials(recipe: Recipe) -> list[dict[str, str]]:
         .select_related("material")
         .order_by("sort_order")
     ]
-
-
-def _format_step_ingredient(si: dict) -> str:
-    """Format a resolved step ingredient as '500 g Mehl' plus note."""
-    quantity = float(si["quantity"])
-    if quantity == int(quantity):
-        qty_str = str(int(quantity))
-    else:
-        qty_str = _format_decimal(quantity, 1)
-    parts = [f"{qty_str} {si['unit']}".strip(), si["name"]]
-    label = " ".join(part for part in parts if part)
-    if si.get("note"):
-        label += f", {si['note']}"
-    return label
 
 
 def _load_image_data_uri(image: FieldFile | None) -> str | None:
@@ -189,6 +175,7 @@ class RecipePdfExport:
         self.description_plain = _extract_plain_text(self.recipe.description or "")
 
     def _build_ingredients(self) -> None:
+        """Ingredient rows with the same amounts as the step ingredients and the food frontend."""
         rows = []
         from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
@@ -197,19 +184,12 @@ class RecipePdfExport:
             "portion__measuring_unit",
             "ingredient",
         ).order_by("sort_order"):
-            note = ri.note or ""
-            if ri.portion is None:
-                # Direct gram item: quantity is stored in grams.
-                amount = format_weight(float(ri.quantity) * self.scale)
-                ingredient = get_recipe_item_ingredient(ri)
-                display = f"{amount} {ingredient.name}" if ingredient else amount
-                rows.append({"display": display, "note": note})
-                continue
             ingredient = get_recipe_item_ingredient(ri)
-            if ingredient is None:
+            if ingredient is None and ri.portion is not None:
                 continue
-            display, _ = build_portion_display(float(ri.quantity) * self.scale, ri.portion, ingredient)
-            rows.append({"display": display, "note": note})
+            amount = format_recipe_item_amount(ri, ingredient, scale=self.scale)
+            display = format_amount_label(amount, ingredient.name if ingredient else "")
+            rows.append({"display": display, "note": ri.note or ""})
         self.ingredients = rows
 
     def _build_materials(self) -> None:
@@ -232,7 +212,7 @@ class RecipePdfExport:
                 for idx, text in enumerate(_parse_markdown_steps(steps_md), 1)
             ]
         for step in steps:
-            step["ingredient_labels"] = [_format_step_ingredient(si) for si in step.get("step_ingredients", [])]
+            step["ingredient_labels"] = [si["label"] for si in step.get("step_ingredients", [])]
         self.steps = steps
 
     def _build_nutrition(self) -> None:
