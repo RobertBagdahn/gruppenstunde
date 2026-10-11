@@ -3,9 +3,7 @@
 ## Purpose
 
 Benutzerprofil- und Einstellungsverwaltung für die Inspi-Plattform. Jeder Benutzer hat ein Profil mit pfadfinderspezifischen Informationen und konfigurierbaren Standard-Einstellungen für die Suchfilterung. Benutzer können außerdem Person-Datensätze für sich selbst und Familienmitglieder verwalten (werden für Event-Registrierungen verwendet).
-
 ## Requirements
-
 ### Requirement: Benutzerprofil
 
 Das System MUST ein UserProfile für jeden registrierten Benutzer pflegen.
@@ -177,14 +175,14 @@ Das System MUST die Verwaltung von Person-Datensätzen für Event-Registrierunge
 
 ### Requirement: Benutzersuche
 
-Das System SHALL die Suche nach Benutzern per Name oder E-Mail unterstützen.
+Das System SHALL die Suche nach Benutzern per Name oder exakter E-Mail-Adresse unterstützen, ohne E-Mail-Adressen anderer Nutzer preiszugeben.
 
 #### Scenario: Benutzer suchen
 
 - GIVEN authentifizierte Benutzer im System
 - WHEN ein authentifizierter Benutzer per GET `/api/users/search/?q=pfadfinder` sucht (mindestens 2 Zeichen)
-- THEN werden passende Benutzer mit `{ id, scout_display_name, email }` zurückgegeben
-- AND die Ergebnisse werden zum Einladen von Planer-Mitarbeitern oder Event-Teilnehmern verwendet
+- THEN werden passende Benutzer paginiert mit `{ id, display_name }` zurückgegeben, ohne E-Mail-Adresse
+- AND die Ergebnisse werden zum Einladen von Planer-Mitarbeitern, Essensplan- und Einkaufslisten-Mitgliedern verwendet
 
 ### Requirement: Eigene Inhalte auflisten
 
@@ -221,8 +219,7 @@ Die Profil-Navigation MUST folgende Einträge in dieser Reihenfolge enthalten:
 - THEN ist der Eintrag "Profil" visuell als aktiv markiert
 
 ### Requirement: Privacy-Seite im Profil-Bereich
-
-Das Profil MUSS eine neue Seite unter `/profile/privacy` enthalten mit drei Abschnitten:
+Das Profil MUST eine neue Seite unter `/profile/privacy` enthalten mit drei Abschnitten:
 
 1. **Datenübersicht**: Kategorisierte Auflistung aller gespeicherten Daten mit Anzahl pro Kategorie
 2. **Daten exportieren**: Button "Alle meine Daten herunterladen (JSON)" mit Ladeindikator

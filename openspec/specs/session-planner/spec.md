@@ -11,9 +11,7 @@ Heimabend-Planungstool für Pfadfinder-Gruppenführer. Ermöglicht die Planung w
 - **Frontend-Routen**: `/session-planner` (Landing-Page), `/session-planner/app` (Planer-App)
 - **Kontext**: Immer an eine UserGroup gebunden
 - **Rhythmus**: Wöchentlich, gleicher Wochentag + Uhrzeit
-
 ## Requirements
-
 ### Requirement: Heimabend-Planer CRUD
 
 Das System MUST vollständige CRUD-Operationen für Heimabend-Planer über `/api/planner/` bereitstellen.
@@ -94,8 +92,7 @@ Das System SHALL wöchentliche Termin-Einträge innerhalb eines Planers unterst�
 - THEN wird der Eintrag aus dem Planer entfernt
 
 ### Requirement: Kalender-Ansicht
-
-Das System SHOULD eine Kalender-Ansicht für den Planer bereitstellen.
+Das System MUST eine Kalender-Ansicht für den Planer bereitstellen.
 
 #### Scenario: Wochen-/Monatsansicht
 
@@ -131,3 +128,19 @@ Das System SHALL das Teilen von Planern innerhalb einer Gruppe unterstützen.
 - GIVEN der Planer-Owner
 - WHEN der Owner einen Benutzer als Mitarbeiter (Editor/Viewer) einlädt
 - THEN bekommt der Benutzer entsprechenden Zugriff, auch wenn er kein Gruppen-Mitglied ist
+
+### Requirement: Mitarbeiter ohne E-Mail-Adresse anzeigen
+
+Das System SHALL Mitarbeiter eines Heimabend-Planers nur mit ihrem öffentlichen Anzeigenamen ausgeben, nie mit Benutzername oder E-Mail-Adresse.
+
+#### Scenario: Planer mit Mitarbeitern abrufen
+
+- GIVEN ein Planer mit einem Mitarbeiter, dessen Benutzername eine E-Mail-Adresse ist
+- WHEN der Owner GET `/api/planner/{id}/` aufruft
+- THEN enthält jeder Mitarbeiter `display_name` statt `username`
+- AND die Antwort enthält keine E-Mail-Adresse
+
+#### Scenario: Mitarbeiter einladen
+
+- WHEN der Owner per POST `/api/planner/{id}/invite/` einen Benutzer einlädt
+- THEN nennt die Bestätigung den Benutzer mit seinem Anzeigenamen, nicht mit seiner E-Mail-Adresse

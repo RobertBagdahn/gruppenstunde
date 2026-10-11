@@ -24,7 +24,7 @@ Das System MUST Django-Session-Authentifizierung mit HTTP-only Cookies verwenden
 - **WHEN** ein Client `POST /api/auth/login/` mit korrekten Zugangsdaten sendet
 - **THEN** wird ein Session-Cookie gesetzt (HTTP-only, SameSite=Lax) und das System antwortet mit HTTP 200 und den Nutzerdaten
 
-#### Scenario: Passwort-Login nach der Übergangszeit
+#### Scenario: Passwort-Login über die API ist nicht möglich
 
 - **GIVEN** `AUTH_PASSWORD_LOGIN_ENABLED` ist deaktiviert
 - **WHEN** ein Client `POST /api/auth/login/` mit E-Mail und Passwort sendet

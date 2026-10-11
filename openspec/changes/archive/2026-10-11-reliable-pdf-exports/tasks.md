@@ -20,4 +20,5 @@
 
 - [x] 4.1 Replace the unsupported `optimize_size` option with `optimize_images=True, jpeg_quality=82`; test asserts no „Unknown rendering option“ warning (`core/tests/test_pdf_rendering.py`).
 - [x] 4.2 One Gunicorn worker × one thread in `Dockerfile.backend`; GitHub Actions deploy (single production pipeline) sets 1 GiB, concurrency 1, max 2 instances; Cloud Build files removed; consistency enforced by `core/tests/test_runtime_limits.py`.
-- [x] 4.3 Sprint-B verification: recipe PDF table and step list use the same units; meal-plan PDF A4/Letter returned valid PDFs.
+- [x] 4.3 Sprint-B verification: meal-plan PDF A4/Letter returned valid PDFs (2026-10-11 food-shopping-pdf report).
+- [ ] 4.4 Browser-verify that the recipe PDF table and step list use the same units. The available food-recipe-wizard report documents the pre-fix step-unit defect but does not include post-fix browser evidence.

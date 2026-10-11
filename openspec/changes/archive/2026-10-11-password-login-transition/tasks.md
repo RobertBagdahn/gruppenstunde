@@ -14,7 +14,7 @@
 ## 3. Rollout
 
 - [x] 3.1 Backend, Migrationen und beide Frontends nach Deploy-Skill ausrollen (Prod-Backend liefert `password_login: true`, Stand 2026-10-11)
-- [x] 3.2 Smoke-Test in Produktion: Login mit bestehendem Passwort-Konto, Session, öffentliche Inhalte (2026-10-11 per curl: `GET /api/auth/providers/` → `password_login: true`; `GET /api/auth/me/` anonym → 200 ohne Identität; `POST /api/auth/login/` mit falschen Daten → 400 `invalid_credentials`; `GET /api/recipes/` → 200. Login mit echtem Konto nicht per curl wiederholt, da keine Prod-Zugangsdaten im Review; Rollout laut Owner erfolgt)
+- [ ] 3.2 Smoke-Test in Produktion: Login mit bestehendem Passwort-Konto und Session. Verifizierte Teilchecks am 2026-10-11: `GET /api/auth/providers/` → `password_login: true`; `GET /api/auth/me/` anonym → 200 ohne Identität; `POST /api/auth/login/` mit falschen Daten → 400 `invalid_credentials`; `GET /api/recipes/` → 200. Ein erfolgreicher Login mit einem echten Konto wurde nicht wiederholt, da keine Prod-Zugangsdaten im Review vorlagen; Rollout ist nur laut Owner bestätigt.
 
 ## 4. Spec-Abgleich
 

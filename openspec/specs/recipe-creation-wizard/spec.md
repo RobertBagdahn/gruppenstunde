@@ -2,9 +2,7 @@
 
 ## Purpose
 Multi-step wizard for creating recipes through one unified smart input flow, editing all recipe data, and preserving it through completion.
-
 ## Requirements
-
 ### Requirement: RecipeWizard ersetzt ContentStepper für Rezept-Erstellung
 Die `CreateRecipePage` SHALL einen Rezept-spezifischen 5-Step Wizard (`RecipeWizard`) verwenden anstelle des generischen `ContentStepper`. Andere Content-Typen (GroupSession, Blog, Game) verwenden weiterhin `ContentStepper`.
 
@@ -219,3 +217,14 @@ Der vereinheitlichte Erstellungsweg SHALL editierbare Zutaten, Metadaten, Zubere
 - **WHEN** die Analyse einen klassifizierten Quellen- oder Verarbeitungsfehler zurückgibt
 - **THEN** SHALL die Oberfläche den zugeordneten deutschen Fehler anzeigen
 - **THEN** SHALL nicht zu einem teilweise erstellten Rezept navigiert werden
+
+### Requirement: Stabiler Schritt-Zähler
+Der Rezept-Wizard SHALL die Gesamtzahl der Schritte innerhalb eines Pfads nicht ändern. Vor der Wahl des Pfads MUST der Pfad mit Zutaten-Review (7 Schritte) gezählt werden, der manuelle Pfad zählt 6 Schritte ab Wahl.
+
+#### Scenario: KI-Pfad
+- **WHEN** der Nutzer im Schritt 1 „Rezept analysieren“ wählt
+- **THEN** lautet der Zähler in Schritt 1 „von 7“ und in Schritt 2 weiterhin „von 7“
+
+#### Scenario: Manueller Pfad
+- **WHEN** der Nutzer „Ohne KI manuell beginnen“ wählt
+- **THEN** zeigt der Zähler ab dort „von 6“ und ändert sich nicht mehr

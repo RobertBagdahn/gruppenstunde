@@ -18,4 +18,5 @@
 ## 4. Abschluss
 
 - [x] 4.1 Frontend-Typecheck, Lint, Tests; `uv run pytest backend/supply`
-- [x] 4.2 Manuell prüfen gegen die Liste der Produktivtest-Befunde 9 (Zähler, Header-Summen, Duplikat, Titel-Fehler, Landingpage) – Playwright 2026-10-11: Zähler „Schritt 1 von 7“ / manuell „von 6“; Header-Summen sofort und Rollback bei 500; Duplikat „Antipasti Zwiebeln“ mit Link (320/1440); leerer Titel zeigt „Titel ist erforderlich.“ mit Fokus und ohne Schreib-Request (320/1440); Food-Landingpage ohne Anmelde-Button für Eingeloggte
+- [x] 4.2 Manuell prüfen: stabiler Wizard-Zähler und optimistische Plan-Summen inkl. Rollback. (2026-10-11: food-recipe-wizard report confirms the wizard counter; food-mealplans report confirms immediate header updates and rollback after HTTP 500.)
+- [ ] 4.3 Manuell nachprüfen: Duplikat-Link nach dem Fehlerhandling-Fix, leerer Rezepttitel mit Inline-Fehler/Fokus sowie eingeloggte Food-Landingpage. The available food-ingredients-dataquality report reproduces the missing duplicate link before the fix, and the available auth-permissions report verifies the main-frontend landing page rather than the Food landing page; no post-fix evidence for these acceptance points was found.

@@ -36,7 +36,7 @@ Das System SHALL Nutzer über OAuth-Anbieter via `django-allauth` (`allauth.soci
 
 Beim ersten Social Login SHALL das System ohne weiteres Formular automatisch ein Konto anlegen (`auto signup`). Social Accounts SHALL NOT automatisch mit bestehenden lokalen Konten per E-Mail verknüpft oder zur Authentifizierung verwendet werden, damit Allauth ein bestehendes Passwort nicht unbemerkt ungültig macht. Hat die beim Anbieter verwendete E-Mail bereits ein lokales Konto, SHALL das System auf `/login?error=email_conflict` leiten. Der Nutzer kann sich mit seinem bestehenden Login anmelden und den Anbieter danach im authentifizierten Konto-Bereich explizit verbinden. Beim Anlegen eines neuen Social-Kontos SHALL ein `UserProfile` erzeugt und mit Vor- und Nachname des Anbieters vorbelegt werden.
 
-#### Scenario: Bestehender Passwortnutzer meldet sich erstmals mit Google an
+#### Scenario: Bestehender Nutzer meldet sich erstmals mit Google an
 - **GIVEN** ein bestehendes Passwortkonto mit `max@example.org` ohne verknüpften Social Account
 - **WHEN** Max sich mit einem Google-Konto mit verifizierter Adresse `max@example.org` anmeldet
 - **THEN** wird das Konto nicht automatisch verknüpft
@@ -53,6 +53,11 @@ Beim ersten Social Login SHALL das System ohne weiteres Formular automatisch ein
 - **WHEN** sich eine unbekannte Person erstmals mit Microsoft anmeldet
 - **THEN** werden `User` und `UserProfile` angelegt
 - **AND** die Session-Antwort enthält `needs_onboarding: true`
+
+#### Scenario: Nicht verifizierte E-Mail kollidiert
+- **WHEN** ein Anbieter eine nicht verifizierte E-Mail liefert, die bereits existiert
+- **THEN** SHALL das System nicht automatisch verknüpfen
+- **AND** es leitet auf `/login?error=email_conflict` weiter, mit der Meldung „Zu dieser E-Mail gibt es schon ein Konto. Melde dich mit dem Anbieter an, den du bisher genutzt hast.“
 
 #### Scenario: Social E-Mail eines bestehenden Kontos wird nicht verknüpft
 - **WHEN** ein Social-Anbieter eine E-Mail-Adresse liefert, die bereits einem lokalen Konto gehört

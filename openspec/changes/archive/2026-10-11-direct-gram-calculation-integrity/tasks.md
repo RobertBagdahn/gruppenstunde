@@ -20,7 +20,8 @@
 
 - [x] 4.1 Add tests for recipe nutrition/weight, nutrition breakdown, active calculation resolution, shopping-list aggregation/pricing/source, and recipe PDF display.
 - [x] 4.2 Run focused backend tests, full backend pytest suite, and required backend checks.
-- [x] 4.3 Run relevant Food-Frontend tests and inspect the final diff. (2026-10-11: WP-02 follow-up merged; Food-Frontend suite green, browser check of step chips and recipe PDF in Sprint-B verification)
+- [x] 4.3 Run relevant Food-Frontend tests and inspect the final diff. (2026-10-11: WP-02 follow-up merged; Food-Frontend suite green.)
+- [ ] 4.4 Browser-verify that recipe step chips and the recipe PDF display the same scaled amounts as the ingredient table. The available food-recipe-wizard report documents the pre-fix defect but does not include post-fix browser evidence.
 
 ## 5. Review follow-up (WP-02)
 

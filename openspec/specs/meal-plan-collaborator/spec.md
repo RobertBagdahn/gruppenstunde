@@ -1,5 +1,8 @@
-## ADDED Requirements
+# meal-plan-collaborator Specification
 
+## Purpose
+Define collaborator roles, access, and API contracts for shared meal plans.
+## Requirements
 ### Requirement: Collaborator management for meal plans
 The system SHALL allow meal plan owners to add, update, and remove collaborators on their meal plans. Each collaborator SHALL have a role of viewer, editor, or admin.
 
@@ -57,11 +60,16 @@ The system SHALL expose whether the current user is the owner of a meal plan via
 - **THEN** the response includes `is_owner: false`
 
 ### Requirement: Collaborator list in meal plan detail
-The system SHALL include the list of collaborators in the meal plan detail response.
+The system SHALL include the list of collaborators in the meal plan detail response. Each collaborator SHALL carry `display_name` (the public display name from the user directory) instead of a username; meal plan responses SHALL NOT contain e-mail addresses or usernames. The meal plan `owner_name` SHALL also be the owner's public display name.
 
 #### Scenario: Detail includes collaborators
 - **WHEN** an authenticated user with access requests `GET /api/meal-plans/{id}/`
-- **THEN** the response includes a `collaborators` array with each collaborator's id, user_id, username, role, and created_at
+- **THEN** the response includes a `collaborators` array with each collaborator's id, user_id, display_name, role, and created_at
+
+#### Scenario: Owner and collaborators without a name
+- **WHEN** the owner or a collaborator has neither a profile name nor an account name and their username is an e-mail address
+- **THEN** `owner_name` and the collaborator `display_name` read „Inspi-Nutzer #<id>“
+- **AND** the list, detail and collaborator endpoints contain no e-mail address
 
 ### Requirement: Collaborator count in meal plan list
 The system SHALL include the collaborator count in the meal plan list response.
