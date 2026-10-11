@@ -23,8 +23,8 @@
 - [x] 4.1 Kontrollierte Mengen-Dialoge während der Eingabe leeren und bearbeiten lassen; erst bei Bestätigung positive Werte verlangen.
 - [x] 4.2 Tests für temporär leere Werte und gültige Dezimalwerte ergänzen.
 - [x] 4.3 Gramm-/Milliliter-Aliase in MealSlot als direkte Masseeinheiten formatieren; Tests ergänzen.
-- [x] 4.4 Einheitenwechsel für Einzelzutaten in Tages- und Tabellenansicht anbieten und Portion-ID mit dem MealItem-Update speichern.
-- [x] 4.5 Regressionstests für Einheitenwechsel, View-only und ungültige/fremde Portion ergänzen.
+- [x] 4.4 Einheitenwechsel für Einzelzutaten in Tages- und Tabellenansicht anbieten; ein Wechsel ohne neue Menge wird sofort mit konstantem Gewicht gespeichert (Backend rechnet über `resolve_grams` um, drei Nachkommastellen, z. B. 55 g → 0,55 Stück) und mit „Einheit geändert“/„Rückgängig“ bestätigt.
+- [x] 4.5 Regressionstests für Einheitenwechsel mit konstantem Gewicht, Rückgängig, Einheit ohne Gewicht, View-only und ungültige/fremde Portion ergänzen.
 
 ## 5. Kopierverhalten und Abschluss
 

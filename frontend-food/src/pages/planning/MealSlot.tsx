@@ -34,7 +34,7 @@ import { BUFFET_ROLE_ORDER, buffetRoleName, itemBuffetRole } from '@/lib/buffetR
 import { MealSuggestionPanel } from '@/components/planning/suggestions/MealSuggestionPanel';
 import { FactorInput } from './FactorInput';
 import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
-import { MealItemAmountEditor, MealItemAmountText, MealItemNote, type MealItemPatch } from '@/components/planning/MealItemAmountEditor';
+import { MealItemAmountEditor, MealItemAmountText, MealItemNote, type MealItemUpdateHandler } from '@/components/planning/MealItemAmountEditor';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { formatCount, formatNumber, formatWeight } from '@/lib/format';
@@ -72,7 +72,7 @@ export function MealSlot({
   onActivate?: (mealId: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
-  onUpdateItem?: (itemId: number, patch: MealItemPatch) => void;
+  onUpdateItem?: MealItemUpdateHandler;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
     override_portions?: number | null;

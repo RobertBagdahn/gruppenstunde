@@ -1474,7 +1474,12 @@ def remove_meal_item(request, meal_plan_id: int, item_id: int):
 
 
 def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
-    """Apply quantity / unit / portion changes while preserving grams on pure unit changes."""
+    """Apply quantity / unit / portion changes.
+
+    A unit change without `quantity` converts at constant weight: the new count is the
+    current grams divided by the grams of one target unit (both via `resolve_grams`).
+    A unit change with `quantity` stores exactly that count in the new unit.
+    """
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
     from planner.services.meal_item_units import resolve_unit_fields
 
@@ -1507,7 +1512,8 @@ def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
         grams_per_unit = _resolve_ingredient_weight_g(item)
         if grams <= 0 or grams_per_unit <= 0:
             raise HttpError(422, "Für diese Einheit fehlt das Gewicht, die Menge kann nicht umgerechnet werden.")
-        item.quantity = round(grams / grams_per_unit, 2)
+        # Matches MealItem.quantity (3 decimals): the grams stay equal within 0.0005 units.
+        item.quantity = round(grams / grams_per_unit, 3)
         if item.quantity <= 0:
             raise HttpError(422, "Die Menge ist in dieser Einheit zu klein.")
     item.save(update_fields=["quantity", "measuring_unit", "portion", "standard_measure_key"])

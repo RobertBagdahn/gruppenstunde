@@ -28,6 +28,7 @@
 - [x] 3.8 Seitenmodus „Alles in Gramm“ auf Essensplan- und RefMeal-Seiten
 - [x] 3.10 Aktion „Gewicht ergänzen“ navigiert mit `?editPortion=<id>` direkt zum bestehenden Portionen-Editor der Zutat
 - [x] 3.9 Tests: Screenshot-Fall überall „0,5 Portion (15 g)“; Ansicht umschalten ohne Request; Eingabe „2 Stück“ speichert Portion + 2; Prise; Gramm immer sichtbar; Lesemodus
+- [x] 3.11 Einheitenwechsel mit konstantem Gewicht in Essensplan-Einträgen (MealSlot, Tages- und Tabellenansicht): Wechsel ohne neue Menge sofort speichern (PATCH nur mit Einheit, Backend rechnet über `resolve_grams` um), `MealItem.quantity` mit drei Nachkommastellen (Migration), Hinweis „Einheit geändert“ mit „Rückgängig“, Lesemodus unverändert; Backend-Tests (55 g → 0,55 Stück, 3 EL → 42,75 g, Portion → EL → g, Rundung, fehlendes Gewicht, 403) und Frontend-Tests (Sofortspeichern, Rückgängig, Fehler, Einheit ohne Gewicht, Lesemodus)
 
 ## 4. Phase 2 – Rezept-Editor und Anzeige
 

@@ -11,7 +11,7 @@ Grundsatz: **Gespeichert wird, was der Nutzer meint (Anzahl × Einheit). Gramm w
 - **Eine Gramm-Berechnung** im Backend für alle Einheitenarten. Die API liefert zu jedem Eintrag `quantity_g`, `unit_kind`, `unit_label`.
 - **Startansicht = gespeicherte Einheit**, für alle Nutzer gleich. Beim Hinzufügen gilt: Standardportion der Zutat mit Gewicht, sonst Gramm.
 - **Gramm immer sichtbar**: „1,5 Stück (90 g)“, „2 EL (≈ 30 g)“, „80 g“. Bei der Eingabe steht daneben eine Live-Vorschau „= 120 g“.
-- **Dynamische Ansicht**: An jedem Mengenort gibt es einen Umschalter mit allen Portionen der Zutat, allen Standardmaßen und Gramm, dazu einen Seitenmodus „Alles in Gramm“ (`?units=grams`). Umschalten ändert nur die Ansicht.
+- **Dynamische Ansicht**: An jedem Mengenort gibt es einen Umschalter mit allen Portionen der Zutat, allen Standardmaßen und Gramm, dazu einen Seitenmodus „Alles in Gramm“ (`?units=grams`). In Lesedarstellungen ändert Umschalten nur die Ansicht. In bearbeitbaren Essensplan-Einträgen speichert ein Einheitenwechsel ohne neue Menge sofort mit konstantem Gewicht („55 g“ → „0,55 Stück (55 g)“), mit „Rückgängig“.
 - **Eingabe in jeder Einheit**: Wer eine Menge in einer Einheit eingibt, speichert genau diese Einheit mit dieser Anzahl.
 - **Überall gleich**: Mahlzeit-Karte, Buffet-Rollenliste, Tabellen- und Tagesansicht, Referenz-Mahlzeit, Buffet- und Frühstücks-Wizard (Item- **und** Rollenmenge, z. B. „Brot: 2 Stück/Person“), Rezept-Editor, Einkaufsliste („24 Stück (1,4 kg)“) und PDF-Export. Die verstreuten Formatierer werden durch einen gemeinsamen ersetzt.
 - Buffet-Rollenmengen und die Einkaufsliste rechnen intern weiter in Gramm, weil dort verschiedene Zutaten zusammenkommen.

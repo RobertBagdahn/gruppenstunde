@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { UnitOption } from '@/schemas/quantityUnits';
 import { QuantityUnitInput, QuantityUnitLabel, type QuantityUnitItem } from './QuantityUnit';
@@ -121,5 +121,64 @@ describe('QuantityUnitInput', () => {
     fireEvent.blur(input);
 
     expect(onCommit).toHaveBeenCalledWith({ quantity: 100 });
+  });
+
+  it('saves a unit switch at constant weight right away when onConvertUnit is given', () => {
+    const onCommit = vi.fn();
+    const onConvertUnit = vi.fn();
+    renderWithRouter(<QuantityUnitInput item={rolls} onCommit={onCommit} onConvertUnit={onConvertUnit} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Einheit wählen' }));
+    fireEvent.click(screen.getByRole('option', { name: /Stück/ }));
+
+    expect(onConvertUnit).toHaveBeenCalledWith(
+      { portion_id: 7, measuring_unit_id: null, standard_measure_key: null },
+      { onError: expect.any(Function) },
+    );
+    expect((screen.getByLabelText('Menge') as HTMLInputElement).value).toBe('1,5');
+    expect(screen.getByText('= 90 g')).toBeTruthy();
+    fireEvent.blur(screen.getByLabelText('Menge'));
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it('returns to the stored unit when the constant-weight save fails', () => {
+    const onConvertUnit = vi.fn();
+    renderWithRouter(<QuantityUnitInput item={rolls} onCommit={vi.fn()} onConvertUnit={onConvertUnit} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Einheit wählen' }));
+    fireEvent.click(screen.getByRole('option', { name: /EL/ }));
+    expect((screen.getByLabelText('Menge') as HTMLInputElement).value).toBe('6');
+
+    act(() => onConvertUnit.mock.calls[0][1].onError());
+
+    expect((screen.getByLabelText('Menge') as HTMLInputElement).value).toBe('90');
+    expect(screen.getByRole('button', { name: 'Einheit wählen' }).textContent).toBe('g');
+  });
+
+  it('does not convert into a unit without weight; the typed amount is saved on confirm', () => {
+    const onCommit = vi.fn();
+    const onConvertUnit = vi.fn();
+    renderWithRouter(<QuantityUnitInput item={rolls} onCommit={onCommit} onConvertUnit={onConvertUnit} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Einheit wählen' }));
+    fireEvent.click(screen.getByRole('option', { name: /Portion ohne Gewicht/ }));
+    const input = screen.getByLabelText('Menge') as HTMLInputElement;
+    expect(input.value).toBe('1');
+    expect(onConvertUnit).not.toHaveBeenCalled();
+
+    fireEvent.blur(input);
+    expect(onCommit).toHaveBeenCalledWith({ quantity: 1, portion_id: 8, measuring_unit_id: null, standard_measure_key: null });
+  });
+
+  it('keeps a typed amount pending instead of converting immediately', () => {
+    const onCommit = vi.fn();
+    const onConvertUnit = vi.fn();
+    renderWithRouter(<QuantityUnitInput item={rolls} onCommit={onCommit} onConvertUnit={onConvertUnit} />);
+    const input = screen.getByLabelText('Menge') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '120' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Einheit wählen' }));
+    fireEvent.click(screen.getByRole('option', { name: /Stück/ }));
+
+    expect(onConvertUnit).not.toHaveBeenCalled();
+    expect(input.value).toBe('2');
+    fireEvent.blur(input);
+    expect(onCommit).toHaveBeenCalledWith({ quantity: 2, portion_id: 7, measuring_unit_id: null, standard_measure_key: null });
   });
 });

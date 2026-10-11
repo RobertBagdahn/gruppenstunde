@@ -110,6 +110,8 @@ export const notify = {
   created: (entity: string, options?: Options) => success(`${entity} angelegt`, options),
   /** "<entity> gelöscht", with "Rückgängig" when `undo` is given. */
   deleted: (entity: string, undo?: () => void, options?: Options) => withUndo(`${entity} gelöscht`, undo, options),
+  /** "<entity> geändert", with "Rückgängig" when `undo` is given. */
+  changed: (entity: string, undo?: () => void, options?: Options) => withUndo(`${entity} geändert`, undo, options),
   /** "<entity> entfernt", with "Rückgängig" when `undo` is given. */
   removed: (entity: string, undo?: () => void, options?: Options) => withUndo(`${entity} entfernt`, undo, options),
   /** "<entity> konnte nicht <verb> werden" + cause. */

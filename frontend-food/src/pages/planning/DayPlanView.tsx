@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MealItemPatch } from '@/components/planning/MealItemAmountEditor';
+import type { MealItemUpdateHandler } from '@/components/planning/MealItemAmountEditor';
 import { Plus, Trash2 } from 'lucide-react';
 import { useReorderMeals } from '@/api/mealPlans';
 import { notify } from '@/lib/notify';
@@ -58,7 +58,7 @@ export function DayPlanView({
   onActivateMeal?: (mealId: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
-  onUpdateItem?: (itemId: number, patch: MealItemPatch) => void;
+  onUpdateItem?: MealItemUpdateHandler;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
     override_portions?: number | null;

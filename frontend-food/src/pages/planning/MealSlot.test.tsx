@@ -195,6 +195,13 @@ describe('MealSlot buffet grouping', () => {
     openDetails();
     fireEvent.click(screen.getByRole('button', { name: 'Einheit wählen' }));
     fireEvent.click(screen.getByRole('option', { name: /Stück/ }));
+    // Switching alone saves at constant weight (150 g → 2,73 Stück); the backend converts the count.
+    expect(updateItem).toHaveBeenNthCalledWith(
+      1,
+      1,
+      { portion_id: 17, measuring_unit_id: null, standard_measure_key: null },
+      { onSuccess: expect.any(Function), onError: expect.any(Function) },
+    );
     const quantityInput = screen.getByRole('textbox', { name: 'Menge' });
     expect(quantityInput).toHaveValue('2,73');
     fireEvent.change(quantityInput, { target: { value: '3' } });
@@ -209,10 +216,15 @@ describe('MealSlot buffet grouping', () => {
   });
 
   it('does not offer portion changes to a viewer', () => {
-    renderMealSlot(makeMeal([makeItem({ id: 1 })]), false);
+    const updateItem = vi.fn();
+    renderMealSlot(makeMeal([makeItem({ id: 1 })]), false, updateItem);
     openDetails();
 
     expect(screen.queryByRole('button', { name: 'Einheit wählen' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Menge in anderer Einheit anzeigen' })[0]);
+    fireEvent.click(screen.getByRole('option', { name: /Stück/ }));
+    expect(screen.getAllByText('2,73 Stück (150 g)').length).toBeGreaterThan(0);
+    expect(updateItem).not.toHaveBeenCalled();
   });
 
   it('renders the plain single-card layout when no item has a buffet role', () => {

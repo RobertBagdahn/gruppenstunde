@@ -621,9 +621,10 @@ class MealItem(models.Model):
         verbose_name=_("Zutat"),
         help_text=_("Alternative zu Rezept — Einzelzutat im Plan"),
     )
+    # Three decimals so a constant-weight unit switch (e.g. 50 g -> 3,509 EL) keeps the grams.
     quantity = models.DecimalField(
         max_digits=10,
-        decimal_places=2,
+        decimal_places=3,
         null=True,
         blank=True,
         verbose_name=_("Menge"),

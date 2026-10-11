@@ -23,7 +23,8 @@ gespeichert:   Anzahl × Einheit   (Absicht: „2 Stück“, „1 EL“, „80 g
 berechnet:     quantity_g          → kcal, Kosten, Einkauf, Anzeige
                       │
 angezeigt:     Startansicht = gespeicherte Einheit, Gramm immer sichtbar
-               frei umschaltbar (nur Ansicht), Eingabe in jeder Einheit
+               frei umschaltbar (Lesemodus: nur Ansicht), Eingabe in jeder Einheit,
+               Einheitenwechsel im Essensplan: sofort speichern bei gleichem Gewicht
 ```
 
 ## Goals / Non-Goals
@@ -64,7 +65,7 @@ Ein CheckConstraint auf Feld-Ebene stellt „höchstens eins von portion/standar
 `MealItemOut`/`RecipeItemOut`: `quantity`, `unit_kind`, `unit_label`, `portion_id`, `standard_measure_key`, `quantity_g`, `is_weight_approx`, `has_missing_weight`. `measuring_unit_name` wird für Zutaten-Einträge entfernt. Für die Anzeige reicht das; den vollen Optionskatalog lädt der Umschalter beim Öffnen (gebündelt pro Seite über `useUnitOptions(ids)`).
 
 ### 4. Einheit wechseln
-`PATCH /api/meal-plans/{plan_id}/meal-items/{item_id}/` verwendet die bestehenden flachen Felder `{ quantity, portion_id?, measuring_unit_id?, standard_measure_key? }`. Die Anzahl berechnet das Frontend mengenerhaltend im Eingabemodus; das Backend speichert, was kommt, und validiert die Kombination. Wenn nur `quantity` gesendet wird, bleibt die Einheit unverändert.
+`PATCH /api/meal-plans/{plan_id}/meal-items/{item_id}/` verwendet die bestehenden flachen Felder `{ quantity, portion_id?, measuring_unit_id?, standard_measure_key? }` und validiert die Kombination. Wenn nur `quantity` gesendet wird, bleibt die Einheit unverändert. Werden Einheit und `quantity` gesendet, speichert das Backend genau diese Anzahl in der neuen Einheit. Wird nur die Einheit gesendet (Einheitenwechsel ohne Eingabe), rechnet das Backend mit den maßgeblichen Gewichten um: neue Anzahl = bisherige Gramm ÷ Gramm einer Zieleinheit, beide über `resolve_grams`, gerundet auf drei Nachkommastellen. Dafür speichert `MealItem.quantity` drei statt zwei Nachkommastellen (Migration `planner.0015`, nur `AlterField`). Fehlt ein Gewicht, antwortet die API mit 422. Ein eigenes Flag wie `keep_weight` ist nicht nötig: Das Fehlen von `quantity` bei gesetzter Einheit kennzeichnet den Wechsel. Das Frontend speichert einen solchen Wechsel im Essensplan sofort, zeigt „Einheit geändert“ mit „Rückgängig“ und stellt beim Rückgängigmachen Einheit und Anzahl exakt per `PATCH` wieder her.
 
 ### 5. Frontend-Bausteine
 - `lib/quantityUnits.ts`: `toCount(grams, option)`, `toGrams(count, option)`, `formatAmount({ count, option, grams, isApprox, missing })`. Gramm sind nie optional.

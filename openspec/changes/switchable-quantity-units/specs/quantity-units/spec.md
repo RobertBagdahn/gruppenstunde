@@ -77,7 +77,7 @@ In jeder Ansicht und Einheit MUST die Grammmenge sichtbar sein: `"{Anzahl} {Einh
 - **THEN** SHALL „2 Stück (Gewicht fehlt)“ mit der Aktion „Gewicht ergänzen“ erscheinen
 
 ### Requirement: Dynamische Ansicht
-Jede Zeile mit Zutatenmenge SHALL an jedem Anzeigeort einen Einheiten-Umschalter mit allen Einheitenoptionen der Zutat haben (Gruppen „Zutat“, „Standardmengen“, „Gramm“; jede Option mit Grammgewicht). Die Wahl ändert nur die Anzeige der Zeile, sendet keinen Request und gilt bis zum Verlassen der Seite. Jede Seite mit Zutatenmengen SHALL den Modus „Alles in Gramm“ über den URL-Parameter `?units=grams` anbieten; eine Zeilenwahl hat Vorrang. Auch nicht angemeldete Besucher und Nutzer ohne Bearbeitungsrecht SHALL umschalten können.
+Jede Zeile mit Zutatenmenge SHALL an jedem Anzeigeort einen Einheiten-Umschalter mit allen Einheitenoptionen der Zutat haben (Gruppen „Zutat“, „Standardmengen“, „Gramm“; jede Option mit Grammgewicht). In Lesedarstellungen (ohne Bearbeitungsrecht, synchronisierte Mahlzeiten, reine Anzeigen) ändert die Wahl nur die Anzeige der Zeile, sendet keinen Request und gilt bis zum Verlassen der Seite. Bearbeitbare Essensplan-Einträge speichern einen Einheitenwechsel nach „Einheitenwechsel mit konstantem Gewicht“. Jede Seite mit Zutatenmengen SHALL den Modus „Alles in Gramm“ über den URL-Parameter `?units=grams` anbieten; eine Zeilenwahl hat Vorrang. Auch nicht angemeldete Besucher und Nutzer ohne Bearbeitungsrecht SHALL umschalten können.
 
 #### Scenario: Zeile auf EL umschalten
 - **GIVEN** „Frischkäse 0,5 Portion (15 g)“
@@ -85,7 +85,7 @@ Jede Zeile mit Zutatenmenge SHALL an jedem Anzeigeort einen Einheiten-Umschalter
 - **THEN** SHALL „≈ 1 EL (15 g)“ erscheinen, und es wird nichts gespeichert
 
 #### Scenario: Alle sehen weiter die gespeicherte Einheit
-- **GIVEN** Peter hat eine Zeile auf EL umgeschaltet, ohne etwas einzugeben
+- **GIVEN** ein Nutzer ohne Bearbeitungsrecht hat eine Zeile auf EL umgeschaltet
 - **WHEN** eine Mitplanerin den Plan öffnet
 - **THEN** SHALL sie „0,5 Portion (15 g)“ sehen
 
@@ -108,6 +108,44 @@ Wo der Nutzer Mengen bearbeiten darf, SHALL das Mengenfeld die Anzahl in der akt
 #### Scenario: Ohne Bearbeitungsrecht
 - **WHEN** ein angemeldeter Nutzer ohne Bearbeitungsrecht den Eintrag ändern will
 - **THEN** MUST die API mit 403 antworten
+
+### Requirement: Einheitenwechsel mit konstantem Gewicht
+Wählt ein Nutzer mit Bearbeitungsrecht in einem Essensplan-Eintrag (`MealItem` mit Zutat; MealSlot-Karte und Buffet-Rolle, Tages- und Tabellenansicht) eine andere Einheit, ohne eine neue Menge einzugeben, SHALL der Eintrag sofort in der neuen Einheit gespeichert werden, und zwar bei gleichem Gewicht. Das Frontend sendet dazu nur die Einheit (`PATCH … { portion_id?, measuring_unit_id?, standard_measure_key? }` ohne `quantity`). Das Backend MUST die neue Anzahl als bisherige Gramm ÷ Gramm einer Zieleinheit berechnen, beide über `resolve_grams`, und auf drei Nachkommastellen runden (`MealItem.quantity` speichert drei Nachkommastellen). Gramm, kcal, Kosten und Einkaufsmengen MUST im Rahmen dieser Rundung gleich bleiben. Nach dem Speichern SHALL ein Hinweis „Einheit geändert“ mit vorheriger und neuer Menge und der Aktion „Rückgängig“ erscheinen (`UNDO_DURATION_MS`); „Rückgängig“ stellt Einheit und Anzahl exakt wieder her. Schlägt das Speichern fehl, SHALL das Feld die gespeicherte Einheit zeigen. Hat die Zieleinheit oder der Eintrag kein vertrauenswürdiges Gewicht, wird nicht umgerechnet: Die Einheit bleibt wie bisher mit Anzahl 1 im Feld, „Gewicht fehlt“ bzw. „Gewicht ergänzen“ wird angezeigt, und gespeichert wird erst beim Bestätigen. Sendet ein Client keine Menge und ist kein Gewicht bekannt, MUST die API mit 422 antworten und nichts ändern. Wer eine Menge eingibt und bestätigt, speichert nach „Eingabe in jeder Einheit“ genau diese Anzahl.
+
+#### Scenario: Gramm in Stück
+- **GIVEN** ein Eintrag „55 g“ Brot, dessen Portion „Stück“ 100 g wiegt
+- **WHEN** der Nutzer „Stück“ wählt und keine Menge eingibt
+- **THEN** SHALL sofort `portion_id` = „Stück“ und `quantity = 0.55` gespeichert werden, der Eintrag zeigt „0,55 Stück (55 g)“
+- **AND** kcal und Kosten bleiben unverändert
+- **AND** ein Hinweis „Einheit geändert“ mit „Rückgängig“ erscheint
+
+#### Scenario: Standardmaß in Gramm
+- **GIVEN** ein Eintrag „3 EL“ Rapsöl (Dichte 0,95, also 42,75 g)
+- **WHEN** der Nutzer „g“ wählt
+- **THEN** SHALL der Eintrag „42,75 g“ speichern
+
+#### Scenario: Portion, Standardmaß und Gramm
+- **GIVEN** ein Eintrag „0,5 Portion (15 g)“ Frischkäse ohne explizite Dichte
+- **WHEN** der Nutzer erst „EL“ und dann „g“ wählt
+- **THEN** SHALL der Eintrag erst „1 EL (≈ 15 g)“ und dann „15 g“ speichern
+
+#### Scenario: Ungerade Umrechnung
+- **GIVEN** ein Eintrag „50 g“ Rapsöl (1 EL = 14,25 g)
+- **WHEN** der Nutzer „EL“ wählt
+- **THEN** SHALL `quantity = 3.509` gespeichert werden und das Gewicht innerhalb von 0,01 g bei 50 g bleiben
+
+#### Scenario: Rückgängig
+- **GIVEN** ein Eintrag wurde durch Einheitenwechsel von „0,5 EL (15 g)“ auf „15 g“ umgestellt
+- **WHEN** der Nutzer im Hinweis „Rückgängig“ wählt
+- **THEN** SHALL der Eintrag wieder mit der vorherigen Einheit und `quantity = 0.5` gespeichert werden
+
+#### Scenario: Zieleinheit ohne Gewicht
+- **WHEN** der Nutzer eine Portion ohne vertrauenswürdiges Gewicht wählt
+- **THEN** SHALL nichts gespeichert werden, das Feld zeigt „1“ in dieser Einheit mit „Gewicht fehlt“, und erst die bestätigte Eingabe speichert
+
+#### Scenario: Lesemodus
+- **WHEN** ein Nutzer ohne Bearbeitungsrecht oder in einer synchronisierten Mahlzeit die Einheit umschaltet
+- **THEN** SHALL nur die Anzeige wechseln und kein Request gesendet werden
 
 ### Requirement: Gemeinsamer Formatierer
 Das Food-Frontend SHALL genau eine Umrechnungs- und Formatierungsfunktion für Zutatenmengen haben (`lib/quantityUnits.ts`: `toUnit`, `toCount`, `formatAmount`). Alle Anzeigeorte MUST sie nutzen. Das Backend SHALL für den PDF-Export dieselbe Formatierung umsetzen. Ein gemeinsamer Fixture-Satz MUST in Backend und Frontend identische Strings ergeben.
