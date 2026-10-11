@@ -32,6 +32,6 @@ Food workflows need reliable error handling and release coverage. Recipe alterna
 
 - Backend API, core error handling/correlation IDs, capacity configuration/checks, ingredient statistics, recipe alternative validation, and related tests.
 - Food frontend API schemas/hooks, recipe editor, ingredient searches, Buffet error handling, and related tests.
-- Terraform and Cloud Build release configuration; deterministic Playwright coverage.
+- Terraform and the GitHub Actions deploy workflow (single production pipeline since WP-08; Cloud Build removed); deterministic Playwright coverage.
 
 This change does not perform or claim production inspection, data repair, migration, deployment, load testing, backup verification, or IAM verification. Those require separate review and authorization.

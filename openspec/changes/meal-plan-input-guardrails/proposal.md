@@ -1,5 +1,9 @@
 # Eingabegrenzen und Integrität für Essenspläne
 
+## Status
+
+Die konkreten Grenzwerte in `design.md` und `specs/` sind **Vorschlagswerte zur Owner-Freigabe** (Task 0.1). Bestätigt durch die Review vom 2026-10-11: `reserve_factor=-100`, `activity_factor=1e9`, negative `day_part_factors` und `MealPlanDuplicateIn.norm_portions=-5e9` werden derzeit gespeichert.
+
 ## Why
 
 Mehrere API-Felder akzeptieren derzeit Werte, die fachlich unmöglich oder für die Berechnung und Datenbank gefährlich sind. Dazu gehören unbeschränkte Reserve- und Tagesfaktoren, Portions-Overrides, Einzelmengen und Portionsgewichte. Außerdem kann ein Plan mit einer unverhältnismäßig langen Laufzeit und tausenden Mahlzeiten erzeugt werden. Einzelne Werte wie `norm_portions` sind bereits begrenzt, aber es gibt noch kein konsistentes Regelwerk über die zusammenhängenden Eingaben.
@@ -18,9 +22,7 @@ Mehrere API-Felder akzeptieren derzeit Werte, die fachlich unmöglich oder für 
 - `meal-plan-input-guardrails`
 
 ### Modified Capabilities
-- `meal-plan`
-- `meal-plan-frontend`
-- `shopping-list`
+- Keine. Die Grenzen für Plan-, Mahlzeit- und Mengenfelder sowie das Frontend-Verhalten stehen gesammelt in `meal-plan-input-guardrails`.
 
 ## Impact
 

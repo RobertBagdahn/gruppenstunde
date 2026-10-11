@@ -17,6 +17,7 @@
 - [x] 3.1 Extra-Zustand um gewählte Portion und sichtbaren Namen ergänzen, ohne die Gramm-basierte kcal-Berechnung zu verfälschen.
 - [x] 3.2 Portion, Menge und Einheit beim Erstellen/Speichern der Wizard-Items übertragen.
 - [x] 3.3 Round-trip-Tests für extraIngredientNames und Portionen ergänzen.
+- [x] 3.4 Frei gesuchte Extras außerhalb des Katalogs behalten Portion und bleiben beim Wiederöffnen erhalten (WP-03; Browser-Prüfung 2026-10-11: Tomatenmark 2 EL, Gurkenwasser 2 Glas).
 
 ## 4. Food-Frontend: Mengen- und Einheitenanzeige
 
@@ -48,3 +49,10 @@
 - [x] 7.2 Buffet-Katalog, Suche und gespeicherter Builder-State um optionales `piece_weight_g` ergänzen; Zod synchron halten.
 - [x] 7.3 Im Builder die gerundete Näherung aus g/P × Item-Anteil × Personen ÷ g/Stück zeigen, nur bei g-Rolle und bestätigtem Stückgewicht.
 - [x] 7.4 Backend-/Frontend-Tests für Näherungsrechnung, Share-Anteil, fehlendes/unbestätigtes Gewicht, Rezept und ml-Rolle ergänzen.
+
+## 8. Spec-Abgleich (Review 2026-10-11)
+
+- [x] 8.1 Doppelte Deltas `meal-item-portion-update` und `meal-plan-frontend` in ein MODIFIED-Delta von `meal-item-unit-edit` überführt; Gramm-/ml-Anzeige aufgenommen.
+- [x] 8.2 `meal-item-note` als MODIFIED/ADDED-Delta zur bestehenden Main-Spec statt zweiter Notiz-Anforderung; PDF-Aussage im Design korrigiert.
+- [x] 8.3 „Portion und Maßeinheit speichern“ an das Datenmodell angepasst (Portion ohne `measuring_unit`).
+- [ ] 8.4 Testlücken schließen: Bulk-Wizard mit fremder/inaktiver Portion bei vorhandenen Einträgen (Rollback ist bisher nur mit leerem Item getestet), echter Rollback beim Zauberstab-409 ohne `save`-Mock, toter Code in `BuffetBuilder.test.tsx`.

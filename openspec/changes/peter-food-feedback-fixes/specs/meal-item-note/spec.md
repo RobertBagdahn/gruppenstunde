@@ -1,29 +1,33 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
-### Requirement: Einzelnotizen an Essensplan-Einträgen
+### Requirement: Notiz in der Plan-Zeile und im Dialog
+Die Plan-Zeile einer Einzelzutat SHALL in Tages- und Tabellenansicht eine vorhandene Notiz neben der Zutat anzeigen. Nutzer mit Bearbeitungsrecht SHALL die Notiz dort hinzufügen, ändern und löschen können. Nutzer ohne Bearbeitungsrecht SHALL die Notiz lesen, aber nicht ändern können. Der Hinzufügen-Dialog für Einzelzutaten SHALL ein optionales Notiz-Feld enthalten. Rezepteinträge können eine Notiz über die API speichern, erhalten in den Planansichten aber keine Notiz-Bedienung.
 
-Ein MealItem SHALL eine eigene Notiz mit maximal 500 Zeichen speichern können. In diesem Umfang zeigt die Food-UI Notizen für Einzelzutaten im Essensplan; Rezepteinträge können die API-Notiz ebenfalls speichern, erhalten aber noch keine Notiz-Bedienung in den Planansichten. Bearbeitende Personen SHALL Notizen für Einzelzutaten in Tages- und Tabellenansicht hinzufügen, bearbeiten und löschen können. Die Notiz SHALL neben der Zutat sichtbar sein. Nicht bearbeitende Personen SHALL vorhandene Notizen lesen, aber nicht ändern können. Beim Kopieren eines MealItems und beim Duplizieren eines Plans SHALL die Item-Notiz erhalten bleiben.
+#### Scenario: Notiz in der Zeile bearbeiten
+- **WHEN** der Nutzer in der Zeile die Notiz ändert und das Feld verlässt
+- **THEN** wird die Notiz gespeichert und in der Zeile angezeigt
 
-#### Scenario: Notiz hinzufügen und wieder öffnen
-
-- **GIVEN** ein bearbeitbarer Plan enthält ein Zutaten- oder Rezept-Item
+#### Scenario: Notiz nach Neuladen
+- **GIVEN** ein bearbeitbarer Plan enthält eine Einzelzutat
 - **WHEN** der Nutzer eine Notiz speichert und die Planseite neu lädt
-- **THEN** SHALL die Notiz am zugehörigen MealItem gespeichert und angezeigt werden
+- **THEN** zeigt die Zeile die gespeicherte Notiz
 
 #### Scenario: Notiz löschen
-
-- **GIVEN** ein MealItem besitzt eine Notiz
+- **GIVEN** eine Einzelzutat besitzt eine Notiz
 - **WHEN** der Nutzer den Notiztext entfernt und speichert
-- **THEN** SHALL die Notiz leer gespeichert werden und kein alter Text angezeigt werden
+- **THEN** ist die Notiz leer und die Zeile zeigt keinen alten Text
 
 #### Scenario: Keine Bearbeitungsrechte
-
 - **GIVEN** der Nutzer darf den Plan nur ansehen
-- **WHEN** das MealItem angezeigt wird
-- **THEN** SHALL die Notiz lesbar sein und keine Bearbeitungsaktion anbieten
+- **WHEN** die Einzelzutat angezeigt wird
+- **THEN** ist die Notiz lesbar und es gibt keine Bearbeitungsaktion
+
+## ADDED Requirements
+
+### Requirement: Notiz beim Kopieren erhalten
+Beim Kopieren von MealItems in eine andere Mahlzeit und beim Duplizieren eines Essensplans SHALL die Item-Notiz unverändert übernommen werden.
 
 #### Scenario: Notiz beim Kopieren erhalten
-
-- **GIVEN** ein Quell-MealItem hat eine Einzelnotiz
-- **WHEN** das Item oder der ganze Essensplan kopiert wird
-- **THEN** SHALL die kopierte MealItem-Notiz denselben Text enthalten
+- **GIVEN** ein Quell-MealItem hat die Notiz „ohne Zwiebeln“
+- **WHEN** das Item in eine andere Mahlzeit kopiert oder der ganze Essensplan dupliziert wird
+- **THEN** enthält das kopierte MealItem die Notiz „ohne Zwiebeln“

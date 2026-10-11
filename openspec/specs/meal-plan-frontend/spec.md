@@ -187,7 +187,7 @@ Die Planübersicht SHALL einen Button/Link zum RefMeal-Editor für jeden vorhand
 <!-- Added from recipe-search-enhancement -->
 
 ### Requirement: Prominenter CTA-Button im leeren Mahlzeiten-Slot
-Ein leerer MealSlot (items.length === 0, nicht is_external, canEdit true) MUSS einen prominenten "Rezept wählen"-Button anzeigen, der den RecipeSearchDialog öffnet.
+Ein leerer MealSlot (items.length === 0, nicht is_external, canEdit true) MUST einen prominenten "Rezept wählen"-Button anzeigen, der den RecipeSearchDialog öffnet.
 
 #### Scenario: Leerer MealSlot zeigt CTA
 - **WHEN** ein MealSlot keine Items hat, nicht external ist und canEdit true ist
@@ -202,14 +202,14 @@ Ein leerer MealSlot (items.length === 0, nicht is_external, canEdit true) MUSS e
 - **THEN** der CTA-Button wird nicht angezeigt
 
 ### Requirement: Leerer-Status als Klickfläche
-Der Hinweis-Text "Noch kein Rezept zugeordnet" in einem leeren MealSlot MUSS anklickbar sein und den RecipeSearchDialog öffnen.
+Der Hinweis-Text "Noch kein Rezept zugeordnet" in einem leeren MealSlot MUST anklickbar sein und den RecipeSearchDialog öffnen.
 
 #### Scenario: Klick auf leeren Hinweis
 - **WHEN** User auf "Noch kein Rezept zugeordnet" klickt
 - **THEN** der RecipeSearchDialog öffnet sich
 
 ### Requirement: Rezept-vorschlagen-Button
-Ein leerer MealSlot MUSS einen "Rezept vorschlagen"-Button zeigen, der ein zufälliges filterkonformes Rezept aus den Top-20 Ergebnissen abruft und den RecipePreviewDialog öffnet.
+Ein leerer MealSlot MUST einen "Rezept vorschlagen"-Button zeigen, der ein zufälliges filterkonformes Rezept aus den Top-20 Ergebnissen abruft und den RecipePreviewDialog öffnet.
 
 #### Scenario: Zufalls-Vorschlag
 - **WHEN** User auf "Rezept vorschlagen" klickt
@@ -240,7 +240,7 @@ The inline recipe search and RecipeSearchDialog SHALL exclude recipes that match
 - **THEN** the random suggestion SHALL NOT contain any of the plan's nutritional tags
 
 ### Requirement: Verbesserte Inline-Suchergebnisse
-Die Inline-Such-Ergebnisliste im MealSlot MUSS für jeden Vorschlag anzeigen: Ampel-Farbpunkt (recipe_badge), Preis pro Portion, und Verwendungshäufigkeit.
+Die Inline-Such-Ergebnisliste im MealSlot MUST für jeden Vorschlag anzeigen: Ampel-Farbpunkt (recipe_badge), Preis pro Portion, und Verwendungshäufigkeit.
 
 #### Scenario: Inline-Ergebnis mit Ampel und Preis
 - **WHEN** Suchergebnisse in der Inline-Suche angezeigt werden
@@ -315,3 +315,18 @@ Wenn eine Zutat im Essensplan hinzugefügt wird, SHALL die ausgewählte Portion 
 - **GIVEN** Toastbrot hat eine Portion „Scheibe“ mit 30 g und der Essensplan umfasst 12 Personen
 - **WHEN** eine Scheibe pro Person hinzugefügt wird
 - **THEN** SHALL die Tagesansicht, die Tabelle und die Einkaufsliste dieselbe Portionsbedeutung anzeigen und insgesamt ungefähr 360 g (vor Reserven) berechnen
+
+### Requirement: Keine veralteten Plan-Summen
+Nach dem Entfernen eines Eintrags oder dem Ändern von Faktor oder Menge SHALL der Plan sofort angepasste Werte für Mahlzeit-Totals, Kachelwerte und Plan-Header (Budget pro Person, kcal) zeigen, bevor die Server-Antwort vorliegt. Schlägt die Änderung fehl, MUST der vorherige Stand wiederhergestellt werden.
+
+#### Scenario: Rezept entfernt
+- **WHEN** der Nutzer das einzige Rezept einer Mahlzeit entfernt
+- **THEN** zeigt der Header nie „Noch nichts geplant“ zusammen mit dem alten Betrag
+
+#### Scenario: Faktor geändert
+- **WHEN** der Faktor eines Rezepts von 1 auf 2 geändert wird
+- **THEN** zeigen Kachel und Header sofort das Doppelte der Kosten und kcal des Eintrags
+
+#### Scenario: Änderung schlägt fehl
+- **WHEN** der Server die Änderung ablehnt
+- **THEN** stellen Kachel und Header den vorherigen Stand wieder her

@@ -6,10 +6,10 @@
 
 ## 2. Tests
 
-- [x] 2.1 Komponententests mit den Produktivtest-Fällen (Spaghetti, Zwiebel, Olivenöl, Salz) und Item ohne Portion/Einheit
+- [ ] 2.1 Komponententests mit den Produktivtest-Fällen (Spaghetti, Zwiebel, Olivenöl, Salz) und Item ohne Portion/Einheit – Review 2026-10-11: Spaghetti, Zwiebel, Olivenöl und „ohne Portion/Einheit“ sind in `lib/ingredientAmount.test.ts` und `RecipeIngredientsTable.test.tsx` abgedeckt; der Salz-Fall (z. B. Prise) fehlt noch
 - [x] 2.2 Bestehende Tests der Detailseite und des Wizards (`RecipeWizard.test.tsx`, `RecipeWizardFlow.test.tsx`) laufen unverändert
 
 ## 3. Abschluss
 
 - [x] 3.1 Frontend-Typecheck, Lint, Tests
-- [ ] 3.2 Manuell: Freitext-Rezept bis zur Vorschau, Vergleich mit Detailseite nach „Fertigstellen“, 320 px Breite prüfen
+- [ ] 3.2 Manuell: Freitext-Rezept bis zur Vorschau, Vergleich mit Detailseite nach „Fertigstellen“, 320 px Breite prüfen (in den Browser-Prüfungen vom 2026-10-11 nicht abgedeckt, braucht den KI-Pfad)

@@ -5,16 +5,17 @@
 - [x] 1.3 `MealItem.standard_measure_key` + Migration (Bestandsdaten: `measuring_unit` bei Portion leeren)
 - [x] 1.4 Management Command `normalize_meal_item_units` (Dry-Run als Default, Bericht, `--apply`) laut design.md
 - [x] 1.5 CheckConstraints und Service-Validierung für `MealItem` (genau eine Einheitenart; Altlast-Maßeinheiten werden auf Standardmaß bzw. Portion abgebildet)
-- [x] 1.6 `_resolve_ingredient_weight_g` an `resolve_grams` delegieren; Plausibilität, Einkaufsliste, Kochplan und PDF nutzen Portion/Standardmaß
+- [x] 1.6 `_resolve_ingredient_weight_g` an `resolve_grams` delegieren; Plausibilität, Einkaufsliste, Kochplan und PDF nutzen Portion/Standardmaß (Nachtrag WP-02: auch `recipe/services/nutrition_aggregation.py` für Vorschläge und Ampel; Tests in `test_quantity_integrity_regressions.py`)
 
 ## 2. Phase 1 – Backend: API
 
 - [x] 2.1 `planner/api/meal_plan.py`: Hinzufügen mit Portion setzt keine `measuring_unit`; `standard_measure_key` annehmen; `_require_defined_unit` entfernen
-- [x] 2.2 `MealItemOut`: `unit_kind`, `unit_label`, `standard_measure_key`, `is_weight_approx`; `MealItemUpdateIn.unit`; `RefMealItemIn/Out` + Sync
+- [x] 2.2 `MealItemOut`: `unit_kind`, `unit_label`, `standard_measure_key`, `is_weight_approx`; `MealItemUpdateIn` mit flachen Feldern `portion_id`, `measuring_unit_id`, `standard_measure_key` (design.md §4, kein verschachteltes `unit`); `RefMealItemIn/Out` + Sync
 - [x] 2.3 Suche liefert `start_portion_id`; Kopieren/Synchronisieren übernimmt Portion und Standardmaß
 - [x] 2.4 `GET /api/ingredients/unit-options/?ids=` (max. 200, `food_access`)
-- [x] 2.5 `pdf_export.py` auf `format_amount`
+- [x] 2.5 `pdf_export.py` auf `format_amount` (Portions-Einträge seit WP-02 ebenfalls, z. B. „5 EL (150 g)“)
 - [x] 2.6 Tests: Einheitenwechsel, 422 bei Widerspruch und unbekanntem Schlüssel, 401/403, Portionskorrektur wirkt auf Einträge, RefMeal-Sync
+- [ ] 2.7 Testlücken: 401/403-Tests in `test_meal_item_units.py` senden das nicht existierende Feld `unit` statt `standard_measure_key`/`portion_id`; RefMeal-Sync mit Portion und Standardmaß; Einheitenoptionen ohne Anmeldung
 
 ## 3. Phase 1 – Frontend: Bausteine und Essensplan
 
@@ -22,7 +23,7 @@
 - [x] 3.2 `lib/quantityUnits.ts` (`toCount`, `toGrams`, `formatAmount`) mit den gemeinsamen Fixtures
 - [x] 3.3 `useUnitOptions(ids)` (gebündelt), `useUnitViewMode()` (`?units=grams`)
 - [x] 3.4 `components/quantity/UnitPicker.tsx`: kompakter Einheiten-Umschalter mit vollem Optionskatalog und Gramm je Option, „Gewicht fehlt“ markiert (Rezept-Editor stellt in Phase 2 von `PortionPicker` um)
-- [x] 3.5 `components/quantity/QuantityUnitLabel.tsx`, `QuantityUnitInput.tsx` (Live-Vorschau „= … g“, 320 px)
+- [x] 3.5 Anzeige- und Eingabe-Komponenten mit Live-Vorschau „= … g“ (320 px), umgesetzt gemeinsam in `components/quantity/QuantityUnit.tsx`
 - [x] 3.6 `MealSlot.tsx` (Karte + Buffet-Rollenliste), `TableView.tsx`, `DayPlanView.tsx`, `RefMealEditorPage.tsx` umstellen; alte Formatierer und `QuantityInput.tsx` entfernen
 - [x] 3.7 `MealOmnibarDialog.tsx`: Startauswahl Standardportion × 1 bzw. 100 g, Einheit änderbar
 - [x] 3.8 Seitenmodus „Alles in Gramm“ auf Essensplan- und RefMeal-Seiten
@@ -32,6 +33,7 @@
 
 ## 4. Phase 2 – Rezept-Editor und Anzeige
 
+- [ ] 4.0a Gramm-Modell für `RecipeItem` mit der archivierten Capability `direct-gram-recipe-items` abgleichen (dort: Gramm = `portion=NULL` + `ingredient`; hier verwendet „g“-Basisportion); Architekturentscheidung und Specs vor Archivierung angleichen
 - [x] 4.0 `RecipeItem.standard_measure_key` + Migration + Constraint (Standardmaß an der „g“-Basisportion); `RecipeItemIn/Out` mit `standard_measure_key`, `unit_kind`, `unit_label`, `is_weight_approx`; Rezept-Gewichtsauflösung an `resolve_grams` delegieren
 - [x] 4.1 `InlineIngredientEditor.tsx`, `IngredientQuantityDialog.tsx`: Standardmaß bleibt Einheit (`PortionPicker` mit `selectedStandardKey`, mengenerhaltender Wechsel)
 - [ ] 4.1a Rezept-Editor auf `QuantityUnitInput` umstellen

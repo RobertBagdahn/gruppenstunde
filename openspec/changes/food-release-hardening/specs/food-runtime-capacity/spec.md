@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Cloud Run database connections stay within the database budget
-The deployment configuration SHALL declare a database-connection envelope that accounts for Cloud Run maximum instances, request concurrency, Gunicorn workers and threads, background workers, and Django connection lifetime. A capacity-check command MUST compare the configured application maximum with the database connection limit and an explicit reserve. Terraform trigger substitutions and the deployment pipeline MUST use consistent values; proposed defaults MUST NOT be represented as production-validated until measured.
+The deployment configuration SHALL declare a database-connection envelope that accounts for Cloud Run maximum instances, request concurrency, Gunicorn workers and threads, background workers, and Django connection lifetime. A capacity-check command MUST compare the configured application maximum with the database connection limit and an explicit reserve. The GitHub Actions deploy workflow (the single production pipeline), `Dockerfile.backend`, the Terraform defaults and the Makefile MUST use consistent values; proposed defaults MUST NOT be represented as production-validated until measured.
 
 #### Scenario: Capacity preflight exceeds the declared budget
 - **WHEN** the capacity-check command calculates a maximum application connection count above the database budget

@@ -4,6 +4,8 @@
 
 **Exploration, keine Implementierungsfreigabe.** Dieses OpenSpec bündelt Peters Rückmeldungen aus den Screenshots sowie den bereits geprüften Produktionsfehler. Ziel ist, jeden Punkt reproduzierbar einzuordnen, fachlich zu klären und erst danach in passende Implementierungs-Changes zu überführen.
 
+**Stand 2026-10-11:** Die bestätigten Fehler und Wünsche P-01, P-02, P-03, P-06, P-07, P-08, P-09 und P-10 sind im Folge-Change `peter-food-feedback-fixes` umgesetzt und in `main` integriert (Einheitenwechsel nach Owner-Entscheidung bei gleichem Gewicht mit „Rückgängig“; frei gesuchte Frühstücks-Extras behalten ihre Portion, im Browser geprüft). Offen sind nur noch P-04/P-05 (Abstimmung mit Peter und Prüfung seines Plan-/Rollenfalls im Buffet-Builder; aus `food-audit-feedback-triage` hierher übernommen), P-11 (Angaben zu Browser/Viewport/Rechten fehlen) und P-12 (DB-Verbindungslimits, Abgleich mit `food-release-hardening`). Dieser Change selbst enthält keine Implementierung; die Umsetzung lief ausschließlich über Folge-Changes.
+
 ## Why
 
 Die Rückmeldungen betreffen mehrere miteinander verbundene Food-Abläufe: Essensplan-Suche und -Einträge, Kopieren von Mahlzeiten, Frühstücks- und Buffet-Builder, Portions-/Einheitenwahl sowie Eingabefelder. Ein Teil sind belegte Fehler, ein Teil UX-Wünsche; andere Punkte sind noch nicht reproduziert. Gleichzeitig existieren bereits aktive OpenSpec-Changes zu Buffet-Suche/-Auswahl und Wizard-Verhalten. Ohne gemeinsame Bestandsaufnahme drohen bestätigte Fehler, Wünsche und bereits geplante Arbeit vermischt oder doppelt umgesetzt zu werden.
@@ -19,7 +21,7 @@ Ein Fehler des Portions-Zauberstabs ist in Cloud Run bereits bestätigt: Vier Re
 
 ## Nicht-Ziele
 
-- Keine Änderung an Frontend-, Backend-, Datenbank- oder Produktionsdaten in diesem Exploration-Change.
+- Keine Änderung an Frontend-, Backend-, Datenbank- oder Produktionsdaten in diesem Exploration-Change; Umsetzungen laufen über Folge-Changes wie `peter-food-feedback-fixes`.
 - Keine automatische Prod-Korrektur von Portions-, Zutaten- oder Buffet-Daten.
 - Keine vorschnelle Einstufung von Produktwünschen oder absichtlich begrenzter Suche als Bugs.
 

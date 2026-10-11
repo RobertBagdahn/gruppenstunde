@@ -1,5 +1,8 @@
-## ADDED Requirements
+# ingredient-creation-stepper Specification
 
+## Purpose
+Geführte Zutaten-Erstellung unter `/ingredients/new` mit Modusauswahl (KI, manuell), Stammdaten-Schritt und Vorschau mit Speichern.
+## Requirements
 ### Requirement: Ingredient creation page with mode selection
 The system SHALL provide a guided ingredient creation flow at `/ingredients/new` using the existing `ContentStepper` component. The flow SHALL present three creation modes in Step 0, collect essential fields (Stammdaten) in Step 1, and show a preview with save action in Step 2.
 
@@ -17,7 +20,7 @@ The system SHALL provide a guided ingredient creation flow at `/ingredients/new`
 ---
 
 ### Requirement: KI-Modus für Zutaten-Erstellung
-Im KI-Modus gibt der User einen Namen ein, und das System ruft `POST /api/ingredients/ai-create/` auf. Das Ergebnis füllt die Felder in Step 1 vor.
+Im KI-Modus gibt der User einen Namen ein, und das System SHALL `POST /api/ingredients/ai-create/` aufrufen. Das Ergebnis SHALL die Felder in Step 1 vorbefüllen.
 
 #### Scenario: Successful AI creation
 - **WHEN** a user enters a name (e.g. "Haferflocken") in the KI input and submits
@@ -42,7 +45,7 @@ Im KI-Modus gibt der User einen Namen ein, und das System ruft `POST /api/ingred
 ---
 
 ### Requirement: Manuell-Modus für Zutaten-Erstellung
-Im manuellen Modus springt der User direkt zu Step 1 mit leerem Formular.
+Im manuellen Modus SHALL der User direkt zu Step 1 mit leerem Formular gelangen.
 
 #### Scenario: Manual mode selected
 - **WHEN** a user clicks the "Manuell" card in Step 0
@@ -52,7 +55,7 @@ Im manuellen Modus springt der User direkt zu Step 1 mit leerem Formular.
 ---
 
 ### Requirement: Stepper Step 1 zeigt nur Stammdaten
-Step 1 enthält ausschließlich die Stammdaten-Felder einer Zutat. Alle anderen Felder (Nährwerte, Scores, physikalische Eigenschaften) sind auf der Detailseite bearbeitbar.
+Step 1 SHALL ausschließlich die Stammdaten-Felder einer Zutat enthalten. Alle anderen Felder (Nährwerte, Scores, physikalische Eigenschaften) sind auf der Detailseite bearbeitbar.
 
 #### Scenario: Step 1 field set
 - **WHEN** Step 1 is rendered (regardless of mode)
@@ -71,7 +74,7 @@ Step 1 enthält ausschließlich die Stammdaten-Felder einer Zutat. Alle anderen 
 ---
 
 ### Requirement: Stepper Step 2 — Vorschau & Speichern
-Step 2 zeigt eine Vorschau der eingegebenen Daten und einen Speichern-Button. Nach dem Speichern navigiert das System zur Detailseite der Zutat.
+Step 2 SHALL eine Vorschau der eingegebenen Daten und einen Speichern-Button zeigen. Nach dem Speichern SHALL das System zur Detailseite der Zutat navigieren.
 
 #### Scenario: Saving a new ingredient (manual or URL mode)
 - **WHEN** a user clicks "Speichern" in Step 2 and no ingredient has been pre-created (manual/URL mode)
@@ -115,7 +118,7 @@ Die CreateIngredientPage SHALL die Query-Parameter `?prefillName=` und `?redirec
 ---
 
 ### Requirement: UnknownIngredientDialog "neu anlegen" navigiert zu /ingredients/new
-Wenn ein User im Rezept-Editor eine Zutat tippt, die nicht existiert, und "neu anlegen" klickt, soll er zur neuen Erstellungspage navigieren statt einer Fehlermeldung zu erhalten.
+Wenn ein User im Rezept-Editor eine Zutat tippt, die nicht existiert, und "neu anlegen" klickt, SHALL er zur neuen Erstellungspage navigieren statt eine Fehlermeldung zu erhalten.
 
 #### Scenario: User clicks "neu anlegen" in UnknownIngredientDialog
 - **WHEN** a user clicks the "neu anlegen" button in `UnknownIngredientDialog`
@@ -126,3 +129,18 @@ Wenn ein User im Rezept-Editor eine Zutat tippt, die nicht existiert, und "neu a
 - **WHEN** `handleAddIngredient` is called with an ingredient without a slug
 - **THEN** the system SHALL NOT show a "Bitte eine bestehende Zutat auswählen" error
 - **THEN** the system SHALL instead navigate to `/ingredients/new?prefillName=<query>&redirectTo=<current page URL>`
+
+### Requirement: Aussagekräftige Fehler beim Anlegen
+Das Anlegen einer Zutat SHALL bei Fehlern die Backend-Meldung anzeigen. Existiert der Name bereits, MUST das Backend mit `409` und `existing` (`id`, `slug`, `name`) antworten und das Formular die vorhandene Zutat mit Link nennen.
+
+#### Scenario: Doppelter Name
+- **WHEN** der Nutzer „Salz“ speichert und `Salz` existiert
+- **THEN** lautet die Meldung „Die Zutat „Salz“ gibt es schon“ mit Link zur vorhandenen Zutat
+- **AND** nicht „Fehler beim Erstellen der Zutat“
+
+### Requirement: Pflichtfeld-Fehler am Feld
+Pflichtfeld-Fehler (Name der Zutat, Titel des Rezepts im Bearbeiten) SHALL als Inline-Meldung am Feld erscheinen und das Feld fokussieren.
+
+#### Scenario: Leerer Titel
+- **WHEN** der Nutzer im Rezept-Bearbeiten den Titel leert und speichert
+- **THEN** zeigt das Titelfeld „Titel ist erforderlich“ und erhält den Fokus

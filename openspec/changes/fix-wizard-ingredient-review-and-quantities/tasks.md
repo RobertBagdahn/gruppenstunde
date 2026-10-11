@@ -4,6 +4,8 @@
 - [x] 1.2 Sonderfall leere Einheit/„Stück“ mit Stückportion
 - [x] 1.3 Tests: 2 EL Olivenöl → 2, 1 Zwiebel → 1, Prise Salz, g und Dose unverändert, Portion ohne Gewicht überspringt Direktabgleich
 - [x] 1.4 `_suggested_portion_count` in `ingredient_review_service.py` gegen die neuen Fälle über `preview_recipe_ingredients` testen
+- [x] 1.5 Review-Zeile übernimmt die direkt gefundene Portion statt der Rang-1-Portion (`convert_to_portion`, WP-02; Test `test_review_selects_directly_matched_rank2_portion`)
+- [ ] 1.6 Direktabgleich auch über `portion.measuring_unit` und für weitere Pluralformen („Dosen“, „Zehen“, „Scheiben“, „Gläser“) – Spec und Design verlangen „Name oder Messeinheit“, der Code gleicht derzeit nur normalisierte Portionsnamen ab; umsetzen oder Spec eingrenzen
 
 ## 2. Frontend: Review-Schritt (frontend-food)
 
@@ -13,9 +15,9 @@
 - [x] 2.4 Komponententests: Ersetzen statt Anhängen, Alternative räumt Formular, bewusste Neuanlage behält es
 - [x] 2.5 Suchtext im Review als editierbaren Zustand führen; Löschen darf nicht auf den KI-Vorschlag zurückfallen, die alte Ingredient-ID bleibt aufgehoben
 - [x] 2.6 Gemeinsamen Parser für Dezimaleingaben mit Komma/Punkt ergänzen; Review-Dialog und Rezept-Suchdialog halten Rohtext bis zum gültigen Bestätigen und erlauben keine ungültige Menge
-- [x] 2.7 Mengenfeld im Dialog für neue Zutaten an dieselbe Rohtexteingabe und Validierung anschließen
+- [x] 2.7 Mengenfeld im Dialog für neue Zutaten an dieselbe Rohtexteingabe und Validierung anschließen (Mindestmenge seit WP-04 einheitlich 0,1)
 - [x] 2.8 Regressionstests: Suchfeld leeren/neu tippen, `0,6` und `0.6` schrittweise eingeben, ungültigen/zu kleinen Wert nicht bestätigen
-- [x] 2.9 Wiederverwendbares `DecimalInput` in Rezeptschritt-Modifikatoren, Referenzmahlzeit-Faktoren und Frühstücks-Extras einsetzen; Rohtext erhalten und ungültige Werte beim Blur verwerfen
+- [x] 2.9 Wiederverwendbares `DecimalInput` in Rezeptschritt-Modifikatoren, Referenzmahlzeit-Faktoren und Frühstücks-Extras einsetzen; Rohtext erhalten und ungültige Werte beim Blur verwerfen (Faktor „warmes Gericht“ in `StepExtras.tsx` seit WP-03 ebenfalls `DecimalInput`)
 - [x] 2.10 Ganzzahliges Stufen-Schnellhinzufügen auf Rohtexteingabe mit 1–50-Validierung umstellen; ungültige Werte blockieren die Bestätigung
 - [x] 2.11 Komponententests für `DecimalInput` und Stufen-Schnellhinzufügen: führende Null, Komma/Punkt, ungültige Zwischenstände und gültiger Submit
 

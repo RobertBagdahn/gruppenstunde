@@ -21,12 +21,17 @@ Peters Rückmeldungen und der Cloud-Run-Vorfall zeigen reproduzierbare Datenverl
 
 ## Capabilities
 
+### New Capabilities
+- `buffet-piece-estimate`: bestätigtes Stückgewicht für eine ungefähre Gesamtstückzahl im Buffet-Builder anzeigen.
+
 ### Modified Capabilities
 - `portion-magic-wand`: Auswahl einer zusätzlichen Portion darf nicht an einer bereits belegten Rang-1-Position scheitern; Konflikte müssen kontrolliert und ohne Teiländerung beantwortet werden.
-- `breakfast-wizard-direct-meal`: ausgewählte Portionsreferenzen müssen direkt und atomar gespeichert sowie im Frühstücks-Assistenten wiederhergestellt werden.
-- `meal-plan-frontend`: Einheiten- und Mengenanzeige muss Gramm-/Milliliter-Einheiten von Portionsnamen unterscheiden.
-- `meal-item-note`: Notizen an einzelnen Plan-Items speichern, anzeigen, bearbeiten, löschen und bei Kopien erhalten.
-- `buffet-builder`: bestätigtes Stückgewicht für eine ungefähre Gesamtstückzahl im Buffet-Builder anzeigen.
+- `breakfast-wizard-direct-meal`: ausgewählte Portionsreferenzen (auch frei gesuchter Extras) müssen direkt und atomar gespeichert sowie im Frühstücks-Assistenten wiederhergestellt werden.
+- `meal-item-unit-edit`: Einheitenwechsel in der Plan-Zeile speichert sofort bei gleichem Gewicht mit „Rückgängig“; Gramm-/Milliliter-Aliase werden als Masse/Volumen angezeigt.
+- `meal-item-note`: Notizen in Tages- und Tabellenansicht bearbeiten, nur lesend ohne Bearbeitungsrecht, beim Kopieren erhalten.
+- `meal-plan-duplicate`: Plan-Duplikat und Einträge-Kopie übernehmen Portion, Buffet-/Frühstücksmetadaten und Mengen unverändert.
+
+Die temporär leeren Mengen-Dialoge (P-09) sind in `recipe-quantity-input` des Changes `fix-wizard-ingredient-review-and-quantities` spezifiziert und werden hier nicht doppelt geführt.
 
 ## Impact
 

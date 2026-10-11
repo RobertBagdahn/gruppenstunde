@@ -6,19 +6,17 @@
 
 ## 2. Offene Produktentscheidungen
 
-- [ ] 2.1 Geltungsbereich der Notizen festlegen: Zutaten, Rezepte oder beides.
-- [ ] 2.2 Anzeigeorte und Sichtbarkeit/Berechtigungen für Notizen festlegen.
+- [x] 2.1 Geltungsbereich der Notizen festlegen: Zutaten, Rezepte oder beides. – Erledigt durch die Main-Spec `meal-item-note` (Umsetzung `MealItem.note`, auch in `peter-food-feedback-fixes` 6.x): Notizen hängen an Einzelzutaten-MealItems im Essensplan.
+- [x] 2.2 Anzeigeorte und Sichtbarkeit/Berechtigungen für Notizen festlegen. – Erledigt durch `meal-item-note`: Plan-Zeile (Tages- und Tabellenansicht), Hinzufügen-Dialog und Essensplan-PDF; ändern nur mit Bearbeitungsrecht.
 - [ ] 2.3 Verlässliche Brötchen-Portionsgewichte bestätigen und Quelle dokumentieren; ohne Bestätigung keine Schätzung implementieren.
-- [ ] 2.4 Peters konkreten Plan-/Rollenfall mit Plan/Testdaten, Benutzerrolle, Mahlzeit, Buffet-Rolle, Suchbegriff und erwartetem Ergebnis beschreiben.
 
 ## 3. Manuelle Prüfung
 
 - [x] 3.1 Omnibar mit mehr als fünf Treffern pro Gruppe prüfen: maximal fünf pro Gruppe in „Alle“ und „Alle anzeigen“ öffnet die vollständige Kategorie (vom Nutzer als vorhanden und getestet bestätigt; automatisierter Regressionstest ist ebenfalls vorhanden).
-- [ ] 3.2 Buffet-Builder-Suche mit Peters bestätigtem Plan-/Rollenfall manuell ausführen; Auswahl speichern und Wiederöffnung prüfen.
-- [ ] 3.3 Ergebnis, Testdaten und tatsächliches Verhalten dokumentieren. Nur reproduzierbare Abweichungen als Bug einstufen.
-- [ ] 3.4 Falls ein Bug reproduziert wird, separates OpenSpec-Bugfix mit klaren Reproduktionsschritten und Soll-Verhalten anlegen.
+
+Peters Plan-/Rollenfall im Buffet-Builder (früher 2.4 und 3.2–3.4) wird seit 2026-10-11 ausschließlich in `peter-food-feedback-exploration` (Tasks 2.3, 2.3a und 3.2) geführt.
 
 ## 4. Umsetzung nach Klärung
 
-- [ ] 4.1 Erst nach Abschluss von 2.1–2.2 eine separate Spezifikation und Umsetzung für Notizen erstellen.
-- [ ] 4.2 Erst nach Abschluss von 2.3 fachliche Stückzahlschätzung spezifizieren; nur bestätigte Gewichte verwenden und Unverfügbarkeit transparent behandeln.
+- [x] 4.1 Erst nach Abschluss von 2.1–2.2 eine separate Spezifikation und Umsetzung für Notizen erstellen. – Erledigt: Main-Spec `meal-item-note`, Umsetzung `MealItem.note` (Migration `planner.0013`).
+- [ ] 4.2 Erst nach Abschluss von 2.3 fachliche Stückzahlschätzung spezifizieren; nur bestätigte Gewichte verwenden und Unverfügbarkeit transparent behandeln. – Hinweis: `peter-food-feedback-fixes` (`buffet-piece-estimate`) zeigt die Näherung bereits nur bei bestätigtem/importiertem Stückgewicht; offen bleibt, ob die Brötchen-Gewichte in den Daten bestätigt sind (2.3).

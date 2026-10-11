@@ -1,13 +1,13 @@
 ## 1. Normalisierung
 
 - [x] 1.1 Reine Funktion `normalize_ingredient_name` (Plural-Klammern, Größen-Adjektive, `Größe X`, Kopf-Split) mit Tabellentests, inkl. `Prise(n) Salz`, `große Ei(er), Größe L`, `Mineralwasser mit Kohlensäure`, `Kokosmilch` (kein Kürzen)
-- [x] 1.2 In `IngredientMatcher._match_core` vor Stufe 1 einbinden, Rohname und Notiz erhalten, `BARE_UNIT_STRIP_PATTERN` und `QUANTITY_UNIT_STRIP_PATTERN` um Plural-Klammern erweitern
+- [x] 1.2 In `IngredientMatcher._match_core` vor Stufe 1 einbinden, Rohname und Notiz erhalten (die Plural-Klammern löst die vorgeschaltete Normalisierung auf; die Strip-Patterns selbst wurden nicht erweitert)
 
 ## 2. Matching
 
-- [x] 2.1 Kopfnomen-Stufe nach Stufe 1: exakter Name/Alias des Kopfs, Ergebnis `needs_review=True`, `matched_via="head"`, Notiz mit Zusatz
+- [ ] 2.1 Kopfnomen-Stufe nach Stufe 1: exakter Name/Alias des Kopfs, Ergebnis `needs_review=True`, `matched_via="head"`, Notiz mit Zusatz – Review 2026-10-11: Stufe, `matched_via="head"` und Notiz sind umgesetzt, `needs_review=True` fehlt (`recipe/services/ingredient_matcher.py`, Kopf-Treffer); der Wizard zeigt den Treffer trotzdem als „Zu prüfen“. Die Notiz „mit Kohlensäure“ erreicht die Review-Zeile nicht (`IngredientReviewRowOut` ohne Notizfeld)
 - [x] 2.2 Kandidatenvergleich: Klammer-Zusätze entfernen, vorhandene Plural-Logik (`ingredient-plural-matching`) wiederverwenden
-- [x] 2.3 Hinweistexte nach Trefferstärke (`FUZZY_THRESHOLD`), Text in `_fuzzy_result` korrigieren
+- [x] 2.3 Hinweistexte nach Trefferstärke (`FUZZY_THRESHOLD`), Text in `_fuzzy_result` korrigieren (nur Fuzzy-Stufe; Grauzonen-Texte der Jaccard- und Embedding-Stufe lauten noch anders als „ähnlich, bitte prüfen“)
 
 ## 3. Review-Service und Wizard
 
