@@ -5,6 +5,8 @@ from datetime import datetime
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from core.services.user_directory import public_display_name
+
 from .models import ShoppingList, ShoppingListCollaborator
 
 
@@ -30,6 +32,9 @@ class ShoppingListConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4403)
             return
 
+        self.sender_id: int = user.id
+        self.sender_display_name: str = await self._display_name(user)
+
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
@@ -48,9 +53,6 @@ class ShoppingListConsumer(AsyncJsonWebsocketConsumer):
         if not event_type:
             return
 
-        user = self.scope.get("user")
-        username = user.username if user else "unknown"
-
         # Broadcast the event to the group
         await self.channel_layer.group_send(
             self.group_name,
@@ -58,7 +60,8 @@ class ShoppingListConsumer(AsyncJsonWebsocketConsumer):
                 "type": "shopping_event",
                 "event_type": event_type,
                 "data": content.get("data", {}),
-                "sender": username,
+                "sender": self.sender_display_name,
+                "sender_id": self.sender_id,
                 "timestamp": datetime.now().isoformat(),
             },
         )
@@ -70,9 +73,14 @@ class ShoppingListConsumer(AsyncJsonWebsocketConsumer):
                 "type": event["event_type"],
                 "data": event.get("data", {}),
                 "sender": event.get("sender", ""),
+                "sender_id": event.get("sender_id"),
                 "timestamp": event.get("timestamp", ""),
             }
         )
+
+    @database_sync_to_async
+    def _display_name(self, user) -> str:
+        return public_display_name(user)
 
     @database_sync_to_async
     def _check_access(self, user) -> bool:

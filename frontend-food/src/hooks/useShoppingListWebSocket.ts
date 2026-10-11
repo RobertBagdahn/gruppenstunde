@@ -8,10 +8,12 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 
-interface ShoppingListEvent {
+export interface ShoppingListEvent {
   type: string;
   data: Record<string, unknown>;
+  /** Public display name of the sending user (never an e-mail address). */
   sender: string;
+  sender_id: number | null;
   timestamp: string;
 }
 
@@ -157,7 +159,7 @@ export function useOptimisticCheckItem(listId: number) {
   const queryClient = useQueryClient();
 
   const optimisticCheck = useCallback(
-    (itemId: number, isChecked: boolean, username: string) => {
+    (itemId: number, isChecked: boolean, displayName: string) => {
       // Snapshot current data for rollback
       const previousData = queryClient.getQueryData(['shopping-list', listId]);
 
@@ -175,7 +177,7 @@ export function useOptimisticCheckItem(listId: number) {
                   ? {
                       ...item,
                       is_checked: isChecked,
-                      checked_by_username: isChecked ? username : null,
+                      checked_by_display_name: isChecked ? displayName : null,
                       checked_at: isChecked ? new Date().toISOString() : null,
                     }
                   : item,

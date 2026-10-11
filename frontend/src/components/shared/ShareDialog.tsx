@@ -10,7 +10,7 @@ import {
   useUpdateCollaborator,
   useRemoveCollaborator,
 } from '@/api/collaborators';
-import { useSearchUsers } from '@/api/users';
+import { USER_SEARCH_MIN_QUERY_LENGTH, useSearchUsers } from '@/api/users';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RoleSelect from './RoleSelect';
 
@@ -58,7 +58,7 @@ export default function ShareDialog({
   }, [userSearchData]);
 
   const handleSearchUsers = () => {
-    if (!searchQuery.trim()) return;
+    if (searchQuery.trim().length < USER_SEARCH_MIN_QUERY_LENGTH) return;
     searchUsers();
   };
 

@@ -59,9 +59,9 @@ test.describe('Ingredient permissions and integrity', () => {
     expect(detail.can_edit).toBe(true);
     expect(detail.can_delete).toBe(true);
 
-    const usersResponse = await api.get('/api/users/search/?q=user');
+    const usersResponse = await api.get(`/api/users/search/?q=${encodeURIComponent('user@user.de')}`);
     const users = assertRecord(await expectJsonResponse(usersResponse));
-    const otherUser = (users.items as Array<{ id: number; username: string }>).find((user) => user.username === 'user');
+    const otherUser = (users.items as Array<{ id: number; display_name: string }>)[0];
     expect(otherUser).toBeTruthy();
     const csrf = await getCsrfToken(api);
     const collaboratorResponse = await api.post('/api/content-collaborators/', {

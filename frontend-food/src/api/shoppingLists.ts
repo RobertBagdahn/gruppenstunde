@@ -300,16 +300,6 @@ export function useCreateFromMealPlan() {
   });
 }
 
-// --- Users (for collaborator invite) ---
-
-import { useUsers as useGenericUsers } from './users';
-
-/** @deprecated Use useUsers from ./users instead. This wrapper provides backward-compat array response. */
-export function useUsers() {
-  const { data, ...rest } = useGenericUsers();
-  return { data: data?.items ?? [], ...rest };
-}
-
 // --- REWE Export ---
 
 import { ReweExportTokenResponseSchema } from '@/schemas/shoppingList';

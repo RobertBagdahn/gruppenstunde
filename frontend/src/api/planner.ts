@@ -205,26 +205,3 @@ export function useInviteCollaborator(plannerId: number) {
     },
   });
 }
-
-// ==========================================================================
-// User Search (shared utility)
-// ==========================================================================
-
-const UserSearchResultSchema = z.object({
-  id: z.number(),
-  scout_display_name: z.string(),
-  email: z.string(),
-});
-export type UserSearchResult = z.infer<typeof UserSearchResultSchema>;
-
-export function useSearchUsers(query: string) {
-  return useQuery<UserSearchResult[]>({
-    queryKey: ['users', 'search', query],
-    queryFn: () =>
-      fetchJson(
-        `${API_BASE_URL}/api/users/search/?q=${encodeURIComponent(query)}`,
-        z.array(UserSearchResultSchema),
-      ),
-    enabled: query.length >= 2,
-  });
-}

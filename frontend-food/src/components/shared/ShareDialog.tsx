@@ -4,6 +4,8 @@
  */
 import { useState } from 'react';
 import { notify } from '@/lib/notify';
+import { API_BASE_URL, parseApiResponse } from '@/lib/api';
+import { PaginatedUsersSchema, USER_SEARCH_MIN_QUERY_LENGTH, type UserSimple } from '@/api/users';
 import {
   useContentCollaborators,
   useAddCollaborator,
@@ -44,21 +46,20 @@ export default function ShareDialog({
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [newRole, setNewRole] = useState('viewer');
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
-  const [searchResults, setSearchResults] = useState<Array<{ id: number; display_name: string }>>([]);
+  const [searchResults, setSearchResults] = useState<UserSimple[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   const handleSearchUsers = async () => {
-    if (!searchQuery.trim()) return;
+    const query = searchQuery.trim();
+    if (query.length < USER_SEARCH_MIN_QUERY_LENGTH) return;
     setIsSearching(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/users/search/?q=${encodeURIComponent(searchQuery)}`,
+        `${API_BASE_URL}/api/users/search/?q=${encodeURIComponent(query)}`,
         { credentials: 'include' },
       );
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data);
-      }
+      const data = await parseApiResponse(res, PaginatedUsersSchema);
+      setSearchResults(data.items);
     } catch {
       notify.error('Suche konnte nicht ausgeführt werden');
     } finally {

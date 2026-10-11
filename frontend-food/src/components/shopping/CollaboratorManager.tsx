@@ -6,7 +6,6 @@ import {
   useAddCollaborator,
   useUpdateCollaborator,
   useRemoveCollaborator,
-  useUsers,
 } from '@/api/shoppingLists';
 import {
   COLLABORATOR_ROLE_LABELS,
@@ -14,6 +13,7 @@ import {
 } from '@/schemas/shoppingList';
 import { notify } from '@/lib/notify';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import UserSearchSelect from '@/components/shared/UserSearchSelect';
 import { Icon } from '@/components/ui/icon';
 
 interface CollaboratorManagerProps {
@@ -28,27 +28,25 @@ export default function CollaboratorManager({
   canManage,
 }: CollaboratorManagerProps) {
   const [showInvite, setShowInvite] = useState(false);
-  const [inviteUserId, setInviteUserId] = useState('');
+  const [inviteUserId, setInviteUserId] = useState<number | null>(null);
   const [inviteRole, setInviteRole] = useState('editor');
   const [removeTarget, setRemoveTarget] = useState<number | null>(null);
 
   const addCollaborator = useAddCollaborator(listId);
   const updateCollaborator = useUpdateCollaborator(listId);
   const removeCollaborator = useRemoveCollaborator(listId);
-  const { data: users = [] } = useUsers();
 
   const handleInvite = () => {
-    const userId = parseInt(inviteUserId, 10);
-    if (isNaN(userId) || userId <= 0) {
+    if (inviteUserId === null) {
       notify.error('Bitte einen Nutzer auswählen');
       return;
     }
     addCollaborator.mutate(
-      { user_id: userId, role: inviteRole },
+      { user_id: inviteUserId, role: inviteRole },
       {
         onSuccess: () => {
           notify.success('Nutzer eingeladen');
-          setInviteUserId('');
+          setInviteUserId(null);
           setShowInvite(false);
         },
         onError: (err) => notify.error('Person konnte nicht hinzugefügt werden', { error: err }),
@@ -94,7 +92,7 @@ export default function CollaboratorManager({
                   <Icon name="person" size={16} className="text-primary" />
                 </div>
                 <span className="text-body font-medium truncate">
-                  {collab.username}
+                  {collab.display_name}
                 </span>
               </div>
 
@@ -152,23 +150,12 @@ export default function CollaboratorManager({
       {canManage && (
         <div>
           {showInvite ? (
-            <div className="flex items-end gap-2 p-3 bg-muted/30 rounded-lg border">
-              <div className="flex-1">
+            <div className="flex flex-wrap items-end gap-2 p-3 bg-muted/30 rounded-lg border">
+              <div className="flex-1 min-w-[12rem]">
                 <label className="text-caption text-muted-foreground mb-1 block">
                   Nutzer
                 </label>
-                <select
-                  value={inviteUserId}
-                  onChange={(e) => setInviteUserId(e.target.value)}
-                  className="w-full px-3 py-2 text-body border rounded-lg bg-background"
-                >
-                  <option value="">Nutzer wählen…</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={String(u.id)}>
-                      {u.username}
-                    </option>
-                  ))}
-                </select>
+                <UserSearchSelect value={inviteUserId} onChange={setInviteUserId} />
               </div>
               <div>
                 <label className="text-caption text-muted-foreground mb-1 block">

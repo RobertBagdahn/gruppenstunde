@@ -44,7 +44,7 @@ function shoppingList(name: string) {
     id: 42,
     name,
     owner_id: 1,
-    owner_username: 'e2e',
+    owner_display_name: 'e2e',
     source_type: 'manual',
     source_id: null,
     items_count: 0,

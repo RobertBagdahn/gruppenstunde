@@ -26,6 +26,7 @@ import ReweExportButton from '@/components/shopping/ReweExportButton';
 import {
   useShoppingListWebSocket,
   useOptimisticCheckItem,
+  type ShoppingListEvent,
 } from '@/hooks/useShoppingListWebSocket';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -59,11 +60,11 @@ export default function ShoppingListDetailPage() {
   const [recentCheckers, setRecentCheckers] = useState<Record<number, string>>({});
 
   const handleWsEvent = useCallback(
-    (event: { type: string; data: Record<string, unknown>; sender: string }) => {
+    (event: ShoppingListEvent) => {
       if (
         (event.type === 'item.checked' || event.type === 'item.unchecked') &&
         event.sender &&
-        user?.email !== event.sender
+        event.sender_id !== user?.id
       ) {
         const itemId = event.data.item_id as number;
         if (itemId) {
@@ -80,7 +81,7 @@ export default function ShoppingListDetailPage() {
         }
       }
     },
-    [user?.email],
+    [user?.id],
   );
 
   const { isConnected, sendEvent } = useShoppingListWebSocket(listId, {
@@ -128,7 +129,7 @@ export default function ShoppingListDetailPage() {
   const totalCount = items.length;
 
   const handleCheck = (itemId: number, isChecked: boolean) => {
-    const previousData = optimisticCheck(itemId, isChecked, user?.email ?? '');
+    const previousData = optimisticCheck(itemId, isChecked, user?.display_name ?? '');
 
     updateItem.mutate(
       { itemId, is_checked: isChecked },
@@ -300,7 +301,7 @@ export default function ShoppingListDetailPage() {
           {SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type}
         </span>
         <span className="text-border/85">•</span>
-        <span>von {list.owner_username}</span>
+        <span>von {list.owner_display_name}</span>
       </div>
 
       {/* Quantity plausibility warnings from generation */}

@@ -28,8 +28,8 @@ from core.schemas import (
     PasswordRegisterIn,
     SessionOut,
     SocialConnectionOut,
-    UserSimpleOut,
 )
+from core.services.user_directory import USER_SEARCH_MAX_PAGE_SIZE, search_user_directory
 from profiles.schemas.privacy import DataOverviewSchema, DeleteAccountRequestSchema
 from profiles.services.privacy import PrivacyService
 
@@ -168,33 +168,11 @@ def search_users(
     request,
     q: str = "",
     page: int = 1,
-    page_size: int = 20,
+    page_size: int = USER_SEARCH_MAX_PAGE_SIZE,
 ):
-    """Search users by username for collaborator invite flows."""
-    # Validate pagination before auth, like Ninja's former Query(le=50) parameter validation.
-    if page < 1 or page_size < 1 or page_size > 50:
-        raise ApiError(422, "invalid_input", "Die Seitengröße muss zwischen 1 und 50 liegen.")
+    """Search users by name (or exact e-mail) for collaborator invite flows."""
     require_login(request)
-
-    qs = User.objects.order_by("username")
-    if q:
-        qs = qs.filter(username__icontains=q)
-
-    total = qs.count()
-    total_pages = max(1, (total + page_size - 1) // page_size)
-    offset = (page - 1) * page_size
-    users = [
-        UserSimpleOut(id=u["id"], username=u["username"])
-        for u in qs.values("id", "username")[offset : offset + page_size]
-    ]
-
-    return {
-        "items": users,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": total_pages,
-    }
+    return search_user_directory(q, page=page, page_size=page_size)
 
 
 # --- Privacy Endpoints (GDPR) ---
