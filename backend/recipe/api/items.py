@@ -104,6 +104,31 @@ def _resolve_recipe_item_links(
     return None, ingredient_id
 
 
+def validate_standard_measure(
+    standard_measure_key: str | None,
+    portion: Portion | None,
+    direct_ingredient_id: int | None,
+) -> str:
+    """Normalize and validate a standard measure for a recipe item.
+
+    A standard measure is anchored to the ingredient via its "g" base portion
+    (or the direct ingredient link); any other portion contradicts it.
+    """
+    from supply.services.portion_resolution import is_direct_metric_portion
+    from supply.services.quantity_units import is_valid_standard_measure_key
+
+    key = (standard_measure_key or "").strip().lower()
+    if not key:
+        return ""
+    if not is_valid_standard_measure_key(key):
+        raise HttpError(422, f"Unbekanntes Standardmaß „{key}“.")
+    if portion is None and direct_ingredient_id is None:
+        raise HttpError(422, "Für ein Standardmaß muss eine Zutat angegeben werden.")
+    if portion is not None and not is_direct_metric_portion(portion):
+        raise HttpError(422, "Bitte entweder eine Portion oder ein Standardmaß angeben, nicht beides.")
+    return key
+
+
 @router.get("/{recipe_id}/recipe-items/", response=list[RecipeItemOut])
 def list_recipe_items(request, recipe_id: int):
     """List recipe items for a recipe."""
@@ -170,6 +195,7 @@ def _compute_item_payload_hash(payload: RecipeItemCreateIn) -> str:
         "portion_id": payload.portion_id,
         "ingredient_id": payload.ingredient_id,
         "quantity": payload.quantity,
+        "standard_measure_key": payload.standard_measure_key or "",
         "sort_order": payload.sort_order,
         "note": payload.note.strip(),
         "is_optional": bool(payload.is_optional),
@@ -227,6 +253,9 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
             portion, direct_ingredient_id = _resolve_recipe_item_links(payload.portion_id, payload.ingredient_id)
             if portion is not None:
                 _require_weighted_portion(portion)
+            standard_measure_key = validate_standard_measure(
+                payload.standard_measure_key, portion, direct_ingredient_id
+            )
             if payload.quantity <= 0:
                 raise HttpError(400, "Menge muss größer als 0 sein")
 
@@ -234,6 +263,7 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
                 recipe=recipe,
                 portion=portion,
                 ingredient_id=direct_ingredient_id,
+                standard_measure_key=standard_measure_key,
                 client_request_id=request_key,
                 quantity=payload.quantity,
                 sort_order=payload.sort_order,
@@ -390,7 +420,8 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     if data.get("quantity") is None:
         data.pop("quantity", None)
 
-    if "portion_id" in data or "ingredient_id" in data:
+    unit_changes = "portion_id" in data or "ingredient_id" in data
+    if unit_changes:
         next_portion_id = data.get("portion_id", item.portion_id)
         if "ingredient_id" in data:
             requested_ingredient_id = data["ingredient_id"]
@@ -402,6 +433,15 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
         data["portion"] = portion
         data.pop("portion_id", None)
         data["ingredient_id"] = direct_ingredient_id
+
+    if "standard_measure_key" in data or unit_changes:
+        # Switching the portion without naming a standard measure leaves the measure.
+        requested_key = data["standard_measure_key"] if "standard_measure_key" in data else ""
+        data["standard_measure_key"] = validate_standard_measure(
+            requested_key,
+            data.get("portion", item.portion),
+            data.get("ingredient_id", item.ingredient_id),
+        )
 
     # DB constraint recipe_item_quantity_positive would crash with a 500 for
     # invalid client values — reject them explicitly instead. Pydantic v2 lets
@@ -437,7 +477,21 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     if expected_grams_total is not None:
         result_quantity = data.get("quantity", item.quantity)
         portion = data.get("portion", item.portion)
-        if portion is None:
+        result_standard_key = data.get("standard_measure_key", item.standard_measure_key)
+        if result_standard_key:
+            from recipe.services.recipe_item_helpers import resolve_recipe_item_grams
+
+            preview = RecipeItem(
+                portion=portion,
+                ingredient_id=data.get("ingredient_id", item.ingredient_id),
+                standard_measure_key=result_standard_key,
+                quantity=result_quantity,
+            )
+            standard_grams = resolve_recipe_item_grams(preview)
+            if standard_grams is None:
+                raise HttpError(422, "Das Standardmaß hat kein bekanntes Gewicht.")
+            resulting_grams = standard_grams
+        elif portion is None:
             resulting_grams = float(result_quantity)
         else:
             _require_weighted_portion(portion)
@@ -549,16 +603,20 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
             if target_portion is None:
                 raise HttpError(404, "Portion existiert nicht")
 
-            if target_portion.id == item.portion_id and payload.quantity is None:
+            if target_portion.id == item.portion_id and payload.quantity is None and not item.standard_measure_key:
                 return _reload_item_with_relations(item.id)
 
             if payload.ingredient_id is not None and target_portion.ingredient_id != payload.ingredient_id:
                 raise HttpError(422, "Die Portion gehört nicht zur angeforderten Zutat.")
 
+            from recipe.services.recipe_item_helpers import resolve_recipe_item_grams
             from supply.services.portion_resolution import resolve_trusted_weight
 
             source_weight: float | None
-            if item.portion is None:
+            if item.standard_measure_key:
+                source_grams = resolve_recipe_item_grams(item)
+                source_weight = source_grams / item.quantity if source_grams is not None and item.quantity else None
+            elif item.portion is None:
                 source_weight = 1.0
             else:
                 source_weight = resolve_trusted_weight(item.portion)
@@ -594,7 +652,8 @@ def replace_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIt
             item.portion = target_portion
             item.ingredient = None
             item.quantity = new_quantity
-            item.save(update_fields=["portion", "ingredient", "quantity"])
+            item.standard_measure_key = ""
+            item.save(update_fields=["portion", "ingredient", "quantity", "standard_measure_key"])
 
             if request_key:
                 try:

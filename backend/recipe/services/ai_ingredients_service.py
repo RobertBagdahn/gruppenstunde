@@ -800,15 +800,15 @@ class RecipeQuantityEstimationService:
         trusted portion weights are summed; unresolved piece weights do not
         contribute fabricated gram values."""
         from recipe.models import RecipeItem
-        from supply.services.portion_resolution import resolve_trusted_weight
+        from recipe.services.recipe_item_helpers import resolve_recipe_item_grams
 
-        items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
+        items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
         total_g = 0.0
         for item in items:
-            if item.portion:
-                trusted = resolve_trusted_weight(item.portion)
-                if trusted is not None:
-                    total_g += item.quantity * trusted
+            if item.portion or item.standard_measure_key:
+                grams = resolve_recipe_item_grams(item)
+                if grams is not None:
+                    total_g += grams
         return total_g
 
     def is_implausible(self, recipe: Recipe) -> bool:

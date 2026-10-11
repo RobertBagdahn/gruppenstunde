@@ -766,7 +766,14 @@ def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: flo
 
             scale = portions * item.factor * reserve_factor
             per_person_scale = item.factor
-            if ri.portion is None:
+            if ri.standard_measure_key:
+                from recipe.services.recipe_amount_display import format_count
+                from supply.services.quantity_units import STANDARD_MEASURE_LABELS
+
+                label = STANDARD_MEASURE_LABELS.get(ri.standard_measure_key, ri.standard_measure_key)
+                amount = f"{format_count(base_qty * scale)} {label}"
+                per_person_amount = f"{format_count(base_qty * per_person_scale)} {label}"
+            elif ri.portion is None:
                 amount = format_weight(base_qty * scale)
                 per_person_amount = format_weight(base_qty * per_person_scale)
             else:

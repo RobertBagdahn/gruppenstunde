@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
+import { standardMeasureLabel } from '@/lib/quantityUnits';
 import type { Portion } from '@/schemas/supply';
 import { formatExactWeight, formatWeight } from '@/lib/format';
 import { formatDecimalInput, parseDecimalInput } from '@/lib/decimalInput';
@@ -15,11 +16,21 @@ interface IngredientQuantityDialogProps {
   ingredient: { id: number; name: string; slug: string; portions: Portion[] };
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  /** `standardMeasure` is only set with `keepStandardMeasure`: then `quantity`
+   *  counts that measure and `portionId` is the ingredient's "g" portion. */
+  onConfirm: (
+    portionId: number | null,
+    measuringUnitId: number | null,
+    quantity: number,
+    standardMeasure?: PickerStandardMeasure | null,
+  ) => void;
   initialQuantity?: number;
   /** Portion to preselect (e.g. the one already chosen for a review row). */
   initialPortionId?: number | null;
   confirmLabel?: string;
+  /** Keep a chosen standard measure (EL, Tasse, …) as the unit instead of
+   *  converting it to grams. Only for callers that can store it. */
+  keepStandardMeasure?: boolean;
 }
 
 function findGramPortion(portions: Portion[]): Portion | null {
@@ -40,6 +51,7 @@ export default function IngredientQuantityDialog({
   initialQuantity = 1,
   initialPortionId = null,
   confirmLabel = 'Hinzufügen',
+  keepStandardMeasure = false,
 }: IngredientQuantityDialogProps) {
   // rank=1 is the Normalportion/default; portions are sorted by rank asc from backend
   const gramPortion = useMemo(() => findGramPortion(ingredient.portions), [ingredient.portions]);
@@ -62,21 +74,38 @@ export default function IngredientQuantityDialog({
   const quantity = parseDecimalInput(quantityInput);
   const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
 
+  const [selectedMeasure, setSelectedMeasure] = useState<PickerStandardMeasure | null>(null);
+
   const selectedPortion = ingredient.portions.find(
     (p) => String(p.id) === selectedPortionId,
   ) ?? null;
 
-  const totalWeightG = selectedPortion?.weight_g && validQuantity !== null
-    ? validQuantity * selectedPortion.weight_g
-    : null;
+  const unitWeightG = selectedMeasure ? selectedMeasure.grams : selectedPortion?.weight_g ?? null;
+  const totalWeightG = unitWeightG && validQuantity !== null ? validQuantity * unitWeightG : null;
 
   const handleSelectStandardMeasure = (measure: PickerStandardMeasure) => {
     if (!gramPortion) return;
+    if (keepStandardMeasure) {
+      // Gram-preserving count of the measure; one measure when the weight is unknown.
+      const count = totalWeightG && measure.grams > 0
+        ? Math.max(Math.round((totalWeightG / measure.grams) * 100) / 100, 0.1)
+        : 1;
+      setSelectedPortionId(String(gramPortion.id));
+      setSelectedMeasure(measure);
+      setQuantityInput(formatDecimalInput(count));
+      return;
+    }
     setSelectedPortionId(String(gramPortion.id));
     setQuantityInput(formatDecimalInput(measure.grams));
   };
 
+  const handleSelectPortion = (portionId: number) => {
+    setSelectedMeasure(null);
+    setSelectedPortionId(String(portionId));
+  };
+
   const handleSelectGrams = () => {
+    setSelectedMeasure(null);
     if (gramPortion) setSelectedPortionId(String(gramPortion.id));
   };
 
@@ -84,7 +113,12 @@ export default function IngredientQuantityDialog({
   // ingredient's gram portion, never to "whatever is first".
   const handleConfirm = () => {
     if (!selectedPortion || validQuantity === null) return;
-    onConfirm(selectedPortion.id, selectedPortion.measuring_unit_id ?? null, validQuantity);
+    const measuringUnitId = selectedPortion.measuring_unit_id ?? null;
+    if (selectedMeasure) {
+      onConfirm(selectedPortion.id, measuringUnitId, validQuantity, selectedMeasure);
+    } else {
+      onConfirm(selectedPortion.id, measuringUnitId, validQuantity);
+    }
   };
 
   return (
@@ -132,10 +166,11 @@ export default function IngredientQuantityDialog({
                     is_weight_trusted: p.is_weight_trusted,
                   }))}
                   value={selectedPortionId != null ? Number(selectedPortionId) : null}
+                  selectedStandardKey={selectedMeasure?.key ?? null}
                   // Grams and standard measures need the ingredient's gram portion.
                   ingredientSlug={gramPortion ? ingredient.slug : undefined}
                   showGramsSection={gramPortion !== null}
-                  onSelectPortion={(portionId) => setSelectedPortionId(String(portionId))}
+                  onSelectPortion={handleSelectPortion}
                   onSelectStandardMeasure={handleSelectStandardMeasure}
                   onSelectGrams={handleSelectGrams}
                 />
@@ -143,9 +178,10 @@ export default function IngredientQuantityDialog({
             </div>
           )}
 
-          {totalWeightG && selectedPortion?.weight_g && (
+          {totalWeightG && unitWeightG && (
             <p className="text-caption text-muted-foreground">
-              {validQuantity} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
+              {validQuantity} × {selectedMeasure ? `${standardMeasureLabel(selectedMeasure.key)} (${formatExactWeight(unitWeightG)})` : formatExactWeight(unitWeightG)}
+              {' '}= {selectedMeasure?.is_approx ? '≈ ' : ''}{formatWeight(totalWeightG)}
             </p>
           )}
 
