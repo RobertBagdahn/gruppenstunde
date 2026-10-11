@@ -3,7 +3,7 @@
  */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, User as UserIcon } from 'lucide-react';
+import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, Trash2, User as UserIcon } from 'lucide-react';
 import {
   useShoppingLists,
   useCreateShoppingList,
@@ -23,9 +23,10 @@ import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersi
 import EmptyState from '@/components/shared/EmptyState';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { notify } from '@/lib/notify';
+import { cn } from '@/lib/utils';
 import { SkeletonCardGrid } from '@/components/ui/skeleton';
 
-function ShoppingListCard({ list }: { list: ShoppingList }) {
+function ShoppingListCard({ list, onDelete }: { list: ShoppingList; onDelete: (list: ShoppingList) => void }) {
   const sourceLabel = SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type;
   const updatedAt = new Date(list.updated_at);
   const timeAgo = getTimeAgo(updatedAt);
@@ -37,44 +38,60 @@ function ShoppingListCard({ list }: { list: ShoppingList }) {
       : Edit3;
 
   return (
-    <Link
-      to={`/shopping-lists/${list.id}`}
-      className="group block rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="font-display font-bold text-emphasis text-foreground truncate group-hover:text-primary transition-colors">
-            {list.name}
-          </h3>
-          <div className="flex items-center gap-2 mt-2 text-caption font-semibold text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <SourceIcon className="w-3.5 h-3.5 text-primary" />
-              {sourceLabel}
-            </span>
-            <span>•</span>
-            <span>{timeAgo}</span>
-            {list.collaborators_count > 0 && (
-              <>
-                <span>•</span>
-                <span className="inline-flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                  {list.collaborators_count}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-        {list.items_count === list.checked_count && list.items_count > 0 && (
-          <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+    <div className="relative">
+      <Link
+        to={`/shopping-lists/${list.id}`}
+        className={cn(
+          'group block rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all',
+          list.can_delete && 'pr-14',
         )}
-      </div>
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="font-display font-bold text-emphasis text-foreground truncate group-hover:text-primary transition-colors">
+              {list.name}
+            </h3>
+            <div className="flex items-center gap-2 mt-2 text-caption font-semibold text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <SourceIcon className="w-3.5 h-3.5 text-primary" />
+                {sourceLabel}
+              </span>
+              <span>•</span>
+              <span>{timeAgo}</span>
+              {list.collaborators_count > 0 && (
+                <>
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                    {list.collaborators_count}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          {list.items_count === list.checked_count && list.items_count > 0 && (
+            <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+          )}
+        </div>
 
-      <ShoppingListProgress
-        checked={list.checked_count}
-        total={list.items_count}
-        className="mt-4"
-      />
-    </Link>
+        <ShoppingListProgress
+          checked={list.checked_count}
+          total={list.items_count}
+          className="mt-4"
+        />
+      </Link>
+      {list.can_delete && (
+        <button
+          type="button"
+          onClick={() => onDelete(list)}
+          aria-label={`Einkaufsliste „${list.name}“ löschen`}
+          title="Einkaufsliste löschen"
+          className="absolute right-3 top-3 flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -115,7 +132,7 @@ export default function ShoppingListPage() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
-  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ShoppingList | null>(null);
   const search = useDebouncedSearchInput(q, (value) => {
     patch({ q: value || undefined, page: undefined }, { replace: true });
   });
@@ -171,23 +188,23 @@ export default function ShoppingListPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 font-sans">
       <ConfirmDialog
-        open={deleteTargetId !== null}
+        open={deleteTarget !== null}
         onConfirm={() => {
-          if (deleteTargetId !== null) {
-            deleteList.mutate(deleteTargetId, {
+          if (deleteTarget !== null) {
+            deleteList.mutate(deleteTarget.id, {
               onSuccess: () => {
                 notify.success('Einkaufsliste gelöscht');
-                setDeleteTargetId(null);
+                setDeleteTarget(null);
               },
               onError: (err) => {
                 notify.error('Einkaufsliste konnte nicht gelöscht werden', { error: err });
-                setDeleteTargetId(null);
+                setDeleteTarget(null);
               },
             });
           }
         }}
-        onCancel={() => setDeleteTargetId(null)}
-        title="Einkaufsliste löschen?"
+        onCancel={() => setDeleteTarget(null)}
+        title={deleteTarget ? `Einkaufsliste „${deleteTarget.name}“ löschen?` : 'Einkaufsliste löschen?'}
         description="Die Einkaufsliste und alle Einträge werden unwiderruflich gelöscht."
         confirmLabel="Löschen"
         loading={deleteList.isPending}
@@ -297,7 +314,7 @@ export default function ShoppingListPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {sortedLists.map((list) => (
-            <ShoppingListCard key={list.id} list={list} />
+            <ShoppingListCard key={list.id} list={list} onDelete={setDeleteTarget} />
           ))}
         </div>
       )}

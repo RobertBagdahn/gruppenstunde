@@ -30,6 +30,8 @@ import {
 } from '@/hooks/useShoppingListWebSocket';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import UnauthGate from '@/components/shared/UnauthGate';
+import { ApiError } from '@/lib/api';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart } from 'lucide-react';
@@ -43,7 +45,7 @@ export default function ShoppingListDetailPage() {
   const location = useLocation();
   const navigationState = location.state as { warnings?: QuantityWarning[]; mealPlanId?: number } | null;
 
-  const { data: user } = useCurrentUser();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
   const { data: list, isLoading, error, refetch } = useShoppingList(listId);
   // The generation endpoint reports plausibility warnings only in its own response;
   // they are carried here via navigation state right after "Einkaufsliste erstellen".
@@ -96,6 +98,16 @@ export default function ShoppingListDetailPage() {
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
 
+  // Anonymous visitors (or an expired session) get a login hint instead of an error.
+  if ((!userLoading && !user) || (error instanceof ApiError && error.status === 401)) {
+    return (
+      <UnauthGate
+        title="Einkaufsliste"
+        description="Melde dich an, um diese Einkaufsliste zu sehen."
+      />
+    );
+  }
+
   if (isLoading) {
     return (
       <PageSkeleton label="Einkaufsliste wird geladen" />
@@ -103,11 +115,12 @@ export default function ShoppingListDetailPage() {
   }
 
   if (error || !list) {
+    const isNotFound = error instanceof ApiError && error.status === 404;
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <ErrorDisplay
           error={error}
-          title="Einkaufsliste nicht gefunden"
+          title={isNotFound ? 'Einkaufsliste nicht gefunden' : undefined}
           onRetry={() => refetch()}
           onBack={() => navigate('/shopping-lists')}
           backLabel="Zurück"
@@ -179,8 +192,13 @@ export default function ShoppingListDetailPage() {
                   note: item.note,
                   retail_section_id: item.retail_section_id ?? null,
                   ingredient_id: item.ingredient_id ?? null,
+                  sort_order: item.sort_order,
+                  is_checked: item.is_checked,
                 },
-                { onError: (err) => notify.error('Wiederherstellen fehlgeschlagen', { error: err }) },
+                {
+                  onSuccess: () => sendEvent('item.added', { name: item.name }),
+                  onError: (err) => notify.error('Eintrag konnte nicht wiederhergestellt werden', { error: err }),
+                },
               ),
           },
         });
