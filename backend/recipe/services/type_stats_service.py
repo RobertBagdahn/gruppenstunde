@@ -62,7 +62,6 @@ def recalculate_type_stats(recipe_type: str) -> dict | None:
     from recipe.models import Recipe, RecipeTypeStats
 
     recipes = Recipe.objects.filter(Q(recipe_type=recipe_type) & Q(status=ContentStatus.APPROVED))
-    recipes = recipes.exclude(portions__isnull=True)
 
     count = recipes.count()
     if count < 10:
@@ -79,23 +78,20 @@ def recalculate_type_stats(recipe_type: str) -> dict | None:
     nutri_scores = []
 
     for recipe in recipes.iterator():
-        portions = recipe.portions
-        if not portions:
-            continue
-
+        # Recipe quantities are stored per person: cached totals are one portion.
         # Price per portion
         if recipe.cached_price_total is not None:
-            price = float(recipe.cached_price_total) / portions
+            price = float(recipe.cached_price_total)
             prices.append(price)
 
         # Energy per portion
         if recipe.cached_energy_total_kcal is not None:
-            energy = recipe.cached_energy_total_kcal / portions
+            energy = recipe.cached_energy_total_kcal
             energies.append(energy)
 
         # Weight per portion
         if recipe.cached_weight_g is not None and recipe.cached_weight_g > 0:
-            weight = recipe.cached_weight_g / portions
+            weight = recipe.cached_weight_g
             weights.append(weight)
 
         # Macronutrients per portion (from cached per-100g values)
@@ -103,11 +99,11 @@ def recalculate_type_stats(recipe_type: str) -> dict | None:
         if total_weight > 0:
             scale = total_weight / 100.0
             if recipe.cached_protein_g is not None:
-                proteins.append(float(recipe.cached_protein_g) * scale / portions)
+                proteins.append(float(recipe.cached_protein_g) * scale)
             if recipe.cached_fat_g is not None:
-                fats.append(float(recipe.cached_fat_g) * scale / portions)
+                fats.append(float(recipe.cached_fat_g) * scale)
             if recipe.cached_carbohydrate_g is not None:
-                carbs.append(float(recipe.cached_carbohydrate_g) * scale / portions)
+                carbs.append(float(recipe.cached_carbohydrate_g) * scale)
 
         # Nutri-Score distribution
         if recipe.cached_nutri_class is not None:

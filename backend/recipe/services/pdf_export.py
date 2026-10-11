@@ -164,9 +164,8 @@ class RecipePdfExport:
 
     @property
     def scale(self) -> float:
-        """Factor from stored (normalized) quantities to the target servings."""
-        recipe_servings = max(self.recipe.portions or 1, 1)
-        return self.servings / recipe_servings
+        """Factor from stored per-person quantities to the target servings."""
+        return float(self.servings)
 
     def _build_image(self) -> None:
         self.image_path = _load_image_data_uri(self.recipe.image)
@@ -217,12 +216,9 @@ class RecipePdfExport:
 
     def _build_nutrition(self) -> None:
         servings = max(self.servings, 1)
-        recipe_servings = max(self.recipe.portions or 1, 1)
+        # Cached recipe values describe one portion (quantities are stored per person).
         weight_g = self.recipe.cached_weight_g
-        if weight_g:
-            factor = (float(weight_g) / 100.0) / recipe_servings
-        else:
-            factor = 1.0 / recipe_servings
+        factor = float(weight_g) / 100.0 if weight_g else 1.0
 
         def per_portion(per100: float | None, digits: int) -> str | None:
             if per100 is None:
@@ -231,7 +227,7 @@ class RecipePdfExport:
 
         total_energy = self.recipe.cached_energy_total_kcal
         if total_energy is not None:
-            energy_per_portion = float(total_energy) / recipe_servings
+            energy_per_portion = float(total_energy)
         else:
             energy_per_portion = float(self.recipe.cached_energy_kcal or 0) * factor
 

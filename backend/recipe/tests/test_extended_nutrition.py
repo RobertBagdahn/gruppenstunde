@@ -250,7 +250,7 @@ class TestNutritionBreakdownAPI:
     """Verify the GET /api/recipes/{id}/nutrition-breakdown/ endpoint."""
 
     def _setup_recipe_with_micronutrients(self) -> Recipe:
-        recipe = make_recipe(portions=2)
+        recipe = make_recipe()
         ing = make_ingredient(
             name="Brokkoli",
             energy_kcal=34,
@@ -291,9 +291,8 @@ class TestNutritionBreakdownAPI:
         resp = auth_client.get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
         data = resp.json()
 
-        # servings=2, vitamin_c total=178.0 -> per serving ~89.0
-        if data.get("per_serving_vitamin_c_mg") is not None:
-            assert data["per_serving_vitamin_c_mg"] == pytest.approx(89.0, abs=0.5)
+        # Recipes are stored per person: one serving is the whole recipe (178.0).
+        assert data["per_serving_vitamin_c_mg"] == pytest.approx(178.0, abs=0.5)
 
     def test_nutrition_breakdown_items_have_micronutrients(self, auth_client: Client):
         recipe = self._setup_recipe_with_micronutrients()
@@ -304,8 +303,8 @@ class TestNutritionBreakdownAPI:
         item = data["items"][0]
         assert "vitamin_c_mg" in item
         assert item["vitamin_c_mg"] is not None
-        # portions=2, total 178.0 → per-serving 89.0
-        assert item["vitamin_c_mg"] == pytest.approx(89.0, abs=0.5)
+        # Stored per person: the item value is the per-serving value.
+        assert item["vitamin_c_mg"] == pytest.approx(178.0, abs=0.5)
 
     def test_nutrition_breakdown_dge_coverage_with_params(self, auth_client: Client):
         """DGE coverage should be populated when age and gender params are given."""
@@ -344,7 +343,7 @@ class TestNutritionBreakdownAPI:
 
     def test_nutrition_breakdown_excludes_exchange_alternatives(self, auth_client: Client):
         """Exchange alternatives (pos>0) are excluded from nutrition totals."""
-        recipe = make_recipe(portions=2)
+        recipe = make_recipe()
         ing_normal = make_ingredient(name="Normal", energy_kcal=100)
         ing_primary = make_ingredient(name="Primary", energy_kcal=200)
         ing_alt = make_ingredient(name="Alternative", energy_kcal=500)
@@ -382,7 +381,7 @@ class TestNutritionBreakdownAPI:
 
     def test_nutrition_breakdown_includes_optional_items(self, auth_client: Client):
         """Optional items are always included in nutrition totals."""
-        recipe = make_recipe(portions=2)
+        recipe = make_recipe()
         ing_normal = make_ingredient(name="Basis", energy_kcal=100)
         ing_optional = make_ingredient(name="Extra", energy_kcal=300)
 

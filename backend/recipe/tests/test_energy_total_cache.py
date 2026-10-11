@@ -11,7 +11,7 @@ from supply.tests import make_ingredient, make_portion
 @pytest.mark.django_db
 class TestRecipeEnergyTotalCache:
     def test_recalculate_recipe_cache_sets_total_energy_from_weight(self):
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe()
         ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=200.0)
         item = make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=2.0)
@@ -24,7 +24,7 @@ class TestRecipeEnergyTotalCache:
         assert recipe.cached_energy_total_kcal == pytest.approx(expected_total)
 
     def test_recipe_item_save_updates_total_energy_cache(self):
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe()
         ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=100.0)
         item = make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
@@ -39,7 +39,7 @@ class TestRecipeEnergyTotalCache:
         assert recipe.cached_energy_total_kcal == pytest.approx(240.0)
 
     def test_recipe_item_delete_clears_total_energy_cache(self):
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe()
         ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=100.0)
         item = make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
@@ -56,7 +56,7 @@ class TestRecipeEnergyTotalCache:
 @pytest.mark.django_db
 class TestCacheExcludesExchangeAlternatives:
     def test_cache_excludes_exchange_alternatives(self):
-        recipe = make_recipe(portions=1)
+        recipe = make_recipe()
         ing_normal = make_ingredient(name="Normal", energy_kcal=100)
         ing_primary = make_ingredient(name="Primary", energy_kcal=200)
         ing_alt = make_ingredient(name="Alternative", energy_kcal=500)
@@ -85,7 +85,7 @@ class TestCacheExcludesExchangeAlternatives:
         assert recipe.cached_energy_total_kcal == pytest.approx(expected_total, abs=0.5)
 
     def test_cache_includes_optional_items(self):
-        recipe = make_recipe(portions=1)
+        recipe = make_recipe()
         ing_normal = make_ingredient(name="Normal", energy_kcal=100)
         ing_optional = make_ingredient(name="Optional", energy_kcal=300)
 
@@ -107,22 +107,22 @@ class TestCacheExcludesExchangeAlternatives:
 
 @pytest.mark.django_db
 class TestEnergyPerPortionSchema:
-    def test_per_portion_energy_is_total_divided_by_portions(self):
+    def test_per_portion_energy_is_the_per_person_total(self):
         from recipe.schemas import RecipeDetailOut, RecipeListOut
 
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe()
         ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=200.0)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=2.0)
         recalculate_recipe_cache(recipe)
         recipe.refresh_from_db()
 
-        # 120 kcal/100 g * 400 g = 480 kcal total, 4 portions -> 120 kcal each
-        assert RecipeListOut.resolve_cached_energy_per_portion_kcal(recipe) == pytest.approx(120.0)
-        assert RecipeDetailOut.resolve_cached_energy_per_portion_kcal(recipe) == pytest.approx(120.0)
+        # Stored per person: 120 kcal/100 g * 400 g = 480 kcal for one portion
+        assert RecipeListOut.resolve_cached_energy_per_portion_kcal(recipe) == pytest.approx(480.0)
+        assert RecipeDetailOut.resolve_cached_energy_per_portion_kcal(recipe) == pytest.approx(480.0)
 
     def test_per_portion_energy_is_none_without_total(self):
         from recipe.schemas import RecipeListOut
 
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe()
         assert RecipeListOut.resolve_cached_energy_per_portion_kcal(recipe) is None

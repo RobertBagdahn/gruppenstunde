@@ -82,9 +82,9 @@ def _evaluate_rules(recipe: Recipe) -> tuple[list[dict], int, int]:
 
     active_rules = Rule.objects.filter(is_active=True, scope="recipe")
 
-    recipe_servings = max(recipe.portions or 1, 1)
+    # Recipe quantities are stored per person: the cached weight is one serving.
     if recipe.cached_weight_g and recipe.cached_weight_g > 0:
-        factor = (recipe.cached_weight_g / 100.0) / recipe_servings
+        factor = recipe.cached_weight_g / 100.0
     else:
         factor = 1.0
 
@@ -107,10 +107,8 @@ def _evaluate_rules(recipe: Recipe) -> tuple[list[dict], int, int]:
             )
             continue
 
-        if rule.parameter == "nutri_class":
+        if rule.parameter in ["nutri_class", "weight_g", "price_total"]:
             eval_value = float(value)
-        elif rule.parameter in ["weight_g", "price_total"]:
-            eval_value = float(value) / recipe_servings if recipe_servings > 0 else float(value)
         else:
             eval_value = float(value) * factor
 

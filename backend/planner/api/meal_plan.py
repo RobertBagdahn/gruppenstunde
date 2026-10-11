@@ -1539,8 +1539,8 @@ def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItem
         item.save(update_fields=["factor"])
     elif payload.servings is not None:
         if item.recipe:
-            recipe_servings = float(item.recipe.portions or 1)
-            factor = round(payload.servings / recipe_servings, 4)
+            # Recipe quantities are per person, so servings map directly to the factor.
+            factor = round(float(payload.servings), 4)
             if factor <= 0:
                 raise HttpError(422, "Der Faktor muss größer als 0 sein.")
             item.factor = factor
@@ -1832,15 +1832,6 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
         effective_portions = mi.meal.effective_portions
 
         if mi.recipe:
-            if not mi.recipe.portions:
-                logger.warning(
-                    "Recipe %s '%s' has portions=0 or None, skipping in nutrition_summary",
-                    mi.recipe.id,
-                    mi.recipe.title,
-                )
-                continue
-            recipe_servings = mi.recipe.portions
-
             for active_item in active_recipe_items(mi):
                 ri = active_item.recipe_item
                 from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
@@ -1850,7 +1841,7 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
                     continue
 
                 weight_g = active_item.weight_g or 0
-                scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings)
+                scale = (weight_g / 100.0) * mi.factor * effective_portions
 
                 for field in fields:
                     ing_val = getattr(ing, field, None)
@@ -1955,14 +1946,6 @@ def cost_summary(request, meal_plan_id: int):
 
         for item in meal.items.all():
             if item.recipe:
-                if not item.recipe.portions:
-                    logger.warning(
-                        "Recipe %s '%s' has portions=0 or None, skipping in cost_summary",
-                        item.recipe.id,
-                        item.recipe.title,
-                    )
-                    continue
-                recipe_servings = item.recipe.portions
                 recipe_item_cost = Decimal("0")
                 rid = item.recipe.id
                 if rid not in recipe_costs:
@@ -1989,7 +1972,7 @@ def cost_summary(request, meal_plan_id: int):
                     total_ingredients += 1
                     recipe_costs[rid]["total_ingredients"] += 1
                     weight_g = active_item.weight_g or 0
-                    scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings)
+                    scaled_weight_g = weight_g * item.factor * effective_portions
                     price = get_portion_price(ing, scaled_weight_g)
                     if price is not None:
                         priced_ingredients += 1
@@ -2230,11 +2213,7 @@ def recipe_suggestions(
                 if r:
                     price = float(r.cached_price_total) if r.cached_price_total else None
                     badge = _resolve_recipe_badge(r, request.user)
-                    price_per_serving = (
-                        round(float(r.cached_price_total) / r.portions, 2)
-                        if r.cached_price_total and r.portions and r.portions > 0
-                        else None
-                    )
+                    price_per_serving = round(float(r.cached_price_total), 2) if r.cached_price_total else None
                     results.append((r, counts_map[rid], badge, price_per_serving, price))
                     seen_ids.add(r.id)
 
@@ -2260,11 +2239,7 @@ def recipe_suggestions(
                 if r:
                     price = float(r.cached_price_total) if r.cached_price_total else None
                     badge = _resolve_recipe_badge(r, request.user)
-                    price_per_serving = (
-                        round(float(r.cached_price_total) / r.portions, 2)
-                        if r.cached_price_total and r.portions and r.portions > 0
-                        else None
-                    )
+                    price_per_serving = round(float(r.cached_price_total), 2) if r.cached_price_total else None
                     results.append((r, counts_map[rid], badge, price_per_serving, price))
                     seen_ids.add(r.id)
 
@@ -2285,11 +2260,7 @@ def recipe_suggestions(
         for r in own_qs:
             price = float(r.cached_price_total) if r.cached_price_total else None
             badge = _resolve_recipe_badge(r, request.user)
-            price_per_serving = (
-                round(float(r.cached_price_total) / r.portions, 2)
-                if r.cached_price_total and r.portions and r.portions > 0
-                else None
-            )
+            price_per_serving = round(float(r.cached_price_total), 2) if r.cached_price_total else None
             own_entries.append((r, 0, badge, price_per_serving, price))
             seen_ids.add(r.id)
         if own_entries:
@@ -2360,11 +2331,7 @@ def popular_recipes(
             "image_url": r.image.url if r.image else None,
             "usage_count": r.usage_count,
             "recipe_badge": _resolve_recipe_badge(r, request.user),
-            "price_per_serving": (
-                round(float(r.cached_price_total) / r.portions, 2)
-                if r.cached_price_total and r.portions and r.portions > 0
-                else None
-            ),
+            "price_per_serving": (round(float(r.cached_price_total), 2) if r.cached_price_total else None),
         }
         for r in community_qs
     ]
@@ -2388,11 +2355,7 @@ def popular_recipes(
                 r = recipes_map.get(rid)
                 if r:
                     badge = _resolve_recipe_badge(r, request.user)
-                    pps = (
-                        round(float(r.cached_price_total) / r.portions, 2)
-                        if r.cached_price_total and r.portions and r.portions > 0
-                        else None
-                    )
+                    pps = round(float(r.cached_price_total), 2) if r.cached_price_total else None
                     personal.append(
                         {
                             "id": r.id,
@@ -2439,11 +2402,7 @@ def recently_used_recipes(
             r = recipes_map.get(rid)
             if r:
                 badge = _resolve_recipe_badge(r, request.user)
-                pps = (
-                    round(float(r.cached_price_total) / r.portions, 2)
-                    if r.cached_price_total and r.portions and r.portions > 0
-                    else None
-                )
+                pps = round(float(r.cached_price_total), 2) if r.cached_price_total else None
                 tags = [{"id": t.id, "name": t.name} for t in r.nutritional_tags.all()]
                 recipes.append(
                     {
@@ -2669,11 +2628,7 @@ def search_recipes(
         tags = nutritional_tags_map.get(r.id, [])
         description = (r.description or "")[:200] if r.description else None
         badge = _resolve_recipe_badge(r, request.user)
-        price_per_serving = (
-            round(float(r.cached_price_total) / r.portions, 2)
-            if r.cached_price_total and r.portions and r.portions > 0
-            else None
-        )
+        price_per_serving = round(float(r.cached_price_total), 2) if r.cached_price_total else None
         recipes.append(
             {
                 "id": r.id,

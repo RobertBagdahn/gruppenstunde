@@ -94,10 +94,7 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
             <h4 className="text-body font-semibold mb-3">
               Zutaten ({recipe.recipe_items.length}) · Menge pro Person
             </h4>
-            <RecipeIngredientsTable
-              items={recipe.recipe_items}
-              portions={recipe.portions}
-            />
+            <RecipeIngredientsTable items={recipe.recipe_items} />
           </div>
         )}
 

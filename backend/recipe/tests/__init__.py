@@ -24,7 +24,7 @@ def make_recipe(status: str = ContentStatus.APPROVED, **kwargs) -> Recipe:
         "difficulty": "easy",
         "execution_time": "less_30",
         "recipe_type": "warm_meal",
-        "portions": 4,
+        "portions": 1,
         "status": status,
     }
     defaults.update(kwargs)

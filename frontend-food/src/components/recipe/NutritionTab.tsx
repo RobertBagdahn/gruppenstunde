@@ -27,7 +27,7 @@ export function NutritionTab({ nb, recipeType, recipe }: Props) {
     <div className="space-y-6">
       <div>
         <h3 className="text-body font-semibold mb-3">Nährwerte im Vergleich</h3>
-        <NutritionBigTable recipe={recipe} portions={recipe.portions ?? 1} />
+        <NutritionBigTable recipe={recipe} />
       </div>
       <div>
         <h3 className="text-body font-semibold mb-3 flex items-center gap-2">

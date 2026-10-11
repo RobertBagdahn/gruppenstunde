@@ -240,13 +240,11 @@ def _compute_scaled_ingredients(
         List of scaled ingredients
     """
 
-    recipe_portions = recipe.portions or 1
-    scale = factor * (portions / recipe_portions)
+    # Recipe quantities are stored per person.
+    scale = factor * portions
     ingredients: list[CookingScheduleIngredient] = []
     if meal_item is not None:
         from planner.services.calculation_context import active_recipe_items
-
-        scale = factor * (portions / recipe_portions)
         from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
         for entry in active_recipe_items(meal_item):
@@ -401,8 +399,7 @@ def _compute_item_nutrition(item, meal_item, effective_portions: int) -> dict[st
     if not meal_item.recipe or meal_item.recipe.cached_energy_total_kcal is None:
         return {"energy_kcal": 0.0, "protein_g": 0.0, "fat_g": 0.0, "carbohydrate_g": 0.0}
 
-    servings = meal_item.recipe.portions or 1
-    scale = meal_item.factor * (effective_portions / servings)
+    scale = meal_item.factor * effective_portions
 
     from planner.services.calculation_context import active_recipe_items
 
@@ -432,8 +429,7 @@ def _compute_item_cost(meal_item: MealItem, effective_portions: int) -> float:
     if not meal_item.recipe or meal_item.recipe.cached_price_total is None:
         return 0.0
 
-    servings = meal_item.recipe.portions or 1
-    scale = meal_item.factor * (effective_portions / servings)
+    scale = meal_item.factor * effective_portions
 
     from planner.services.calculation_context import active_recipe_items
 
@@ -676,7 +672,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
 
                     steps_parsed = resolve_schedule_steps(
                         recipe,
-                        scale=meal_item.factor * (portions / (recipe.portions or 1)),
+                        scale=meal_item.factor * portions,
                     )
                     nutrition = _compute_item_nutrition(meal_item, meal_item, portions)
                     cost = _compute_item_cost(meal_item, portions)

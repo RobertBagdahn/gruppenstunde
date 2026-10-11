@@ -31,7 +31,7 @@
     "model": "recipe.recipeitem",
     "pk": 3531,
     "fields": {
-      "quantity": 2.5,
+      "quantity": 0.625,
       "sort_order": 2,
       "note": "(mittelalt)",
       "is_optional": false,
@@ -25861,7 +25861,7 @@
     "model": "recipe.recipeitem",
     "pk": 3532,
     "fields": {
-      "quantity": 2.0,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -25945,7 +25945,7 @@
     "model": "recipe.recipeitem",
     "pk": 3536,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 0.25,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -26435,7 +26435,7 @@
     "model": "recipe.recipeitem",
     "pk": 3533,
     "fields": {
-      "quantity": 3.0,
+      "quantity": 0.75,
       "sort_order": 4,
       "note": "",
       "is_optional": false,
@@ -26449,7 +26449,7 @@
     "model": "recipe.recipeitem",
     "pk": 3534,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 0.25,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -26491,7 +26491,7 @@
     "model": "recipe.recipeitem",
     "pk": 3537,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 0.25,
       "sort_order": 8,
       "note": "",
       "is_optional": true,
@@ -27079,7 +27079,7 @@
     "model": "recipe.recipeitem",
     "pk": 3530,
     "fields": {
-      "quantity": 4.0,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -27107,7 +27107,7 @@
     "model": "recipe.recipeitem",
     "pk": 3522,
     "fields": {
-      "quantity": 4.0,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -27121,7 +27121,7 @@
     "model": "recipe.recipeitem",
     "pk": 3521,
     "fields": {
-      "quantity": 4.0,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -27191,7 +27191,7 @@
     "model": "recipe.recipeitem",
     "pk": 3535,
     "fields": {
-      "quantity": 4.0,
+      "quantity": 1.0,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -27219,7 +27219,7 @@
     "model": "recipe.recipeitem",
     "pk": 3579,
     "fields": {
-      "quantity": 2.0,
+      "quantity": 0.5,
       "sort_order": 3,
       "note": "",
       "is_optional": false,
@@ -27233,7 +27233,7 @@
     "model": "recipe.recipeitem",
     "pk": 3582,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 0.25,
       "sort_order": 6,
       "note": "",
       "is_optional": false,
@@ -27247,7 +27247,7 @@
     "model": "recipe.recipeitem",
     "pk": 3583,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 0.25,
       "sort_order": 7,
       "note": "",
       "is_optional": false,
@@ -27289,7 +27289,7 @@
     "model": "recipe.recipeitem",
     "pk": 3584,
     "fields": {
-      "quantity": 1.0,
+      "quantity": 0.25,
       "sort_order": 8,
       "note": "",
       "is_optional": true,
@@ -27303,7 +27303,7 @@
     "model": "recipe.recipeitem",
     "pk": 3581,
     "fields": {
-      "quantity": 3.0,
+      "quantity": 0.75,
       "sort_order": 5,
       "note": "",
       "is_optional": false,
@@ -27667,7 +27667,7 @@
     "model": "recipe.recipeitem",
     "pk": 3577,
     "fields": {
-      "quantity": 4.0,
+      "quantity": 1.0,
       "sort_order": 1,
       "note": "",
       "is_optional": false,
@@ -27709,7 +27709,7 @@
     "model": "recipe.recipeitem",
     "pk": 3578,
     "fields": {
-      "quantity": 2.5,
+      "quantity": 0.625,
       "sort_order": 2,
       "note": "",
       "is_optional": false,
@@ -28325,7 +28325,7 @@
     "model": "recipe.recipeitem",
     "pk": 3580,
     "fields": {
-      "quantity": 4.0,
+      "quantity": 1.0,
       "sort_order": 4,
       "note": "",
       "is_optional": false,

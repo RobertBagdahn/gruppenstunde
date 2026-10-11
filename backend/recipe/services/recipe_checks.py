@@ -184,13 +184,10 @@ def evaluate_recipe_rules(recipe: Recipe) -> dict:
         }
 
     values, total_weight_g = get_recipe_values_with_computed(recipe)
-    recipe_servings = max(recipe.portions or 1, 1)
 
-    # Per-serving scaling: values per 100g are scaled to a single serving via (total_weight_g / 100) / recipe_servings.
-    if total_weight_g > 0:
-        factor = (total_weight_g / 100.0) / recipe_servings
-    else:
-        factor = 1.0 / recipe_servings
+    # Per-serving scaling: recipe quantities are stored per person, so values per 100g
+    # are scaled to one serving via total_weight_g / 100.
+    factor = total_weight_g / 100.0 if total_weight_g > 0 else 1.0
 
     rules = Rule.objects.filter(
         is_active=True,
@@ -235,7 +232,7 @@ def evaluate_recipe_rules(recipe: Recipe) -> dict:
         if rule.parameter == "nutri_class":
             value_per_serving = actual_value
         elif rule.parameter in ["weight_g", "price_total"]:
-            value_per_serving = actual_value / recipe_servings
+            value_per_serving = float(actual_value)
         else:
             value_per_serving = actual_value * factor
 
@@ -316,13 +313,10 @@ def match_recipe_hints(
     for each rule that evaluates to yellow or red.
     """
     values, total_weight_g = get_recipe_values_with_computed(recipe)
-    recipe_servings = max(recipe.portions or 1, 1)
 
-    # Per-serving scaling: values per 100g are scaled to a single serving via (total_weight_g / 100) / recipe_servings.
-    if total_weight_g > 0:
-        factor = (total_weight_g / 100.0) / recipe_servings
-    else:
-        factor = 1.0 / recipe_servings
+    # Per-serving scaling: recipe quantities are stored per person, so values per 100g
+    # are scaled to one serving via total_weight_g / 100.
+    factor = total_weight_g / 100.0 if total_weight_g > 0 else 1.0
 
     rules = Rule.objects.filter(is_active=True, scope="recipe")
 
@@ -332,7 +326,7 @@ def match_recipe_hints(
         if rule.parameter == "nutri_class":
             eval_value = actual
         elif rule.parameter in ["weight_g", "price_total"]:
-            eval_value = actual / recipe_servings
+            eval_value = float(actual)
         else:
             eval_value = actual * factor
 

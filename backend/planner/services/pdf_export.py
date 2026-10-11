@@ -223,9 +223,8 @@ def _get_recipe_summary(recipe) -> str:
 
 
 def _recipe_step_scale(item: MealItem, portions: float, reserve_factor: float) -> float:
-    """Quantity scale of a meal item relative to the recipe's own portion count."""
-    recipe_servings = max((item.recipe.portions if item.recipe else 1) or 1, 1)
-    return portions * item.factor * reserve_factor / recipe_servings
+    """Quantity scale of a meal item; recipe quantities are stored per person."""
+    return portions * item.factor * reserve_factor
 
 
 def _get_recipe_steps(recipe, scale: float = 1.0) -> list[dict]:
@@ -749,7 +748,6 @@ def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: flo
 
     ingredients = []
     active_items = active_recipe_items(item)
-    recipe_servings = max(recipe.portions or 1, 1)
     from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
     from supply.utils import format_weight
 
@@ -766,8 +764,8 @@ def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: flo
             if override_qty is not None:
                 base_qty = float(override_qty)
 
-            scale = (portions * item.factor * reserve_factor) / recipe_servings
-            per_person_scale = item.factor / recipe_servings
+            scale = portions * item.factor * reserve_factor
+            per_person_scale = item.factor
             if ri.portion is None:
                 amount = format_weight(base_qty * scale)
                 per_person_amount = format_weight(base_qty * per_person_scale)
@@ -778,7 +776,7 @@ def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: flo
             note = f" ({ri.note})" if ri.note else ""
             ingredients.append(f"{ingredient.name} — {amount}{suffix}{note}")
         elif ri.portion is None:
-            scale = (portions * item.factor * reserve_factor) / recipe_servings
+            scale = portions * item.factor * reserve_factor
             quantity = float(active.quantity) * scale
             ingredients.append(f"{ri.note or 'Zutat'} — {format_weight(quantity)}")
 
@@ -1022,8 +1020,7 @@ def _estimate_total_cost(days: list[dict], reserve_factor: float) -> float | Non
                 if item.recipe:
                     price = item.recipe.cached_price_total
                     if price:
-                        servings = max(item.recipe.portions or 1, 1)
-                        total += float(price) * portions * item.factor * reserve_factor / servings
+                        total += float(price) * portions * item.factor * reserve_factor
                         has_price = True
                 elif item.ingredient:
                     cost = resolve_ingredient_cost_eur(item, portions)

@@ -72,9 +72,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
             continue
 
         if recipe:
-            recipe_servings = max(recipe.portions or 1, 1)
-
-            # Handle recipe items
+            # Handle recipe items (quantities are stored per person)
             if recipe.cached_at:
                 # Recompute using individual recipe items to honour overrides.
                 # NOTE: aggregation is intentionally per-normportion — norm_portions/
@@ -90,7 +88,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     if not ing:
                         continue
                     weight_g = active_item.weight_g or 0.0
-                    nutrient_scale = (weight_g / 100.0) * item.factor / recipe_servings
+                    nutrient_scale = (weight_g / 100.0) * item.factor
                     for key in [
                         "energy_kcal",
                         "protein_g",
@@ -103,19 +101,17 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     ]:
                         totals[key] += (getattr(ing, key, None) or 0.0) * nutrient_scale
                     totals["sodium_mg"] += (ing.sodium_mg or 0.0) * nutrient_scale
-                    totals["weight_g"] += (weight_g * item.factor) / recipe_servings
+                    totals["weight_g"] += weight_g * item.factor
                     for field in CACHED_MICRONUTRIENT_FIELDS:
                         totals[field] += (getattr(ing, field, None) or 0.0) * nutrient_scale
                     if not is_missing_price(ing.price_per_kg):
-                        totals["price_total"] += (
-                            float(ing.price_per_kg) * weight_g * item.factor / (1000.0 * recipe_servings)
-                        )
+                        totals["price_total"] += float(ing.price_per_kg) * weight_g * item.factor / 1000.0
             else:
                 from recipe.services.recipe_checks import get_recipe_values_with_computed as _get_computed
 
                 values, total_weight_g = _get_computed(recipe)
 
-                nutrient_scale = ((total_weight_g / 100.0) if total_weight_g else 1.0) * item.factor / recipe_servings
+                nutrient_scale = ((total_weight_g / 100.0) if total_weight_g else 1.0) * item.factor
 
                 for key in [
                     "energy_kcal",
@@ -129,8 +125,8 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     "sodium_mg",
                 ]:
                     totals[key] += values.get(key, 0.0) * nutrient_scale
-                totals["price_total"] += (float(recipe.cached_price_total or 0) * item.factor) / recipe_servings
-                totals["weight_g"] += (total_weight_g * item.factor) / recipe_servings
+                totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
+                totals["weight_g"] += total_weight_g * item.factor
                 for field in CACHED_MICRONUTRIENT_FIELDS:
                     totals[field] += values.get(field, 0.0) * nutrient_scale
         elif ingredient:

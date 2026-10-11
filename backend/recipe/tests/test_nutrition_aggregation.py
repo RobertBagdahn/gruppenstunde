@@ -84,14 +84,14 @@ class TestNutritionAggregationPortionScaling:
         assert totals["protein_g"] == 50.0
         assert totals["weight_g"] == 500.0
 
-    def test_aggregate_meal_values_multi_portion_cached(self):
-        """A recipe for 4 portions (1200g total) contributes per-serving values (300g) to the meal."""
+    def test_aggregate_meal_values_per_person_recipe_cached(self):
+        """Recipe quantities are stored per person (300g) and contribute unscaled to the meal."""
         meal_plan = make_meal_plan()
         meal = make_meal(meal_plan=meal_plan)
 
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe()
         ing = make_ingredient(name="Reis", protein_g=8.0, price_per_kg=4.00)
-        portion = make_portion(ingredient=ing, weight_g=1200.0, name="1200g Reis")
+        portion = make_portion(ingredient=ing, weight_g=300.0, name="300g Reis")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
         recalculate_recipe_cache(recipe)
         recipe.refresh_from_db()
@@ -99,26 +99,26 @@ class TestNutritionAggregationPortionScaling:
         make_meal_item(meal=meal, recipe=recipe, factor=1.0)
         totals = _aggregate_meal_values(meal)
 
-        # 8g/100g * (1200/100) / 4 = 24.0g per serving
+        # 8g/100g * (300/100) = 24.0g per serving
         assert totals["protein_g"] == 24.0
         assert totals["weight_g"] == 300.0
-        # 4.00 EUR/kg * 1.2kg / 4 = 1.20 EUR
-        assert totals["price_total"] == 1.20
+        # 4.00 EUR/kg * 0.3kg = 1.20 EUR
+        assert totals["price_total"] == pytest.approx(1.20)
 
-    def test_aggregate_meal_values_multi_portion_uncached(self):
-        """Uncached fallback path must also scale to per-serving values for multi-portion recipes."""
+    def test_aggregate_meal_values_per_person_recipe_uncached(self):
+        """Uncached fallback path uses the stored per-person values unscaled."""
         meal_plan = make_meal_plan()
         meal = make_meal(meal_plan=meal_plan)
 
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe()
         ing = make_ingredient(name="Reis", protein_g=8.0)
-        portion = make_portion(ingredient=ing, weight_g=1200.0, name="1200g Reis")
+        portion = make_portion(ingredient=ing, weight_g=300.0, name="300g Reis")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
 
         make_meal_item(meal=meal, recipe=recipe, factor=1.0)
         totals = _aggregate_meal_values(meal)
 
-        # 8g/100g * (1200/100) / 4 = 24.0g per serving
+        # 8g/100g * (300/100) = 24.0g per serving
         assert totals["protein_g"] == 24.0
         assert totals["weight_g"] == 300.0
 

@@ -49,7 +49,7 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
     : null;
 
   const price = totalPriceEur ?? (recipe.cached_price_total
-    ? recipe.cached_price_total * (portions / (recipe.portions ?? 1))
+    ? recipe.cached_price_total * portions
     : null);
   const formattedPrice = price != null
     ? `${price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`

@@ -35,6 +35,7 @@ def _quantities(recipe: Recipe) -> list[float]:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("legacy_recipe_portions")
 class TestClassifyRecipeServings:
     def test_plausible_per_person_weight_is_per_person(self):
         recipe = _recipe_with_grams("Suppe für zwanzig", 20, [300, 185])
@@ -86,6 +87,7 @@ class TestClassifyRecipeServings:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("legacy_recipe_portions")
 class TestNormalizeRecipeServingsCommand:
     def test_default_run_reports_without_writing(self):
         recipe = _recipe_with_grams("Käsenudeln", 4, [600, 250, 200, 150])
@@ -201,3 +203,13 @@ class TestNormalizeRecipeServingsCommand:
     def test_apply_and_dry_run_are_mutually_exclusive(self):
         with pytest.raises(CommandError):
             _run("--apply", "--dry-run")
+
+    def test_apply_normalizes_soft_deleted_recipes(self):
+        recipe = _recipe_with_grams("Gelöschte Käsenudeln", 4, [600, 250, 200, 150])
+        recipe.soft_delete()
+
+        _run("--apply")
+
+        recipe = Recipe.all_objects.get(id=recipe.id)
+        assert recipe.portions == 1
+        assert _quantities(recipe) == [37.5, 50, 62.5, 150]

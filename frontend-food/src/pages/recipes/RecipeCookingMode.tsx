@@ -30,9 +30,9 @@ export default function RecipeCookingMode({
 }: RecipeCookingModeProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const storageKey = `cooking_mode_ingredients_${recipe.id}`;
-  // Same serving scale for the ingredient list and the step chips.
-  const basePortions = recipe.portions ?? 1;
-  const scale = basePortions > 0 ? portionsMultiplier / basePortions : 1;
+  // Same serving scale for the ingredient list and the step chips;
+  // recipe quantities are stored per person.
+  const scale = portionsMultiplier;
 
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(() => {
     if (typeof window === 'undefined') return new Set();

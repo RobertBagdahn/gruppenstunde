@@ -505,6 +505,28 @@ class TestCreateFromRecipe:
         assert items_by_name["Mehl"]["quantity_g"] == 1000.0
         assert items_by_name["Butter"]["quantity_g"] == 500.0
 
+    def test_entries_without_ingredient_keep_recipe_source(self, client_alice, recipe_with_items):
+        """Unlinked recipe lines are generated entries, never manual (deletable) ones."""
+        from recipe.models import RecipeItem
+
+        RecipeItem.objects.create(
+            recipe=recipe_with_items, portion=None, ingredient=None, quantity=30, note="Gewürzmischung", sort_order=2
+        )
+
+        res = client_alice.post(
+            f"/api/shopping-lists/from-recipe/{recipe_with_items.id}/",
+            data=json.dumps({"portions": 3}),
+            content_type="application/json",
+        )
+
+        assert res.status_code == 200
+        items_by_name = {i["name"]: i for i in res.json()["items"]}
+        assert set(items_by_name) == {"Mehl", "Butter", "Gewürzmischung"}
+        unlinked = items_by_name["Gewürzmischung"]
+        assert unlinked["quantity_g"] == 90.0
+        assert [(s["recipe_id"], s["quantity_g"]) for s in unlinked["sources"]] == [(recipe_with_items.id, 90.0)]
+        assert all(len(item["sources"]) == 1 for item in items_by_name.values())
+
     def test_unauthenticated_returns_403(self, recipe_with_items):
         c = Client()
         res = c.post(

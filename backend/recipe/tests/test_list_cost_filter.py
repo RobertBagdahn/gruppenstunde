@@ -14,17 +14,16 @@ def _titles(client: Client, query: str) -> list[str]:
 
 @pytest.fixture
 def priced_recipes(db):
-    # total price / portions: Suppe 1.50, Braten 3.00, Festmahl 7.00, Teuer 12.00
-    make_recipe(title="Suppe", owner=None, portions=4, cached_price_total=6.0)
-    make_recipe(title="Braten", owner=None, portions=2, cached_price_total=6.0)
-    make_recipe(title="Festmahl", owner=None, portions=1, cached_price_total=7.0)
-    make_recipe(title="Teuer", owner=None, portions=1, cached_price_total=12.0)
+    # Recipes are stored per person, so the cached total is the price per portion.
+    make_recipe(title="Suppe", owner=None, cached_price_total=1.5)
+    make_recipe(title="Braten", owner=None, cached_price_total=3.0)
+    make_recipe(title="Festmahl", owner=None, cached_price_total=7.0)
+    make_recipe(title="Teuer", owner=None, cached_price_total=12.0)
 
 
 @pytest.mark.django_db
 class TestRecipeCostFilter:
     def test_upper_bound_uses_price_per_portion(self, client: Client, priced_recipes):
-        # 6 € total for 4 portions is 1.50 €: below 2 € although the total is above it.
         assert _titles(client, "costs_max=2") == ["Suppe"]
 
     def test_range_between_bounds(self, client: Client, priced_recipes):

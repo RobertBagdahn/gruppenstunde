@@ -179,7 +179,8 @@ class Command(BaseCommand):
         if conflicting:
             raise CommandError(f"Ids in both --treat-as-total and --treat-as-per-person: {sorted(conflicting)}")
 
-        recipes = Recipe.objects.filter(portions__gt=1).prefetch_related(
+        # all_objects: soft-deleted recipes must be normalized too before the portions=1 constraint.
+        recipes = Recipe.all_objects.filter(portions__gt=1).prefetch_related(
             "recipe_items__portion__measuring_unit",
             "recipe_items__portion__ingredient",
             "recipe_items__ingredient",

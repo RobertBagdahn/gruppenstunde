@@ -210,7 +210,8 @@ export default function RecipeDetailPage() {
   // Initialize modification store when nutrition breakdown data loads
   useEffect(() => {
     if (nutritionBreakdown && recipe && !isDirty) {
-      initializeModifications(nutritionBreakdown.items, recipe.portions);
+      // Recipe quantities are stored per person.
+      initializeModifications(nutritionBreakdown.items, 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nutritionBreakdown, recipe, initializeModifications]);
@@ -304,7 +305,7 @@ export default function RecipeDetailPage() {
       items: itemsWithPct,
     };
   }, [nutritionBreakdown, isDirty, modifiedItems, modifiedPortions]);
-  const effectivePortions = (isDirty ? modifiedPortions : recipe?.portions) ?? 1;
+  const effectivePortions = isDirty ? (modifiedPortions ?? 1) : 1;
   const topIngredientsByWeight = nb
     ? [...nb.items].sort((a, b) => b.weight_g - a.weight_g)
     : [];
@@ -660,7 +661,7 @@ export default function RecipeDetailPage() {
       />
 
       {/* Portion Normalization Hint (10.4) */}
-      {nb && (isDirty ? modifiedPortions : recipe.portions) && (isDirty ? modifiedPortions : recipe.portions)! > 0 && (() => {
+      {nb && effectivePortions > 0 && (() => {
         // DGE reference: 15yo male, PAL 1.5 = 2868 kcal daily (approx. 12000 kJ)
         const dailyEnergyKcal = 2868;
         const mealFractions: Record<string, number> = {
@@ -669,7 +670,6 @@ export default function RecipeDetailPage() {
         };
         const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
         const expectedEnergyKcal = dailyEnergyKcal * fraction;
-        const effectivePortions = (isDirty ? modifiedPortions : recipe.portions) ?? 1;
         const perServingEnergyKcal = nb.total_energy_kcal / effectivePortions;
         const ratio = perServingEnergyKcal / expectedEnergyKcal;
 
@@ -1213,7 +1213,7 @@ export default function RecipeDetailPage() {
             <RecipeStepsReadOnly
               steps={recipe.steps}
               fallbackInstructions={legacyPreparationSteps}
-              scale={(recipe.portions ?? 1) > 0 ? portionsMultiplier / (recipe.portions ?? 1) : 1}
+              scale={portionsMultiplier}
             />
           </AnalysisSection>
         )

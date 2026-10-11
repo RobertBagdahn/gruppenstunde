@@ -8,7 +8,7 @@ from typing import cast
 
 from django.db import IntegrityError, transaction
 from django.db.models import CharField, FloatField, Q, Value
-from django.db.models.functions import MD5, Cast, Concat, Greatest, Lower
+from django.db.models.functions import MD5, Cast, Concat, Lower
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
@@ -153,10 +153,9 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
         qs = qs.filter(difficulty__in=filters.difficulty)
 
     # Cost bounds are per portion, like the price shown on every recipe card.
+    # Recipe quantities are stored per person, so the cached price is one portion.
     if filters.costs_min is not None or filters.costs_max is not None:
-        qs = qs.annotate(
-            price_per_portion=Cast("cached_price_total", FloatField()) / Cast(Greatest("portions", 1), FloatField())
-        )
+        qs = qs.annotate(price_per_portion=Cast("cached_price_total", FloatField()))
         if filters.costs_min is not None:
             qs = qs.filter(price_per_portion__gte=filters.costs_min)
         if filters.costs_max is not None:
