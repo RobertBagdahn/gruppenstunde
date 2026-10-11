@@ -3,6 +3,7 @@
  * Extracted from components/supply/IngredientList.tsx without behaviour changes.
  */
 import type { RecipeItem } from '@/schemas/recipe';
+import type { RecipeStepIngredient } from '@/schemas/recipeStep';
 import type { Portion } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { formatWeight } from '@/lib/format';
@@ -82,6 +83,52 @@ export function formatRecipeItemAmount(item: RecipeItem): RecipeItemAmount {
   if (metricName) return { primary: `${formatCount(quantity)} ${shortUnit(metricName)}`, secondary: null };
 
   return { primary: `${formatCount(quantity)} —`, secondary: null };
+}
+
+/** Structural subset of a recipe item or a step ingredient needed to format its scaled amount. */
+export interface ScaledRecipeAmountInput {
+  /** Portion count for portion items, grams for direct-gram items. */
+  quantity?: number | null;
+  weight_g?: number | null;
+  portion_name?: string | null;
+  measuring_unit_name?: string | null;
+  /** Stored unit label of a step ingredient, used only when no weight is known. */
+  unit_short?: string | null;
+  ingredient_viscosity?: string | null;
+  ingredient_density?: number | null;
+}
+
+/**
+ * Amount of a recipe item, or its share in a preparation step, for `scale` servings — the same
+ * amounts as the recipe ingredient list: a natural portion as "0,35 Portion" with its grams as
+ * secondary value, everything else (direct grams, metric portions) as grams.
+ */
+export function formatScaledRecipeAmount(item: ScaledRecipeAmountInput, scale = 1): RecipeItemAmount {
+  const quantity = (item.quantity ?? 0) * scale;
+  const weightG = (item.weight_g ?? 0) * scale;
+  const grams = weightG > 0
+    ? formatQuantity(weightG, item.ingredient_viscosity, item.ingredient_density).display
+    : null;
+  const portionName = item.portion_name || null;
+
+  if (portionName && quantity > 0 && !isGramPortion(portionName, item.measuring_unit_name)) {
+    return { primary: formatPortionAmount(quantity, shortUnit(portionName)), secondary: grams };
+  }
+  if (grams != null) return { primary: grams, secondary: null };
+
+  const unitName = item.unit_short || item.measuring_unit_name;
+  if (quantity > 0 && unitName) return { primary: `${formatCount(quantity)} ${shortUnit(unitName)}`, secondary: null };
+  return { primary: '—', secondary: null };
+}
+
+/** Step ingredient with its scaled amount: "0,35 Portion (18 g) Sojagranulat". */
+export function formatStepIngredientLabel(ingredient: RecipeStepIngredient, scale = 1): string {
+  const amount = formatScaledRecipeAmount(ingredient, scale);
+  const amountText = amount.primary === '—'
+    ? ''
+    : amount.secondary ? `${amount.primary} (${amount.secondary})` : amount.primary;
+  const name = ingredient.ingredient_name || ingredient.note || '';
+  return [amountText, name].filter(Boolean).join(' ');
 }
 
 /** Structural subset of a meal-plan item needed to format its amount. */

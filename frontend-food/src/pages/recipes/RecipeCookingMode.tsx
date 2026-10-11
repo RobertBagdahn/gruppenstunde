@@ -7,7 +7,8 @@ import { parsePreparationSteps } from '@/lib/parseRecipeSteps';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { Button } from '@/components/ui/button';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
-import { roundToDecimals } from '@/lib/format';
+import StepIngredientChips from '@/components/recipe/StepIngredientChips';
+import { formatScaledRecipeAmount } from '@/lib/ingredientAmount';
 
 interface RecipeCookingModeProps {
   recipe: RecipeDetail;
@@ -29,6 +30,9 @@ export default function RecipeCookingMode({
 }: RecipeCookingModeProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const storageKey = `cooking_mode_ingredients_${recipe.id}`;
+  // Same serving scale for the ingredient list and the step chips.
+  const basePortions = recipe.portions ?? 1;
+  const scale = basePortions > 0 ? portionsMultiplier / basePortions : 1;
 
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(() => {
     if (typeof window === 'undefined') return new Set();
@@ -164,9 +168,7 @@ export default function RecipeCookingMode({
         </h2>
         <div className="space-y-2">
           {recipe.recipe_items.map((item) => {
-            const basePortions = recipe.portions ?? 1;
-            const scale = basePortions > 0 ? portionsMultiplier / basePortions : 1;
-            const scaledQty = item.quantity * scale;
+            const amount = formatScaledRecipeAmount(item, scale);
             const isChecked = checkedIngredients.has(item.id);
 
             return (
@@ -183,7 +185,10 @@ export default function RecipeCookingMode({
                 />
                 <div className={`flex-1 min-w-0 ${isChecked ? 'opacity-50 line-through' : ''}`}>
                   <div className="font-medium text-body">
-                    {scaledQty % 1 === 0 ? scaledQty : roundToDecimals(scaledQty, 2)} {item.measuring_unit_name}
+                    {amount.primary}
+                    {amount.secondary && (
+                      <span className="ml-1 text-caption font-normal text-muted-foreground">({amount.secondary})</span>
+                    )}
                   </div>
                   <div className="text-caption text-muted-foreground">
                     {item.ingredient_name}
@@ -219,6 +224,10 @@ export default function RecipeCookingMode({
                 content={step.content}
                 className="text-section lg:text-title leading-relaxed"
               />
+
+              {step.stepIngredients && (
+                <StepIngredientChips ingredients={step.stepIngredients} scale={scale} className="mt-4" />
+              )}
 
               {/* Duration (if structured) */}
               {step.durationMinutes && (

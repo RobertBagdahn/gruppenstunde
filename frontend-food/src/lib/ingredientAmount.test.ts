@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RecipeItemSchema } from '@/schemas/recipe';
-import { formatRecipeItemAmount } from './ingredientAmount';
+import { RecipeStepIngredientSchema } from '@/schemas/recipeStep';
+import { formatRecipeItemAmount, formatScaledRecipeAmount, formatStepIngredientLabel } from './ingredientAmount';
 
 function item(overrides: Record<string, unknown>) {
   return RecipeItemSchema.parse({
@@ -51,5 +52,51 @@ describe('formatRecipeItemAmount (wizard preview cases from the production test)
 
   it('shows a dash without a quantity', () => {
     expect(formatRecipeItemAmount(item({ quantity: 0 })).primary).toBe('—');
+  });
+});
+
+function stepIngredient(overrides: Record<string, unknown>) {
+  return RecipeStepIngredientSchema.parse({ id: 1, recipe_item_id: 1, ...overrides });
+}
+
+describe('formatScaledRecipeAmount (ingredient list and step chips)', () => {
+  it('shows a portion item as portion count with grams, not as "0,35 g"', () => {
+    const amount = formatScaledRecipeAmount({ quantity: 0.35, weight_g: 17.5, portion_name: 'Portion', unit_short: 'Portion' });
+    expect(amount).toEqual({ primary: '0,35 Portion', secondary: '18 g' });
+  });
+
+  it('shows a direct-gram item in grams and scales it by servings', () => {
+    expect(formatScaledRecipeAmount({ quantity: 200, weight_g: 200, unit_short: 'g' }, 3)).toEqual({ primary: '600 g', secondary: null });
+  });
+
+  it('shows a metric portion by its weight', () => {
+    const amount = formatScaledRecipeAmount({ quantity: 250, weight_g: 250, portion_name: 'Gramm', measuring_unit_name: 'Gramm' }, 2);
+    expect(amount).toEqual({ primary: '500 g', secondary: null });
+  });
+
+  it('keeps the portion count when the weight is unknown', () => {
+    expect(formatScaledRecipeAmount({ quantity: 2, weight_g: null, portion_name: 'Stück' }, 2)).toEqual({ primary: '4 Stück', secondary: null });
+  });
+
+  it('matches the cooking-mode ingredient list for a recipe item', () => {
+    const recipeItem = item({ ingredient_name: 'Sojagranulat', portion_id: 7, portion_name: 'Portion', measuring_unit_name: 'Gramm', quantity: 0.35, weight_g: 17.5 });
+    const step = stepIngredient({ ingredient_name: 'Sojagranulat', portion_name: 'Portion', unit_short: 'Portion', quantity: 0.35, weight_g: 17.5 });
+    expect(formatScaledRecipeAmount(step, 4)).toEqual(formatScaledRecipeAmount(recipeItem, 4));
+  });
+});
+
+describe('formatStepIngredientLabel', () => {
+  it('combines amount, grams and ingredient name', () => {
+    const step = stepIngredient({ ingredient_name: 'Sojagranulat', portion_name: 'Portion', unit_short: 'Portion', quantity: 0.35, weight_g: 17.5 });
+    expect(formatStepIngredientLabel(step)).toBe('0,35 Portion (18 g) Sojagranulat');
+  });
+
+  it('names a direct-gram item', () => {
+    const step = stepIngredient({ ingredient_name: 'Reis', unit_short: 'g', quantity: 100, weight_g: 100 });
+    expect(formatStepIngredientLabel(step, 2)).toBe('200 g Reis');
+  });
+
+  it('falls back to the note without amount', () => {
+    expect(formatStepIngredientLabel(stepIngredient({ note: 'Prise Salz' }))).toBe('Prise Salz');
   });
 });

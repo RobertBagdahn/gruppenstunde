@@ -12,11 +12,14 @@ export const RecipeStepIngredientSchema = z.object({
   quantity_modifier: z.number().default(1.0),
   preparation: z.string().default(''),
   sort_order: z.number().default(0),
-  // Resolved fields (read-only, provided by backend)
+  // Resolved fields (read-only, provided by backend). `quantity` is a portion count for
+  // portion items (`unit_short` = portion name) and grams for direct-gram items (`unit_short` = "g").
   ingredient_name: z.string().nullable().optional(),
   ingredient_id: z.number().nullable().optional(),
+  portion_name: z.string().nullable().optional(),
   unit_short: z.string().nullable().optional(),
   quantity: z.number().nullable().optional(),
+  weight_g: z.number().nullable().optional(),
   note: z.string().nullable().optional(),
 });
 

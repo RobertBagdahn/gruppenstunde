@@ -9,6 +9,7 @@ import { useMemo } from 'react';
 import { Eye } from 'lucide-react';
 import type { RecipeStep } from '@/schemas/recipeStep';
 import { resolveStepPlaceholders, type RecipeItemMap } from '@/services/stepHelpers';
+import { formatStepIngredientLabel } from '@/lib/ingredientAmount';
 
 interface LivePreviewProps {
   /**
@@ -54,7 +55,14 @@ export default function LivePreview({
       step_ingredients: stepIngredients,
     } as RecipeStep;
 
-    return resolveStepPlaceholders(step, recipeItemMap);
+    // Step ingredients resolve to their amount and name, as in the recipe ingredient list.
+    const stepItemMap: RecipeItemMap = {};
+    for (const ingredient of stepIngredients) {
+      const label = formatStepIngredientLabel(ingredient);
+      if (label) stepItemMap[ingredient.recipe_item_id] = { id: ingredient.recipe_item_id, name: label };
+    }
+
+    return resolveStepPlaceholders(step, { ...stepItemMap, ...recipeItemMap });
   }, [instruction, stepIngredients, recipeItemMap]);
 
   // Detect if there are unresolved placeholders

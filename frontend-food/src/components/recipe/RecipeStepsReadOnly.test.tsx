@@ -96,4 +96,49 @@ describe('RecipeStepsReadOnly', () => {
     expect(screen.getByText(/200 g Mehl/)).toBeInTheDocument();
     expect(screen.getByText(/gesiebt/)).toBeInTheDocument();
   });
+
+  it('shows portion and direct-gram step ingredients with the ingredient list amounts', () => {
+    render(
+      <RecipeStepsReadOnly
+        scale={2}
+        steps={[
+          makeStep({
+            id: 1,
+            instruction: 'Anbraten',
+            step_ingredients: [
+              {
+                id: 11,
+                recipe_item_id: 6,
+                quantity_modifier: 1,
+                preparation: '',
+                sort_order: 0,
+                ingredient_name: 'Sojagranulat',
+                portion_name: 'Portion',
+                unit_short: 'Portion',
+                quantity: 0.35,
+                weight_g: 17.5,
+                note: null,
+              },
+              {
+                id: 12,
+                recipe_item_id: 7,
+                quantity_modifier: 1,
+                preparation: '',
+                sort_order: 1,
+                ingredient_name: 'Reis',
+                portion_name: null,
+                unit_short: 'g',
+                quantity: 80,
+                weight_g: 80,
+                note: null,
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('0,7 Portion (35 g) Sojagranulat')).toBeInTheDocument();
+    expect(screen.getByText('160 g Reis')).toBeInTheDocument();
+  });
 });
