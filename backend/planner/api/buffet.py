@@ -129,52 +129,79 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
     )
     from supply.services.price_service import price_or_none
 
-    selections = []
+    # Items that became invisible to the caller are omitted instead of failing the whole state.
     saved_items = list(meal.items.exclude(buffet_role="").select_related("ingredient", "recipe").order_by("id"))
-    item_shares = _saved_share_percentages(saved_items)
+    visible_items: list[tuple[MealItem, Any]] = []
+    hidden_item_count = 0
     for item in saved_items:
         try:
             if item.ingredient_id is not None:
-                ingredient = get_visible_ingredient_or_404(request.user, item.ingredient_id, allow_system_draft=True)
-                price = price_or_none(ingredient.price_per_kg)
-                selections.append(
-                    {
-                        "role_slug": item.buffet_role,
-                        "share_percent": item_shares[item.id],
-                        "ingredient_id": ingredient.id,
-                        "recipe_id": None,
-                        "kind": "ingredient",
-                        "name": ingredient.name,
-                        "energy_kcal_per_100g": ingredient.energy_kcal,
-                        "price_per_kg": float(price) if price is not None else None,
-                        "weight_per_serving_g": None,
-                        "piece_weight_g": ingredient_piece_weight_g(ingredient),
-                    }
-                )
+                obj = get_visible_ingredient_or_404(request.user, item.ingredient_id, allow_system_draft=True)
             elif item.recipe_id is not None:
-                recipe = get_visible_recipe_or_404(request.user, item.recipe_id, allow_system_draft=True)
-                selections.append(
-                    {
-                        "role_slug": item.buffet_role,
-                        "share_percent": item_shares[item.id],
-                        "ingredient_id": None,
-                        "recipe_id": recipe.id,
-                        "kind": "recipe",
-                        "name": recipe.title,
-                        "energy_kcal_per_100g": recipe.cached_energy_kcal,
-                        "price_per_kg": recipe_price_per_kg(recipe),
-                        "weight_per_serving_g": recipe_weight_per_serving_g(recipe),
-                        "piece_weight_g": None,
-                    }
-                )
+                obj = get_visible_recipe_or_404(request.user, item.recipe_id, allow_system_draft=True)
+            else:
+                continue
         except Http404:
-            raise HttpError(404, "Zutat oder Rezept nicht gefunden") from None
+            hidden_item_count += 1
+            continue
+        visible_items.append((item, obj))
+
+    item_shares = _saved_share_percentages([item for item, _ in visible_items])
+    selections = []
+    for item, obj in visible_items:
+        if item.ingredient_id is not None:
+            price = price_or_none(obj.price_per_kg)
+            selections.append(
+                {
+                    "role_slug": item.buffet_role,
+                    "share_percent": item_shares[item.id],
+                    "ingredient_id": obj.id,
+                    "recipe_id": None,
+                    "kind": "ingredient",
+                    "name": obj.name,
+                    "energy_kcal_per_100g": obj.energy_kcal,
+                    "price_per_kg": float(price) if price is not None else None,
+                    "weight_per_serving_g": None,
+                    "piece_weight_g": ingredient_piece_weight_g(obj),
+                }
+            )
+        else:
+            selections.append(
+                {
+                    "role_slug": item.buffet_role,
+                    "share_percent": item_shares[item.id],
+                    "ingredient_id": None,
+                    "recipe_id": obj.id,
+                    "kind": "recipe",
+                    "name": obj.title,
+                    "energy_kcal_per_100g": obj.cached_energy_kcal,
+                    "price_per_kg": recipe_price_per_kg(obj),
+                    "weight_per_serving_g": recipe_weight_per_serving_g(obj),
+                    "piece_weight_g": None,
+                }
+            )
+
+    warnings = []
+    if hidden_item_count:
+        warnings.append(
+            {
+                "code": "hidden_saved_items",
+                "message": (
+                    "1 gespeicherter Buffet-Eintrag ist nicht mehr sichtbar und wird beim nächsten Speichern entfernt."
+                    if hidden_item_count == 1
+                    else f"{hidden_item_count} gespeicherte Buffet-Einträge sind nicht mehr sichtbar "
+                    "und werden beim nächsten Speichern entfernt."
+                ),
+            }
+        )
     manual_count = meal.items.filter(buffet_role="", is_breakfast_assistant=False).count()
     return {
         "template_id": meal.buffet_template_id,
         "selections": selections,
         "role_amounts": meal.buffet_role_amounts or {},
         "manual_item_count": manual_count,
+        "manual_items_policy": meal.buffet_manual_items_policy or None,
+        "warnings": warnings,
     }
 
 

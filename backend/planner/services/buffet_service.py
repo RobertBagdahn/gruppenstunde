@@ -358,7 +358,10 @@ def save_buffet(
         meal.buffet_template = template
         meal.breakfast_profile = ""
         meal.buffet_role_amounts = {slug: float(value) for slug, value in (role_amounts or {}).items()}
-        meal.save(update_fields=["buffet_template", "breakfast_profile", "buffet_role_amounts"])
+        meal.buffet_manual_items_policy = manual_items_policy
+        meal.save(
+            update_fields=["buffet_template", "breakfast_profile", "buffet_role_amounts", "buffet_manual_items_policy"]
+        )
 
     saved_items = (
         meal.items.exclude(buffet_role="")
