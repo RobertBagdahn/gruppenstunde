@@ -35,7 +35,7 @@ import {
 // Profile
 // ==========================================================================
 
-export function useMyProfile() {
+export function useMyProfile({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery<UserProfile>({
     queryKey: ['profile', 'me'],
     queryFn: async () => {
@@ -44,6 +44,7 @@ export function useMyProfile() {
       const data = await res.json();
       return UserProfileSchema.parse(data);
     },
+    enabled,
     staleTime: 5 * 60 * 1000,
   });
 }
