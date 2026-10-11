@@ -413,7 +413,7 @@ function PlannerDetail({ plannerId }: { plannerId: number }) {
           <div className="flex flex-wrap gap-2 mb-4">
             {data.collaborators.map((c) => (
               <span key={c.id} className="rounded-full bg-muted px-3 py-1 text-xs">
-                {c.username} ({c.role === 'editor' ? 'Editor' : 'Betrachter'})
+                {c.display_name} ({c.role === 'editor' ? 'Editor' : 'Betrachter'})
               </span>
             ))}
           </div>

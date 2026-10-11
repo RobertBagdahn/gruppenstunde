@@ -31,7 +31,7 @@ export type PlannerEntry = z.infer<typeof PlannerEntrySchema>;
 export const CollaboratorSchema = z.object({
   id: z.number(),
   user_id: z.number(),
-  username: z.string(),
+  display_name: z.string(),
   role: z.string(),
 });
 export type Collaborator = z.infer<typeof CollaboratorSchema>;

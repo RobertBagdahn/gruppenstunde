@@ -7,6 +7,7 @@ from typing import Literal, cast
 from ninja import Schema
 from pydantic import Field, field_validator, model_validator
 
+from core.services.user_directory import public_display_name
 from planner.schemas.buffet import QuantityWarningOut
 from planner.services.meal_item_helpers import (
     resolve_ingredient_cost_eur,
@@ -570,9 +571,7 @@ class MealPlanOut(Schema):
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
-        if obj.owner:
-            return cast(str, obj.owner.get_full_name() or obj.owner.username)
-        return None
+        return public_display_name(obj.owner) if obj.owner else None
 
     @staticmethod
     def resolve_nutritional_tag_ids(obj) -> list[int]:
@@ -693,23 +692,13 @@ class MealPlanUpdateIn(Schema):
 class MealPlanCollaboratorOut(Schema):
     id: int
     user_id: int
-    username: str = ""
-    first_name: str = ""
-    last_name: str = ""
+    display_name: str = ""
     role: str
     created_at: dt.datetime
 
     @staticmethod
-    def resolve_username(obj) -> str:
-        return obj.user.username if obj.user else ""
-
-    @staticmethod
-    def resolve_first_name(obj) -> str:
-        return obj.user.first_name if obj.user else ""
-
-    @staticmethod
-    def resolve_last_name(obj) -> str:
-        return obj.user.last_name if obj.user else ""
+    def resolve_display_name(obj) -> str:
+        return public_display_name(obj.user)
 
 
 class MealPlanCollaboratorCreateIn(Schema):
@@ -795,9 +784,7 @@ class MealPlanDetailOut(Schema):
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
-        if obj.owner:
-            return cast(str, obj.owner.get_full_name() or obj.owner.username)
-        return None
+        return public_display_name(obj.owner) if obj.owner else None
 
     @staticmethod
     def resolve_nutritional_tag_ids(obj) -> list[int]:

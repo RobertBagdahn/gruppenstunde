@@ -33,7 +33,7 @@ class TestCollaboratorList:
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
-        assert data[0]["username"] == "collab"
+        assert data[0]["display_name"] == f"Inspi-Nutzer #{collab.id}"
         assert data[0]["role"] == "editor"
 
     def test_list_collaborators_403_for_no_access(self, client: Client):
@@ -83,7 +83,7 @@ class TestCollaboratorAdd:
                 content_type="application/json",
             )
         assert resp.status_code == 201
-        assert resp.json()["username"] == "collab"
+        assert resp.json()["display_name"] == f"Inspi-Nutzer #{collab.id}"
 
     def test_add_duplicate_collaborator_409(self, client: Client):
         """Adding the same user twice returns 409."""

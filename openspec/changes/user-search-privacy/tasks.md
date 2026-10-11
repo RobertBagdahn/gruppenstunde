@@ -9,3 +9,10 @@
 
 - [x] 2.1 Food: Zod schemas, `UserSearchSelect` in both collaborator managers, shopping list display names
 - [x] 2.2 Main frontend: user search hooks read paginated display names
+
+## 3. Meal plans and weekly planners
+
+- [x] 3.1 `MealPlanCollaboratorOut` returns `display_name` instead of `username`/`first_name`/`last_name`; meal plan `owner_name` uses `public_display_name()`
+- [x] 3.2 Planner `CollaboratorOut` returns `display_name` instead of `username`; the invite message names the invitee by display name
+- [x] 3.3 Food Zod schema and `MealPlanCollaboratorManager`, main frontend planner schema and `PlannerPage` show `display_name`
+- [x] 3.4 Tests: meal plan list/detail, meal plan collaborator list/add, planner detail and invite responses contain no e-mail (`planner/tests/test_privacy.py`)

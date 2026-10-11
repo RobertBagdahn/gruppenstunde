@@ -85,7 +85,7 @@ export default function MealPlanCollaboratorManager({
                   <Icon name="person" size={16} className="text-primary" />
                 </div>
                 <span className="text-body font-medium truncate">
-                  {collab.username}
+                  {collab.display_name}
                 </span>
               </div>
 

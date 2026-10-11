@@ -5,6 +5,8 @@ from typing import Literal, cast
 
 from ninja import Schema
 
+from core.services.user_directory import public_display_name
+
 
 class PlannerOut(Schema):
     id: int
@@ -98,12 +100,12 @@ class PlannerDetailOut(Schema):
 class CollaboratorOut(Schema):
     id: int
     user_id: int
-    username: str
+    display_name: str
     role: str
 
     @staticmethod
-    def resolve_username(obj) -> str:
-        return cast(str, obj.user.get_username())
+    def resolve_display_name(obj) -> str:
+        return public_display_name(obj.user)
 
 
 class InviteIn(Schema):

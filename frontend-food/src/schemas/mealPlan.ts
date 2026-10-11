@@ -247,9 +247,7 @@ export const COLLABORATOR_ROLE_LABELS: Record<string, string> = {
 export const MealPlanCollaboratorSchema = z.object({
   id: z.number(),
   user_id: z.number(),
-  username: z.string().default(''),
-  first_name: z.string().default(''),
-  last_name: z.string().default(''),
+  display_name: z.string().default(''),
   role: z.string(),
   created_at: z.string(),
 });
