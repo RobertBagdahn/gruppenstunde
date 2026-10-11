@@ -480,6 +480,88 @@ export const ShoppingListItemSchema = z.object({
 export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;
 
 // ==========================================================================
+// Ingredient Quantity Overview (MUST match planner/schemas/meal_plan.py)
+// ==========================================================================
+
+export const IngredientQuantityUnitOptionSchema = z.object({
+  name: z.string(),
+  weight_g: z.number(),
+  is_default: z.boolean().default(false),
+});
+export type IngredientQuantityUnitOption = z.infer<typeof IngredientQuantityUnitOptionSchema>;
+
+export const IngredientQuantityLineSchema = z.object({
+  kind: z.enum(['recipe', 'direct']),
+  meal_item_id: z.number(),
+  recipe_item_id: z.number().nullable().default(null),
+  meal_id: z.number(),
+  meal_type: z.string(),
+  meal_start_datetime: z.string().nullable().default(null),
+  meal_label: z.string(),
+  recipe_id: z.number().nullable().default(null),
+  recipe_title: z.string(),
+  /** Per person in `unit_label` (overrides applied, before `factor`). */
+  quantity_per_person: z.number(),
+  original_quantity_per_person: z.number(),
+  unit_label: z.string(),
+  factor: z.number(),
+  effective_portions: z.number(),
+  net_quantity_g: z.number(),
+  excluded: z.boolean().default(false),
+  is_overridden: z.boolean().default(false),
+  editable: z.boolean(),
+  not_editable_reason: z.string().nullable().default(null),
+});
+export type IngredientQuantityLine = z.infer<typeof IngredientQuantityLineSchema>;
+
+export const IngredientQuantitySchema = z.object({
+  ingredient_id: z.number(),
+  ingredient_name: z.string(),
+  ingredient_slug: z.string().default(''),
+  retail_section: z.string().default(''),
+  net_quantity_g: z.number(),
+  total_quantity_g: z.number(),
+  quantity: z.number().default(0),
+  unit: z.enum(['g', 'ml']).default('g'),
+  piece_equivalent: ShoppingPieceEquivalentSchema.nullable().default(null),
+  has_trusted_weight: z.boolean().default(true),
+  is_adjusted: z.boolean().default(false),
+  unit_options: z.array(IngredientQuantityUnitOptionSchema).default([]),
+  lines: z.array(IngredientQuantityLineSchema).default([]),
+});
+export type IngredientQuantity = z.infer<typeof IngredientQuantitySchema>;
+
+export const OverrideQuantitySnapshotSchema = z.object({
+  meal_item_id: z.number(),
+  recipe_item_id: z.number(),
+  quantity_override: z.number().positive().nullable().default(null),
+});
+export type OverrideQuantitySnapshot = z.infer<typeof OverrideQuantitySnapshotSchema>;
+
+export const IngredientQuantityAdjustInSchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('target_total'), target_total_g: z.number().positive().max(10_000_000) }),
+  z.object({ mode: z.literal('percent'), percent: z.number().min(-90).max(200).refine((value) => value !== 0) }),
+  z.object({ mode: z.literal('reset') }),
+  z.object({ mode: z.literal('restore'), restore: z.array(OverrideQuantitySnapshotSchema).min(1).max(2000) }),
+]);
+export type IngredientQuantityAdjustIn = z.infer<typeof IngredientQuantityAdjustInSchema>;
+
+export const IngredientQuantityAdjustOutSchema = z.object({
+  item: IngredientQuantitySchema.nullable().default(null),
+  changed_lines: z.number(),
+  skipped_lines: z.number(),
+  previous: z.array(OverrideQuantitySnapshotSchema).default([]),
+});
+export type IngredientQuantityAdjustOut = z.infer<typeof IngredientQuantityAdjustOutSchema>;
+
+export const MealItemOverrideLineInSchema = z.object({
+  /** Per stored recipe unit (same as RecipeItem.quantity); null keeps the recipe value. */
+  quantity_override: z.number().positive().max(100000).nullable(),
+  excluded: z.boolean(),
+});
+export type MealItemOverrideLineIn = z.infer<typeof MealItemOverrideLineInSchema>;
+
+// ==========================================================================
 // Recipe Search Result (with preview fields)
 // ==========================================================================
 
@@ -1191,6 +1273,7 @@ export const CookingScheduleIngredientSchema = z.object({
   note: z.string(),
   is_optional: z.boolean(),
   weight_g: z.number().nullable(),
+  is_overridden: z.boolean().default(false),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
 });
 export type CookingScheduleIngredient = z.infer<typeof CookingScheduleIngredientSchema>;

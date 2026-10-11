@@ -927,6 +927,92 @@ class ShoppingListItemOut(Schema):
 
 
 # ==========================================================================
+# Ingredient Quantity Overview Schemas
+# ==========================================================================
+
+
+class IngredientQuantityUnitOptionOut(Schema):
+    name: str
+    weight_g: float
+    is_default: bool = False
+
+
+class IngredientQuantityLineOut(Schema):
+    kind: Literal["recipe", "direct"]
+    meal_item_id: int
+    recipe_item_id: int | None = None
+    meal_id: int
+    meal_type: str
+    meal_start_datetime: dt.datetime | None = None
+    meal_label: str
+    recipe_id: int | None = None
+    recipe_title: str
+    # Per person in `unit_label` (overrides applied, before `factor`).
+    quantity_per_person: float
+    original_quantity_per_person: float
+    unit_label: str
+    factor: float
+    effective_portions: float
+    net_quantity_g: float
+    excluded: bool = False
+    is_overridden: bool = False
+    editable: bool
+    not_editable_reason: str | None = None
+
+
+class IngredientQuantityOut(Schema):
+    ingredient_id: int
+    ingredient_name: str
+    ingredient_slug: str = ""
+    retail_section: str = ""
+    net_quantity_g: float
+    total_quantity_g: float
+    quantity: float = 0.0
+    unit: Literal["g", "ml"] = "g"
+    piece_equivalent: ShoppingPieceEquivalentOut | None = None
+    has_trusted_weight: bool = True
+    is_adjusted: bool = False
+    unit_options: list[IngredientQuantityUnitOptionOut] = []
+    lines: list[IngredientQuantityLineOut] = []
+
+
+class OverrideQuantitySnapshot(Schema):
+    meal_item_id: int
+    recipe_item_id: int
+    quantity_override: float | None = Field(default=None, gt=0, le=100000)
+
+
+class IngredientQuantityAdjustIn(Schema):
+    mode: Literal["target_total", "percent", "reset", "restore"]
+    target_total_g: float | None = Field(default=None, gt=0, le=10_000_000)
+    percent: float | None = Field(default=None, ge=-90, le=200)
+    restore: list[OverrideQuantitySnapshot] = Field(default_factory=list, max_length=2000)
+
+    @model_validator(mode="after")
+    def _check_mode_fields(self) -> "IngredientQuantityAdjustIn":
+        if self.mode == "target_total" and self.target_total_g is None:
+            raise ValueError("target_total_g ist für mode=target_total erforderlich")
+        if self.mode == "percent" and (self.percent is None or self.percent == 0):
+            raise ValueError("percent (ungleich 0) ist für mode=percent erforderlich")
+        if self.mode == "restore" and not self.restore:
+            raise ValueError("restore ist für mode=restore erforderlich")
+        return self
+
+
+class IngredientQuantityAdjustOut(Schema):
+    item: IngredientQuantityOut | None = None
+    changed_lines: int
+    skipped_lines: int
+    previous: list[OverrideQuantitySnapshot] = []
+
+
+class MealItemOverrideLineIn(Schema):
+    # Per stored recipe unit (same as RecipeItem.quantity); null keeps the recipe value.
+    quantity_override: float | None = Field(default=None, gt=0, le=100000)
+    excluded: bool = False
+
+
+# ==========================================================================
 # Cost Summary Schemas
 # ==========================================================================
 
@@ -1079,6 +1165,7 @@ class CookingScheduleIngredientOut(Schema):
     note: str
     is_optional: bool
     weight_g: float | None = None
+    is_overridden: bool = False
     nutritional_tags: list[NutritionalTagOut] = []
 
 

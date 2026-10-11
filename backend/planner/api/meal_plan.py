@@ -50,6 +50,9 @@ from planner.schemas import (
     GroupMemberCreateIn,
     GroupMemberOut,
     GroupMemberUpdateIn,
+    IngredientQuantityAdjustIn,
+    IngredientQuantityAdjustOut,
+    IngredientQuantityOut,
     MagicWandIn,
     MealCostOut,
     MealCreateIn,
@@ -58,6 +61,7 @@ from planner.schemas import (
     MealItemCreateIn,
     MealItemOut,
     MealItemOverrideIn,
+    MealItemOverrideLineIn,
     MealItemOverrideOut,
     MealItemUpdateIn,
     MealOut,
@@ -1793,6 +1797,82 @@ def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: l
         overrides.append(override)
 
     return overrides
+
+
+@meal_plan_router.put(
+    "/{meal_plan_id}/meal-items/{item_id}/overrides/{recipe_item_id}/",
+    response=list[MealItemOverrideOut],
+)
+def set_meal_item_override_line(
+    request, meal_plan_id: int, item_id: int, recipe_item_id: int, payload: MealItemOverrideLineIn
+):
+    """Set quantity/exclusion of one recipe ingredient without touching other overrides."""
+    from planner.services.ingredient_quantities import get_line_targets, set_line_override
+
+    require_login(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    meal_item, recipe_item = get_line_targets(meal_plan, item_id, recipe_item_id)
+    set_line_override(
+        meal_item,
+        recipe_item,
+        quantity_override=payload.quantity_override,
+        excluded=payload.excluded,
+    )
+    return list(MealItemOverride.objects.filter(meal_item=meal_item))
+
+
+@meal_plan_router.delete(
+    "/{meal_plan_id}/meal-items/{item_id}/overrides/{recipe_item_id}/",
+    response=list[MealItemOverrideOut],
+)
+def reset_meal_item_override_line(request, meal_plan_id: int, item_id: int, recipe_item_id: int):
+    """Reset one recipe ingredient of a meal item to the recipe quantity."""
+    from planner.services.ingredient_quantities import get_line_targets, reset_line_override
+
+    require_login(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    meal_item, recipe_item = get_line_targets(meal_plan, item_id, recipe_item_id)
+    reset_line_override(meal_item, recipe_item)
+    return list(MealItemOverride.objects.filter(meal_item=meal_item))
+
+
+# ==========================================================================
+# Ingredient Quantity Overview
+# ==========================================================================
+
+
+@meal_plan_router.get("/{meal_plan_id}/ingredient-quantities/", response=list[IngredientQuantityOut])
+def ingredient_quantities(request, meal_plan_id: int):
+    """All ingredients of the plan with totals and per-meal contributions."""
+    from planner.services.ingredient_quantities import build_ingredient_quantities
+
+    require_login(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+    return build_ingredient_quantities(meal_plan)
+
+
+@meal_plan_router.post(
+    "/{meal_plan_id}/ingredient-quantities/{ingredient_id}/adjust/",
+    response=IngredientQuantityAdjustOut,
+)
+def adjust_ingredient_quantities(request, meal_plan_id: int, ingredient_id: int, payload: IngredientQuantityAdjustIn):
+    """Adjust one ingredient across the whole plan via quantity overrides."""
+    from planner.services.ingredient_quantities import OverrideSnapshot, adjust_ingredient_quantity
+
+    require_login(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    return adjust_ingredient_quantity(
+        meal_plan,
+        ingredient_id,
+        mode=payload.mode,
+        target_total_g=payload.target_total_g,
+        percent=payload.percent,
+        restore=[OverrideSnapshot(**snapshot.model_dump()) for snapshot in payload.restore],
+    )
 
 
 # ==========================================================================

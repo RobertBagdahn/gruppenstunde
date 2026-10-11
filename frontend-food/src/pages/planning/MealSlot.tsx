@@ -178,6 +178,7 @@ export function MealSlot({
                   : it.ingredient_id ? <Link to={`/ingredients/${it.ingredient_slug}`} className="text-emphasis hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
                   : <span className="text-emphasis truncate block font-medium">{dName}</span>}
                 {isIng && <span className="text-caption px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">Zutat</span>}
+                <AdjustedQuantitiesBadge item={it} mealPlanId={mealPlanId} />
                 <NutriTagBadge allergenTags={allTags} />
                 {it.warnings.length > 0 && (
                   <span title={it.warnings.map((w) => w.message).join(' ')} className="inline-flex shrink-0">
@@ -585,6 +586,7 @@ export function MealSlot({
                               ) : (
                                 <span className="text-body truncate block font-medium">{displayName}</span>
                               )}
+                              <AdjustedQuantitiesBadge item={item} mealPlanId={mealPlanId} />
                               <NutriTagBadge allergenTags={itemAllergenTags} />
                               {item.warnings.length > 0 && (
                                 <span title={item.warnings.map((w) => w.message).join(' ')} className="inline-flex shrink-0">
@@ -675,5 +677,19 @@ export function MealSlot({
 
       {dialogs}
     </div>
+  );
+}
+
+/** Marks recipe entries whose ingredient quantities differ from the recipe in this plan. */
+function AdjustedQuantitiesBadge({ item, mealPlanId }: { item: Meal['items'][number]; mealPlanId: number }) {
+  if (!item.recipe_id || item.overrides.length === 0) return null;
+  return (
+    <Link
+      to={`/meal-plans/${mealPlanId}/shopping?sub=quantities&adjusted=1`}
+      title="Zutatenmengen sind für diesen Plan angepasst"
+      className="shrink-0 rounded-full bg-info-soft px-1.5 py-0.5 text-caption font-medium text-info hover:underline"
+    >
+      angepasst
+    </Link>
   );
 }

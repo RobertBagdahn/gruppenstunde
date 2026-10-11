@@ -69,6 +69,7 @@ class CookingScheduleIngredient:
     note: str
     is_optional: bool
     weight_g: float | None = None
+    is_overridden: bool = False
 
 
 @dataclass
@@ -247,8 +248,12 @@ def _compute_scaled_ingredients(
         from planner.services.calculation_context import active_recipe_items
         from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
+        overridden_ids = {
+            override.recipe_item_id for override in meal_item.overrides.all() if override.quantity_override is not None
+        }
         for entry in active_recipe_items(meal_item):
             recipe_item = entry.recipe_item
+            is_overridden = recipe_item.id in overridden_ids
             portion = recipe_item.portion
             if portion is None:
                 ingredient = get_recipe_item_ingredient(recipe_item)
@@ -260,6 +265,7 @@ def _compute_scaled_ingredients(
                         note=recipe_item.note or "",
                         is_optional=recipe_item.is_optional,
                         weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
+                        is_overridden=is_overridden,
                     )
                 )
                 continue
@@ -271,6 +277,7 @@ def _compute_scaled_ingredients(
                     note=recipe_item.note or "",
                     is_optional=recipe_item.is_optional,
                     weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
+                    is_overridden=is_overridden,
                 )
             )
         return ingredients

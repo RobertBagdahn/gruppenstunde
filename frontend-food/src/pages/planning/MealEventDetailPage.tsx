@@ -34,6 +34,7 @@ import {
   ChefHat,
   Share2,
   Printer,
+  Scale,
 } from 'lucide-react';
 import {
   useMealPlan,
@@ -57,6 +58,7 @@ import TableView from './TableView';
 import CostDashboard from './CostDashboard';
 import SettingsPanel from './SettingsPanel';
 import ShoppingView from './ShoppingView';
+import IngredientQuantitiesView from './IngredientQuantitiesView';
 import { DayPlanView } from './DayPlanView';
 import { CopyFromPlanDialog } from './CopyFromPlanDialog';
 import IngredientScanView from './IngredientScanView';
@@ -130,7 +132,8 @@ export default function MealPlanDetailPage() {
     restore: activeTab === 'plan' && !isNarrowViewport(),
   });
   const planView = detailState.view;
-  const shoppingSub = searchParams.get('sub') === 'costs' ? 'costs' : 'list';
+  const shoppingSubParam = searchParams.get('sub');
+  const shoppingSub = shoppingSubParam === 'costs' || shoppingSubParam === 'quantities' ? shoppingSubParam : 'list';
   const cookingSub = searchParams.get('sub') === 'helpers' ? 'helpers' : 'schedule';
 
   // Omnibar meal state (e.g. triggered from PlanCheckFlyout or direct action)
@@ -710,6 +713,23 @@ export default function MealPlanDetailPage() {
               type="button"
               onClick={() => {
                 const next = new URLSearchParams(searchParams);
+                next.set('sub', 'quantities');
+                setSearchParams(next, { replace: true });
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
+                shoppingSub === 'quantities'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Scale className="w-3.5 h-3.5" />
+              Mengen
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
                 next.set('sub', 'costs');
                 setSearchParams(next, { replace: true });
               }}
@@ -725,6 +745,11 @@ export default function MealPlanDetailPage() {
             </button>
           </div>
           {shoppingSub === 'list' && <SectionBoundary><ShoppingView mealPlanId={mealPlanId} /></SectionBoundary>}
+          {shoppingSub === 'quantities' && (
+            <SectionBoundary>
+              <IngredientQuantitiesView mealPlanId={mealPlanId} canEdit={plan.can_edit} />
+            </SectionBoundary>
+          )}
           {shoppingSub === 'costs' && (
             <SectionBoundary>
             <CostDashboard

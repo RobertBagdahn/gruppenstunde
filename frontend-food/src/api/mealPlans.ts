@@ -51,6 +51,13 @@ import {
   type MealItemCreateIn,
   MealItemUpdateInSchema,
   type MealItemUpdateIn,
+  IngredientQuantitySchema,
+  type IngredientQuantity,
+  IngredientQuantityAdjustOutSchema,
+  type IngredientQuantityAdjustIn,
+  type IngredientQuantityAdjustOut,
+  MealItemOverrideSchema,
+  type MealItemOverrideLineIn,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 import { removeItemFromPlan, scaleItemInPlan } from '@/api/mealPlanOptimistic';
@@ -502,6 +509,65 @@ export function useShoppingList(mealPlanId: number) {
         z.array(ShoppingListItemSchema),
       ),
     enabled: mealPlanId > 0,
+  });
+}
+
+export function useIngredientQuantities(mealPlanId: number) {
+  return useQuery<IngredientQuantity[]>({
+    queryKey: ['meal-plan', mealPlanId, 'ingredient-quantities'],
+    queryFn: () =>
+      fetchJson(`${API_BASE}/${mealPlanId}/ingredient-quantities/`, z.array(IngredientQuantitySchema)),
+    enabled: mealPlanId > 0,
+  });
+}
+
+export function useAdjustIngredientQuantity(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation<IngredientQuantityAdjustOut, Error, { ingredientId: number; body: IngredientQuantityAdjustIn }>({
+    mutationFn: ({ ingredientId, body }) =>
+      postJson(
+        `${API_BASE}/${mealPlanId}/ingredient-quantities/${ingredientId}/adjust/`,
+        body,
+        IngredientQuantityAdjustOutSchema,
+      ),
+    onSettled: () => {
+      invalidateMealPlanQueries(queryClient, mealPlanId);
+    },
+  });
+}
+
+async function sendOverrideLine(url: string, method: 'PUT' | 'DELETE', body?: MealItemOverrideLineIn) {
+  const res = await fetch(url, {
+    method,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return parseApiResponse(res, z.array(MealItemOverrideSchema));
+}
+
+export function useSetMealItemOverrideLine(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      recipeItemId,
+      body,
+    }: {
+      itemId: number;
+      recipeItemId: number;
+      /** `null` resets the line to the recipe quantity. */
+      body: MealItemOverrideLineIn | null;
+    }) => {
+      const url = `${API_BASE}/${mealPlanId}/meal-items/${itemId}/overrides/${recipeItemId}/`;
+      return body ? sendOverrideLine(url, 'PUT', body) : sendOverrideLine(url, 'DELETE');
+    },
+    onSettled: () => {
+      invalidateMealPlanQueries(queryClient, mealPlanId);
+    },
   });
 }
 

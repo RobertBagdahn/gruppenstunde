@@ -88,6 +88,7 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
                   >
                     {parts.join(' ')}{detail}
                     {ing.is_optional && <span className="text-caption">(optional)</span>}
+                    {ing.is_overridden && <span className="text-caption text-info">angepasst</span>}
                   </span>
                 );
               })}

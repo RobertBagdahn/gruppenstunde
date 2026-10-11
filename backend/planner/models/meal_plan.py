@@ -827,8 +827,8 @@ class MealItemOverride(models.Model):
         verbose_name=_("Rezept-Zutat"),
     )
     quantity_override = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+        max_digits=12,
+        decimal_places=4,
         null=True,
         blank=True,
         verbose_name=_("Menge-Override"),
