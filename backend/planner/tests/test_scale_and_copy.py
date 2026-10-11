@@ -32,12 +32,12 @@ class TestScaleAndCopyAPI:
     def test_scale_to_target_success(self):
         """Proportionally scale meal items to target calories."""
         # Breakfast: target = 2335.0 * 0.25 = 583.75 kcal
-        # Let's create a breakfast meal with portions = 10, target per portion = 583.75 kcal.
-        # Total target energy for 10 portions = 5837.5 kcal = 24424.125 kJ.
+        # Create a per-person breakfast meal; the plan has ten people.
+        # Total target energy for ten portions = 5837.5 kcal = 24424.125 kJ.
         meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST, day_part_factor=0.25)
 
-        recipe_a = make_recipe(portions=10, cached_energy_total_kcal=350.0)
-        recipe_b = make_recipe(portions=10, cached_energy_total_kcal=128.0)
+        recipe_a = make_recipe(portions=1, cached_energy_total_kcal=35.0)
+        recipe_b = make_recipe(portions=1, cached_energy_total_kcal=12.8)
         item1 = make_meal_item(meal=meal, recipe=recipe_a, factor=1.0)
         item2 = make_meal_item(meal=meal, recipe=recipe_b, factor=2.0)
 
@@ -74,8 +74,8 @@ class TestScaleAndCopyAPI:
             start_datetime=timezone.make_aware(dt.datetime.combine(dt.date.today(), dt.time(8, 0))),
             end_datetime=timezone.make_aware(dt.datetime.combine(dt.date.today(), dt.time(9, 0))),
         )
-        # Recipe with 478 kcal total over 10 servings.
-        recipe = make_recipe(portions=10, cached_energy_total_kcal=478.0)
+        # Recipe energy cache is for one person.
+        recipe = make_recipe(portions=1, cached_energy_total_kcal=478.0)
         item = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
 
         response = self.client.post(

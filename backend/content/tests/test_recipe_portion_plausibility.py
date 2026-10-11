@@ -91,19 +91,19 @@ class TestRecipePortionPlausibility:
         assert item is not None
         assert "Sehr wenig Gewicht" in item["issue"]
 
-    def test_multi_portion_recipe_calculates_per_portion(self, admin_client):
-        # 4 portions with 4000g total = 1000g/portion (plausible, not > 2000g per portion)
+    def test_heavy_per_person_recipe_is_flagged(self, admin_client):
         Recipe.objects.create(
             title="Gruppensuppe",
             slug="gruppensuppe",
             recipe_type="warm_meal",
-            portions=4,
+            portions=1,
             cached_weight_g=4000.0,
         )
         resp = admin_client.get(BASE)
         assert resp.status_code == 200
         items = resp.json()["items"]
-        assert not any(i["slug"] == "gruppensuppe" for i in items)
+        recipe_item = next(item for item in items if item["slug"] == "gruppensuppe")
+        assert "Sehr viel Gewicht pro Portion" in recipe_item["issue"]
 
     def test_snack_not_flagged_for_light_weight(self, admin_client):
         Recipe.objects.create(

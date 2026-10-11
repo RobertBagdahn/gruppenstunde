@@ -33,7 +33,7 @@ class TestWizardItemsEndpoint:
         user = self._login(client)
         plan = make_meal_plan(created_by=user)
         meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
-        recipe = baker.make("recipe.Recipe", title="Rührei", portions=4)
+        recipe = baker.make("recipe.Recipe", title="Rührei", portions=1)
 
         payload = {"items": [{"recipe_id": recipe.id, "factor": 1.0}]}
 
@@ -54,8 +54,8 @@ class TestWizardItemsEndpoint:
         user = self._login(client)
         plan = make_meal_plan(created_by=user)
         meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
-        recipe1 = baker.make("recipe.Recipe", title="Rührei", portions=4)
-        recipe2 = baker.make("recipe.Recipe", title="Pfannkuchen", portions=4)
+        recipe1 = baker.make("recipe.Recipe", title="Rührei", portions=1)
+        recipe2 = baker.make("recipe.Recipe", title="Pfannkuchen", portions=1)
 
         # Create existing items
         baker.make(MealItem, meal=meal, recipe=recipe1, factor=1.0)
@@ -63,7 +63,7 @@ class TestWizardItemsEndpoint:
         assert MealItem.objects.filter(meal=meal).count() == 2
 
         # Replace with one new item
-        recipe3 = baker.make("recipe.Recipe", title="Porridge", portions=4)
+        recipe3 = baker.make("recipe.Recipe", title="Porridge", portions=1)
         payload = {"items": [{"recipe_id": recipe3.id, "factor": 2.0}]}
 
         resp = client.post(
@@ -319,7 +319,7 @@ class TestWizardItemsEndpoint:
         user = self._login(client)
         plan = make_meal_plan(created_by=user)
         meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
-        recipe = baker.make("recipe.Recipe", title="Rührei", portions=4)
+        recipe = baker.make("recipe.Recipe", title="Rührei", portions=1)
 
         # Existing item
         baker.make(MealItem, meal=meal, recipe=recipe, factor=1.0)

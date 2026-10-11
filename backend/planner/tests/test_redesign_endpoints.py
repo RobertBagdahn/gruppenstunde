@@ -41,8 +41,8 @@ class TestRedesignMealPlanEndpoints:
             note="Thursday note",
         )
 
-        recipe_a = make_recipe(title="Spaghetti", portions=4)
-        recipe_b = make_recipe(title="Curry", portions=4)
+        recipe_a = make_recipe(title="Spaghetti", portions=1)
+        recipe_b = make_recipe(title="Curry", portions=1)
         item_a = make_meal_item(meal=meal_tuesday, recipe=recipe_a, factor=2.5)
         item_b = make_meal_item(meal=meal_thursday, recipe=recipe_b, factor=2.5)
 
@@ -82,7 +82,7 @@ class TestRedesignMealPlanEndpoints:
             start_datetime=now + dt.timedelta(hours=6),
             end_datetime=now + dt.timedelta(hours=7),
         )
-        recipe = make_recipe(title="Suppe", portions=4)
+        recipe = make_recipe(title="Suppe", portions=1)
         item = make_meal_item(meal=meal_source, recipe=recipe, factor=1.0)
 
         response = self.client.post(
@@ -120,10 +120,10 @@ class TestRedesignMealPlanEndpoints:
         """Updating meal item with servings calculates the correct factor."""
         now = timezone.now()
         meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH, start_datetime=now)
-        recipe = make_recipe(portions=4)  # Recipe yields 4 portions
+        recipe = make_recipe(portions=1)  # Recipe quantities are stored per person.
         item = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
 
-        # Update to 20 servings -> factor should be 20 / 4 = 5.0
+        # Recipe quantities are per person, so 20 servings map directly to factor 20.
         response = self.client.patch(
             f"/api/meal-plans/{self.plan.id}/meal-items/{item.id}/",
             data={"servings": 20},
@@ -131,7 +131,7 @@ class TestRedesignMealPlanEndpoints:
         )
         assert response.status_code == 200
         item.refresh_from_db()
-        assert item.factor == 5.0
+        assert item.factor == 20.0
 
     def test_create_meal_plan_auto_slots(self):
         """Rapid plan creation populates standard empty meal slots for all days."""

@@ -9,12 +9,11 @@ import type { NutriScoreDetail } from '@/schemas/recipe';
 interface Props {
   nutriScore: NutriScoreDetail;
   nb: RecipeNutritionBreakdown;
-  effectivePortions: number;
   recipeId: number;
   recipeType: string;
 }
 
-export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeType }: Props) {
+export function HealthTab({ nutriScore, nb, recipeId, recipeType }: Props) {
   const { data: typeStats } = useRecipeTypeStats(recipeType);
 
   return (
@@ -114,7 +113,6 @@ export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeT
           recipeId={recipeId}
           breakdownItems={nb?.items ?? []}
           totalWeightG={nb.total_weight_g}
-          portions={effectivePortions}
         />
       </div>
 

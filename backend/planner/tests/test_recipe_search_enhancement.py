@@ -64,40 +64,21 @@ class TestRecipeBadge:
 
 
 @pytest.mark.django_db
-class TestPricePerServing:
-    """Test price_per_serving calculation."""
+class TestPerPersonRecipePrice:
+    """Cached recipe prices are for one person because stored quantities are per person."""
 
-    def test_price_with_valid_data(self):
+    def test_cached_price_is_already_per_person(self):
         recipe = make_recipe(title="Test")
-        recipe.portions = 5
         recipe.cached_price_total = 12.50
         recipe.save()
-        pps = round(recipe.cached_price_total / recipe.portions, 2)
-        assert pps == 2.50
 
-    def test_price_null_when_no_price_total(self):
-        recipe = make_recipe(title="Test")
-        recipe.portions = 5
-        recipe.cached_price_total = None
-        recipe.save()
-        pps = (
-            round(float(recipe.cached_price_total) / recipe.portions, 2)
-            if recipe.cached_price_total and recipe.portions > 0
-            else None
-        )
-        assert pps is None
+        assert recipe.portions == 1
+        assert recipe.cached_price_total == 12.50
 
-    def test_price_null_when_zero_portions(self):
-        recipe = make_recipe(title="Test")
-        recipe.portions = 0
-        recipe.cached_price_total = 10.00
-        recipe.save()
-        pps = (
-            round(float(recipe.cached_price_total) / recipe.portions, 2)
-            if recipe.cached_price_total and recipe.portions > 0
-            else None
-        )
-        assert pps is None
+    def test_missing_cached_price_stays_empty(self):
+        recipe = make_recipe(title="Test", portions=1)
+
+        assert recipe.cached_price_total is None
 
 
 @pytest.mark.django_db

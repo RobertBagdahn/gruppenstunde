@@ -32,7 +32,7 @@ def _plain(title: str, recipe_type: str, **kwargs):
         description="",
         recipe_type=recipe_type,
         cached_price_total=4,
-        portions=4,
+        portions=1,
         **kwargs,
     )
 
