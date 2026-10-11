@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 /**
  * RefMealEditorPage — Baukasten-Ansicht zum Zusammenstellen von Reference Meals.
  * Route: /meal-plans/:id/ref-meals/:mealType
@@ -19,7 +20,6 @@ import { useMealPlan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealItem, RefMealItemIn } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
-import { BackButton } from '@/components/shared/BackButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefMealSyncConfirmDialog } from '@/components/planning/RefMealSyncConfirmDialog';
 import { formatNumber } from '@/lib/format';
@@ -261,19 +261,14 @@ export default function RefMealEditorPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <BackButton />
-        <div>
-          <h1 className="text-title font-bold">
-            Referenz-Mahlzeit: {mealTypeLabel}
-          </h1>
-          {plan && (
-            <p className="text-muted-foreground text-body">{plan.name}</p>
-          )}
-        </div>
-      </div>
+    <div className="pb-8">
+    <TitleBand
+      title={`Referenz-Mahlzeit: ${mealTypeLabel}`}
+      description={plan?.name}
+      back={{ to: `/meal-plans/${id}`, label: 'Zurück zum Essensplan' }}
+      innerClassName="max-w-7xl"
+    />
+    <div className="max-w-7xl mx-auto px-4 space-y-6">
 
       {/* No RefMeal yet — create one */}
       {!refMeal && (
@@ -577,6 +572,7 @@ export default function RefMealEditorPage() {
         onCancel={() => setShowSyncConfirm(false)}
         onConfirm={handleConfirmSave}
       />
+    </div>
     </div>
   );
 }

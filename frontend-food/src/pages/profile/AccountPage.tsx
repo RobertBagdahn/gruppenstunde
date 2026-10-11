@@ -1,8 +1,9 @@
+import TitleBand from '@/components/shared/TitleBand';
 /**
  * "Konto & Anmeldung": linked providers, connect/disconnect, AI quota, logout.
  */
 import { useEffect } from 'react';
-import { KeyRound, Link2Off, LogOut } from 'lucide-react';
+import { Link2Off, LogOut } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import { useConnections, useCurrentUser, useDisconnect, useLogout } from '@/api/auth';
@@ -50,16 +51,13 @@ export default function AccountPage() {
   const isLast = connections.length <= 1;
 
   return (
-    <div className="container max-w-2xl space-y-6 px-4 py-6 sm:py-10">
-      <header>
-        <h1 className="flex items-center gap-2 font-display text-title font-bold">
-          <KeyRound className="h-6 w-6 text-primary" />
-          Konto &amp; Anmeldung
-        </h1>
-        <p className="mt-1 text-body text-muted-foreground">
-          Angemeldet als <span className="font-medium text-foreground">{user.email}</span>
-        </p>
-      </header>
+    <div className="pb-10">
+    <TitleBand
+      title="Konto &amp; Anmeldung"
+      description={<>Angemeldet als <span className="font-semibold text-hero-foreground">{user.email}</span></>}
+      innerClassName="max-w-2xl"
+    />
+    <div className="container max-w-2xl space-y-6 px-4">
 
       <section className="space-y-3 rounded-xl bg-card p-4 sm:p-6 shadow-card">
         <h2 className="font-semibold">Verbundene Anbieter</h2>
@@ -148,6 +146,7 @@ export default function AccountPage() {
           Abmelden
         </Button>
       </section>
+    </div>
     </div>
   );
 }

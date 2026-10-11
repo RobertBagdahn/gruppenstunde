@@ -3,6 +3,7 @@ import { useFoodDashboard } from '@/api/dashboard';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import { areaTileClass, type PageArea } from '@/components/shared/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
+import HeroBand from '@/components/shared/HeroBand';
 import { formatCount } from '@/lib/format';
 import {
   BookOpen,
@@ -92,7 +93,7 @@ function StatCard({
   return (
     <Link
       to={href}
-      className="group rounded-xl bg-card p-4 md:p-5 shadow-card card-hover"
+      className="group rounded-xl bg-card p-4 md:p-5 shadow-float card-hover"
     >
       <div className="flex items-center gap-3">
         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${areaTileClass(area)}`}>
@@ -100,7 +101,7 @@ function StatCard({
         </div>
         <div>
           {staticValue !== undefined ? (
-            <p className="text-title font-extrabold text-foreground font-display">{staticValue}</p>
+            <p className="text-section font-extrabold text-foreground font-display">{staticValue}</p>
           ) : value !== undefined ? (
             <p className="text-title font-extrabold text-foreground font-display">
               {formatCount(value)}
@@ -124,7 +125,7 @@ function ModuleCard({ module }: { module: (typeof MODULES)[number] }) {
       to={module.href}
       className="group rounded-xl bg-card p-5 md:p-6 shadow-card card-hover flex flex-col sm:flex-row items-start gap-4"
     >
-      <div className={`flex items-center justify-center w-11 h-11 rounded-lg ${areaTileClass(module.area)} shrink-0`}>
+      <div className={`flex items-center justify-center w-12 h-12 rounded-xl ${areaTileClass(module.area)} shrink-0 transition-transform duration-300 group-hover:-rotate-6`}>
         <Icon className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
@@ -135,7 +136,7 @@ function ModuleCard({ module }: { module: (typeof MODULES)[number] }) {
           {module.description}
         </p>
       </div>
-      <ArrowRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0 hidden sm:block" />
+      <ArrowRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 hidden sm:block" />
     </Link>
   );
 }
@@ -146,26 +147,45 @@ export default function HomePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-8 md:space-y-12 pb-12">
-      {/* Welcome */}
-      <section className="rounded-xl gradient-soft px-6 py-10 md:px-10 md:py-14">
-        <div className="flex max-w-3xl flex-col items-start gap-6 sm:flex-row sm:items-center">
-          <img
-            src="/images/inspi_thinking.webp"
-            alt="Inspi"
-            className="hidden h-20 w-auto shrink-0 sm:block md:h-24"
-          />
-          <div>
-            <h1 className="mb-2 font-display text-title font-extrabold text-foreground">Inspi Food</h1>
-            <p className="max-w-2xl font-sans text-emphasis leading-relaxed text-muted-foreground">
+      {/* Welcome: the hero band carries the greeting and the quick entries */}
+      <HeroBand overlap>
+        <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-2xl space-y-5">
+            <h1 className="font-display text-display font-extrabold text-hero-foreground">
+              Was kocht ihr als Nächstes?
+            </h1>
+            <p className="text-emphasis text-hero-muted md:text-section md:font-normal">
               Dein Küchen-Manager für jede Pfadfinder-Aktion – Rezepte, Essenspläne, Einkaufslisten und mehr.
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/recipes"
+                className="press inline-flex h-12 items-center gap-2 rounded-xl bg-hero-foreground px-5 text-emphasis font-bold text-foreground transition-colors hover:bg-hero-muted"
+              >
+                <BookOpen className="h-5 w-5" />
+                Rezepte entdecken
+              </Link>
+              <Link
+                to="/meal-plans/new"
+                className="press inline-flex h-12 items-center gap-2 rounded-xl border border-hero-muted/50 px-5 text-emphasis font-bold text-hero-foreground transition-colors hover:bg-hero-soft"
+              >
+                <Utensils className="h-5 w-5" />
+                Essensplan anlegen
+              </Link>
+            </div>
           </div>
+          <img
+            src="/images/inspi_thinking.webp"
+            alt=""
+            aria-hidden="true"
+            className="hidden h-40 w-auto shrink-0 -rotate-3 drop-shadow-xl md:block lg:h-48"
+          />
         </div>
-      </section>
+      </HeroBand>
 
-      {/* Stat Cards */}
-      <section>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+      {/* Stat Cards on the hero band's lower edge */}
+      <section className="relative !mt-0 -translate-y-10 md:-translate-y-12">
+        <div className="stagger grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           <StatCard area="recipes" failed={isError} label="Rezepte" value={data?.recipe_count} icon={BookOpen} href="/recipes" />
           <StatCard area="ingredients" failed={isError} label="Zutaten" value={data?.ingredient_count} icon={Egg} href="/ingredients" />
           <StatCard area="planner" failed={isError} label="Essenspläne" value={data?.meal_plan_count} icon={Utensils} href="/meal-plans/app" />
@@ -175,9 +195,9 @@ export default function HomePage() {
       </section>
 
       {/* Module Cards */}
-      <section className="space-y-4">
-        <h2 className="text-section font-bold font-display">Module & Features</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <section className="space-y-4 !mt-0">
+        <h2 className="text-title font-extrabold font-display">Module & Features</h2>
+        <div className="stagger grid grid-cols-1 md:grid-cols-2 gap-4">
           {MODULES.map((m) => (
             <ModuleCard key={m.key} module={m} />
           ))}
@@ -197,7 +217,7 @@ export default function HomePage() {
       )}
       {!isLoading && data?.insights && (
         <section className="section-enter space-y-4">
-          <h2 className="text-section font-bold font-display">Insights</h2>
+          <h2 className="text-title font-extrabold font-display">Insights</h2>
           <div className="rounded-xl bg-card p-5 md:p-6 shadow-card space-y-3 font-sans">
             {data.insights.most_planned_recipe && (
               <div className="flex items-center gap-3">

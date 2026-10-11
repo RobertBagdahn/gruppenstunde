@@ -51,9 +51,7 @@ Bernsteinton für Text). Flächen daher nur `bg-warning-soft` bzw. `bg-warning-b
   (`default` / `outline` / `secondary` / `destructive` / `ghost` / `link`) und `size`
   (`sm` / `default` / `lg` / `icon`) verwenden — keine rohen `<button className="bg-... px-...">`
   mit hartcodierten Farben (`gray-300`, `blue-500`, `purple-600`, `rose-500`, `violet-500` etc.).
-- Ausnahme: `PortionScaler.tsx` verwendet bewusst durchgehend Amber/Orange als eigenständigen
-  "Portionen"-Akzent (`RecipeSidebar`, `PortionBottomSheet`, `InlineIngredientEditor`). Das ist
-  Absicht und soll nicht auf neutrale Farben "korrigiert" werden.
+- `PortionScaler.tsx` folgt seit „Feldküche“ dem normalen Look (runder Stepper auf `bg-muted`, Schaltflächen `bg-card`); die frühere Amber-Ausnahme entfällt.
 
 ## Icons
 
@@ -89,19 +87,18 @@ Bernsteinton für Text). Flächen daher nur `bg-warning-soft` bzw. `bg-warning-b
   (zwei "Portionen -/+"-Regler gleichzeitig = verwirrend), wird er über die Prop
   `hidePortionScaler={isInlineEditMode}` ausgeblendet, solange der Inline-Editor offen ist.
 
-## RecipeSidebar — kompakte Action-Buttons
+## RecipeSidebar — „Kochpult“ (Feldküche, 2026-10-11)
 
-- Die Sidebar-Action-Buttons (Kochen starten, Drucken, Einkaufsliste, Teilen, Rezept clonen) waren
-  als 5 volle Buttons gestapelt und durch die `RecipeMetaCard` + `PortionScaler` darüber oft aus dem
-  sichtbaren Bereich der `sticky`-Sidebar herausgeschoben (sah aus wie "verschwunden").
-  Lösung: "Kochen starten" und "Einkaufsliste" bleiben volle Buttons, "Drucken"/"Teilen"/"Clonen"
-  wurden zu einer kompakten `grid grid-cols-3`-Icon-Reihe zusammengefasst (Label ab `xl:` sichtbar,
-  sonst nur Icon + `title`-Tooltip).
-- **Kontrast-Falle:** Der "Clonen"-Button hatte zuerst `border-dashed border-primary/30 bg-primary/5`
-  — auf der weißen Sidebar (`bg-card`) war das fast unsichtbar ("Button verschwunden"). Fix: kräftigere
-  Werte (`border-primary/40 bg-primary/10`, Hover `bg-primary/20`). **Merke:** Bei `primary/5`-
-  `primary/10`-Hintergründen auf hellen/weißen Flächen immer im Browser gegenprüfen, ob genug Kontrast
-  zum Rand/Hintergrund bleibt — nicht nur im Design gedanklich validieren.
+- Desktop-Sidebar: Karte „Portionen“ (Stepper, „Kochen starten“, „Auf die Einkaufsliste“, PDF/Teilen/Clonen als 3er-Raster mit Icon und Label) und darunter der `RecipeMetaCard` („Steckbrief“ als Definitionsliste). Kosten, Nutri-Score, Energie und Beliebtheit stehen in `RecipeKeyFigures` auf der Unterkante des Kopfbands, nicht mehr in der Sidebar.
+- Auf kleinen Screens steht der Steckbrief am Ende der Hauptspalte, die Aktionen in `RecipeMobileActionBar`.
+- **Kontrast-Falle:** Transparente Tönungen (`primary/5`, `primary/10`) auf weißen Flächen sind kaum sichtbar. Für Nebenaktionen `bg-primary-soft` bzw. `bg-secondary` verwenden und im Browser gegenprüfen.
+
+## Feldküche — Kopfband, Kennzahlen, Bewegung (2026-10-11)
+
+- Navigation und Seitentitel bilden ein `bg-hero`-Band. Listen: `PageHeader` (Suche und Schnellfilter als Kinder). Detailseiten: `HeroBand` mit Brotkrumen/Zurück-Pille, `font-display text-display`-Titel, Chips und Aktionen. Auf Detailseiten das Band mit `overlap` bauen und den folgenden Block in `-mt-10 md:-mt-12` setzen (`RecipeKeyFigures`, Start-Kacheln).
+- `HeroBand` ist `full-bleed` (volle Viewport-Breite) und zieht sich über `pullUpClassName` an die Navigation; der Standardwert passt zu Containern mit `py-4 md:py-8`, andere Seiten übergeben ihren eigenen Wert.
+- Bewegung siehe AGENTS.md („Bewegung und Übergänge“). Neue Animationsklassen immer in `index.css` unter `prefers-reduced-motion` aufnehmen.
+- Kontrast: Hero-Text `hero-muted` auf `hero` 7:1, auf `hero-soft` 5,4:1. Neue Token-Werte laufen durch `src/lib/contrast.test.ts`; Werte anpassen, nicht den Test lockern.
 
 ## "Zutaten"-Sektionsheader (`RecipeDetailPage.tsx`) — vereinheitlicht 2026-07-11
 - Der Header hatte ein zusätzliches `<select>` ("Für wie viele Personen bearbeiten") NUR um den

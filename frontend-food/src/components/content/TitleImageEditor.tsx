@@ -6,7 +6,7 @@
  */
 import { useRef, useState } from 'react';
 import { useAiAccess } from '@/hooks/useAiAccess';
-import { Upload, Sparkles, Loader2 } from 'lucide-react';
+import { Upload, Sparkles, Loader2, Image as ImageIcon } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { type UseMutationResult } from '@tanstack/react-query';
 import { useGenerateImage } from '@/api/ai';
@@ -36,6 +36,8 @@ interface TitleImageEditorProps {
   setFromUrlMutation: UseMutationResult<{ image_url: string }, Error, string>;
   /** Additional content to render inside the image overlay (e.g. badges, title) */
   children?: React.ReactNode;
+  /** `hero`: framed panel on the pine hero band (Feldküche detail pages). */
+  variant?: 'page' | 'hero';
 }
 
 export default function TitleImageEditor({
@@ -48,7 +50,9 @@ export default function TitleImageEditor({
   deleteMutation,
   setFromUrlMutation,
   children,
+  variant = 'page',
 }: TitleImageEditorProps) {
+  const onHero = variant === 'hero';
   const [showMenu, setShowMenu] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const ai = useAiAccess();
@@ -90,7 +94,36 @@ export default function TitleImageEditor({
   if (!imageUrl) {
     return (
       <>
-        {canEdit && (
+        {canEdit && onHero && (
+          <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-hero-muted/40 bg-hero-soft/40 p-6 text-center">
+            <span className="flex h-16 w-16 rotate-3 items-center justify-center rounded-xl bg-hero-soft text-hero-muted">
+              <ImageIcon className="h-10 w-10" strokeWidth={1.6} aria-hidden="true" />
+            </span>
+            <p className="text-body text-hero-muted">Noch kein Bild für dieses Rezept</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="press flex h-11 items-center gap-2 rounded-lg bg-hero-foreground px-4 text-body font-bold text-foreground transition-colors hover:bg-hero-muted disabled:opacity-50"
+              >
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Bild hochladen
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAiModal(true)}
+                disabled={isUploading || ai.disabled}
+                title={ai.hint || undefined}
+                className="press flex h-11 items-center gap-2 rounded-lg border border-hero-muted/50 px-4 text-body font-bold text-hero-foreground transition-colors hover:bg-hero-soft disabled:opacity-50"
+              >
+                <Sparkles className="h-4 w-4" />
+                KI-Bild generieren
+              </button>
+            </div>
+          </div>
+        )}
+        {canEdit && !onHero && (
           <div className="mt-4 mb-6 flex gap-3">
             <button
               type="button"
@@ -150,7 +183,12 @@ export default function TitleImageEditor({
 
   // Bild vorhanden: vollständiger Hero-Container mit Edit-Overlay
   return (
-    <div className="relative rounded-xl overflow-hidden bg-muted/10 mb-8 shadow-lg max-w-lg mx-auto aspect-square">
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-xl bg-muted/10',
+        onHero ? 'aspect-[4/3] w-full animate-in fade-in-0 zoom-in-95 duration-500 shadow-raised' : 'mb-8 mx-auto aspect-square max-w-lg shadow-lg',
+      )}
+    >
       <img
         src={imageUrl}
         alt={title}

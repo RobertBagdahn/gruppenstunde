@@ -1,6 +1,6 @@
+import TitleBand from '@/components/shared/TitleBand';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FolderOpen, Plus, Pencil, Trash2, ArrowLeft, ChevronRight } from 'lucide-react';
+import { FolderOpen, Plus, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import { useRecipeFolders, useCreateRecipeFolder, useUpdateRecipeFolder, useDeleteRecipeFolder } from '@/api/recipeFolders';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import type { RecipeFolder } from '@/schemas/recipeFolder';
@@ -51,23 +51,14 @@ export default function RecipeFoldersPage() {
   const getChildren = (parentId: number) => folders?.filter((f) => f.parent_id === parentId) ?? [];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-      <div className="mb-4">
-        <Link
-          to="/recipes/my-recipes"
-          className="inline-flex items-center gap-1.5 text-body font-semibold text-primary hover:underline"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Meine Rezepte
-        </Link>
-      </div>
-
-      <h1 className="font-display font-bold text-title md:text-title text-foreground mb-2">
-        Ordner verwalten
-      </h1>
-      <p className="text-muted-foreground text-body mb-6">
-        Organisiere deine persönlichen Rezepte in Ordnern
-      </p>
+    <div className="pb-8">
+    <TitleBand
+      title="Ordner verwalten"
+      description="Organisiere deine persönlichen Rezepte in Ordnern"
+      back={{ to: '/recipes/my-recipes', label: 'Meine Rezepte' }}
+      innerClassName="max-w-3xl"
+    />
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
       {/* Create form */}
       <div className="rounded-xl bg-card p-4 mb-6 shadow-card">
@@ -161,6 +152,7 @@ export default function RecipeFoldersPage() {
         confirmLabel="Löschen"
         loading={deleteFolder.isPending}
       />
+    </div>
     </div>
   );
 }

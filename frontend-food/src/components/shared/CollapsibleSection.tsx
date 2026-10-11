@@ -73,20 +73,24 @@ export default function CollapsibleSection({
           onClick={toggle}
           aria-expanded={open}
           aria-controls={contentId}
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-4 py-3.5 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:px-5"
+          className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:px-5"
         >
-          {icon && <Icon name={icon} size={20} className="shrink-0 text-muted-foreground" />}
-          <span className="font-display text-emphasis font-bold text-foreground">{title}</span>
+          {icon && (
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <Icon name={icon} size={20} />
+            </span>
+          )}
+          <span className="font-display text-section font-extrabold text-foreground">{title}</span>
           {summary && !open && <span className="min-w-0 truncate text-body text-muted-foreground">{summary}</span>}
           <ChevronDown
             aria-hidden="true"
-            className={cn('ml-auto h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200', open && 'rotate-180')}
+            className={cn('ml-auto h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ease-out', open && 'rotate-180')}
           />
         </button>
         {open && actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
       {open && (
-        <div id={contentId} className="section-enter border-t border-border/60 px-4 pb-5 pt-4 md:px-5">
+        <div id={contentId} className="animate-in fade-in-0 slide-in-from-top-1 duration-300 px-4 pb-5 pt-2 md:px-5">
           {children}
         </div>
       )}

@@ -5,6 +5,7 @@ import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, useLocation, useSearchParams, NavLink } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
+import HeroBand from '@/components/shared/HeroBand';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { PlanCheckFlyout } from '@/components/planning/PlanCheckFlyout';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
@@ -413,24 +414,25 @@ export default function MealPlanDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 font-sans">
-      {/* Header */}
+      {/* Header on the hero band; the three pillars sit on its lower edge like folder tabs */}
+      <HeroBand pullUpClassName="-mt-4 sm:-mt-6" innerClassName="max-w-5xl !pb-0">
+      <BackButton to="/meal-plans/app" tone="hero" className="mb-5" />
       {/* Wraps on narrow screens so the action buttons never squeeze the title to zero width. */}
-      <div className="flex flex-wrap items-center gap-3">
-        <BackButton to="/meal-plans/app" />
-        <div className="basis-full sm:basis-0 sm:border-l sm:border-border sm:pl-3 sm:flex-1 sm:min-w-[10rem]">
-          <h1 className="text-section sm:text-title font-display font-bold text-foreground line-clamp-2 break-words">{plan.name}</h1>
-          <div className="flex flex-wrap gap-3 mt-1.5 text-caption font-semibold text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-muted-foreground" />
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="basis-full sm:basis-0 sm:flex-1 sm:min-w-[10rem]">
+          <h1 className="font-display text-display font-extrabold text-hero-foreground line-clamp-3 [overflow-wrap:anywhere]">{plan.name}</h1>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-body text-hero-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
               {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
             </span>
-            <span className="inline-flex items-center gap-1" title="Reservefaktor – betrifft nur die Einkaufsmengen, nicht die kcal-Bilanz">
-              <ShoppingCart className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="inline-flex items-center gap-1.5" title="Reservefaktor – betrifft nur die Einkaufsmengen, nicht die kcal-Bilanz">
+              <ShoppingCart className="w-4 h-4" />
               Einkauf +{Math.round((plan.reserve_factor - 1) * 100)}% Reserve
             </span>
             {plan.event_name && (
-              <span className="inline-flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="inline-flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4" />
                 {plan.event_name}
               </span>
             )}
@@ -439,7 +441,7 @@ export default function MealPlanDetailPage() {
                 {plan.tags.map((tag: { id: number; name: string }) => (
                   <span
                     key={tag.id}
-                    className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-caption font-semibold"
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-hero-soft text-hero-foreground text-caption font-semibold"
                   >
                     {tag.name}
                   </span>
@@ -472,40 +474,68 @@ export default function MealPlanDetailPage() {
           />
           <button
             onClick={() => setShowShareDialog(true)}
-            className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
             aria-label="Essensplan teilen"
             title="Essensplan teilen"
           >
-            <Share2 className="w-5 h-5 text-primary" />
+            <Share2 className="w-5 h-5" />
           </button>
           <button
             onClick={() => setShowGroupMembersDialog(true)}
-            className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
             aria-label="Teilnehmende verwalten"
             title="Teilnehmende verwalten"
           >
-            <Users className="w-5 h-5 text-primary" />
+            <Users className="w-5 h-5" />
           </button>
           {plan.can_edit && (
             <button
               onClick={() => setShowSettingsDialog(true)}
-              className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+              className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
               aria-label="Einstellungen"
               title="Einstellungen"
             >
-              <Settings className="w-5 h-5 text-primary" />
+              <Settings className="w-5 h-5" />
             </button>
           )}
           <button
             onClick={() => setPdfDialogOpen(true)}
-            className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
             aria-label="Als PDF öffnen"
             title="Als PDF öffnen"
           >
-            <Printer className="w-5 h-5 text-primary" />
+            <Printer className="w-5 h-5" />
           </button>
         </div>
       </div>
+
+      {/* Main 3-Pillar Tab Bar */}
+      <nav aria-label="Bereiche des Essensplans" className="mt-8 flex gap-1 sm:gap-2 overflow-x-auto">
+        {[
+          { key: 'plan' as const, label: 'Planen', icon: Calendar },
+          { key: 'shopping' as const, label: 'Einkaufen', icon: ShoppingCart },
+          { key: 'cooking' as const, label: 'Kochen', icon: ChefHat },
+        ].map((tab) => {
+          const IconComponent = tab.icon;
+          return (
+            <NavLink
+              key={tab.key}
+              to={`/meal-plans/${mealPlanId}/${tab.key}`}
+              className={({ isActive }) =>
+                `flex flex-1 sm:flex-none items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 h-12 rounded-t-xl text-body font-bold transition-colors duration-200 whitespace-nowrap ${
+                  isActive
+                    ? 'bg-background text-foreground'
+                    : 'text-hero-muted hover:bg-hero-soft hover:text-hero-foreground'
+                }`
+              }
+            >
+              <IconComponent className="w-4 h-4" aria-label={tab.label} />
+              {tab.label}
+            </NavLink>
+          );
+        })}
+      </nav>
+      </HeroBand>
 
       {/* Settings Dialog */}
       <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
@@ -563,36 +593,9 @@ export default function MealPlanDetailPage() {
         onNavigateToSuggestions={() => navigate(`/meal-plans/${mealPlanId}/plan`)}
       />
 
-      {/* Main 3-Pillar Tab Bar */}
-      <div className="flex gap-1 sm:gap-2 border-b border-border overflow-x-auto">
-        {[
-          { key: 'plan' as const, label: 'Planen', icon: Calendar },
-          { key: 'shopping' as const, label: 'Einkaufen', icon: ShoppingCart },
-          { key: 'cooking' as const, label: 'Kochen', icon: ChefHat },
-        ].map((tab) => {
-          const IconComponent = tab.icon;
-          return (
-            <NavLink
-              key={tab.key}
-              to={`/meal-plans/${mealPlanId}/${tab.key}`}
-              className={({ isActive }) =>
-                `flex flex-1 sm:flex-none items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-3 text-body font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
-                  isActive
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
-                }`
-              }
-            >
-              <IconComponent className="w-4 h-4" aria-label={tab.label} />
-              {tab.label}
-            </NavLink>
-          );
-        })}
-      </div>
-
       {/* Tab Content */}
       {activeTab === 'plan' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
           {/* Header View Switcher */}
           <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
             <div className="inline-flex items-center p-1 rounded-xl bg-muted/60 border border-border">
@@ -684,7 +687,7 @@ export default function MealPlanDetailPage() {
       )}
 
       {activeTab === 'shopping' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
           <div className="flex flex-wrap gap-2 border-b border-border pb-2">
             <button
               type="button"
@@ -744,7 +747,7 @@ export default function MealPlanDetailPage() {
       )}
 
       {activeTab === 'cooking' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
           <div className="flex flex-wrap gap-2 border-b border-border pb-2">
             <button
               type="button"

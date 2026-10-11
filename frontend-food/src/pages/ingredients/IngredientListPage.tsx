@@ -79,17 +79,16 @@ export default function IngredientListPage() {
         count={data?.total}
         countLoading={isLoading || !restored}
         countLabel={{ one: 'Zutat', other: 'Zutaten' }}
-      />
-
-      {/* Search Bar */}
-      <ListPageSearchBar
-        placeholder="Zutat suchen..."
-        value={search.input}
-        onChange={search.setInput}
-        onSubmit={search.submit}
-        createLabel="Neue Zutat"
-        createHref="/ingredients/new"
-      />
+      >
+        <ListPageSearchBar
+          placeholder="Zutat suchen..."
+          value={search.input}
+          onChange={search.setInput}
+          onSubmit={search.submit}
+          createLabel="Neue Zutat"
+          createHref="/ingredients/new"
+        />
+      </PageHeader>
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         {/* Filter Sidebar */}
@@ -161,7 +160,7 @@ export default function IngredientListPage() {
           ) : (
             <div
               aria-busy={isPlaceholderData}
-              className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
+              className={`stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
             >
               {data?.items.map((ingredient) => (
                 <IngredientCard

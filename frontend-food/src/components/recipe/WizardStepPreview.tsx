@@ -6,7 +6,7 @@ import RecipeIngredientsTable from '@/components/recipe/RecipeIngredientsTable';
 import { Badge } from '@/components/ui/badge';
 import { getRecipeExecutionTimeLabel, RECIPE_DIFFICULTY_OPTIONS, RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 import { useWizardStep } from './wizardContext';
-import { SkeletonDetailHeader, SkeletonSection } from '@/components/ui/skeleton';
+import { SkeletonSection } from '@/components/ui/skeleton';
 
 interface WizardStepPreviewProps {
   recipeSlug: string;
@@ -31,7 +31,7 @@ export default function WizardStepPreview({ recipeSlug }: WizardStepPreviewProps
     return (
       <div role="status" aria-busy="true" className="space-y-4 py-4">
         <span className="sr-only">Rezept wird geladen</span>
-        <SkeletonDetailHeader />
+        <SkeletonSection lines={2} />
         <SkeletonSection lines={5} />
       </div>
     );

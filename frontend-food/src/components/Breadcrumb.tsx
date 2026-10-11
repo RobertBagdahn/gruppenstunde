@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 export interface BreadcrumbItem {
   label: string;
@@ -9,20 +10,42 @@ interface BreadcrumbProps {
   items: BreadcrumbItem[];
   /** Optional action element rendered on the right (e.g. delete button) */
   action?: React.ReactNode;
+  /** `hero`: light text on the pine hero band. */
+  tone?: 'page' | 'hero';
+  className?: string;
 }
 
-export default function Breadcrumb({ items, action }: BreadcrumbProps) {
+export default function Breadcrumb({ items, action, tone = 'page', className }: BreadcrumbProps) {
+  const onHero = tone === 'hero';
   return (
-    <nav className="flex items-center gap-2 text-body text-muted-foreground mb-6">
+    <nav
+      aria-label="Brotkrumen"
+      className={cn(
+        'flex min-w-0 items-center gap-2 text-body',
+        onHero ? 'mb-5 text-hero-muted' : 'mb-6 text-muted-foreground',
+        className,
+      )}
+    >
       {items.map((item, i) => {
         const isLast = i === items.length - 1;
         return (
-          <span key={i} className="flex items-center gap-2 min-w-0">
-            {i > 0 && <span>/</span>}
+          <span key={i} className="flex min-w-0 items-center gap-2">
+            {i > 0 && <span aria-hidden="true">/</span>}
             {isLast || !item.href ? (
-              <span className="text-foreground font-semibold truncate">{item.label}</span>
+              <span
+                aria-current={isLast ? 'page' : undefined}
+                className={cn('truncate font-semibold', onHero ? 'text-hero-foreground' : 'text-foreground')}
+              >
+                {item.label}
+              </span>
             ) : (
-              <Link to={item.href} className="hover:text-primary transition-colors whitespace-nowrap">
+              <Link
+                to={item.href}
+                className={cn(
+                  'whitespace-nowrap transition-colors',
+                  onHero ? 'hover:text-hero-foreground' : 'hover:text-primary',
+                )}
+              >
                 {item.label}
               </Link>
             )}

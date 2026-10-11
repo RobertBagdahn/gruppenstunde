@@ -1,3 +1,4 @@
+import HeroBand from '@/components/shared/HeroBand';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import RetailSectionTab from './RetailSectionTab';
@@ -37,25 +38,28 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
-      <h1 className="text-title font-bold font-display">Stammdaten</h1>
+<HeroBand pullUpClassName="-mt-4 md:-mt-8" className="mb-6">
+      <h1 className="font-display text-display font-extrabold text-hero-foreground">Stammdaten</h1>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 border-b overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto pt-5">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => navigate('href' in tab ? tab.href! : `/admin/${tab.key}`)}
             className={cn(
-              'px-4 py-2 text-body font-medium whitespace-nowrap border-b-2 transition-colors',
+              'press h-10 px-4 rounded-full text-body font-semibold whitespace-nowrap transition-colors',
               activeTab === tab.key || (tab.key === 'data-quality' && section === 'data-quality')
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                ? 'bg-hero-foreground text-foreground'
+                : 'text-hero-muted hover:bg-hero-soft hover:text-hero-foreground'
             )}
           >
             {tab.label}
           </button>
         ))}
       </div>
+
+      </HeroBand>
 
       {/* Tab Content */}
       {activeTab === 'approvals' && <ApprovalTab />}

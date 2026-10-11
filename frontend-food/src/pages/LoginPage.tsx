@@ -1,3 +1,4 @@
+import HeroBand from '@/components/shared/HeroBand';
 import { LogIn, AlertCircle } from 'lucide-react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
@@ -14,7 +15,12 @@ export default function LoginPage() {
   if (user) return <Navigate to={next} replace />;
 
   return (
-    <div className="container mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center px-4 py-16">
+    <>
+    <HeroBand pullUpClassName="" overlap innerClassName="max-w-md">
+      <p className="font-display text-section font-extrabold text-hero-foreground">Willkommen zurück</p>
+      <p className="mt-1 text-body text-hero-muted">Melde dich an, um Rezepte und Essenspläne zu speichern.</p>
+    </HeroBand>
+    <div className="container relative -mt-10 mx-auto flex max-w-md flex-col px-4 pb-16">
       <div className="rounded-xl border-border/80 bg-card p-6 sm:p-8 shadow-card">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -36,5 +42,6 @@ export default function LoginPage() {
         <LoginPanel next={next} initialPasswordMode={initialPasswordMode} />
       </div>
     </div>
+    </>
   );
 }

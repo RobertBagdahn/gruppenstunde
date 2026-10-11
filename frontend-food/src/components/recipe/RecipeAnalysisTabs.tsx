@@ -18,22 +18,24 @@ export function RecipeAnalysisTabs({ tabs, showSummaryBox }: Props) {
   const hasMultiple = tabs.length > 1;
 
   return (
-    <section className="mt-8">
+    <section>
       {showSummaryBox}
 
       {hasMultiple && (
-        <div className="flex overflow-x-auto gap-1.5 mb-4 pb-1 scrollbar-none">
+        <div role="tablist" aria-label="Analysebereiche" className="mb-5 inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1 scrollbar-none">
           {tabs.map((tab) => {
             const isActive = tab.id === activeTab;
             return (
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-body font-medium transition-colors shrink-0 ${
+                className={`press h-10 shrink-0 whitespace-nowrap rounded-lg px-4 text-body font-semibold transition-colors duration-200 ${
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    ? 'bg-hero text-hero-foreground shadow-soft'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {tab.label}
@@ -44,7 +46,7 @@ export function RecipeAnalysisTabs({ tabs, showSummaryBox }: Props) {
       )}
 
       {activeContent && (
-        <div className="bg-card rounded-xl p-5 shadow-card">
+        <div key={activeTab} role="tabpanel" className="animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
           {activeContent}
         </div>
       )}

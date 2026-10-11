@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 
 const emailLocal = 'robertbagdahn';
@@ -9,16 +10,7 @@ export default function ImpressumPage() {
 
   return (
     <div>
-      <section className="pt-10 md:pt-14">
-        <div className="container text-center">
-          <img
-            src="/images/inspi_teacher.webp"
-            alt="Inspi Teacher"
-            className="mx-auto w-28 md:w-36 h-auto mb-4"
-          />
-          <h1 className="text-title font-display font-extrabold text-foreground">Impressum</h1>
-        </div>
-      </section>
+      <TitleBand title="Impressum" innerClassName="max-w-3xl" />
 
       <section className="container py-8 md:py-10">
         <div className="max-w-3xl mx-auto space-y-6">

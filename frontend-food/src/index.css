@@ -4,79 +4,92 @@
 
 @layer base {
   :root {
-    /* "Frisch & offen" (food-frontend-friendly-ux): light warm surfaces, one fresh green, soft area tints */
-    --background: 45 40% 98%;
-    --foreground: 215 28% 17%;
+    /* "Feldküche": sage ground, white cards, pine hero band, tomato accent */
+    --background: 100 19% 94%;
+    --foreground: 148 27% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 215 28% 17%;
+    --card-foreground: 148 27% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 17%;
-    /* Buttons, active nav, links: white text on primary >= 4.5:1 */
-    --primary: 142 72% 29%;
+    --popover-foreground: 148 27% 11%;
+    /* Pine hero band behind navigation and page titles */
+    --hero: 155 43% 21%;
+    --hero-foreground: 0 0% 100%;
+    /* Secondary text on the hero band (>= 7:1) */
+    --hero-muted: 140 21% 86%;
+    /* Chips and icon buttons on the hero band */
+    --hero-soft: 155 30% 29%;
+    /* Tomato accent: costs, logo tile, small highlights */
+    --spice: 17 88% 40%;
+    --spice-soft: 22 83% 93%;
+    --spice-foreground: 18 90% 28%;
+    /* Buttons, active states, links: white text on primary >= 4.5:1 */
+    --primary: 155 50% 24%;
     --primary-foreground: 0 0% 100%;
     /* Icons, progress, accents without text on the surface */
-    --primary-bright: 142 76% 36%;
+    --primary-bright: 152 45% 36%;
     /* Hover, selection, secondary buttons */
-    --primary-soft: 138 76% 97%;
-    --primary-soft-border: 141 79% 85%;
-    --secondary: 43 23% 94%;
-    --secondary-foreground: 215 28% 17%;
-    --muted: 40 21% 95%;
-    --muted-foreground: 220 9% 40%;
+    --primary-soft: 140 25% 91%;
+    --primary-soft-border: 140 22% 80%;
+    --secondary: 105 18% 96%;
+    --secondary-foreground: 148 27% 11%;
+    /* Tracks, segmented controls, skeletons – visible on white and on the ground */
+    --muted: 100 17% 91%;
+    --muted-foreground: 152 8% 35%;
     /* Subtle hover/highlight (shadcn convention) – never a loud colour */
-    --accent: 138 76% 97%;
-    --accent-foreground: 143 64% 24%;
+    --accent: 140 25% 93%;
+    --accent-foreground: 155 50% 22%;
     /* Area colours: tone + tint, only for icon tiles, nav indicator and small accents */
-    --area-recipes: 350 89% 60%;
-    --area-recipes-soft: 356 100% 97%;
-    --area-ingredients: 142 76% 36%;
-    --area-ingredients-soft: 138 76% 97%;
-    --area-planner: 199 89% 48%;
-    --area-planner-soft: 204 100% 97%;
-    --area-shopping: 38 92% 50%;
-    --area-shopping-soft: 48 100% 96%;
+    --area-recipes: 14 78% 44%;
+    --area-recipes-soft: 22 83% 95%;
+    --area-ingredients: 152 50% 30%;
+    --area-ingredients-soft: 140 30% 95%;
+    --area-planner: 208 63% 36%;
+    --area-planner-soft: 213 60% 96%;
+    --area-shopping: 36 90% 34%;
+    --area-shopping-soft: 43 100% 95%;
     /* Status tokens: DEFAULT (text/icon), -foreground (text on solid), -soft (surface), -border */
-    --success: 142 72% 29%;
+    --success: 155 50% 26%;
     --success-foreground: 0 0% 100%;
-    --success-soft: 138 76% 97%;
-    --success-border: 141 79% 85%;
-    --success-bright: 142 71% 45%;
-    --warning: 26 90% 37%;
+    --success-soft: 140 25% 92%;
+    --success-border: 140 22% 80%;
+    --success-bright: 152 50% 40%;
+    --warning: 33 100% 30%;
     --warning-foreground: 0 0% 100%;
-    --warning-soft: 48 100% 96%;
-    --warning-border: 48 97% 77%;
-    /* Bars, dots and indicators without text: friendly amber instead of brown */
+    --warning-soft: 43 100% 93%;
+    --warning-border: 42 80% 74%;
+    /* Bars, dots and indicators without text: friendly amber */
     --warning-bright: 38 92% 50%;
-    --danger: 0 74% 45%;
+    --danger: 4 70% 42%;
     --danger-foreground: 0 0% 100%;
-    --danger-soft: 356 100% 97%;
-    --danger-border: 353 96% 90%;
-    --danger-bright: 0 84% 60%;
-    --info: 201 96% 32%;
+    --danger-soft: 10 80% 95%;
+    --danger-border: 8 70% 85%;
+    --danger-bright: 4 75% 55%;
+    --info: 208 63% 28%;
     --info-foreground: 0 0% 100%;
-    --info-soft: 204 100% 97%;
-    --info-border: 201 94% 86%;
-    --info-bright: 199 89% 48%;
+    --info-soft: 213 56% 94%;
+    --info-border: 211 50% 82%;
+    --info-bright: 208 70% 48%;
     /* shadcn alias */
     --destructive: var(--danger);
     --destructive-foreground: var(--danger-foreground);
-    --border: 40 14% 86%;
+    --border: 129 10% 82%;
     /* Form controls: >= 3:1 against the background */
-    --input: 219 6% 52%;
-    --ring: 142 76% 36%;
-    --radius: 0.75rem;
-    --chart-1: 142 76% 36%;
-    --chart-2: 38 92% 50%;
-    --chart-3: 199 89% 48%;
-    --chart-4: 262 70% 62%;
-    --chart-5: 350 89% 60%;
+    --input: 150 7% 52%;
+    /* Focus ring: warm orange, visible on pine and on white */
+    --ring: 20 75% 46%;
+    --radius: 1rem;
+    --chart-1: 152 45% 36%;
+    --chart-2: 22 72% 56%;
+    --chart-3: 208 63% 42%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 340 55% 45%;
     /* Official Nutri-Score palette (Santé publique France) – only used by NutriScoreBadge */
     --nutri-a: 150 95% 26%;
     --nutri-b: 83 60% 46%;
     --nutri-c: 48 99% 50%;
     --nutri-d: 33 100% 47%;
     --nutri-e: 13 86% 48%;
-    --nutri-dark-text: 215 28% 17%;
+    --nutri-dark-text: 148 27% 11%;
   }
 }
 
@@ -98,17 +111,59 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-bold tracking-tight;
   }
+  /* Prices, amounts and counters line up in columns */
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+  ::selection {
+    background: hsl(var(--spice-soft));
+    color: hsl(var(--spice-foreground));
+  }
 }
 
 @layer utilities {
-  /* Very light welcome surface (home page only) */
-  .gradient-soft {
-    background: linear-gradient(135deg, hsl(var(--primary-soft)) 0%, hsl(var(--background)) 55%, hsl(var(--area-planner-soft)) 100%);
-  }
-
   /* Card hover: gentle lift */
   .card-hover {
-    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-raised;
+    @apply transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:shadow-raised active:translate-y-0 active:scale-[0.99];
+  }
+
+  /* Breaks out of a centred page container to span the full viewport width */
+  .full-bleed {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+  }
+
+  /* Pressable controls: a tiny squish on tap */
+  .press {
+    @apply transition-transform duration-100 active:scale-[0.97];
+  }
+
+  /* Children rise in one after another (lists, grids, section stacks) */
+  .stagger > * {
+    animation: rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  }
+  .stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger > *:nth-child(5) { animation-delay: 160ms; }
+  .stagger > *:nth-child(6) { animation-delay: 200ms; }
+  .stagger > *:nth-child(7) { animation-delay: 240ms; }
+  .stagger > *:nth-child(8) { animation-delay: 280ms; }
+  .stagger > *:nth-child(n + 9) { animation-delay: 320ms; }
+
+  /* Skeleton surfaces: a soft light sweep instead of a plain pulse */
+  .skeleton-shimmer {
+    background-color: hsl(var(--muted));
+    background-image: linear-gradient(90deg, transparent 0%, hsl(0 0% 100% / 0.55) 50%, transparent 100%);
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s linear infinite;
+  }
+  /* Skeletons inside the hero band */
+  .skeleton-on-hero {
+    background-color: hsl(var(--hero-soft));
+    background-image: linear-gradient(90deg, transparent 0%, hsl(0 0% 100% / 0.12) 50%, transparent 100%);
   }
 
   /* Muted panel (landing-page sections) */
@@ -132,6 +187,16 @@
   100% { transform: translateX(300%); }
 }
 
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 @keyframes sectionEnter {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
@@ -140,7 +205,14 @@
 @media (prefers-reduced-motion: reduce) {
   .section-enter,
   .animate-pulse,
-  .card-hover {
+  .animate-page-in,
+  .animate-rise,
+  .animate-pop,
+  .animate-sheet-up,
+  .stagger > *,
+  .skeleton-shimmer,
+  .card-hover,
+  .press {
     animation: none !important;
     transform: none !important;
   }

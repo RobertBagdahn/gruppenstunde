@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe, type RecipeUpdatePayload } from '@/api/recipes';
@@ -150,19 +151,13 @@ export default function EditRecipePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary">
-          <Icon name="edit" size={24} />
-        </div>
-        <div>
-          <h1 className="text-title font-bold">Rezept bearbeiten</h1>
-          <p className="text-body text-muted-foreground">
-            Änderungen an deinem Rezept vornehmen
-          </p>
-        </div>
-      </div>
+    <div className="pb-8">
+    <TitleBand
+      title="Rezept bearbeiten"
+      description="Änderungen an deinem Rezept vornehmen"
+      innerClassName="max-w-3xl"
+    />
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Recipe Type */}
@@ -531,6 +526,7 @@ export default function EditRecipePage() {
           </button>
         </div>
       </form>
+    </div>
     </div>
   );
 }

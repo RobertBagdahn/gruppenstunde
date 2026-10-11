@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 import { Link } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
@@ -9,19 +10,7 @@ export default function DatenschutzPage() {
 
   return (
     <div>
-      <section className="pt-10 md:pt-14">
-        <div className="container text-center">
-          <img
-            src="/images/inspi_baby_cookie.png"
-            alt="Inspi Baby Keks"
-            className="mx-auto w-28 md:w-36 h-auto mb-4"
-          />
-          <h1 className="text-title font-display font-extrabold text-foreground">Datenschutz</h1>
-          <p className="mt-4 text-emphasis text-muted-foreground max-w-2xl mx-auto">
-            Informationen zum Schutz deiner persönlichen Daten
-          </p>
-        </div>
-      </section>
+      <TitleBand title="Datenschutz" description="Informationen zum Schutz deiner persönlichen Daten" innerClassName="max-w-3xl" />
 
       {user && (
         <section className="container py-6">

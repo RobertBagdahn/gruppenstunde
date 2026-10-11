@@ -88,8 +88,8 @@ export default function RecipeMobileActionBar({
     <div
       data-testid="recipe-mobile-action-bar"
       className={cn(
-        'fixed bottom-16 inset-x-0 h-16 pb-[env(safe-area-inset-bottom)] lg:hidden',
-        'bg-background border-t z-40',
+        'fixed bottom-16 inset-x-0 h-[4.5rem] pb-[env(safe-area-inset-bottom)] lg:hidden',
+        'bg-card/95 backdrop-blur-xl shadow-raised z-40 animate-sheet-up',
         'flex items-center gap-2 px-4',
         'transition-transform duration-200',
         isTextareaFocused && 'translate-y-full',
@@ -99,7 +99,7 @@ export default function RecipeMobileActionBar({
         type="button"
         onClick={onOpenShoppingList}
         aria-label="Einkaufsliste erstellen"
-        className="flex-1 flex items-center justify-center gap-2 h-10 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        className="press flex-1 flex items-center justify-center gap-2 h-12 text-body font-bold bg-primary text-primary-foreground rounded-xl shadow-soft hover:bg-primary/90 transition-colors"
       >
         <Icon name="shopping_cart" size={20} />
         Einkaufsliste
@@ -108,7 +108,7 @@ export default function RecipeMobileActionBar({
         type="button"
         onClick={onOpenPortions}
         aria-label="Portionen skalieren"
-        className="flex-1 flex items-center justify-center gap-2 h-10 text-body font-medium border rounded-lg hover:bg-muted transition-colors"
+        className="press flex-1 flex items-center justify-center gap-2 h-12 text-body font-bold bg-primary-soft text-primary rounded-xl hover:bg-primary-soft-border/70 transition-colors"
       >
         <Icon name="restaurant" size={20} />
         Portionen
@@ -120,13 +120,13 @@ export default function RecipeMobileActionBar({
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Weitere Aktionen"
-          className="flex items-center justify-center w-10 h-10 rounded-lg border hover:bg-muted transition-colors"
+          className="press flex items-center justify-center w-12 h-12 rounded-xl bg-secondary hover:bg-muted transition-colors"
         >
           <Icon name="more_vert" size={20} />
         </button>
 
         {menuOpen && (
-          <div className="absolute bottom-12 right-0 w-48 bg-popover border rounded-lg shadow-lg py-1 z-50">
+          <div className="absolute bottom-14 right-0 w-52 bg-popover rounded-xl shadow-raised py-1 z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200">
             {canCook && (
               <button
                 type="button"

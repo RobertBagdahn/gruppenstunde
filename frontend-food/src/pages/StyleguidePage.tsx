@@ -44,7 +44,9 @@ const FONT_SCALE = [
   { token: 'text-body', px: 14, usage: 'Standard-Fließtext und Bedienelemente', display: false },
   { token: 'text-emphasis', px: 16, usage: 'Hervorgehobener Text', display: false },
   { token: 'text-section', px: 20, usage: 'Abschnitts- und Kartenüberschrift', display: true },
-  { token: 'text-title', px: 28, usage: 'Seitentitel', display: true },
+  { token: 'text-title', px: 28, usage: 'Seitentitel ohne Kopfband', display: true },
+  { token: 'text-metric', px: 32, usage: 'Kennzahlen (Kosten, kcal, Portionen)', display: true },
+  { token: 'text-display', px: 64, usage: 'Seitentitel im Kopfband (fluid 36–64 px)', display: true },
 ];
 
 const ICON_SIZES = [
@@ -57,8 +59,8 @@ const ICON_SIZES = [
 const ICON_EXAMPLES = ['search', 'add', 'delete', 'settings', 'shopping_cart', 'schedule'];
 
 const RADII = [
-  { token: 'rounded-lg', size: '8 px', usage: 'Bedienelemente: Buttons, Inputs, Selects, Chips' },
-  { token: 'rounded-xl', size: '12 px', usage: 'Karten und Dialoge' },
+  { token: 'rounded-lg', size: '10 px', usage: 'Bedienelemente: Buttons, Inputs, Selects, Chips' },
+  { token: 'rounded-xl', size: '16 px', usage: 'Karten und Dialoge' },
   { token: 'rounded-full', size: 'rund', usage: 'Pills, Badges, Avatare, runde Icon-Buttons' },
 ];
 
@@ -158,7 +160,7 @@ export default function StyleguidePage() {
           Inspi Food Design-System & Styleguide
         </h1>
         <p className="text-emphasis text-muted-foreground mt-2 font-sans">
-          Lebendes Showcase und Referenz für das neue, modern-cleane grün-basierte Layout.
+          Lebendes Showcase und Referenz für den Look „Feldküche“.
         </p>
       </div>
 
@@ -191,7 +193,7 @@ export default function StyleguidePage() {
           2. Schriftgrößen-Skala
         </h2>
         <p className="text-body text-muted-foreground">
-          Genau fünf Größen. Überschriften in Plus Jakarta Sans (<code>font-display</code>), Fließtext in Inter. Kleiner
+          Fünf Textgrößen plus <code>text-metric</code> und <code>text-display</code>. Überschriften in Bricolage Grotesque (<code>font-display</code>), Fließtext in Figtree. Kleiner
           als 12 px und freie Werte (<code>text-[…]</code>) gibt es nicht.
         </p>
         <div className="border border-border rounded-xl bg-card shadow-sm divide-y">
@@ -205,6 +207,36 @@ export default function StyleguidePage() {
               </span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Kopfband und Bewegung */}
+      <section className="space-y-4">
+        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">4. Kopfband und Bewegung</h2>
+        <p className="text-body text-muted-foreground">
+          Navigation und Seitenkopf bilden ein <code>bg-hero</code>-Band; Kennzahlen dürfen seine Unterkante überlappen.
+          Bewegung ist kurz (100–420 ms) und schaltet unter <code>prefers-reduced-motion</code> ab.
+        </p>
+        <div className="overflow-hidden rounded-xl bg-hero p-6 text-hero-foreground">
+          <p className="text-body text-hero-muted">Rezepte / Porridge</p>
+          <p className="mt-2 font-display text-display font-extrabold">Porridge</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full bg-hero-soft px-3 py-1 text-body font-semibold">Chip auf dem Band</span>
+            <span className="rounded-full bg-hero-foreground px-3 py-1 text-body font-bold text-foreground">Aktive Aktion</span>
+          </div>
+        </div>
+        <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {['stagger', 'animate-pop', 'press', 'card-hover'].map((name) => (
+            <div key={name} className="card-hover press rounded-xl bg-card p-4 shadow-card">
+              <code className="text-caption text-muted-foreground">{name}</code>
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-2">
+            <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Skeleton</p>
+            <SkeletonCard withImage={false} />
+          </div>
         </div>
       </section>
 

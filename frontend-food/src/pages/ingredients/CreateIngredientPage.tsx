@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 /**
  * CreateIngredientPage — Geführter 3-Schritt-Flow zum Erstellen von Zutaten.
  *
@@ -429,19 +430,13 @@ export default function CreateIngredientPage() {
   // Render
   // -------------------------------------------------------------------------
   return (
-    <div className="container py-8 max-w-3xl">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-success to-success text-white">
-          <Icon name="nutrition" size={24} />
-        </div>
-        <div>
-          <h1 className="text-title font-bold font-display">Zutat erstellen</h1>
-          <p className="text-body text-muted-foreground">
-            Schritt {step + 1} von {STEPS.length}
-          </p>
-        </div>
-      </div>
+    <div className="pb-8">
+    <TitleBand
+      title="Zutat erstellen"
+      description={`Schritt ${step + 1} von ${STEPS.length}`}
+      innerClassName="max-w-3xl"
+    />
+    <div className="container max-w-3xl">
 
       <StepIndicator step={step} />
 
@@ -791,6 +786,7 @@ export default function CreateIngredientPage() {
           isPending={importUrl.isPending}
         />
       )}
+    </div>
     </div>
   );
 }

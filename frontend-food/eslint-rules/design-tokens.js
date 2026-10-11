@@ -40,7 +40,7 @@ const CHECKS = [
   },
   {
     id: 'removedGradient',
-    test: /^gradient-(?:hero|primary|warm|fun|sunset|rainbow)$/,
+    test: /^gradient-(?:hero|primary|warm|fun|sunset|rainbow|soft)$/,
     message: 'Verlauf „{{token}}“ wurde entfernt: nutze helle Token-Flächen (food-frontend-friendly-ux).',
   },
   {

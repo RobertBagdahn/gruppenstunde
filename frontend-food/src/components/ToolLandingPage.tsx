@@ -72,7 +72,7 @@ export default function ToolLandingPage({
       {/* ============================================================ */}
       {/*  HERO                                                        */}
       {/* ============================================================ */}
-      <section className={cn('relative overflow-hidden text-white py-16 md:py-24 bg-gradient-to-br', tool.gradient)}>
+      <section className={cn('relative overflow-hidden text-white py-16 md:py-24 bg-hero')}>
         <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-16 -left-16 w-60 h-60 bg-white/10 rounded-full blur-2xl" />
 
@@ -158,8 +158,7 @@ export default function ToolLandingPage({
                 className="relative flex items-start gap-4 p-5 rounded-xl bg-card border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
               >
                 <div className={cn(
-                  'flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br text-white shadow-md shrink-0',
-                  tool.gradient,
+                  'flex items-center justify-center w-11 h-11 rounded-xl bg-primary text-white shadow-soft shrink-0',
                 )}>
                   <Icon name={feat.icon} size={24} />
                 </div>
@@ -193,13 +192,11 @@ export default function ToolLandingPage({
               className="group relative p-6 rounded-xl bg-card border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden"
             >
               <div className={cn(
-                'absolute -top-8 -right-8 w-32 h-32 rounded-full bg-gradient-to-br opacity-10 blur-2xl group-hover:opacity-25 transition-opacity duration-300',
-                tool.gradient,
+                'absolute -top-8 -right-8 w-32 h-32 rounded-full bg-primary opacity-10 blur-2xl group-hover:opacity-25 transition-opacity duration-300',
               )} />
               <div className="relative">
                 <div className={cn(
-                  'flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br text-white shadow-lg mb-4',
-                  tool.gradient,
+                  'flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-white shadow-card mb-4',
                 )}>
                   <Icon name={ex.icon} size={24} />
                 </div>
@@ -267,7 +264,7 @@ export default function ToolLandingPage({
       {/* ============================================================ */}
       {/*  FINAL CTA                                                   */}
       {/* ============================================================ */}
-      <section className={cn('relative overflow-hidden text-white py-14 md:py-20 bg-gradient-to-br', tool.gradient)}>
+      <section className={cn('relative overflow-hidden text-white py-14 md:py-20 bg-hero')}>
         <div className="container relative text-center">
           <h2 className="text-title md:text-title font-extrabold mb-4 font-display">
             Bereit loszulegen?

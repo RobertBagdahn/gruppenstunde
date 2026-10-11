@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 import { notify } from '@/lib/notify';
@@ -174,12 +175,13 @@ export default function MealPlanWizardPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-8">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-display font-bold text-title text-foreground">Neuen Essensplan erstellen</h1>
-        <p className="text-body text-muted-foreground mt-1">Schritt {shownSteps.indexOf(step) + 1} von {shownSteps.length}</p>
-      </div>
+    <div className="pb-8">
+    <TitleBand
+      title="Neuen Essensplan erstellen"
+      description={`Schritt ${shownSteps.indexOf(step) + 1} von ${shownSteps.length}`}
+      innerClassName="max-w-5xl"
+    />
+    <div className="max-w-5xl mx-auto px-4">
 
       {/* Step progress */}
       <div className="flex items-center gap-1 mb-6">
@@ -279,6 +281,7 @@ export default function MealPlanWizardPage() {
           </button>
         )}
       </div>
+    </div>
     </div>
   );
 }
