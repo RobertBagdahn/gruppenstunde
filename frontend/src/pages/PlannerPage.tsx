@@ -528,7 +528,7 @@ function CalendarSlot({
                 type="button"
                 onClick={() => onUpdateEntry(entry.id, { status: 'cancelled' })}
                 className="text-muted-foreground/50 hover:text-amber-600 transition"
-                title="Faellt aus"
+                title="Fällt aus"
               >
                 <span className="material-symbols-outlined text-sm">event_busy</span>
               </button>

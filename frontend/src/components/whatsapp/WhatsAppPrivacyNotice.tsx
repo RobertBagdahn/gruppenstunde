@@ -11,21 +11,21 @@ export default function WhatsAppPrivacyNotice() {
       </p>
       <ul className="space-y-1 text-muted-foreground text-xs list-disc list-inside">
         <li>
-          Deine persoenliche WhatsApp-Nummer wird verwendet, um Nachrichten in deinem
+          Deine persönliche WhatsApp-Nummer wird verwendet, um Nachrichten in deinem
           Namen zu versenden.
         </li>
         <li>
-          Sitzungsdaten werden verschluesselt in der Datenbank gespeichert.
+          Sitzungsdaten werden verschlüsselt in der Datenbank gespeichert.
         </li>
         <li>
           Nachrichteninhalte werden <strong>nicht</strong> gespeichert — nur Metadaten
-          (Empfaenger, Zeitpunkt, Status).
+          (Empfänger, Zeitpunkt, Status).
         </li>
         <li>
-          Telefonnummern der Empfaenger werden nur zum Versandzeitpunkt aufgeloest.
+          Telefonnummern der Empfänger werden nur zum Versandzeitpunkt aufgelöst.
         </li>
         <li>
-          Du kannst alle WhatsApp-Daten jederzeit vollstaendig loeschen.
+          Du kannst alle WhatsApp-Daten jederzeit vollständig löschen.
         </li>
       </ul>
     </div>

@@ -216,7 +216,7 @@ export default function PackingListsPage() {
     <div className="max-w-4xl mx-auto px-4 py-6">
       <ListPageHero
         title="Packlisten"
-        description="Erstelle und teile Packlisten fuer Lager, Fahrten und Aktionen."
+        description="Erstelle und teile Packlisten für Lager, Fahrten und Aktionen."
         icon="backpack"
         gradientClasses="bg-gradient-to-br from-violet-500 to-purple-600"
       />

@@ -145,7 +145,7 @@ export default function MessagingTab({ event }: Props) {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(participant.id);
-      toast.success(`Nachricht fuer ${participant.first_name} kopiert`);
+      toast.success(`Nachricht für ${participant.first_name} kopiert`);
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       toast.error('Kopieren fehlgeschlagen');
@@ -295,7 +295,7 @@ export default function MessagingTab({ event }: Props) {
                 <Link to="/profile" className="underline font-medium">
                   Profileinstellungen
                 </Link>{' '}
-                verbinden, um direkt zu senden. Oder verfasse deine Nachricht und kopiere sie fuer jeden Teilnehmer einzeln.
+                verbinden, um direkt zu senden. Oder verfasse deine Nachricht und kopiere sie für jeden Teilnehmer einzeln.
               </p>
             </div>
           </div>
@@ -318,14 +318,14 @@ export default function MessagingTab({ event }: Props) {
       <div className="rounded-xl border p-4">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px]">group</span>
-          Empfaenger
+          Empfänger
         </h3>
 
         <div className="flex flex-wrap gap-2 mb-4">
           {([
             { key: 'all' as const, label: 'Alle Teilnehmer', icon: 'groups' },
             { key: 'filtered' as const, label: 'Gefiltert', icon: 'filter_alt' },
-            { key: 'selected' as const, label: 'Ausgewaehlt', icon: 'checklist' },
+            { key: 'selected' as const, label: 'Ausgewählt', icon: 'checklist' },
           ]).map((opt) => (
             <button
               key={opt.key}
@@ -406,7 +406,7 @@ export default function MessagingTab({ event }: Props) {
           <div className="pt-2 border-t">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs text-muted-foreground">
-                {selectedParticipantIds.size} von {allParticipants.length} ausgewaehlt
+                {selectedParticipantIds.size} von {allParticipants.length} ausgewählt
               </span>
               <button
                 onClick={() => {
@@ -419,8 +419,8 @@ export default function MessagingTab({ event }: Props) {
                 className="text-xs text-violet-600 hover:underline"
               >
                 {selectedParticipantIds.size === allParticipants.length
-                  ? 'Alle abwaehlen'
-                  : 'Alle auswaehlen'}
+                  ? 'Alle abwählen'
+                  : 'Alle auswählen'}
               </button>
             </div>
             <div className="max-h-40 overflow-y-auto space-y-1">
@@ -452,7 +452,7 @@ export default function MessagingTab({ event }: Props) {
           <span className="material-symbols-outlined text-[14px] align-middle mr-0.5">
             {channel === 'email' ? 'mail' : 'chat'}
           </span>
-          {getRecipientCount()} Empfaenger
+          {getRecipientCount()} Empfänger
         </p>
       </div>
 
@@ -491,7 +491,7 @@ export default function MessagingTab({ event }: Props) {
         {showTemplates && (
           <div className="mt-3 pt-3 border-t space-y-2">
             <p className="text-xs text-muted-foreground">
-              Klicke auf eine Vorlage, um den Text zu uebernehmen.
+              Klicke auf eine Vorlage, um den Text zu übernehmen.
             </p>
             {(templates ?? []).length === 0 ? (
               <p className="text-xs text-muted-foreground italic">Keine Vorlagen vorhanden.</p>
@@ -519,7 +519,7 @@ export default function MessagingTab({ event }: Props) {
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteTemplate.mutate(tmpl.id, {
-                            onSuccess: () => toast.success('Vorlage geloescht'),
+                            onSuccess: () => toast.success('Vorlage gelöscht'),
                             onError: (err) => toast.error('Fehler', { description: err.message }),
                           });
                         }}
@@ -616,7 +616,7 @@ export default function MessagingTab({ event }: Props) {
             className="w-full text-sm border rounded-lg px-3 py-2 bg-background resize-y"
             placeholder={
               channel === 'email'
-                ? 'Hallo {vorname},\n\nhier sind wichtige Infos zu {event_name}...\n\nViele Gruesse,\nDein Leitungsteam'
+                ? 'Hallo {vorname},\n\nhier sind wichtige Infos zu {event_name}...\n\nViele Grüße,\nDein Leitungsteam'
                 : 'Hallo {vorname}, hier sind wichtige Infos zu {event_name}...'
             }
           />
@@ -637,13 +637,13 @@ export default function MessagingTab({ event }: Props) {
               onClick={() => setShowPreview(false)}
               className="text-xs text-muted-foreground hover:underline"
             >
-              Schliessen
+              Schließen
             </button>
           </div>
 
           {/* Stats bar */}
           <div className="flex gap-4 text-sm">
-            <span className="font-medium">{previewData.total_count} Empfaenger</span>
+            <span className="font-medium">{previewData.total_count} Empfänger</span>
             <span className="text-green-600">
               {previewData.reachable_count} erreichbar
             </span>
@@ -665,7 +665,7 @@ export default function MessagingTab({ event }: Props) {
           {previewData.sample_message && (
             <div className="border-t pt-3">
               <p className="text-xs font-medium text-muted-foreground mb-1">
-                Beispielnachricht (erster Empfaenger):
+                Beispielnachricht (erster Empfänger):
               </p>
               <div className={cn(
                 'p-3 rounded-lg text-sm whitespace-pre-wrap',
@@ -735,7 +735,7 @@ export default function MessagingTab({ event }: Props) {
             onClick={() => setSendResult(null)}
             className="text-xs text-muted-foreground hover:underline mt-2"
           >
-            Schliessen
+            Schließen
           </button>
         </div>
       )}
@@ -762,7 +762,7 @@ export default function MessagingTab({ event }: Props) {
             </button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Kopiere die personalisierte Nachricht fuer jeden Teilnehmer und fuege sie manuell in WhatsApp ein.
+            Kopiere die personalisierte Nachricht für jeden Teilnehmer und füge sie manuell in WhatsApp ein.
           </p>
 
           {showCopyMessages && (
@@ -869,7 +869,7 @@ export default function MessagingTab({ event }: Props) {
         onConfirm={handleSend}
         onCancel={() => setShowConfirm(false)}
         title={`${channelLabel} senden?`}
-        description={`${getRecipientCount()} Nachricht(en) per ${channelLabel} senden? Dieser Vorgang kann nicht rueckgaengig gemacht werden.`}
+        description={`${getRecipientCount()} Nachricht(en) per ${channelLabel} senden? Dieser Vorgang kann nicht rückgängig gemacht werden.`}
         confirmLabel="Senden"
         loading={sendMutation.isPending}
         variant="default"

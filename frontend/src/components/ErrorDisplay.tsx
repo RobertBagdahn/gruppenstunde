@@ -52,7 +52,7 @@ function getErrorInfo(error: Error | null | undefined): {
   if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
     return {
       title: 'Keine Verbindung',
-      description: 'Keine Internetverbindung. Bitte pruefe deine Verbindung.',
+      description: 'Keine Internetverbindung. Bitte prüfe deine Verbindung.',
       icon: 'wifi_off',
     };
   }

@@ -72,7 +72,7 @@ export default function WhatsAppQRCodeDialog({
             WhatsApp verbinden
           </DialogTitle>
           <DialogDescription>
-            Scanne den QR-Code mit deiner WhatsApp-App, um dein Konto zu verknuepfen.
+            Scanne den QR-Code mit deiner WhatsApp-App, um dein Konto zu verknüpfen.
           </DialogDescription>
         </DialogHeader>
 
@@ -119,8 +119,8 @@ export default function WhatsAppQRCodeDialog({
                     />
                   </div>
                   <p className="text-sm text-muted-foreground text-center">
-                    Oeffne WhatsApp auf deinem Handy und scanne diesen QR-Code
-                    unter Einstellungen &gt; Verknuepfte Geraete.
+                    Öffne WhatsApp auf deinem Handy und scanne diesen QR-Code
+                    unter Einstellungen &gt; Verknüpfte Geräte.
                   </p>
                 </>
               ) : status === 'connected' ? (

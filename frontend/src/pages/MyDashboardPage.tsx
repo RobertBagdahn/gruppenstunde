@@ -20,9 +20,9 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: 'Entwurf', color: 'bg-yellow-100 text-yellow-800' },
-  published: { label: 'Veroeffentlicht', color: 'bg-green-100 text-green-800' },
+  published: { label: 'Veröffentlicht', color: 'bg-green-100 text-green-800' },
   archived: { label: 'Archiviert', color: 'bg-gray-100 text-gray-800' },
-  review: { label: 'In Pruefung', color: 'bg-blue-100 text-blue-800' },
+  review: { label: 'In Prüfung', color: 'bg-blue-100 text-blue-800' },
 };
 
 function formatDate(dateStr: string | null): string {

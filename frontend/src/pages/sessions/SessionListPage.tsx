@@ -100,7 +100,7 @@ export default function SessionListPage() {
       {/* Hero */}
       <ListPageHero
         title="Gruppenstunden"
-        description="Entdecke Ideen und Anleitungen fuer eure naechste Gruppenstunde. Filtern nach Typ, Ort und Schwierigkeit."
+        description="Entdecke Ideen und Anleitungen für eure nächste Gruppenstunde. Filtern nach Typ, Ort und Schwierigkeit."
         icon="groups"
         gradientClasses="bg-gradient-to-br from-emerald-500 to-green-600"
         totalCount={data?.total}

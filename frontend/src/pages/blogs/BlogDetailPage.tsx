@@ -40,7 +40,7 @@ import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 
 // Scout level colors
 const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  'Woelflinge': { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
+  'Wölflinge': { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
   'Jungpfadfinder': { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-700' },
   'Pfadfinder': { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700' },
   'Rover': { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700' },
@@ -446,7 +446,7 @@ export default function BlogDetailPage() {
       {/* Similar Blogs */}
       {(blog.similar_blogs?.length ?? 0) > 0 && (
         <div className="mb-8">
-          <h3 className="text-lg font-bold mb-3">Aehnliche Beitraege</h3>
+          <h3 className="text-lg font-bold mb-3">Ähnliche Beiträge</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {blog.similar_blogs!.map((similar) => (
               <Link

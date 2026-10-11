@@ -39,7 +39,7 @@ export default function WhatsAppConnectionLogDisplay() {
         <span className="material-symbols-outlined text-[14px]">
           {expanded ? 'expand_less' : 'expand_more'}
         </span>
-        Verbindungs-Log ({logs.length} Eintraege)
+        Verbindungs-Log ({logs.length} Einträge)
       </button>
 
       <div className="space-y-1">

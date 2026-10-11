@@ -116,7 +116,7 @@ export default function Pagination({
         disabled={currentPage >= totalPages}
         onClick={() => handlePageChange(currentPage + 1)}
         className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        aria-label="Naechste Seite"
+        aria-label="Nächste Seite"
       >
         <span className="material-symbols-outlined text-[18px]">chevron_right</span>
       </button>

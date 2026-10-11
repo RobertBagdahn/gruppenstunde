@@ -133,7 +133,7 @@ export default function ToolLandingPage({
       <section className="container py-12 md:py-16">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
-            Was ist der {tool.label}?
+            Über das Tool „{tool.label}“
           </h2>
           <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
             {longDescription}
@@ -277,7 +277,7 @@ export default function ToolLandingPage({
             >
               help
             </span>
-            Haeufig gestellte Fragen
+            Häufig gestellte Fragen
           </h2>
         </div>
         <div className="max-w-3xl mx-auto space-y-4">
@@ -311,8 +311,8 @@ export default function ToolLandingPage({
           </h2>
           <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
             {isLoggedIn
-              ? `Leg direkt los und nutze alle Funktionen des ${tool.label}s.`
-              : `Erstelle ein kostenloses Konto und nutze alle Funktionen des ${tool.label}s.`}
+              ? `Leg direkt los und nutze alle Funktionen des Tools „${tool.label}“.`
+              : `Erstelle ein kostenloses Konto und nutze alle Funktionen des Tools „${tool.label}“.`}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link

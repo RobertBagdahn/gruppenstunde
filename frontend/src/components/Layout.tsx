@@ -702,7 +702,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="mt-8 pt-4 border-t border-border/40 flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-[16px] text-muted-foreground/50">favorite</span>
             <p className="text-xs text-muted-foreground/60">
-              Made with love for Pfadfinder
+              Mit Liebe für Pfadfinder gemacht
             </p>
           </div>
         </div>

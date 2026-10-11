@@ -777,7 +777,7 @@ function ShareManagement({ packingListId }: { packingListId: number }) {
         onSuccess: () => {
           setNewLabel('');
           setShowCreate(false);
-          toast.success('Share-Link erstellt');
+          toast.success('Freigabelink erstellt');
         },
         onError: (err) => toast.error('Fehler', { description: err.message }),
       },
@@ -792,7 +792,7 @@ function ShareManagement({ packingListId }: { packingListId: number }) {
 
   const handleDeactivate = (shareId: number) => {
     deactivateShare.mutate(shareId, {
-      onSuccess: () => toast.success('Share-Link deaktiviert'),
+      onSuccess: () => toast.success('Freigabelink deaktiviert'),
       onError: (err) => toast.error('Fehler', { description: err.message }),
     });
   };
@@ -850,7 +850,7 @@ function ShareManagement({ packingListId }: { packingListId: number }) {
         <div className="animate-pulse h-12 bg-muted rounded" />
       ) : activeShares.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          Noch keine Share-Links vorhanden. Erstelle einen Link, damit andere deine Packliste sehen und Items abhaken können.
+          Noch keine Freigabelinks vorhanden. Erstelle einen Link, damit andere deine Packliste sehen und Gegenstände abhaken können.
         </p>
       ) : (
         <div className="space-y-2">
@@ -862,7 +862,7 @@ function ShareManagement({ packingListId }: { packingListId: number }) {
               <span className="material-symbols-outlined text-muted-foreground text-lg">link</span>
               <div className="flex-1 min-w-0">
                 <span className="font-medium truncate block">
-                  {share.label || 'Share-Link'}
+                  {share.label || 'Freigabelink'}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   Erstellt: {new Date(share.created_at).toLocaleDateString('de-DE')}
