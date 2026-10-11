@@ -17,28 +17,33 @@ import type { BreakfastPortion } from '@/schemas/breakfast';
  */
 function formatGermanNumber(value: number, decimals: number = 1): string {
   if (decimals === 0) return Math.round(value).toString();
-  
+
   const multiplier = Math.pow(10, decimals);
   const rounded = Math.round(value * multiplier) / multiplier;
-  
+
   // If exactly an integer after rounding, return without decimals
   if (rounded === Math.round(rounded)) {
     return Math.round(rounded).toString();
   }
-  
+
   // Format with decimals, then replace dot with comma
   const str = rounded.toLocaleString('de-DE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   return str;
 }
 
+const UNCHANGED_PLURAL_NAMES = new Set(['Stück', 'Glas', 'Paar']);
+const UNCHANGED_PLURAL_ENDINGS = ['chen', 'lein', 'el', 'er', 'en'];
+
 /**
- * Simple German pluralization: "Scheibe" → "Scheiben", "Packung" → "Packungen"
+ * Simple German pluralization for single nouns: "Scheibe" → "Scheiben", "Packung" → "Packungen".
+ * Unit abbreviations ("ml", "EL") and multi-word portion names ("Belag knapp")
+ * stay unchanged, as do nouns whose plural equals the singular ("Stück", "Becher").
  */
-function germanPlural(word: string): string {
-  if (word.endsWith('e')) {
-    return word + 'n';
-  }
-  return word + 'en';
+export function germanPortionPlural(name: string): string {
+  const isSingleCapitalizedNoun = /^[A-ZÄÖÜ][a-zäöüß]+$/.test(name);
+  if (!isSingleCapitalizedNoun || UNCHANGED_PLURAL_NAMES.has(name)) return name;
+  if (UNCHANGED_PLURAL_ENDINGS.some((ending) => name.endsWith(ending))) return name;
+  return name.endsWith('e') ? `${name}n` : `${name}en`;
 }
 
 interface PortionHint {
@@ -51,12 +56,12 @@ interface PortionHint {
  */
 function getPrimaryPortion(portions: BreakfastPortion[]): BreakfastPortion | null {
   if (!portions || portions.length === 0) return null;
-  
+
   // Sort by priority ascending, filter by weight_g > 0
   const validPortions = portions
     .filter((p) => p.weight_g !== null && p.weight_g > 0)
     .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
-  
+
   return validPortions.length > 0 ? validPortions[0] : null;
 }
 
@@ -65,7 +70,7 @@ function getPrimaryPortion(portions: BreakfastPortion[]): BreakfastPortion | nul
  */
 function getSecondaryPortion(portions: BreakfastPortion[], primaryName: string): BreakfastPortion | null {
   if (!portions || portions.length === 0) return null;
-  
+
   const validPortions = portions
     .filter(
       (p) =>
@@ -74,7 +79,7 @@ function getSecondaryPortion(portions: BreakfastPortion[], primaryName: string):
         p.name !== primaryName // Different name
     )
     .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
-  
+
   return validPortions.length > 0 ? validPortions[0] : null;
 }
 
@@ -131,7 +136,7 @@ export function deriveGramPortionHint(
     .map((h) => {
       const count = formatGermanNumber(h.count, 1);
       // Use plural if count > 1 (with small tolerance for rounding)
-      const name = h.count > 1.05 ? germanPlural(h.name) : h.name;
+      const name = h.count > 1.05 ? germanPortionPlural(h.name) : h.name;
       return `≈ ${count} ${name}`;
     })
     .join(' · ');
@@ -152,6 +157,6 @@ export function formatGramsWithPortionHint(
 ): string {
   const roundedGrams = Math.round(grams);
   const hint = deriveGramPortionHint(grams, portions);
-  
+
   return hint ? `${roundedGrams}g · ${hint}` : `${roundedGrams}g`;
 }

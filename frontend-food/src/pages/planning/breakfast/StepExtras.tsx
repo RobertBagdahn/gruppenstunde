@@ -73,12 +73,11 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
                   <span className="flex-1 text-body font-medium">{name}</span>
                   <div className="flex items-center gap-1">
                     <span className="text-caption text-muted-foreground">×</span>
-                    <input
-                      type="number"
+                    <DecimalInput
                       min={0.1}
-                      step={0.5}
                       value={factor}
-                      onChange={(e) => setWarmDishFactor(recipeId, Math.max(0.1, Number(e.target.value)))}
+                      onChange={(nextFactor) => setWarmDishFactor(recipeId, nextFactor)}
+                      aria-label={`Faktor für ${name}`}
                       className="w-16 rounded-lg border px-2 py-1 text-body text-right"
                     />
                   </div>
@@ -180,10 +179,8 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
         open={showIngredientSearch}
         onOpenChange={setShowIngredientSearch}
         ingredientOnly
-        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, ingredientName) => {
-          const portion = catalog?.extra_ingredients
-            .find((item) => item.id === ingredientId)
-            ?.portions.find((candidate) => candidate.id === portionId);
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, ingredientName, _note, portion) => {
+          // Keep the portion chosen in the search dialog; freely searched extras are not in the catalog.
           setExtraIngredient(
             ingredientId,
             quantity,
@@ -193,7 +190,7 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
                   portionId,
                   measuringUnitId,
                   portionName: portion.name,
-                  measuringUnitName: null,
+                  measuringUnitName: portion.measuring_unit,
                   quantity,
                   weightG: portion.weight_g,
                 }

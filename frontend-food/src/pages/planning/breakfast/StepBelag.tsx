@@ -34,7 +34,8 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
   } = wiz;
   const { data: catalog } = useBreakfastCatalog();
 
-  // Initialise toppings from catalog on first load
+  // Initialise toppings from catalog on first load. An explicit "no topping" choice keeps
+  // the toppings listed at 0 %, so only an empty list counts as not initialised.
   useEffect(() => {
     if (!catalog || state.toppings.length > 0) return;
     const items: ToppingSelection[] = catalog.topping_ingredients.map((ing, i) => {

@@ -3,45 +3,21 @@ import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import { FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
 import ShareSlider from './ShareSlider';
-import type { FatSelection } from '@/schemas/breakfast';
+import { fatSelectionsWithNoFat } from '@/lib/breakfastWizardItems';
 import { SkeletonTableRows } from '@/components/ui/skeleton';
 
 interface StepStreichfettProps {
   wiz: UseWizardStateReturn;
 }
 
-const KEIN_FETT: FatSelection = {
-  ingredientId: 0,
-  name: 'Kein Fett',
-  sharePercent: 50,
-  locked: false,
-  energyKcal100g: 0,
-  pricePerKg: 0,
-  portions: [],
-};
-
 export default function StepStreichfett({ wiz }: StepStreichfettProps) {
   const { state, setFatShare, setFatLocked, initFats } = wiz;
   const { data: catalog, isLoading } = useBreakfastCatalog();
 
+  // An empty list means "not initialised yet"; an explicit "no fat" choice keeps "Kein Fett" at 100 %.
   useEffect(() => {
     if (!catalog || state.fatSelections.length > 0) return;
-    const fats = catalog.fat_ingredients.map((ing, i) => {
-      const defaultShare = i === 0 ? 50 : 0;
-      return {
-        ingredientId: ing.id,
-        name: ing.name,
-        sharePercent: defaultShare,
-        locked: false,
-        energyKcal100g: ing.energy_kcal,
-        pricePerKg: ing.price_per_kg,
-        portions: ing.portions,
-      };
-    });
-    // Append virtual "Kein Fett" entry
-    const keinFett = { ...KEIN_FETT, sharePercent: fats.length > 0 ? 50 : 100 };
-    const all: FatSelection[] = [...fats, keinFett];
-    initFats(all);
+    initFats(fatSelectionsWithNoFat(catalog.fat_ingredients, catalog.fat_ingredients[0]?.id ?? null));
   }, [catalog, state.fatSelections.length, initFats]);
 
   if (isLoading) {

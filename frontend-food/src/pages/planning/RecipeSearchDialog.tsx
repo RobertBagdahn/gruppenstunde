@@ -63,7 +63,15 @@ function BadgePill({ value, selected, onChange, icon, label }: BadgePillProps) {
 interface RecipeSearchDialogProps {
   mealType: string;
   onSelect?: (recipeId: number, recipeTitle?: string) => void;
-  onSelectIngredient?: (ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number, ingredientName: string, note?: string) => void;
+  onSelectIngredient?: (
+    ingredientId: number,
+    portionId: number | null,
+    measuringUnitId: number | null,
+    quantity: number,
+    ingredientName: string,
+    note?: string,
+    portion?: IngredientPortion | null,
+  ) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nutritionalTagIds?: number[];
@@ -182,6 +190,7 @@ export default function RecipeSearchDialog({
         quantity,
         ingredientDialog?.name ?? '',
         note,
+        portion,
       );
     }
     setIngredientDialog(null);

@@ -23,29 +23,14 @@ import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
 import { WizardProgress } from '@/components/shared/WizardProgress';
 import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/notify';
-import type { BreakfastProfileSlug, WizardItemIn } from '@/api/breakfast';
+import type { BreakfastProfileSlug } from '@/api/breakfast';
 import type { MealItem } from '@/schemas/mealPlan';
-import type { WizardState } from '@/schemas/breakfast';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
-import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson, FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
+import { buildBreakfastWizardItems } from '@/lib/breakfastWizardItems';
+import { BREAKFAST_PROFILES, buildBreakfastProfileState } from '@/lib/breakfastProfiles';
 import { getApiErrorMessage } from '@/lib/api';
 
-type BreakfastProfile = BreakfastProfileSlug;
-
 type ManualItemsPolicy = 'preserve' | 'replace';
-
-const BREAKFAST_PROFILES: Array<{ id: BreakfastProfile; title: string; description: string }> = [
-  { id: 'muesli', title: 'Nur Müsli', description: 'Müsli oder Haferflocken mit Obst und Getränken' },
-  { id: 'bread-muesli', title: 'Brot und Müsli', description: 'Brot, Müsli, Belag, Obst und Getränke' },
-  { id: 'plant', title: 'Brot pflanzlich', description: 'Pflanzliche Aufstriche, Obst und Getränke' },
-  { id: 'vegetarian', title: 'Brot vegetarisch', description: 'Käse, vegetarische Aufstriche, Obst und Getränke' },
-  { id: 'meat', title: 'Brot mit Fleisch', description: 'Herzhafter Belag, Käse, Obst und Getränke' },
-];
-
-function nameMatches(name: string, terms: string[]): boolean {
-  const normalized = name.toLocaleLowerCase('de-DE');
-  return terms.some((term) => normalized.includes(term));
-}
 
 function isBreakfastManagedItem(item: MealItem): boolean {
   return item.is_breakfast_assistant
@@ -130,7 +115,8 @@ export default function BreakfastWizardPage() {
   const visibleWizardSteps = saveMode === 'refMeal' ? WIZARD_STEPS.filter((wizardStep) => wizardStep !== 'preset') : WIZARD_STEPS;
   const { state, step, canGoNext, canGoPrev, goNext, goPrev, setStep } = wiz;
   const [freeBuffetOpen, setFreeBuffetOpen] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<BreakfastProfile | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<BreakfastProfileSlug | null>(null);
+  const [profileHints, setProfileHints] = useState<string[]>([]);
   const [manualItemsPolicy, setManualItemsPolicy] = useState<ManualItemsPolicy>('preserve');
 
   useEffect(() => {
@@ -149,196 +135,18 @@ export default function BreakfastWizardPage() {
     if (saveMode === 'directMeal' && initialWizardState) setStep('basis');
   }, [saveMode, initialWizardState, setStep]);
 
-  function applyBreakfastProfile(profile: BreakfastProfile) {
+  function applyBreakfastProfile(profile: BreakfastProfileSlug) {
     if (!catalog) return;
     setSelectedProfile(profile);
-    const isMuesliOnly = profile === 'muesli';
-    const isBreadAndMuesli = profile === 'bread-muesli';
-    const isPlant = profile === 'plant';
-    const isVegetarian = profile === 'vegetarian' || isPlant;
-    const isMeat = profile === 'meat';
-    const isCereal = (name: string) => nameMatches(name, ['müsli', 'haferflock', 'cornflake']);
-    const breads = catalog.base_ingredients.filter((item) => !isCereal(item.name));
-    const cereals = catalog.base_ingredients.filter((item) => isCereal(item.name));
-    const bases = isMuesliOnly ? cereals : isBreadAndMuesli ? [...breads.slice(0, 1), ...cereals.slice(0, 1)] : breads;
-    const toppings = catalog.topping_ingredients.filter((item) => {
-      if (isMuesliOnly) return false;
-      if (isPlant && nameMatches(item.name, ['käse', 'edamer', 'gouda', 'emmentaler', 'frischkäse', 'leberwurst', 'salami', 'schinken', 'putenbrust', 'honig'])) return false;
-      if (isVegetarian && nameMatches(item.name, ['leberwurst', 'salami', 'schinken', 'putenbrust', 'thunfisch'])) return false;
-      if (isMeat) return nameMatches(item.name, ['leberwurst', 'salami', 'schinken', 'putenbrust', 'thunfisch', 'gouda', 'käse', 'frischkäse']);
-      return true;
-    });
-    const fats = isMuesliOnly
-      ? []
-      : catalog.fat_ingredients.filter((item) => !isPlant || nameMatches(item.name, ['margarine', 'pflanz']));
-    const drinks = catalog.drink_recipes.filter((item) => !isPlant || !nameMatches(item.title, ['milch', 'kakao']));
-    const extras = catalog.extra_ingredients.filter((item) =>
-      isMuesliOnly || isBreadAndMuesli
-        ? nameMatches(item.name, ['apfel', 'banane', 'erdbeere', 'orange', 'beere'])
-        : true,
-    );
-    const share = <T extends { id: number }>(items: T[]) => items.map((item, index) => ({ item, sharePercent: index === 0 ? 100 : 0 }));
-    let selectedBase = share(bases);
-    if (isBreadAndMuesli && selectedBase.length > 1) {
-      selectedBase = selectedBase.map((selection, index) => ({
-        ...selection,
-        sharePercent: index === 0 ? 60 : 40,
-      }));
-    }
-    const selectedToppings = share(toppings);
-    const selectedFats = share(fats);
-    const selectedDrinks = share(drinks);
-    const drinkIngredients = catalog.drink_ingredients.filter((item) =>
-      isPlant
-        ? nameMatches(item.name, ['hafer', 'soja', 'mandel', 'pflanz'])
-        : isMuesliOnly || isBreadAndMuesli
-          ? nameMatches(item.name, ['milch'])
-          : nameMatches(item.name, ['saft', 'milch']),
-    );
-    const selectedDrinkIngredients = share(drinkIngredients.slice(0, 1));
-    const selectedExtras = share(extras.slice(0, isMuesliOnly || isBreadAndMuesli ? 2 : 1));
-    const nextState: WizardState = {
-      ...state,
-      gramsPerPerson: isMuesliOnly ? 80 : isBreadAndMuesli ? 120 : 150,
-      basis: selectedBase.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, sliceWeightG: item.standard_recipe_weight_g ?? 50, energyKcal100g: item.energy_kcal })),
-      toppings: selectedToppings.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, energyKcal100g: item.energy_kcal, pricePerKg: item.price_per_kg, portions: item.portions })),
-      fatSelections: selectedFats.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, energyKcal100g: item.energy_kcal, pricePerKg: item.price_per_kg, portions: item.portions })),
-      drinkRecipes: selectedDrinks.map(({ item, sharePercent }) => ({ recipeId: item.id, name: item.title, sharePercent, locked: false, energyKcal: item.cached_energy_total_kcal })),
-      drinkIngredients: selectedDrinkIngredients.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, mlPerPerson: 200 })),
-      extraIngredients: Object.fromEntries(selectedExtras.map(({ item }) => [String(item.id), 80])),
-      extraIngredientNames: Object.fromEntries(selectedExtras.map(({ item }) => [String(item.id), item.name])),
-      extraIngredientSelections: {},
-      warmDishRecipeIds: [],
-      warmDishFactors: {},
-      warmDishRecipeNames: {},
-      globalIntensity: 'normal',
-    };
-    wiz.replaceState(nextState);
+    const { state: profileState, hints } = buildBreakfastProfileState(profile, catalog, state);
+    setProfileHints(hints);
+    wiz.replaceState(profileState);
     wiz.setStep('basis');
-  }
-
-  /**
-   * Build the list of items to save.
-   *
-   * Storage model:
-   * - quantity = grams per person (derived from kcal target + kcal density)
-   * - measuring_unit = gram unit
-   * - factor = 1.0 (always — backend multiplies by effectivePortions)
-   */
-  function buildItems(): WizardItemIn[] {
-    const gramUnitId = catalog?.gram_measuring_unit_id ?? null;
-    const mlUnitId = catalog?.ml_measuring_unit_id ?? null;
-
-    const fixKcal = extrasKcalPerPerson(state);
-    const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
-    const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
-    const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
-
-    // Accumulate ingredient items in grams for dedup
-    const ingGrams: Record<number, number> = {};
-    const ingMilliliters: Record<number, number> = {};
-    const items: WizardItemIn[] = [];
-
-    // ── Basis (bread) ──
-    for (const b of state.basis.filter((b) => b.sharePercent > 0)) {
-      const grams = breadItemGrams(b.sharePercent, basisTotalShare, breadKcal, b.energyKcal100g);
-      if (grams <= 0) continue;
-      ingGrams[b.ingredientId] = (ingGrams[b.ingredientId] ?? 0) + grams;
-    }
-
-    // ── Streichfett ──
-    for (const f of state.fatSelections.filter((f) => f.sharePercent > 0 && f.ingredientId > 0)) {
-      const grams = (f.sharePercent / 100) * FAT_GRAMS_PER_PERSON;
-      ingGrams[f.ingredientId] = (ingGrams[f.ingredientId] ?? 0) + grams;
-    }
-
-    // ── Belag (toppings) ──
-    for (const t of state.toppings.filter((t) => t.sharePercent > 0)) {
-      if (toppingTotalShare <= 0) continue;
-      const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g);
-      if (grams <= 0) continue;
-      ingGrams[t.ingredientId] = (ingGrams[t.ingredientId] ?? 0) + grams;
-    }
-
-    // ── Warme Gerichte ──
-    for (const recipeId of state.warmDishRecipeIds) {
-      items.push({
-        recipe_id: recipeId,
-        factor: state.warmDishFactors[String(recipeId)] ?? 1.0,
-      });
-    }
-
-    // ── Extras (vegetables, garnish) — may overlap with basis/topping ──
-    const gramsBeforeExtras = { ...ingGrams };
-    for (const [ingId, grams] of Object.entries(state.extraIngredients)) {
-      const id = Number(ingId);
-      const selection = state.extraIngredientSelections[ingId];
-      if (grams <= 0 && !selection) continue;
-      ingGrams[id] = (ingGrams[id] ?? 0) + grams;
-    }
-
-    // ── Getränke-Rezepte (drink recipe-IDs analog zu warmen Gerichten) ──
-    for (const drink of state.drinkRecipes.filter((d) => d.sharePercent > 0 && d.recipeId > 0)) {
-      items.push({
-        recipe_id: drink.recipeId,
-        factor: drink.sharePercent / 100,
-      });
-    }
-
-    // ── Milch & Säfte (drink ingredients — milk, juices) ──
-    for (const ingredient of state.drinkIngredients.filter((d) => d.sharePercent > 0 && d.ingredientId > 0)) {
-      const ml = ingredient.mlPerPerson ?? 0;
-      if (ml <= 0) continue;
-      ingMilliliters[ingredient.ingredientId] = (ingMilliliters[ingredient.ingredientId] ?? 0) + ml;
-    }
-
-    // ── Post-process: push accumulated ingredients (in grams) + recipe items ──
-    const mergedIds = new Set<number>();
-    const out: WizardItemIn[] = [];
-    for (const [ingIdStr, grams] of Object.entries(ingGrams)) {
-      const ingId = Number(ingIdStr);
-      const selection = state.extraIngredientSelections[ingIdStr];
-      const canKeepSelectedPortion = Boolean(selection && (gramsBeforeExtras[ingId] ?? 0) <= 0);
-      if (grams <= 0 && !canKeepSelectedPortion) continue;
-      if (mergedIds.has(ingId)) continue;
-      mergedIds.add(ingId);
-      if (canKeepSelectedPortion && selection) {
-        out.push({
-          ingredient_id: ingId,
-          quantity: selection.quantity,
-          measuring_unit_id: selection.measuringUnitId ?? undefined,
-          portion_id: selection.portionId,
-          factor: 1.0,
-        });
-      } else {
-        out.push({
-          ingredient_id: ingId,
-          quantity: Math.round(grams * 10) / 10,
-          measuring_unit_id: gramUnitId,
-          factor: 1.0,
-        });
-      }
-    }
-    for (const [ingIdStr, milliliters] of Object.entries(ingMilliliters)) {
-      if (milliliters <= 0) continue;
-      out.push({
-        ingredient_id: Number(ingIdStr),
-        quantity: Math.round(milliliters * 10) / 10,
-        measuring_unit_id: mlUnitId,
-        factor: 1.0,
-      });
-    }
-    for (const item of items) {
-      if (item.ingredient_id == null) {
-        out.push(item);
-      }
-    }
-    return out;
   }
 
   async function handleSave() {
     try {
-      const items = buildItems();
+      const items = buildBreakfastWizardItems(state, catalog, dayPartFactor);
 
       if (items.length === 0) {
         notify.error('Keine Artikel zum Speichern vorhanden');
@@ -487,6 +295,13 @@ export default function BreakfastWizardPage() {
               )}
             </div>
           </section>
+        )}
+        {!directMealLoading && !directMealNotFound && step !== 'preset' && profileHints.length > 0 && (
+          <div className="mb-4 rounded-xl bg-warning-soft p-4 text-body" role="status" aria-label="Hinweise zum Frühstücksprofil">
+            <ul className="list-disc space-y-1 pl-5">
+              {profileHints.map((hint) => <li key={hint}>{hint}</li>)}
+            </ul>
+          </div>
         )}
         {!directMealLoading && !directMealNotFound && step === 'basis' && (
           <>
