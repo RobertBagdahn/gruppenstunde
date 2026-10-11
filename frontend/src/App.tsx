@@ -19,7 +19,6 @@ import QRCodePage from './pages/QRCodePage';
 import ParentPage from './pages/ParentPage';
 import AdminPage from './pages/AdminPage';
 import AdminUserDetailPage from './pages/AdminUserDetailPage';
-import IdeaOfTheWeekPage from './pages/IdeaOfTheWeekPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AboutPage from './pages/AboutPage';
@@ -122,7 +121,6 @@ function App() {
             <Route path=":section" element={null} />
           </Route>
           <Route path="/admin/users/:userId" element={<AdminUserDetailPage />} />
-          <Route path="/admin/idea-of-the-week" element={<IdeaOfTheWeekPage />} />
         </Route>
 
         {/* Materials */}

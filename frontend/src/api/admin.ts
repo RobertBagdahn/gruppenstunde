@@ -88,53 +88,6 @@ export function useModerateComment() {
   });
 }
 
-// --- Idea of the Week ---
-
-const IdeaOfTheWeekEntrySchema = z.object({
-  id: z.number(),
-  idea: z.object({
-    id: z.number(),
-    title: z.string(),
-    slug: z.string(),
-    summary: z.string(),
-  }),
-  release_date: z.string(),
-  description: z.string(),
-});
-export type IdeaOfTheWeekEntry = z.infer<typeof IdeaOfTheWeekEntrySchema>;
-
-export function useIdeasOfTheWeek() {
-  return useQuery<IdeaOfTheWeekEntry[]>({
-    queryKey: ['admin', 'idea-of-the-week'],
-    queryFn: () => fetchJson(`${API_BASE}/idea-of-the-week/`, z.array(IdeaOfTheWeekEntrySchema)),
-  });
-}
-
-export function useSetIdeaOfWeek() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: { idea_id: number; description?: string; release_date?: string }) =>
-      postJson(`${API_BASE}/idea-of-the-week/`, body, IdeaOfTheWeekEntrySchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'idea-of-the-week'] });
-    },
-  });
-}
-
-export function useRemoveIdeaOfWeek() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (entryId: number) =>
-      fetch(`${API_BASE}/idea-of-the-week/${entryId}/`, { method: 'DELETE' }).then((res) => {
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        return res.json();
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'idea-of-the-week'] });
-    },
-  });
-}
-
 // --- Users ---
 
 const AdminUserSchema = z.object({
