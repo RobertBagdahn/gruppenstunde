@@ -351,7 +351,7 @@ class TestUpdateItem:
         assert res.status_code == 200
         data = res.json()
         assert data["is_checked"] is True
-        assert data["checked_by_username"] is not None
+        assert data["checked_by_display_name"] == f"Inspi-Nutzer #{client_alice._user.id}"
 
     def test_uncheck_item(self, client_alice, shopping_list_with_items):
         sl = shopping_list_with_items
@@ -370,7 +370,7 @@ class TestUpdateItem:
         assert res.status_code == 200
         data = res.json()
         assert data["is_checked"] is False
-        assert data["checked_by_username"] is None
+        assert data["checked_by_display_name"] is None
 
 
 @pytest.mark.django_db
@@ -669,18 +669,25 @@ class TestShoppingListViewBugFixes:
         assert response.status_code == 200
         assert response.json()["groups"][0]["source"] == "Quellen-Rezept"
 
-    def test_list_users_returns_paginated_response(self, client_alice):
-        """list_users must return paginated data to authenticated users."""
-        res = client_alice.get("/api/shopping-lists/users/")
+    def test_list_users_returns_paginated_response(self, client_alice, other_user):
+        """list_users must return paginated display names to authenticated users."""
+        other_user.first_name = "Bob"
+        other_user.save()
+        res = client_alice.get("/api/shopping-lists/users/?q=bob")
         assert res.status_code == 200
         data = res.json()
-        assert "items" in data
-        assert "total" in data
-        assert "page" in data
+        assert data["items"] == [{"id": other_user.id, "display_name": "Bob"}]
+        assert data["total"] == 1
+        assert data["page"] == 1
+
+    def test_list_users_requires_query(self, client_alice):
+        """list_users must not list all users without a search query."""
+        res = client_alice.get("/api/shopping-lists/users/")
+        assert res.status_code == 422
 
     def test_list_users_page_size_limit(self, client_alice):
-        """list_users must reject page_size > 50."""
-        res = client_alice.get("/api/shopping-lists/users/?page_size=200")
+        """list_users must reject page_size > 20."""
+        res = client_alice.get("/api/shopping-lists/users/?q=bob&page_size=21")
         assert res.status_code == 422
 
     def test_shopping_list_search_server_side(self, client_alice, user):

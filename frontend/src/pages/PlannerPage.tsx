@@ -10,9 +10,8 @@ import {
   useUpdatePlannerEntry,
   useRemovePlannerEntry,
   useInviteCollaborator,
-  useSearchUsers,
-  type UserSearchResult,
 } from '@/api/planner';
+import { useSearchUsers, type UserSearchResult } from '@/api/users';
 import { useCurrentUser } from '@/api/auth';
 import { useUnifiedAutocomplete, type AutocompleteResult } from '@/api/search';
 import { WEEKDAY_LABELS, type PlannerEntry } from '@/schemas/planner';
@@ -704,7 +703,7 @@ function InviteSection({
         <input
           type="text"
           placeholder="Person einladen..."
-          value={selectedUser ? selectedUser.scout_display_name : query}
+          value={selectedUser ? selectedUser.display_name : query}
           onChange={(e) => {
             setQuery(e.target.value);
             setSelectedUser(null);
@@ -738,8 +737,7 @@ function InviteSection({
                   }}
                   className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
                 >
-                  <span className="font-medium">{user.scout_display_name}</span>
-                  <span className="text-muted-foreground ml-2 text-xs">{user.email}</span>
+                  <span className="font-medium">{user.display_name}</span>
                 </button>
               </li>
             ))}

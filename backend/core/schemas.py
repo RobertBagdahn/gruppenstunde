@@ -26,10 +26,10 @@ class ErrorOut(Schema):
 
 
 class UserSimpleOut(Schema):
-    """Minimal user info for collaborator selection."""
+    """Minimal user info for collaborator selection; never contains the e-mail address."""
 
     id: int
-    username: str
+    display_name: str
 
 
 class PaginatedUserOut(Schema):

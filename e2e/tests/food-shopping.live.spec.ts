@@ -24,7 +24,7 @@ interface ShoppingListDetail {
 
 interface UserSummary {
   id: number;
-  username: string;
+  display_name: string;
 }
 
 async function createShoppingList(
@@ -71,10 +71,13 @@ async function addShoppingItem(
   return Number(body.id);
 }
 
-async function getUsers(api: Parameters<typeof getCsrfToken>[0]): Promise<UserSummary[]> {
-  const response = await api.get('/api/shopping-lists/users/?page_size=50');
+/** Looks up a seed user by exact e-mail; the API only returns display names. */
+async function getUserByEmail(api: Parameters<typeof getCsrfToken>[0], email: string): Promise<UserSummary> {
+  const response = await api.get(`/api/shopping-lists/users/?q=${encodeURIComponent(email)}`);
   const body = assertRecord(await expectJsonResponse(response));
-  return body.items as UserSummary[];
+  const [user] = body.items as UserSummary[];
+  expect(user, `seed user ${email}`).toBeTruthy();
+  return user;
 }
 
 test.describe('Shopping list permissions and persistence', () => {
@@ -104,19 +107,20 @@ test.describe('Shopping list permissions and persistence', () => {
     const list = await createShoppingList(api, uniqueName('E2E Rollen Liste'));
     resources.track({ kind: 'shopping-list', id: list.id });
     await addShoppingItem(api, list.id, uniqueName('E2E Rollen Eintrag'));
-    const users = await getUsers(api);
     const roleCredentials = [
-      { username: 'user', role: 'admin', email: 'user@user.de' },
-      { username: 'author1', role: 'editor', email: 'author1@author1.de' },
-      { username: 'seed_user', role: 'viewer', email: 'seed@example.com' },
+      { role: 'admin', email: 'user@user.de' },
+      { role: 'editor', email: 'author1@author1.de' },
+      { role: 'viewer', email: 'seed@example.com' },
     ] as const;
+    const roleUsers = new Map<string, UserSummary>();
     for (const credentials of roleCredentials) {
-      expect(users.find((user) => user.username === credentials.username)).toBeTruthy();
+      roleUsers.set(credentials.email, await getUserByEmail(api, credentials.email));
     }
+    const invitee = await getUserByEmail(api, 'staff@staff.de');
 
     const csrf = await getCsrfToken(api);
     for (const credentials of roleCredentials) {
-      const roleUser = users.find((user) => user.username === credentials.username);
+      const roleUser = roleUsers.get(credentials.email);
       const response = await api.post(`/api/shopping-lists/${list.id}/collaborators/`, {
         headers: { 'X-CSRFToken': csrf },
         data: { user_id: roleUser?.id, role: credentials.role },
@@ -132,8 +136,7 @@ test.describe('Shopping list permissions and persistence', () => {
 
     const baseURL = new URL(foodPage.url()).origin;
     for (const credentials of roleCredentials) {
-      const user = users.find((candidate) => candidate.username === credentials.username);
-      expect(user).toBeTruthy();
+      expect(roleUsers.get(credentials.email)).toBeTruthy();
       const context = await browser.newContext({ baseURL });
       await context.routeWebSocket(/\/ws\/shopping-lists\/\d+\/$/, (webSocket) => {
         void webSocket.close({ code: 1000, reason: 'REST-only E2E test boundary' });
@@ -164,13 +167,9 @@ test.describe('Shopping list permissions and persistence', () => {
         });
         expect(deleteResponse.status()).toBe(403);
 
-        const invitee = users.find((candidate) =>
-          candidate.id !== list.owner_id
-          && !roleCredentials.some((roleCredential) => roleCredential.username === candidate.username),
-        );
         const collaboratorResponse = await rolePage.request.post(`/api/shopping-lists/${list.id}/collaborators/`, {
           headers: { 'X-CSRFToken': roleCsrf },
-          data: { user_id: invitee?.id, role: 'viewer' },
+          data: { user_id: invitee.id, role: 'viewer' },
         });
         expect(collaboratorResponse.status()).toBe(credentials.role === 'admin' ? 200 : 403);
 

@@ -9,11 +9,12 @@ from django.db.models import Count, Q
 from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Query, Router
+from ninja import Router
 from ninja.errors import HttpError
 
 from content.api.helpers import paginate_queryset
 from core.permissions import require_login
+from core.services.user_directory import USER_SEARCH_MAX_PAGE_SIZE, search_user_directory
 from supply.models import Portion
 
 from .models import (
@@ -48,7 +49,6 @@ from .schemas import (
     ShoppingListItemUpdateIn,
     ShoppingListOut,
     ShoppingListUpdateIn,
-    UserSimpleOut,
 )
 
 shopping_router = Router(tags=["shopping-lists"])
@@ -130,7 +130,7 @@ def list_shopping_lists(
     require_login(request)
     qs = (
         ShoppingList.objects.filter(Q(owner=request.user) | Q(collaborators__user=request.user))
-        .select_related("owner")
+        .select_related("owner__profile")
         .annotate(
             items_count=Count("items", distinct=True),
             checked_count=Count("items", filter=Q(items__is_checked=True), distinct=True),
@@ -179,32 +179,11 @@ def list_users(
     request,
     q: str = "",
     page: int = 1,
-    page_size: int = Query(default=20, le=50),
+    page_size: int = USER_SEARCH_MAX_PAGE_SIZE,
 ):
-    """Return users for collaborator invite dropdown (paginated, searchable)."""
+    """Search users by name (or exact e-mail) for the collaborator invite flow."""
     require_login(request)
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-    qs = User.objects.order_by("username")
-    if q:
-        qs = qs.filter(username__icontains=q)
-
-    total = qs.count()
-    total_pages = max(1, (total + page_size - 1) // page_size)
-    offset = (page - 1) * page_size
-    users = [
-        UserSimpleOut(id=u["id"], username=u["username"])
-        for u in qs.values("id", "username")[offset : offset + page_size]
-    ]
-
-    return {
-        "items": users,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": total_pages,
-    }
+    return search_user_directory(q, page=page, page_size=page_size)
 
 
 # ---------------------------------------------------------------------------

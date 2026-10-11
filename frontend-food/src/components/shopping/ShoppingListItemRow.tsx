@@ -201,9 +201,9 @@ export default function ShoppingListItemRow({
         )}
 
         {/* Checked-by indicator */}
-        {item.is_checked && item.checked_by_username && !showChecker && (
+        {item.is_checked && item.checked_by_display_name && !showChecker && (
           <span className="text-caption font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40 shrink-0">
-            {item.checked_by_username}
+            {item.checked_by_display_name}
           </span>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import StaffRoute from './components/auth/StaffRoute';
 import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import CreateHubPage from './pages/CreateHubPage';
@@ -113,13 +114,15 @@ function App() {
         <Route path="/packing-lists/shared/:token" element={<PackingListSharePage />} />
         <Route path="/packing-lists/:id" element={<PackingListDetailPage />} />
 
-        {/* Admin */}
-        <Route path="/admin" element={<AdminPage />}>
-          <Route index element={null} />
-          <Route path=":section" element={null} />
+        {/* Admin (staff only) */}
+        <Route element={<StaffRoute />}>
+          <Route path="/admin" element={<AdminPage />}>
+            <Route index element={null} />
+            <Route path=":section" element={null} />
+          </Route>
+          <Route path="/admin/users/:userId" element={<AdminUserDetailPage />} />
+          <Route path="/admin/idea-of-the-week" element={<IdeaOfTheWeekPage />} />
         </Route>
-        <Route path="/admin/users/:userId" element={<AdminUserDetailPage />} />
-        <Route path="/admin/idea-of-the-week" element={<IdeaOfTheWeekPage />} />
 
         {/* Materials */}
         <Route path="/materials" element={<MaterialListPage />} />

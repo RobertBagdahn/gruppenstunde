@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useCurrentUser } from '@/api/auth';
 import type { ToolConfig } from '@/lib/toolColors';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +62,9 @@ export default function ToolLandingPage({
   sandbox,
   children,
 }: ToolLandingProps) {
+  const { data: user } = useCurrentUser();
+  const isLoggedIn = !!user;
+
   return (
     <div>
       {/* ============================================================ */}
@@ -306,7 +310,9 @@ export default function ToolLandingPage({
             Bereit loszulegen?
           </h2>
           <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
-            Erstelle ein kostenloses Konto und nutze alle Funktionen des {tool.label}s.
+            {isLoggedIn
+              ? `Leg direkt los und nutze alle Funktionen des ${tool.label}s.`
+              : `Erstelle ein kostenloses Konto und nutze alle Funktionen des ${tool.label}s.`}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -316,13 +322,15 @@ export default function ToolLandingPage({
               <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
               {ctaLabel}
             </Link>
-            <Link
-              to="/login"
-              className="flex items-center gap-2 px-8 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-sm font-bold hover:bg-white/25 hover:scale-105 transition-all"
-            >
-              <span className="material-symbols-outlined text-[20px]">login</span>
-              Kostenlos anmelden
-            </Link>
+            {!isLoggedIn && (
+              <Link
+                to="/login"
+                className="flex items-center gap-2 px-8 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-sm font-bold hover:bg-white/25 hover:scale-105 transition-all"
+              >
+                <span className="material-symbols-outlined text-[20px]">login</span>
+                Kostenlos anmelden
+              </Link>
+            )}
           </div>
         </div>
       </section>

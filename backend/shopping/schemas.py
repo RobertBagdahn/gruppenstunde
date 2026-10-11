@@ -5,6 +5,7 @@ from datetime import datetime
 from ninja import Schema
 from pydantic import Field
 
+from core.services.user_directory import public_display_name
 from planner.schemas.buffet import QuantityWarningOut
 
 # --- Collaborator schemas ---
@@ -15,12 +16,12 @@ class ShoppingListCollaboratorOut(Schema):
 
     id: int
     user_id: int
-    username: str = ""
+    display_name: str = ""
     role: str
 
     @staticmethod
-    def resolve_username(obj) -> str:
-        return obj.user.username if obj.user else ""
+    def resolve_display_name(obj) -> str:
+        return public_display_name(obj.user)
 
 
 # --- Item schemas ---
@@ -134,7 +135,7 @@ class ShoppingListItemOut(Schema):
     retail_section_id: int | None = None
     retail_section_name: str = ""
     is_checked: bool
-    checked_by_username: str | None = None
+    checked_by_display_name: str | None = None
     checked_at: datetime | None = None
     sort_order: int
     note: str = ""
@@ -167,9 +168,9 @@ class ShoppingListItemOut(Schema):
         return str(section.name) if section else ""
 
     @staticmethod
-    def resolve_checked_by_username(obj) -> str | None:
+    def resolve_checked_by_display_name(obj) -> str | None:
         if obj.checked_by:
-            return str(obj.checked_by.username)
+            return public_display_name(obj.checked_by)
         return None
 
     @staticmethod
@@ -292,7 +293,7 @@ class ShoppingListOut(Schema):
     id: int
     name: str
     owner_id: int
-    owner_username: str = ""
+    owner_display_name: str = ""
     source_type: str
     source_id: int | None = None
     items_count: int = 0
@@ -304,8 +305,8 @@ class ShoppingListOut(Schema):
     can_delete: bool = False
 
     @staticmethod
-    def resolve_owner_username(obj) -> str:
-        return obj.owner.username if obj.owner else ""
+    def resolve_owner_display_name(obj) -> str:
+        return public_display_name(obj.owner)
 
     @staticmethod
     def resolve_items_count(obj) -> int:
@@ -327,7 +328,7 @@ class ShoppingListDetailOut(Schema):
     id: int
     name: str
     owner_id: int
-    owner_username: str = ""
+    owner_display_name: str = ""
     source_type: str
     source_id: int | None = None
     items: list[ShoppingListItemOut] = []
@@ -344,20 +345,22 @@ class ShoppingListDetailOut(Schema):
         return [warning.as_dict() for warning in getattr(obj, "quantity_warnings", [])]
 
     @staticmethod
-    def resolve_owner_username(obj) -> str:
-        return obj.owner.username if obj.owner else ""
+    def resolve_owner_display_name(obj) -> str:
+        return public_display_name(obj.owner)
 
     @staticmethod
     def resolve_items(obj) -> list:
         return list(
-            obj.items.select_related("retail_section", "checked_by", "ingredient", "ingredient__retail_section")
+            obj.items.select_related(
+                "retail_section", "checked_by__profile", "ingredient", "ingredient__retail_section"
+            )
             .prefetch_related("sources", "ingredient__portions")
             .all()
         )
 
     @staticmethod
     def resolve_collaborators(obj) -> list:
-        return list(obj.collaborators.select_related("user").all())
+        return list(obj.collaborators.select_related("user__profile").all())
 
     @staticmethod
     def resolve_can_edit(obj) -> bool:

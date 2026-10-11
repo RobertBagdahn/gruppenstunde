@@ -10,7 +10,7 @@ import { QuantityWarningSchema } from './buffet';
 export const ShoppingListCollaboratorSchema = z.object({
   id: z.number(),
   user_id: z.number(),
-  username: z.string().default(''),
+  display_name: z.string().default(''),
   role: z.string(),
 });
 
@@ -74,7 +74,7 @@ export const ShoppingListItemSchema = z.object({
   retail_section_id: z.number().nullable().optional(),
   retail_section_name: z.string().default(''),
   is_checked: z.boolean(),
-  checked_by_username: z.string().nullable().optional(),
+  checked_by_display_name: z.string().nullable().optional(),
   checked_at: z.string().nullable().optional(),
   sort_order: z.number(),
   note: z.string().default(''),
@@ -97,7 +97,7 @@ export const ShoppingListSchema = z.object({
   id: z.number(),
   name: z.string(),
   owner_id: z.number(),
-  owner_username: z.string().default(''),
+  owner_display_name: z.string().default(''),
   source_type: z.string(),
   source_id: z.number().nullable().optional(),
   items_count: z.number().default(0),
@@ -117,7 +117,7 @@ export const ShoppingListDetailSchema = z.object({
   id: z.number(),
   name: z.string(),
   owner_id: z.number(),
-  owner_username: z.string().default(''),
+  owner_display_name: z.string().default(''),
   source_type: z.string(),
   source_id: z.number().nullable().optional(),
   items: z.array(ShoppingListItemSchema).default([]),
