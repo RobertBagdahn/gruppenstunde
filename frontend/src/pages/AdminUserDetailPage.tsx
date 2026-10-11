@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useAdminUserDetail } from '@/api/admin';
 import { BackButton } from '@/components/shared/BackButton';
+import { formatEuro } from '@/lib/formatCurrency';
 
 /** Map content_type to content URL prefix */
 function contentUrlForSlug(slug: string, contentType?: string): string {
@@ -87,8 +88,8 @@ export default function AdminUserDetailPage() {
         <div className="border rounded-lg p-3">
           <div className="text-xs text-muted-foreground mb-1">KI-Verbrauch</div>
           <span className="text-sm">
-            heute {user.ai_used_today_eur.toFixed(2)} € von {user.ai_daily_limit_eur.toFixed(2)} € · 30 Tage{' '}
-            {user.ai_used_30d_eur.toFixed(2)} €
+            heute {formatEuro(user.ai_used_today_eur)} von {formatEuro(user.ai_daily_limit_eur)} · 30 Tage{' '}
+            {formatEuro(user.ai_used_30d_eur)}
           </span>
         </div>
       </div>

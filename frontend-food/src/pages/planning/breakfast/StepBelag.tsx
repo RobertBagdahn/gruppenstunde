@@ -61,7 +61,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
     initToppings(items);
   }, [catalog, state.toppings.length, initToppings]);
 
-  const { toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, 0);
+  const { toppingKcal, toppingBudgetKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, 0);
   const totalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
   const activeToppings = state.toppings.filter((t) => t.sharePercent > 0);
 
@@ -124,7 +124,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
           </div>
           <div className="space-y-4">
             {state.toppings.map((t, i) => {
-              const grams = toppingItemGrams(t.sharePercent, totalShare, toppingKcal, t.energyKcal100g);
+              const grams = toppingItemGrams(t.sharePercent, totalShare, toppingBudgetKcal, t.energyKcal100g);
               const kcal = t.energyKcal100g ? (t.energyKcal100g / 100) * grams : null;
               const gramsWithHint = formatGramsWithPortionHint(grams, t.portions);
               return (

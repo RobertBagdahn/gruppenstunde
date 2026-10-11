@@ -10,6 +10,7 @@ import type {
   BaseIngredient,
   BreakfastCatalog,
   BreakfastProfileSlug,
+  ToppingIngredient,
   WizardState,
 } from '@/schemas/breakfast';
 import {
@@ -29,6 +30,8 @@ export const BREAKFAST_PROFILES: Array<{ id: BreakfastProfileSlug; title: string
 
 const CEREAL_TERMS = ['müsli', 'haferflock', 'cornflake'];
 const MEAT_TERMS = ['leberwurst', 'salami', 'schinken', 'putenbrust', 'thunfisch'];
+const CHEESE_TERMS = ['käse', 'edamer', 'gouda', 'emmentaler', 'camembert', 'brie', 'mozzarella', 'tilsiter'];
+const SWEET_TOPPING_TERMS = ['honig', 'marmelade', 'konfitüre', 'gelee', 'nougat'];
 const ANIMAL_PRODUCT_TERMS = ['käse', 'edamer', 'gouda', 'emmentaler', 'frischkäse', 'honig'];
 const PROFILE_EXTRA_FRUIT_TERMS = ['apfel', 'banane', 'erdbeere', 'orange', 'beere'];
 
@@ -106,8 +109,28 @@ export function buildBreakfastProfileState(
         return true;
       });
   // "Nur Müsli" lists all toppings at 0 %: explicitly no topping, but still selectable.
-  const activeTopping = isMuesliOnly ? undefined : toppings.find(hasUsableKcal);
-  if (!isMuesliOnly && !activeTopping) {
+  const toppingShares = new Map<number, number>();
+  if (profile === 'vegetarian') {
+    // As described: cheese plus a (preferably sweet) vegetarian spread, half each.
+    const isCheese = (item: ToppingIngredient) => nameMatches(item.name, CHEESE_TERMS);
+    const cheese = toppings.find((item) => isCheese(item) && hasUsableKcal(item));
+    const spreads = toppings.filter((item) => !isCheese(item) && hasUsableKcal(item));
+    const spread = spreads.find((item) => nameMatches(item.name, SWEET_TOPPING_TERMS)) ?? spreads[0];
+    if (cheese && spread) {
+      toppingShares.set(cheese.id, 50);
+      toppingShares.set(spread.id, 50);
+    } else if (cheese || spread) {
+      const onlyTopping = cheese ?? spread;
+      if (onlyTopping) toppingShares.set(onlyTopping.id, 100);
+      hints.push(cheese
+        ? 'Kein vegetarischer Aufstrich mit kcal-Angabe gefunden. Der Belag enthält nur Käse.'
+        : 'Kein Käse mit kcal-Angabe gefunden. Der Belag enthält nur Aufstrich.');
+    }
+  } else if (!isMuesliOnly) {
+    const firstUsableTopping = toppings.find(hasUsableKcal);
+    if (firstUsableTopping) toppingShares.set(firstUsableTopping.id, 100);
+  }
+  if (!isMuesliOnly && toppingShares.size === 0) {
     hints.push('Kein passender Belag mit kcal-Angabe gefunden. Der Belag bleibt leer.');
   }
   // Without a matching topping, all toppings stay listed at 0 % so the step does not refill defaults.
@@ -148,7 +171,7 @@ export function buildBreakfastProfileState(
       sliceWeightG: item.standard_recipe_weight_g ?? 50,
       energyKcal100g: item.energy_kcal,
     })),
-    toppings: toppingOptions.map((item) => toppingSelectionFromCatalog(item, item.id === activeTopping?.id ? 100 : 0)),
+    toppings: toppingOptions.map((item) => toppingSelectionFromCatalog(item, toppingShares.get(item.id) ?? 0)),
     fatSelections: fatSelectionsWithNoFat(fats, activeFat?.id ?? null, DEFAULT_FIRST_FAT_SHARE_PERCENT),
     drinkRecipes: [
       ...drinks.map((item, index) => ({ recipeId: item.id, name: item.title, sharePercent: index === 0 ? 100 : 0, locked: false, energyKcal: item.cached_energy_total_kcal })),

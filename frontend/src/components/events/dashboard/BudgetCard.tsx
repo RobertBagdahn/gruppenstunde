@@ -3,6 +3,7 @@
  * Shows income vs expense bar and a link to the full budget view.
  */
 import { useBudgetSummary } from '@/api/eventDashboard';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   slug: string;
@@ -31,7 +32,7 @@ export default function BudgetCard({ slug, onGoToBudget }: Props) {
         <div>
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-muted-foreground">Einnahmen</span>
-            <span className="font-medium text-emerald-600">{income.toFixed(2)}&euro;</span>
+            <span className="font-medium text-emerald-600">{formatEuro(income)}</span>
           </div>
           <div className="h-2 bg-muted rounded-full">
             <div
@@ -45,7 +46,7 @@ export default function BudgetCard({ slug, onGoToBudget }: Props) {
         <div>
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-muted-foreground">Ausgaben</span>
-            <span className="font-medium text-red-600">{expenses.toFixed(2)}&euro;</span>
+            <span className="font-medium text-red-600">{formatEuro(expenses)}</span>
           </div>
           <div className="h-2 bg-muted rounded-full">
             <div
@@ -59,7 +60,7 @@ export default function BudgetCard({ slug, onGoToBudget }: Props) {
         <div className="flex items-center justify-between pt-2 border-t">
           <span className="text-xs font-medium text-muted-foreground">Saldo</span>
           <span className={`text-sm font-bold ${balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-            {balance >= 0 ? '+' : ''}{balance.toFixed(2)}&euro;
+            {balance >= 0 ? '+' : ''}{formatEuro(balance)}
           </span>
         </div>
       </div>

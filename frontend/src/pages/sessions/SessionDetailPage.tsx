@@ -37,6 +37,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { formatEuro } from '@/lib/formatCurrency';
 
 // Scout level colors
 const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -125,7 +126,7 @@ export default function SessionDetailPage() {
     EXECUTION_TIME_OPTIONS.find((t) => t.value === session.execution_time)?.label ??
     session.execution_time;
   const costsLabel: string | null = session.costs_per_person != null
-    ? `${Number(session.costs_per_person).toFixed(2).replace('.', ',')} € pro Person`
+    ? `${formatEuro(session.costs_per_person)} pro Person`
     : null;
   const sessionTypeLabel =
     SESSION_TYPE_OPTIONS.find((s) => s.value === session.session_type)?.label ??

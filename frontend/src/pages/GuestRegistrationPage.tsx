@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { usePublicEvent, useGuestRegistration, useGenderChoices } from '@/api/events';
 import { cn } from '@/lib/utils';
 import type { GuestRegistrationPerson } from '@/schemas/event';
+import { formatEuro } from '@/lib/formatCurrency';
 
 // ---------------------------------------------------------------------------
 // Person Form Row
@@ -165,7 +166,7 @@ function PersonForm({
             </option>
             {availableOptions.map((opt) => (
               <option key={opt.id} value={opt.id}>
-                {opt.name} ({parseFloat(opt.price).toFixed(2)} &euro;)
+                {opt.name} ({formatEuro(opt.price)})
               </option>
             ))}
           </select>

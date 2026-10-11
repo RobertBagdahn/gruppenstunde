@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { EventDetail } from '@/schemas/event';
 import { usePersons, useRegisterForEvent, useRemoveParticipant } from '@/api/events';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   event: EventDetail;
@@ -308,7 +309,7 @@ function RegisterForm({ event, isAdditional }: Props & { isAdditional?: boolean 
                       >
                         {availableOptions.map((opt) => (
                           <option key={opt.id} value={opt.id}>
-                            {opt.name} ({parseFloat(opt.price).toFixed(2)}&euro;)
+                            {opt.name} ({formatEuro(opt.price)})
                           </option>
                         ))}
                       </select>

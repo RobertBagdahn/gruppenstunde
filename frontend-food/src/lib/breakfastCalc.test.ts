@@ -179,10 +179,33 @@ describe('distributableKcal', () => {
 describe('computeGroupKcal', () => {
   it('returns 0 for bread and fat, full distributable goes to topping with empty basis', () => {
     const total = distributableKcal(0.3, 0);
-    const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal([], [], [], 150, 0.3, 0);
+    const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal([], [makeTopping()], [], 150, 0.3, 0);
     expect(breadKcal).toBe(0);
     expect(fatKcal).toBe(0);
     expect(toppingKcal).toBeCloseTo(total);
+  });
+
+  it('counts no topping kcal without selected toppings, but keeps the budget', () => {
+    const basis = [makeBasis({ sharePercent: 100, energyKcal100g: 250 })];
+    const toppings = [makeTopping({ sharePercent: 0 })];
+    const { toppingKcal, toppingBudgetKcal } = computeGroupKcal(basis, toppings, [], 150, 0.3, 0);
+    expect(toppingKcal).toBe(0);
+    expect(toppingBudgetKcal).toBeCloseTo(NORM_PERSON_DAILY_KCAL * 0.3 - 375);
+  });
+
+  it('toppingKcal equals the kcal of the topping grams, skipping toppings without kcal', () => {
+    const basis = [makeBasis({ sharePercent: 100, energyKcal100g: 250 })];
+    const toppings = [
+      makeTopping({ ingredientId: 2, sharePercent: 50, energyKcal100g: 300 }),
+      makeTopping({ ingredientId: 3, sharePercent: 50, energyKcal100g: null }),
+    ];
+    const { toppingKcal, toppingBudgetKcal } = computeGroupKcal(basis, toppings, [], 150, 0.3, 0);
+    const itemKcal = toppings.reduce((sum, t) => {
+      const grams = toppingItemGrams(t.sharePercent, 100, toppingBudgetKcal, t.energyKcal100g);
+      return sum + (t.energyKcal100g ? (t.energyKcal100g / 100) * grams : 0);
+    }, 0);
+    expect(toppingKcal).toBeCloseTo(toppingBudgetKcal / 2);
+    expect(toppingKcal).toBeCloseTo(itemKcal);
   });
 
   it('breadKcal is fixed from gramsPerPerson × kcal density', () => {
@@ -209,7 +232,7 @@ describe('computeGroupKcal', () => {
     const fats = [makeFat({ sharePercent: 50, energyKcal100g: 717 })];
     // fatKcal = 50% × 8g × 717/100 = 28.68
     // toppingKcal = distributable - breadKcal - fatKcal
-    const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal(basis, [], fats, 150, 0.3, 0);
+    const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal(basis, [makeTopping()], fats, 150, 0.3, 0);
     expect(breadKcal).toBeCloseTo(375);
     expect(fatKcal).toBeCloseTo(0.5 * FAT_GRAMS_PER_PERSON * (717 / 100));
     expect(toppingKcal).toBeCloseTo(NORM_PERSON_DAILY_KCAL * 0.3 - 375 - fatKcal);
@@ -217,7 +240,7 @@ describe('computeGroupKcal', () => {
 
   it('reserves fixKcal from distributable pool', () => {
     const basis = [makeBasis({ sharePercent: 100, energyKcal100g: 250 })];
-    const { breadKcal, toppingKcal } = computeGroupKcal(basis, [], [], 150, 0.3, 100);
+    const { breadKcal, toppingKcal } = computeGroupKcal(basis, [makeTopping()], [], 150, 0.3, 100);
     // distributable = 700.5 - 100 = 600.5
     expect(toppingKcal).toBeCloseTo(600.5 - breadKcal);
   });
@@ -433,7 +456,7 @@ describe('normalizeScale', () => {
 
   it('returns 1.0 when already at target', () => {
     const basis = [makeBasis({ sharePercent: 100, energyKcal100g: 250 })];
-    const scale = normalizeScale(basis, [], [], 150, 0.3, 0);
+    const scale = normalizeScale(basis, [makeTopping()], [], 150, 0.3, 0);
     // breadKcal = 375, distributable = 700.5
     // target = 700.5 - 0 fixKcal = 700.5
     // targetTopping = 700.5 - 375 = 325.5
@@ -464,7 +487,7 @@ describe('energyTargetKcal', () => {
 describe('Ampel-Coverage-Logik', () => {
   it('breadKcal + fatKcal + toppingKcal = distributable (minus fixKcal)', () => {
     const basis = [makeBasis({ sharePercent: 100, energyKcal100g: 250 })];
-    const { breadKcal, toppingKcal } = computeGroupKcal(basis, [], [], 150, 0.3, 0);
+    const { breadKcal, toppingKcal } = computeGroupKcal(basis, [makeTopping()], [], 150, 0.3, 0);
     const target = distributableKcal(0.3, 0);
     expect(breadKcal + toppingKcal).toBeCloseTo(target);
   });

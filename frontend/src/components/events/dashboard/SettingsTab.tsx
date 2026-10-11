@@ -22,6 +22,7 @@ import {
 } from '@/api/events';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { MeetingPointPicker } from '@/components/events/MeetingPointPicker';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   event: EventDetail;
@@ -439,7 +440,7 @@ function BookingOptionsSection({ event }: Props) {
               <div className="flex items-center gap-2">
                 <span className="font-medium">{opt.name}</span>
                 <span className="text-muted-foreground">
-                  {parseFloat(opt.price).toFixed(2)}&nbsp;&euro;
+                  {formatEuro(opt.price)}
                 </span>
                 {opt.max_participants > 0 && (
                   <span className="text-muted-foreground">

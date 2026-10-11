@@ -5,6 +5,7 @@ import { Sparkles } from 'lucide-react';
 import { useAiQuota } from '@/api/ai';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { formatEuro } from '@/lib/formatCurrency';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -24,7 +25,7 @@ export default function AiQuotaBar({ showEuro = false, className }: { showEuro?:
         </span>
         {showEuro && (
           <span>
-            {quota.used_eur.toFixed(2)} € / {quota.limit_eur.toFixed(2)} €
+            {formatEuro(quota.used_eur)} / {formatEuro(quota.limit_eur)}
           </span>
         )}
       </div>

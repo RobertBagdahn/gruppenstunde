@@ -37,6 +37,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { formatEuro } from '@/lib/formatCurrency';
 
 // Scout level colors
 const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -237,7 +238,7 @@ export default function BlogDetailPage() {
     EXECUTION_TIME_OPTIONS.find((t) => t.value === blog.execution_time)?.label ??
     blog.execution_time;
   const costsLabel: string | null = blog.costs_per_person != null
-    ? `${Number(blog.costs_per_person).toFixed(2).replace('.', ',')} € pro Person`
+    ? `${formatEuro(blog.costs_per_person)} pro Person`
     : null;
   const blogTypeLabel =
     BLOG_TYPE_OPTIONS.find((t) => t.value === blog.blog_type)?.label ??

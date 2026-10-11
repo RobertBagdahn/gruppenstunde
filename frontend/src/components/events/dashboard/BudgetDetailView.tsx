@@ -11,6 +11,7 @@ import {
 } from '@/api/eventDashboard';
 import type { BudgetItem } from '@/schemas/event';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { formatEuro } from '@/lib/formatCurrency';
 
 const CATEGORY_LABELS: Record<string, string> = {
   material: 'Material',
@@ -206,7 +207,7 @@ export default function BudgetDetailView({ slug }: Props) {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`font-medium ${item.is_expense ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {item.is_expense ? '-' : '+'}{parseFloat(item.amount).toFixed(2)}&euro;
+                    {item.is_expense ? '-' : '+'}{formatEuro(item.amount)}
                   </span>
                   <button
                     onClick={() => setConfirmDeleteId(item.id)}
@@ -251,7 +252,7 @@ function SummaryCard({ label, value, color, prefix = '' }: { label: string; valu
   return (
     <div className="p-3 rounded-lg bg-muted/50 text-center">
       <p className={`text-lg font-bold ${colorMap[color] ?? ''}`}>
-        {prefix}{value.toFixed(2)}&euro;
+        {prefix}{formatEuro(value)}
       </p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
