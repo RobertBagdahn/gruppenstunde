@@ -297,6 +297,24 @@ def _compute_scaled_ingredients(
             continue
 
         portion = ri.portion
+        standard_key = ri.standard_measure_key or ""
+        if standard_key:
+            from recipe.services.recipe_item_helpers import get_recipe_item_ingredient, resolve_recipe_item_grams
+            from supply.services.quantity_units import STANDARD_MEASURE_LABELS
+
+            ingredient = get_recipe_item_ingredient(ri)
+            standard_weight_g = resolve_recipe_item_grams(ri)
+            ingredients.append(
+                CookingScheduleIngredient(
+                    name=ingredient.name if ingredient else (ri.note or "Zutat"),
+                    quantity=round(ri.quantity * scale, 2),
+                    unit=STANDARD_MEASURE_LABELS.get(standard_key, standard_key),
+                    note=ri.note or "",
+                    is_optional=ri.is_optional,
+                    weight_g=round(standard_weight_g * scale, 1) if standard_weight_g is not None else None,
+                )
+            )
+            continue
         if portion is None:
             from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 

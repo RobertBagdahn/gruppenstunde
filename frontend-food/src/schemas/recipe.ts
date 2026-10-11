@@ -85,6 +85,11 @@ export const RecipeItemSchema = z.object({
   ingredient_name: z.string().default(''),
   ingredient_slug: z.string().nullable().optional(),
   quantity: z.number(),
+  /** Standard measure key (el, tl, tasse, prise, msp); quantity is then a count of it. */
+  standard_measure_key: z.string().nullable().optional(),
+  unit_kind: z.enum(['grams', 'milliliters', 'portion', 'standard']).nullable().optional(),
+  unit_label: z.string().optional(),
+  is_weight_approx: z.boolean().optional(),
   client_request_id: z.string().nullable().optional(),
   idempotency_key: z.string().nullable().optional(),
   measuring_unit_id: z.number().nullable().optional(),

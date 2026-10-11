@@ -374,6 +374,8 @@ export function useCreateRecipeItem(recipeId: number) {
     mutationFn: (data: {
       portion_id: number | null;
       ingredient_id?: number | null;
+      /** Standard measure key (el, tl, tasse, …); '' = portion/gram item. */
+      standard_measure_key?: string;
       quantity?: number;
       sort_order?: number;
       note?: string;
