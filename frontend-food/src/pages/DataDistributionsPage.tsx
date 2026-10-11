@@ -1,3 +1,4 @@
+import HeroBand from '@/components/shared/HeroBand';
 import { useState } from 'react';
 import { nutriScoreFill } from '@/components/shared/NutriScoreBadge';
 import { cn } from '@/lib/utils';
@@ -27,24 +28,27 @@ export default function DataDistributionsPage() {
 
   return (
     <div className="container py-6 space-y-6">
-      <h1 className="text-title font-bold font-display">Datenverteilungen</h1>
+<HeroBand pullUpClassName="-mt-6" className="mb-6">
+      <h1 className="font-display text-display font-extrabold text-hero-foreground">Datenverteilungen</h1>
 
-      <div className="flex gap-1 border-b overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto pt-5">
         {TYPE_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setType(tab.key)}
             className={cn(
-              'px-4 py-2 text-body font-medium whitespace-nowrap border-b-2 transition-colors',
+              'press h-10 px-4 rounded-full text-body font-semibold whitespace-nowrap transition-colors',
               type === tab.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                ? 'bg-hero-foreground text-foreground'
+                : 'text-hero-muted hover:bg-hero-soft hover:text-hero-foreground'
             )}
           >
             {tab.label}
           </button>
         ))}
       </div>
+
+      </HeroBand>
 
       {type === 'ingredients' ? <IngredientCharts /> : <RecipeCharts />}
     </div>

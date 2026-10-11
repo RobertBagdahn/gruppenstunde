@@ -7,7 +7,6 @@ export interface ToolConfig {
   label: string;
   tagline?: string;
   icon: string;
-  gradient?: string;
   bgSolid?: string;
   textColor?: string;
   bgTint?: string;
@@ -35,7 +34,6 @@ export const TOOL_MEAL_PLAN: ToolConfig = {
   key: 'meal-plan',
   label: 'Essensplan',
   icon: 'restaurant_menu',
-  gradient: 'from-primary to-primary/90',
   bgSolid: 'bg-primary',
   textColor: 'text-primary',
   bgTint: 'bg-primary/5',

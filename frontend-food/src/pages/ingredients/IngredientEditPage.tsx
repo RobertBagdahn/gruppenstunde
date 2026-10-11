@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
@@ -376,32 +377,26 @@ export default function IngredientEditPage() {
   const inputClass = 'w-full px-3 py-2 rounded-lg border text-body bg-background';
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* Back link */}
-      <button
-        onClick={() => navigate(`/ingredients/${slug}`)}
-        className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground mb-4 transition"
-      >
-        <Icon name="arrow_back" size={20} />
-        Zurück zur Zutat
-      </button>
-
-      <h1 className="text-title font-display font-bold text-foreground mb-6 flex items-center gap-3">
-        <Icon name="egg_alt" size={24} className="text-primary" />
-        Zutat bearbeiten
-        {user?.is_staff && ingredient && (
+    <div className="pb-8">
+    <TitleBand
+      title="Zutat bearbeiten"
+      back={{ to: `/ingredients/${slug}`, label: 'Zurück zur Zutat' }}
+      aside={
+        user?.is_staff && ingredient ? (
           <Button
             variant="outline"
             size="sm"
             onClick={() => setMergeDialogOpen(true)}
-            className="ml-auto"
+            className="border-hero-muted/50 bg-transparent text-hero-foreground hover:bg-hero-soft hover:text-hero-foreground"
           >
-            <GitMerge className="h-4 w-4 mr-1" />
+            <GitMerge className="h-4 w-4" />
             Zutat zusammenführen
           </Button>
-        )}
-      </h1>
-
+        ) : null
+      }
+      innerClassName="max-w-3xl"
+    />
+    <div className="max-w-3xl mx-auto px-4">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Stammdaten */}
         <FormSection title="Stammdaten" icon="description">
@@ -736,6 +731,7 @@ export default function IngredientEditPage() {
           }}
         />
       )}
+    </div>
     </div>
   );
 }

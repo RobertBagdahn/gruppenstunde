@@ -1,3 +1,4 @@
+import PageHeader from '@/components/shared/PageHeader';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import type { FC } from 'react';
 
@@ -92,12 +93,12 @@ export default function IngredientStatisticsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-      <h1 className="font-display font-bold text-title md:text-title text-foreground mb-2">
-        Zutaten-Statistiken
-      </h1>
-      <p className="text-muted-foreground text-body mb-4">
-        Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank
-      </p>
+      <PageHeader
+        title="Zutaten-Statistiken"
+        description="Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank"
+        area="ingredients"
+        icon="bar_chart"
+      />
 
       {/* Tab bar */}
       <div className="relative mb-6">

@@ -229,7 +229,7 @@ export default function ShoppingListPage() {
           <UserIcon className="w-4 h-4" />
           Meine Daten
         </button>
-        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
+        <div className="flex items-center gap-2 bg-card shadow-soft px-4 py-2 rounded-xl">
           <ArrowUpDown className="w-4 h-4 text-primary" />
           <select
             value={sort}

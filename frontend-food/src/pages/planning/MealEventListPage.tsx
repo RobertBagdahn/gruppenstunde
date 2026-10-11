@@ -547,7 +547,7 @@ function MealPlanListPageInner() {
             <div className="text-caption text-muted-foreground font-semibold">
               {totalCount ?? 0} {totalCount === 1 ? 'Plan' : 'Pläne'}
             </div>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
+            <div className="flex items-center gap-2 bg-card shadow-soft px-4 py-2 rounded-xl">
               <ArrowUpDown className="w-4 h-4 text-primary" />
               <select
                 value={sort}
