@@ -136,5 +136,5 @@ class TestNote:
         item.save()
         data = _build_item_data(item, 10, 1.0, {})
         assert data["ingredients"][0].endswith("(ohne Zwiebeln)")
-        # amount is derived from the portion weight (EL = 15 g), not labelled with the unit name
-        assert data["ingredients"][0] == "Frischkäse — 150 g · à 15 g p. P. (ohne Zwiebeln)"
+        # shared UI amount text: portion count first, grams from the portion weight (EL = 15 g)
+        assert data["ingredients"][0] == "Frischkäse — 5 EL (150 g) · à 0,5 EL (15 g) p. P. (ohne Zwiebeln)"

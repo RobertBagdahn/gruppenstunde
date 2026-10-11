@@ -10,6 +10,7 @@ converted to a portion count via the ingredient's trusted rank-1 portion.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
@@ -19,7 +20,7 @@ from core.services.gemini import DEFAULT_TEXT_MODEL
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
 
-    from supply.models import Ingredient
+    from supply.models import Ingredient, Portion
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,14 @@ VOLUME_ML_PER_UNIT: dict[str, float] = {
 }
 
 
+@dataclass(frozen=True)
+class PortionCount:
+    """An imported amount expressed as `count` × `portion`."""
+
+    count: float
+    portion: Portion
+
+
 class UnitGramEstimate(BaseModel):
     """Gemini estimate: typical gram weight of one unit for an ingredient."""
 
@@ -117,9 +126,29 @@ class UnitGramConverter:
     ) -> float | None:
         """Convert `quantity` × `unit` into a portion count for `ingredient`.
 
-        Uses the ingredient's active rank-1 portion's trusted weight as the
-        conversion base. Returns None when no conversion or no trusted portion
-        is available.
+        The count refers to the portion returned by `convert_to_portion`.
+        """
+        result = cls.convert_to_portion(
+            quantity, unit, ingredient, user=user, _memo=_memo, allow_ai_estimate=allow_ai_estimate
+        )
+        return result.count if result is not None else None
+
+    @classmethod
+    def convert_to_portion(
+        cls,
+        quantity: float,
+        unit: str,
+        ingredient: Ingredient,
+        user: AbstractBaseUser | None = None,
+        _memo: dict[tuple[str, int], float] | None = None,
+        allow_ai_estimate: bool = True,
+    ) -> PortionCount | None:
+        """Convert `quantity` × `unit` into a count of one of the ingredient's portions.
+
+        A unit that names one of the ingredient's own portions ("2 EL" with a
+        portion "Esslöffel") counts that portion. Otherwise the amount is
+        converted to grams and divided by the active rank-1 portion's trusted
+        weight. Returns None when no conversion or no trusted portion is available.
         """
         if quantity <= 0:
             return None
@@ -141,10 +170,10 @@ class UnitGramConverter:
         if weight_g is None or weight_g <= 0:
             return None
 
-        return max(round(total_grams / weight_g, 2), 0.01)
+        return PortionCount(count=max(round(total_grams / weight_g, 2), 0.01), portion=portion)
 
     @classmethod
-    def _direct_portion_count(cls, quantity: float, unit: str, ingredient: Ingredient) -> float | None:
+    def _direct_portion_count(cls, quantity: float, unit: str, ingredient: Ingredient) -> PortionCount | None:
         """Portion count when the recipe unit *is* one of the ingredient's own portions.
 
         "2 EL Olivenöl" with a portion "Esslöffel" is 2 portions; going through grams
@@ -171,13 +200,18 @@ class UnitGramConverter:
         else:
             return None
 
-        portions = Portion.objects.active().filter(ingredient_id=ingredient.id).order_by("rank", "id")
+        portions = (
+            Portion.objects.active()
+            .filter(ingredient_id=ingredient.id)
+            .select_related("measuring_unit")
+            .order_by("rank", "id")
+        )
         for portion in portions:
             weight = _trusted_weight(portion)
             if weight is None or weight <= 0 or not matches(portion.name):
                 continue
             per_portion = float(portion.quantity or 1) or 1.0
-            return max(round(quantity / per_portion, 2), 0.01)
+            return PortionCount(count=max(round(quantity / per_portion, 2), 0.01), portion=portion)
         return None
 
     @classmethod

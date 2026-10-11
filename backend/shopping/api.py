@@ -725,6 +725,7 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
 
     from content.services.food_access import get_visible_recipe_or_404
     from planner.services.calculation_context import resolve_active_recipe_items
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
     portions = payload.portions
@@ -741,50 +742,45 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
         recipe_items = recipe.recipe_items.select_related(
             "portion__ingredient__retail_section",
             "portion__measuring_unit",
+            "ingredient__retail_section",
         )
 
+        recipe_servings = getattr(recipe, "portions", 1) or 1
         sort_idx = 0
         for ri in recipe_items:
-            if ri.portion is None:
-                ShoppingListItem.objects.create(
-                    shopping_list=shopping_list,
-                    name=ri.note or "Unbekannte Zutat",
-                    quantity_g=0,
-                    note="Gewicht unbekannt",
-                    sort_order=sort_idx,
-                )
-                sort_idx += 1
-                continue
-
+            # Inactive exchange alternatives and soft-deleted portions are not bought.
             active_item = active_items.get(ri.id)
             if not active_item:
                 continue
 
-            if not ri.portion or not ri.portion.ingredient:
+            ing = get_recipe_item_ingredient(ri)
+            weight_g = (active_item.weight_g or 0) * portions / recipe_servings
+            portion_unit = ri.portion.measuring_unit.name if ri.portion and ri.portion.measuring_unit else ""
+            if ing is None:
+                # Unlinked direct-gram items keep their grams; unlinked portions have no weight basis.
                 ShoppingListItem.objects.create(
                     shopping_list=shopping_list,
                     name=ri.note or "Unbekannte Zutat",
-                    quantity_g=0,
-                    unit=ri.portion.measuring_unit.name if ri.portion else "",
-                    note=f"Menge: {active_item.quantity:g}; Gewicht unbekannt",
+                    quantity_g=weight_g,
+                    unit="g" if active_item.weight_g is not None else portion_unit,
+                    note=""
+                    if active_item.weight_g is not None
+                    else f"Menge: {active_item.quantity:g}; Gewicht unbekannt",
                     sort_order=sort_idx,
                 )
                 sort_idx += 1
                 continue
 
-            ing = ri.portion.ingredient
-            recipe_servings = getattr(recipe, "portions", 1) or 1
-            weight_g = (active_item.weight_g or 0) * portions / recipe_servings
             note = ""
             if active_item.weight_g is None:
-                note = f"Menge: {active_item.quantity:g} {ri.portion.measuring_unit.name}; Gewicht unbekannt"
+                note = f"Menge: {active_item.quantity:g} {portion_unit}".rstrip() + "; Gewicht unbekannt"
 
             item = ShoppingListItem.objects.create(
                 shopping_list=shopping_list,
                 ingredient=ing,
                 name=ing.name,
                 quantity_g=weight_g,
-                unit="g" if active_item.weight_g is not None else ri.portion.measuring_unit.name,
+                unit="g" if active_item.weight_g is not None else portion_unit,
                 note=note,
                 retail_section=ing.retail_section,
                 sort_order=sort_idx,

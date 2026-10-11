@@ -54,6 +54,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
             "recipe",
             "ingredient",
             "measuring_unit",
+            "portion__measuring_unit",
         )
         .prefetch_related(
             "recipe__recipe_items__portion__ingredient",
@@ -133,25 +134,11 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                 for field in CACHED_MICRONUTRIENT_FIELDS:
                     totals[field] += values.get(field, 0.0) * nutrient_scale
         elif ingredient:
-            # Handle ingredient items
-            weight_g = 0.0
-            if item.quantity and item.measuring_unit:
-                name_lower = item.measuring_unit.name.lower()
-                if name_lower in ("g", "gramm"):
-                    weight_g = float(item.quantity)
-                elif name_lower == "ml":
-                    density = getattr(ingredient, "physical_density", 1.0) or 1.0
-                    weight_g = float(item.quantity) * density
-                else:
-                    from supply.services.portion_resolution import resolve_trusted_weight
+            # Handle ingredient items: portion, standard-measure and metric
+            # entries share the planner gram resolution.
+            from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
 
-                    portion = ingredient.portions.filter(
-                        measuring_unit=item.measuring_unit,
-                        deleted_at__isnull=True,
-                    ).first()
-                    trusted_weight = resolve_trusted_weight(portion) if portion else None
-                    if trusted_weight is not None:
-                        weight_g = trusted_weight * float(item.quantity)
+            weight_g = _resolve_ingredient_weight_g(item)
 
             if weight_g > 0:
                 nutrient_scale = weight_g / 100.0

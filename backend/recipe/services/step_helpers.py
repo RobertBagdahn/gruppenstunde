@@ -252,3 +252,36 @@ def batch_resolve_placeholders(recipe: Recipe) -> dict:
         result[step.id] = resolve_placeholders(step, recipe_items_map)
 
     return result
+
+
+def copy_recipe_steps(original: Recipe, fork: Recipe, item_id_map: dict[int, int]) -> None:
+    """Copy structured steps and their ingredient links onto another recipe (fork).
+
+    Step-ingredient links and numeric `{recipe_item_id}` placeholders are
+    remapped from the original RecipeItems to the forked ones.
+    """
+    from recipe.models import RecipeStepIngredient
+
+    def remap_placeholder(match: re.Match[str]) -> str:
+        new_id = item_id_map.get(int(match.group(1)))
+        return f"{{{new_id}}}" if new_id is not None else match.group(0)
+
+    for step in original.steps.all():
+        forked_step = RecipeStep.objects.create(
+            recipe=fork,
+            sort_order=step.sort_order,
+            instruction=re.sub(r"\{(\d+)\}", remap_placeholder, step.instruction),
+            duration_minutes=step.duration_minutes,
+            section=step.section,
+        )
+        RecipeStepIngredient.objects.bulk_create(
+            RecipeStepIngredient(
+                step=forked_step,
+                recipe_item_id=item_id_map[step_ingredient.recipe_item_id],
+                quantity_modifier=step_ingredient.quantity_modifier,
+                preparation=step_ingredient.preparation,
+                sort_order=step_ingredient.sort_order,
+            )
+            for step_ingredient in step.step_ingredients.all()
+            if step_ingredient.recipe_item_id in item_id_map
+        )
