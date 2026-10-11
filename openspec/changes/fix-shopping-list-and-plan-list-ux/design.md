@@ -25,6 +25,10 @@ Die Kartenansicht der Planübersicht kombiniert `truncate` am Namen mit einem `s
 - **Name beim Duplizieren.** Suffix nur als Vorbelegung des Eingabefelds, nie im Handler anhängen. Das Backend verändert den Namen nicht.
 - **Lösch-Dialog mit Namen.** Der Dialog erhält den Plannamen als Parameter, Beschreibung „Essensplan „<Name>“ und alle zugehörigen …“.
 
+- **Undo stellt neu an statt verzögert zu löschen.** Das `DELETE` läuft sofort, der Eintrag verschwindet vorher aus dem Query-Cache (`onMutate`, Rücksetzen bei Fehler). „Rückgängig“ legt ihn über `POST …/items/` mit Name, Menge, Einheit, Abteilung, Zutat, `sort_order` und `is_checked` neu an. Ein verzögertes Löschen hätte beim Verlassen der Seite oder für andere Mitglieder (WebSocket) einen unklaren Zwischenstand. Wer abgehakt hat, wird beim Wiederherstellen der wiederherstellenden Person zugeschrieben.
+- **Zugriffsfehler.** `_require_owner` ruft zuerst `_require_access` auf: Ohne Zugriff 404 wie bei allen anderen Pfaden, Mitglieder ohne Besitz 403. Die Fetch-Helfer in `api/shoppingLists.ts` nutzen `fetchWithCsrf`/`parseApiResponse` und werfen damit `ApiError` mit dem deutschen `detail`.
+- **WebSocket in Entwicklung und Produktion.** Dev: `manage.py runserver` ist durch `daphne` (erste App in `local.py`) ein ASGI-Server für `inspi.asgi` mit `InMemoryChannelLayer`; Vite leitet `/ws` mit `ws: true` an `:8000` weiter. Produktion bleibt unverändert: Cloud Run startet `gunicorn inspi.wsgi:application` (WSGI, kein WebSocket), und `nginx.conf.template` leitet nur `/api/` weiter. Der Hook gibt nach fünf Verbindungsversuchen auf; die Liste funktioniert ohne Live-Abgleich über REST. Live-Abgleich in Produktion bräuchte einen ASGI-Server, einen `/ws`-Proxy und Redis für `CHANNEL_LAYERS` und ist nicht Teil dieses Changes.
+
 ## Risks / Trade-offs
 
 - [Rundung ändert angezeigte Reserve gegenüber heute] → Tests mit den Produktivtest-Werten (Zwiebel, Parmesan, Olivenöl); Reserve-Hilfetext bleibt gültig.
@@ -33,7 +37,7 @@ Die Kartenansicht der Planübersicht kombiniert `truncate` am Namen mit einem `s
 
 ## Migration Plan
 
-Keine Datenmigration. Neues optionales API-Feld ist abwärtskompatibel (keine Rückwärtskompatibilität nötig, aber ohne Aufwand).
+Keine Datenmigration. Einziges neues API-Feld ist das optionale Eingabefeld `is_checked` beim Anlegen eines Eintrags.
 
 ## Open Questions
 
