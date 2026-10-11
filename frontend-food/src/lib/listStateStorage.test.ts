@@ -50,10 +50,13 @@ describe('listStateStorage', () => {
   });
 
   it('works without errors when localStorage throws', () => {
-    vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+    // Spy on the actual prototype: jsdom (Node 20) ignores spies on the storage
+    // instance, and newer Node versions provide their own Storage implementation.
+    const storageProto = Object.getPrototypeOf(localStorage) as Storage;
+    vi.spyOn(storageProto, 'getItem').mockImplementation(() => {
       throw new Error('private mode');
     });
-    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+    vi.spyOn(storageProto, 'setItem').mockImplementation(() => {
       throw new Error('private mode');
     });
 
