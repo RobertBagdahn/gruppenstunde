@@ -579,9 +579,16 @@ def _build_ingredient_list(recipe: Recipe) -> str:
         name = ingredient.name
         qty = item.quantity
 
-        unit_label = (
-            "g" if item.portion is None else (item.portion.measuring_unit.name if item.portion.measuring_unit else "")
-        )
+        if item.standard_measure_key:
+            from supply.services.quantity_units import STANDARD_MEASURE_LABELS
+
+            unit_label = STANDARD_MEASURE_LABELS.get(item.standard_measure_key, item.standard_measure_key)
+        else:
+            unit_label = (
+                "g"
+                if item.portion is None
+                else (item.portion.measuring_unit.name if item.portion.measuring_unit else "")
+            )
 
         lines.append(f"- {qty} {unit_label} {name}".strip())
 

@@ -184,10 +184,22 @@ def format_recipe_item_amount(
 ) -> RecipeAmount:
     """Scaled amount of a recipe item (or its ``quantity_modifier`` share in a step)."""
     from recipe.services.recipe_item_helpers import get_recipe_item_weight_g
-    from supply.services.quantity_units import portion_label
+    from supply.services.quantity_units import STANDARD_MEASURE_LABELS, portion_label
 
     portion = recipe_item.portion
     weight_g = get_recipe_item_weight_g(recipe_item)
+    standard_key = getattr(recipe_item, "standard_measure_key", "") or ""
+    if standard_key:
+        label = STANDARD_MEASURE_LABELS.get(standard_key, standard_key)
+        return format_scaled_recipe_amount(
+            quantity=float(recipe_item.quantity or 0) * quantity_modifier,
+            weight_g=weight_g * quantity_modifier if weight_g > 0 else None,
+            portion_name=label,
+            unit_short=label,
+            viscosity=ingredient.physical_viscosity if ingredient else None,
+            density=ingredient.physical_density if ingredient else None,
+            scale=scale,
+        )
     return format_scaled_recipe_amount(
         quantity=float(recipe_item.quantity or 0) * quantity_modifier,
         weight_g=weight_g * quantity_modifier if weight_g > 0 else None,

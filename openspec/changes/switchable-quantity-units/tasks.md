@@ -32,8 +32,9 @@
 
 ## 4. Phase 2 – Rezept-Editor und Anzeige
 
-- [ ] 4.0 `RecipeItem.standard_measure_key` + Migration + Constraint (Standardmaß an der „g“-Basisportion); `RecipeItemIn/Out` mit `standard_measure_key`, `unit_kind`, `unit_label`, `is_weight_approx`; Rezept-Gewichtsauflösung an `resolve_grams` delegieren
-- [ ] 4.1 `InlineIngredientEditor.tsx`, `IngredientQuantityDialog.tsx`: Standardmaß bleibt Einheit; `QuantityUnitInput` nutzen
+- [x] 4.0 `RecipeItem.standard_measure_key` + Migration + Constraint (Standardmaß an der „g“-Basisportion); `RecipeItemIn/Out` mit `standard_measure_key`, `unit_kind`, `unit_label`, `is_weight_approx`; Rezept-Gewichtsauflösung an `resolve_grams` delegieren
+- [x] 4.1 `InlineIngredientEditor.tsx`, `IngredientQuantityDialog.tsx`: Standardmaß bleibt Einheit (`PortionPicker` mit `selectedStandardKey`, mengenerhaltender Wechsel)
+- [ ] 4.1a Rezept-Editor auf `QuantityUnitInput` umstellen
 - [ ] 4.2 `RecipeIngredientsTable.tsx`, `components/supply/IngredientList.tsx`, `IngredientDetailPage` auf `formatAmount` + Umschalter
 - [ ] 4.3 Tests Rezept-Editor (EL bleibt EL, Gramm-Erhalt beim Wechsel) und Detailseite
 

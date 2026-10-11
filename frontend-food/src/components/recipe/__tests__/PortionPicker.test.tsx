@@ -103,6 +103,16 @@ describe('PortionPicker', () => {
     );
   });
 
+  it('shows a selected standard measure as the unit', () => {
+    renderPicker({ selectedStandardKey: 'tasse' });
+    const trigger = screen.getByLabelText('Portion wählen');
+    expect(trigger.textContent).toContain('Tasse');
+    expect(trigger.textContent).toContain('160 g');
+    fireEvent.click(trigger);
+    expect(screen.getByRole('option', { name: /^1 Tasse/ }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('option', { name: /kleine \(50g\)/ }).getAttribute('aria-selected')).toBe('false');
+  });
+
   it('fires onSelectGrams for the direct gram entry', () => {
     const { onSelectGrams } = renderPicker();
     fireEvent.click(screen.getByLabelText('Portion wählen'));

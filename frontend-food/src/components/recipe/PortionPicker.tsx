@@ -3,7 +3,8 @@
  *
  * Grouped sections:
  *  - "Zutat": the ingredient's own portions (by rank), name left, weight right
- *  - "Standardmengen": fixed catalog (EL, TL, Tasse, …), density-based grams
+ *  - "Standardmengen": fixed catalog (EL, TL, Tasse, …), density-based grams;
+ *    a selected standard measure is the item's unit (`selectedStandardKey`)
  *  - "Gramm": direct gram entry (no portion)
  *
  * Replaces the tiny native <select> in the inline ingredient editor and the
@@ -17,6 +18,7 @@ import { useStandardMeasures } from '@/api/supplies';
 import { type PortionLabelInput } from '@/lib/portionLabels';
 import { formatExactWeight, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { standardMeasureLabel } from '@/lib/quantityUnits';
 
 export interface PortionPickerPortion extends PortionLabelInput {
   id: number;
@@ -47,6 +49,9 @@ interface PortionPickerProps {
   selectedFallback?: { id: number; name: string; weight_g: number | null } | null;
   /** Slug used to load the standard-measure catalog; hides that section when omitted. */
   ingredientSlug?: string;
+  /** Selected standard measure key (el, tl, tasse, …). When set it is the
+   *  displayed unit and `value` only anchors the ingredient (its "g" portion). */
+  selectedStandardKey?: string | null;
   onSelectPortion: (portionId: number) => void;
   onSelectStandardMeasure: (measure: PickerStandardMeasure) => void;
   onSelectGrams: () => void;
@@ -63,6 +68,7 @@ export default function PortionPicker({
   value,
   selectedFallback,
   ingredientSlug,
+  selectedStandardKey = null,
   onSelectPortion,
   onSelectStandardMeasure,
   onSelectGrams,
@@ -74,16 +80,25 @@ export default function PortionPicker({
 
   const close = () => setIsOpen(false);
 
-  const selectedPortion = value != null ? portions.find((p) => p.id === value) ?? null : null;
-  const isFallbackSelected = !selectedPortion && value != null && selectedFallback?.id === value;
-  const triggerLabel = selectedPortion
-    ? portionDisplayName(selectedPortion)
-    : isFallbackSelected
-      ? selectedFallback!.name
-      : 'Gramm';
-  const triggerWeightG = selectedPortion?.weight_g ?? (isFallbackSelected ? selectedFallback!.weight_g : null);
+  const isStandardSelected = !!selectedStandardKey;
+  const selectedMeasure = isStandardSelected
+    ? standardMeasures.find((measure) => measure.key === selectedStandardKey) ?? null
+    : null;
+  const selectedPortion = !isStandardSelected && value != null ? portions.find((p) => p.id === value) ?? null : null;
+  const isFallbackSelected =
+    !isStandardSelected && !selectedPortion && value != null && selectedFallback?.id === value;
+  const triggerLabel = isStandardSelected
+    ? standardMeasureLabel(selectedStandardKey!)
+    : selectedPortion
+      ? portionDisplayName(selectedPortion)
+      : isFallbackSelected
+        ? selectedFallback!.name
+        : 'Gramm';
+  const triggerWeightG = isStandardSelected
+    ? selectedMeasure?.grams ?? null
+    : selectedPortion?.weight_g ?? (isFallbackSelected ? selectedFallback!.weight_g : null);
   const triggerWeight = triggerWeightG && triggerWeightG > 0
-    ? formatExactWeight(triggerWeightG)
+    ? `${selectedMeasure?.is_approx ? '≈ ' : ''}${formatExactWeight(triggerWeightG)}`
     : ((selectedPortion || isFallbackSelected) ? 'Gewicht fehlt' : null);
 
   const sortedPortions = [...portions].sort((a, b) => a.rank - b.rank);
@@ -114,7 +129,7 @@ export default function PortionPicker({
               Zutat
             </p>
             {sortedPortions.map((portion) => {
-              const isSelected = portion.id === value;
+              const isSelected = !isStandardSelected && portion.id === value;
               const hasWeight = !!(portion.weight_g && portion.weight_g > 0);
               return (
                 <button
@@ -150,25 +165,33 @@ export default function PortionPicker({
                 <p className="px-2 pt-2 pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground/70">
                   Standardmengen
                 </p>
-                {standardMeasures.map((measure) => (
-                  <button
-                    key={measure.key}
-                    type="button"
-                    role="option"
-                    onClick={() => {
-                      onSelectStandardMeasure(measure);
-                      close();
-                    }}
-                    className="w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left hover:bg-muted text-foreground"
-                  >
-                    <span className="truncate">
-                      {measure.name}{measure.volume_ml != null ? ` (${formatNumber(measure.volume_ml, { maxDecimals: 1 })} ml)` : ''}
-                    </span>
-                    <span className="text-caption text-muted-foreground shrink-0 tabular-nums">
-                      {formatExactWeight(measure.grams)}{measure.is_approx ? ' (ca.)' : ''}
-                    </span>
-                  </button>
-                ))}
+                {standardMeasures.map((measure) => {
+                  const isSelected = measure.key === selectedStandardKey;
+                  return (
+                    <button
+                      key={measure.key}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => {
+                        onSelectStandardMeasure(measure);
+                        close();
+                      }}
+                      className={cn(
+                        'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left',
+                        isSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
+                      )}
+                    >
+                      <span className="truncate">
+                        {measure.name}{measure.volume_ml != null ? ` (${formatNumber(measure.volume_ml, { maxDecimals: 1 })} ml)` : ''}
+                      </span>
+                      <span className="text-caption text-muted-foreground shrink-0 tabular-nums">
+                        {formatExactWeight(measure.grams)}{measure.is_approx ? ' (ca.)' : ''}
+                      </span>
+                      {isSelected && <Check size={14} className="shrink-0 text-primary" />}
+                    </button>
+                  );
+                })}
               </>
             )}
 
@@ -181,19 +204,19 @@ export default function PortionPicker({
                 <button
                   type="button"
                   role="option"
-                  aria-selected={value == null}
+                  aria-selected={value == null && !isStandardSelected}
                   onClick={() => {
                     onSelectGrams();
                     close();
                   }}
                   className={cn(
                     'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left',
-                    value == null ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
+                    value == null && !isStandardSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
                   )}
                 >
                   <span>Gramm</span>
                   <span className="text-caption text-muted-foreground shrink-0">freie Menge</span>
-                  {value == null && <Check size={14} className="shrink-0 text-primary" />}
+                  {value == null && !isStandardSelected && <Check size={14} className="shrink-0 text-primary" />}
                 </button>
               </>
             )}

@@ -7,6 +7,7 @@ import type { RecipeStepIngredient } from '@/schemas/recipeStep';
 import type { Portion } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { formatWeight } from '@/lib/format';
+import { standardMeasureLabel } from '@/lib/quantityUnits';
 
 /** Short display names for measuring units */
 export const UNIT_SHORT: Record<string, string> = {
@@ -68,6 +69,15 @@ export function formatRecipeItemAmount(item: RecipeItem): RecipeItemAmount {
   const quantity = item.quantity;
   if (!quantity || quantity <= 0) return { primary: '—', secondary: null };
 
+  // A standard measure (EL, Tasse, …) is the unit; the "g" portion only anchors the ingredient.
+  if (item.standard_measure_key) {
+    const label = item.unit_label || standardMeasureLabel(item.standard_measure_key);
+    const secondary = item.weight_g > 0
+      ? `${item.is_weight_approx ? '≈ ' : ''}${formatQuantity(item.weight_g, item.ingredient_viscosity, item.ingredient_density).display}`
+      : null;
+    return { primary: `${formatCount(quantity)} ${label}`, secondary };
+  }
+
   const portions: Portion[] = item.ingredient_portions ?? [];
   const selected = portions.find((portion) => portion.id === item.portion_id) ?? null;
   const portionName = selected?.name ?? item.portion_name ?? null;
@@ -94,6 +104,9 @@ export interface ScaledRecipeAmountInput {
   measuring_unit_name?: string | null;
   /** Stored unit label of a step ingredient, used only when no weight is known. */
   unit_short?: string | null;
+  /** Standard measure (EL, Tasse, …) the quantity counts; then shown like a portion. */
+  standard_measure_key?: string | null;
+  unit_label?: string | null;
   ingredient_viscosity?: string | null;
   ingredient_density?: number | null;
 }
@@ -111,8 +124,13 @@ export function formatScaledRecipeAmount(item: ScaledRecipeAmountInput, scale = 
   const grams = weightG > 0
     ? formatQuantity(weightG, item.ingredient_viscosity, item.ingredient_density).display
     : null;
-  const portionName = item.portion_name || null;
+  const portionName = item.standard_measure_key
+    ? item.unit_label || standardMeasureLabel(item.standard_measure_key)
+    : item.portion_name || null;
 
+  if (item.standard_measure_key && quantity > 0) {
+    return { primary: `${formatCount(quantity)} ${portionName}`, secondary: grams };
+  }
   if (portionName && quantity > 0 && !isGramPortion(portionName, item.measuring_unit_name)) {
     return { primary: formatPortionAmount(quantity, shortUnit(portionName)), secondary: grams };
   }

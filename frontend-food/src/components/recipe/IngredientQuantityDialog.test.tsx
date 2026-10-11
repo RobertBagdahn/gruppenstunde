@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
+import { useStandardMeasures } from '@/api/supplies';
 
 vi.mock('@/api/supplies', () => ({
   useStandardMeasures: vi.fn(() => ({ data: [] })),
@@ -43,6 +44,31 @@ function renderDialog(portions: Portion[], onConfirm = vi.fn()) {
 }
 
 describe('IngredientQuantityDialog', () => {
+  it('keeps a standard measure as unit with a gram-preserving count', () => {
+    vi.mocked(useStandardMeasures).mockReturnValue({
+      data: [{ key: 'tasse', name: '1 Tasse', grams: 200, volume_ml: 200, is_approx: true }],
+    } as unknown as ReturnType<typeof useStandardMeasures>);
+    const onConfirm = vi.fn();
+    render(
+      <IngredientQuantityDialog
+        ingredient={{ id: 1, name: 'Weizenmehl Type 405', slug: 'weizenmehl-type-405', portions: [cup, gram] }}
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        keepStandardMeasure
+      />,
+    );
+
+    // Default: 1 × "Tasse Mehl" (100 g) → 0,5 Tasse (200 g each).
+    fireEvent.click(screen.getByRole('button', { name: 'Portion wählen' }));
+    fireEvent.click(screen.getByRole('option', { name: /^1 Tasse/ }));
+    expect(screen.getByLabelText('Menge')).toHaveValue('0,5');
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(11, 6, 0.5, expect.objectContaining({ key: 'tasse', grams: 200 }));
+    vi.mocked(useStandardMeasures).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useStandardMeasures>);
+  });
+
   it('confirms the default portion with its id', () => {
     const onConfirm = renderDialog([cup, gram]);
 

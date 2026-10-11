@@ -14,6 +14,7 @@ import type { AvailableConversionBatchItem, Portion } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
 import { formatPortionAmount, isGramPortion, shortUnit } from '@/lib/ingredientAmount';
+import { standardMeasureLabel } from '@/lib/quantityUnits';
 import { cn } from '@/lib/utils';
 import UnitSwitcher from '@/components/recipe/UnitSwitcher';
 
@@ -226,15 +227,23 @@ export default function IngredientList({
 
     // Selected portion: the portion chosen for this recipe item. Metric selections (g/ml,
     // "100g Reis") are skipped — they would only repeat the amount column.
-    const selectedPortion = portionsList.find((p) => p.id === item.portion_id) ?? null;
-    const selectedName = selectedPortion?.name ?? item.portion_name ?? null;
+    // A standard measure (EL, Tasse, …) is shown like a selected portion.
+    const standardKey = item.standard_measure_key || null;
+    const selectedPortion = standardKey ? null : portionsList.find((p) => p.id === item.portion_id) ?? null;
+    const selectedName = standardKey
+      ? item.unit_label || standardMeasureLabel(standardKey)
+      : selectedPortion?.name ?? item.portion_name ?? null;
     const selectedAmount = item.quantity * portionsMultiplier;
-    const selectedIsMetric = isGramPortion(selectedName, selectedPortion?.measuring_unit_name ?? item.measuring_unit_name);
+    const selectedIsMetric = !standardKey
+      && isGramPortion(selectedName, selectedPortion?.measuring_unit_name ?? item.measuring_unit_name);
     const selectedDisplay = selectedName && !selectedIsMetric && selectedAmount > 0
       ? formatPortionAmount(selectedAmount, shortUnit(selectedName))
       : null;
-    const selectedPerUnit = selectedDisplay && selectedPortion?.weight_g
-      ? formatQuantity(selectedPortion.weight_g, item.ingredient_viscosity, item.ingredient_density).display
+    const selectedUnitWeightG = standardKey
+      ? (item.quantity > 0 ? item.weight_g / item.quantity : 0)
+      : selectedPortion?.weight_g ?? 0;
+    const selectedPerUnit = selectedDisplay && selectedUnitWeightG > 0
+      ? `${standardKey && item.is_weight_approx ? '≈ ' : ''}${formatQuantity(selectedUnitWeightG, item.ingredient_viscosity, item.ingredient_density).display}`
       : null;
 
     // Primary portion: lowest-rank non-gram portion with a weight (rank=1 = Normalportion).

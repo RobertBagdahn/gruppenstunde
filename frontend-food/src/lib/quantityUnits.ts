@@ -22,6 +22,19 @@ export interface AmountParts {
   missing?: boolean;
 }
 
+const STANDARD_MEASURE_LABELS: Record<string, string> = {
+  el: 'EL',
+  tl: 'TL',
+  tasse: 'Tasse',
+  prise: 'Prise',
+  msp: 'Msp',
+};
+
+/** Short unit label of a standard measure ("Tasse" for key `tasse`); mirrors the backend labels. */
+export function standardMeasureLabel(key: string): string {
+  return STANDARD_MEASURE_LABELS[key] ?? key;
+}
+
 /** Count with at most two decimals and German comma ("0,5", "1,25", "24"). */
 export function formatCount(value: number): string {
   const rounded = Math.round(value * 100) / 100;

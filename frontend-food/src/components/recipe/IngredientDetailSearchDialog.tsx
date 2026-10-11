@@ -15,6 +15,7 @@ import { useIngredientSearch } from '@/api/supplies';
 import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/api/supplies';
 import { PortionSchema, type Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
+import type { PickerStandardMeasure } from './PortionPicker';
 import { roundToDecimals } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
@@ -151,8 +152,11 @@ interface IngredientDetailSearchDialogProps {
     portionId: number | null,
     measuringUnitId: number | null,
     quantity: number,
+    standardMeasure?: PickerStandardMeasure | null,
   ) => void;
   showQuantityDialog?: boolean;
+  /** Keep a standard measure chosen in the quantity dialog as the unit. */
+  keepStandardMeasure?: boolean;
 }
 
 export default function IngredientDetailSearchDialog({
@@ -160,6 +164,7 @@ export default function IngredientDetailSearchDialog({
   onOpenChange,
   onSelect,
   showQuantityDialog = true,
+  keepStandardMeasure = false,
 }: IngredientDetailSearchDialogProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -235,6 +240,7 @@ export default function IngredientDetailSearchDialog({
     portionId: number | null,
     measuringUnitId: number | null,
     quantity: number,
+    standardMeasure?: PickerStandardMeasure | null,
   ) => {
     if (!quantityDialogIngredient) return;
     onSelect(
@@ -244,6 +250,7 @@ export default function IngredientDetailSearchDialog({
       portionId,
       measuringUnitId,
       quantity,
+      standardMeasure ?? null,
     );
     setQuantityDialogIngredient(null);
     onOpenChange(false);
@@ -481,6 +488,7 @@ export default function IngredientDetailSearchDialog({
             if (!isOpen) setQuantityDialogIngredient(null);
           }}
           onConfirm={handleQuantityConfirm}
+          keepStandardMeasure={keepStandardMeasure}
         />
       )}
     </>

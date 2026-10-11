@@ -18,6 +18,7 @@ from recipe.schemas import (
 from recipe.services.recipe_checks import _calculate_item_weight_g
 from supply.models import Ingredient
 from supply.services.price_service import price_or_none
+from supply.services.quantity_units import STANDARD_MEASURE_LABELS
 
 router = Router()
 
@@ -184,7 +185,11 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             "ingredient_id": ingredient.id,
             "ingredient_name": ingredient.name,
             "quantity": item.quantity,
-            "portion_name": item.portion.name if item.portion else "g",
+            "portion_name": (
+                STANDARD_MEASURE_LABELS.get(item.standard_measure_key, item.standard_measure_key)
+                if item.standard_measure_key
+                else (item.portion.name if item.portion else "g")
+            ),
             "weight_g": weight_g,
             "price_eur": item_price,
             "energy_kcal": energy_kcal,
