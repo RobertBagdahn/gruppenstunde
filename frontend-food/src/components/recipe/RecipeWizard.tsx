@@ -1,3 +1,4 @@
+import TitleBand from '@/components/shared/TitleBand';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -530,7 +531,9 @@ export default function RecipeWizard() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+    <div className="pb-8">
+    <TitleBand title="Neues Rezept" description="In wenigen Schritten zum fertigen Rezept" back={{ to: '/recipes', label: 'Alle Rezepte' }} innerClassName="max-w-3xl" />
+    <div className="max-w-3xl mx-auto px-4">
       <div className="mb-8">
         <StepIndicator steps={progressSteps} activeIndex={progressActiveIndex} />
       </div>
@@ -611,6 +614,7 @@ export default function RecipeWizard() {
           </p>
         )}
       </div>
+    </div>
     </div>
   );
 }
