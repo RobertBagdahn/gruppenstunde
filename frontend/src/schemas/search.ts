@@ -1,13 +1,14 @@
 /**
  * Zod schemas for the Unified Search API.
- * MUST stay in sync with backend/content/api.py (PaginatedSearchOut, UnifiedSearchResultOut)
+ * MUST stay in sync with backend/content/schemas/search.py (PaginatedSearchOut, UnifiedSearchResultOut).
+ * Recipes are not part of the unified search; food UI lives in frontend-food.
  */
 import { z } from 'zod';
 
 // --- Unified Search Result ---
 
 export const UnifiedSearchResultSchema = z.object({
-  result_type: z.enum(['session', 'blog', 'game', 'recipe', 'event']),
+  result_type: z.enum(['session', 'blog', 'game', 'event']),
   id: z.number(),
   title: z.string(),
   slug: z.string(),
@@ -36,6 +37,7 @@ export type PaginatedSearchResults = z.infer<typeof PaginatedSearchResultsSchema
 export const UnifiedSearchFilterSchema = z.object({
   q: z.string().optional(),
   result_types: z.array(z.string()).optional(),
+  tag_slugs: z.array(z.string()).optional(),
   sort: z.string().default('relevant'),
   page: z.number().default(1),
   page_size: z.number().default(20),
@@ -49,7 +51,6 @@ export const RESULT_TYPE_OPTIONS = [
   { value: 'session', label: 'Gruppenstunden', icon: 'groups' },
   { value: 'blog', label: 'Wissensbeiträge', icon: 'article' },
   { value: 'game', label: 'Spiele', icon: 'sports_esports' },
-  { value: 'recipe', label: 'Rezepte', icon: 'menu_book' },
   { value: 'event', label: 'Events', icon: 'event' },
 ] as const;
 
@@ -59,6 +60,5 @@ export const RESULT_TYPE_CONFIG: Record<string, { label: string; icon: string; c
   session: { label: 'Gruppenstunde', icon: 'groups', color: 'text-sky-700', bgColor: 'bg-sky-50 border-sky-200' },
   blog: { label: 'Wissensbeitrag', icon: 'article', color: 'text-indigo-700', bgColor: 'bg-indigo-50 border-indigo-200' },
   game: { label: 'Spiel', icon: 'sports_esports', color: 'text-emerald-700', bgColor: 'bg-emerald-50 border-emerald-200' },
-  recipe: { label: 'Rezept', icon: 'menu_book', color: 'text-rose-700', bgColor: 'bg-rose-50 border-rose-200' },
   event: { label: 'Event', icon: 'event', color: 'text-violet-700', bgColor: 'bg-violet-50 border-violet-200' },
 };

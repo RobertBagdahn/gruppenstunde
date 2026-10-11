@@ -1,8 +1,9 @@
 """
 Unified search service that searches across all content types.
 
-Replaces core/search_service.py with proper support for all content types
-(GroupSession, Blog, Game, Recipe) plus legacy Ideas, Tags, and Events.
+Serves the main frontend: GroupSession, Blog, Game and Event results plus
+tag autocomplete. Recipes are food content and belong to frontend-food, so
+they are not part of the unified search.
 
 Uses PostgreSQL full-text search + trigram similarity for ranking.
 Falls back to icontains queries on SQLite (test environment).
@@ -12,6 +13,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from typing import Literal
+from uuid import UUID
 
 from django.db import connection
 from django.db.models import Q, Value
@@ -28,7 +30,7 @@ def _is_postgres() -> bool:
 
 
 # Content types that are searchable
-CONTENT_TYPES = {"session", "blog", "game", "recipe", "event"}
+CONTENT_TYPES = {"session", "blog", "game", "event"}
 
 
 def apply_mine_filter(queryset, user, content_type: str):
@@ -36,14 +38,11 @@ def apply_mine_filter(queryset, user, content_type: str):
 
     Per-type semantics:
     - session/blog/game: created_by OR authors
-    - recipe: owner OR authors
     - event: created_by OR responsible_persons OR invited_users OR
              invited_groups (via GroupMembership) OR registrations
     """
     if content_type in ("session", "blog", "game"):
         return queryset.filter(Q(created_by=user) | Q(authors=user))
-    elif content_type == "recipe":
-        return queryset.filter(Q(owner=user) | Q(authors=user))
     elif content_type == "event":
         from profiles.models import GroupMembership
 
@@ -66,6 +65,7 @@ def unified_search(
     sort: str = "relevant",
     scope: Literal["all", "mine"] = "all",
     user=None,
+    tag_slugs: list[str] | None = None,
 ) -> tuple[list[dict], int, dict[str, int]]:
     """
     Search across all content types.
@@ -78,6 +78,8 @@ def unified_search(
         sort: Sort order ('relevant', 'newest').
         scope: 'all' (default) or 'mine' (restrict to user's content).
         user: The requesting user (needed for scope=mine).
+        tag_slugs: Restrict to content tagged with any of these tags (or their
+            descendants). Events have no tags and are excluded when set.
 
     Returns:
         (items, total_count, type_counts) where items are dicts with result_type,
@@ -97,12 +99,16 @@ def unified_search(
     else:
         search_types = CONTENT_TYPES
 
+    tag_ids = _expand_tag_ids(tag_slugs) if tag_slugs else None
+
     all_results: list[dict] = []
     type_counts: dict[str, int] = {}
 
     for content_type in CONTENT_TYPES:
         results = (
-            _search_by_type(content_type, q, scope=effective_scope, user=user) if content_type in search_types else []
+            _search_by_type(content_type, q, scope=effective_scope, user=user, tag_ids=tag_ids)
+            if content_type in search_types
+            else []
         )
         type_counts[content_type] = len(results)
         if content_type in search_types:
@@ -111,7 +117,7 @@ def unified_search(
     # If filtering, still compute counts for ALL types (for tab badges)
     if result_types:
         for content_type in CONTENT_TYPES - search_types:
-            count_results = _search_by_type(content_type, q, scope=effective_scope, user=user)
+            count_results = _search_by_type(content_type, q, scope=effective_scope, user=user, tag_ids=tag_ids)
             type_counts[content_type] = len(count_results)
 
     # Sort results
@@ -140,7 +146,7 @@ def unified_autocomplete(q: str, limit: int = 10) -> list[dict]:
     results: list[dict] = []
 
     # New content types
-    for content_type in ("session", "blog", "game", "recipe"):
+    for content_type in ("session", "blog", "game"):
         results.extend(_autocomplete_content(content_type, q, limit=4))
 
     # Other types
@@ -190,19 +196,37 @@ def _search_by_type(
     q: str,
     scope: Literal["all", "mine"] = "all",
     user=None,
+    tag_ids: set[UUID] | None = None,
 ) -> list[dict]:
     """Dispatch to the correct search function by type."""
     dispatchers = {
         "session": _search_sessions,
         "blog": _search_blogs,
         "game": _search_games,
-        "recipe": _search_recipes,
         "event": _search_events,
     }
     fn = dispatchers.get(content_type)
     if fn:
-        return fn(q, scope=scope, user=user)
+        return fn(q, scope=scope, user=user, tag_ids=tag_ids)
     return []
+
+
+def _expand_tag_ids(tag_slugs: list[str]) -> set[UUID]:
+    """Resolve tag slugs to tag IDs including all descendant tags."""
+    from content.models import Tag
+
+    selected_tags = Tag.objects.filter(slug__in=tag_slugs)
+    tag_ids = set(selected_tags.values_list("id", flat=True))
+    for tag in selected_tags:
+        tag_ids.update(tag.get_descendants().values_list("id", flat=True))
+    return tag_ids
+
+
+def _apply_tag_filter(qs, tag_ids: set[UUID] | None):
+    """Restrict a tagged content queryset to the given tag IDs (None = no filter)."""
+    if tag_ids is None:
+        return qs
+    return qs.filter(tags__id__in=tag_ids)
 
 
 def _fulltext_annotate(qs, q: str):
@@ -261,6 +285,7 @@ def _search_sessions(
     q: str,
     scope: Literal["all", "mine"] = "all",
     user=None,
+    tag_ids: set[UUID] | None = None,
 ) -> list[dict]:
     from content.choices import ContentStatus
     from session.models import GroupSession
@@ -272,6 +297,7 @@ def _search_sessions(
         qs = apply_mine_filter(qs, user, "session")
     else:
         qs = GroupSession.objects.filter(status=ContentStatus.APPROVED)
+    qs = _apply_tag_filter(qs, tag_ids)
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(
@@ -292,6 +318,7 @@ def _search_blogs(
     q: str,
     scope: Literal["all", "mine"] = "all",
     user=None,
+    tag_ids: set[UUID] | None = None,
 ) -> list[dict]:
     from blog.models import Blog
     from content.choices import ContentStatus
@@ -302,6 +329,7 @@ def _search_blogs(
         qs = apply_mine_filter(qs, user, "blog")
     else:
         qs = Blog.objects.filter(status=ContentStatus.APPROVED)
+    qs = _apply_tag_filter(qs, tag_ids)
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(
@@ -321,6 +349,7 @@ def _search_games(
     q: str,
     scope: Literal["all", "mine"] = "all",
     user=None,
+    tag_ids: set[UUID] | None = None,
 ) -> list[dict]:
     from content.choices import ContentStatus
     from game.models import Game
@@ -331,6 +360,7 @@ def _search_games(
         qs = apply_mine_filter(qs, user, "game")
     else:
         qs = Game.objects.filter(status=ContentStatus.APPROVED)
+    qs = _apply_tag_filter(qs, tag_ids)
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(
@@ -348,42 +378,17 @@ def _search_games(
     ]
 
 
-def _search_recipes(
-    q: str,
-    scope: Literal["all", "mine"] = "all",
-    user=None,
-) -> list[dict]:
-    if scope == "mine" and user and user.is_authenticated:
-        from content.services.food_access import visible_recipe_queryset
-
-        qs = visible_recipe_queryset(user)
-        qs = apply_mine_filter(qs, user, "recipe")
-    else:
-        from content.services.food_access import public_recipe_queryset
-
-        qs = public_recipe_queryset()
-    qs = _fulltext_annotate(qs, q)
-    return [
-        _to_result(
-            obj,
-            "recipe",
-            f"/recipes/{obj.slug}",
-            {
-                "recipe_type": obj.recipe_type,
-                "difficulty": obj.difficulty,
-                "portions": obj.portions,
-            },
-        )
-        for obj in qs
-    ]
-
-
 def _search_events(
     q: str,
     scope: Literal["all", "mine"] = "all",
     user=None,
+    tag_ids: set[UUID] | None = None,
 ) -> list[dict]:
     from event.models import Event
+
+    # Events have no tags, so a tag filter never matches an event.
+    if tag_ids is not None:
+        return []
 
     # Always exclude templates (task 1.7)
     qs = Event.objects.filter(is_template=False)
@@ -447,7 +452,6 @@ def _autocomplete_content(content_type: str, q: str, limit: int = 4) -> list[dic
         "session": ("session.models", "GroupSession", "/sessions/"),
         "blog": ("blog.models", "Blog", "/blogs/"),
         "game": ("game.models", "Game", "/games/"),
-        "recipe": ("recipe.models", "Recipe", "/recipes/"),
     }
     if content_type not in model_map:
         return []

@@ -1,7 +1,7 @@
 /**
  * TanStack Query hooks for the Unified Search API.
  * Updated to use /api/content/search/ (new endpoint) with type_counts support.
- * MUST stay in sync with backend/content/api.py (PaginatedSearchOut, AutocompleteResultOut)
+ * MUST stay in sync with backend/content/schemas/search.py (PaginatedSearchOut, AutocompleteResultOut)
  */
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -29,6 +29,7 @@ function buildSearchParams(filters: Partial<UnifiedSearchFilter>): string {
     // New API expects comma-separated string
     params.set('result_types', filters.result_types.join(','));
   }
+  if (filters.tag_slugs?.length) params.set('tag_slugs', filters.tag_slugs.join(','));
   if (filters.sort) params.set('sort', filters.sort);
   if (filters.page) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
@@ -47,7 +48,7 @@ export function useUnifiedSearch(filters: Partial<UnifiedSearchFilter> = {}) {
 // --- Autocomplete ---
 
 const AutocompleteResultSchema = z.object({
-  result_type: z.enum(['session', 'blog', 'game', 'recipe', 'tag', 'event']),
+  result_type: z.enum(['session', 'blog', 'game', 'tag', 'event']),
   id: z.number(),
   title: z.string(),
   slug: z.string(),

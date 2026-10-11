@@ -1,21 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUnifiedAutocomplete, type AutocompleteResult } from '@/api/search';
-import { useSearchStore } from '@/store/useSearchStore';
 import { RESULT_TYPE_CONFIG } from '@/schemas/search';
 import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
   variant?: 'default' | 'hero';
+  /** Current search term (e.g. the `q` URL param); the input follows it. */
+  query?: string;
+  /** Called on submit. Without it, the bar navigates to `/search?q=…`. */
+  onSearch?: (q: string) => void;
 }
 
-export default function SearchBar({ variant = 'default' }: SearchBarProps) {
-  const { searchQuery, setSearchQuery } = useSearchStore();
-  const [localQuery, setLocalQuery] = useState(searchQuery);
+export default function SearchBar({ variant = 'default', query = '', onSearch }: SearchBarProps) {
+  const [localQuery, setLocalQuery] = useState(query);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { data: suggestions } = useUnifiedAutocomplete(localQuery);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -29,9 +35,13 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSearchQuery(localQuery);
+    const trimmed = localQuery.trim();
     setShowSuggestions(false);
-    navigate('/search');
+    if (onSearch) {
+      onSearch(trimmed);
+    } else {
+      navigate(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/search');
+    }
   }
 
   function handleSelect(item: AutocompleteResult) {

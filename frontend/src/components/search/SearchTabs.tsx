@@ -1,7 +1,7 @@
 /**
  * SearchTabs — Horizontal tab bar for filtering search results by content type.
  *
- * Shows: Alle | Gruppenstunden | Spiele | Rezepte | Wissensbeiträge | Ideen | Tags | Events
+ * Shows: Alle | Gruppenstunden | Wissensbeiträge | Spiele | Events
  * Each tab displays a count badge from type_counts.
  */
 import { RESULT_TYPE_OPTIONS, RESULT_TYPE_CONFIG } from '@/schemas/search';

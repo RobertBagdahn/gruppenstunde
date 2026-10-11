@@ -9,7 +9,8 @@ from ninja import Schema
 
 class UnifiedSearchFilterIn(Schema):
     q: str = ""
-    result_types: str = ""  # Comma-separated: "session,blog,game,recipe,tag,event"
+    result_types: str = ""  # Comma-separated: "session,blog,game,event"
+    tag_slugs: str = ""  # Comma-separated tag slugs; descendants are included
     sort: str = "relevant"
     page: int = 1
     page_size: int = 20

@@ -18,8 +18,9 @@ router = Router(tags=["content"])
 
 @router.get("/search/", response=PaginatedSearchOut, url_name="content_search")
 def search_endpoint(request, filters: Query[UnifiedSearchFilterIn]):
-    """Unified search across all content types."""
+    """Unified search across sessions, blogs, games and events (no recipes)."""
     result_types = [t.strip() for t in filters.result_types.split(",") if t.strip()] or None
+    tag_slugs = [t.strip() for t in filters.tag_slugs.split(",") if t.strip()] or None
 
     items, total, type_counts = unified_search(
         q=filters.q,
@@ -29,6 +30,7 @@ def search_endpoint(request, filters: Query[UnifiedSearchFilterIn]):
         sort=filters.sort,
         scope=filters.scope,
         user=request.user,
+        tag_slugs=tag_slugs,
     )
 
     # Log search
@@ -54,5 +56,5 @@ def search_endpoint(request, filters: Query[UnifiedSearchFilterIn]):
     url_name="content_autocomplete",
 )
 def autocomplete_endpoint(request, q: str = ""):
-    """Fast typeahead autocomplete across all content types."""
+    """Fast typeahead autocomplete across sessions, blogs, games, tags and events."""
     return unified_autocomplete(q)

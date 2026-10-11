@@ -100,7 +100,48 @@ class TestUnifiedSearch:
         assert "items" in data
         assert "total" in data
         assert "type_counts" in data
-        assert data["total"] >= 4
+        assert data["total"] >= 3
+
+    def test_search_excludes_recipes(self, api_client, sample_session, sample_recipe):
+        """Recipes belong to frontend-food and never appear in the unified search."""
+        resp = api_client.get("/api/content/search/?q=Stockbrot")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert all(item["result_type"] != "recipe" for item in data["items"])
+        assert "recipe" not in data["type_counts"]
+
+        resp = api_client.get("/api/content/search/?result_types=recipe")
+        assert resp.status_code == 200
+        assert resp.json()["items"] == []
+
+    def test_autocomplete_excludes_recipes(self, api_client, sample_recipe):
+        """Autocomplete does not suggest recipes."""
+        resp = api_client.get("/api/content/autocomplete/?q=Stockbrot")
+        assert resp.status_code == 200
+        assert all(item["result_type"] != "recipe" for item in resp.json())
+
+    def test_search_tag_filter(self, api_client, sample_session, sample_blog, sample_game):
+        """tag_slugs restricts results to content with the tag or a descendant tag."""
+        from content.models import Tag
+
+        parent = Tag.objects.create(name="Natur & Outdoor", slug="natur-outdoor")
+        child = Tag.objects.create(name="Wald", slug="wald", parent=parent)
+        sample_session.tags.add(parent)
+        sample_game.tags.add(child)
+
+        resp = api_client.get("/api/content/search/?tag_slugs=natur-outdoor")
+        assert resp.status_code == 200
+        data = resp.json()
+        titles = {item["title"] for item in data["items"]}
+        assert titles == {"Nachtwanderung im Wald", "Capture the Flag"}
+        assert data["type_counts"]["blog"] == 0
+        assert data["type_counts"]["event"] == 0
+
+    def test_search_unknown_tag_returns_nothing(self, api_client, sample_session):
+        """An unknown tag slug filters everything out instead of being ignored."""
+        resp = api_client.get("/api/content/search/?tag_slugs=gibt-es-nicht")
+        assert resp.status_code == 200
+        assert resp.json()["total"] == 0
 
     def test_search_with_query(self, api_client, sample_session, sample_blog):
         """Search with query filters by relevance."""
@@ -127,7 +168,7 @@ class TestUnifiedSearch:
         result_types = {item["result_type"] for item in data["items"]}
         assert result_types <= {"session", "blog"}
 
-    def test_search_type_counts(self, api_client, sample_session, sample_blog, sample_game, sample_recipe):
+    def test_search_type_counts(self, api_client, sample_session, sample_blog, sample_game):
         """Search returns type_counts for all types."""
         resp = api_client.get("/api/content/search/")
         data = resp.json()
@@ -136,7 +177,6 @@ class TestUnifiedSearch:
         assert counts.get("session", 0) >= 1
         assert counts.get("blog", 0) >= 1
         assert counts.get("game", 0) >= 1
-        assert counts.get("recipe", 0) >= 1
 
     def test_search_pagination(self, api_client, sample_session, sample_blog):
         """Search respects pagination."""
