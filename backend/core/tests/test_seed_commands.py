@@ -23,6 +23,16 @@ class TestAddUsersCommand:
         assert UserModel.objects.count() == 1
         assert "skipping add_users" in output.getvalue()
 
+    def test_creates_non_staff_seed_user(self):
+        call_command("add_users", "--if-empty", stdout=StringIO())
+
+        user = get_user_model().objects.get(email="user@user.de")
+        assert user.check_password("user")
+        assert not user.is_staff
+        assert not user.is_superuser
+        admin = get_user_model().objects.get(email="admin@admin.de")
+        assert admin.is_staff and admin.is_superuser
+
 
 @pytest.mark.django_db
 class TestSeedAllCommand:

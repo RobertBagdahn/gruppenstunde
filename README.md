@@ -114,6 +114,21 @@ make dev
 
 > **Tipp:** `make help` zeigt alle verfügbaren Befehle an.
 
+### Seed-Nutzer (lokal und E2E)
+
+`make seed-users` (bzw. `init-db`, `reset-db`, `e2e/smoke-test.sh`) legt mit `add_users --if-empty` folgende Konten an – Passwort jeweils wie der Benutzername:
+
+| E-Mail               | Passwort  | Rolle                         |
+|----------------------|-----------|-------------------------------|
+| `admin@admin.de`     | `admin`   | Staff + Superuser             |
+| `robert@robert.de`   | `robert`  | Staff                         |
+| `peter@peter.de`     | `peter`   | Staff                         |
+| `staff@staff.de`     | `staff`   | Staff (kein Superuser)        |
+| `user@user.de`       | `user`    | normaler Nutzer (kein Staff)  |
+| `author1@author1.de` | `author1` | normaler Nutzer (kein Staff)  |
+
+`--if-empty` überspringt alles, sobald irgendein Nutzer existiert (z. B. nach einem Datenimport). Fehlende Seed-Nutzer ergänzt man in einer lokalen Datenbank mit `cd backend && uv run python manage.py add_users` (ohne `--if-empty`); bestehende Seed-Konten erhalten dabei wieder ihre Rollen, Passwörter bleiben unverändert. Nicht gegen geteilte oder produktive Datenbanken ausführen.
+
 ## Projektstruktur
 
 ```
