@@ -298,7 +298,7 @@ def _recipe_embedding_fields_changed(instance, created: bool, update_fields=None
         return True
     # If update_fields is specified, check if any embedding-relevant field is in it
     if update_fields is not None:
-        relevant = {"title", "summary", "description"}
+        relevant = {"title", "summary", "description", "portions"}
         return bool(relevant & set(update_fields))
     # If update_fields is None (full save), assume fields may have changed
     return True

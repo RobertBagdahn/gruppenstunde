@@ -55,6 +55,20 @@ def worker_during_shutdown(monkeypatch: pytest.MonkeyPatch) -> list[Callable[[],
 
 @pytest.mark.django_db
 class TestRecipeItemEmbeddingSignal:
+    def test_portion_normalization_refreshes_embedding(
+        self, fake_embedding, django_capture_on_commit_callbacks, monkeypatch, caplog
+    ):
+        monkeypatch.setattr(recipe_signals, "run_in_background", lambda fn: fn())
+        recipe = make_recipe(title="Pro Person gespeichert")
+
+        caplog.set_level(logging.WARNING, logger="recipe.signals")
+        with django_capture_on_commit_callbacks(execute=True):
+            recipe.save(update_fields=["portions"])
+
+        recipe.refresh_from_db()
+        assert recipe.embedding is not None
+        assert "Failed to update embedding" not in caplog.text
+
     def test_item_change_updates_embedding_without_nested_background_work(
         self, fake_embedding, worker_during_shutdown, django_capture_on_commit_callbacks, caplog
     ):

@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
+from django.db.models import F
 
 from recipe.models import Recipe
 from recipe.services.recipe_checks import recalculate_recipe_cache
@@ -128,9 +129,9 @@ def normalize_recipe_to_one_portion(recipe: Recipe, *, quantities_are_total: boo
     portions = max(recipe.portions or 1, 1)
     update_fields = ["portions"]
     if quantities_are_total and portions > 1:
-        for item in recipe.recipe_items.all():
-            item.quantity = item.quantity / portions
-            item.save(update_fields=["quantity"])
+        # One SQL update avoids firing per-item cache and embedding signals while
+        # the recipe is only partially normalized.
+        recipe.recipe_items.update(quantity=F("quantity") / portions)
         if recipe.source_servings is None:
             recipe.source_servings = portions
             update_fields.append("source_servings")

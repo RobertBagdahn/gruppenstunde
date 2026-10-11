@@ -6,8 +6,17 @@ from unittest.mock import patch
 
 import pytest
 from django.core.management import call_command
+from django.db import IntegrityError, transaction
 
 from recipe.models import Recipe
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("portions", [0, 2])
+def test_database_rejects_portions_other_than_one(portions):
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            Recipe.objects.create(title="Nicht normalisiert", portions=portions)
 
 
 @pytest.mark.django_db
