@@ -15,6 +15,7 @@ Social login is live in code, but no OAuth clients are configured in production 
 
 ### Modified Capabilities
 - `social-login`: "Ausschließlich Social Login" gets a switchable transition period for e-mail/password accounts.
+- `auth-session`: "Session-basierte Authentifizierung" allows sessions from e-mail/password login while the switch is on.
 
 ## Impact
 
