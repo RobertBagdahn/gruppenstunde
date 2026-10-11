@@ -8,9 +8,9 @@ from .base import *  # noqa: F403
 
 DEBUG = True
 
-INSTALLED_APPS += [
-    "debug_toolbar",
-]
+# Daphne must come first: its `runserver` serves inspi.asgi (HTTP and the shopping-list
+# WebSocket). Production runs gunicorn with inspi.wsgi and has no WebSocket endpoint.
+INSTALLED_APPS = ["daphne", *INSTALLED_APPS, "debug_toolbar"]
 
 MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
 
