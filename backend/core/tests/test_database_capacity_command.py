@@ -31,12 +31,12 @@ def test_capacity_command_reports_a_safe_application_budget() -> None:
 
     report = output.getvalue()
     assert "application_budget=14" in report
-    assert "configured_application_max=8" in report
+    assert "configured_application_max=4" in report
     assert "Database connection budget is safe." in report
 
 
 def test_capacity_command_fails_when_the_configured_budget_exceeds_postgres() -> None:
-    connection = _mock_postgres_connection(15, 3, 0, 6)
+    connection = _mock_postgres_connection(14, 3, 0, 6)
 
     with patch("core.management.commands.check_database_capacity.connection", connection):
         with pytest.raises(CommandError, match="exceeds the available database connection budget"):

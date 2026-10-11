@@ -30,5 +30,4 @@ if [ "$ready" -ne 1 ]; then
 fi
 
 cd "$repo_root/e2e"
-E2E_BASE_URL=http://127.0.0.1:5174 npx playwright test \
-  --project=mocked tests/food-release-hardening.mocked.spec.ts
+E2E_BASE_URL=http://127.0.0.1:5174 npx playwright test --project=mocked

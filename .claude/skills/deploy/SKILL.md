@@ -256,9 +256,9 @@ gcloud run deploy inspi-backend \
   --image europe-west1-docker.pkg.dev/inspi-441320/inspi/backend:latest \
   --region europe-west1 \
   --port 8000 \
-  --cpu 1 --memory 512Mi \
-  --min-instances 0 --max-instances 10 \
-  --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,GOOGLE_CLOUD_PROJECT=inspi-441320,GCS_BUCKET_NAME=inspi-media,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
+  --cpu 1 --memory 1Gi --concurrency 1 \
+  --min-instances 0 --max-instances 2 \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,GOOGLE_CLOUD_PROJECT=inspi-441320,GCS_BUCKET_NAME=inspi-media,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432,BACKEND_MAX_INSTANCES=2,BACKEND_CONCURRENCY=1,GUNICORN_WORKERS=1,GUNICORN_THREADS=1,BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8" \
   --set-secrets "DJANGO_SECRET_KEY=prod_django_secret_key:latest,DB_PASSWORD=prod_db_password:latest,EMAIL_HOST_PASSWORD=gmail_app_password:latest" \
   --allow-unauthenticated
 ```

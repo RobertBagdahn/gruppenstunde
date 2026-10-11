@@ -6,10 +6,11 @@ braucht Roberts Freigabe.** Trockenläufe zeigen, Ausgabe prüfen, erst dann Ech
 
 Management-Befehle auf Prod laufen als Cloud Run Job (Muster:
 `gcloud run jobs execute <job> --region europe-west1 --wait`) oder lokal vom jeweiligen
-Branch gegen die Prod-Datenbank über den Cloud SQL Auth Proxy. Beim Deploy führt Cloud Build
-`manage.py migrate --noinput` automatisch aus (`cloudbuild.yaml`).
-Seit dem GitHub-Workflow `.github/workflows/deploy.yml` deployt jeder Merge nach `main` automatisch
-(Build, Deploy, `inspi-migrate`-Job, Smoke-Checks); einmalige Einrichtung: `scripts/setup-github-deploy.sh`.
+Branch gegen die Prod-Datenbank über den Cloud SQL Auth Proxy.
+Die einzige Prod-Pipeline ist der GitHub-Workflow `.github/workflows/deploy.yml`: Jeder Merge nach
+`main` durchläuft zuerst die Release-Checks (Backend, Haupt-Frontend, Food-Frontend, gemockte
+Food-E2E-Tests) und wird erst danach gebaut und deployt (Build, Deploy, `inspi-migrate`-Job mit
+`manage.py migrate --noinput`, Smoke-Checks); einmalige Einrichtung: `scripts/setup-github-deploy.sh`.
 Tofu, `add_users` und `seed_all` bleiben manuell.
 
 ## 0. Vorbereitung
@@ -20,8 +21,8 @@ Tofu, `add_users` und `seed_all` bleiben manuell.
 ## 1. meal-plan-integrity-and-number-formatting — vor dem Deploy
 
 Die Planner-Migration setzt Referenzmahlzeiten auf datumslos und legt zwei Constraints an.
-Sie bricht ab, wenn es doppelte reguläre Mahlzeiten (Plan, Tag, Typ) gibt — Cloud Build
-stoppt dann vor dem Rollout. Deshalb vorher prüfen:
+Sie bricht ab, wenn es doppelte reguläre Mahlzeiten (Plan, Tag, Typ) gibt — der
+Migrations-Job im Deploy-Workflow schlägt dann fehl. Deshalb vorher prüfen:
 
 - [x] Vom Branch aus gegen Prod (nur Bericht, ändert nichts):
       `uv run python manage.py check_meal_integrity`
@@ -85,7 +86,7 @@ Datenhinweise aus der lokalen Prüfung (vor der Freigabe ansehen):
 ## 6. food-audit-bugfixes — vor und nach dem Deploy
 
 Enthält die Migration `planner.0008_mealitem_portion` (nullable Spalte `portion_id`, kein Backfill).
-Cloud Build führt sie beim Deploy automatisch aus; sie ist rein additiv und sperrt nichts.
+Der Deploy-Workflow führt sie automatisch aus; sie ist rein additiv und sperrt nichts.
 
 - [x] Vor dem Deploy: `uv run python manage.py sqlmigrate planner 0008` geprüft
       (nur `ADD COLUMN … NULL` und `CREATE INDEX`)
