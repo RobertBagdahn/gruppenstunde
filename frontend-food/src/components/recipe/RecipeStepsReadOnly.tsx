@@ -1,19 +1,11 @@
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import type { RecipeStep } from '@/schemas/recipeStep';
-import { formatNumber } from '@/lib/format';
+import StepIngredientChips from '@/components/recipe/StepIngredientChips';
 
 interface RecipeStepsReadOnlyProps {
   steps: RecipeStep[];
   fallbackInstructions?: string[];
   scale?: number;
-}
-
-function formatQuantity(value: number): string {
-  const rounded = Math.round(value * 10) / 10;
-  if (Number.isInteger(rounded)) {
-    return String(rounded);
-  }
-  return formatNumber(rounded, { maxDecimals: 1 }).replace('.', ',');
 }
 
 export default function RecipeStepsReadOnly({
@@ -68,25 +60,7 @@ export default function RecipeStepsReadOnly({
                     ⏱ ca. {step.duration_minutes} min
                   </p>
                 )}
-                {step.step_ingredients.length > 0 && (
-                  <ul className="mt-2 flex flex-wrap gap-1.5 list-none p-0">
-                    {step.step_ingredients.map((ingredient) => {
-                      const quantity =
-                        ingredient.quantity != null ? formatQuantity(ingredient.quantity * scale) : '';
-                      const unit = ingredient.unit_short ?? '';
-                      return (
-                        <li
-                          key={ingredient.id}
-                          className="rounded-full bg-muted px-2.5 py-1 text-caption"
-                        >
-                          {[quantity, unit].filter(Boolean).join(' ')}{' '}
-                          {ingredient.ingredient_name ?? ''}
-                          {ingredient.preparation ? `, ${ingredient.preparation}` : ''}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                <StepIngredientChips ingredients={step.step_ingredients} scale={scale} className="mt-2" />
               </div>
             </div>
           </li>

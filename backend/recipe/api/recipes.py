@@ -531,6 +531,8 @@ def get_recipe(request, recipe_id: int):
         "recipe_items__portion__measuring_unit",
         "recipe_items__portion__superseded_by",
         "steps__step_ingredients__recipe_item__portion__ingredient",
+        "steps__step_ingredients__recipe_item__portion__measuring_unit",
+        "steps__step_ingredients__recipe_item__ingredient",
         "authors__profile",
     )
     recipe = _get_visible_recipes_qs(request).prefetch_related(*prefetches).filter(id=recipe_id).first()
@@ -572,6 +574,8 @@ def get_recipe_by_slug(request, slug: str):
             "recipe_items__portion__measuring_unit",
             "recipe_items__portion__superseded_by",
             "steps__step_ingredients__recipe_item__portion__ingredient",
+            "steps__step_ingredients__recipe_item__portion__measuring_unit",
+            "steps__step_ingredients__recipe_item__ingredient",
             "authors__profile",
         ),
         slug=slug,
@@ -1284,7 +1288,8 @@ def set_recipe_image_from_url(request, recipe_id: int, payload: ImageFromUrlIn):
 def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
     """Create a personal copy (fork) of a recipe.
 
-    Copies the recipe and all its RecipeItems, setting owner to the current user.
+    Copies the recipe, its RecipeItems and its structured steps (including
+    step-ingredient links), setting owner to the current user.
     Accepts an optional custom title for the clone.
     """
     require_login(request)
@@ -1298,6 +1303,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
     original = Recipe.objects.prefetch_related(
         "recipe_items__portion",
         "exchange_groups",
+        "steps__step_ingredients",
         "tags",
         "scout_levels",
         "nutritional_tags",
@@ -1338,11 +1344,13 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
                 name=group.name,
             )
 
+        item_id_map: dict[int, int] = {}
         for item in original.recipe_items.all():
             exchange_group = group_map.get(item.exchange_group_id) if item.exchange_group_id is not None else None
-            RecipeItem.objects.create(
+            forked_item = RecipeItem.objects.create(
                 recipe=fork,
                 portion_id=item.portion_id,
+                ingredient_id=item.ingredient_id,
                 quantity=item.quantity,
                 sort_order=item.sort_order,
                 note=item.note,
@@ -1350,6 +1358,11 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
                 exchange_group=exchange_group,
                 exchange_position=item.exchange_position,
             )
+            item_id_map[item.id] = forked_item.id
+
+        from recipe.services.step_helpers import copy_recipe_steps
+
+        copy_recipe_steps(original, fork, item_id_map)
 
     fork.emotion_counts = {}
     fork.user_emotion = None

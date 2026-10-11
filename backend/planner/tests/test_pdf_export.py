@@ -154,7 +154,10 @@ class TestShoppingListAggregation:
 
     @pytest.mark.django_db
     def test_direct_ingredient_with_chosen_portion_uses_portion_weight(self):
-        """0,16 x "100g" for 33 persons is 528 g, not 5,3 "Gramm" (Bundesrat 2026 regression)."""
+        """0,16 x "100g" for 33 persons shows its grams, not 5,3 "Gramm" (Bundesrat 2026 regression).
+
+        Portion items use the shared UI amount text: unit first, grams in brackets.
+        """
         from planner.models import MealItem
         from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
@@ -167,7 +170,7 @@ class TestShoppingListAggregation:
             meal=meal, recipe=None, ingredient=ing, quantity=0.16, portion=portion, factor=1.0
         )
         data = _build_item_data(item, portions=33, reserve_factor=1.0, overrides={})
-        assert data["ingredients"][0] == "Margarine — 528 g · à 16 g p. P."
+        assert data["ingredients"][0] == "Margarine — 5,28 100g (530 g) · à 0,16 100g (16 g) p. P."
 
     @pytest.mark.django_db
     def test_recipe_ingredient_with_pre_weighed_portion_uses_portion_weight(self):
@@ -500,8 +503,8 @@ class TestLayoutData:
         days = _build_meal_context(plan)
         card = days[0]["meals"][0]["breakfast_card"]
         assert [r["name"] for r in card["rows"]] == ["Margarine", "Nutella"]
-        assert card["rows"][0]["total"] == "528 g"
-        assert card["rows"][0]["per_person"] == "16 g"
+        assert card["rows"][0]["total"] == "5,28 100g (530 g)"
+        assert card["rows"][0]["per_person"] == "0,16 100g (16 g)"
         assert 3 <= len(card["steps"]) <= 5
 
     @pytest.mark.django_db

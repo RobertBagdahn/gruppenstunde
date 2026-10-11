@@ -165,6 +165,7 @@ export default function StepCard({
             durationMinutes={step.duration_minutes}
             section={step.section}
             stepIngredientCount={step.step_ingredients.length}
+            stepIngredients={step.step_ingredients}
             onUpdate={onUpdate}
           />
 

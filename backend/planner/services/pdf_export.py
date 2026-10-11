@@ -685,15 +685,13 @@ def _direct_quantity_parts(item: MealItem, portions: float, reserve_factor: floa
     portion count next to the unit name. Per-person is empty when unknown.
     """
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
-    from supply.services.amount_formatting import format_cooking_weight, format_portion_amount
+    from supply.services.amount_formatting import format_cooking_weight
 
     quantity = float(item.quantity or 0)
     scaled = quantity * item.factor * portions * reserve_factor
     per_person_qty = quantity * item.factor
-    chosen = item.portion if item.portion is not None and item.portion.deleted_at is None else None
-    if chosen is not None:
-        return format_portion_amount(scaled, chosen), format_portion_amount(per_person_qty, chosen)
 
+    # Portion, standard-measure and metric entries share the UI amount text.
     from supply.services.quantity_units import format_amount, resolve_grams, resolve_unit
 
     unit = resolve_unit(

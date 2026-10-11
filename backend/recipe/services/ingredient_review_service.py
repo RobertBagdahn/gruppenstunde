@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AbstractBaseUser
 
@@ -24,6 +25,10 @@ from recipe.services.url_import_service import (
     _merge_steps,
 )
 
+if TYPE_CHECKING:
+    from recipe.services.unit_gram_conversion import PortionCount
+    from supply.models import Portion
+
 MISSING_QUANTITY_REASON = "Menge fehlt – bitte Menge und Portion festlegen."
 
 
@@ -42,15 +47,9 @@ def _row_key(index: int, source: RecipeImportSourceIn) -> str:
     return f"ingredient-{index}-{digest}"
 
 
-def _portion_for_ingredient(ingredient_id: int) -> ReviewPortionOut | None:
-    from supply.models import Portion
+def _review_portion(portion: Portion) -> ReviewPortionOut:
     from supply.services.portion_resolution import resolve_trusted_weight
 
-    portion = (
-        Portion.objects.active().filter(ingredient_id=ingredient_id, rank=1).select_related("measuring_unit").first()
-    )
-    if portion is None:
-        return None
     return ReviewPortionOut(
         id=portion.id,
         name=portion.name,
@@ -61,17 +60,30 @@ def _portion_for_ingredient(ingredient_id: int) -> ReviewPortionOut | None:
     )
 
 
+def _portion_for_ingredient(ingredient_id: int) -> ReviewPortionOut | None:
+    from supply.models import Portion
+
+    portion = (
+        Portion.objects.active().filter(ingredient_id=ingredient_id, rank=1).select_related("measuring_unit").first()
+    )
+    if portion is None:
+        return None
+    return _review_portion(portion)
+
+
 def _suggested_portion_count(
     quantity: float | None,
     unit: str,
     ingredient_id: int,
     user: AbstractBaseUser,
     memo: dict[tuple[str, int], float],
-) -> float | None:
-    """Convert an imported quantity/unit into a portion count for an ingredient.
+) -> PortionCount | None:
+    """Convert an imported quantity/unit into a count of one of the ingredient's portions.
 
-    Returns None when the quantity is missing, the unit is unknown, or no
-    trusted portion exists — the review row then relies on the quantity dialog.
+    The returned portion is the one the count refers to (e.g. "Esslöffel" for
+    "2 EL", even when "Flasche" is rank 1). Returns None when the quantity is
+    missing, the unit is unknown, or no trusted portion exists — the review row
+    then relies on the quantity dialog.
     """
     from supply.models import Ingredient
 
@@ -85,7 +97,7 @@ def _suggested_portion_count(
         return None
     # Container-unit estimates are a per-ingredient AI call outside the anonymous allowlist.
     is_authenticated = user is not None and user.is_authenticated
-    return UnitGramConverter.convert_to_portion_count(
+    return UnitGramConverter.convert_to_portion(
         quantity, unit, ingredient, user=user, _memo=memo, allow_ai_estimate=is_authenticated
     )
 
@@ -209,16 +221,21 @@ def preview_recipe_ingredients(
             quantity = None
             suggested_quantity = None
             if match.ingredient_id and selected_portion:
-                suggested_quantity = _suggested_portion_count(
+                suggestion = _suggested_portion_count(
                     ingredient.quantity, ingredient.unit, match.ingredient_id, user, conversion_memo
                 )
+                if suggestion is not None:
+                    # The count belongs to the portion it was matched against, not always rank 1.
+                    selected_portion = _review_portion(suggestion.portion)
+                    suggested_quantity = suggestion.count
                 quantity = suggested_quantity
             elif match.candidates:
                 best_candidate = match.candidates[0]
                 if _portion_for_ingredient(best_candidate.id) is not None:
-                    suggested_quantity = _suggested_portion_count(
+                    suggestion = _suggested_portion_count(
                         ingredient.quantity, ingredient.unit, best_candidate.id, user, conversion_memo
                     )
+                    suggested_quantity = suggestion.count if suggestion is not None else None
 
             # A matched row without a quantity cannot be confirmed as-is: mark it
             # open with an actionable reason instead of a silent "—".

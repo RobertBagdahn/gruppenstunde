@@ -10,7 +10,12 @@ from pydantic import field_validator
 
 
 class RecipeStepIngredientOut(Schema):
-    """Schema for a recipe step ingredient (read-only)."""
+    """Schema for a recipe step ingredient (read-only).
+
+    `quantity` is in the recipe item's own unit: a portion count for portion
+    items (`unit_short` is the portion name) and grams for direct-gram items
+    (`unit_short` is "g"). `weight_g` is the gram weight of that amount.
+    """
 
     id: int
     recipe_item_id: int
@@ -20,36 +25,45 @@ class RecipeStepIngredientOut(Schema):
     # Resolved fields
     ingredient_name: str | None = None
     ingredient_id: int | None = None
+    portion_name: str | None = None
     unit_short: str | None = None
-    quantity: float | None = None  # Modified quantity (recipe_item.quantity * quantity_modifier)
+    quantity: float | None = None  # recipe_item.quantity * quantity_modifier
+    weight_g: float | None = None  # gram weight of `quantity`
     note: str | None = None  # Recipe item note
 
     @staticmethod
     def resolve_ingredient_name(obj) -> str | None:
-        """Resolve from recipe_item.portion.ingredient.name."""
-        if obj.recipe_item:
-            portion = obj.recipe_item.portion
-            if portion and portion.ingredient:
-                return cast(str, portion.ingredient.name)
-        return None
+        """Resolve from the portion's ingredient or the direct-gram ingredient."""
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj.recipe_item) if obj.recipe_item else None
+        return cast(str, ingredient.name) if ingredient else None
 
     @staticmethod
     def resolve_ingredient_id(obj) -> int | None:
-        """Resolve from recipe_item.portion.ingredient.id."""
-        if obj.recipe_item:
-            portion = obj.recipe_item.portion
-            if portion and portion.ingredient:
-                return cast(int, portion.ingredient.id)
+        """Resolve from the portion's ingredient or the direct-gram ingredient."""
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj.recipe_item) if obj.recipe_item else None
+        return cast(int, ingredient.id) if ingredient else None
+
+    @staticmethod
+    def resolve_portion_name(obj) -> str | None:
+        if obj.recipe_item and obj.recipe_item.portion:
+            return cast(str, obj.recipe_item.portion.name)
         return None
 
     @staticmethod
     def resolve_unit_short(obj) -> str | None:
-        """Resolve from recipe_item.portion.measuring_unit.unit."""
-        if obj.recipe_item:
-            portion = obj.recipe_item.portion
-            if portion and portion.measuring_unit:
-                return cast(str, portion.measuring_unit.unit)
-        return None
+        """Portion label for portion items, "g" for direct-gram items."""
+        if not obj.recipe_item:
+            return None
+        portion = obj.recipe_item.portion
+        if portion is None:
+            return "g"
+        from supply.services.quantity_units import portion_label
+
+        return portion_label(portion)
 
     @staticmethod
     def resolve_quantity(obj) -> float | None:
@@ -57,6 +71,18 @@ class RecipeStepIngredientOut(Schema):
         if obj.recipe_item and obj.quantity_modifier:
             return cast(float, obj.recipe_item.quantity * obj.quantity_modifier)
         return None
+
+    @staticmethod
+    def resolve_weight_g(obj) -> float | None:
+        """Gram weight of the modified quantity; None when the portion has no weight."""
+        if not obj.recipe_item or not obj.quantity_modifier:
+            return None
+        from recipe.services.recipe_item_helpers import get_recipe_item_weight_g
+
+        weight_g = get_recipe_item_weight_g(obj.recipe_item)
+        if weight_g <= 0:
+            return None
+        return weight_g * float(obj.quantity_modifier)
 
     @staticmethod
     def resolve_note(obj) -> str | None:

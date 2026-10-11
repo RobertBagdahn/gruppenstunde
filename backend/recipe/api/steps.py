@@ -71,6 +71,7 @@ def list_recipe_steps(request, slug: str):
         .prefetch_related(
             "step_ingredients__recipe_item__portion__ingredient",
             "step_ingredients__recipe_item__portion__measuring_unit",
+            "step_ingredients__recipe_item__ingredient",
         )
         .order_by("sort_order")
     )
@@ -140,6 +141,7 @@ def batch_update_recipe_steps(request, slug: str, payload: RecipeStepsBatchIn):
         .prefetch_related(
             "step_ingredients__recipe_item__portion__ingredient",
             "step_ingredients__recipe_item__portion__measuring_unit",
+            "step_ingredients__recipe_item__ingredient",
         )
         .order_by("sort_order")
     )

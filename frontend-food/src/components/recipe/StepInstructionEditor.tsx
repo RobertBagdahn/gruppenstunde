@@ -15,6 +15,7 @@ interface StepInstructionEditorProps {
   durationMinutes: number | null | undefined;
   section: string | undefined;
   stepIngredientCount?: number;
+  stepIngredients?: RecipeStep['step_ingredients'];
   onUpdate: (updates: Partial<RecipeStep>) => void;
 }
 
@@ -23,6 +24,7 @@ export default function StepInstructionEditor({
   durationMinutes,
   section,
   stepIngredientCount = 0,
+  stepIngredients = [],
   onUpdate,
 }: StepInstructionEditorProps) {
   const [localInstruction, setLocalInstruction] = useState(instruction);
@@ -146,6 +148,7 @@ export default function StepInstructionEditor({
       {/* Live Preview */}
       <LivePreview
         instruction={localInstruction}
+        stepIngredients={stepIngredients}
         title="Vorschau"
       />
 
