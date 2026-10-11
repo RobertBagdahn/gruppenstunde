@@ -21,9 +21,9 @@ export default function WhatsAppDeleteDialog({
       open={open}
       onCancel={onCancel}
       onConfirm={onConfirm}
-      title="WhatsApp-Daten loeschen"
-      description="Moechtest du wirklich alle WhatsApp-Daten unwiderruflich loeschen? Dies umfasst die Verbindung, alle Sitzungsdaten und den Nachrichtenverlauf. Diese Aktion kann nicht rueckgaengig gemacht werden."
-      confirmLabel={isPending ? 'Wird geloescht...' : 'Endgueltig loeschen'}
+      title="WhatsApp-Daten löschen"
+      description="Möchtest du wirklich alle WhatsApp-Daten unwiderruflich löschen? Dies umfasst die Verbindung, alle Sitzungsdaten und den Nachrichtenverlauf. Diese Aktion kann nicht rückgängig gemacht werden."
+      confirmLabel={isPending ? 'Wird gelöscht...' : 'Endgültig löschen'}
       loading={isPending}
       variant="destructive"
     />

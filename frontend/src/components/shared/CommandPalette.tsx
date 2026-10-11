@@ -22,7 +22,6 @@ const CONTENT_TYPE_ICONS: Record<string, string> = {
   session: 'school',
   game: 'sports_esports',
   blog: 'article',
-  recipe: 'restaurant',
   event: 'celebration',
   tag: 'label',
 };
@@ -31,7 +30,6 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   session: 'Gruppenstunde',
   game: 'Spiel',
   blog: 'Wissensbeitrag',
-  recipe: 'Rezept',
   event: 'Aktion',
   tag: 'Tag',
 };

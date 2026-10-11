@@ -60,6 +60,15 @@ describe('<ToolLandingPage> sign-in prompt', () => {
     expect(html).toContain('Erstelle ein kostenloses Konto');
   });
 
+  it('uses label-neutral German grammar', () => {
+    mockUser(null);
+    const html = renderLanding();
+    expect(html).toContain('Über das Tool „Packlisten“');
+    expect(html).toContain('alle Funktionen des Tools „Packlisten“.');
+    expect(html).toContain('Häufig gestellte Fragen');
+    expect(html).not.toContain('Was ist der');
+  });
+
   it('hides the sign-in prompt for logged-in users', () => {
     mockUser({
       id: 1,

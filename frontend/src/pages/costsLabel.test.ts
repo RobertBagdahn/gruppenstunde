@@ -35,7 +35,7 @@ describe('formatCostsPerPerson', () => {
   });
 
   it('handles string input from API', () => {
-    expect(formatCostsPerPerson('3.50' as any)).toBe('3,50 € pro Person');
+    expect(formatCostsPerPerson('3.50' as unknown as number)).toBe('3,50 € pro Person');
   });
 
   it('handles small decimal', () => {

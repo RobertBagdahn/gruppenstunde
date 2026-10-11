@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useUnifiedSearch } from '@/api/search';
 import { useCurrentUser } from '@/api/auth';
-import { useSearchStore } from '@/store/useSearchStore';
 import SearchBar from '@/components/SearchBar';
 import { SearchTabs } from '@/components/search/SearchTabs';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -19,6 +18,7 @@ import {
 import { EntityLink } from '@/components/shared/EntityLink';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import type { EntityType } from '@/lib/entityUrls';
+import { filtersToSearchParams, searchParamsToFilters } from '@/lib/searchUrlState';
 import { cn } from '@/lib/utils';
 
 /* ------------------------------------------------------------------ */
@@ -39,40 +39,6 @@ const SORT_OPTIONS = [
   { value: 'relevant', label: 'Relevanz' },
   { value: 'newest', label: 'Neueste' },
 ];
-
-/* ------------------------------------------------------------------ */
-/*  URL <-> Filter sync helpers                                        */
-/* ------------------------------------------------------------------ */
-function filtersToSearchParams(filters: Partial<UnifiedSearchFilter>): URLSearchParams {
-  const params = new URLSearchParams();
-  if (filters.q) params.set('q', filters.q);
-  if (filters.result_types?.length) {
-    params.set('result_types', filters.result_types.join(','));
-  }
-  if (filters.sort && filters.sort !== 'relevant') params.set('sort', filters.sort);
-  if (filters.page && filters.page > 1) params.set('page', String(filters.page));
-  if (filters.scope === 'mine') params.set('scope', 'mine');
-  return params;
-}
-
-function searchParamsToFilters(params: URLSearchParams): Partial<UnifiedSearchFilter> {
-  const filters: Partial<UnifiedSearchFilter> = {
-    sort: 'relevant',
-    page: 1,
-    page_size: 20,
-  };
-  const q = params.get('q');
-  if (q) filters.q = q;
-  const resultTypes = params.get('result_types');
-  if (resultTypes) filters.result_types = resultTypes.split(',');
-  const sort = params.get('sort');
-  if (sort) filters.sort = sort;
-  const page = params.get('page');
-  if (page) filters.page = Number(page);
-  const scope = params.get('scope');
-  if (scope === 'mine') filters.scope = 'mine';
-  return filters;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Result card                                                        */
@@ -209,49 +175,17 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
 /*  Search Page                                                        */
 /* ------------------------------------------------------------------ */
 export default function SearchPage() {
-  const { searchQuery } = useSearchStore();
+  // The URL is the single source of truth for all search filters.
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialized = useRef(false);
   const { data: currentUser } = useCurrentUser();
   const isAuthenticated = !!currentUser;
 
-  // Local filter state (unified search filters)
-  const [filters, setFilters] = useState<Partial<UnifiedSearchFilter>>(() => {
-    if (searchParams.toString()) {
-      return searchParamsToFilters(searchParams);
-    }
-    return { sort: 'relevant', page: 1, page_size: 20 };
-  });
+  const filters = useMemo(() => searchParamsToFilters(searchParams), [searchParams]);
 
-  // Pick up q from the SearchStore (set by SearchBar)
-  useEffect(() => {
-    if (searchQuery !== (filters.q ?? '')) {
-      setFilters((prev) => ({ ...prev, q: searchQuery || undefined, page: 1 }));
-    }
-  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Init from URL on first mount
-  useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true;
-      if (searchParams.toString()) {
-        const parsed = searchParamsToFilters(searchParams);
-        setFilters(parsed);
-        // Also sync q back to SearchStore for the SearchBar
-        if (parsed.q) {
-          useSearchStore.getState().setSearchQuery(parsed.q);
-        }
-      }
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Sync filters -> URL
-  useEffect(() => {
-    if (initialized.current) {
-      const newParams = filtersToSearchParams(filters);
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [filters, setSearchParams]);
+  /** Apply a filter change to the URL; any change except paging resets to page 1. */
+  function updateFilters(patch: Partial<UnifiedSearchFilter>) {
+    setSearchParams(filtersToSearchParams({ ...filters, page: 1, ...patch }));
+  }
 
   // Document title
   useEffect(() => {
@@ -268,15 +202,6 @@ export default function SearchPage() {
     : filters;
 
   const { data, isLoading, error, refetch } = useUnifiedSearch(effectiveFilters);
-
-  /* -- Filter helpers ------------------------------------------------ */
-  function setFilter<K extends keyof UnifiedSearchFilter>(key: K, value: UnifiedSearchFilter[K]) {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-      ...(key !== 'page' ? { page: 1 } : {}),
-    }));
-  }
 
   const activeTypes = filters.result_types ?? [];
   const typeCounts = data?.type_counts ?? {};
@@ -298,8 +223,34 @@ export default function SearchPage() {
 
       {/* Search Bar */}
       <div className="mb-4 md:mb-6 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 rounded-2xl p-4 md:p-6 border border-primary/10">
-        <SearchBar />
+        <SearchBar query={filters.q ?? ''} onSearch={(q) => updateFilters({ q: q || undefined })} />
       </div>
+
+      {/* Active tag filters */}
+      {filters.tag_slugs && filters.tag_slugs.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {filters.tag_slugs.map((slug) => (
+            <span
+              key={slug}
+              className="flex items-center gap-1 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm font-semibold"
+            >
+              <span className="material-symbols-outlined text-[16px]">label</span>
+              {slug}
+              <button
+                type="button"
+                onClick={() => {
+                  const remaining = filters.tag_slugs?.filter((s) => s !== slug) ?? [];
+                  updateFilters({ tag_slugs: remaining.length > 0 ? remaining : undefined });
+                }}
+                aria-label={`Tag-Filter „${slug}“ entfernen`}
+                className="ml-1 rounded-full hover:bg-primary/20"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Search Tabs + Sort */}
       <div className="flex flex-col gap-3 mb-4 md:mb-6">
@@ -308,11 +259,7 @@ export default function SearchPage() {
           activeTypes={activeTypes}
           typeCounts={typeCounts}
           onTypeChange={(types) =>
-            setFilters((prev) => ({
-              ...prev,
-              result_types: types.length > 0 ? types : undefined,
-              page: 1,
-            }))
+            updateFilters({ result_types: types.length > 0 ? types : undefined })
           }
           totalCount={data?.total ?? 0}
         />
@@ -325,13 +272,7 @@ export default function SearchPage() {
               <Switch
                 id="scope-mine"
                 checked={filters.scope === 'mine'}
-                onCheckedChange={(checked) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    scope: checked ? 'mine' : undefined,
-                    page: 1,
-                  }))
-                }
+                onCheckedChange={(checked) => updateFilters({ scope: checked ? 'mine' : undefined })}
               />
               <Label htmlFor="scope-mine" className="text-sm font-medium cursor-pointer whitespace-nowrap">
                 Nur meine Beiträge
@@ -342,7 +283,8 @@ export default function SearchPage() {
           <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
           <select
             value={filters.sort ?? 'relevant'}
-            onChange={(e) => setFilter('sort', e.target.value)}
+            onChange={(e) => updateFilters({ sort: e.target.value })}
+            aria-label="Sortierung"
             className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-medium"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -387,7 +329,7 @@ export default function SearchPage() {
       <Pagination
         currentPage={filters.page ?? 1}
         totalPages={data?.total_pages ?? 1}
-        onPageChange={(page) => setFilter('page', page)}
+        onPageChange={(page) => updateFilters({ page })}
       />
     </div>
   );

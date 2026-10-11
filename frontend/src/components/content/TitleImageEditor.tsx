@@ -307,7 +307,7 @@ function AiImageModal({
           {/* Prompt input - optional */}
           <div>
             <label htmlFor="ai-image-prompt" className="text-sm font-medium mb-1.5 block">
-              Zusaetzliche Hinweise <span className="text-xs text-muted-foreground">(optional)</span>
+              Zusätzliche Hinweise <span className="text-xs text-muted-foreground">(optional)</span>
             </label>
             <textarea
               id="ai-image-prompt"

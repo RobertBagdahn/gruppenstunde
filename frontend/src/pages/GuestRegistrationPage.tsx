@@ -143,7 +143,7 @@ function PersonForm({
           placeholder="+49 151 12345678"
         />
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          Optional. Ermoeglicht Benachrichtigungen per WhatsApp.
+          Optional. Ermöglicht Benachrichtigungen per WhatsApp.
         </p>
       </div>
 
@@ -282,7 +282,7 @@ export default function GuestRegistrationPage() {
               : `${success.count} Personen wurden erfolgreich angemeldet.`}
           </p>
           <p className="text-sm text-green-700 dark:text-green-400 mt-2">
-            Eine Bestaetigung wurde an <strong>{success.email}</strong> gesendet.
+            Eine Bestätigung wurde an <strong>{success.email}</strong> gesendet.
           </p>
         </div>
       </div>
@@ -450,7 +450,7 @@ export default function GuestRegistrationPage() {
               placeholder="deine@email.de"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
-              An diese Adresse wird die Anmeldebestaetigung gesendet.
+              An diese Adresse wird die Anmeldebestätigung gesendet.
             </p>
           </div>
 

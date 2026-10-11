@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useUnifiedSearch } from '@/api/search';
-import { useSearchStore } from '@/store/useSearchStore';
 import SearchBar from '@/components/SearchBar';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import {
@@ -67,7 +66,7 @@ const PLANNING_TOOLS = [
   },
   {
     title: TOOL_SESSION_PLANNER.label,
-    desc: 'Wochentliche Gruppenstunden planen und organisieren.',
+    desc: 'Wöchentliche Gruppenstunden planen und organisieren.',
     icon: TOOL_SESSION_PLANNER.icon,
     gradient: TOOL_SESSION_PLANNER.gradient,
     link: TOOL_SESSION_PLANNER.basePath,
@@ -90,8 +89,7 @@ const QUICK_CREATE = [
 ];
 
 export default function HomePage() {
-  const { filters } = useSearchStore();
-  const { data, isLoading, error, refetch } = useUnifiedSearch({ ...filters, page_size: 12, sort: 'newest' });
+  const { data, isLoading, error, refetch } = useUnifiedSearch({ page_size: 12, sort: 'newest' });
 
   return (
     <div>
@@ -221,7 +219,7 @@ export default function HomePage() {
           {CATEGORIES.map((cat) => (
             <Link
               key={cat.label}
-              to={cat.tagSlug ? `/search?tags=${cat.tagSlug}` : `/search?q=${encodeURIComponent(cat.label)}`}
+              to={`/search?tag_slugs=${encodeURIComponent(cat.tagSlug)}`}
               className="group relative flex flex-col items-center gap-2 p-4 md:p-5 rounded-2xl bg-card border border-border/50 shadow-soft hover:shadow-colorful hover:-translate-y-1 transition-all duration-200 overflow-hidden"
             >
               <div className={`absolute -top-4 -right-4 w-20 h-20 rounded-full bg-gradient-to-br ${cat.color} opacity-15 blur-xl group-hover:opacity-30 transition-opacity`} />

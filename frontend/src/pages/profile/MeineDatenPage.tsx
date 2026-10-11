@@ -14,13 +14,19 @@ const GENDER_LABELS: Record<string, string> = {
 export default function MeineDatenPage() {
   const { userId } = useParams<{ userId: string }>();
   const { data: user, isLoading: userLoading } = useCurrentUser();
-  const { data: myProfile, isLoading: myProfileLoading } = useMyProfile();
-  const { data: publicProfile, isLoading: publicLoading } = usePublicUserProfile(Number(userId) || 0);
+  const isOwnProfile = !!user && String(user.id) === userId;
+  // Anonymous visitors and other users see the public profile.
+  const { data: myProfile, isLoading: myProfileLoading } = useMyProfile({ enabled: isOwnProfile });
+  const { data: publicProfile, isLoading: publicLoading } = usePublicUserProfile(
+    isOwnProfile ? 0 : Number(userId) || 0,
+  );
 
-  const isOwnProfile = user && String(user.id) === userId;
   const isLoading = userLoading || (isOwnProfile ? myProfileLoading : publicLoading);
+  const backLink = user
+    ? { to: '/profile', label: 'Zurück zum Profil' }
+    : { to: '/', label: 'Zur Startseite' };
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="container py-8 max-w-2xl">
         <div className="animate-pulse space-y-6">
@@ -40,8 +46,8 @@ export default function MeineDatenPage() {
     return (
       <div className="container py-8 max-w-2xl">
         <p className="text-destructive">Profil nicht gefunden.</p>
-        <Link to="/profile" className="text-sm text-primary mt-2 inline-block">
-          Zurück zum Profil
+        <Link to={backLink.to} className="text-sm text-primary mt-2 inline-block">
+          {backLink.label}
         </Link>
       </div>
     );
@@ -54,11 +60,11 @@ export default function MeineDatenPage() {
     <div className="container py-8 max-w-2xl space-y-6">
       {/* Back link */}
       <Link
-        to="/profile"
+        to={backLink.to}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-        Zurück zum Profil
+        {backLink.label}
       </Link>
 
       {/* Profile Header */}

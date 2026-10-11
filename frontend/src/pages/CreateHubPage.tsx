@@ -6,7 +6,7 @@ const CONTENT_OPTIONS = [
     icon: 'groups',
     label: 'Gruppenstunde',
     description:
-      'Erstelle eine Aktivitaet, Andacht, Bastelarbeit oder Methode fuer die Gruppenstunde. Teile deine Idee mit anderen Leitern und lass dich inspirieren.',
+      'Erstelle eine Aktivität, Andacht, Bastelarbeit oder Methode für die Gruppenstunde. Teile deine Idee mit anderen Leitern und lass dich inspirieren.',
     color: 'text-sky-600',
     bg: 'bg-sky-50',
     border: 'hover:border-sky-300',
@@ -16,7 +16,7 @@ const CONTENT_OPTIONS = [
     icon: 'sports_esports',
     label: 'Spiel',
     description:
-      'Gelaendespiel, Gruppenspiel, Kooperationsspiel oder Kennenlernspiel beschreiben. Mit Regeln, Spielerzahl, Dauer und benoetigtem Material.',
+      'Geländespiel, Gruppenspiel, Kooperationsspiel oder Kennenlernspiel beschreiben. Mit Regeln, Spielerzahl, Dauer und benötigtem Material.',
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
     border: 'hover:border-emerald-300',
@@ -26,7 +26,7 @@ const CONTENT_OPTIONS = [
     icon: 'article',
     label: 'Blog-Beitrag',
     description:
-      'Wissen, Methoden, Erfahrungsberichte oder Tipps teilen. Perfekt fuer Leitungsrunden-Themen, paedagogische Impulse oder Lager-Berichte.',
+      'Wissen, Methoden, Erfahrungsberichte oder Tipps teilen. Perfekt für Leitungsrunden-Themen, pädagogische Impulse oder Lager-Berichte.',
     color: 'text-indigo-600',
     bg: 'bg-indigo-50',
     border: 'hover:border-indigo-300',
@@ -49,7 +49,7 @@ const TOOL_OPTIONS = [
     icon: 'checklist',
     label: 'Packliste',
     description:
-      'Packliste fuer Lager, Hajk oder Wochenendaktion erstellen. Mit KI-Unterstuetzung, Kategorien und Teilen-Funktion.',
+      'Packliste für Lager, Hajk oder Wochenendaktion erstellen. Mit KI-Unterstützung, Kategorien und Teilen-Funktion.',
     color: 'text-amber-600',
     bg: 'bg-amber-50',
     border: 'hover:border-amber-300',
@@ -59,7 +59,7 @@ const TOOL_OPTIONS = [
     icon: 'calendar_month',
     label: 'Quartalsplan',
     description:
-      'Gruppenstunden fuer ein ganzes Quartal planen. Themen, Verantwortliche und Termine im Ueberblick.',
+      'Gruppenstunden für ein ganzes Quartal planen. Themen, Verantwortliche und Termine im Überblick.',
     color: 'text-teal-600',
     bg: 'bg-teal-50',
     border: 'hover:border-teal-300',
@@ -104,7 +104,7 @@ export default function CreateHubPage() {
         <div>
           <h1 className="text-2xl font-bold">Erstellen</h1>
           <p className="text-sm text-muted-foreground">
-            Was moechtest du erstellen? Waehle einen Inhaltstyp oder ein Planungstool.
+            Was möchtest du erstellen? Wähle einen Inhaltstyp oder ein Planungstool.
           </p>
         </div>
       </div>

@@ -100,7 +100,7 @@ export default function GameListPage() {
       {/* Hero */}
       <ListPageHero
         title="Spiele"
-        description="Gelaendespiele, Kennenlernspiele, Kooperationsspiele und mehr. Finde das passende Spiel fuer eure naechste Aktion."
+        description="Geländespiele, Kennenlernspiele, Kooperationsspiele und mehr. Finde das passende Spiel für eure nächste Aktion."
         icon="sports_esports"
         gradientClasses="bg-gradient-to-br from-orange-500 to-red-600"
         totalCount={data?.total}

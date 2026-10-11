@@ -63,7 +63,7 @@ export default function WhatsAppConnectionCard() {
   function handleDelete() {
     deleteData.mutate(undefined, {
       onSuccess: () => {
-        toast.success('Alle WhatsApp-Daten geloescht');
+        toast.success('Alle WhatsApp-Daten gelöscht');
         setShowDelete(false);
         refetchStatus();
         refetchStats();
@@ -179,14 +179,14 @@ export default function WhatsAppConnectionCard() {
                   <p className="text-xs text-muted-foreground">
                     {lastHealthCheck ? (
                       <>
-                        Zuletzt geprueft:{' '}
+                        Zuletzt geprüft:{' '}
                         {formatDistanceToNow(new Date(lastHealthCheck), {
                           addSuffix: true,
                           locale: de,
                         })}
                       </>
                     ) : (
-                      'Noch nicht geprueft'
+                      'Noch nicht geprüft'
                     )}
                   </p>
                 </div>
@@ -206,7 +206,7 @@ export default function WhatsAppConnectionCard() {
                   <span className="material-symbols-outlined text-[16px] mr-1">
                     monitor_heart
                   </span>
-                  {healthCheck.isPending ? 'Pruefen...' : 'Verbindung pruefen'}
+                  {healthCheck.isPending ? 'Prüfen...' : 'Verbindung prüfen'}
                 </Button>
                 <Button
                   variant="outline"
@@ -239,7 +239,7 @@ export default function WhatsAppConnectionCard() {
                   <span className="material-symbols-outlined text-[16px] mr-1">
                     delete_forever
                   </span>
-                  Daten loeschen
+                  Daten löschen
                 </Button>
               </div>
 
@@ -279,7 +279,7 @@ export default function WhatsAppConnectionCard() {
                   <span className="material-symbols-outlined text-[16px] mr-1">
                     delete_forever
                   </span>
-                  Alte Daten loeschen
+                  Alte Daten löschen
                 </Button>
               )}
 

@@ -29,7 +29,7 @@ import {
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Neueste' },
-  { value: 'oldest', label: 'Aelteste' },
+  { value: 'oldest', label: 'Älteste' },
   { value: 'popular', label: 'Beliebteste' },
   { value: 'most_liked', label: 'Am meisten gemocht' },
 ] as const;
@@ -98,7 +98,7 @@ export default function BlogListPage() {
       {/* Hero */}
       <ListPageHero
         title="Blog"
-        description="Wissensbeitraege, Tutorials und Erfahrungsberichte rund um die Pfadfinderarbeit. Von Methodik ueber Recht bis hin zu praktischen Tipps."
+        description="Wissensbeiträge, Tutorials und Erfahrungsberichte rund um die Pfadfinderarbeit. Von Methodik über Recht bis hin zu praktischen Tipps."
         icon="article"
         gradientClasses="bg-gradient-to-br from-indigo-500 to-blue-600"
         totalCount={data?.total}
@@ -175,7 +175,7 @@ export default function BlogListPage() {
           ) : (
             <EmptyState
               icon="search_off"
-              title="Keine Blogbeitraege gefunden"
+              title="Keine Blogbeiträge gefunden"
               description="Versuche andere Filtereinstellungen."
               ctaLabel="Blogbeitrag erstellen"
               ctaHref="/create"
