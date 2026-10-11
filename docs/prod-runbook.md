@@ -211,3 +211,16 @@ Migration `planner.0012_mealplan_suggestion_context` (fünf optionale Kontextfel
 - [x] Nach OK: `uv run python manage.py backfill_standalone_food --apply` (04.10.2026, Snapshot `1791106629796`); erneuter Dry-run: 0 offen
 - [x] Abdeckungsbericht (nur lesend): `uv run python manage.py report_suggestion_coverage --output <datei>`; Stand 04.10.2026 siehe `openspec/changes/meal-suggestion-panel/coverage-prod-2026-10-04.md`
 - Rollback: Die Spalten sind additiv und harmlos. Den Backfill macht `UPDATE supply_ingredient SET is_standalone_food = false` für die 61 betroffenen Zutaten (oder der Snapshot) rückgängig.
+
+## 10. normalize-recipe-portions — Datenkorrektur 11.10.2026
+
+- [x] Backup vorher: `1791730971806` (`inspi-db-west1`, 11.10.2026 15:02 UTC, „before normalize_recipe_servings 2026-10-11“)
+- [x] Dry-Run auf Prod (`gcloud run jobs execute inspi-migrate --args=manage.py,normalize_recipe_servings`): 3 Rezepte mit `portions > 1`
+- [x] Freigabe durch Robert, dann Echtlauf:
+      `gcloud run jobs execute inspi-migrate --region europe-west1 --wait --args="^;^manage.py;normalize_recipe_servings;--ids;458,472,504;--apply"`
+  - 458 Tortellini alla Panna → nur `portions=1` (keine Zutaten)
+  - 472 Holländische Käsenudeln mit Gouda → nur `portions=1` (Mengen bereits pro Person)
+  - 504 Herzhafte Linsensuppe → Gesamtmenge für 4, Mengen ÷ 4
+- [x] Kontrolllauf: 0 Rezepte mit `portions > 1`
+- [ ] Embedding für Rezept 504 neu erzeugen (Update nach der Korrektur schlug fehl)
+- [ ] Folge-Change: DB-Constraint `portions = 1` und Entfernen der Divisionen durch `recipe.portions`
