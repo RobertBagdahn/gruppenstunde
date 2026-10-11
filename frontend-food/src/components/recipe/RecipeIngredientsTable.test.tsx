@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { describe, expect, it } from 'vitest';
 import { RecipeItemSchema } from '@/schemas/recipe';
 import RecipeIngredientsTable from './RecipeIngredientsTable';
@@ -19,7 +20,7 @@ const items = [
 describe('RecipeIngredientsTable', () => {
   it('shows portion units like the detail page instead of grams', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
         <RecipeIngredientsTable items={items} portions={1} />
       </MemoryRouter>,
     );

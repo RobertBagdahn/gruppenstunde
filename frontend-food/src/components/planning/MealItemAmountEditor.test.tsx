@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import type { ReactNode } from 'react';
 import type { MealItem } from '@/schemas/mealPlan';
 import { notify } from '@/lib/notify';
@@ -25,7 +26,6 @@ vi.mock('@/api/supplies', () => ({
     data: new Map(ids.map((id) => [id, [
       { key: 'portion:1', kind: 'portion', label: 'Gramm', grams_per_unit: 1, is_approx: false, has_weight: true, portion_id: 1, measuring_unit_id: 1, standard_measure_key: null },
       { key: 'portion:2', kind: 'portion', label: 'EL', grams_per_unit: 30, is_approx: false, has_weight: true, portion_id: 2, measuring_unit_id: null, standard_measure_key: null },
-      { key: 'grams', kind: 'grams', label: 'g', grams_per_unit: 1, is_approx: false, has_weight: true, portion_id: null, measuring_unit_id: 1, standard_measure_key: null },
       { key: 'grams', kind: 'grams', label: 'g', grams_per_unit: 1, is_approx: false, has_weight: true, portion_id: null, measuring_unit_id: 1, standard_measure_key: null },
     ]])),
     isLoading: false,
@@ -69,7 +69,7 @@ const item: MealItem = {
 };
 
 function wrap(node: ReactNode) {
-  return <MemoryRouter><QueryClientProvider client={new QueryClient()}>{node}</QueryClientProvider></MemoryRouter>;
+  return <MemoryRouter future={ROUTER_FUTURE_FLAGS}><QueryClientProvider client={new QueryClient()}>{node}</QueryClientProvider></MemoryRouter>;
 }
 
 describe('MealItemAmountText', () => {

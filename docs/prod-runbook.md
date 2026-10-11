@@ -224,3 +224,30 @@ Migration `planner.0012_mealplan_suggestion_context` (fünf optionale Kontextfel
 - [x] Kontrolllauf: 0 Rezepte mit `portions > 1`
 - [ ] Embedding für Rezept 504 neu erzeugen (Update nach der Korrektur schlug fehl)
 - [ ] Folge-Change: DB-Constraint `portions = 1` und Entfernen der Divisionen durch `recipe.portions`
+
+## 11. food-data-offensive — Ergebnis-Paket übertragen (offen)
+
+Das Paket `data_offensive_package.json` liegt bewusst **nicht** im Repository: Es enthält die korrigierten
+Zutatenfelder, Merges, Löschungen, archivierten Rezepte und Rezeptkategorien des Datenstands, auf dem die
+Datenoffensive lief, und kann mehrere MB groß werden. Es wird für den Prod-Termin frisch erzeugt
+(Tasks 4.3–4.5 in `openspec/changes/food-data-offensive/tasks.md`). Der Standardpfad
+`backend/data/food/data_offensive_package.json` steht in `.gitignore`.
+
+- [ ] Export auf dem Rechner mit der Datenbank, in der die Datenoffensive gelaufen ist (nur lesend):
+      `uv run python manage.py food_offensive_export` (schreibt den Standardpfad; anderer Ort mit
+      `--output <datei>`, Zeitraum für Merges/Löschungen/Archivierungen mit `--since YYYY-MM-DD`,
+      Standard `2026-09-25`). Die Ausgabe nennt die Anzahl Zutaten, Merges, Löschungen, archivierten
+      Rezepte und Rezeptkategorien — hier notieren.
+- [ ] Ablage: Die Datei bleibt lokal beim Ausführenden. Muss sie weitergegeben oder aufbewahrt werden,
+      dann nur in einem privaten Speicher (nicht im öffentlichen Medien-Bucket, nicht in Git); Dateiname
+      mit Datum, z. B. `data_offensive_package-2026-10-11.json`.
+- [ ] DB-Snapshot der Prod-Datenbank anlegen und Namen hier notieren.
+- [ ] Prod-Migrationen sind eingespielt (`migrate`, legt den Warengruppen-Katalog v2 an).
+- [ ] Dry-Run vom Branch gegen Prod über den Cloud SQL Auth Proxy (ändert nichts):
+      `uv run python manage.py food_offensive_apply --input <datei>`; Zahlen mit dem Export vergleichen
+      („nicht gefunden“ sollte 0 sein).
+- [ ] Freigabe durch Robert, dann Echtlauf: `uv run python manage.py food_offensive_apply --input <datei> --apply`
+      (idempotent, keine KI-Kosten; ein zweiter Dry-Run zeigt danach keine Änderungen mehr).
+- [ ] Embeddings nachziehen: `uv run python manage.py food_data_offensive --apply --steps embeddings`
+      (≈ 0,15 € für alle Zutaten).
+- Rollback: DB-Snapshot.

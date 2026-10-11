@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useCreateMealPlan } from '@/api/mealPlans';
+import { MEAL_PLAN_NAME_MAX_LENGTH } from '@/schemas/mealPlan';
 import { notify } from '@/lib/notify';
 
 interface CreateMealPlanDialogProps {
@@ -91,6 +92,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, onSuccess }: CreateMe
               type="text"
               required
               value={name}
+              maxLength={MEAL_PLAN_NAME_MAX_LENGTH}
               onChange={(e) => setName(e.target.value)}
               placeholder="z. B. Sommerlager 2026 oder Pfingstwochenende"
               className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-soft"

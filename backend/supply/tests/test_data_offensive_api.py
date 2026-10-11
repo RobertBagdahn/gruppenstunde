@@ -166,3 +166,51 @@ def test_similarity_key_keeps_bracketed_variants():
     assert similarity_key("Tomaten") == similarity_key("Tomate")
     assert similarity_key("Gouda Bio") == similarity_key("Gouda")
     assert similarity_key("Zwiebel (rot)") != similarity_key("Zwiebel")
+
+
+@pytest.mark.django_db
+def test_ai_review_runs_all_batches_on_the_request_thread(admin_client, complete_ingredient, monkeypatch):
+    """Worker threads would open DB connections outside check_database_capacity's budget."""
+    import threading
+    from types import SimpleNamespace
+
+    from supply.services import data_offensive as offensive
+    from supply.services import ingredient_ai_review_service
+
+    review_threads: list[int] = []
+
+    def fake_review(ingredients, *, user):
+        review_threads.append(threading.get_ident())
+        return [SimpleNamespace(verdict="ok", applied={}) for _ in ingredients]
+
+    batch_size = ingredient_ai_review_service.MAX_BATCH_SIZE
+    monkeypatch.setattr(ingredient_ai_review_service, "review_ingredients", fake_review)
+    monkeypatch.setattr(offensive, "review_queue_ids", lambda **kwargs: [complete_ingredient.id] * (batch_size + 1))
+
+    response = admin_client.post(f"{BASE}/ai-review/", data={"limit": 45}, content_type="application/json")
+
+    assert response.status_code == 200
+    assert review_threads == [threading.get_ident(), threading.get_ident()]
+
+
+@pytest.mark.django_db
+def test_embeddings_run_on_the_request_thread(admin_client, complete_ingredient, monkeypatch):
+    import threading
+
+    from content.services import embedding_service
+    from supply.services import ingredient_embeddings
+
+    embed_threads: list[int] = []
+
+    def fake_update(ingredient, force=False, *, bypass_limits=False):
+        embed_threads.append(threading.get_ident())
+        return True
+
+    monkeypatch.setattr(ingredient_embeddings, "stale_or_missing_ids", lambda **kwargs: [complete_ingredient.id])
+    monkeypatch.setattr(embedding_service, "update_ingredient_embedding", fake_update)
+
+    response = admin_client.post(f"{BASE}/embeddings/", data={"limit": 10}, content_type="application/json")
+
+    assert response.status_code == 200
+    assert response.json()["changed"] == 1
+    assert embed_threads == [threading.get_ident()]

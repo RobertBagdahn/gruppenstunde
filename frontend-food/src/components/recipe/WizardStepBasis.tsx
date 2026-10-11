@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
+import { RECIPE_TYPE_OPTIONS, type RecipeType } from '@/schemas/recipe';
 import RecipeServingContextSelector from './RecipeServingContextSelector';
 import { useWizardStep } from './wizardContext';
 
 export interface BasisDraft {
   title: string;
-  recipeType: string;
+  recipeType: RecipeType;
   servings: number;
 }
 
@@ -14,7 +14,7 @@ interface WizardStepBasisProps {
   isManual: boolean;
   isReconstructed: boolean;
   initialTitle: string;
-  initialRecipeType: string | null;
+  initialRecipeType: RecipeType | null;
   initialServings: number | null;
   initialServingsConfirmed: boolean;
   onDraftChange: (draft: BasisDraft) => void;
@@ -30,7 +30,7 @@ export default function WizardStepBasis({
   onDraftChange,
 }: WizardStepBasisProps) {
   const [title, setTitle] = useState(initialTitle);
-  const [recipeType, setRecipeType] = useState<string | null>(initialRecipeType);
+  const [recipeType, setRecipeType] = useState<RecipeType | null>(initialRecipeType);
   const [servings, setServings] = useState<number | null>(initialServings);
   const [servingsConfirmed, setServingsConfirmed] = useState(isManual || initialServingsConfirmed);
   const { registerLeave } = useWizardStep();

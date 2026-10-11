@@ -2,6 +2,7 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { MealSlot } from './MealSlot';
 import type { Meal, MealItem } from '@/schemas/mealPlan';
 
@@ -128,7 +129,7 @@ const noop = vi.fn();
 
 function renderMealSlot(meal: Meal, canEdit = true, onUpdateItem = vi.fn()) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <MealSlot
         meal={meal}
         canEdit={canEdit}

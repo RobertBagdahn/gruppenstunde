@@ -163,8 +163,13 @@ export function usePersistedListState<S extends ListSchema, D extends Partial<z.
         const legacy = migrateLegacyRef.current?.() ?? null;
         const stored = { ...(legacy ?? {}), ...(readListState(userId, key) ?? {}) };
         const restored = persistable(normalize(stored));
-        if (Object.keys(restored).length > 0) writeUrl(restored, true);
         writeListState(userId, key, restored);
+        if (Object.keys(restored).length > 0) {
+          // `restored` turns true through hasStateParams once the URL update
+          // has rendered, which may be a later render than this state update.
+          writeUrl(restored, true);
+          return;
+        }
       }
     }
     setRestoreChecked(true);

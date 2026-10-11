@@ -686,7 +686,7 @@ export default function BuffetCatalogProposalPanel() {
                     <Label>Rezepttyp</Label>
                     <Select value={recipeType} onValueChange={setRecipeType}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{RECIPE_TYPE_OPTIONS.filter((option) => option.value !== 'ingredient').map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{RECIPE_TYPE_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5"><Label htmlFor="buffet-servings">Portionen</Label><Input id="buffet-servings" type="number" min="1" value={recipeServings} onChange={(event) => setRecipeServings(event.target.value)} /></div>

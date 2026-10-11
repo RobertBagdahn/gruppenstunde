@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import ShoppingListItemRow from './ShoppingListItemRow';
 import { ShoppingListItemSchema, type ShoppingListItem } from '@/schemas/shoppingList';
 
@@ -20,7 +21,7 @@ function item(overrides: Partial<ShoppingListItem> = {}): ShoppingListItem {
 
 function renderRow(i: ShoppingListItem) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <ShoppingListItemRow item={i} canEdit onCheck={vi.fn()} />
     </MemoryRouter>,
   );
@@ -93,7 +94,7 @@ describe('ShoppingListItemRow', () => {
       const onDelete = vi.fn();
       const manual = item({ name: 'ZZ-TEST Klebeband', quantity_g: 0, piece_equivalent: null, estimated_price_eur: null });
       render(
-        <MemoryRouter>
+        <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
           <ShoppingListItemRow item={manual} canEdit onCheck={vi.fn()} onDelete={onDelete} />
         </MemoryRouter>,
       );
@@ -108,7 +109,7 @@ describe('ShoppingListItemRow', () => {
         sources: [{ recipe_id: 4, recipe_name: 'Chili', recipe_slug: 'chili', meal_label: '', quantity_g: 320 }],
       });
       render(
-        <MemoryRouter>
+        <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
           <ShoppingListItemRow item={generated} canEdit onCheck={vi.fn()} onDelete={vi.fn()} />
         </MemoryRouter>,
       );
@@ -118,7 +119,7 @@ describe('ShoppingListItemRow', () => {
 
     it('offers no delete without edit permission', () => {
       render(
-        <MemoryRouter>
+        <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
           <ShoppingListItemRow item={item({ piece_equivalent: null })} canEdit={false} onCheck={vi.fn()} onDelete={vi.fn()} />
         </MemoryRouter>,
       );

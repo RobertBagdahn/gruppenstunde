@@ -4,16 +4,17 @@ Long-running work is chunked: every POST processes one bounded chunk and
 returns ``remaining`` so the frontend can loop with a progress bar. This keeps
 requests short on Cloud Run (CPU is throttled outside requests) and works
 across instances without a job store.
+
+Chunks run sequentially on the request thread: worker threads would open
+extra DB connections outside the budget of check_database_capacity.
 """
 
 from __future__ import annotations
 
 import math
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, cast
 
-from django.db import connection
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router, Schema
@@ -55,7 +56,6 @@ from supply.services.nutrition_plausibility import ISSUE_LABELS as NUTRITION_ISS
 data_offensive_router = Router(tags=["Data Offensive"])
 
 MAX_PAGE_SIZE = 100
-AI_REVIEW_WORKERS = 3
 
 
 def _duplicate_names(rows: list[offensive.IngredientSnapshotRow]) -> dict[int, str]:
@@ -206,8 +206,6 @@ def _review_batch(ids: list[int], user: Any) -> tuple[list[Any], str | None]:
         return review_ingredients(ingredients, user=user), None
     except (GeminiUpstreamRateLimitError, GeminiInvalidResponseError) as exc:
         return [], str(exc.message if hasattr(exc, "message") else exc)
-    finally:
-        connection.close()
 
 
 @data_offensive_router.post("/ai-review/", response=AiReviewRunOut)
@@ -222,14 +220,14 @@ def ai_review(request, payload: AiReviewRunIn):
     changed_fields: Counter[str] = Counter()
     errors: list[str] = []
     reviewed = 0
-    with ThreadPoolExecutor(max_workers=AI_REVIEW_WORKERS) as pool:
-        for outcomes, error in pool.map(lambda batch: _review_batch(batch, request.user), batches):
-            if error:
-                errors.append(error)
-            for outcome in outcomes:
-                reviewed += 1
-                verdicts[outcome.verdict] += 1
-                changed_fields.update(outcome.applied.keys())
+    for batch in batches:
+        outcomes, error = _review_batch(batch, request.user)
+        if error:
+            errors.append(error)
+        for outcome in outcomes:
+            reviewed += 1
+            verdicts[outcome.verdict] += 1
+            changed_fields.update(outcome.applied.keys())
 
     remaining = 0 if payload.ids else len(offensive.review_queue_ids(limit=100000))
     return AiReviewRunOut(
@@ -298,7 +296,7 @@ def embeddings(request, payload: EmbeddingRunIn):
     from supply.services.ingredient_embeddings import backfill_embeddings, stale_or_missing_ids
 
     ids = stale_or_missing_ids(limit=payload.limit)
-    result = backfill_embeddings(ids=ids, workers=6)
+    result = backfill_embeddings(ids=ids, workers=1)
     remaining = offensive.missing_embedding_queryset().count()
     return BulkActionOut(changed=result.updated, skipped=result.failed, remaining=remaining)
 

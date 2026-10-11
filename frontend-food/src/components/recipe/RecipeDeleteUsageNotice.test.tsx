@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { describe, expect, it } from 'vitest';
 import RecipeDeleteUsageNotice from './RecipeDeleteUsageNotice';
 
 function renderNotice(usage: Parameters<typeof RecipeDeleteUsageNotice>[0]['usage']) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <RecipeDeleteUsageNotice usage={usage} />
     </MemoryRouter>,
   );

@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import type { BreakfastCatalog } from '@/schemas/breakfast';
 import type { MealItem } from '@/schemas/mealPlan';
 import BreakfastWizardPage from './BreakfastWizardPage';
@@ -130,7 +131,7 @@ const mealPlan = {
 
 function renderWizard() {
   return render(
-    <MemoryRouter initialEntries={['/meal-plans/1/meals/2/breakfast-wizard']}>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={['/meal-plans/1/meals/2/breakfast-wizard']}>
       <Routes>
         <Route path="/meal-plans/:id/meals/:mealId/breakfast-wizard" element={<BreakfastWizardPage />} />
       </Routes>

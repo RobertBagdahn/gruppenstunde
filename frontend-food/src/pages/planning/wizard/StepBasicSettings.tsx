@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import type { MealPlanWizardState } from '@/schemas/mealPlan';
+import { MEAL_PLAN_NAME_MAX_LENGTH, type MealPlanWizardState } from '@/schemas/mealPlan';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 import ExtendedSettingsSection from './ExtendedSettingsSection';
 import { validateBasics } from './validateBasics';
@@ -35,6 +35,7 @@ export default function StepBasicSettings({
         <input
           type="text"
           value={state.name}
+          maxLength={MEAL_PLAN_NAME_MAX_LENGTH}
           onChange={(e) => onChange({ name: e.target.value })}
           placeholder="z.B. Sommerlager 2026"
           className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"

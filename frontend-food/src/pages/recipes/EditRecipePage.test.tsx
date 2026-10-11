@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import EditRecipePage from './EditRecipePage';
 
@@ -65,7 +66,7 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter future={ROUTER_FUTURE_FLAGS}>
         <EditRecipePage />
       </BrowserRouter>
     </QueryClientProvider>,

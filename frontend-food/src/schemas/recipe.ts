@@ -18,6 +18,13 @@ export const SharedGroupSchema = z.object({
 });
 export type SharedGroup = z.infer<typeof SharedGroupSchema>;
 
+// --- Recipe type (mirrors backend supply/choices.py RecipeTypeChoices) ---
+
+export const RecipeTypeSchema = z.enum(['breakfast', 'warm_meal', 'cold_meal', 'dessert', 'recipe_part', 'drink', 'snack']);
+export type RecipeType = z.infer<typeof RecipeTypeSchema>;
+/** Recipe.recipe_type is blank=True in the backend, so stored recipes may carry ''. */
+export const RecipeTypeOrBlankSchema = z.union([RecipeTypeSchema, z.literal('')]);
+
 // --- Recipe material (ContentMaterialItem link) ---
 
 export const RecipeMaterialSchema = z.object({
@@ -178,7 +185,7 @@ export type RecipeItemExchangeGroup = z.infer<typeof RecipeItemExchangeGroupSche
 // --- Recipe List Item (extends ContentListItem) ---
 
 export const RecipeListItemSchema = ContentListItemSchema.extend({
-  recipe_type: z.string(),
+  recipe_type: RecipeTypeOrBlankSchema,
   portions: z.number().nullable(),
   source_url: z.string().optional().default(''),
   // Cached nutritional values (denormalized, per-100g)
@@ -227,7 +234,7 @@ export type RecipeUsage = z.infer<typeof RecipeUsageSchema>;
 // --- Recipe Detail (extends ContentDetail) ---
 
 export const RecipeDetailSchema = ContentDetailSchema.extend({
-  recipe_type: z.string(),
+  recipe_type: RecipeTypeOrBlankSchema,
   portions: z.number().nullable(),
   // Servings of the original recipe; quantities stay stored per portion.
   source_servings: z.number().nullable().optional(),
@@ -347,7 +354,7 @@ export const NutriScoreDetailSchema = z.object({
 });
 export type NutriScoreDetail = z.infer<typeof NutriScoreDetailSchema>;
 
-// --- Choices (mirrors backend recipe/choices.py) ---
+// --- Choices (mirrors backend supply/choices.py) ---
 
 export const RECIPE_TYPE_OPTIONS = [
   { value: 'breakfast', label: 'Frühstück', icon: 'free_breakfast' },
@@ -357,8 +364,7 @@ export const RECIPE_TYPE_OPTIONS = [
   { value: 'recipe_part', label: 'Rezeptteil', icon: 'dining' },
   { value: 'drink', label: 'Getränk', icon: 'local_cafe' },
   { value: 'snack', label: 'Snack', icon: 'cookie' },
-  { value: 'ingredient', label: 'Zutat', icon: 'grocery' },
-] as const;
+] as const satisfies readonly { value: RecipeType; label: string; icon: string }[];
 
 export const RECIPE_DIFFICULTY_OPTIONS = [
   { value: 'easy', label: 'Einfach' },
@@ -603,7 +609,7 @@ export const BucketSchema = z.object({
 export type Bucket = z.infer<typeof BucketSchema>;
 
 export const RecipeTypeStatsSchema = z.object({
-  recipe_type: z.string(),
+  recipe_type: RecipeTypeSchema,
   count: z.number(),
   price_min: z.number().nullable(),
   price_max: z.number().nullable(),

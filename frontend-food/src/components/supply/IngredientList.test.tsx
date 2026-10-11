@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import IngredientList from './IngredientList';
 import type { RecipeItem } from '@/schemas/recipe';
 
@@ -23,7 +24,7 @@ function makeItem(id: number, name: string, weightG: number, pricePerKg: number 
 
 function renderList(items: RecipeItem[], route = '/') {
   return render(
-    <MemoryRouter initialEntries={[route]}>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={[route]}>
       <IngredientList items={items} portions={4} portionsMultiplier={1} />
     </MemoryRouter>,
   );

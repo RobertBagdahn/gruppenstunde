@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { EntityLink } from './EntityLink';
 import { EntityLinkContext } from './EntityLinkContext';
 
@@ -20,7 +21,7 @@ beforeAll(() => {
       return;
     }
     // Re-emit any other error so genuine issues are not hidden.
-     
+
     process.stderr.write(String(msg) + '\n');
   });
 });
@@ -29,7 +30,7 @@ afterAll(() => {
 });
 
 function render(node: React.ReactNode): string {
-  return renderToStaticMarkup(<MemoryRouter>{node}</MemoryRouter>);
+  return renderToStaticMarkup(<MemoryRouter future={ROUTER_FUTURE_FLAGS}>{node}</MemoryRouter>);
 }
 
 // ---------------------------------------------------------------------------

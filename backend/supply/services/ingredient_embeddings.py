@@ -1,8 +1,10 @@
-"""Parallel backfill of ingredient embeddings (missing or stale).
+"""Backfill of ingredient embeddings (missing or stale).
 
-Vertex ``gemini-embedding-001`` accepts one text per request, so throughput
-comes from a small thread pool. Stale embeddings are detected via the stored
-text hash, so a changed name/description/retail section is re-embedded too.
+Vertex ``gemini-embedding-001`` accepts one text per request, so management
+commands get throughput from a small thread pool. Requests run with
+``workers=1``: inline on the request thread and its single DB connection.
+Stale embeddings are detected via the stored text hash, so a changed
+name/description/retail section is re-embedded too.
 """
 
 from __future__ import annotations
@@ -66,19 +68,26 @@ def _embed_one(ingredient_id: int) -> bool:
     except Exception:
         logger.warning("Embedding backfill failed for ingredient #%s", ingredient_id, exc_info=True)
         return False
+
+
+def _embed_one_in_worker_thread(ingredient_id: int) -> bool:
+    try:
+        return _embed_one(ingredient_id)
     finally:
+        # Worker threads open their own DB connection; release it right away.
         connection.close()
 
 
-def backfill_embeddings(*, ids: list[int], workers: int = 6) -> EmbeddingBackfillResult:
-    """Embed the given ingredients in parallel."""
+def backfill_embeddings(*, ids: list[int], workers: int) -> EmbeddingBackfillResult:
+    """Embed the given ingredients; ``workers=1`` runs inline without extra DB connections."""
     result = EmbeddingBackfillResult(processed=len(ids))
     if not ids:
         return result
-    with ThreadPoolExecutor(max_workers=max(1, workers), thread_name_prefix="embed") as pool:
-        for ok in pool.map(_embed_one, ids):
-            if ok:
-                result.updated += 1
-            else:
-                result.failed += 1
+    if workers <= 1:
+        outcomes = [_embed_one(ingredient_id) for ingredient_id in ids]
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="embed") as pool:
+            outcomes = list(pool.map(_embed_one_in_worker_thread, ids))
+    result.updated = sum(outcomes)
+    result.failed = len(outcomes) - result.updated
     return result

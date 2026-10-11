@@ -5,6 +5,8 @@ import {
   RecipeDetailSchema,
   RecipeItemExchangeGroupSchema,
   RecipeMaterialSchema,
+  RecipeTypeSchema,
+  RECIPE_TYPE_OPTIONS,
   AiMaterialSuggestionsSchema,
 } from './recipe';
 import {
@@ -455,5 +457,13 @@ describe('meal plan cost coverage contracts', () => {
     });
     expect(parsed.missing_ingredients).toBe(0);
     expect(parsed.coverage).toBeNull();
+  });
+});
+
+describe('recipe_type contract (backend RecipeTypeChoices)', () => {
+  it('accepts only backend recipe types', () => {
+    expect(RecipeTypeSchema.options).toEqual(['breakfast', 'warm_meal', 'cold_meal', 'dessert', 'recipe_part', 'drink', 'snack']);
+    expect(RecipeTypeSchema.safeParse('ingredient').success).toBe(false);
+    expect(RECIPE_TYPE_OPTIONS.map((option) => option.value)).toEqual(RecipeTypeSchema.options);
   });
 });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TOOL_MEAL_PLAN } from '@/lib/toolColors';
 import ToolLandingPage from './ToolLandingPage';
@@ -10,7 +11,7 @@ vi.mock('@/api/auth', () => ({ useCurrentUser: () => useCurrentUser() }));
 
 function renderLanding() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <ToolLandingPage
         tool={TOOL_MEAL_PLAN}
         subtitle="Untertitel"

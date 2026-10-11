@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
 import CreateIngredientPage from './CreateIngredientPage';
@@ -25,7 +26,7 @@ vi.mock('@/hooks/useAiAccess', () => ({ useAiAccess: () => ({ disabled: false, h
 
 function renderPage(initialEntry = '/ingredients/new?prefillName=Salz') {
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={[initialEntry]}>
       <CreateIngredientPage />
     </MemoryRouter>,
   );

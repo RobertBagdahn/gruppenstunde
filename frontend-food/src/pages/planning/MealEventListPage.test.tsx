@@ -2,6 +2,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { calendarDaysBetween } from '@/lib/mealPlanListDisplay';
 import type { MealPlan } from '@/schemas/mealPlan';
@@ -67,7 +68,7 @@ vi.mock('@/components/recipe/NutritionalTagMultiSelect', () => ({ default: () =>
 
 function renderPage() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <MealEventListPage />
     </MemoryRouter>,
   );

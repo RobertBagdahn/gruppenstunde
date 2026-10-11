@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -135,7 +136,7 @@ def _deduplicate_portions():
 
 
 @contextmanager
-def _drop_portion_unique_index():
+def _drop_portion_unique_index(write: Callable[[str], None]) -> Iterator[None]:
     with connection.cursor() as cursor:
         cursor.execute("DROP INDEX IF EXISTS unique_portion_name_per_ingredient")
         cursor.execute("DROP INDEX IF EXISTS unique_rank1_portion_per_ingredient")
@@ -160,9 +161,9 @@ def _drop_portion_unique_index():
             """
             )
         if dedup_count:
-            print(f"  ↻ {dedup_count} doppelte Portionen (Name) als gelöscht markiert")
+            write(f"  ↻ {dedup_count} doppelte Portionen (Name) als gelöscht markiert")
         if rank1_dedup:
-            print(f"  ↻ {rank1_dedup} doppelte Portionen (Rank 1) als gelöscht markiert")
+            write(f"  ↻ {rank1_dedup} doppelte Portionen (Rank 1) als gelöscht markiert")
 
 
 def _deduplicate_ingredient_aliases():
@@ -215,7 +216,7 @@ def _deduplicate_rank1_portions():
 
 
 @contextmanager
-def _drop_ingredientalias_unique_indexes():
+def _drop_ingredientalias_unique_indexes(write: Callable[[str], None]) -> Iterator[None]:
     with connection.cursor() as cursor:
         cursor.execute(
             "ALTER TABLE supply_ingredientalias DROP CONSTRAINT IF EXISTS supply_ingredientalias_ingredient_id_rank_e49b396a_uniq"
@@ -247,7 +248,7 @@ def _drop_ingredientalias_unique_indexes():
             """
             )
         if alias_dedup:
-            print(f"  ↻ {alias_dedup} doppelte IngredientAliases gelöscht")
+            write(f"  ↻ {alias_dedup} doppelte IngredientAliases gelöscht")
 
 
 class Command(BaseCommand):
@@ -363,9 +364,9 @@ class Command(BaseCommand):
 
             try:
                 if short_name == "supply_portion":
-                    ctx = _drop_portion_unique_index()
+                    ctx = _drop_portion_unique_index(self.stdout.write)
                 elif short_name == "supply_ingredientalias":
-                    ctx = _drop_ingredientalias_unique_indexes()
+                    ctx = _drop_ingredientalias_unique_indexes(self.stdout.write)
                 else:
                     ctx = _noop_context()
                 with ctx:

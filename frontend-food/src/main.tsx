@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { Toaster } from 'sonner';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -46,7 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <BrowserRouter future={ROUTER_FUTURE_FLAGS}>
           <App />
           <AuthOverlays />
           <GlobalFetchingBar />

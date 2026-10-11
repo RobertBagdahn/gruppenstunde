@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './LoginPage';
 
@@ -10,7 +11,7 @@ vi.mock('@/components/auth/LoginPanel', () => ({ default: () => <div>Anmeldeform
 
 function renderLogin(entry = '/login') {
   return render(
-    <MemoryRouter initialEntries={[entry]}>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS} initialEntries={[entry]}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<div>Startseite</div>} />

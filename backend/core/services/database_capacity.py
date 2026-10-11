@@ -1,4 +1,8 @@
-"""Conservative connection accounting for the Cloud Run backend."""
+"""Conservative connection accounting for the Cloud Run backend.
+
+Each request counts as one DB session: request handlers must not fan out to
+worker threads with their own connections (see supply/api/data_offensive.py).
+"""
 
 
 def calculate_max_application_connections(

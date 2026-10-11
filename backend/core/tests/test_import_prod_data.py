@@ -4,6 +4,7 @@ import pytest
 from django.core import serializers
 from model_bakery import baker
 
+from core.management.commands import import_prod_data
 from core.management.commands.import_prod_data import IMPORT_ORDER, Command
 from planner.models import Meal, MealItem, MealPlan
 from recipe.models import Recipe, RecipeItem
@@ -63,3 +64,15 @@ def test_package_fixture_import_is_idempotent(tmp_path):
     assert Package.objects.get(pk=package.pk).weight_g == 777
     assert RecipeItem.objects.get(pk=recipe_item.pk).portion_id == recipe_item.portion_id
     assert MealItem.objects.get(pk=meal_item.pk).recipe_id == recipe.id
+
+
+@pytest.mark.django_db
+def test_portion_dedup_report_is_written_to_command_output(monkeypatch):
+    monkeypatch.setattr(import_prod_data, "_deduplicate_portions", lambda: 2)
+    monkeypatch.setattr(import_prod_data, "_deduplicate_rank1_portions", lambda: 0)
+    lines: list[str] = []
+
+    with import_prod_data._drop_portion_unique_index(lines.append):
+        pass
+
+    assert lines == ["  ↻ 2 doppelte Portionen (Name) als gelöscht markiert"]

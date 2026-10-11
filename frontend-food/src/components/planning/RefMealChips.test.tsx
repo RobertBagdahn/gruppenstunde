@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import { RefMealChips } from './RefMealChips';
 import type { RefMeal } from '@/schemas/mealPlan';
 
@@ -17,7 +18,7 @@ const breakfastRef: RefMeal = {
 
 function renderChips(refMeals: RefMeal[], canEdit: boolean) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
       <RefMealChips mealPlanId={14} refMeals={refMeals} canEdit={canEdit} />
     </MemoryRouter>,
   );
