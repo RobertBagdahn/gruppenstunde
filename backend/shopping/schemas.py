@@ -270,6 +270,8 @@ class ShoppingListItemCreateIn(Schema):
     ingredient_id: int | None = None
     sort_order: int = 0
     note: str = ""
+    # Lets "Rückgängig" restore a deleted entry including its checked state.
+    is_checked: bool = False
 
 
 class ShoppingListItemUpdateIn(Schema):

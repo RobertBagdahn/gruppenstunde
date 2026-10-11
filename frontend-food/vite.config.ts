@@ -60,6 +60,12 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      // Shopping-list live updates; `manage.py runserver` is Daphne's ASGI server in dev.
+      '/ws': {
+        target: 'http://localhost:8000',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
 });

@@ -53,6 +53,9 @@ from .schemas import (
 
 shopping_router = Router(tags=["shopping-lists"])
 
+# Completes "Bitte melde dich an, …" for read endpoints (the default speaks of saving).
+READ_LOGIN_ACTION = "um deine Einkaufslisten zu sehen"
+
 
 # ---------------------------------------------------------------------------
 # Auth & permission helpers
@@ -102,7 +105,8 @@ def _require_admin(shopping_list: ShoppingList, user) -> str:
 
 
 def _require_owner(shopping_list: ShoppingList, user) -> None:
-    """Require owner access."""
+    """Require owner access; users without any access get 404 like every other path."""
+    _require_access(shopping_list, user)
     if shopping_list.owner_id != user.id and not getattr(user, "is_staff", False):
         raise HttpError(403, "Nur der Besitzer kann die Liste löschen")
 
@@ -127,7 +131,7 @@ def list_shopping_lists(
     lists owned by the user. Every order ends in ``id`` so paging never skips or
     repeats a list.
     """
-    require_login(request)
+    require_login(request, READ_LOGIN_ACTION)
     qs = (
         ShoppingList.objects.filter(Q(owner=request.user) | Q(collaborators__user=request.user))
         .select_related("owner__profile")
@@ -316,7 +320,7 @@ def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
 @shopping_router.get("/{shopping_list_id}/", response=ShoppingListDetailOut)
 def get_shopping_list(request, shopping_list_id: int):
     """Get shopping list detail with items and collaborators."""
-    require_login(request)
+    require_login(request, READ_LOGIN_ACTION)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     role = _require_access(shopping_list, request.user)
 
@@ -383,7 +387,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
     - summarized: group by ingredient, sum quantities
     - by_recipe: group by source recipe
     """
-    require_login(request)
+    require_login(request, READ_LOGIN_ACTION)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_access(shopping_list, request.user)
 
@@ -470,6 +474,8 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     from supply.models.reference import RetailSection
 
     data = payload.dict(exclude={"ingredient_id", "retail_section_id"})
+    if payload.is_checked:
+        data.update(checked_by=request.user, checked_at=timezone.now())
     ingredient = None
     retail_section = None
     matched_from_text = False

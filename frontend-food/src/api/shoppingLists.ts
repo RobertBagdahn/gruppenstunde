@@ -2,7 +2,7 @@
  * TanStack Query hooks for the Shopping List API.
  * MUST stay in sync with backend/shopping/api.py
  */
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, fetchWithCsrf, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -11,27 +11,15 @@ import {
   ShoppingListDetailSchema,
   ShoppingListItemSchema,
   ShoppingListCollaboratorSchema,
+  type ShoppingListDetail,
 } from '@/schemas/shoppingList';
 
 const API_BASE = `${API_BASE_URL}/api/shopping-lists`;
 
-// --- Fetch helpers ---
+// --- Fetch helpers (ApiError with the German backend detail, never raw status texts) ---
 
-function getCsrfToken(): string {
-  const match = document.cookie.match(/csrftoken=([^;]+)/);
-  return match ? match[1] : '';
-}
-
-async function fetchJson<T extends z.ZodTypeAny>(
-  url: string,
-  schema: T,
-): Promise<z.output<T>> {
-  const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+async function fetchJson<T extends z.ZodTypeAny>(url: string, schema: T): Promise<z.output<T>> {
+  return parseApiResponse(await fetch(url, { credentials: 'include' }), schema);
 }
 
 async function postJson<T extends z.ZodTypeAny>(
@@ -39,21 +27,7 @@ async function postJson<T extends z.ZodTypeAny>(
   body: unknown,
   schema: T,
 ): Promise<z.output<T>> {
-  const res = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.detail || `API error: ${res.status}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse(await fetchWithCsrf(url, { method: 'POST', body: JSON.stringify(body) }), schema);
 }
 
 async function patchJson<T extends z.ZodTypeAny>(
@@ -61,32 +35,11 @@ async function patchJson<T extends z.ZodTypeAny>(
   body: unknown,
   schema: T,
 ): Promise<z.output<T>> {
-  const res = await fetch(url, {
-    method: 'PATCH',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.detail || `API error: ${res.status}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse(await fetchWithCsrf(url, { method: 'PATCH', body: JSON.stringify(body) }), schema);
 }
 
 async function deleteJson(url: string): Promise<void> {
-  const res = await fetch(url, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: { 'X-CSRFToken': getCsrfToken() },
-  });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
+  await parseApiResponse(await fetchWithCsrf(url, { method: 'DELETE' }));
 }
 
 // --- Shopping List CRUD hooks ---
@@ -176,6 +129,7 @@ export function useAddShoppingListItem(listId: number) {
       ingredient_id?: number | null;
       sort_order?: number;
       note?: string;
+      is_checked?: boolean;
     }) => postJson(`${API_BASE}/${listId}/items/`, payload, ShoppingListItemSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
@@ -207,13 +161,29 @@ export function useUpdateShoppingListItem(listId: number) {
   });
 }
 
+/** Removes the entry from the cached list right away and puts it back if the DELETE fails. */
 export function useDeleteShoppingListItem(listId: number) {
   const queryClient = useQueryClient();
+  const queryKey = ['shopping-list', listId] as const;
   return useMutation({
     mutationFn: (itemId: number) =>
       deleteJson(`${API_BASE}/${listId}/items/${itemId}/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
+    onMutate: async (itemId: number) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ShoppingListDetail>(queryKey);
+      if (previous) {
+        queryClient.setQueryData<ShoppingListDetail>(queryKey, {
+          ...previous,
+          items: previous.items.filter((item) => item.id !== itemId),
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _itemId, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
     },
   });
