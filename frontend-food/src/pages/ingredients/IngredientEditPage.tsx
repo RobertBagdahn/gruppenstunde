@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import { ApiError } from '@/lib/api';
 import {
+  NUTRITION_FIELDS,
   fieldErrorsFromApi,
   validateNutritionValues,
   type NutritionFieldErrors,
+  type NutritionValues,
 } from '@/lib/nutritionValidation';
 import { useCurrentUser } from '@/api/auth';
 import {
@@ -55,21 +57,26 @@ function Field({
   children,
   className = '',
   error,
+  hint,
 }: {
   label: string;
   children: React.ReactNode;
   className?: string;
   error?: string;
+  /** Non-blocking note, shown only when there is no error. */
+  hint?: string;
 }) {
   return (
     <div className={className}>
       <label className="text-caption text-muted-foreground mb-1 block">{label}</label>
       {children}
-      {error && (
+      {error ? (
         <p role="alert" className="mt-1 text-caption text-destructive">
           {error}
         </p>
-      )}
+      ) : hint ? (
+        <p className="mt-1 text-caption text-warning">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -236,23 +243,30 @@ export default function IngredientEditPage() {
   };
 
   const [serverNutritionErrors, setServerNutritionErrors] = useState<NutritionFieldErrors>({});
-  const clientNutritionErrors = useMemo(
-    () =>
-      validateNutritionValues({
-        energy_kcal: toNum(energyKcal),
-        protein_g: toNum(proteinG),
-        fat_g: toNum(fatG),
-        fat_sat_g: toNum(fatSatG),
-        carbohydrate_g: toNum(carbohydrateG),
-        sugar_g: toNum(sugarG),
-        fibre_g: toNum(fibreG),
-        salt_g: toNum(saltG),
-        sodium_mg: toNum(sodiumMg),
-      }),
+  const nutritionValues = useMemo<NutritionValues>(
+    () => ({
+      energy_kcal: toNum(energyKcal),
+      protein_g: toNum(proteinG),
+      fat_g: toNum(fatG),
+      fat_sat_g: toNum(fatSatG),
+      carbohydrate_g: toNum(carbohydrateG),
+      sugar_g: toNum(sugarG),
+      fibre_g: toNum(fibreG),
+      salt_g: toNum(saltG),
+      sodium_mg: toNum(sodiumMg),
+    }),
     [energyKcal, proteinG, fatG, fatSatG, carbohydrateG, sugarG, fibreG, saltG, sodiumMg],
   );
+  const clientNutritionErrors = useMemo(() => validateNutritionValues(nutritionValues), [nutritionValues]);
+  // Mirrors the backend: nutrition is only checked when a value differs from the loaded one, so legacy
+  // implausible values do not block e.g. a price change. Unchanged issues are shown as hints instead.
+  const nutritionChanged = NUTRITION_FIELDS.some(
+    (field) => (nutritionValues[field] ?? null) !== (ingredient?.[field] ?? null),
+  );
+  const blockingNutritionErrors: NutritionFieldErrors = nutritionChanged ? clientNutritionErrors : {};
+  const nutritionFieldHints: NutritionFieldErrors = nutritionChanged ? {} : clientNutritionErrors;
   // Server messages stay until the next save attempt; client rules always apply live.
-  const nutritionFieldErrors: NutritionFieldErrors = { ...serverNutritionErrors, ...clientNutritionErrors };
+  const nutritionFieldErrors: NutritionFieldErrors = { ...serverNutritionErrors, ...blockingNutritionErrors };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,7 +274,7 @@ export default function IngredientEditPage() {
       notify.error('Name ist erforderlich');
       return;
     }
-    if (Object.keys(clientNutritionErrors).length > 0) {
+    if (Object.keys(blockingNutritionErrors).length > 0) {
       notify.error('Bitte korrigiere die markierten Nährwerte');
       return;
     }
@@ -458,32 +472,38 @@ export default function IngredientEditPage() {
 
         {/* Nährwerte */}
         <FormSection title="Nährwerte pro 100g" icon="nutrition">
+          {Object.keys(nutritionFieldHints).length > 0 && (
+            <p className="mb-4 p-3 bg-warning-soft border border-warning-border rounded-lg text-caption text-foreground">
+              Die gespeicherten Nährwerte sind unplausibel. Du kannst die Zutat trotzdem speichern; sobald du einen
+              Nährwert änderst, müssen die markierten Werte korrigiert werden.
+            </p>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <Field label="Energie (kcal)" error={nutritionFieldErrors.energy_kcal}>
+            <Field label="Energie (kcal)" error={nutritionFieldErrors.energy_kcal} hint={nutritionFieldHints.energy_kcal}>
               <input type="number" step="0.1" value={energyKcal} onChange={(e) => setEnergyKcal(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Protein (g)" error={nutritionFieldErrors.protein_g}>
+            <Field label="Protein (g)" error={nutritionFieldErrors.protein_g} hint={nutritionFieldHints.protein_g}>
               <input type="number" step="0.01" value={proteinG} onChange={(e) => setProteinG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Fett (g)" error={nutritionFieldErrors.fat_g}>
+            <Field label="Fett (g)" error={nutritionFieldErrors.fat_g} hint={nutritionFieldHints.fat_g}>
               <input type="number" step="0.01" value={fatG} onChange={(e) => setFatG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="ges. Fettsäuren (g)" error={nutritionFieldErrors.fat_sat_g}>
+            <Field label="ges. Fettsäuren (g)" error={nutritionFieldErrors.fat_sat_g} hint={nutritionFieldHints.fat_sat_g}>
               <input type="number" step="0.01" value={fatSatG} onChange={(e) => setFatSatG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Kohlenhydrate (g)" error={nutritionFieldErrors.carbohydrate_g}>
+            <Field label="Kohlenhydrate (g)" error={nutritionFieldErrors.carbohydrate_g} hint={nutritionFieldHints.carbohydrate_g}>
               <input type="number" step="0.01" value={carbohydrateG} onChange={(e) => setCarbohydrateG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Zucker (g)" error={nutritionFieldErrors.sugar_g}>
+            <Field label="Zucker (g)" error={nutritionFieldErrors.sugar_g} hint={nutritionFieldHints.sugar_g}>
               <input type="number" step="0.01" value={sugarG} onChange={(e) => setSugarG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Ballaststoffe (g)" error={nutritionFieldErrors.fibre_g}>
+            <Field label="Ballaststoffe (g)" error={nutritionFieldErrors.fibre_g} hint={nutritionFieldHints.fibre_g}>
               <input type="number" step="0.01" value={fibreG} onChange={(e) => setFibreG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Salz (g)" error={nutritionFieldErrors.salt_g}>
+            <Field label="Salz (g)" error={nutritionFieldErrors.salt_g} hint={nutritionFieldHints.salt_g}>
               <input type="number" step="0.01" value={saltG} onChange={(e) => setSaltG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Natrium (mg)" error={nutritionFieldErrors.sodium_mg}>
+            <Field label="Natrium (mg)" error={nutritionFieldErrors.sodium_mg} hint={nutritionFieldHints.sodium_mg}>
               <input type="number" step="0.01" value={sodiumMg} onChange={(e) => setSodiumMg(e.target.value)} className={inputClass} />
             </Field>
             <Field label="Fructose (g)">
