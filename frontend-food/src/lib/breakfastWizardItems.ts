@@ -112,7 +112,7 @@ export function buildBreakfastWizardItems(
   const mlUnitId = catalog?.ml_measuring_unit_id ?? null;
 
   const fixKcal = extrasKcalPerPerson(state);
-  const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
+  const { breadKcal, toppingBudgetKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
   const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
   const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
 
@@ -137,7 +137,7 @@ export function buildBreakfastWizardItems(
   // ── Belag (toppings) ──
   for (const t of state.toppings.filter((t) => t.sharePercent > 0)) {
     if (toppingTotalShare <= 0) continue;
-    const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g);
+    const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingBudgetKcal, t.energyKcal100g);
     if (grams <= 0) continue;
     ingGrams[t.ingredientId] = (ingGrams[t.ingredientId] ?? 0) + grams;
   }

@@ -11,6 +11,7 @@ import {
   energyTargetKcal,
   drinkKcalFromRecipes,
   extrasKcalPerPerson,
+  extraIngredientsKcal,
   warmDishKcalFromRecipes,
   FAT_GRAMS_PER_PERSON,
   type RecipeEnergyData,
@@ -76,17 +77,43 @@ export default function StepCockpit({
     return map;
   }, [catalog?.warm_meal_recipes]);
 
-  // Extras kcal: warme Gerichte (aus Katalog-Cache) — extra ingredients via Backend-Hook
+  // kcal/100 g of every catalog ingredient; freely searched extras outside the catalog stay unknown.
+  const catalogKcal100gById = useMemo(() => {
+    const map = new Map<number, number>();
+    const groups = [
+      catalog?.extra_ingredients,
+      catalog?.topping_ingredients,
+      catalog?.base_ingredients,
+      catalog?.fat_ingredients,
+    ];
+    for (const group of groups) {
+      for (const ing of group ?? []) {
+        if (ing.energy_kcal != null && ing.energy_kcal > 0 && !map.has(ing.id)) map.set(ing.id, ing.energy_kcal);
+      }
+    }
+    return map;
+  }, [catalog]);
+
+  const extraIngredientKcalById = new Map<number, number>();
+  for (const [ingId, grams] of Object.entries(state.extraIngredients)) {
+    const kcal100g = catalogKcal100gById.get(Number(ingId));
+    if (grams > 0 && kcal100g != null) extraIngredientKcalById.set(Number(ingId), (kcal100g / 100) * grams);
+  }
+
+  // Warm dishes reserve their kcal from the bread/topping budget.
   const warmKcal = warmDishKcalFromRecipes(state, warmDishDataMap);
   const fixKcal = extrasKcalPerPerson(state, warmDishDataMap);
-  const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
+  const { breadKcal, fatKcal, toppingKcal, toppingBudgetKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
+  const extraIngredientsTotalKcal = extraIngredientsKcal(extraIngredientKcalById);
 
   const hasActiveBasis = state.basis.some((item) => item.sharePercent > 0);
   const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
   const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
 
   const drinksKcal = drinkKcalFromRecipes(state, drinkRecipeDataMap);
-  const totalKcal = breadKcal + fatKcal + toppingKcal + fixKcal + drinksKcal;
+  // Sum of the food rows in the summary table; drinks are listed separately below it.
+  const foodKcal = breadKcal + fatKcal + toppingKcal + fixKcal + extraIngredientsTotalKcal;
+  const totalKcal = foodKcal + drinksKcal;
   const target = energyTargetKcal(dayPartFactor);
   const coverage = target > 0 ? totalKcal / target : 0;
 
@@ -187,7 +214,7 @@ export default function StepCockpit({
         </div>
         <div className="space-y-1.5">
           <div className="flex justify-between text-body">
-            <span className="text-muted-foreground">Ist: {hasActiveBasis ? `${Math.round(totalKcal)} kcal/Person` : '—'}</span>
+            <span className="text-muted-foreground" data-testid="cockpit-ist-kcal">Ist: {hasActiveBasis ? `${Math.round(totalKcal)} kcal/Person` : '—'}</span>
             <span className="text-muted-foreground">Soll: {Math.round(target)} kcal/Person</span>
           </div>
           <div className="h-3 bg-muted rounded-full overflow-hidden">
@@ -244,8 +271,8 @@ export default function StepCockpit({
               <div key={b.ingredientId} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{b.name}</span>
                 <span className="text-right">{gramsRow(grams, catalogIng?.portions)}</span>
-                <span className="text-right">{kcalRow(kcal)}</span>
-                <span className="text-right">{totalKcal > 0 ? `${Math.round(kcal / totalKcal * 100)}%` : '—'}</span>
+                <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
+                <span className="text-right">{foodKcal > 0 ? `${Math.round(kcal / foodKcal * 100)}%` : '—'}</span>
               </div>
             );
           })}
@@ -261,7 +288,7 @@ export default function StepCockpit({
                 <span>Brote gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsBasis)}</span>
                 <span className="text-right">{kcalRow(totalKcalBasis)}</span>
-                <span className="text-right">{totalKcal > 0 ? `${Math.round(totalKcalBasis / totalKcal * 100)}%` : '—'}</span>
+                <span className="text-right">{foodKcal > 0 ? `${Math.round(totalKcalBasis / foodKcal * 100)}%` : '—'}</span>
               </div>
             );
           })()}
@@ -271,22 +298,22 @@ export default function StepCockpit({
             <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Belag</div>
           )}
           {state.toppings.filter((t) => t.sharePercent > 0).map((t) => {
-            const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g);
+            const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingBudgetKcal, t.energyKcal100g);
             const kcal = t.energyKcal100g ? (t.energyKcal100g / 100) * grams : 0;
             return (
               <div key={t.ingredientId} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{t.name}</span>
                 <span className="text-right">{gramsRow(grams, t.portions)}</span>
-                <span className="text-right">{kcalRow(kcal)}</span>
-                <span className="text-right">{totalKcal > 0 ? `${Math.round(kcal / totalKcal * 100)}%` : '—'}</span>
+                <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
+                <span className="text-right">{foodKcal > 0 ? `${Math.round(kcal / foodKcal * 100)}%` : '—'}</span>
               </div>
             );
           })}
           {state.toppings.filter((t) => t.sharePercent > 0).length > 0 && (() => {
             const totalGramsTopping = state.toppings.reduce((s, t) =>
-              s + toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g), 0);
+              s + toppingItemGrams(t.sharePercent, toppingTotalShare, toppingBudgetKcal, t.energyKcal100g), 0);
             const totalKcalTopping = state.toppings.reduce((s, t) => {
-              const g = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g);
+              const g = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingBudgetKcal, t.energyKcal100g);
               return s + (t.energyKcal100g ? (t.energyKcal100g / 100) * g : 0);
             }, 0);
             return (
@@ -294,7 +321,7 @@ export default function StepCockpit({
                 <span>Belag gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsTopping)}</span>
                 <span className="text-right">{kcalRow(totalKcalTopping)}</span>
-                <span className="text-right">{totalKcal > 0 ? `${Math.round(totalKcalTopping / totalKcal * 100)}%` : '—'}</span>
+                <span className="text-right">{foodKcal > 0 ? `${Math.round(totalKcalTopping / foodKcal * 100)}%` : '—'}</span>
               </div>
             );
           })()}
@@ -310,8 +337,8 @@ export default function StepCockpit({
               <div key={`fat-${f.ingredientId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{f.name}</span>
                 <span className="text-right">{gramsRow(grams)}</span>
-                <span className="text-right">{kcalRow(kcal)}</span>
-                <span className="text-right">{totalKcal > 0 ? `${Math.round(kcal / totalKcal * 100)}%` : '—'}</span>
+                <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
+                <span className="text-right">{foodKcal > 0 ? `${Math.round(kcal / foodKcal * 100)}%` : '—'}</span>
               </div>
             );
           })}
@@ -330,7 +357,7 @@ export default function StepCockpit({
                 <span>Streichfett gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsFat)}</span>
                 <span className="text-right">{kcalRow(totalKcalFat)}</span>
-                <span className="text-right">{totalKcal > 0 ? `${Math.round(totalKcalFat / totalKcal * 100)}%` : '—'}</span>
+                <span className="text-right">{foodKcal > 0 ? `${Math.round(totalKcalFat / foodKcal * 100)}%` : '—'}</span>
               </div>
             );
           })()}
@@ -348,8 +375,8 @@ export default function StepCockpit({
             <div key={`warm-${recipeId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
               <span className="truncate">{name || `Rezept #${recipeId}`}</span>
               <span className="text-right">&times;{factor}</span>
-              <span className="text-right">{itemKcal > 0 ? `${Math.round(itemKcal)} kcal` : '—'}</span>
-              <span className="text-right">{totalKcal > 0 && itemKcal > 0 ? `${Math.round((itemKcal / totalKcal) * 100)}%` : '—'}</span>
+              <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(itemKcal)}</span>
+              <span className="text-right">{foodKcal > 0 && itemKcal > 0 ? `${Math.round((itemKcal / foodKcal) * 100)}%` : '—'}</span>
             </div>
             );
           })}
@@ -358,19 +385,20 @@ export default function StepCockpit({
               <span>Warme Gerichte gesamt</span>
               <span className="text-right">—</span>
               <span className="text-right">{kcalRow(warmKcal)}</span>
-              <span className="text-right">{totalKcal > 0 ? `${Math.round((warmKcal / totalKcal) * 100)}%` : '—'}</span>
+              <span className="text-right">{foodKcal > 0 ? `${Math.round((warmKcal / foodKcal) * 100)}%` : '—'}</span>
             </div>
           )}
           {Object.entries(state.extraIngredients)
             .filter(([, g]) => g > 0)
             .map(([ingId, grams]) => {
               const selection = state.extraIngredientSelections[ingId];
+              const kcal = extraIngredientKcalById.get(Number(ingId)) ?? 0;
               return (
               <div key={`extra-${ingId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{state.extraIngredientNames[ingId] ?? `Zutat #${ingId}`}</span>
                 <span className="text-right">{selection ? `${formatNumber(selection.quantity, { maxDecimals: 2 })} ${selection.portionName}` : gramsRow(grams)}</span>
-                <span className="text-right text-muted-foreground text-caption">kcal wird geladen…</span>
-                <span className="text-right">—</span>
+                <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
+                <span className="text-right">{foodKcal > 0 && kcal > 0 ? `${Math.round((kcal / foodKcal) * 100)}%` : '—'}</span>
               </div>
               );
             })}
@@ -379,7 +407,7 @@ export default function StepCockpit({
           <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30">
             <span>Gesamt (Brot + Streichfett + Belag + Extras)</span>
             <span className="text-right">—</span>
-            <span className="text-right">{hasActiveBasis ? kcalRow(totalKcal) : '—'}</span>
+            <span className="text-right" data-testid="cockpit-food-total-kcal">{hasActiveBasis ? kcalRow(foodKcal) : '—'}</span>
             <span className="text-right">100%</span>
           </div>
 

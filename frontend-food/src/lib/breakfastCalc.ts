@@ -44,16 +44,19 @@ export function computeFatKcal(fats: FatSelection[]): number {
  * Split distributable kcal between bread, fat, and topping groups.
  * Bread Kcal is fixed from gramsPerPerson × weighted kcal density.
  * Fat Kcal is fixed from fatSelections × FAT_GRAMS_PER_PERSON.
- * Topping Kcal gets the remainder.
+ * The remainder is the topping budget (`toppingBudgetKcal`), split by share via
+ * `toppingItemGrams`. `toppingKcal` is the kcal the selected toppings actually
+ * receive: 0 without selected toppings, and toppings without a kcal value get
+ * no grams, so their share of the budget is not counted.
  */
 export function computeGroupKcal(
   basis: BasisSelection[],
-  _toppings: ToppingSelection[],
+  toppings: ToppingSelection[],
   fats: FatSelection[],
   gramsPerPerson: number,
   dayPartFactor: number,
   fixKcal: number,
-): { breadKcal: number; fatKcal: number; toppingKcal: number } {
+): { breadKcal: number; fatKcal: number; toppingKcal: number; toppingBudgetKcal: number } {
   const total = distributableKcal(dayPartFactor, fixKcal);
 
   // Bread Kcal: fixed from gramsPerPerson × weighted kcal density
@@ -70,10 +73,15 @@ export function computeGroupKcal(
   // Fat Kcal
   const fatKcal = computeFatKcal(fats);
 
-  // Topping Kcal = remaining
-  const toppingKcal = Math.max(0, total - breadKcal - fatKcal);
+  // Topping budget = remaining; actual topping kcal = budget share of toppings with kcal data
+  const toppingBudgetKcal = Math.max(0, total - breadKcal - fatKcal);
+  const totalToppingShare = toppings.reduce((s, t) => s + t.sharePercent, 0);
+  const toppingShareWithKcal = toppings
+    .filter((t) => t.sharePercent > 0 && t.energyKcal100g)
+    .reduce((s, t) => s + t.sharePercent, 0);
+  const toppingKcal = totalToppingShare > 0 ? toppingBudgetKcal * (toppingShareWithKcal / totalToppingShare) : 0;
 
-  return { breadKcal, fatKcal, toppingKcal };
+  return { breadKcal, fatKcal, toppingKcal, toppingBudgetKcal };
 }
 
 // ============================================================================
@@ -92,7 +100,7 @@ export function breadItemGrams(
   return itemKcal / (energyKcal100g / 100);
 }
 
-/** Grams for one topping item from its share, intensity, and kcal density. */
+/** Grams for one topping item from its share of the topping budget (`toppingBudgetKcal`) and kcal density. */
 export function toppingItemGrams(
   sharePercent: number,
   totalShare: number,
