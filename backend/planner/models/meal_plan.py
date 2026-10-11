@@ -477,6 +477,17 @@ class Meal(models.Model):
         verbose_name=_("Buffet-Mengen pro Rolle"),
         help_text=_("Überschriebene Mengen pro Person je Rollen-Slug"),
     )
+    buffet_manual_items_policy = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        choices=[
+            ("preserve", _("Manuelle Einträge erhalten")),
+            ("replace", _("Manuelle Einträge ersetzen")),
+        ],
+        verbose_name=_("Umgang mit manuellen Einträgen"),
+        help_text=_("Zuletzt beim Speichern des Buffets gewählte Entscheidung"),
+    )
     is_synced = models.BooleanField(
         default=False,
         verbose_name=_("Synchronisiert"),

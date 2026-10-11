@@ -307,3 +307,161 @@ class TestBuffetEndpoint:
                 "piece_weight_g": 55.0,
             }
         ]
+
+
+@pytest.mark.django_db
+class TestBuffetEndpointSharesAndPolicy:
+    def test_share_sum_other_than_100_returns_422(self, auth_client, gram_unit):
+        meal_plan = make_meal_plan(created_by=auth_client._user)
+        meal = make_meal(meal_plan=meal_plan, override_portions=4)
+        template = make_buffet_template(roles={"buffet-bread": (100, "g", True)})
+        baguette = make_ingredient(name="Baguette Summe")
+        toast = make_ingredient(name="Toast Summe")
+
+        resp = _post_buffet(
+            auth_client,
+            meal_plan.id,
+            meal.id,
+            {
+                "template_id": template.id,
+                "selections": [
+                    {"role_slug": "buffet-bread", "ingredient_id": baguette.id, "share_percent": 60},
+                    {"role_slug": "buffet-bread", "ingredient_id": toast.id, "share_percent": 30},
+                ],
+                "dry_run": False,
+            },
+        )
+
+        assert resp.status_code == 422
+        assert "100 %" in resp.json()["detail"]
+        assert MealItem.objects.filter(meal=meal).count() == 0
+
+    def test_get_state_normalizes_legacy_items_without_shares(self, auth_client, gram_unit):
+        meal_plan = make_meal_plan(created_by=auth_client._user)
+        meal = make_meal(meal_plan=meal_plan, override_portions=4)
+        template = make_buffet_template(roles={"buffet-bread": (100, "g", True), "buffet-sweet": (20, "g", True)})
+        meal.buffet_template = template
+        meal.save(update_fields=["buffet_template"])
+        baguette = make_ingredient(name="Altes Baguette")
+        toast = make_ingredient(name="Alter Toast")
+        jam = make_ingredient(name="Alte Marmelade")
+        honey = make_ingredient(name="Alter Honig")
+        for ingredient, role, share in (
+            (baguette, "buffet-bread", None),
+            (toast, "buffet-bread", None),
+            (jam, "buffet-sweet", 70),
+            (honey, "buffet-sweet", None),
+        ):
+            MealItem.objects.create(
+                meal=meal,
+                ingredient=ingredient,
+                quantity=50,
+                measuring_unit=gram_unit,
+                factor=1.0,
+                buffet_role=role,
+                buffet_share_percent=share,
+            )
+
+        resp = auth_client.get(f"/api/meal-plans/{meal_plan.id}/meals/{meal.id}/buffet/")
+
+        assert resp.status_code == 200
+        shares = {selection["ingredient_id"]: selection["share_percent"] for selection in resp.json()["selections"]}
+        assert shares == {baguette.id: 50, toast.id: 50, jam.id: 70, honey.id: 30}
+
+    def test_replace_policy_removes_manual_items_and_is_restored(self, auth_client, gram_unit):
+        meal_plan = make_meal_plan(created_by=auth_client._user)
+        meal = make_meal(meal_plan=meal_plan, override_portions=4)
+        template = make_buffet_template(roles={"buffet-bread": (100, "g", True)})
+        bread = make_ingredient(name="Brot Ersetzen")
+        manual_ingredient = make_ingredient(name="Manueller Apfel")
+        manual_item = MealItem.objects.create(
+            meal=meal, ingredient=manual_ingredient, quantity=100, measuring_unit=gram_unit, factor=1.0
+        )
+
+        preview = _post_buffet(
+            auth_client,
+            meal_plan.id,
+            meal.id,
+            {
+                "template_id": template.id,
+                "selections": [{"role_slug": "buffet-bread", "ingredient_id": bread.id}],
+                "manual_items_policy": "replace",
+                "dry_run": True,
+            },
+        )
+        assert preview.status_code == 200
+        assert "manual_items_replace" in [warning["code"] for warning in preview.json()["warnings"]]
+        assert MealItem.objects.filter(id=manual_item.id).exists()
+
+        resp = _post_buffet(
+            auth_client,
+            meal_plan.id,
+            meal.id,
+            {
+                "template_id": template.id,
+                "selections": [{"role_slug": "buffet-bread", "ingredient_id": bread.id}],
+                "manual_items_policy": "replace",
+                "dry_run": False,
+            },
+        )
+
+        assert resp.status_code == 200, resp.content
+        assert not MealItem.objects.filter(id=manual_item.id).exists()
+        assert list(MealItem.objects.filter(meal=meal).values_list("ingredient_id", "buffet_role")) == [
+            (bread.id, "buffet-bread")
+        ]
+        state = auth_client.get(f"/api/meal-plans/{meal_plan.id}/meals/{meal.id}/buffet/").json()
+        assert state["manual_items_policy"] == "replace"
+        assert state["manual_item_count"] == 0
+
+    def test_get_state_restores_preserve_policy_and_none_before_first_save(self, auth_client, gram_unit):
+        meal_plan = make_meal_plan(created_by=auth_client._user)
+        meal = make_meal(meal_plan=meal_plan, override_portions=4)
+        template = make_buffet_template(roles={"buffet-bread": (100, "g", True)})
+        bread = make_ingredient(name="Brot Erhalten")
+        state_url = f"/api/meal-plans/{meal_plan.id}/meals/{meal.id}/buffet/"
+
+        assert auth_client.get(state_url).json()["manual_items_policy"] is None
+
+        _post_buffet(
+            auth_client,
+            meal_plan.id,
+            meal.id,
+            {
+                "template_id": template.id,
+                "selections": [{"role_slug": "buffet-bread", "ingredient_id": bread.id}],
+                "manual_items_policy": "preserve",
+            },
+        )
+
+        assert auth_client.get(state_url).json()["manual_items_policy"] == "preserve"
+
+    def test_get_state_omits_invisible_item_with_warning(self, auth_client, gram_unit):
+        other_user = User.objects.create_user(username="hidden-owner", password="x")
+        meal_plan = make_meal_plan(created_by=auth_client._user)
+        meal = make_meal(meal_plan=meal_plan, override_portions=4)
+        template = make_buffet_template(roles={"buffet-bread": (100, "g", True)})
+        meal.buffet_template = template
+        meal.save(update_fields=["buffet_template"])
+        visible = make_ingredient(name="Sichtbares Brot")
+        hidden = make_ingredient(name="Verstecktes Brot", owner=other_user, visibility="private")
+        for ingredient in (visible, hidden):
+            MealItem.objects.create(
+                meal=meal,
+                ingredient=ingredient,
+                quantity=50,
+                measuring_unit=gram_unit,
+                factor=1.0,
+                buffet_role="buffet-bread",
+                buffet_share_percent=50,
+            )
+
+        resp = auth_client.get(f"/api/meal-plans/{meal_plan.id}/meals/{meal.id}/buffet/")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["template_id"] == template.id
+        assert [(s["ingredient_id"], s["share_percent"]) for s in data["selections"]] == [(visible.id, 100.0)]
+        assert [warning["code"] for warning in data["warnings"]] == ["hidden_saved_items"]
+        assert "nicht mehr sichtbar" in data["warnings"][0]["message"]
+        assert "Verstecktes Brot" not in json.dumps(data)

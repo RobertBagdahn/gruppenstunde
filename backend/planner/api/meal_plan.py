@@ -864,6 +864,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                 override_portions=meal.override_portions,
                 buffet_template=meal.buffet_template,
                 buffet_role_amounts=meal.buffet_role_amounts,
+                buffet_manual_items_policy=meal.buffet_manual_items_policy,
                 breakfast_profile=meal.breakfast_profile,
             )
             _save_meal_or_400(new_meal)
@@ -1301,7 +1302,15 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
             meal.breakfast_profile = payload.breakfast_profile or ""
             meal.buffet_template = None
             meal.buffet_role_amounts = {}
-            meal.save(update_fields=["breakfast_profile", "buffet_template", "buffet_role_amounts"])
+            meal.buffet_manual_items_policy = ""
+            meal.save(
+                update_fields=[
+                    "breakfast_profile",
+                    "buffet_template",
+                    "buffet_role_amounts",
+                    "buffet_manual_items_policy",
+                ]
+            )
 
     from planner.services.quantity_plausibility import check
 
@@ -1400,7 +1409,15 @@ def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn
             meal.breakfast_profile = payload.breakfast_profile or ""
             meal.buffet_template = None
             meal.buffet_role_amounts = {}
-            meal.save(update_fields=["breakfast_profile", "buffet_template", "buffet_role_amounts"])
+            meal.buffet_manual_items_policy = ""
+            meal.save(
+                update_fields=[
+                    "breakfast_profile",
+                    "buffet_template",
+                    "buffet_role_amounts",
+                    "buffet_manual_items_policy",
+                ]
+            )
     from planner.services.quantity_plausibility import check_meals
 
     return {

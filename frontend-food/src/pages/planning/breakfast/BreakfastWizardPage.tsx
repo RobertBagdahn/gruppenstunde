@@ -412,6 +412,7 @@ export default function BreakfastWizardPage() {
           mealPlanId={planId}
           mealId={mealId}
           mealType="breakfast"
+          initialTemplateSlug="free"
           normPortions={targetMeal?.override_portions ?? normPortions}
           onSaved={() => navigate(`/meal-plans/${planId}/plan`)}
         />

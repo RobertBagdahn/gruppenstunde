@@ -29,7 +29,7 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
       <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
         <h3 className="font-display font-semibold text-emphasis">Streichfett</h3>
         <p className="text-body text-muted-foreground">
-          Keine Streichfette verfügbar — lege Zutaten mit dem Tag breakfast-fat an.
+          Keine Streichfette verfügbar — lege Zutaten mit dem Tag buffet-fat an.
         </p>
       </div>
     );

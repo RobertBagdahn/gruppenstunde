@@ -127,3 +127,5 @@ class BuffetStateOut(Schema):
     selections: list[BuffetStateSelectionOut] = []
     role_amounts: dict[str, float] = {}
     manual_item_count: int = 0
+    manual_items_policy: Literal["preserve", "replace"] | None = None
+    warnings: list[BuffetWarningOut] = []

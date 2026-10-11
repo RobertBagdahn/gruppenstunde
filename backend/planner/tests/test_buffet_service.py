@@ -303,3 +303,23 @@ class TestSaveBuffet:
         meal.refresh_from_db()
         assert meal.buffet_template_id == template.id
         assert meal.buffet_role_amounts == {"buffet-bread": 150.0}
+
+
+@pytest.mark.django_db
+class TestComputeBuffetRecipeFallbackWarning:
+    def test_recipe_without_serving_weight_warns_about_fallback(self, gram_unit):
+        template = make_buffet_template(roles={"buffet-dish": (200, "g", True)})
+        dish_tag = template.roles.get(role__slug="buffet-dish").role
+        recipe = _tagged_recipe(dish_tag, title="Nudelsalat", portions=1)
+        recipe.cached_weight_g = None
+        recipe.save(update_fields=["cached_weight_g"])
+        meal = make_meal(override_portions=1)
+
+        result = compute_buffet(template, [BuffetSelection(role_slug="buffet-dish", recipe=recipe)], None, meal)
+
+        fallback = [warning for warning in result.warnings if warning.code == "missing_recipe_weight"]
+        assert len(fallback) == 1
+        assert (
+            fallback[0].message == "Nudelsalat: Portionsgewicht fehlt; es wird eine gleichmäßige Ersatzmenge verwendet."
+        )
+        assert result.items[0].factor == pytest.approx(1.0)

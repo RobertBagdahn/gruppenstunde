@@ -14,6 +14,8 @@ import {
 } from '@/api/buffet';
 import type { BuffetCatalogItem, BuffetCatalogRole, BuffetTemplate } from '@/schemas/buffet';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
+import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import { getApiErrorMessage } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
 import { rebalanceShares } from '@/lib/breakfastCalc';
 import { Icon } from '@/components/ui/icon';
@@ -28,6 +30,8 @@ interface BuffetBuilderProps {
   mealId: number;
   mealType: string;
   normPortions?: number;
+  /** Opens this preset directly instead of the preset chooser, e.g. `free` from the breakfast assistant. */
+  initialTemplateSlug?: string;
   onSaved?: () => void;
 }
 
@@ -113,6 +117,10 @@ function normalizeShares(
   return Object.fromEntries(keys.map((key, index) => [key, rebalanced[index]]));
 }
 
+function mealTypeLabel(mealType: string): string {
+  return MEAL_TYPE_LABELS[mealType] ?? mealType;
+}
+
 function itemKey(item: Pick<BuffetCatalogItem, 'kind' | 'id'>): SelectionKey {
   return `${item.kind}:${item.id}`;
 }
@@ -124,6 +132,7 @@ export function BuffetBuilder({
   mealId,
   mealType,
   normPortions = 1,
+  initialTemplateSlug,
   onSaved,
 }: BuffetBuilderProps) {
   const {
@@ -186,11 +195,20 @@ export function BuffetBuilder({
     }
   }, [open]);
 
-  // Restore the saved template first. A first-time breakfast always opens its dedicated preset.
+  // Restore the saved template and manual-items decision; an explicit initial preset wins over the saved template.
   useEffect(() => {
     if (!open || restoredRef.current || templateId !== null) return;
     if (savedState === undefined || allTemplates === undefined) return;
     restoredRef.current = true;
+    setManualItemsPolicy(savedState.manual_items_policy ?? 'preserve');
+    const initialTemplate = initialTemplateSlug
+      ? allTemplates.find((candidate) => candidate.slug === initialTemplateSlug)
+      : undefined;
+    if (initialTemplate) {
+      setTemplateId(initialTemplate.id);
+      setWizardStep('configure');
+      return;
+    }
     if (savedState.template_id && allTemplates.some((candidate) => candidate.id === savedState.template_id)) {
       setTemplateId(savedState.template_id);
       setWizardStep('configure');
@@ -198,7 +216,7 @@ export function BuffetBuilder({
     }
     setTemplateId(null);
     setWizardStep('preset');
-  }, [open, savedState, allTemplates, templateId]);
+  }, [open, savedState, allTemplates, templateId, initialTemplateSlug]);
 
   const template = useMemo(
     () => (allTemplates ?? []).find((candidate) => candidate.id === templateId) ?? null,
@@ -506,7 +524,11 @@ export function BuffetBuilder({
               <h3 className="font-display text-section font-bold text-foreground">Buffet prüfen</h3>
               <p className="text-body text-muted-foreground">{template.name} · {normPortions} {normPortions === 1 ? 'Person' : 'Personen'}</p>
               {previewPending && <p className="text-caption text-muted-foreground" role="status">Vorschau wird berechnet…</p>}
-              {previewError && <p className="text-caption text-danger" role="alert">Die Vorschau ist fehlgeschlagen. Bitte zurückgehen und erneut versuchen.</p>}
+              {previewError && (
+                <p className="text-caption text-danger" role="alert">
+                  Die Vorschau ist fehlgeschlagen: {getApiErrorMessage(previewError)}
+                </p>
+              )}
               {previewResult && (
                 <ul className="divide-y divide-border rounded-lg border border-border">
                   {previewResult.items.map((item) => (
@@ -547,6 +569,16 @@ export function BuffetBuilder({
           </div>
         ) : (
           <div className="space-y-4 p-4 sm:p-6">
+            {savedState?.template_id === template.id && savedState.warnings.map((warning, index) => (
+              <div
+                key={`saved-state-warning-${index}`}
+                className="flex items-start gap-1.5 rounded-lg border border-warning-border bg-warning-soft px-2.5 py-1.5 text-caption text-warning"
+                role="status"
+              >
+                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{warning.message}</span>
+              </div>
+            ))}
             <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-muted/10 p-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <span className="text-caption font-semibold text-foreground">Item-Art</span>
@@ -626,7 +658,7 @@ export function BuffetBuilder({
           <div className="p-4 border-t border-border bg-muted/20 space-y-3">
           {previewError && template && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-caption text-danger" role="alert">
-              <span>Die Vorschau konnte nicht geladen werden.</span>
+              <span>Die Vorschau konnte nicht geladen werden: {getApiErrorMessage(previewError)}</span>
               <button type="button" onClick={retryPreview} className="font-semibold underline underline-offset-2">
                 Erneut versuchen
               </button>
@@ -784,13 +816,13 @@ function PresetChooser({
                 className="rounded-lg border border-border p-3 text-left text-body hover:border-primary hover:bg-primary/5"
               >
                 <span className="block font-semibold text-foreground">{candidate.name}</span>
-                <span className="text-caption text-muted-foreground">{candidate.meal_types.join(', ')}</span>
+                <span className="text-caption text-muted-foreground">{candidate.meal_types.map(mealTypeLabel).join(', ')}</span>
               </button>
             ))}
           </div>
         </details>
       )}
-      <p className="text-caption text-muted-foreground">Mahlzeitentyp: {mealType}</p>
+      <p className="text-caption text-muted-foreground">Mahlzeitentyp: {mealTypeLabel(mealType)}</p>
     </div>
   );
 }
