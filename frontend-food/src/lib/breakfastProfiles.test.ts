@@ -172,6 +172,36 @@ describe('buildBreakfastProfileState', () => {
     expect(ids).not.toContain(13);
   });
 
+  it('fills Brot vegetarisch with cheese and a sweet spread as described', () => {
+    const description = BREAKFAST_PROFILES.find((profile) => profile.id === 'vegetarian')?.description;
+    // Erdnussbutter comes first, but the sweet spread (Honig) is preferred next to the cheese.
+    const catalogWithSpreadFirst: BreakfastCatalog = {
+      ...catalog,
+      topping_ingredients: [ingredient(14, 'Erdnussbutter', 600), ...catalog.topping_ingredients.filter((item) => item.id !== 14)],
+    };
+    const { state, hints } = buildBreakfastProfileState('vegetarian', catalogWithSpreadFirst, defaultWizardState());
+    const items = buildBreakfastWizardItems(state, catalogWithSpreadFirst, DAY_PART_FACTOR);
+
+    expect(description).toContain('Käse');
+    expect(hints).toEqual([]);
+    expect(state.toppings.filter((topping) => topping.sharePercent > 0).map(({ name, sharePercent }) => `${name}:${sharePercent}`))
+      .toEqual(['Gouda:50', 'Honig:50']);
+    expect(savedIds(items)).toEqual(expect.arrayContaining([11, 12]));
+    expect(savedIds(items)).not.toContain(14);
+  });
+
+  it('hints when Brot vegetarisch finds no cheese with kcal', () => {
+    const catalogWithoutCheese: BreakfastCatalog = {
+      ...catalog,
+      topping_ingredients: catalog.topping_ingredients.filter((item) => item.id !== 11),
+    };
+    const { state, hints } = buildBreakfastProfileState('vegetarian', catalogWithoutCheese, defaultWizardState());
+
+    expect(hints).toEqual(['Kein Käse mit kcal-Angabe gefunden. Der Belag enthält nur Aufstrich.']);
+    expect(state.toppings.filter((topping) => topping.sharePercent > 0).map(({ name, sharePercent }) => `${name}:${sharePercent}`))
+      .toEqual(['Honig:100']);
+  });
+
   it('starts profiles with fat at 50 % plus "Kein Fett" at 50 %', () => {
     const { state } = buildBreakfastProfileState('meat', catalog, defaultWizardState());
 
