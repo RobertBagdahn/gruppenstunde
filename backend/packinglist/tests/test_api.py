@@ -1,6 +1,7 @@
 """Tests for packing list API: visibility, share links, share checks."""
 
 import json
+import uuid
 
 import pytest
 
@@ -155,6 +156,27 @@ class TestShareCheckState:
         pl = make_packing_list()
         share = make_packing_list_share(packing_list=pl, is_active=False)
         resp = api_client.get(f"/api/packing-lists/shared/{share.token}/")
+        assert resp.status_code == 404
+
+    def test_non_uuid_share_token_returns_german_404(self, api_client):
+        resp = api_client.get("/api/packing-lists/shared/not-a-uuid/")
+
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "Freigabe-Link nicht gefunden oder nicht mehr aktiv."
+
+    def test_unknown_share_token_returns_german_404(self, api_client):
+        resp = api_client.get(f"/api/packing-lists/shared/{uuid.uuid4()}/")
+
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "Freigabe-Link nicht gefunden oder nicht mehr aktiv."
+
+    def test_update_check_with_non_uuid_share_token_returns_404(self, api_client):
+        resp = api_client.patch(
+            "/api/packing-lists/shared/not-a-uuid/checks/",
+            data=json.dumps({"item_id": 1, "is_checked": True}),
+            content_type="application/json",
+        )
+
         assert resp.status_code == 404
 
     def test_update_share_check(self, api_client):

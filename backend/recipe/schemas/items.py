@@ -295,7 +295,7 @@ class ExchangeGroupMemberOut(Schema):
 
     recipe_item_id: int
     exchange_position: int | None = None
-    portion_id: int
+    portion_id: int | None = None
     ingredient_name: str = ""
     quantity: float
 
@@ -305,9 +305,10 @@ class ExchangeGroupMemberOut(Schema):
 
     @staticmethod
     def resolve_ingredient_name(obj) -> str:
-        if obj.portion and obj.portion.ingredient:
-            return cast(str, obj.portion.ingredient.name)
-        return ""
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj)
+        return cast(str, ingredient.name) if ingredient else ""
 
 
 class RecipeItemExchangeGroupOut(Schema):
@@ -318,7 +319,7 @@ class RecipeItemExchangeGroupOut(Schema):
 
     @staticmethod
     def resolve_members(obj) -> list:
-        return list(obj.items.select_related("portion__ingredient").order_by("exchange_position"))
+        return list(obj.items.select_related("portion__ingredient", "ingredient").order_by("exchange_position"))
 
 
 # ---------------------------------------------------------------------------

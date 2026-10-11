@@ -1,6 +1,7 @@
 """Parent access service — token management and verification."""
 
 import logging
+import uuid
 from datetime import timedelta
 
 from django.utils import timezone
@@ -50,9 +51,14 @@ class ParentAccessService:
     def verify_token(cls, token_str: str):
         """Verify a parent access token and return the participant data."""
         try:
+            token_uuid = uuid.UUID(token_str)
+        except ValueError:
+            return None
+
+        try:
             token = ParentAccessToken.objects.select_related(
                 "participant__registration__event",
-            ).get(token=token_str)
+            ).get(token=token_uuid)
         except ParentAccessToken.DoesNotExist:
             return None
 

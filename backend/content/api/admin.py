@@ -202,7 +202,7 @@ def admin_embedding_status(
         qs = model_class.objects.filter(status="approved").order_by("-updated_at")
 
         for item in qs:
-            has_emb = bool(item.embedding)
+            has_emb = item.embedding is not None
             is_stale = False
             emb_updated = None
 

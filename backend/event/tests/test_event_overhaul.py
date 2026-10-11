@@ -440,6 +440,35 @@ class TestParentAccess:
         )
         assert token.expires_at < timezone.now()
 
+    def test_parent_view_with_valid_token(self):
+        event = make_event()
+        reg = make_registration(event=event)
+        participant = make_participant(registration=reg, first_name="Mia", last_name="Muster")
+        token = ParentAccessToken.objects.create(
+            participant=participant,
+            expires_at=timezone.now() + datetime.timedelta(days=30),
+        )
+
+        resp = Client().get(f"/api/events/{event.slug}/parent/{token.token}/")
+
+        assert resp.status_code == 200
+        assert resp.json()["child_name"] == "Mia Muster"
+
+    def test_parent_view_with_non_uuid_token_returns_404(self):
+        event = make_event()
+
+        resp = Client(raise_request_exception=False).get(f"/api/events/{event.slug}/parent/not-a-uuid/")
+
+        assert resp.status_code == 404
+        assert resp.json()["detail"] == "Ungültiger oder abgelaufener Zugangslink."
+
+    def test_parent_view_with_unknown_token_returns_404(self):
+        event = make_event()
+
+        resp = Client().get(f"/api/events/{event.slug}/parent/{uuid.uuid4()}/")
+
+        assert resp.status_code == 404
+
 
 # ===========================================================================
 # 29.12 — Budget

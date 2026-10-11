@@ -597,14 +597,25 @@ def deactivate_share(request, packing_list_id: int, share_id: int):
 # ==========================================================================
 
 
+SHARE_NOT_FOUND_MESSAGE = "Freigabe-Link nicht gefunden oder nicht mehr aktiv."
+
+
+def _get_active_share(token: str, *related: str) -> PackingListShare:
+    """Return the active share for a token; malformed tokens are treated as unknown (404)."""
+    try:
+        token_uuid = UUID(token)
+    except ValueError:
+        raise HttpError(404, SHARE_NOT_FOUND_MESSAGE)
+    share = PackingListShare.objects.select_related(*related).filter(token=token_uuid, is_active=True).first()
+    if share is None:
+        raise HttpError(404, SHARE_NOT_FOUND_MESSAGE)
+    return share
+
+
 @packing_list_router.get("/shared/{token}/", response=SharedPackingListOut)
-def get_shared_packing_list(request, token: UUID):
+def get_shared_packing_list(request, token: str):
     """Load a packing list via share token. Public, no auth required."""
-    share = get_object_or_404(
-        PackingListShare.objects.select_related("packing_list__owner"),
-        token=token,
-        is_active=True,
-    )
+    share = _get_active_share(token, "packing_list__owner")
 
     packing_list = share.packing_list
     check_map: dict[int, bool] = dict(share.checks.values_list("item_id", "is_checked"))
@@ -644,13 +655,9 @@ def get_shared_packing_list(request, token: UUID):
 
 
 @packing_list_router.patch("/shared/{token}/checks/")
-def update_share_check(request, token: UUID, payload: ShareCheckUpdateIn):
+def update_share_check(request, token: str, payload: ShareCheckUpdateIn):
     """Update check state for a specific item on a share link."""
-    share = get_object_or_404(
-        PackingListShare.objects.select_related("packing_list"),
-        token=token,
-        is_active=True,
-    )
+    share = _get_active_share(token, "packing_list")
 
     item = get_object_or_404(
         PackingItem,

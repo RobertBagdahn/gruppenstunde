@@ -3,6 +3,7 @@ import {
   getRecipeExecutionTimeLabel,
   ImprovementSchema,
   RecipeDetailSchema,
+  RecipeItemExchangeGroupSchema,
   RecipeMaterialSchema,
   AiMaterialSuggestionsSchema,
 } from './recipe';
@@ -99,6 +100,19 @@ describe('food API contracts', () => {
     expect(ImprovementSchema.shape.direction.safeParse('keep').success).toBe(false);
     expect(ImprovementSchema.shape.direction.safeParse('reduce').success).toBe(true);
     expect(ImprovementSchema.shape.direction.safeParse('increase').success).toBe(true);
+  });
+
+  it('accepts portionless gram members in exchange groups', () => {
+    const group = RecipeItemExchangeGroupSchema.parse({
+      id: 1,
+      recipe_id: 2,
+      name: 'Alternative',
+      members: [
+        { recipe_item_id: 3, exchange_position: 0, portion_id: null, ingredient_name: 'Haferflocken', quantity: 50 },
+        { recipe_item_id: 4, exchange_position: 1, portion_id: 9, ingredient_name: 'Bergkäse', quantity: 1 },
+      ],
+    });
+    expect(group.members.map((member) => member.portion_id)).toEqual([null, 9]);
   });
 
   it('accepts transient AI serving context without changing persisted portions', () => {

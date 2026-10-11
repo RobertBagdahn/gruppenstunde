@@ -161,7 +161,7 @@ export type RecipeItemReplaceIn = z.output<typeof RecipeItemReplaceInSchema>;
 export const ExchangeGroupMemberSchema = z.object({
   recipe_item_id: z.number(),
   exchange_position: z.number().nullable().optional(),
-  portion_id: z.number(),
+  portion_id: z.number().nullable().optional(),
   ingredient_name: z.string().default(''),
   quantity: z.number(),
 });
