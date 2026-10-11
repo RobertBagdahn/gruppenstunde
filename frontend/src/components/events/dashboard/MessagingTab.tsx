@@ -27,6 +27,7 @@ import {
 } from '@/api/whatsapp';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   event: EventDetail;
@@ -112,9 +113,9 @@ export default function MessagingTab({ event }: Props) {
     result = result.replace(/{event_name}/g, event.name);
     result = result.replace(/{buchungsoption}/g, sampleParticipant.booking_option_name || '');
     const opt = event.booking_options.find((o) => o.id === sampleParticipant.booking_option_id);
-    result = result.replace(/{preis}/g, opt ? `${parseFloat(opt.price).toFixed(2)} \u20AC` : '0.00 \u20AC');
-    result = result.replace(/{bezahlt}/g, `${parseFloat(sampleParticipant.total_paid).toFixed(2)} \u20AC`);
-    result = result.replace(/{restbetrag}/g, `${parseFloat(sampleParticipant.remaining_amount).toFixed(2)} \u20AC`);
+    result = result.replace(/{preis}/g, opt ? formatEuro(opt.price) : formatEuro(0));
+    result = result.replace(/{bezahlt}/g, formatEuro(sampleParticipant.total_paid));
+    result = result.replace(/{restbetrag}/g, formatEuro(sampleParticipant.remaining_amount));
     return result;
   };
 
@@ -133,9 +134,9 @@ export default function MessagingTab({ event }: Props) {
     result = result.replace(/{event_name}/g, event.name);
     result = result.replace(/{buchungsoption}/g, participant.booking_option_name || '');
     const opt = event.booking_options.find((o) => o.id === participant.booking_option_id);
-    result = result.replace(/{preis}/g, opt ? `${parseFloat(opt.price).toFixed(2)} \u20AC` : '0.00 \u20AC');
-    result = result.replace(/{bezahlt}/g, `${parseFloat(participant.total_paid).toFixed(2)} \u20AC`);
-    result = result.replace(/{restbetrag}/g, `${parseFloat(participant.remaining_amount).toFixed(2)} \u20AC`);
+    result = result.replace(/{preis}/g, opt ? formatEuro(opt.price) : formatEuro(0));
+    result = result.replace(/{bezahlt}/g, formatEuro(participant.total_paid));
+    result = result.replace(/{restbetrag}/g, formatEuro(participant.remaining_amount));
     return result;
   };
 

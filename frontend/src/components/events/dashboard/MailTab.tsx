@@ -9,6 +9,7 @@ import { useSendMail } from '@/api/eventDashboard';
 import { useLabels } from '@/api/eventDashboard';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   event: EventDetail;
@@ -20,9 +21,9 @@ const PLACEHOLDERS = [
   { key: '{pfadiname}', label: 'Pfadiname', example: 'Falke' },
   { key: '{event_name}', label: 'Eventname', example: '' },
   { key: '{buchungsoption}', label: 'Buchungsoption', example: 'Ganzes Wochenende' },
-  { key: '{preis}', label: 'Preis', example: '45.00 €' },
-  { key: '{bezahlt}', label: 'Bezahlt', example: '45.00 €' },
-  { key: '{restbetrag}', label: 'Restbetrag', example: '0.00 €' },
+  { key: '{preis}', label: 'Preis', example: '45,00 €' },
+  { key: '{bezahlt}', label: 'Bezahlt', example: '45,00 €' },
+  { key: '{restbetrag}', label: 'Restbetrag', example: '0,00 €' },
 ] as const;
 
 type RecipientType = 'all' | 'filtered' | 'selected';
@@ -70,9 +71,9 @@ export default function MailTab({ event }: Props) {
     result = result.replace(/{event_name}/g, event.name);
     result = result.replace(/{buchungsoption}/g, sampleParticipant.booking_option_name || '');
     const opt = event.booking_options.find((o) => o.id === sampleParticipant.booking_option_id);
-    result = result.replace(/{preis}/g, opt ? `${parseFloat(opt.price).toFixed(2)} €` : '0.00 €');
-    result = result.replace(/{bezahlt}/g, `${parseFloat(sampleParticipant.total_paid).toFixed(2)} €`);
-    result = result.replace(/{restbetrag}/g, `${parseFloat(sampleParticipant.remaining_amount).toFixed(2)} €`);
+    result = result.replace(/{preis}/g, opt ? formatEuro(opt.price) : formatEuro(0));
+    result = result.replace(/{bezahlt}/g, formatEuro(sampleParticipant.total_paid));
+    result = result.replace(/{restbetrag}/g, formatEuro(sampleParticipant.remaining_amount));
     return result;
   };
 

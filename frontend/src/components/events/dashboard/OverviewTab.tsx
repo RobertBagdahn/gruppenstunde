@@ -15,6 +15,7 @@ import PhaseGuidanceBanner from '@/components/events/PhaseGuidanceBanner';
 import ChecklistCard from './ChecklistCard';
 import BudgetCard from './BudgetCard';
 import LocationDetailDialog from '@/components/events/LocationDetailDialog';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   event: EventDetail;
@@ -63,7 +64,7 @@ export default function OverviewTab({ event, isManager }: Props) {
           <KpiCard
             icon="payments"
             label="Einnahmen"
-            value={`${totalExpected.toFixed(2)}\u20AC`}
+            value={formatEuro(totalExpected)}
             subtitle="erwartet"
             color="emerald"
           />
@@ -194,7 +195,7 @@ export default function OverviewTab({ event, isManager }: Props) {
                 {event.booking_options.map((opt) => (
                   <div key={opt.id} className="flex justify-between items-center text-sm border rounded-lg p-2">
                     <span>{opt.name}</span>
-                    <span className="font-semibold">{parseFloat(opt.price).toFixed(2)}\u20AC</span>
+                    <span className="font-semibold">{formatEuro(opt.price)}</span>
                   </div>
                 ))}
               </div>

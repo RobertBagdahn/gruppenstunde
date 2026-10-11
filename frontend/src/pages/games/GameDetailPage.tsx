@@ -38,6 +38,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import TitleImageEditor from '@/components/content/TitleImageEditor';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { formatEuro } from '@/lib/formatCurrency';
 
 // Scout level colors
 const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -133,7 +134,7 @@ export default function GameDetailPage() {
     EXECUTION_TIME_OPTIONS.find((t) => t.value === game.execution_time)?.label ??
     game.execution_time;
   const costsLabel: string | null = game.costs_per_person != null
-    ? `${Number(game.costs_per_person).toFixed(2).replace('.', ',')} € pro Person`
+    ? `${formatEuro(game.costs_per_person)} pro Person`
     : null;
   const gameTypeLabel =
     GAME_TYPE_OPTIONS.find((g) => g.value === game.game_type)?.label ??

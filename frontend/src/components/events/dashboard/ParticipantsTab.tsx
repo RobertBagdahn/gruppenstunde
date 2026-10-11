@@ -20,6 +20,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import AttendanceView from './AttendanceView';
 import ImportDialog from './ImportDialog';
 import RoomAssignmentView from './RoomAssignmentView';
+import { formatEuro } from '@/lib/formatCurrency';
 
 interface Props {
   event: EventDetail;
@@ -249,7 +250,7 @@ export default function ParticipantsTab({ event }: Props) {
                   <Detail label="Adresse" value={`${p.address} ${p.zip_code} ${p.city}`.trim()} />
                   <Detail label="Geburtstag" value={p.birthday ? new Date(p.birthday).toLocaleDateString('de-DE') : '–'} />
                   <Detail label="Geschlecht" value={p.gender} />
-                  <Detail label="Bezahlt" value={`${p.total_paid}€ / ${(parseFloat(p.total_paid) + parseFloat(p.remaining_amount)).toFixed(2)}€`} />
+                  <Detail label="Bezahlt" value={`${formatEuro(p.total_paid)} / ${formatEuro(parseFloat(p.total_paid) + parseFloat(p.remaining_amount))}`} />
                 </div>
 
                 {/* Custom Field Values */}
@@ -729,7 +730,7 @@ function AdminRegisterDialog({
                   {opt.is_system ? ' (System)' : ''}
                   {!opt.is_bookable && !opt.is_system ? ' (abgelaufen)' : ''}
                   {' - '}
-                  {parseFloat(opt.price).toFixed(2)}&euro;
+                  {formatEuro(opt.price)}
                 </option>
               ))}
             </select>
