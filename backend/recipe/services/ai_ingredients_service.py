@@ -794,7 +794,7 @@ class RecipeQuantityEstimationService:
     PLAUSIBLE_WEIGHT_PER_PORTION_RANGE_G = (30.0, 1500.0)
 
     def compute_weight_per_portion_g(self, recipe: Recipe) -> float:
-        """Total recipe weight in grams divided by the number of portions,
+        """Total recipe weight in grams (quantities are stored per person),
         computed fresh from RecipeItems (does NOT rely on `cached_weight_g`,
         which may itself be stale/derived from the same bad data). Only
         trusted portion weights are summed; unresolved piece weights do not
@@ -809,8 +809,7 @@ class RecipeQuantityEstimationService:
                 grams = resolve_recipe_item_grams(item)
                 if grams is not None:
                     total_g += grams
-        servings = recipe.portions or 1
-        return total_g / servings if servings else total_g
+        return total_g
 
     def is_implausible(self, recipe: Recipe) -> bool:
         low, high = self.PLAUSIBLE_WEIGHT_PER_PORTION_RANGE_G

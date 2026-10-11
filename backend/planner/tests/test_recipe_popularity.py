@@ -174,7 +174,7 @@ class TestExtendedSearchResponse:
         recipe = make_recipe(
             title="Testpfannkuchen",
             recipe_type="breakfast",
-            portions=4,
+            portions=1,
         )
         recipe.cached_energy_kcal = 478.0
         recipe.cached_protein_g = 20.0
@@ -191,7 +191,7 @@ class TestExtendedSearchResponse:
         assert len(data["recipes"]) >= 1
         r = next((x for x in data["recipes"] if x["title"] == "Testpfannkuchen"), None)
         assert r is not None
-        assert r["portions"] == 4
+        assert r["portions"] == 1
         assert r["cached_energy_kcal"] == 478.0
         assert r["cached_protein_g"] == 20.0
         assert r["cached_fat_g"] == 10.0

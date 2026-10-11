@@ -155,13 +155,6 @@ def generate_shopping_list(
             recipe = mi.recipe
             if recipe.deleted_at is not None:
                 continue
-            if not getattr(recipe, "portions", None):
-                logger.warning(
-                    "Recipe %s '%s' has portions=0 or None, skipping in shopping_service",
-                    recipe.id,
-                    getattr(recipe, "title", str(recipe)),
-                )
-                continue
             from planner.services.calculation_context import active_recipe_items
             from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
@@ -172,11 +165,11 @@ def generate_shopping_list(
                 if not ing:
                     continue
 
-                recipe_servings = recipe.portions or 1
-                weight_g = (active_item.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
+                # Recipe quantities are stored per person.
+                weight_g = (active_item.weight_g or 0) * mi.factor * meal_scaling
 
                 if portion is not None and resolve_trusted_weight(portion) is None:
-                    raw_qty = active_item.quantity * mi.factor * meal_scaling / recipe_servings
+                    raw_qty = active_item.quantity * mi.factor * meal_scaling
                     portion_name = portion.name or ""
                     if ing.id in raw_quantities:
                         raw_quantities[ing.id] = (

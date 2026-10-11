@@ -168,10 +168,9 @@ class MealItemOut(Schema):
         if recipe and recipe.cached_energy_total_kcal is not None:
             from planner.services.variant_service import compute_variant_energy
 
-            servings = recipe.portions or 1
             effective_portions = obj.meal.effective_portions
             total = compute_variant_energy(obj)
-            return cast(float, total * obj.factor * (effective_portions / servings))
+            return cast(float, total * obj.factor * effective_portions)
         if obj.ingredient:
             return resolve_ingredient_energy_kcal(obj, effective_portions=obj.meal.effective_portions)
         return None
@@ -185,12 +184,11 @@ class MealItemOut(Schema):
         recipe = _live_recipe(obj)
         if not recipe or recipe.cached_price_total is None:
             return None
-        servings = recipe.portions or 1
         effective_portions = obj.meal.effective_portions
         from planner.services.variant_service import compute_variant_cost
 
         total = compute_variant_cost(obj)
-        return cast(float, total * obj.factor * (effective_portions / servings))
+        return cast(float, total * obj.factor * effective_portions)
 
     @staticmethod
     def resolve_overrides(obj) -> list:
@@ -400,8 +398,7 @@ class MealOut(Schema):
             if recipe and recipe.cached_energy_total_kcal is not None:
                 from planner.services.variant_service import compute_variant_energy
 
-                servings = recipe.portions or 1
-                total += compute_variant_energy(item) * item.factor * (effective_portions / servings)
+                total += compute_variant_energy(item) * item.factor * effective_portions
             elif item.ingredient:
                 kcal = resolve_ingredient_energy_kcal(item, effective_portions=effective_portions)
                 if kcal is not None:
@@ -421,8 +418,7 @@ class MealOut(Schema):
             if recipe and recipe.cached_price_total is not None:
                 from planner.services.variant_service import compute_variant_cost
 
-                servings = recipe.portions or 1
-                total += compute_variant_cost(item) * item.factor * (effective_portions / servings)
+                total += compute_variant_cost(item) * item.factor * effective_portions
             elif item.ingredient:
                 cost = resolve_ingredient_cost_eur(item, effective_portions=effective_portions)
                 if cost is not None:

@@ -13,7 +13,7 @@ from recipe.tests import make_recipe
 class TestRecipeTypeStatsService:
     def test_creates_stats_on_10_recipes(self):
         for _ in range(10):
-            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED)
         recalculate_type_stats("warm_meal")
 
         stats = RecipeTypeStats.objects.filter(recipe_type="warm_meal").first()
@@ -22,7 +22,7 @@ class TestRecipeTypeStatsService:
 
     def test_skips_fewer_than_10(self):
         for _ in range(5):
-            make_recipe(recipe_type="breakfast", status=ContentStatus.APPROVED, portions=4)
+            make_recipe(recipe_type="breakfast", status=ContentStatus.APPROVED)
         recalculate_type_stats("breakfast")
 
         stats = RecipeTypeStats.objects.filter(recipe_type="breakfast").first()
@@ -30,26 +30,33 @@ class TestRecipeTypeStatsService:
 
     def test_excludes_draft_recipes(self):
         for _ in range(10):
-            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
-        make_recipe(recipe_type="warm_meal", status=ContentStatus.DRAFT, portions=4)
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED)
+        make_recipe(recipe_type="warm_meal", status=ContentStatus.DRAFT)
         recalculate_type_stats("warm_meal")
 
         stats = RecipeTypeStats.objects.get(recipe_type="warm_meal")
         assert stats.count == 10
 
-    def test_excludes_recipes_without_portions(self):
+    def test_per_portion_values_are_the_cached_per_person_totals(self):
         for _ in range(10):
-            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
-        make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=None)
+            make_recipe(
+                recipe_type="warm_meal",
+                status=ContentStatus.APPROVED,
+                cached_price_total=2.5,
+                cached_energy_total_kcal=640.0,
+                cached_weight_g=450.0,
+            )
         recalculate_type_stats("warm_meal")
 
         stats = RecipeTypeStats.objects.get(recipe_type="warm_meal")
-        assert stats.count == 10
+        assert stats.price_avg == pytest.approx(2.5)
+        assert stats.energy_avg == pytest.approx(640.0)
+        assert stats.weight_avg == pytest.approx(450.0)
 
     def test_recalculates_on_status_change(self, db):
         for _ in range(9):
-            make_recipe(recipe_type="dessert", status=ContentStatus.APPROVED, portions=4)
-        draft = make_recipe(recipe_type="dessert", status=ContentStatus.DRAFT, portions=4)
+            make_recipe(recipe_type="dessert", status=ContentStatus.APPROVED)
+        draft = make_recipe(recipe_type="dessert", status=ContentStatus.DRAFT)
         recalculate_type_stats("dessert")
 
         # No stats yet (<10 approved)
@@ -66,7 +73,7 @@ class TestRecipeTypeStatsService:
     def test_delete_recipe_recalculates(self, db):
         recipes = []
         for _ in range(11):
-            r = make_recipe(recipe_type="cold_meal", status=ContentStatus.APPROVED, portions=4)
+            r = make_recipe(recipe_type="cold_meal", status=ContentStatus.APPROVED)
             recipes.append(r)
         recalculate_type_stats("cold_meal")
 
@@ -83,7 +90,7 @@ class TestRecipeTypeStatsService:
     def test_delete_drops_below_10_removes_stats(self, db):
         recipes = []
         for _ in range(10):
-            r = make_recipe(recipe_type="recipe_part", status=ContentStatus.APPROVED, portions=4)
+            r = make_recipe(recipe_type="recipe_part", status=ContentStatus.APPROVED)
             recipes.append(r)
         recalculate_type_stats("recipe_part")
 
@@ -99,7 +106,7 @@ class TestRecipeTypeStatsService:
 class TestRecipeTypeStatsAPI:
     def test_get_stats_returns_correct_structure(self):
         for _ in range(10):
-            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED)
         recalculate_type_stats("warm_meal")
 
         client = Client()
@@ -116,7 +123,7 @@ class TestRecipeTypeStatsAPI:
 
     def test_get_stats_without_10_returns_404(self):
         for _ in range(3):
-            make_recipe(recipe_type="breakfast", status=ContentStatus.APPROVED, portions=4)
+            make_recipe(recipe_type="breakfast", status=ContentStatus.APPROVED)
         recalculate_type_stats("breakfast")
 
         client = Client()
@@ -126,7 +133,7 @@ class TestRecipeTypeStatsAPI:
     def test_get_stats_includes_buckets(self):
         """Test that API response includes histogram buckets."""
         for _ in range(10):
-            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED)
         recalculate_type_stats("warm_meal")
 
         client = Client()

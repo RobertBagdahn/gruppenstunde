@@ -108,13 +108,13 @@ def check_item(item: Any, portions: float) -> QuantityWarning | None:
 def check_recipe_item(item: Any, portions: float) -> list[QuantityWarning]:
     """Warnings for recipe ingredients whose per-person amount is implausible.
 
-    Recipe amounts are scaled by ``portions / recipe.portions``; a wrong recipe
-    amount or portion weight shows up as an absurd per-person quantity.
+    Recipe amounts are stored per person and scaled by the meal item factor; a
+    wrong recipe amount or portion weight shows up as an absurd per-person quantity.
     """
     from planner.services.calculation_context import active_recipe_items
 
     recipe = item.recipe
-    if recipe is None or not recipe.portions:
+    if recipe is None:
         return []
     portions = max(float(portions or 1), 1.0)
     warnings = []
@@ -124,7 +124,7 @@ def check_recipe_item(item: Any, portions: float) -> list[QuantityWarning]:
         ingredient = get_recipe_item_ingredient(active.recipe_item)
         if ingredient is None or not active.weight_g:
             continue
-        grams = active.weight_g * item.factor / recipe.portions
+        grams = active.weight_g * item.factor
         if grams <= MAX_GRAMS_PER_PERSON:
             continue
         total_kg = grams * portions / 1000

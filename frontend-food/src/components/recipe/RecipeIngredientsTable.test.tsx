@@ -21,7 +21,7 @@ describe('RecipeIngredientsTable', () => {
   it('shows portion units like the detail page instead of grams', () => {
     render(
       <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
-        <RecipeIngredientsTable items={items} portions={1} />
+        <RecipeIngredientsTable items={items} />
       </MemoryRouter>,
     );
 

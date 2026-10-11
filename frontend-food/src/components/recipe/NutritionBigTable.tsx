@@ -8,10 +8,10 @@ import { formatNumber, roundToDecimals } from '@/lib/format';
 
 interface NutritionBigTableProps {
   recipe: RecipeDetail;
-  portions: number;
 }
 
-export default function NutritionBigTable({ recipe, portions }: NutritionBigTableProps) {
+/** Recipe quantities are stored per person, so the cached weight is one portion. */
+export default function NutritionBigTable({ recipe }: NutritionBigTableProps) {
   const nutrients = [
     { key: 'energy', label: 'Energie', value: recipe.cached_energy_kcal, unit: 'kcal', dge: 2000 },
     { key: 'protein', label: 'Protein', value: recipe.cached_protein_g, unit: 'g', dge: 50 },
@@ -34,7 +34,7 @@ export default function NutritionBigTable({ recipe, portions }: NutritionBigTabl
       <div className="divide-y">
         {nutrients.map((nut) => {
           const per100g = nut.value || 0;
-          const perPortion = (per100g * (weight / 100)) / (portions || 1);
+          const perPortion = per100g * (weight / 100);
           const total = per100g * (weight / 100);
           const dgePct = (total / nut.dge) * 100;
 

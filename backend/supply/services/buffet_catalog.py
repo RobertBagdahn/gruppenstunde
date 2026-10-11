@@ -73,10 +73,10 @@ def ingredient_piece_weight_g(ingredient: Any) -> float | None:
 
 
 def recipe_weight_per_serving_g(recipe: Any) -> float | None:
-    """Weight of one serving; ``cached_weight_g`` is the whole recipe."""
+    """Weight of one serving; recipe quantities are stored per person."""
     if not recipe.cached_weight_g:
         return None
-    return float(recipe.cached_weight_g) / max(recipe.portions or 1, 1)
+    return float(recipe.cached_weight_g)
 
 
 def recipe_price_per_kg(recipe: Any) -> float | None:

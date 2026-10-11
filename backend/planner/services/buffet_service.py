@@ -111,10 +111,9 @@ def _ingredient_values(ingredient: Any, amount: float, unit: str) -> tuple[float
 
 
 def _recipe_values(recipe: Any, factor: float) -> tuple[float | None, float | None]:
-    """kcal and cost per person for ``factor`` servings of a recipe."""
-    servings = max(recipe.portions or 1, 1)
-    kcal = recipe.cached_energy_total_kcal / servings * factor if recipe.cached_energy_total_kcal is not None else None
-    cost = float(recipe.cached_price_total) / servings * factor if recipe.cached_price_total is not None else None
+    """kcal and cost per person for ``factor`` servings of a recipe (cached values are per person)."""
+    kcal = recipe.cached_energy_total_kcal * factor if recipe.cached_energy_total_kcal is not None else None
+    cost = float(recipe.cached_price_total) * factor if recipe.cached_price_total is not None else None
     return kcal, cost
 
 

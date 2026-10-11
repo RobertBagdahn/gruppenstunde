@@ -123,7 +123,7 @@ class TestMealPlanCostSummaryAPI:
         meal = make_meal(meal_plan=plan)
 
         # Recipe-based item
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe(portions=1)
         ing1 = make_ingredient(name="Mehl", price_per_kg=Decimal("2.00"))
         mu1 = make_measuring_unit(unit="g", quantity=1.0)
         portion1 = make_portion(ingredient=ing1, measuring_unit=mu1, weight_g=500.0, name="500g")

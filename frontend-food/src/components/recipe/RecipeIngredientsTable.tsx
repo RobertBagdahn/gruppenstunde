@@ -13,10 +13,9 @@ import { formatRecipeItemAmount } from '@/lib/ingredientAmount';
 
 interface RecipeIngredientsTableProps {
   items: RecipeItem[];
-  portions?: number | null;
 }
 
-export default function RecipeIngredientsTable({ items, portions: _portions = 1 }: RecipeIngredientsTableProps) {
+export default function RecipeIngredientsTable({ items }: RecipeIngredientsTableProps) {
   if (!items || items.length === 0) {
     return (
       <div className="text-center py-4 text-muted-foreground">

@@ -607,13 +607,13 @@ export function MealSlot({
                                 {canEdit && !meal.is_synced ? (
                                   <PortionPersonsInput
                                     factor={item.factor}
-                                    basePortions={item.recipe_portions || 4}
+                                    basePortions={1}
                                     onChangeFactor={(f: number) => onUpdateItemFactor(item.id, f)}
                                   />
                                 ) : (
                                   item.factor !== 1.0 && (
                                     <span className="text-caption font-semibold px-2 py-0.5 rounded-lg bg-muted">
-                                      {Math.round(item.factor * (item.recipe_portions || 4))} P.
+                                      {Math.round(item.factor)} P.
                                     </span>
                                   )
                                 )}

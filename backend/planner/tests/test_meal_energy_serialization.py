@@ -14,15 +14,15 @@ class TestMealEnergySerialization:
     def test_meal_item_energy_uses_recipe_total_energy_cache(self):
         plan = make_meal_plan(norm_portions=10)
         meal = make_meal(meal_plan=plan)
-        recipe = make_recipe(portions=5, cached_energy_total_kcal=239.0)
+        recipe = make_recipe(portions=1, cached_energy_total_kcal=239.0)
         item = make_meal_item(meal=meal, recipe=recipe, factor=1.5)
 
-        assert MealItemOut.resolve_energy_kcal(item) == pytest.approx(717.0)
+        assert MealItemOut.resolve_energy_kcal(item) == pytest.approx(3585.0)
 
     def test_meal_item_energy_is_none_without_total_energy_cache(self):
         plan = make_meal_plan(norm_portions=10)
         meal = make_meal(meal_plan=plan)
-        recipe = make_recipe(portions=5, cached_energy_total_kcal=None)
+        recipe = make_recipe(portions=1, cached_energy_total_kcal=None)
         item = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
 
         assert MealItemOut.resolve_energy_kcal(item) is None
@@ -30,17 +30,17 @@ class TestMealEnergySerialization:
     def test_meal_total_energy_sums_items(self):
         plan = make_meal_plan(norm_portions=10)
         meal = make_meal(meal_plan=plan)
-        recipe_one = make_recipe(portions=5, cached_energy_total_kcal=239.0)
-        recipe_two = make_recipe(portions=10, cached_energy_total_kcal=478.0)
+        recipe_one = make_recipe(portions=1, cached_energy_total_kcal=239.0)
+        recipe_two = make_recipe(portions=1, cached_energy_total_kcal=478.0)
         make_meal_item(meal=meal, recipe=recipe_one, factor=1.5)
         make_meal_item(meal=meal, recipe=recipe_two, factor=0.5)
 
-        assert MealOut.resolve_total_energy_kcal(meal) == pytest.approx(956.0)
+        assert MealOut.resolve_total_energy_kcal(meal) == pytest.approx(5975.0)
 
     def test_meal_total_energy_matches_nutrition_summary(self):
         plan = make_meal_plan(norm_portions=8)
         meal = make_meal(meal_plan=plan)
-        recipe = make_recipe(portions=4)
+        recipe = make_recipe(portions=1)
         ingredient = make_ingredient(
             energy_kcal=120,
             protein_g=0.0,
@@ -57,7 +57,7 @@ class TestMealEnergySerialization:
 
         meal.refresh_from_db()
         recipe.refresh_from_db()
-        expected_total = recipe.cached_energy_total_kcal * (plan.norm_portions / recipe.portions)
+        expected_total = recipe.cached_energy_total_kcal * plan.norm_portions
         assert MealOut.resolve_total_energy_kcal(meal) == pytest.approx(expected_total)
 
         client = Client()

@@ -299,7 +299,14 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
     content_obj.embedding = embedding
     content_obj.embedding_updated_at = timezone.now()
     content_obj.embedding_text_hash = current_hash
-    content_obj.save(update_fields=["embedding", "embedding_updated_at", "embedding_text_hash"])
+    # Queryset update: storing derived embedding data must not fire post_save handlers.
+    # Those schedule further background work, which fails when this runs in the
+    # background worker after a management command exits (interpreter shutdown).
+    type(content_obj)._base_manager.filter(pk=content_obj.pk).update(
+        embedding=embedding,
+        embedding_updated_at=content_obj.embedding_updated_at,
+        embedding_text_hash=current_hash,
+    )
 
     logger.info(
         "Updated embedding for %s #%d (%d dims)",

@@ -7,7 +7,6 @@ import { Icon } from '@/components/ui/icon';
 
 interface Props {
   nb: RecipeNutritionBreakdown;
-  effectivePortions: number;
   topIngredientsByWeight: RecipeNutritionBreakdown['items'];
   ingredientSlugById: Map<number, string>;
   recipeType: string;
@@ -15,7 +14,6 @@ interface Props {
 
 export function WeightTab({
   nb,
-  effectivePortions,
   topIngredientsByWeight,
   ingredientSlugById,
   recipeType,
@@ -31,7 +29,7 @@ export function WeightTab({
             {formatWeight(nb.total_weight_g)}
           </p>
           <p className="text-caption text-muted-foreground">
-            Gesamtgewicht ({formatWeight(nb.total_weight_g / effectivePortions)})
+            pro Person
           </p>
         </div>
       </div>
@@ -68,7 +66,7 @@ export function WeightTab({
       {typeStats && typeStats.count >= 10 && (
         <RecipeCategoryBenchmark
           stats={typeStats}
-          currentValue={nb.total_weight_g / effectivePortions}
+          currentValue={nb.total_weight_g}
           metric="weight"
         />
       )}

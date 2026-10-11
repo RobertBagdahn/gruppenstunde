@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
+from django.db.models import F
 
 from recipe.models import Recipe
 from recipe.services.recipe_checks import recalculate_recipe_cache
@@ -128,9 +129,9 @@ def normalize_recipe_to_one_portion(recipe: Recipe, *, quantities_are_total: boo
     portions = max(recipe.portions or 1, 1)
     update_fields = ["portions"]
     if quantities_are_total and portions > 1:
-        for item in recipe.recipe_items.all():
-            item.quantity = item.quantity / portions
-            item.save(update_fields=["quantity"])
+        # One SQL update avoids firing per-item cache and embedding signals while
+        # the recipe is only partially normalized.
+        recipe.recipe_items.update(quantity=F("quantity") / portions)
         if recipe.source_servings is None:
             recipe.source_servings = portions
             update_fields.append("source_servings")
@@ -179,7 +180,8 @@ class Command(BaseCommand):
         if conflicting:
             raise CommandError(f"Ids in both --treat-as-total and --treat-as-per-person: {sorted(conflicting)}")
 
-        recipes = Recipe.objects.filter(portions__gt=1).prefetch_related(
+        # all_objects: soft-deleted recipes must be normalized too before the portions=1 constraint.
+        recipes = Recipe.all_objects.filter(portions__gt=1).prefetch_related(
             "recipe_items__portion__measuring_unit",
             "recipe_items__portion__ingredient",
             "recipe_items__ingredient",

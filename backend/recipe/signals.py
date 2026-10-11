@@ -298,7 +298,7 @@ def _recipe_embedding_fields_changed(instance, created: bool, update_fields=None
         return True
     # If update_fields is specified, check if any embedding-relevant field is in it
     if update_fields is not None:
-        relevant = {"title", "summary", "description"}
+        relevant = {"title", "summary", "description", "portions"}
         return bool(relevant & set(update_fields))
     # If update_fields is None (full save), assume fields may have changed
     return True
@@ -319,8 +319,9 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, update_fiel
                 from recipe.models import Recipe as RecipeModel
 
                 # Re-fetch fresh data from DB — instance may be stale by on_commit time
-                fresh_recipe = RecipeModel.objects.get(pk=recipe_pk)
-                update_content_embedding(fresh_recipe)
+                fresh_recipe = RecipeModel.objects.filter(pk=recipe_pk).first()
+                if fresh_recipe is not None:
+                    update_content_embedding(fresh_recipe)
         except Exception:
             import logging
 
@@ -347,14 +348,17 @@ def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
         from recipe.models import Recipe as RecipeModel
 
         try:
-            # Re-fetch from DB to avoid stale in-memory state
-            fresh_recipe = RecipeModel.objects.get(pk=recipe_pk)
+            # Re-fetch from DB to avoid stale in-memory state. Items are also deleted
+            # together with their recipe; deleted recipes need no embedding.
+            fresh_recipe = RecipeModel.objects.filter(pk=recipe_pk).first()
+            if fresh_recipe is None:
+                return
             update_content_embedding(fresh_recipe)
         except Exception:
             import logging
 
             logging.getLogger(__name__).warning(
-                "Failed to update embedding for Recipe #%d (RecipeItem change)", recipe_pk
+                "Failed to update embedding for Recipe #%d (RecipeItem change)", recipe_pk, exc_info=True
             )
 
     from django.db import transaction

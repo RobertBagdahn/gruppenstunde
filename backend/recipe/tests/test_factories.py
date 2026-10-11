@@ -20,7 +20,7 @@ class TestRecipeFactories:
         assert recipe.pk is not None
         assert recipe.status == "approved"
         assert recipe.slug
-        assert recipe.portions == 4
+        assert recipe.portions == 1
 
     def test_make_recipe_draft(self):
         recipe = make_recipe(status="draft")

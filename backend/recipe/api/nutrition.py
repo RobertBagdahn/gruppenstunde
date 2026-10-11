@@ -209,11 +209,6 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
 
         item_data.append(item_entry)
 
-    portions = recipe.portions or 1
-
-    portions = recipe.portions or 1
-    {k: v / portions for k, v in totals.items()} if portions else totals
-
     # Second pass: calculate weight percentages and contributions
     for entry in item_data:
         if total_weight_g > 0:
@@ -238,28 +233,30 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             contributions.append(
                 {
                     "parameter": param_key,
-                    "absolute": round(item_val / portions, 1) if portions else 0.0,
+                    "absolute": round(item_val, 1),
                     "percent_of_recipe": pct,
                 }
             )
         entry["contributions"] = contributions
 
-        # Convert item values to per-serving for consistent display
-        if portions:
-            entry["weight_g"] = round(entry["weight_g"] / portions, 1)
-            entry["energy_kcal"] = round(entry["energy_kcal"] / portions, 1)
-            entry["protein_g"] = round(entry["protein_g"] / portions, 1)
-            entry["fat_g"] = round(entry["fat_g"] / portions, 1)
-            entry["fat_sat_g"] = round(entry["fat_sat_g"] / portions, 1)
-            entry["carbohydrate_g"] = round(entry["carbohydrate_g"] / portions, 1)
-            entry["sugar_g"] = round(entry["sugar_g"] / portions, 1)
-            entry["fibre_g"] = round(entry["fibre_g"] / portions, 1)
-            entry["salt_g"] = round(entry["salt_g"] / portions, 1)
-            if entry["price_eur"] is not None:
-                entry["price_eur"] = round(entry["price_eur"] / portions, 2)
-            for field in MICRONUTRIENT_FIELDS:
-                if entry.get(field) is not None:
-                    entry[field] = round(entry[field] / portions, 3)
+        # Item values are already per serving (recipe quantities are stored per person).
+        for field_key in (
+            "weight_g",
+            "energy_kcal",
+            "protein_g",
+            "fat_g",
+            "fat_sat_g",
+            "carbohydrate_g",
+            "sugar_g",
+            "fibre_g",
+            "salt_g",
+        ):
+            entry[field_key] = round(entry[field_key], 1)
+        if entry["price_eur"] is not None:
+            entry["price_eur"] = round(entry["price_eur"], 2)
+        for field in MICRONUTRIENT_FIELDS:
+            if entry.get(field) is not None:
+                entry[field] = round(entry[field], 3)
 
         result_items.append(entry)
 
@@ -312,11 +309,11 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         # Micronutrient totals
         "total_vitamin_c_mg": _micro_total("vitamin_c_mg"),
         # Per-serving values
-        "per_serving_energy_kcal": round(total_energy_kcal / portions, 1),
-        "per_serving_protein_g": round(totals["protein_g"] / portions, 1),
-        "per_serving_fat_g": round(totals["fat_g"] / portions, 1),
-        "per_serving_carbohydrate_g": round(totals["carbohydrate_g"] / portions, 1),
-        "per_serving_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0) / portions, 3) or None,
+        "per_serving_energy_kcal": round(total_energy_kcal, 1),
+        "per_serving_protein_g": round(totals["protein_g"], 1),
+        "per_serving_fat_g": round(totals["fat_g"], 1),
+        "per_serving_carbohydrate_g": round(totals["carbohydrate_g"], 1),
+        "per_serving_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0), 3) or None,
         # Per-100g values
         "per_100g_energy_kcal": round(total_energy_kcal / total_weight_g * 100, 1) if total_weight_g > 0 else None,
         "per_100g_protein_g": round(totals["protein_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,

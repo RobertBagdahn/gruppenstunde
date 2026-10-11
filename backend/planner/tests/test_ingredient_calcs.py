@@ -222,7 +222,7 @@ class TestIngredientCalcs(TestCase):
 
     def test_quantity_g_recipe_item(self):
         """MealItemOut.resolve_quantity_g for recipe items returns None (no recipe energy)"""
-        recipe = baker.make("recipe.Recipe", title="Test Recipe", portions=4)
+        recipe = baker.make("recipe.Recipe", title="Test Recipe", portions=1)
         item = MealItem.objects.create(
             meal=self.meal,
             recipe=recipe,

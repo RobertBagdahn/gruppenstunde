@@ -182,7 +182,7 @@ def _recipe_candidates(config: MealTypeConfig, user: AbstractBaseUser | None) ->
             recipe_type=r.recipe_type,
             description=(r.summary or r.description or "")[:300],
             sugar_per_100g=(sugar / weight * 100) if sugar is not None and weight > 0 else None,
-            price_pp=(round(float(r.cached_price_total) / (r.portions or 1), 2) if r.cached_price_total else None),
+            price_pp=(round(float(r.cached_price_total), 2) if r.cached_price_total else None),
             tag_ids=tag_ids,
             tag_names=tag_names,
             ingredient_names=" ".join(ing.name.lower() for ing in ingredients),

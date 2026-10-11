@@ -91,11 +91,14 @@ def build_recipe_price_coverage(recipe) -> dict:
 
 
 def energy_per_portion_kcal(recipe) -> float | None:
-    """Energy of one portion; ``cached_energy_kcal`` itself is per 100 g of the whole recipe."""
+    """Energy of one portion; ``cached_energy_kcal`` itself is per 100 g of the whole recipe.
+
+    Recipe quantities are stored per person, so the cached total is one portion.
+    """
     total = recipe.cached_energy_total_kcal
     if total is None:
         return None
-    return float(total) / max(recipe.portions or 1, 1)
+    return float(total)
 
 
 # --- Recipe List Schema (extends ContentListOut) ---

@@ -51,10 +51,8 @@ class Recipe(Content):
     )
     portions = models.IntegerField(
         default=1,
-        blank=True,
-        null=True,
         verbose_name=_("Portionen"),
-        help_text=_("Basis-Portionsanzahl (Normportionen)"),
+        help_text=_("Immer 1: Rezeptmengen sind pro Person gespeichert."),
     )
     source_servings = models.PositiveSmallIntegerField(
         null=True,
@@ -254,6 +252,7 @@ class Recipe(Content):
                 condition=~models.Q(creation_idempotency_key=""),
                 name="unique_recipe_creation_idempotency_key",
             ),
+            models.CheckConstraint(condition=models.Q(portions=1), name="recipe_portions_one"),
         ]
 
     def __str__(self) -> str:

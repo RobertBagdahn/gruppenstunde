@@ -863,7 +863,8 @@ def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
     qs = Recipe.objects.filter(cached_weight_g__isnull=False).exclude(recipe_type__in=("snack", "recipe_part"))
     items = []
     for recipe in qs:
-        per_portion_weight = recipe.cached_weight_g / max(recipe.portions or 1, 1) if recipe.cached_weight_g else 0
+        # Recipe quantities are stored per person: the cached weight is one portion.
+        per_portion_weight = recipe.cached_weight_g or 0
         if per_portion_weight and per_portion_weight < 100:
             items.append(
                 PortionPlausibilityOut(

@@ -730,7 +730,6 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
             "ingredient__retail_section",
         )
 
-        recipe_servings = getattr(recipe, "portions", 1) or 1
         sort_idx = 0
         for ri in recipe_items:
             # Inactive exchange alternatives and soft-deleted portions are not bought.
@@ -739,11 +738,12 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
                 continue
 
             ing = get_recipe_item_ingredient(ri)
-            weight_g = (active_item.weight_g or 0) * portions / recipe_servings
+            # Recipe quantities are stored per person.
+            weight_g = (active_item.weight_g or 0) * portions
             portion_unit = ri.portion.measuring_unit.name if ri.portion and ri.portion.measuring_unit else ""
             if ing is None:
                 # Unlinked direct-gram items keep their grams; unlinked portions have no weight basis.
-                ShoppingListItem.objects.create(
+                item = ShoppingListItem.objects.create(
                     shopping_list=shopping_list,
                     name=ri.note or "Unbekannte Zutat",
                     quantity_g=weight_g,
@@ -753,24 +753,23 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
                     else f"Menge: {active_item.quantity:g}; Gewicht unbekannt",
                     sort_order=sort_idx,
                 )
-                sort_idx += 1
-                continue
+            else:
+                note = ""
+                if active_item.weight_g is None:
+                    note = f"Menge: {active_item.quantity:g} {portion_unit}".rstrip() + "; Gewicht unbekannt"
 
-            note = ""
-            if active_item.weight_g is None:
-                note = f"Menge: {active_item.quantity:g} {portion_unit}".rstrip() + "; Gewicht unbekannt"
+                item = ShoppingListItem.objects.create(
+                    shopping_list=shopping_list,
+                    ingredient=ing,
+                    name=ing.name,
+                    quantity_g=weight_g,
+                    unit="g" if active_item.weight_g is not None else portion_unit,
+                    note=note,
+                    retail_section=ing.retail_section,
+                    sort_order=sort_idx,
+                )
 
-            item = ShoppingListItem.objects.create(
-                shopping_list=shopping_list,
-                ingredient=ing,
-                name=ing.name,
-                quantity_g=weight_g,
-                unit="g" if active_item.weight_g is not None else portion_unit,
-                note=note,
-                retail_section=ing.retail_section,
-                sort_order=sort_idx,
-            )
-
+            # Every generated entry keeps its recipe source so it is never treated as a manual entry.
             ShoppingListItemSource.objects.create(
                 shopping_list_item=item,
                 recipe=recipe,

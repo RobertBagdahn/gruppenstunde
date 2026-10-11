@@ -271,7 +271,7 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
 
                 recipe = item.recipe
                 item_portions = meal.effective_portions
-                recipe_scale = item_portions * meal_plan.reserve_factor / max(recipe.portions or 1, 1)
+                recipe_scale = item_portions * meal_plan.reserve_factor
                 recipe_cost = float(recipe.cached_price_total or 0) * recipe_scale
                 day_cost += recipe_cost
                 recipe_energy = (recipe.cached_energy_total_kcal or 0) * recipe_scale

@@ -210,7 +210,8 @@ export default function RecipeDetailPage() {
   // Initialize modification store when nutrition breakdown data loads
   useEffect(() => {
     if (nutritionBreakdown && recipe && !isDirty) {
-      initializeModifications(nutritionBreakdown.items, recipe.portions);
+      // Recipe quantities are stored per person.
+      initializeModifications(nutritionBreakdown.items, 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nutritionBreakdown, recipe, initializeModifications]);
@@ -253,7 +254,6 @@ export default function RecipeDetailPage() {
     const totalSugarG = items.reduce((s, i) => s + i.sugar_g, 0);
     const totalFibreG = items.reduce((s, i) => s + i.fibre_g, 0);
     const totalSaltG = items.reduce((s, i) => s + i.salt_g, 0);
-    const portions = modifiedPortions ?? 1;
 
     // Recompute weight_pct
     const itemsWithPct = items.map((i) => ({
@@ -274,10 +274,10 @@ export default function RecipeDetailPage() {
       total_salt_g: totalSaltG,
       // Micronutrient totals (from modified items)
       total_vitamin_c_mg: items.reduce((s, i) => s + (i.vitamin_c_mg ?? 0), 0),
-      per_serving_energy_kcal: totalEnergyKcal / portions,
-      per_serving_protein_g: totalProteinG / portions,
-      per_serving_fat_g: totalFatG / portions,
-      per_serving_carbohydrate_g: totalCarbohydrateG / portions,
+      per_serving_energy_kcal: totalEnergyKcal,
+      per_serving_protein_g: totalProteinG,
+      per_serving_fat_g: totalFatG,
+      per_serving_carbohydrate_g: totalCarbohydrateG,
       per_100g_energy_kcal: totalWeightG > 0 ? totalEnergyKcal / totalWeightG * 100 : null,
       per_100g_protein_g: totalWeightG > 0 ? totalProteinG / totalWeightG * 100 : null,
       per_100g_fat_g: totalWeightG > 0 ? totalFatG / totalWeightG * 100 : null,
@@ -304,7 +304,6 @@ export default function RecipeDetailPage() {
       items: itemsWithPct,
     };
   }, [nutritionBreakdown, isDirty, modifiedItems, modifiedPortions]);
-  const effectivePortions = (isDirty ? modifiedPortions : recipe?.portions) ?? 1;
   const topIngredientsByWeight = nb
     ? [...nb.items].sort((a, b) => b.weight_g - a.weight_g)
     : [];
@@ -549,7 +548,6 @@ export default function RecipeDetailPage() {
                 type="button"
                 disabled={forkAndSaveRecipe.isPending}
                 onClick={() => {
-                  const portions = modifiedPortions ?? 1;
                   const itemsPayload = modifiedItems
                     .map((mod) => {
                       const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
@@ -560,7 +558,7 @@ export default function RecipeDetailPage() {
                       return {
                         portion_id: orig.portion_id,
                         ingredient_id: mod.ingredient_id,
-                        quantity: mod.quantity / portions, // Normalize to 1-portion
+                        quantity: mod.quantity,
                         measuring_unit_id: orig.measuring_unit_id ?? null,
                         sort_order: orig.sort_order ?? 0,
                         note: orig.note ?? '',
@@ -595,7 +593,6 @@ export default function RecipeDetailPage() {
                 type="button"
                  disabled={updateRecipe.isPending}
                  onClick={() => {
-                   const portions = modifiedPortions ?? 1;
                    const itemsPayload = modifiedItems
                      .map((mod) => {
                        const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
@@ -606,7 +603,7 @@ export default function RecipeDetailPage() {
                         return {
                           portion_id: orig.portion_id,
                           ingredient_id: mod.ingredient_id,
-                          quantity: mod.quantity / portions, // Normalize to 1-portion
+                          quantity: mod.quantity,
                           measuring_unit_id: orig.measuring_unit_id ?? null,
                           sort_order: orig.sort_order ?? 0,
                           note: orig.note ?? '',
@@ -660,7 +657,7 @@ export default function RecipeDetailPage() {
       />
 
       {/* Portion Normalization Hint (10.4) */}
-      {nb && (isDirty ? modifiedPortions : recipe.portions) && (isDirty ? modifiedPortions : recipe.portions)! > 0 && (() => {
+      {nb && (() => {
         // DGE reference: 15yo male, PAL 1.5 = 2868 kcal daily (approx. 12000 kJ)
         const dailyEnergyKcal = 2868;
         const mealFractions: Record<string, number> = {
@@ -669,8 +666,7 @@ export default function RecipeDetailPage() {
         };
         const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
         const expectedEnergyKcal = dailyEnergyKcal * fraction;
-        const effectivePortions = (isDirty ? modifiedPortions : recipe.portions) ?? 1;
-        const perServingEnergyKcal = nb.total_energy_kcal / effectivePortions;
+        const perServingEnergyKcal = nb.total_energy_kcal;
         const ratio = perServingEnergyKcal / expectedEnergyKcal;
 
         if (ratio > 1.5) {
@@ -1213,7 +1209,7 @@ export default function RecipeDetailPage() {
             <RecipeStepsReadOnly
               steps={recipe.steps}
               fallbackInstructions={legacyPreparationSteps}
-              scale={(recipe.portions ?? 1) > 0 ? portionsMultiplier / (recipe.portions ?? 1) : 1}
+              scale={portionsMultiplier}
             />
           </AnalysisSection>
         )
@@ -1282,7 +1278,6 @@ export default function RecipeDetailPage() {
                     <HealthTab
                       nutriScore={nutriScore}
                       nb={nb}
-                      effectivePortions={effectivePortions}
                       recipeId={recipeId}
                       recipeType={recipe.recipe_type}
                     />
@@ -1296,7 +1291,6 @@ export default function RecipeDetailPage() {
                   content: (
                     <WeightTab
                       nb={nb}
-                      effectivePortions={effectivePortions}
                       topIngredientsByWeight={topIngredientsByWeight}
                       ingredientSlugById={ingredientSlugById}
                       recipeType={recipe.recipe_type}

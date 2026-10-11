@@ -26,17 +26,12 @@ describe('costBounds', () => {
 });
 
 describe('recipePricePerPortion', () => {
-  it('divides the total by the portions', () => {
-    expect(recipePricePerPortion({ cached_price_total: 6, portions: 4 })).toBe(1.5);
-  });
-
-  it('treats missing or zero portions as one', () => {
-    expect(recipePricePerPortion({ cached_price_total: 6, portions: null })).toBe(6);
-    expect(recipePricePerPortion({ cached_price_total: 6, portions: 0 })).toBe(6);
+  it('uses the cached total because recipes are stored per person', () => {
+    expect(recipePricePerPortion({ cached_price_total: 6 })).toBe(6);
   });
 
   it('has no price without a total', () => {
-    expect(recipePricePerPortion({ cached_price_total: null, portions: 4 })).toBeNull();
-    expect(recipePricePerPortion({ portions: 4 })).toBeNull();
+    expect(recipePricePerPortion({ cached_price_total: null })).toBeNull();
+    expect(recipePricePerPortion({})).toBeNull();
   });
 });

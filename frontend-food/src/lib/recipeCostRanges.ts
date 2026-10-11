@@ -31,11 +31,10 @@ export function costBounds(selected: readonly string[] | undefined): { costs_min
   };
 }
 
-/** Price of one portion — the value the cost filter and every recipe card use. */
+/** Price of one portion — the value the cost filter and every recipe card use.
+ *  Recipe quantities are stored per person, so the cached total is one portion. */
 export function recipePricePerPortion(recipe: {
   cached_price_total?: number | null;
-  portions?: number | null;
 }): number | null {
-  if (recipe.cached_price_total == null) return null;
-  return recipe.cached_price_total / Math.max(recipe.portions ?? 1, 1);
+  return recipe.cached_price_total ?? null;
 }
