@@ -339,6 +339,47 @@ class TestCreateRecipe:
         assert list(created.aliases.values_list("name", flat=True)) == ["Knolle"]
         assert IngredientAlias.objects.get(name="Knoblauchzehe").ingredient == ingredient
 
+    @pytest.mark.parametrize(
+        ("values", "expected_fields"),
+        [
+            ({"energy_kcal": 500, "protein_g": 200}, {"protein_g"}),
+            ({"energy_kcal": 700, "fat_g": 10, "fat_sat_g": 30, "carbohydrate_g": 5}, {"fat_sat_g", "fat_g"}),
+        ],
+    )
+    def test_create_with_temporary_ingredient_rejects_implausible_nutrition(
+        self, auth_client, values: dict[str, float], expected_fields: set[str]
+    ):
+        resp = auth_client.post(
+            "/api/recipes/",
+            data=json.dumps(
+                {
+                    "title": "Zauberrezept",
+                    "input_servings": 1,
+                    "recipe_items": [{"portion_id": None, "quantity": 1, "sort_order": 0}],
+                    "ingredient_review_rows": [
+                        {
+                            "key": "row-1",
+                            "status": "confirmed",
+                            "quantity": 1,
+                            "temporary_ingredient": {
+                                "name": "Zauberpulver",
+                                "values": values,
+                                "portions": [{"name": "Löffel", "quantity": 1, "weight_g": 10, "is_new": True}],
+                            },
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 422
+        body = resp.json()
+        assert body["code"] == "nutrition_implausible"
+        assert expected_fields <= set(body["fields"])
+        assert not Ingredient.objects.filter(name="Zauberpulver").exists()
+        assert not Recipe.objects.filter(title="Zauberrezept").exists()
+
     def test_create_keeps_normalized_item_quantity_when_portions_is_provided(self, auth_client, portion):
         resp = auth_client.post(
             "/api/recipes/",

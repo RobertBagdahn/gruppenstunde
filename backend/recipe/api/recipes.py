@@ -652,6 +652,16 @@ def _resolve_tag_ids(tag_identifiers: list[str]) -> list:
     return resolved
 
 
+def _draft_number(value: object) -> float | None:
+    """Numeric nutrition value of a wizard ingredient draft; empty or non-numeric input counts as missing."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 @router.post("/", response=RecipeDetailOut)
 @transaction.atomic
 def create_recipe(request, payload: RecipeCreateIn):
@@ -793,8 +803,14 @@ def create_recipe(request, payload: RecipeCreateIn):
 
                 from supply.choices import IngredientStatusChoices, PhysicalViscosityChoices
                 from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Portion
+                from supply.services.nutrition_plausibility import NUTRITION_FIELDS, nutrition_warnings_or_422
 
                 draft = review.temporary_ingredient
+                # Same plausibility rules as the ingredient API: impossible values are rejected with 422.
+                nutrition_warnings_or_422(
+                    {field: _draft_number(draft.values.get(field)) for field in NUTRITION_FIELDS},
+                    draft.name.strip(),
+                )
                 base_slug = slugify(draft.name) or "zutat"
                 slug = base_slug
                 counter = 1

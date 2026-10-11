@@ -18,6 +18,8 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from core.errors import ApiError
+
 KJ_PER_KCAL = 4.184
 SODIUM_MG_PER_G_SALT = 400.0
 MAX_KCAL_PER_100G = 900.0
@@ -329,6 +331,20 @@ def check_nutrition_for_save(
     for issue in detect_nutrition_issues(values, name=name):
         (errors if issue.code in HARD_ISSUE_CODES else warnings).append(issue)
     return errors, warnings
+
+
+def nutrition_warnings_or_422(values: Mapping[str, float | None], name: str) -> list[dict]:
+    """Reject impossible nutrition values (422 ``nutrition_implausible`` with ``fields``); return soft findings."""
+    errors, warnings = check_nutrition_for_save(values, name=name)
+    if errors:
+        fields = list(dict.fromkeys(field for issue in errors for field in issue.fields))
+        raise ApiError(
+            422,
+            "nutrition_implausible",
+            "Nährwerte unplausibel: " + "; ".join(issue.label for issue in errors),
+            extra={"fields": fields},
+        )
+    return [{"code": issue.code, "label": issue.label, "fields": list(issue.fields)} for issue in warnings]
 
 
 def ingredient_nutrition_values(ingredient: object) -> dict[str, float | None]:

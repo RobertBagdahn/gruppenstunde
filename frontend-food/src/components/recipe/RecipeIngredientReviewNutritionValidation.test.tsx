@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { IngredientReviewRow } from '@/schemas/ingredientReview';
 import RecipeIngredientReviewStep from './RecipeIngredientReviewStep';
@@ -58,6 +58,44 @@ describe('review row: new ingredient draft nutrition validation', () => {
     );
 
     expect(screen.getAllByRole('alert').some((node) => /100 g/.test(node.textContent ?? ''))).toBe(true);
+  });
+});
+
+describe('review row: new ingredient draft saturated fat and quantity', () => {
+  function renderStep(draft: Partial<NonNullable<IngredientReviewRow['new_ingredient_draft']>>) {
+    useRecipeIngredientReviewStore.setState({
+      rows: [{ ...row, new_ingredient_draft: { ...row.new_ingredient_draft!, ...draft } }],
+      error: null,
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RecipeIngredientReviewStep />
+      </QueryClientProvider>,
+    );
+  }
+
+  it('flags saturated fat above fat like the backend', () => {
+    renderStep({ values: { energy_kcal: 700, fat_g: 10, fat_sat_g: 30, carbohydrate_g: 5 } });
+
+    expect(screen.getAllByRole('alert').some((node) => /Gesättigte Fettsäuren/.test(node.textContent ?? ''))).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: /Portion & Menge festlegen/ }));
+    expect(screen.getByRole('button', { name: /Zutat und Menge übernehmen/ })).toBeDisabled();
+  });
+
+  it('requires at least 0,1 portions', () => {
+    renderStep({
+      values: { energy_kcal: 100, protein_g: 5, fat_g: 2, carbohydrate_g: 15 },
+      portions: [{ id: null, name: 'Stück', quantity: 1, weight_g: 50, measuring_unit_id: null, measuring_unit_name: null, is_new: true }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Portion & Menge festlegen/ }));
+    const quantityInput = screen.getByLabelText(/Menge \(Anzahl Portionen\)/);
+    const confirm = screen.getByRole('button', { name: /Zutat und Menge übernehmen/ });
+
+    fireEvent.change(quantityInput, { target: { value: '0,05' } });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(quantityInput, { target: { value: '0,1' } });
+    expect(confirm).toBeEnabled();
   });
 });
 

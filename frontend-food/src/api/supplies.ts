@@ -7,7 +7,7 @@
  * RetailSection hooks: /api/retail-sections/
  */
 import { AI_META } from '@/lib/queryMeta';
-import { API_BASE_URL, parseApiResponse } from '@/lib/api';
+import { API_BASE_URL, fetchWithCsrf, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -57,39 +57,13 @@ async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
 }
 
 async function postJsonRaw<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
-  const res = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.detail || `API error: ${res.status}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  const res = await fetchWithCsrf(url, { method: 'POST', body: JSON.stringify(body) });
+  return parseApiResponse(res, schema);
 }
 
 async function patchJsonRaw<T>(url: string, body: unknown, schema: z.ZodSchema<T>): Promise<T> {
-  const res = await fetch(url, {
-    method: 'PATCH',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.detail || `API error: ${res.status}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  const res = await fetchWithCsrf(url, { method: 'PATCH', body: JSON.stringify(body) });
+  return parseApiResponse(res, schema);
 }
 
 export class ApiDeleteError extends Error {
