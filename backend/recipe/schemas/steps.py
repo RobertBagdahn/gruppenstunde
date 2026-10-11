@@ -15,6 +15,8 @@ class RecipeStepIngredientOut(Schema):
     `quantity` is in the recipe item's own unit: a portion count for portion
     items (`unit_short` is the portion name) and grams for direct-gram items
     (`unit_short` is "g"). `weight_g` is the gram weight of that amount.
+    `ingredient_viscosity` and `ingredient_density` decide, as in the recipe
+    ingredient list, whether that weight is shown in ml (beverages).
     """
 
     id: int
@@ -29,6 +31,8 @@ class RecipeStepIngredientOut(Schema):
     unit_short: str | None = None
     quantity: float | None = None  # recipe_item.quantity * quantity_modifier
     weight_g: float | None = None  # gram weight of `quantity`
+    ingredient_viscosity: str | None = None
+    ingredient_density: float | None = None
     note: str | None = None  # Recipe item note
 
     @staticmethod
@@ -83,6 +87,20 @@ class RecipeStepIngredientOut(Schema):
         if weight_g <= 0:
             return None
         return weight_g * float(obj.quantity_modifier)
+
+    @staticmethod
+    def resolve_ingredient_viscosity(obj) -> str | None:
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj.recipe_item) if obj.recipe_item else None
+        return cast(str, ingredient.physical_viscosity) if ingredient else None
+
+    @staticmethod
+    def resolve_ingredient_density(obj) -> float | None:
+        from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+        ingredient = get_recipe_item_ingredient(obj.recipe_item) if obj.recipe_item else None
+        return cast(float, ingredient.physical_density) if ingredient else None
 
     @staticmethod
     def resolve_note(obj) -> str | None:

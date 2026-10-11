@@ -141,4 +141,37 @@ describe('RecipeStepsReadOnly', () => {
     expect(screen.getByText('0,7 Portion (35 g) Sojagranulat')).toBeInTheDocument();
     expect(screen.getByText('160 g Reis')).toBeInTheDocument();
   });
+
+  it('shows a beverage step ingredient in ml like the ingredient list', () => {
+    render(
+      <RecipeStepsReadOnly
+        scale={2}
+        steps={[
+          makeStep({
+            id: 1,
+            instruction: 'Aufgießen',
+            step_ingredients: [
+              {
+                id: 13,
+                recipe_item_id: 8,
+                quantity_modifier: 1,
+                preparation: '',
+                sort_order: 0,
+                ingredient_name: 'Milch',
+                portion_name: null,
+                unit_short: 'g',
+                quantity: 206,
+                weight_g: 206,
+                ingredient_viscosity: 'beverage',
+                ingredient_density: 1.03,
+                note: null,
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('400 ml Milch')).toBeInTheDocument();
+  });
 });

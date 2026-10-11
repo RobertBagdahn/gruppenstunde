@@ -96,6 +96,30 @@ describe('formatStepIngredientLabel', () => {
     expect(formatStepIngredientLabel(step, 2)).toBe('200 g Reis');
   });
 
+  it('shows a beverage in ml like the ingredient list', () => {
+    const step = stepIngredient({
+      ingredient_name: 'Milch', unit_short: 'g', quantity: 206, weight_g: 206,
+      ingredient_viscosity: 'beverage', ingredient_density: 1.03,
+    });
+    expect(formatStepIngredientLabel(step, 2)).toBe('400 ml Milch');
+  });
+
+  it('shows the grams of a beverage portion in ml, matching the cooking-mode ingredient list', () => {
+    const fields = { ingredient_name: 'Milch', portion_name: 'Glas', quantity: 1, weight_g: 206, ingredient_viscosity: 'beverage', ingredient_density: 1.03 };
+    const step = stepIngredient({ ...fields, unit_short: 'Glas' });
+    const recipeItem = item({ ...fields, portion_id: 3, measuring_unit_name: 'Gramm' });
+    expect(formatStepIngredientLabel(step, 2)).toBe('2 Glas (400 ml) Milch');
+    expect(formatScaledRecipeAmount(step, 2)).toEqual(formatScaledRecipeAmount(recipeItem, 2));
+  });
+
+  it('keeps grams for a liquid that is not a beverage', () => {
+    const step = stepIngredient({
+      ingredient_name: 'Öl', unit_short: 'g', quantity: 50, weight_g: 50,
+      ingredient_viscosity: 'liquid', ingredient_density: 0.92,
+    });
+    expect(formatStepIngredientLabel(step)).toBe('50 g Öl');
+  });
+
   it('falls back to the note without amount', () => {
     expect(formatStepIngredientLabel(stepIngredient({ note: 'Prise Salz' }))).toBe('Prise Salz');
   });
