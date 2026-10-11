@@ -208,7 +208,8 @@ class TestMealPlanListFilters(TestCase):
         self.past = make("Past", now - dt.timedelta(days=30), now - dt.timedelta(days=28), norm_portions=50)
         self.running = make("Running", now - dt.timedelta(days=1), now + dt.timedelta(days=1), norm_portions=12)
         self.soon = make("Soon", now + dt.timedelta(days=5), now + dt.timedelta(days=8), norm_portions=30)
-        self.later = make("Later", now + dt.timedelta(days=60), now + dt.timedelta(days=60, hours=4))
+        later_start = (now + dt.timedelta(days=60)).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.later = make("Later", later_start, later_start + dt.timedelta(hours=4))
         self.public = make("Public", now + dt.timedelta(days=90), now + dt.timedelta(days=91), visibility="public")
 
     def names(self, **params):
