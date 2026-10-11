@@ -19,3 +19,8 @@ Bearbeitbare Mengen- und Faktor-Felder im Food-Frontend SHALL Dezimal-Komma und 
 - **WHEN** ein Nutzer einen Dezimalfaktor für ein warmes Gericht, eine Extra-Zutat oder ein Referenzmahlzeit-Rezept eingibt
 - **THEN** bleibt der eingegebene Rohtext während der Bearbeitung erhalten
 - **AND** ein gültiger Wert wird als Zahl an den bestehenden State-Handler übergeben
+
+#### Scenario: Mengenfeld im Zutaten-Dialog vorübergehend leeren
+- **WHEN** ein Nutzer im Mengen-Dialog einer Zutat (Essensplan oder Rezept) den Wert vollständig löscht, um `0,5` einzugeben
+- **THEN** bleibt das Feld während der Eingabe leer bzw. zeigt `0,`
+- **AND** die Bestätigung („Hinzufügen“) ist erst bei einem gültigen positiven Wert möglich

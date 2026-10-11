@@ -22,10 +22,7 @@ A portionless `RecipeItem` also has no direct `Ingredient` relation. Its name ma
 - `direct-gram-recipe-items`: Defines the identity, gram semantics, validation, and cross-consumer behavior of recipe items without a portion.
 
 ### Modified Capabilities
-- `recipe`: Recipe item APIs and recipe nutrition/weight calculations support portionless items linked directly to an ingredient.
-- `recipe-pdf-export`: Recipe PDF output preserves direct-gram quantities while including the linked ingredient consistently.
-- `shopping-list`: Meal-plan shopping aggregation includes active linked direct-gram recipe items in the same way as portion-based recipe items.
-- `meal-plan-budget-cockpit`: Ingredient-linked quantities and prices remain consistent when a recipe contains direct-gram items.
+- None. The behavior for recipe calculations, recipe PDF, shopping lists and the meal-plan budget cockpit is specified in the new `direct-gram-recipe-items` capability; no existing requirement text changes.
 
 ## Impact
 

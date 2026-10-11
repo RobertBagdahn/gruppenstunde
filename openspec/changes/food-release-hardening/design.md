@@ -52,7 +52,7 @@ Run backend quality/tests, main-frontend TypeScript, Food lint/type/unit/build c
 - [Atomic alternative creation changes the Food mutation path] → Keep the existing exchange endpoints for other callers and test authorization, validation, idempotency, rollback, and response schemas.
 - [Draft ingredients have different visibility policies] → Reuse existing server-side access helpers; never infer visibility from draft status in the client.
 - [Adding required checks can lengthen builds] → Run independent checks in parallel and keep browser tests deterministic and service-independent.
-- [Deployment configuration is part of Terraform and Cloud Build] → Review the rendered plan and active trigger substitutions before applying or deploying; this MR does not authorize a production rollout.
+- [Deployment configuration is part of Terraform and the GitHub Actions deploy workflow] → Review the rendered plan and active trigger substitutions before applying or deploying; this MR does not authorize a production rollout.
 
 ## Migration / Rollout Plan
 

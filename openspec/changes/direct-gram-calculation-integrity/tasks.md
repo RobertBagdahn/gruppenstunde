@@ -14,10 +14,17 @@
 ## 3. Food frontend
 
 - [x] 3.1 Extend Food-Frontend recipe item mutation payloads to preserve the ingredient ID for direct-gram items.
-- [ ] 3.2 Run Food-Frontend typecheck and relevant tests.
+- [x] 3.2 Run Food-Frontend typecheck and relevant tests. (2026-10-11: `tsc -b` clean, `vitest run` 1030/1030 passed)
 
 ## 4. Tests and verification
 
 - [x] 4.1 Add tests for recipe nutrition/weight, nutrition breakdown, active calculation resolution, shopping-list aggregation/pricing/source, and recipe PDF display.
 - [x] 4.2 Run focused backend tests, full backend pytest suite, and required backend checks.
-- [ ] 4.3 Run relevant Food-Frontend tests and inspect the final diff (blocked locally: dependencies/node_modules unavailable).
+- [x] 4.3 Run relevant Food-Frontend tests and inspect the final diff. (2026-10-11: WP-02 follow-up merged; Food-Frontend suite green, browser check of step chips and recipe PDF in Sprint-B verification)
+
+## 5. Review follow-up (WP-02)
+
+- [x] 5.1 Recipe fork copies `ingredient_id` and the preparation steps including remapped step-ingredient links and `{recipe_item_id}` placeholders (`copy_recipe_steps`).
+- [x] 5.2 Shopping list from a recipe filters inactive items first and resolves direct-gram ingredients via `get_recipe_item_ingredient`.
+- [x] 5.3 Step ingredients expose the ingredient name/ID for portion and direct-gram items; chips and recipe PDF use the shared amount formatter.
+- [x] 5.4 Regression tests in `backend/recipe/tests/test_quantity_integrity_regressions.py` (fork, steps, recipe shopping list, step schema, review rank).

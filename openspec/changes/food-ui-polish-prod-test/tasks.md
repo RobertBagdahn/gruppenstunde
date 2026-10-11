@@ -18,4 +18,4 @@
 ## 4. Abschluss
 
 - [x] 4.1 Frontend-Typecheck, Lint, Tests; `uv run pytest backend/supply`
-- [ ] 4.2 Manuell prüfen gegen die Liste der Produktivtest-Befunde 9 (Zähler, Header-Summen, Duplikat, Titel-Fehler, Landingpage)
+- [x] 4.2 Manuell prüfen gegen die Liste der Produktivtest-Befunde 9 (Zähler, Header-Summen, Duplikat, Titel-Fehler, Landingpage) – Playwright 2026-10-11: Zähler „Schritt 1 von 7“ / manuell „von 6“; Header-Summen sofort und Rollback bei 500; Duplikat „Antipasti Zwiebeln“ mit Link (320/1440); leerer Titel zeigt „Titel ist erforderlich.“ mit Fokus und ohne Schreib-Request (320/1440); Food-Landingpage ohne Anmelde-Button für Eingeloggte

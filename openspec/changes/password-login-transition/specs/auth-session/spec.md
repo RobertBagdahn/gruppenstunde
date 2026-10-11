@@ -29,3 +29,32 @@ Das System MUST Django-Session-Authentifizierung mit HTTP-only Cookies verwenden
 - **GIVEN** `AUTH_PASSWORD_LOGIN_ENABLED` ist deaktiviert
 - **WHEN** ein Client `POST /api/auth/login/` mit E-Mail und Passwort sendet
 - **THEN** antwortet das System mit HTTP 404 und es wird keine Session erzeugt
+
+### Requirement: CSRF-Cookie mit SameSite=Lax
+
+CSRF-Cookies SHALL in der Produktion `SameSite=Lax` verwenden. Der Social-Login-Start SHALL als Formular-POST mit CSRF-Token an die Allauth-View erfolgen, die `CsrfViewMiddleware` prüft. Die JSON-API unter `/api/` (Django Ninja, einschließlich `POST /api/auth/login/` und `POST /api/auth/register/`) SHALL kein CSRF-Token erzwingen. Der Schutz gegen Cross-Site-Requests beruht dort darauf, dass das Session-Cookie mit `SameSite=Lax` bei Cross-Site-POSTs nicht mitgesendet wird, und auf der CORS-Allowlist mit `CORS_ALLOW_CREDENTIALS` nur für die eigenen Frontends (Entscheidung vom 2026-10-11).
+
+#### Scenario: CSRF-Schutz bei Login
+
+- **GIVEN** der Besucher hat eine Seite geladen (CSRF-Cookie gesetzt über `GET /api/auth/csrf/`)
+- **WHEN** der Besucher auf „Mit Google anmelden“ klickt
+- **THEN** sendet das Frontend einen Formular-POST an `/api/accounts/google/login/` mit `csrfmiddlewaretoken` und `next`
+- **AND** der Server validiert das Token und leitet zum Anbieter weiter
+
+#### Scenario: Login-Start ohne CSRF-Token
+
+- **WHEN** ein Formular-POST an `/api/accounts/google/login/` ohne gültiges CSRF-Token eingeht
+- **THEN** antwortet das System mit HTTP 403 und startet keinen OAuth-Flow
+
+#### Scenario: API-Request ohne CSRF-Token
+
+- **GIVEN** ein angemeldeter Nutzer im eigenen Frontend
+- **WHEN** das Frontend einen schreibenden Request an `/api/` ohne `X-CSRFToken` sendet
+- **THEN** verarbeitet das System den Request ohne CSRF-Prüfung
+
+#### Scenario: Cross-Site-POST einer fremden Seite
+
+- **GIVEN** ein angemeldeter Nutzer besucht eine fremde Website
+- **WHEN** diese Seite einen POST an einen geschützten `/api/`-Endpunkt auslöst
+- **THEN** sendet der Browser das Session-Cookie wegen `SameSite=Lax` nicht mit
+- **AND** das System behandelt den Request als anonym und führt keine Änderung im Namen des Nutzers aus

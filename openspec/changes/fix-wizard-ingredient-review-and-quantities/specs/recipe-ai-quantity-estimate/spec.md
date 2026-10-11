@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Passende eigene Portion wird eins zu eins übernommen
-Entspricht die importierte Einheit dem Namen oder der Messeinheit einer aktiven Portion der Zutat mit vertrauenswürdigem Gewicht, SHALL die vorgeschlagene Portionszahl der importierten Menge entsprechen (geteilt durch die Portionsmenge), ohne Umweg über Gramm. Eine leere Einheit oder „Stück“ mit Stückportion MUST die Menge unverändert als Portionszahl liefern.
+Entspricht die importierte Einheit dem Namen oder der Messeinheit einer aktiven Portion der Zutat mit vertrauenswürdigem Gewicht, SHALL die vorgeschlagene Portionszahl der importierten Menge entsprechen (geteilt durch die Portionsmenge), ohne Umweg über Gramm. Eine leere Einheit oder „Stück“ mit Stückportion MUST die Menge unverändert als Portionszahl liefern. Die Review-Zeile MUST genau die Portion als gewählte Portion übernehmen, zu der die Portionszahl berechnet wurde, auch wenn sie nicht Rang 1 hat.
 
 #### Scenario: 2 EL Olivenöl
 - **WHEN** „2 EL Olivenöl“ importiert wird und `Olivenöl` eine Portion „Esslöffel“ hat
@@ -20,3 +20,8 @@ Entspricht die importierte Einheit dem Namen oder der Messeinheit einer aktiven 
 #### Scenario: Portion ohne vertrauenswürdiges Gewicht
 - **WHEN** die passende Portion kein vertrauenswürdiges Gewicht hat
 - **THEN** wird der Direktabgleich übersprungen und der bisherige Weg genutzt
+
+#### Scenario: Passende Portion liegt nicht auf Rang 1
+- **WHEN** „2 EL Olivenöl“ importiert wird und `Olivenöl` die Portionen „Flasche“ (Rang 1) und „Esslöffel“ (Rang 2) hat
+- **THEN** wählt die Review-Zeile die Portion „Esslöffel“ mit Portionszahl 2
+- **AND** nicht 2 × „Flasche“

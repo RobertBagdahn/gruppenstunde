@@ -1,18 +1,17 @@
-# reliable-pdf-exports Specification
-
-## Purpose
-Define runtime reliability and resource bounds for server-generated PDF exports.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Bounded PDF rendering resources
-The backend SHALL render PDFs without allowing concurrent rendering to exhaust a Cloud Run instance. The production container SHALL have at least 1 GiB of memory and SHALL admit at most one concurrent request per instance while PDF rendering is synchronous.
+The backend SHALL render PDFs without allowing concurrent rendering to exhaust a Cloud Run instance. The production container SHALL have at least 1 GiB of memory and SHALL admit at most one concurrent request per instance while PDF rendering is synchronous. The container SHALL run one Gunicorn worker with one thread by default, and the deploy pipeline, `Dockerfile.backend` and Terraform defaults MUST use the same concurrency and worker values.
 
 #### Scenario: PDF export under production limits
 - **WHEN** an authenticated user requests any backend PDF export
 - **THEN** the request SHALL be processed within the configured Cloud Run memory limit
 - **THEN** no second request SHALL execute concurrently on the same instance
 - **THEN** Cloud Run SHALL remain able to scale additional instances for parallel requests
+
+#### Scenario: Runtime limits stay consistent
+- **WHEN** the backend runtime limits are changed in one deploy source
+- **THEN** a backend test SHALL fail until `Dockerfile.backend`, the deploy workflow and the Terraform defaults use the same concurrency, worker and thread values
 
 ### Requirement: WeasyPrint runtime validation
 The backend image SHALL install WeasyPrint's native runtime libraries and SHALL validate PDF generation during image build.
@@ -22,11 +21,15 @@ The backend image SHALL install WeasyPrint's native runtime libraries and SHALL 
 - **THEN** the image build SHALL fail at the PDF smoke test rather than deploying a broken renderer
 
 ### Requirement: Shared PDF rendering behavior
-All WeasyPrint PDF exports SHALL use a shared rendering helper that sets a filesystem base URL, enables image/font optimization, and logs rendering exceptions with export context. A rendering failure SHALL return the existing German HTTP 500 message `PDF-Generierung fehlgeschlagen`.
+All WeasyPrint PDF exports SHALL use a shared rendering helper that sets a filesystem base URL, enables image optimization with options supported by the pinned WeasyPrint version (`optimize_images=True`, `jpeg_quality=82`), and logs rendering exceptions with export context. A rendering failure SHALL return the existing German HTTP 500 message `PDF-Generierung fehlgeschlagen`.
 
 #### Scenario: Local PDF asset resolution
 - **WHEN** HTML references a local asset relative to the backend root
 - **THEN** WeasyPrint SHALL resolve that asset using the configured base URL
+
+#### Scenario: Only supported rendering options
+- **WHEN** the shared helper renders a PDF
+- **THEN** WeasyPrint SHALL NOT log „Unknown rendering option“
 
 #### Scenario: Rendering failure
 - **WHEN** WeasyPrint raises an exception during rendering

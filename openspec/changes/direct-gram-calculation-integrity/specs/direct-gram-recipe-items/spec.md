@@ -80,3 +80,37 @@ Recipe and meal-plan exports SHALL preserve direct-gram scaling and display the 
 - **GIVEN** a meal plan with an active linked direct-gram recipe item
 - **WHEN** a cooking schedule or meal-plan PDF is rendered
 - **THEN** the scaled gram amount and linked ingredient name SHALL appear in its ingredients
+
+### Requirement: Recipe forks preserve direct-gram identity and preparation steps
+
+Forking a recipe SHALL copy every RecipeItem including its direct `ingredient_id`. The fork SHALL also copy the preparation steps with their step-ingredient links remapped to the forked RecipeItems, and SHALL rewrite numeric `{recipe_item_id}` placeholders in step instructions to the forked item IDs. The original recipe MUST keep its own steps and links unchanged.
+
+#### Scenario: Fork keeps a linked direct-gram item
+
+- **GIVEN** an authenticated user who may fork a recipe containing a portionless item with `ingredient_id` and `quantity=250`
+- **WHEN** the user forks the recipe
+- **THEN** the forked item SHALL have the same `ingredient_id`, `portion_id=null` and `quantity=250`
+
+#### Scenario: Fork copies steps with remapped step ingredients
+
+- **GIVEN** a recipe with two steps whose step ingredients reference a direct-gram item and a portion item
+- **WHEN** the recipe is forked
+- **THEN** the fork SHALL contain both steps with the same order, duration and section
+- **AND** each step ingredient SHALL reference the corresponding forked RecipeItem with the same quantity modifier and preparation
+- **AND** `{recipe_item_id}` placeholders in the instructions SHALL point to the forked items
+
+### Requirement: Step ingredients resolve direct-gram identity
+
+Step ingredients in recipe detail responses SHALL expose the ingredient name and ID for both portion-based and direct-gram RecipeItems. A portion-based step ingredient SHALL carry the portion count and portion name; a direct-gram step ingredient SHALL carry grams. Step chips and the recipe PDF step list SHALL use the same amount formatter as the ingredient table.
+
+#### Scenario: Direct-gram step ingredient shows its name
+
+- **GIVEN** a recipe step references a linked direct-gram item of 200 g rice
+- **WHEN** an anonymous or authenticated user reads the recipe detail
+- **THEN** the step ingredient SHALL include the ingredient name and show „200 g Reis“
+
+#### Scenario: Portion step ingredient shows portion and grams
+
+- **GIVEN** a step references a portion item with 0,35 × „Stück“ (50 g)
+- **WHEN** the recipe detail is rendered
+- **THEN** the chip SHALL show the portion count with the portion name and the gram weight, not „0,35 g“

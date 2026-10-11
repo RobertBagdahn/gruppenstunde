@@ -20,5 +20,5 @@ Production Cloud Run logs show that exporting meal plan 18 returns HTTP 503 beca
 ## Impact
 
 - Backend PDF services in `planner` and `recipe`.
-- `Dockerfile.backend`, Cloud Build and GitHub Actions deploy commands, and Cloud Run Terraform defaults.
+- `Dockerfile.backend`, the GitHub Actions deploy workflow (single production pipeline since WP-08; Cloud Build files removed), and Cloud Run Terraform defaults.
 - No API schema changes. Existing PDF URLs, query parameters, response content type, and inline disposition remain unchanged.

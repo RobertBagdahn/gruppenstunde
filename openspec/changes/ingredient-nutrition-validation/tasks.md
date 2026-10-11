@@ -8,11 +8,12 @@
 ## 2. Frontend (frontend-food)
 
 - [x] 2.1 Zod-Schema für Nährwerte mit harten Regeln, synchron zu Pydantic, `nutrition_warnings` ergänzen
-- [x] 2.2 `IngredientEditPage.tsx`: Feldfehler inline, 422-`fields` den Feldern zuordnen, Warnungen nach dem Speichern anzeigen (`CreateIngredientPage.tsx` hat keine Nährwertfelder; dessen Fehlermeldung folgt in `food-ui-polish-prod-test`)
-- [x] 2.3 Dialog „Neue Zutat prüfen“ im Rezept-Wizard auf dieselbe Prüfung umstellen
+- [x] 2.2 `IngredientEditPage.tsx`: Feldfehler inline, 422-`fields` den Feldern zuordnen, Warnungen nach dem Speichern anzeigen (`CreateIngredientPage.tsx` hat keine Nährwertfelder; dessen Fehlermeldung folgt in `food-ui-polish-prod-test`). Nachtrag WP-04: Client-Prüfung blockiert nur bei geänderten Nährwerten; `postJsonRaw`/`patchJsonRaw` werfen `ApiError`, damit 409/422 am Feld ankommen
+- [x] 2.3 Dialog „Neue Zutat prüfen“ im Rezept-Wizard auf dieselbe Prüfung umstellen (WP-04: inkl. `fat_sat_g`; Rezepterstellung prüft Wizard-Zutaten serverseitig mit `nutrition_warnings_or_422`)
 - [x] 2.4 Tests für Zod-Regeln und Fehlerzuordnung, gemeinsame Beispielfälle wie im Backend
 
 ## 3. Abschluss
 
 - [x] 3.1 `uv run pytest backend/supply`, Frontend-Typecheck, Lint und Tests
-- [ ] 3.2 Manuell prüfen: Eiweiß 200 wird abgelehnt, Energie-Abweichung warnt, mobil ab 320 px
+- [x] 3.2 Manuell prüfen: Eiweiß 200 wird abgelehnt, Energie-Abweichung warnt, mobil ab 320 px – Playwright 2026-10-11: Fett 150 (gleiche Regel „> 100 g“) und Zucker > KH werden mit 422 bzw. Feldfehler abgelehnt; Energie 960 speichert mit Warnung „Energie vermutlich in kJ statt kcal“; nur Preisänderung an unplausibler Zutat speichert (320/1440)
+- [ ] 3.3 Spec-Abgleich „Zucker größer als Kohlenhydrate MUST abgelehnt werden“: Backend und Frontend melden den Fall bewusst nur als Warnung, wenn KH = 0 ist oder die `broken_import`-Signatur greift (`nutrition_plausibility.py`, `nutritionValidation.ts`). Ausnahme in die Spec aufnehmen oder Code verschärfen (Owner-Entscheidung)

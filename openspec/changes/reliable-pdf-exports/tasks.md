@@ -15,3 +15,9 @@
 
 - [x] 3.1 Add tests for renderer error handling, recipe image bounds, and meal-plan page format.
 - [x] 3.2 Run focused PDF tests and backend checks. Docker is unavailable locally; the image build now performs the render smoke test in CI.
+
+## 4. Review follow-up (WP-07/WP-08)
+
+- [x] 4.1 Replace the unsupported `optimize_size` option with `optimize_images=True, jpeg_quality=82`; test asserts no „Unknown rendering option“ warning (`core/tests/test_pdf_rendering.py`).
+- [x] 4.2 One Gunicorn worker × one thread in `Dockerfile.backend`; GitHub Actions deploy (single production pipeline) sets 1 GiB, concurrency 1, max 2 instances; Cloud Build files removed; consistency enforced by `core/tests/test_runtime_limits.py`.
+- [x] 4.3 Sprint-B verification: recipe PDF table and step list use the same units; meal-plan PDF A4/Letter returned valid PDFs.
