@@ -160,8 +160,21 @@ describe('portionQuantityHint', () => {
     });
 
     it('formats the breakfast topping hints without broken plurals', () => {
-      expect(deriveGramPortionHint(60.2, [mockPortion('ml', 1, 1)])).toBe('≈ 60,2 ml');
       expect(deriveGramPortionHint(50, [mockPortion('Belag knapp', 20, 1)])).toBe('≈ 2,5 Belag knapp');
+    });
+  });
+
+  describe('metric unit portions', () => {
+    it('never mixes grams with a volume hint (honey with an "ml" portion)', () => {
+      const honeyPortions = [mockPortion('ml', 1.01, 1, 1), mockPortion('EL', 20, 2, 2)];
+      expect(formatGramsWithPortionHint(52, honeyPortions)).toBe('52g · ≈ 2,6 EL');
+      expect(formatGramsWithPortionHint(52, [mockPortion('ml', 1.01, 1)])).toBe('52g');
+    });
+
+    it('skips portions named after weight or volume units', () => {
+      const portions = ['g', 'Gramm', 'kg', 'ml', 'Milliliter', 'l', 'Liter'].map((name, index) =>
+        mockPortion(name, 1, index + 1, index + 1));
+      expect(deriveGramPortionHint(100, portions)).toBeNull();
     });
   });
 });

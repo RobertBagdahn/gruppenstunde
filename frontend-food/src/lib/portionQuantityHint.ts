@@ -52,14 +52,27 @@ interface PortionHint {
 }
 
 /**
+ * Portions named after a metric unit ("ml", "g", …). The breakfast steps show
+ * grams, and like the ingredient table they never mix in a volume: ml is only
+ * used for beverages, which these steps list in ml directly.
+ */
+const METRIC_UNIT_PORTION_NAMES = new Set(['g', 'gramm', 'kg', 'ml', 'milliliter', 'cl', 'dl', 'l', 'liter']);
+
+function isHintPortion(portion: BreakfastPortion): boolean {
+  return portion.weight_g !== null
+    && portion.weight_g > 0
+    && !METRIC_UNIT_PORTION_NAMES.has(portion.name.trim().toLocaleLowerCase('de-DE'));
+}
+
+/**
  * Get the primary portion (lowest priority with weight_g > 0).
  */
 function getPrimaryPortion(portions: BreakfastPortion[]): BreakfastPortion | null {
   if (!portions || portions.length === 0) return null;
 
-  // Sort by priority ascending, filter by weight_g > 0
+  // Sort by priority ascending, keep only household portions with a weight
   const validPortions = portions
-    .filter((p) => p.weight_g !== null && p.weight_g > 0)
+    .filter(isHintPortion)
     .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
 
   return validPortions.length > 0 ? validPortions[0] : null;
@@ -72,12 +85,7 @@ function getSecondaryPortion(portions: BreakfastPortion[], primaryName: string):
   if (!portions || portions.length === 0) return null;
 
   const validPortions = portions
-    .filter(
-      (p) =>
-        p.weight_g !== null &&
-        p.weight_g > 0 &&
-        p.name !== primaryName // Different name
-    )
+    .filter((p) => isHintPortion(p) && p.name !== primaryName)
     .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
 
   return validPortions.length > 0 ? validPortions[0] : null;
