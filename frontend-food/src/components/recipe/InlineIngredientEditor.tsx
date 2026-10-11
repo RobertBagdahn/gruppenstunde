@@ -22,7 +22,8 @@ import { useUpdateIngredient } from '@/api/supplies';
 import { useCurrentUser } from '@/api/auth';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
-import PortionPicker from './PortionPicker';
+import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
+import { standardMeasureLabel } from '@/lib/quantityUnits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { normalizeServingContext, scaleQuantity, toBasePerServing } from '@/lib/cookingQuantityScale';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
@@ -41,6 +42,10 @@ export interface EditableItem {
   ingredient_name: string;
   ingredient_slug?: string | null;
   quantity: number;
+  /** Standard measure (el, tl, tasse, prise, msp) the quantity counts. Then
+   *  `portion_id` only anchors the ingredient (its "g" base portion) and the
+   *  grams come from `baseWeightG / baseQuantity` (grams per measure). */
+  standard_measure_key?: string | null;
   /** Raw input string while the user is typing — allows empty/partial input */
   quantityInput: string;
   measuring_unit_name: string | null;
@@ -98,6 +103,7 @@ interface InlineIngredientEditorProps {
 export interface DraftIngredientItem {
   portion_id: number | null;
   ingredient_id: number | null;
+  standard_measure_key?: string;
   client_request_id?: string;
   idempotency_key?: string;
   quantity: number;
@@ -197,7 +203,7 @@ function findGramFallbackPortion(item: EditableItem): EditablePortion | null {
  *  is kept in sync whenever `quantity` or `portion_id` changes. */
 export function getItemWeightG(item: EditableItem): number {
   const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
-  if (isDirectMetricPortion(currentPortion, item.measuring_unit_name)) {
+  if (!item.standard_measure_key && isDirectMetricPortion(currentPortion, item.measuring_unit_name)) {
     return item.quantity;
   }
   const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : (currentPortion?.weight_g ?? 1);
@@ -230,6 +236,7 @@ export function applyEstimateToItem(
   return {
     ...item,
     portion_id: estimate.portion_id,
+    standard_measure_key: null,
     measuring_unit_name: estimate.unit,
     quantity: displayedQty,
     quantityInput: toQuantityInput(displayedQty),
@@ -254,7 +261,8 @@ export function toQuantityInput(value: number): string {
 
 export function toPersistedRecipeItemQuantity(item: EditableItem, scale: number): number {
   const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
-  const isMetric = isDirectMetricPortion(currentPortion, item.measuring_unit_name);
+  // Standard measures are counts of the measure, never grams.
+  const isMetric = !item.standard_measure_key && isDirectMetricPortion(currentPortion, item.measuring_unit_name);
   const portionWeightG = item.baseQuantity > 0
     ? item.baseWeightG / item.baseQuantity
     : (currentPortion?.weight_g ?? 1);
@@ -295,11 +303,39 @@ export function applyPortionChange(item: EditableItem, newPortion: EditablePorti
   return {
     ...item,
     portion_id: newPortion.id,
+    standard_measure_key: null,
     measuring_unit_name: label,
     quantity: newQty,
     quantityInput: toQuantityInput(newQty),
     baseWeightG: nextBaseWeightG,
     baseQuantity: nextBaseQuantity,
+    isDirty: true,
+    aiExpectedGramsTotal: undefined,
+  };
+}
+
+/** Pure standard-measure switch: the measure (EL, Tasse, …) becomes the
+ *  item's unit. The count is gram-preserving when the current weight is
+ *  known, otherwise exactly one measure. The ingredient stays anchored via
+ *  its "g" base portion (or the direct ingredient link). */
+export function applyStandardMeasureChange(item: EditableItem, measure: PickerStandardMeasure): EditableItem {
+  const gramPortion = findGramFallbackPortion(item);
+  const currentGrams = getItemWeightG(item);
+  const hasKnownCurrentGrams = Number.isFinite(currentGrams) && currentGrams > 0;
+  const gramsPerMeasure = measure.grams > 0 ? measure.grams : null;
+  const count = hasKnownCurrentGrams && gramsPerMeasure != null
+    ? Math.max(Math.round((currentGrams / gramsPerMeasure) * 100) / 100, 0.01)
+    : 1;
+
+  return {
+    ...item,
+    portion_id: gramPortion?.id ?? null,
+    standard_measure_key: measure.key,
+    measuring_unit_name: standardMeasureLabel(measure.key),
+    quantity: count,
+    quantityInput: toQuantityInput(count),
+    baseWeightG: count * (gramsPerMeasure ?? 0),
+    baseQuantity: count,
     isDirty: true,
     aiExpectedGramsTotal: undefined,
   };
@@ -330,7 +366,9 @@ export function normalizeItems(
     // column — normalizeItems() must use the same authoritative source for
     // the actual editable value, not just for that one preview column.
     const portionWeightG = item.quantity > 0 ? item.weight_g / item.quantity : (currentPortion?.weight_g ?? 1);
-    const isMetric = isDirectMetricPortion(currentPortion, item.measuring_unit_name);
+    const standardKey = item.standard_measure_key || null;
+    // Standard measures (EL, Tasse, …) are counts like non-metric portions.
+    const isMetric = !standardKey && isDirectMetricPortion(currentPortion, item.measuring_unit_name);
 
     let qty: number;
     if (isMetric) {
@@ -344,13 +382,16 @@ export function normalizeItems(
       qty = itemsAreContextual ? item.quantity : scaleQuantity(normalizedQuantity, context);
     }
 
-    const label = currentPortion
-      ? portionDisplayLabel(currentPortion, item.measuring_unit_name || 'g')
-      : (item.measuring_unit_name || 'g');
+    const label = standardKey
+      ? (item.unit_label || standardMeasureLabel(standardKey))
+      : currentPortion
+        ? portionDisplayLabel(currentPortion, item.measuring_unit_name || 'g')
+        : (item.measuring_unit_name || 'g');
 
     return {
       id: item.id,
       portion_id: item.portion_id, // Keep original portion_id for save
+      standard_measure_key: standardKey,
       ingredient_id: item.ingredient_id ?? null,
       ingredient_name: item.ingredient_name,
       ingredient_slug: item.ingredient_slug ?? null,
@@ -450,7 +491,7 @@ interface IngredientRowProps {
   handleQuantityInputChange: (id: number, raw: string) => void;
   handleQuantityBlur: (id: number) => void;
   handlePortionChange: (id: number, portionId: number) => void;
-  handleSelectStandardMeasure: (id: number, measure: import('./PortionPicker').PickerStandardMeasure) => void;
+  handleSelectStandardMeasure: (id: number, measure: PickerStandardMeasure) => void;
   handleSelectGrams: (id: number) => void;
   handleNoteChange: (id: number, note: string) => void;
   handleDelete: (id: number) => void;
@@ -531,6 +572,7 @@ function IngredientRow({
         }))}
         value={item.portion_id}
         selectedFallback={item.selectedPortionFallback}
+        selectedStandardKey={item.standard_measure_key ?? null}
         ingredientSlug={item.ingredient_slug ?? undefined}
         onSelectPortion={(portionId) => handlePortionChange(item.id, portionId)}
         onSelectStandardMeasure={(measure) => handleSelectStandardMeasure(item.id, measure)}
@@ -844,27 +886,9 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     );
   }, []);
 
-  // Standard measures (EL, TL, Tasse, …) are display-only: the item switches
-  // to the ingredient's gram fallback portion (or portion_id=null = grams)
-  // and the quantity becomes the computed gram amount. Nothing is persisted
-  // as a new portion.
-  const handleSelectStandardMeasure = useCallback((id: number, measure: import('./PortionPicker').PickerStandardMeasure) => {
+  const handleSelectStandardMeasure = useCallback((id: number, measure: PickerStandardMeasure) => {
     setEditItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        const gramPortion = findGramFallbackPortion(item);
-        return {
-          ...item,
-          portion_id: gramPortion?.id ?? null,
-          measuring_unit_name: 'Gramm',
-          quantity: measure.grams,
-          quantityInput: toQuantityInput(measure.grams),
-          baseWeightG: measure.grams,
-          baseQuantity: measure.grams,
-          isDirty: true,
-          aiExpectedGramsTotal: undefined,
-        };
-      }),
+      prev.map((item) => (item.id === id ? applyStandardMeasureChange(item, measure) : item)),
     );
   }, []);
 
@@ -878,6 +902,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         return {
           ...item,
           portion_id: gramPortion?.id ?? null,
+          standard_measure_key: null,
           measuring_unit_name: 'Gramm',
           quantity: baseQuantity,
           quantityInput: toQuantityInput(baseQuantity),
@@ -1021,6 +1046,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       portionId: number | null,
       _measuringUnitId: number | null,
       quantity: number,
+      standardMeasure?: PickerStandardMeasure | null,
     ) => {
       const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
@@ -1039,12 +1065,15 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           return;
         }
 
-        // Same piece-aware label/composite rule as everywhere else
-        const portionLabel = portionDisplayLabel(selectedPortion!);
+        // Same piece-aware label/composite rule as everywhere else; a kept
+        // standard measure (EL, Tasse, …) is a count of that measure.
+        const portionLabel = standardMeasure
+          ? standardMeasureLabel(standardMeasure.key)
+          : portionDisplayLabel(selectedPortion!);
 
-        const selectedWeightG = selectedPortion!.weight_g ?? 1;
+        const selectedWeightG = standardMeasure ? standardMeasure.grams : (selectedPortion!.weight_g ?? 1);
         const totalWeightG = selectedWeightG * quantity;
-        const isMetric = isDirectMetricPortion(selectedPortion!, '');
+        const isMetric = !standardMeasure && isDirectMetricPortion(selectedPortion!, '');
         // The dialog quantity is what the user typed for the whole group (serving
         // context). It is shown as-is; saving divides it by the context once.
         const displayedQuantity = Math.round((isMetric ? totalWeightG : quantity) * 100) / 100;
@@ -1055,6 +1084,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           {
             id: -Date.now(),
             portion_id: selectedPortion!.id,
+            standard_measure_key: standardMeasure?.key ?? null,
             ingredient_id: ingredientId,
             ingredient_name: ingredientName,
             ingredient_slug: ingredientSlug,
@@ -1330,6 +1360,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             return {
               portion_id: item.portion_id,
               ingredient_id: item.ingredient_id,
+              standard_measure_key: item.standard_measure_key ?? '',
               client_request_id: requestKey,
               idempotency_key: requestKey,
               quantity: toPersistedRecipeItemQuantity(item, scale),
@@ -1409,6 +1440,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           .mutateAsync({
             portion_id: item.portion_id,
             ingredient_id: item.ingredient_id,
+            standard_measure_key: item.standard_measure_key ?? '',
             client_request_id: requestKey,
             idempotency_key: requestKey,
             quantity: toPersistedRecipeItemQuantity(item, scale),
@@ -1439,6 +1471,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             data: {
               portion_id: item.portion_id,
               ingredient_id: item.ingredient_id,
+              standard_measure_key: item.standard_measure_key ?? '',
               quantity: toPersistedRecipeItemQuantity(item, scale),
               note: item.note,
               sort_order: item.sort_order,
@@ -1726,6 +1759,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         open={detailSearchOpen}
         onOpenChange={setDetailSearchOpen}
         onSelect={handleAddFromDialog}
+        keepStandardMeasure
       />
 
       {/* Alternative Ingredient Search Dialog */}

@@ -25,6 +25,10 @@ class RecipeItemOut(Schema):
     ingredient_name: str = ""
     ingredient_slug: str | None = None
     quantity: float
+    standard_measure_key: str = ""
+    unit_kind: str | None = None
+    unit_label: str = ""
+    is_weight_approx: bool = False
     client_request_id: str | None = None
     idempotency_key: str | None = None
     measuring_unit_id: int | None = None
@@ -195,9 +199,45 @@ class RecipeItemOut(Schema):
         return cast(str, ingredient.retail_section.name) if ingredient and ingredient.retail_section else None
 
     @staticmethod
+    def resolve_standard_measure_key(obj) -> str:
+        return cast(str, getattr(obj, "standard_measure_key", "") or "")
+
+    @staticmethod
+    def resolve_unit_kind(obj) -> str | None:
+        from supply.services.portion_resolution import is_direct_metric_portion
+
+        if getattr(obj, "standard_measure_key", ""):
+            return "standard"
+        if obj.portion is None or is_direct_metric_portion(obj.portion):
+            return "grams"
+        return "portion"
+
+    @staticmethod
+    def resolve_unit_label(obj) -> str:
+        from supply.services.portion_resolution import is_direct_metric_portion
+        from supply.services.quantity_units import STANDARD_MEASURE_LABELS, portion_label
+
+        standard_key = getattr(obj, "standard_measure_key", "") or ""
+        if standard_key:
+            return STANDARD_MEASURE_LABELS.get(standard_key, standard_key)
+        if obj.portion is None or is_direct_metric_portion(obj.portion):
+            return "g"
+        return portion_label(obj.portion)
+
+    @staticmethod
+    def resolve_is_weight_approx(obj) -> bool:
+        from recipe.services.recipe_item_helpers import is_recipe_item_weight_approx
+
+        return is_recipe_item_weight_approx(obj)
+
+    @staticmethod
     def resolve_weight_g(obj) -> float:
         from supply.services.portion_resolution import is_piece_like_name, resolve_trusted_weight
 
+        if getattr(obj, "standard_measure_key", ""):
+            from recipe.services.recipe_item_helpers import resolve_recipe_item_grams
+
+            return resolve_recipe_item_grams(obj) or 0.0
         if obj.portion is None:
             return cast(float, obj.quantity)
         if obj.portion:
@@ -214,6 +254,13 @@ class RecipeItemOut(Schema):
     def resolve_portion_display(obj) -> str:
         from supply.utils import build_portion_display
 
+        if getattr(obj, "standard_measure_key", ""):
+            from recipe.services.recipe_amount_display import format_amount_label, format_recipe_item_amount
+            from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+            ingredient = get_recipe_item_ingredient(obj)
+            amount = format_recipe_item_amount(obj, ingredient)
+            return format_amount_label(amount, ingredient.name if ingredient else "")
         if obj.portion is None:
             from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
             from supply.utils import format_weight
@@ -227,6 +274,10 @@ class RecipeItemOut(Schema):
 
     @staticmethod
     def resolve_has_missing_weight(obj) -> bool:
+        if getattr(obj, "standard_measure_key", ""):
+            from recipe.services.recipe_item_helpers import resolve_recipe_item_grams
+
+            return resolve_recipe_item_grams(obj) is None
         if obj.portion is None:
             return False
 
@@ -256,6 +307,9 @@ class RecipeItemOut(Schema):
 class RecipeItemCreateIn(Schema):
     portion_id: int | None = None  # NULL means quantity is stored directly in grams
     ingredient_id: int | None = None  # Required for ingredient-based calculations when portion_id is NULL
+    # Standard measure key (el, tl, tasse, prise, msp); quantity is then a count of
+    # that measure and portion_id must be the ingredient's "g" base portion (or NULL).
+    standard_measure_key: str | None = None
     client_request_id: str | None = None
     idempotency_key: str | None = None
     quantity: float = 1
@@ -273,6 +327,8 @@ class RecipeItemAlternativeCreateIn(Schema):
 class RecipeItemUpdateIn(Schema):
     portion_id: int | None = None
     ingredient_id: int | None = None
+    # "" or null clears the standard measure; omitted keeps it unless the portion changes.
+    standard_measure_key: str | None = None
     quantity: float | None = None
     sort_order: int | None = None
     note: str | None = None

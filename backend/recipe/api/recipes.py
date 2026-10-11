@@ -880,6 +880,7 @@ def create_recipe(request, payload: RecipeCreateIn):
         from supply.models import Ingredient, Portion
 
         direct_ingredient_id = item_data.ingredient_id
+        selected_portion = None
         if portion_id is not None:
             selected_portion = Portion.objects.active().filter(id=portion_id).first()
             if selected_portion is None:
@@ -896,10 +897,15 @@ def create_recipe(request, payload: RecipeCreateIn):
         ):
             raise HttpError(400, "Zutat existiert nicht oder ist nicht verfügbar")
 
+        from recipe.api.items import validate_standard_measure
+
         RecipeItem.objects.create(
             recipe=recipe,
             portion_id=portion_id,
             ingredient_id=direct_ingredient_id,
+            standard_measure_key=validate_standard_measure(
+                item_data.standard_measure_key, selected_portion, direct_ingredient_id
+            ),
             client_request_id=item_data.client_request_id,
             quantity=item_data.quantity / servings_divisor,
             sort_order=item_data.sort_order,
@@ -1102,12 +1108,24 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         if unweighted_portion_ids:
             raise HttpError(422, f"Portionen ohne bestätigtes Gewicht: {sorted(unweighted_portion_ids)}")
 
+        from recipe.api.items import validate_standard_measure
+
+        standard_measure_keys = [
+            validate_standard_measure(
+                item_data.get("standard_measure_key"),
+                selected_portions.get(item_data["portion_id"]) if item_data["portion_id"] is not None else None,
+                item_data.get("ingredient_id") if item_data["portion_id"] is None else None,
+            )
+            for item_data in recipe_items_data
+        ]
+
         recipe.recipe_items.all().delete()
-        for item_data in recipe_items_data:
+        for item_data, standard_measure_key in zip(recipe_items_data, standard_measure_keys, strict=True):
             RecipeItem.objects.create(
                 recipe=recipe,
                 portion_id=item_data["portion_id"],
                 ingredient_id=item_data.get("ingredient_id") if item_data["portion_id"] is None else None,
+                standard_measure_key=standard_measure_key,
                 client_request_id=item_data.get("client_request_id"),
                 quantity=item_data.get("quantity", 1),
                 sort_order=item_data.get("sort_order", 0),
@@ -1371,6 +1389,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
                 portion_id=item.portion_id,
                 ingredient_id=item.ingredient_id,
                 quantity=item.quantity,
+                standard_measure_key=item.standard_measure_key,
                 sort_order=item.sort_order,
                 note=item.note,
                 is_optional=item.is_optional,

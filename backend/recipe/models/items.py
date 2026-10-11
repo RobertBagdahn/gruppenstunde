@@ -42,7 +42,9 @@ class RecipeItem(models.Model):
     """Ingredient item for a recipe (Zutat im Rezept).
 
     With a portion, quantity is a multiplier on that portion. Without a portion,
-    quantity is stored directly in grams.
+    quantity is stored directly in grams. With `standard_measure_key` (EL, TL,
+    Tasse, Prise, Msp), quantity is a count of that kitchen measure; the
+    ingredient is anchored via its "g" base portion (or the direct link).
     """
 
     recipe = models.ForeignKey(
@@ -70,6 +72,13 @@ class RecipeItem(models.Model):
         help_text=_("Zutat für direkte Gramm-Mengen ohne Portion"),
     )
     quantity = models.FloatField(default=1, verbose_name=_("Menge"))
+    standard_measure_key = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        verbose_name=_("Standardmaß"),
+        help_text=_("EL, TL, Tasse, Prise oder Msp; dann ist die Menge die Anzahl dieses Maßes"),
+    )
     client_request_id = models.CharField(max_length=64, null=True, blank=True)
     sort_order = models.IntegerField(default=0, verbose_name=_("Reihenfolge"))
     note = models.CharField(
@@ -107,6 +116,14 @@ class RecipeItem(models.Model):
             models.CheckConstraint(
                 condition=Q(quantity__gt=0),
                 name="recipe_item_quantity_positive",
+            ),
+            models.CheckConstraint(
+                condition=Q(standard_measure_key__in=["", "el", "tl", "tasse", "prise", "msp"]),
+                name="recipe_item_standard_measure_key_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(standard_measure_key="") | Q(portion__isnull=False) | Q(ingredient__isnull=False),
+                name="recipe_item_standard_measure_has_ingredient",
             ),
             # A RecipeItem is either optional OR part of an exchange group — never both.
             models.CheckConstraint(
