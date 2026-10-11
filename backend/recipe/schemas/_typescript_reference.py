@@ -16,8 +16,12 @@ export const RecipeStepIngredientSchema = z.object({
   // Resolved fields (read-only)
   ingredient_name: z.string().nullable().default(null),
   ingredient_id: z.number().nullable().default(null),
+  portion_name: z.string().nullable().default(null),
   unit_short: z.string().nullable().default(null),
   quantity: z.number().nullable().default(null),
+  weight_g: z.number().nullable().default(null),
+  ingredient_viscosity: z.string().nullable().default(null),
+  ingredient_density: z.number().nullable().default(null),
   note: z.string().nullable().default(null),
 });
 

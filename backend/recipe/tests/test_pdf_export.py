@@ -14,7 +14,7 @@ from recipe.services.pdf_export import (
 )
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import ContentMaterialItem, Material, MeasuringUnit, NutritionalTag, Portion
-from supply.tests import make_ingredient
+from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
 class TestRecipePdfService:
@@ -129,7 +129,7 @@ class TestRecipePdfServingScaling:
         recipe = make_recipe(portions=1)
         make_recipe_item(recipe=recipe, quantity=125)
         export = RecipePdfExport.build(recipe, servings=4)
-        assert any("500 Gramm Testzutat" in row["display"] for row in export.ingredients)
+        assert any(row["display"].startswith("500 g Testzutat") for row in export.ingredients)
 
     @pytest.mark.django_db
     def test_export_does_not_persist_scale(self):
@@ -215,6 +215,51 @@ class TestRecipePdfStructuredSteps:
         RecipeStepIngredient.objects.create(step=step, recipe_item=item, quantity_modifier=0.5)
         export = RecipePdfExport.build(recipe, servings=2)
         assert export.steps[0]["ingredient_labels"] == ["100 g Testzutat"]
+
+    @pytest.mark.django_db
+    def test_step_ingredients_match_ui_chips_for_portion_and_direct_gram_items(self):
+        """Portion count + portion name + grams; direct grams with the ingredient name."""
+        recipe = make_recipe(portions=1)
+        gram = make_measuring_unit(name="Gramm", unit="g", quantity=1.0)
+        oil = make_ingredient(name="Olivenöl Schritt")
+        spoon = make_portion(oil, name="Esslöffel", quantity=1.0, weight_g=13.8, measuring_unit=gram)
+        portion_item = RecipeItem.objects.create(recipe=recipe, portion=spoon, quantity=1)
+        rice = make_ingredient(name="Reis Schritt")
+        direct_item = RecipeItem.objects.create(recipe=recipe, ingredient=rice, portion=None, quantity=100)
+        step = RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Anbraten")
+        RecipeStepIngredient.objects.create(step=step, recipe_item=portion_item, sort_order=0)
+        RecipeStepIngredient.objects.create(
+            step=step, recipe_item=direct_item, quantity_modifier=0.5, preparation="gewaschen", sort_order=1
+        )
+
+        export = RecipePdfExport.build(recipe, servings=2)
+
+        assert export.steps[0]["ingredient_labels"] == [
+            "2 EL (28 g) Olivenöl Schritt",
+            "100 g Reis Schritt, gewaschen",
+        ]
+        assert "Zutaten: 2 EL (28 g) Olivenöl Schritt; 100 g Reis Schritt, gewaschen" in export.render_html()
+
+    @pytest.mark.django_db
+    def test_beverage_shows_milliliters_in_ingredient_table_and_steps(self):
+        recipe = make_recipe(portions=1)
+        gram = make_measuring_unit(name="Gramm", unit="g", quantity=1.0)
+        milk = make_ingredient(name="Milch Getränk", physical_viscosity="beverage", physical_density=1.03)
+        glass = make_portion(milk, name="Glas", quantity=1.0, weight_g=206, measuring_unit=gram)
+        glass_item = RecipeItem.objects.create(recipe=recipe, portion=glass, quantity=1)
+        juice = make_ingredient(name="Saft Getränk", physical_viscosity="beverage", physical_density=1.0)
+        direct_item = RecipeItem.objects.create(recipe=recipe, ingredient=juice, portion=None, quantity=250)
+        step = RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Mischen")
+        RecipeStepIngredient.objects.create(step=step, recipe_item=glass_item, sort_order=0)
+        RecipeStepIngredient.objects.create(step=step, recipe_item=direct_item, sort_order=1)
+
+        export = RecipePdfExport.build(recipe, servings=2)
+
+        assert [row["display"] for row in export.ingredients] == [
+            "2 Glas (400 ml) Milch Getränk",
+            "500 ml Saft Getränk",
+        ]
+        assert export.steps[0]["ingredient_labels"] == ["2 Glas (400 ml) Milch Getränk", "500 ml Saft Getränk"]
 
     @pytest.mark.django_db
     def test_markdown_fallback_without_structured_steps(self):

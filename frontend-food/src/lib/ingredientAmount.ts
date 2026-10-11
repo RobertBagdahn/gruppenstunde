@@ -101,7 +101,9 @@ export interface ScaledRecipeAmountInput {
 /**
  * Amount of a recipe item, or its share in a preparation step, for `scale` servings — the same
  * amounts as the recipe ingredient list: a natural portion as "0,35 Portion" with its grams as
- * secondary value, everything else (direct grams, metric portions) as grams.
+ * secondary value, everything else (direct grams, metric portions) as grams. Beverages with a density
+ * show that weight in ml, as in the ingredient list. Mirrored for PDFs by
+ * backend/recipe/services/recipe_amount_display.py.
  */
 export function formatScaledRecipeAmount(item: ScaledRecipeAmountInput, scale = 1): RecipeItemAmount {
   const quantity = (item.quantity ?? 0) * scale;

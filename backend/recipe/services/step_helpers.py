@@ -111,9 +111,10 @@ def resolve_recipe_steps(recipe: Recipe, scale: float = 1.0) -> list[dict] | Non
     Returns:
         A list of resolved step dicts with keys ``number``, ``instruction``,
         ``duration_minutes``, ``section`` and ``step_ingredients`` (each a dict
-        with ``name``, ``quantity``, ``unit`` and ``note``), or ``None`` when
-        the recipe has no structured steps so the caller can fall back to
-        parsing the Markdown description.
+        with ``name`` and ``label``, the step chip text of the food frontend:
+        "0,35 Portion (18 g) Sojagranulat, gehackt"), or ``None`` when the
+        recipe has no structured steps so the caller can fall back to parsing
+        the Markdown description.
     """
     steps_qs = list(
         recipe.steps.prefetch_related(
@@ -138,6 +139,7 @@ def resolve_recipe_steps(recipe: Recipe, scale: float = 1.0) -> list[dict] | Non
             instruction = step.instruction
 
         step_ingredients = []
+        from recipe.services.recipe_amount_display import format_amount_label, format_recipe_item_amount
         from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
 
         for si in step.step_ingredients.all():
@@ -145,17 +147,14 @@ def resolve_recipe_steps(recipe: Recipe, scale: float = 1.0) -> list[dict] | Non
             if ri is None:
                 continue
             ingredient = get_recipe_item_ingredient(ri)
-            if ingredient is None:
-                continue
-            unit = "g" if ri.portion is None else (ri.portion.measuring_unit.unit if ri.portion.measuring_unit else "")
-            step_ingredients.append(
-                {
-                    "name": ingredient.name,
-                    "quantity": float(ri.quantity * si.quantity_modifier * scale),
-                    "unit": unit,
-                    "note": ri.note or "",
-                }
+            name = ingredient.name if ingredient else (ri.note or "")
+            amount = format_recipe_item_amount(
+                ri, ingredient, scale=scale, quantity_modifier=float(si.quantity_modifier or 0)
             )
+            label = format_amount_label(amount, name)
+            if si.preparation:
+                label += f", {si.preparation}"
+            step_ingredients.append({"name": name, "label": label})
 
         result.append(
             {

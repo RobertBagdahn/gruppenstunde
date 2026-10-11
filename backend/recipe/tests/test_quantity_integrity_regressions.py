@@ -194,6 +194,23 @@ def test_step_ingredient_out_uses_portion_name_and_direct_gram_ingredient():
     assert direct_out["unit_short"] == "g"
     assert direct_out["quantity"] == pytest.approx(100.0)
     assert direct_out["weight_g"] == pytest.approx(100.0)
+    assert direct_out["ingredient_viscosity"] == rice.physical_viscosity
+
+
+@pytest.mark.django_db
+def test_step_ingredient_schema_exposes_beverage_viscosity_and_density():
+    """The step chips need the ingredient list's ml rule: viscosity "beverage" with a density."""
+    from recipe.schemas.steps import RecipeStepIngredientOut
+
+    recipe = make_recipe(title="Schritt-Getränk")
+    milk = make_ingredient(name="Milch Schritt", physical_viscosity="beverage", physical_density=1.03)
+    item = RecipeItem.objects.create(recipe=recipe, ingredient=milk, portion=None, quantity=206)
+    step = RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Aufkochen")
+    link = RecipeStepIngredient.objects.create(step=step, recipe_item=item)
+
+    out = RecipeStepIngredientOut.from_orm(link).model_dump()
+
+    assert (out["ingredient_viscosity"], out["ingredient_density"]) == ("beverage", pytest.approx(1.03))
 
 
 @pytest.mark.django_db

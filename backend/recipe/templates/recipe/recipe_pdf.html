@@ -76,7 +76,7 @@
     <span class="step-duration"> ({{ step.duration_minutes }} Minuten)</span>
     {% endif %}
     {% if step.ingredient_labels %}
-    <span class="step-ingredients">Zutaten: {{ step.ingredient_labels|join:", " }}</span>
+    <span class="step-ingredients">Zutaten: {{ step.ingredient_labels|join:"; " }}</span>
     {% endif %}
   </li>
 {% endfor %}
