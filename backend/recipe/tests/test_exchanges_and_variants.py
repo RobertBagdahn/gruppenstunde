@@ -106,6 +106,34 @@ class TestExchangeGroupCRUD:
         assert item.exchange_group_id == group_id
         assert item.exchange_position == 0
 
+    def test_list_includes_portionless_gram_member(self):
+        client, _ = _make_staff_client()
+        recipe = make_recipe()
+        oats = _make_ingredient("Haferflocken")
+        cheese = _make_ingredient("Bergkäse")
+        group = RecipeItemExchangeGroup.objects.create(recipe=recipe, name="Alternative")
+        gram_item = RecipeItem.objects.create(
+            recipe=recipe, ingredient=oats, portion=None, quantity=50, exchange_group=group, exchange_position=0
+        )
+        portion_item = make_recipe_item(recipe=recipe, portion=_make_portion(cheese))
+        portion_item.exchange_group = group
+        portion_item.exchange_position = 1
+        portion_item.save()
+
+        resp = client.get(f"/api/recipes/{recipe.id}/exchanges/")
+
+        assert resp.status_code == 200
+        members = resp.json()[0]["members"]
+        assert members[0] == {
+            "recipe_item_id": gram_item.id,
+            "exchange_position": 0,
+            "portion_id": None,
+            "ingredient_name": "Haferflocken",
+            "quantity": 50.0,
+        }
+        assert members[1]["portion_id"] == portion_item.portion_id
+        assert members[1]["ingredient_name"] == "Bergkäse"
+
     def test_delete_member_blocked_by_active_variant(self):
         client, _ = _make_staff_client()
         recipe = make_recipe()
