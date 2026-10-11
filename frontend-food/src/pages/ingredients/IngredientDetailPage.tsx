@@ -339,7 +339,7 @@ interface PortionFormDialogProps {
   onSubmit: (values: PortionFormSubmission) => void;
 }
 
-function PortionFormDialog({
+export function PortionFormDialog({
   open,
   onOpenChange,
   mode,
@@ -350,20 +350,13 @@ function PortionFormDialog({
   onSubmit,
 }: PortionFormDialogProps) {
   const [values, setValues] = useState<PortionFormValues>(initialValues);
-
-  useEffect(() => {
-    if (open) {
-      setValues(initialValues);
-    }
-  }, [
-    open,
-    initialValues.name,
-    initialValues.quantity,
-    initialValues.unitId,
-    initialValues.rank,
-    initialValues.weight,
-    initialValues,
-  ]);
+  // Reset only when the dialog opens: callers pass `initialValues` as a fresh object on every render,
+  // so resetting on each change would discard the user's input while the dialog is open.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setValues(initialValues);
+  }
 
   const setValue = (field: keyof PortionFormValues, value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
