@@ -7,7 +7,6 @@
 #   - GCS Buckets (frontend, media)
 #   - Cloud SQL (PostgreSQL)
 #   - Cloud Run Service (backend)
-#   - Cloud Build Triggers (deploy + PR check)
 #   - IAM bindings
 #   - Secret Manager
 # ============================================================
@@ -266,11 +265,11 @@ resource "google_cloud_run_v2_service" "backend" {
       }
       env {
         name  = "GUNICORN_WORKERS"
-        value = "2"
+        value = tostring(var.backend_gunicorn_workers)
       }
       env {
         name  = "GUNICORN_THREADS"
-        value = "4"
+        value = tostring(var.backend_gunicorn_threads)
       }
       env {
         name  = "BACKGROUND_WORKERS_PER_PROCESS"
@@ -440,7 +439,7 @@ resource "google_monitoring_alert_policy" "database_connection_pressure" {
 
   documentation {
     mime_type = "text/markdown"
-    content   = "Backend request concurrency is budgeted for 8 application DB sessions. Inspect Cloud Run revisions and run `manage.py check_database_capacity` before increasing scaling limits."
+    content   = "Backend request concurrency is budgeted for 4 application DB sessions (2 instances x (1 request + 1 background worker)). Inspect Cloud Run revisions and run `manage.py check_database_capacity` before increasing scaling limits."
   }
 
   depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
@@ -476,60 +475,4 @@ resource "google_monitoring_alert_policy" "backend_memory_pressure" {
   }
 
   depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
-}
-
-# -----------------------------------------------
-# Cloud Build – Triggers
-# -----------------------------------------------
-
-# NOTE: The GitHub connection must be created manually first via Console:
-#   https://console.cloud.google.com/cloud-build/triggers → Connect Repository
-# After connecting, set the repository resource name in terraform.tfvars:
-#   cloudbuild_repo = "projects/PROJECT/locations/REGION/connections/CONNECTION/repositories/REPO"
-
-# Deploy trigger (push to main)
-resource "google_cloudbuild_trigger" "deploy" {
-  count    = var.cloudbuild_repo != "" ? 1 : 0
-  name     = "${local.env_prefix}-deploy"
-  location = var.cloudbuild_region
-
-  github {
-    owner = "RobertBagdahn"
-    name  = "gruppenstunde"
-    push {
-      branch = var.cloudbuild_branch
-    }
-  }
-
-  filename = "cloudbuild.yaml"
-
-  substitutions = {
-    _REGION                = var.region
-    _ENVIRONMENT           = var.environment
-    _BACKEND_SERVICE       = "${local.env_prefix}-backend"
-    _FRONTEND_BUCKET       = google_storage_bucket.frontend.name
-    _BACKEND_MAX_INSTANCES = tostring(var.backend_max_instances)
-    _BACKEND_CONCURRENCY   = tostring(var.backend_concurrency)
-  }
-
-  depends_on = [google_project_service.apis["cloudbuild.googleapis.com"]]
-}
-
-# PR check trigger (only for prod – dev deploys on every push)
-resource "google_cloudbuild_trigger" "pr_check" {
-  count    = var.cloudbuild_repo != "" && local.is_prod ? 1 : 0
-  name     = "${local.env_prefix}-pr-check"
-  location = var.cloudbuild_region
-
-  github {
-    owner = "RobertBagdahn"
-    name  = "gruppenstunde"
-    pull_request {
-      branch = "^main$"
-    }
-  }
-
-  filename = "cloudbuild-pr.yaml"
-
-  depends_on = [google_project_service.apis["cloudbuild.googleapis.com"]]
 }

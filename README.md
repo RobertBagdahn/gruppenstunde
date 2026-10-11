@@ -204,7 +204,16 @@ make tf-plan ENV=prod     # Änderungen planen
 make tf-apply ENV=prod    # Änderungen anwenden
 ```
 
-Für Container-Deployment:
+Produktions-Deployments laufen ausschließlich über GitHub Actions
+(`.github/workflows/deploy.yml`): Bei jedem Push auf `main` (oder manuell per
+`workflow_dispatch`) laufen zuerst die Release-Checks, erst danach werden Images gebaut und
+deployt. Dieselben Checks laufen lokal mit:
+
+```bash
+make verify-release       # Backend, Frontend, Food-Frontend und gemockte Food-E2E-Tests
+```
+
+Manuelles Container-Deployment (Notfall):
 
 ```bash
 make deploy               # Alles deployen (DB + Backend + Frontend)

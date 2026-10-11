@@ -1230,9 +1230,7 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
 
     with transaction.atomic():
         existing_item_notes = {
-            (item.recipe_id, item.ingredient_id, item.display_name): item.note
-            for item in meal.items.all()
-            if item.note
+            (item.recipe_id, item.ingredient_id, item.display_name): item.note for item in meal.items.all() if item.note
         }
         if payload.manual_items_policy == "preserve":
             managed_ids = set(payload.managed_item_ids)

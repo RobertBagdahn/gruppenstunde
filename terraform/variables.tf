@@ -36,18 +36,6 @@ variable "domain" {
   default     = "gruppenstunde.de"
 }
 
-variable "cloudbuild_repo" {
-  description = "Cloud Build GitHub repository resource name. Create the connection via Console first, then set this. Format: projects/PROJECT/locations/REGION/connections/CONNECTION/repositories/REPO"
-  type        = string
-  default     = ""
-}
-
-variable "cloudbuild_branch" {
-  description = "Branch pattern for Cloud Build deploy trigger"
-  type        = string
-  default     = "^main$"
-}
-
 variable "backend_max_instances" {
   description = "Maximum backend instances, bounded by the Cloud SQL connection budget"
   type        = number
@@ -60,13 +48,35 @@ variable "backend_max_instances" {
 }
 
 variable "backend_concurrency" {
-  description = "Maximum simultaneous requests per backend instance"
+  description = "Maximum simultaneous requests per backend instance; 1 isolates memory-heavy PDF renders"
   type        = number
-  default     = 2
+  default     = 1
 
   validation {
     condition     = var.backend_concurrency >= 1 && var.backend_concurrency <= 80
     error_message = "backend_concurrency must be between 1 and 80."
+  }
+}
+
+variable "backend_gunicorn_workers" {
+  description = "Gunicorn worker processes per backend instance"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.backend_gunicorn_workers >= 1
+    error_message = "backend_gunicorn_workers must be at least 1."
+  }
+}
+
+variable "backend_gunicorn_threads" {
+  description = "Gunicorn threads per worker process"
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.backend_gunicorn_threads >= 1
+    error_message = "backend_gunicorn_threads must be at least 1."
   }
 }
 
@@ -103,12 +113,6 @@ variable "backend_memory" {
   description = "Memory allocation for backend Cloud Run service"
   type        = string
   default     = "1Gi"
-}
-
-variable "cloudbuild_region" {
-  description = "Cloud Build region (must match GitHub connection region)"
-  type        = string
-  default     = "europe-west3"
 }
 
 variable "db_tier" {

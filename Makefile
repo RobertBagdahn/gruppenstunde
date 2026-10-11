@@ -13,11 +13,16 @@ GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
 # Artifact Registry and Cloud Run region.
 GCP_REGION ?= europe-west1
 GCP_RUN_REGION ?= europe-west1
-# Cloud Build trigger/build region (separate from the runtime and registry region).
+# Cloud Build image build region (separate from the runtime and registry region).
 GCP_BUILD_REGION ?= europe-west3
 GCP_FOOD_REGION ?= europe-west1
+# Backend runtime limits; keep identical to .github/workflows/deploy.yml,
+# Dockerfile.backend and terraform/variables.tf (backend/core/tests/test_runtime_limits.py).
 BACKEND_MAX_INSTANCES ?= 2
-BACKEND_CONCURRENCY ?= 2
+BACKEND_CONCURRENCY ?= 1
+BACKEND_MEMORY ?= 1Gi
+GUNICORN_WORKERS ?= 1
+GUNICORN_THREADS ?= 1
 BACKEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/backend
 FRONTEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend
 FRONTEND_FOOD_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend-food
@@ -166,9 +171,10 @@ typecheck: ## Run mypy checks for release-touched backend modules
 
 check: lint typecheck test-fast ## Run all checks (lint + types + fast tests)
 
-verify-release: ## Run backend, Food frontend and mocked Food E2E release checks
+verify-release: ## Run backend, frontend, Food frontend and mocked Food E2E release checks
 	cd backend && $(UV) sync --extra dev && $(UV) run ruff check . && sh scripts/check_release_format.sh && sh scripts/check_release_types.sh && $(UV) run pytest --tb=short -q
-	cd frontend-food && npm ci && sh scripts/lint-release-check.sh && npx tsc --noEmit && npm test -- --run && npm run build
+	cd frontend && npm ci && npx tsc --noEmit && npm run build
+	cd frontend-food && npm ci && npm run lint && npx tsc --noEmit && npm test && npm run build
 	bash e2e/food-release-check.sh
 
 pre-commit: ## Run all pre-commit hooks
@@ -265,7 +271,8 @@ deploy-backend: verify-release push-backend ## Deploy backend to Cloud Run (west
 		--project $(GCP_PROJECT) \
 		--max=$(BACKEND_MAX_INSTANCES) \
 		--concurrency=$(BACKEND_CONCURRENCY) \
-		--update-env-vars=BACKEND_MAX_INSTANCES=$(BACKEND_MAX_INSTANCES),BACKEND_CONCURRENCY=$(BACKEND_CONCURRENCY),GUNICORN_WORKERS=2,GUNICORN_THREADS=4,BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8
+		--memory=$(BACKEND_MEMORY) \
+		--update-env-vars=BACKEND_MAX_INSTANCES=$(BACKEND_MAX_INSTANCES),BACKEND_CONCURRENCY=$(BACKEND_CONCURRENCY),GUNICORN_WORKERS=$(GUNICORN_WORKERS),GUNICORN_THREADS=$(GUNICORN_THREADS),BACKGROUND_WORKERS_PER_PROCESS=1,DB_CONNECTION_RESERVE=8
 
 migrate-cloud: ## Run Django migrations via Cloud Run job (west3, connects to west1 DB)
 	gcloud run jobs execute inspi-migrate --region $(GCP_RUN_REGION) --wait

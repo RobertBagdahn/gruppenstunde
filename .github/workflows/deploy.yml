@@ -1,5 +1,7 @@
-# CI/CD – deploys Inspi to Google Cloud Run on every merge to main.
+# CI/CD – the only production pipeline. Deploys Inspi to Google Cloud Run on
+# every push to main (or manual dispatch) after all release gates pass.
 # Mirrors .claude/skills/deploy/SKILL.md (phases 1, 3, 4, 5, 8, 9, 10).
+# Local equivalent of the gates: make verify-release
 # Intentionally NOT automated: OpenTofu apply, add_users, seed_all
 # (data-/infra-changing, manual only).
 # Auth: Workload Identity Federation (no JSON keys).
@@ -29,27 +31,139 @@ env:
   FRONTEND_SERVICE: inspi-frontend
   FRONTEND_FOOD_SERVICE: inspi-frontend-food
   MIGRATE_JOB: inspi-migrate
+  NODE_VERSION: "20"
 
 jobs:
-  checks:
+  backend-checks:
     name: Backend checks
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
-      - name: Ruff
-        working-directory: backend
+
+      # WeasyPrint needs the same native libraries as Dockerfile.backend.
+      - name: Install PDF runtime libraries
         run: |
-          uv sync --quiet
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 \
+            shared-mime-info fonts-dejavu-core
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Ruff
+        run: |
           uv run ruff check .
           uv run ruff format --check .
+          sh scripts/check_release_format.sh
+
+      - name: Mypy (release modules)
+        run: sh scripts/check_release_types.sh
+
+      - name: Pytest
+        run: uv run pytest --tb=short -q
+
+  frontend-checks:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+
+  food-checks:
+    name: Food frontend checks and mocked E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            frontend-food/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend-food
+        run: npm ci
+
+      - name: ESLint
+        working-directory: frontend-food
+        run: npm run lint
+
+      - name: TypeScript
+        working-directory: frontend-food
+        run: npx tsc --noEmit
+
+      - name: Unit tests (Vitest)
+        working-directory: frontend-food
+        run: npm test
+
+      - name: Production build
+        working-directory: frontend-food
+        run: npm run build
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # Starts the Food Vite dev server on :5174 and runs the Playwright
+      # project "mocked" against it (no backend required).
+      - name: Mocked Food E2E
+        run: sh e2e/food-release-check.sh
 
   deploy:
     name: Build and deploy
-    needs: checks
+    needs: [backend-checks, frontend-checks, food-checks]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: production
+    # Backend runtime limits (reliable-pdf-exports: one isolated request per
+    # instance). Keep identical to Dockerfile.backend, terraform/variables.tf
+    # and the Makefile; backend/core/tests/test_runtime_limits.py enforces it.
+    env:
+      BACKEND_MAX_INSTANCES: "2"
+      BACKEND_CONCURRENCY: "1"
+      BACKEND_MEMORY: 1Gi
+      GUNICORN_WORKERS: "1"
+      GUNICORN_THREADS: "1"
     steps:
       - uses: actions/checkout@v5
 
@@ -144,16 +258,18 @@ jobs:
           wait $p3 || rc=1
           exit $rc
 
-      # Phase 4: backend (minimal flags – existing env, secrets and scaling
-      # are preserved)
+      # Phase 4: backend (existing secrets and other env vars are preserved;
+      # runtime limits are always set from the job env above)
       - name: Deploy backend
         run: |
           set -euo pipefail
           gcloud run deploy "$BACKEND_SERVICE" \
             --image "$REGISTRY/backend:$GITHUB_SHA" \
             --region "$REGION" \
-            --memory 1Gi \
-            --concurrency 1
+            --memory "$BACKEND_MEMORY" \
+            --concurrency "$BACKEND_CONCURRENCY" \
+            --max-instances "$BACKEND_MAX_INSTANCES" \
+            --update-env-vars "BACKEND_MAX_INSTANCES=$BACKEND_MAX_INSTANCES,BACKEND_CONCURRENCY=$BACKEND_CONCURRENCY,GUNICORN_WORKERS=$GUNICORN_WORKERS,GUNICORN_THREADS=$GUNICORN_THREADS"
           gcloud run services update-traffic "$BACKEND_SERVICE" \
             --region "$REGION" --to-latest
 
