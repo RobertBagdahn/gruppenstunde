@@ -244,7 +244,7 @@ class TestCreateRecipe:
                     "title": "Kartoffelsalat",
                     "summary": "Klassischer Kartoffelsalat",
                     "recipe_type": "recipe_part",
-                    "portions": 6,
+                    "portions": 1,
                     "difficulty": "easy",
                 }
             ),
@@ -255,7 +255,7 @@ class TestCreateRecipe:
         assert data["title"] == "Kartoffelsalat"
         assert data["status"] == "draft"
         assert data["recipe_type"] == "recipe_part"
-        assert data["portions"] == 1  # Always stored per-1-portion
+        assert data["portions"] == 1
         assert data["visibility"] == "private"
         assert data["recipe_badge"] == "personal"
 
@@ -380,7 +380,7 @@ class TestCreateRecipe:
         assert not Ingredient.objects.filter(name="Zauberpulver").exists()
         assert not Recipe.objects.filter(title="Zauberrezept").exists()
 
-    def test_create_keeps_normalized_item_quantity_when_portions_is_provided(self, auth_client, portion):
+    def test_create_rejects_portions_other_than_one(self, auth_client, portion):
         resp = auth_client.post(
             "/api/recipes/",
             data=json.dumps(
@@ -394,10 +394,11 @@ class TestCreateRecipe:
             content_type="application/json",
         )
 
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["portions"] == 1
-        assert data["recipe_items"][0]["quantity"] == 125
+        assert resp.status_code == 422
+        error = resp.json()["detail"][0]
+        assert error["loc"][-1] == "portions"
+        assert "immer für 1 Person" in error["msg"]
+        assert not Recipe.objects.filter(title="Vier Personen").exists()
 
     def test_honeypot_protection(self, auth_client):
         resp = auth_client.post(
@@ -452,7 +453,7 @@ class TestUpdateRecipe:
         assert data["title"] == "Updated"
         assert data["recipe_type"] == "dessert"
 
-    def test_update_keeps_normalized_portions(self, auth_client, portion):
+    def test_update_rejects_portions_other_than_one(self, auth_client, portion):
         recipe = Recipe.objects.create(title="Normalisiert", status=ContentStatus.DRAFT, created_by=auth_client._user)
         recipe.authors.add(auth_client._user)
         RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=125, sort_order=0)
@@ -461,17 +462,42 @@ class TestUpdateRecipe:
             f"/api/recipes/{recipe.id}/",
             data=json.dumps(
                 {
+                    "title": "Umbenannt",
                     "portions": 4,
-                    "recipe_items": [{"portion_id": portion.id, "quantity": 125, "sort_order": 0}],
+                    "recipe_items": [{"portion_id": portion.id, "quantity": 500, "sort_order": 0}],
                 }
             ),
             content_type="application/json",
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 422
+        error = resp.json()["detail"][0]
+        assert error["loc"][-1] == "portions"
+        assert "immer für 1 Person" in error["msg"]
         recipe.refresh_from_db()
+        assert recipe.title == "Normalisiert"
         assert recipe.portions == 1
         assert recipe.recipe_items.get().quantity == 125
+
+    def test_update_with_portions_one_keeps_legacy_portions(self, auth_client, portion):
+        """portions=1 is accepted but never rewrites a legacy row; normalize_recipe_servings migrates those."""
+        recipe = Recipe.objects.create(
+            title="Altbestand", status=ContentStatus.DRAFT, created_by=auth_client._user, portions=4
+        )
+        recipe.authors.add(auth_client._user)
+        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=500, sort_order=0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"title": "Altbestand neu", "portions": 1}),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 200
+        recipe.refresh_from_db()
+        assert recipe.title == "Altbestand neu"
+        assert recipe.portions == 4
+        assert recipe.recipe_items.get().quantity == 500
 
     def test_admin_can_update_any(self, admin_client, approved_recipe):
         resp = admin_client.patch(

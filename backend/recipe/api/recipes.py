@@ -1016,7 +1016,10 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         if recipe.owner_id != request.user.id and not request.user.is_staff:
             raise HttpError(403, "Nur der Owner darf Sharing-Einstellungen ändern")
 
-    data.pop("portions", None)  # Always enforce portions=1
+    # The schema only accepts portions=1. It is never written here: setting 1 on a
+    # legacy row would reinterpret its totals as per-person amounts. Legacy rows
+    # are migrated by the normalize_recipe_servings command.
+    data.pop("portions", None)
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
     if tag_ids is not None:

@@ -231,7 +231,8 @@ export interface RecipeCreatePayload {
   summary_long?: string;
   description?: string;
   recipe_type?: string;
-  portions?: number;
+  /** Recipes always store per-person quantities; the API rejects any other value. */
+  portions?: 1;
   preparation_method?: string;
   equipment_ids?: number[];
   execution_time?: string;
@@ -295,7 +296,8 @@ export interface RecipeUpdatePayload {
   summary_long?: string;
   description?: string;
   recipe_type?: string;
-  portions?: number;
+  /** Recipes always store per-person quantities; the API rejects any other value. */
+  portions?: 1;
   preparation_method?: string;
   equipment_ids?: number[];
   execution_time?: string;
