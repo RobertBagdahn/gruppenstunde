@@ -36,6 +36,7 @@ const DRAFT_NUMERIC_FIELDS = [
   { field: 'energy_kcal', label: 'Energie (kcal/100g)' },
   { field: 'protein_g', label: 'Eiweiß (g/100g)' },
   { field: 'fat_g', label: 'Fett (g/100g)' },
+  { field: 'fat_sat_g', label: 'ges. Fettsäuren (g/100g)' },
   { field: 'carbohydrate_g', label: 'Kohlenhydrate (g/100g)' },
   { field: 'sugar_g', label: 'Zucker (g/100g)' },
   { field: 'fibre_g', label: 'Ballaststoffe (g/100g)' },
@@ -68,7 +69,7 @@ function NewIngredientDialog({
     formatDecimalInput(draft?.quantity ?? 1),
   );
   const quantity = parseDecimalInput(quantityInput);
-  const validQuantity = quantity !== null && quantity >= 0.01 ? quantity : null;
+  const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
 
   if (!draft) return null;
   const nutritionErrors = draftNutritionErrors(draft.values);
