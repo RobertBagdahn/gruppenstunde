@@ -75,10 +75,10 @@ async function openManualRecipeIngredientsStep(page: Page, title = 'E2E Rezept')
   });
   // Title and type live in this step; the mocked analysis already pre-selects "Warme Mahlzeit".
   await page.getByTestId('recipe-basis-title').fill(title);
-  await page.getByTestId('recipe-serving-context-confirm').click();
-  // Leaving "Basis & Portionen" creates the draft recipe.
+  // Attach before confirming: the wizard may create the draft as part of confirmation.
   const draftCreated = page.waitForResponse((response) => response.request().method() === 'POST'
     && new URL(response.url()).pathname === '/api/recipes/');
+  await page.getByTestId('recipe-serving-context-confirm').click();
   await page.getByTestId('recipe-wizard-next').click();
   const draftResponse = await draftCreated;
   expect(draftResponse.ok()).toBeTruthy();
