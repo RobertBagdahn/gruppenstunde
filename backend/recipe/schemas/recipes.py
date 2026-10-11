@@ -394,6 +394,15 @@ class RecipeDetailOut(ContentDetailOut):
 
 # --- Recipe Create / Update Schemas (extend Content base) ---
 
+RECIPE_PORTIONS_ERROR = "Rezepte werden immer für 1 Person gespeichert. Bitte gib die Mengen pro Person an."
+
+
+def _require_single_portion(value: int | None) -> int | None:
+    """Recipes store per-person quantities; any other portion count is rejected instead of silently rescaled."""
+    if value is not None and value != 1:
+        raise ValueError(RECIPE_PORTIONS_ERROR)
+    return value
+
 
 class RecipeCreateIn(ContentCreateIn):
     """Schema for creating a recipe."""
@@ -410,6 +419,13 @@ class RecipeCreateIn(ContentCreateIn):
         return value
 
     portions: int = 1
+
+    @field_validator("portions")
+    @classmethod
+    def validate_portions(cls, value: int) -> int:
+        _require_single_portion(value)
+        return value
+
     preparation_method: str = ""
     equipment_ids: list[int] = []
     nutritional_tag_ids: list[int] = []
@@ -448,6 +464,12 @@ class RecipeUpdateIn(ContentUpdateIn):
         return value
 
     portions: int | None = None
+
+    @field_validator("portions")
+    @classmethod
+    def validate_portions(cls, value: int | None) -> int | None:
+        return _require_single_portion(value)
+
     source_servings: int | None = Field(None, ge=1, le=100)
     preparation_method: str | None = None
     equipment_ids: list[int] | None = None

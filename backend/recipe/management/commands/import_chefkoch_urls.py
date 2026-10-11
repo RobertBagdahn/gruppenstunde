@@ -193,6 +193,7 @@ class Command(BaseCommand):
                             summary=result.summary,
                             recipe_type=result.recipe_type,
                             portions=1,
+                            source_servings=result.servings,
                             execution_time=result.execution_time or 0,
                             preparation_time=result.preparation_time or 0,
                             difficulty=result.difficulty,

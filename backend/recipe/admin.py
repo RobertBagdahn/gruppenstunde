@@ -36,7 +36,8 @@ class RecipeAdmin(ContentApprovalMixin, admin.ModelAdmin):
     search_fields = ("title", "summary", "description")
     prepopulated_fields = {"slug": ("title",)}
     inlines = [RecipeItemInline, RecipeStepInline, ContentMaterialItemInline]
-    readonly_fields = ("view_count", "like_score", "created_at", "updated_at")
+    # Recipes always store per-person quantities; legacy rows are fixed by normalize_recipe_servings.
+    readonly_fields = ("portions", "view_count", "like_score", "created_at", "updated_at")
     actions = ContentApprovalMixin.approval_actions
 
 
