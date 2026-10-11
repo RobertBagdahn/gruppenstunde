@@ -49,6 +49,7 @@ import GameListPage from './pages/games/GameListPage';
 import GameDetailPage from './pages/games/GameDetailPage';
 import MaterialListPage from './pages/supplies/MaterialListPage';
 import MaterialDetailPage from './pages/supplies/MaterialDetailPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 
 function App() {
@@ -134,6 +135,8 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/imprint" element={<ImpressumPage />} />
         <Route path="/privacy" element={<DatenschutzPage />} />
+
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Layout>
   );
