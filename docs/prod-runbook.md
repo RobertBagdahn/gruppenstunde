@@ -221,8 +221,11 @@ Migration `planner.0012_mealplan_suggestion_context` (fünf optionale Kontextfel
   - 458 Tortellini alla Panna → nur `portions=1` (keine Zutaten)
   - 472 Holländische Käsenudeln mit Gouda → nur `portions=1` (Mengen bereits pro Person)
   - 504 Herzhafte Linsensuppe → Gesamtmenge für 4, Mengen ÷ 4
-- [x] Kontrolllauf: 0 Rezepte mit `portions > 1`
+- [x] Kontrolllauf: 0 aktive Rezepte mit `portions > 1`
 - [x] Embedding für Rezept 504 gezielt neu erzeugt (Cloud Run Job `inspi-migrate`, `update_content_embedding(..., force=True)`, 768 Dimensionen; 11.10.2026)
+- [x] Vor DB-Constraint erneut geprüft: 6 soft-gelöschte Rezepte (`469, 470, 471, 473, 474, 496`) standen weiter auf `portions=4`; frisches Backup `1791754370157` (`inspi-db-west1`, 11.10.2026 21:32 UTC)
+- [x] Nach Freigabe soft-gelöschte Rezepte normalisiert (Cloud Run Job `inspi-migrate`, 11.10.2026): `469, 470, 473, 496` Gesamtmengen ÷ 4, `471, 474` bereits pro Person; `source_servings=4` für die vier geteilten Mengen
+- [x] Kontrolllauf über `Recipe._base_manager`: 0 Zeilen mit `portions > 1`; alle sechs bleiben soft-gelöscht
 - [ ] Folge-Change: DB-Constraint `portions = 1` und Entfernen der Divisionen durch `recipe.portions`
 
 ## 11. food-data-offensive — Ergebnis-Paket übertragen (offen)
