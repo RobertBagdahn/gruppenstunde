@@ -188,7 +188,156 @@ describe('refMealItemsToWizardState', () => {
 
     const state = refMealItemsToWizardState([item], catalog, 10);
 
-    expect(state.drinkRecipes?.map((recipe) => recipe.recipeId)).toEqual([42]);
+    // The saved factor is the share; the rest is the virtual "Kein Extra Getränk" (id 0).
+    expect(state.drinkRecipes?.map(({ recipeId, sharePercent }) => [recipeId, sharePercent])).toEqual([[42, 100], [0, 0]]);
     expect(state.warmDishRecipeIds).not.toContain(42);
+  });
+
+  it('restores untagged assistant ingredients as extras with their portion', () => {
+    const freeExtra = {
+      id: 12,
+      recipe_id: null,
+      recipe_title: '',
+      recipe_slug: '',
+      recipe_type: '',
+      ingredient_tags: [],
+      factor: 1,
+      ingredient_id: 99,
+      ingredient_name: 'Tomatenmark',
+      ingredient_slug: 'tomatenmark',
+      quantity: 2,
+      measuring_unit_id: 12,
+      measuring_unit_name: 'Esslöffel',
+      portion_id: 501,
+      portion_name: 'EL',
+      standard_measure_key: '',
+      unit_kind: 'grams',
+      unit_label: 'EL',
+      is_weight_approx: false,
+      display_name: null,
+      note: '',
+      image_url: null,
+      active_recipe_item_ids: [],
+      variant_group_id: null,
+      energy_kcal: 24,
+      cost_eur: null,
+      quantity_g: 30,
+      overrides: [],
+      has_missing_weight: false,
+      is_per_norm_person: true,
+      buffet_role: '',
+      is_breakfast_assistant: true,
+      warnings: [],
+    } satisfies MealItem;
+    const manualItem = { ...freeExtra, id: 13, ingredient_id: 98, is_breakfast_assistant: false } satisfies MealItem;
+
+    const state = refMealItemsToWizardState([freeExtra, manualItem], catalog, 10);
+
+    expect(state.extraIngredients).toEqual({ '99': 30 });
+    expect(state.extraIngredientNames).toEqual({ '99': 'Tomatenmark' });
+    expect(state.extraIngredientSelections?.['99']).toEqual({
+      portionId: 501,
+      measuringUnitId: 12,
+      portionName: 'EL',
+      measuringUnitName: 'Esslöffel',
+      quantity: 2,
+      weightG: 15,
+    });
+  });
+
+  it('restores explicit "no fat" and "no topping" when none were saved', () => {
+    const fatCatalog: BreakfastCatalog = {
+      ...catalog,
+      fat_ingredients: [
+        { id: 20, name: 'Butter', slug: 'butter', is_standalone_food: true, energy_kcal: 717, price_per_kg: null, portions: [] },
+      ],
+      topping_ingredients: [
+        { id: 21, name: 'Gouda', slug: 'gouda', is_standalone_food: true, energy_kcal: 350, price_per_kg: null, portions: [] },
+      ],
+    };
+    const cereal = {
+      id: 1,
+      recipe_id: null,
+      recipe_title: '',
+      recipe_slug: '',
+      recipe_type: '',
+      ingredient_tags: ['buffet-cereal'],
+      factor: 1,
+      ingredient_id: 1,
+      ingredient_name: 'Haferflocken',
+      ingredient_slug: 'haferflocken',
+      quantity: 80,
+      measuring_unit_id: 1,
+      measuring_unit_name: 'Gramm',
+      standard_measure_key: '',
+      unit_kind: 'grams',
+      unit_label: 'g',
+      is_weight_approx: false,
+      display_name: null,
+      note: '',
+      image_url: null,
+      active_recipe_item_ids: [],
+      variant_group_id: null,
+      energy_kcal: 296,
+      cost_eur: null,
+      quantity_g: 80,
+      overrides: [],
+      has_missing_weight: false,
+      is_per_norm_person: true,
+      buffet_role: '',
+      is_breakfast_assistant: true,
+      warnings: [],
+    } satisfies MealItem;
+
+    const state = refMealItemsToWizardState([cereal], fatCatalog, 10);
+
+    expect(state.fatSelections?.map(({ name, sharePercent }) => `${name}:${sharePercent}`)).toEqual(['Butter:0', 'Kein Fett:100']);
+    expect(state.toppings?.map(({ name, sharePercent }) => `${name}:${sharePercent}`)).toEqual(['Gouda:0']);
+  });
+
+  it('restores a saved fat as its part of the fixed fat amount', () => {
+    const fatCatalog: BreakfastCatalog = {
+      ...catalog,
+      fat_ingredients: [
+        { id: 20, name: 'Butter', slug: 'butter', is_standalone_food: true, energy_kcal: 717, price_per_kg: null, portions: [] },
+      ],
+    };
+    const butter = {
+      id: 2,
+      recipe_id: null,
+      recipe_title: '',
+      recipe_slug: '',
+      recipe_type: '',
+      ingredient_tags: ['buffet-fat'],
+      factor: 1,
+      ingredient_id: 20,
+      ingredient_name: 'Butter',
+      ingredient_slug: 'butter',
+      quantity: 4,
+      measuring_unit_id: 1,
+      measuring_unit_name: 'Gramm',
+      standard_measure_key: '',
+      unit_kind: 'grams',
+      unit_label: 'g',
+      is_weight_approx: false,
+      display_name: null,
+      note: '',
+      image_url: null,
+      active_recipe_item_ids: [],
+      variant_group_id: null,
+      energy_kcal: 29,
+      cost_eur: null,
+      quantity_g: 4,
+      overrides: [],
+      has_missing_weight: false,
+      is_per_norm_person: true,
+      buffet_role: '',
+      is_breakfast_assistant: true,
+      warnings: [],
+    } satisfies MealItem;
+
+    const state = refMealItemsToWizardState([butter], fatCatalog, 10);
+
+    expect(state.fatSelections?.map(({ name, sharePercent }) => `${name}:${sharePercent}`)).toEqual(['Butter:50', 'Kein Fett:50']);
   });
 });

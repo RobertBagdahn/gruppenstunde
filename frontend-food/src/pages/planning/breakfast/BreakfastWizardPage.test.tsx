@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { BreakfastCatalog } from '@/schemas/breakfast';
 import type { MealItem } from '@/schemas/mealPlan';
@@ -15,7 +15,11 @@ const mocks = vi.hoisted(() => ({
   useSaveBreakfastBulk: vi.fn(),
 }));
 
-vi.mock('@/api/mealPlans', () => ({ useMealPlan: mocks.useMealPlan }));
+vi.mock('@/api/mealPlans', () => ({
+  useMealPlan: mocks.useMealPlan,
+  useScaleMealToTarget: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+vi.mock('@/pages/planning/RecipeSearchDialog', () => ({ default: () => null }));
 vi.mock('@/api/refMeals', () => ({ useRefMeals: mocks.useRefMeals }));
 vi.mock('@/api/breakfast', () => ({
   useBreakfastCatalog: mocks.useBreakfastCatalog,
@@ -28,13 +32,13 @@ vi.mock('@/components/buffet/BuffetBuilder', () => ({
   BuffetBuilder: ({ open }: { open: boolean }) => (open ? <div data-testid="free-buffet-dialog" /> : null),
 }));
 vi.mock('./StepBasis', () => ({
-  default: ({ wiz }: { wiz: { state: { basis: Array<{ name: string; sharePercent: number }>; fatSelections: Array<{ name: string }> } } }) => (
+  default: ({ wiz }: { wiz: { state: { basis: Array<{ name: string; sharePercent: number }>; fatSelections: Array<{ name: string; sharePercent: number }> } } }) => (
     <>
       <output data-testid="breakfast-basis-state">
         {wiz.state.basis.map(({ name, sharePercent }) => `${name}:${sharePercent}`).join('|')}
       </output>
       <output data-testid="breakfast-fat-state">
-        {wiz.state.fatSelections.map(({ name }) => name).join('|')}
+        {wiz.state.fatSelections.map(({ name, sharePercent }) => `${name}:${sharePercent}`).join('|')}
       </output>
     </>
   ),
@@ -172,7 +176,42 @@ describe('BreakfastWizardPage profiles', () => {
     fireEvent.click(screen.getByRole('button', { name: /Nur Müsli/ }));
 
     expect(screen.getByTestId('breakfast-basis-state')).toHaveTextContent('Haferflocken:100|Cornflakes:0');
-    expect(screen.getByTestId('breakfast-fat-state')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('breakfast-fat-state')).toHaveTextContent('Deutsche Markenbutter:0|Kein Fett:100');
+  });
+
+  it('saves Nur Müsli with cereal and without fat or topping after visiting every step', async () => {
+    const saveDirectMeal = vi.fn().mockResolvedValue(undefined);
+    mocks.useSaveDirectMeal.mockReturnValue({ mutateAsync: saveDirectMeal, isPending: false });
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: /Nur Müsli/ }));
+    for (let step = 0; step < 5; step += 1) {
+      fireEvent.click(screen.getByRole('button', { name: /Weiter/ }));
+    }
+    fireEvent.click(screen.getByRole('button', { name: /Frühstück speichern/ }));
+
+    await waitFor(() => expect(saveDirectMeal).toHaveBeenCalledTimes(1));
+    const savedIngredientIds = saveDirectMeal.mock.calls[0][0].items.map((item: { ingredient_id?: number | null }) => item.ingredient_id);
+    expect(savedIngredientIds).toContain(2);
+    expect(savedIngredientIds).not.toContain(4);
+    expect(savedIngredientIds).not.toContain(5);
+  });
+
+  it('shows a hint instead of selecting a cereal without kcal', () => {
+    mocks.useBreakfastCatalog.mockReturnValue({
+      data: {
+        ...catalog,
+        base_ingredients: catalog.base_ingredients.map((item) => ({ ...item, energy_kcal: item.id === 1 ? 250 : null })),
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    renderWizard();
+    fireEvent.click(screen.getByRole('button', { name: /Nur Müsli/ }));
+
+    expect(screen.getByRole('status', { name: /Hinweise zum Frühstücksprofil/ })).toHaveTextContent('Kein Müsli und keine Haferflocken mit kcal-Angabe gefunden');
+    expect(screen.getByTestId('breakfast-basis-state')).toHaveTextContent('Haferflocken:0|Cornflakes:0');
+    expect(screen.getByRole('button', { name: /Weiter/ })).toBeDisabled();
   });
 
   it('starts Brot und Müsli with a bread/cereal distribution', () => {

@@ -8,18 +8,11 @@ import { useBreakfastCatalog } from '@/api/breakfast';
 import ShareSlider from './ShareSlider';
 import type { DrinkRecipeSelection, DrinkIngredientSelection } from '@/schemas/breakfast';
 import { SkeletonTableRows } from '@/components/ui/skeleton';
+import { noExtraDrinkSelection } from '@/lib/breakfastWizardItems';
 
 interface StepGetraenkeProps {
   wiz: UseWizardStateReturn;
 }
-
-const KEIN_EXTRA_GETRAENK: DrinkRecipeSelection = {
-  recipeId: 0,
-  name: 'Kein Extra Getränk',
-  sharePercent: 50,
-  locked: false,
-  energyKcal: 0,
-};
 
 const KEINE_MILCH_SAFT: DrinkIngredientSelection = {
   ingredientId: 0,
@@ -49,7 +42,7 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
     });
 
     // Add virtual "Kein Extra Getränk" option
-    const keinGetraenk = { ...KEIN_EXTRA_GETRAENK, sharePercent: drinks.length > 0 ? 50 : 100 };
+    const keinGetraenk = noExtraDrinkSelection(drinks.length > 0 ? 50 : 100);
     const all: DrinkRecipeSelection[] = [...drinks, keinGetraenk];
     initDrinkRecipes(all);
   }, [catalog, state.drinkRecipes.length, initDrinkRecipes]);

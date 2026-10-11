@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { deriveGramPortionHint, formatGramsWithPortionHint } from './portionQuantityHint';
+import { deriveGramPortionHint, formatGramsWithPortionHint, germanPortionPlural } from './portionQuantityHint';
 import type { BreakfastPortion } from '@/schemas/breakfast';
 
 describe('portionQuantityHint', () => {
@@ -142,6 +142,26 @@ describe('portionQuantityHint', () => {
     it('should show only grams for empty portions', () => {
       expect(formatGramsWithPortionHint(85, [])).toBe('85g');
       expect(formatGramsWithPortionHint(85, null)).toBe('85g');
+    });
+  });
+
+  describe('germanPortionPlural', () => {
+    it('pluralizes single nouns', () => {
+      expect(germanPortionPlural('Scheibe')).toBe('Scheiben');
+      expect(germanPortionPlural('Packung')).toBe('Packungen');
+    });
+
+    it('keeps unit abbreviations, multi-word names and invariant nouns unchanged', () => {
+      expect(germanPortionPlural('ml')).toBe('ml');
+      expect(germanPortionPlural('EL')).toBe('EL');
+      expect(germanPortionPlural('Belag knapp')).toBe('Belag knapp');
+      expect(germanPortionPlural('Stück')).toBe('Stück');
+      expect(germanPortionPlural('Becher')).toBe('Becher');
+    });
+
+    it('formats the breakfast topping hints without broken plurals', () => {
+      expect(deriveGramPortionHint(60.2, [mockPortion('ml', 1, 1)])).toBe('≈ 60,2 ml');
+      expect(deriveGramPortionHint(50, [mockPortion('Belag knapp', 20, 1)])).toBe('≈ 2,5 Belag knapp');
     });
   });
 });
