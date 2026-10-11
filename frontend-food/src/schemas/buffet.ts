@@ -119,11 +119,14 @@ export const BuffetSelectionInSchema = z.object({
 });
 export type BuffetSelectionIn = z.infer<typeof BuffetSelectionInSchema>;
 
+export const BuffetManualItemsPolicySchema = z.enum(['preserve', 'replace']);
+export type BuffetManualItemsPolicy = z.infer<typeof BuffetManualItemsPolicySchema>;
+
 export const BuffetSaveInSchema = z.object({
   template_id: z.number(),
   selections: z.array(BuffetSelectionInSchema).default([]),
   role_amounts: z.record(z.string(), z.number()).nullable().optional(),
-  manual_items_policy: z.enum(['preserve', 'replace']).default('preserve'),
+  manual_items_policy: BuffetManualItemsPolicySchema.default('preserve'),
   dry_run: z.boolean().default(false),
 });
 export type BuffetSaveIn = z.infer<typeof BuffetSaveInSchema>;
@@ -188,5 +191,9 @@ export const BuffetStateSchema = z.object({
   selections: z.array(BuffetStateSelectionSchema).default([]),
   role_amounts: z.record(z.string(), z.number()).default({}),
   manual_item_count: z.number().default(0),
+  /** Manual-items decision of the last buffet save; null before the first save. */
+  manual_items_policy: BuffetManualItemsPolicySchema.nullable().default(null),
+  /** E.g. saved items that are no longer visible and were omitted. */
+  warnings: z.array(BuffetWarningSchema).default([]),
 });
 export type BuffetState = z.infer<typeof BuffetStateSchema>;

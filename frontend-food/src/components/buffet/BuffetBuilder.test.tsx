@@ -11,6 +11,7 @@ import {
   useSaveBuffet,
 } from '@/api/buffet';
 import type { BuffetTemplate, BuffetCatalog, BuffetState, BuffetResult } from '@/schemas/buffet';
+import { ApiError } from '@/lib/api';
 
 vi.mock('@/api/buffet', () => ({
   useBuffetTemplates: vi.fn(),
@@ -73,7 +74,14 @@ function makeCatalog(overrides: Partial<BuffetCatalog> = {}): BuffetCatalog {
   };
 }
 
-const emptyState: BuffetState = { template_id: null, selections: [], role_amounts: {}, manual_item_count: 0 };
+const emptyState: BuffetState = {
+  template_id: null,
+  selections: [],
+  role_amounts: {},
+  manual_item_count: 0,
+  manual_items_policy: null,
+  warnings: [],
+};
 
 function makeResult(overrides: Partial<BuffetResult> = {}): BuffetResult {
   return {
@@ -342,6 +350,7 @@ describe('BuffetBuilder', () => {
   it('restores the saved selection and amounts when reopening', () => {
     vi.mocked(useBuffetState).mockReturnValue({
       data: {
+        ...emptyState,
         template_id: 1,
         selections: [{
           role_slug: 'buffet-sweet',
@@ -370,6 +379,7 @@ describe('BuffetBuilder', () => {
   it('restores a free selection that is no longer in the role catalog', () => {
     vi.mocked(useBuffetState).mockReturnValue({
       data: {
+        ...emptyState,
         template_id: 1,
         selections: [{
           role_slug: 'buffet-bread',
@@ -447,6 +457,7 @@ describe('BuffetBuilder', () => {
   it('allows choosing to replace existing manual meal items before saving', () => {
     vi.mocked(useBuffetState).mockReturnValue({
       data: {
+        ...emptyState,
         template_id: 1,
         selections: [{
           role_slug: 'buffet-bread',
@@ -593,5 +604,156 @@ describe('BuffetBuilder', () => {
     choosePreset();
 
     expect(screen.getByText(/bitte prüfen/)).toBeInTheDocument();
+  });
+  it('shows the HTTP status of a failed preview via the API error message', () => {
+    vi.mocked(useBuffetPreview).mockReturnValue({
+      preview: previewFn,
+      result: null,
+      isPending: false,
+      error: new ApiError(500, 'Internal Server Error', {}),
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof useBuffetPreview>);
+
+    renderBuilder();
+    choosePreset();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Die Vorschau konnte nicht geladen werden: Serverfehler (HTTP 500). Bitte versuche es später erneut.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    expect(previewFn).toHaveBeenCalled();
+  });
+
+  it('shows the backend message of a rejected preview on the review step', () => {
+    vi.mocked(useBuffetPreview).mockReturnValue({
+      preview: previewFn,
+      result: null,
+      isPending: false,
+      error: new ApiError(422, 'Unprocessable Entity', { detail: 'Item-Anteile einer Rolle müssen zusammen 100 % ergeben.' }),
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof useBuffetPreview>);
+
+    renderBuilder();
+    choosePreset();
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
+
+    expect(
+      screen.getByText('Die Vorschau ist fehlgeschlagen: Item-Anteile einer Rolle müssen zusammen 100 % ergeben.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows German meal type labels in the preset chooser', () => {
+    renderBuilder({ mealType: 'lunch' });
+
+    expect(screen.getByText('Mahlzeitentyp: Mittagessen')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Weitere Vorlagen'));
+    expect(within(screen.getByTestId('buffet-other-presets')).getByText('Frühstück', { selector: 'span.text-caption' })).toBeInTheDocument();
+    expect(screen.queryByText(/breakfast|lunch/)).not.toBeInTheDocument();
+  });
+
+  it('restores the saved replace decision for manual meal items', () => {
+    vi.mocked(useBuffetState).mockReturnValue({
+      data: {
+        ...emptyState,
+        template_id: 1,
+        selections: [{
+          role_slug: 'buffet-bread',
+          ingredient_id: 10,
+          recipe_id: null,
+          kind: 'ingredient',
+          share_percent: 100,
+          name: 'Baguette',
+          energy_kcal_per_100g: 250,
+          price_per_kg: 3,
+          weight_per_serving_g: null,
+        }],
+        role_amounts: { 'buffet-bread': 150 },
+        manual_item_count: 1,
+        manual_items_policy: 'replace',
+      },
+    } as unknown as ReturnType<typeof useBuffetState>);
+
+    renderBuilder();
+    fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
+
+    expect(screen.getByLabelText('Manuelle Einträge durch das Buffet ersetzen')).toBeChecked();
+    fireEvent.click(screen.getByTestId('buffet-save'));
+    expect(saveMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ manualItemsPolicy: 'replace' }),
+      expect.anything(),
+    );
+  });
+
+  it('shows a warning when saved items are no longer visible', () => {
+    vi.mocked(useBuffetState).mockReturnValue({
+      data: {
+        ...emptyState,
+        template_id: 1,
+        warnings: [{
+          code: 'hidden_saved_items',
+          message: '1 gespeicherter Buffet-Eintrag ist nicht mehr sichtbar und wird beim nächsten Speichern entfernt.',
+        }],
+      },
+    } as unknown as ReturnType<typeof useBuffetState>);
+
+    renderBuilder();
+
+    expect(
+      screen.getByText('1 gespeicherter Buffet-Eintrag ist nicht mehr sichtbar und wird beim nächsten Speichern entfernt.'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('buffet-role-buffet-bread')).toBeInTheDocument();
+  });
+
+  it('opens the requested initial preset directly', async () => {
+    const freeTemplate: BuffetTemplate = {
+      id: 9,
+      name: 'Freies Buffet',
+      slug: 'free',
+      description: '',
+      meal_types: ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'],
+      sort_order: 100,
+      roles: [],
+    };
+    vi.mocked(useBuffetTemplates).mockReturnValue({
+      data: [breakfastTemplate, freeTemplate],
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useBuffetTemplates>);
+
+    renderBuilder({ mealType: 'breakfast', initialTemplateSlug: 'free' });
+
+    await waitFor(() => expect(useBuffetCatalog).toHaveBeenLastCalledWith('free', { enabled: true }));
+    expect(screen.queryByTestId('buffet-free-preset')).not.toBeInTheDocument();
+    expect(screen.getByTestId('buffet-role-buffet-bread')).toBeInTheDocument();
+  });
+
+  it('passes the standalone and alcohol filter toggles to the catalog search', async () => {
+    renderBuilder();
+    choosePreset();
+    fireEvent.change(screen.getByPlaceholderText('Weitere hinzufügen…'), { target: { value: 'Bier' } });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Auch Backzutaten & Gewürze' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Alkoholische Treffer ausblenden' }));
+
+    await waitFor(() => {
+      expect(useBuffetCatalogSearch).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          q: 'Bier',
+          role: 'buffet-bread',
+          mealType: 'lunch',
+          includeNonStandalone: true,
+          excludeAlcohol: true,
+        }),
+        { enabled: true },
+      );
+    });
+  });
+
+  it('shows "Nichts gefunden" when the search has no results', async () => {
+    renderBuilder();
+    choosePreset();
+    fireEvent.change(screen.getByPlaceholderText('Weitere hinzufügen…'), { target: { value: 'Xyz' } });
+
+    expect(await screen.findByText('Nichts gefunden. Erweitere die Suche über die Filter.')).toBeInTheDocument();
   });
 });

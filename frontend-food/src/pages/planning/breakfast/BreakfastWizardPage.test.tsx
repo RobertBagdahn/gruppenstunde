@@ -29,7 +29,9 @@ vi.mock('@/api/breakfast', () => ({
 }));
 vi.mock('sonner', () => ({ toast: { warning: vi.fn(), error: vi.fn() } }));
 vi.mock('@/components/buffet/BuffetBuilder', () => ({
-  BuffetBuilder: ({ open }: { open: boolean }) => (open ? <div data-testid="free-buffet-dialog" /> : null),
+  BuffetBuilder: ({ open, initialTemplateSlug }: { open: boolean; initialTemplateSlug?: string }) => (
+    open ? <div data-testid="free-buffet-dialog" data-initial-template={initialTemplateSlug} /> : null
+  ),
 }));
 vi.mock('./StepBasis', () => ({
   default: ({ wiz }: { wiz: { state: { basis: Array<{ name: string; sharePercent: number }>; fatSelections: Array<{ name: string; sharePercent: number }> } } }) => (
@@ -249,9 +251,9 @@ describe('BreakfastWizardPage profiles', () => {
     expect(screen.getByTestId('breakfast-basis-state')).not.toHaveTextContent('Apfel');
   });
 
-  it('opens the generic builder from the separate free-buffet option', () => {
+  it('opens the generic builder directly on the free preset from the separate free-buffet option', () => {
     renderWizard();
     fireEvent.click(screen.getByRole('button', { name: /Freies Buffet/ }));
-    expect(screen.getByTestId('free-buffet-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('free-buffet-dialog')).toHaveAttribute('data-initial-template', 'free');
   });
 });
