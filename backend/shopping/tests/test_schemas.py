@@ -156,6 +156,30 @@ class TestResolvePieceEquivalent:
         result = ShoppingListItemOut.resolve_piece_equivalent(item)
         assert result["portion_name"] == "A"
 
+    def test_default_portion_wins_for_large_quantities(self, shopping_list):
+        """Large amounts use the standard portion, not the largest one (spec shopping-list-piece-equivalents)."""
+        ingredient = make_ingredient(name="Speisezwiebel")
+        make_portion(
+            ingredient=ingredient,
+            name="mittelgroße Zwiebel",
+            quantity=1,
+            weight_g=80,
+            weight_status="confirmed",
+            rank=1,
+        )
+        make_portion(ingredient=ingredient, name="1 Portion", quantity=1, weight_g=120, rank=3)
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            name="Speisezwiebel",
+            quantity_g=3560,
+            unit="g",
+            ingredient=ingredient,
+        )
+        result = ShoppingListItemOut.resolve_piece_equivalent(item)
+        assert result == {"count": 44.5, "portion_name": "mittelgroße Zwiebel"}
+        options = ShoppingListItemOut.resolve_portion_options(item)
+        assert {option["name"] for option in options} >= {"mittelgroße Zwiebel", "1 Portion"}
+
 
 @pytest.mark.django_db
 class TestResolvePortionOptions:

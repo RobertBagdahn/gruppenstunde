@@ -454,6 +454,10 @@ def compute_portion_options(
     options: list[dict] = []
     best_portion = None
     best_diff = float("inf")
+    # The standard portion (rank 1) is how people think about an ingredient
+    # ("≈ 44 Zwiebeln", not "≈ 30 Portionen à 120 g"), so it wins whenever it
+    # yields at least half a unit.
+    default_portion = None
 
     for p in portions:
         if resolve_trusted_weight(p) is None:
@@ -471,12 +475,17 @@ def compute_portion_options(
             }
         )
 
-        # Find best portion (closest to 1 whole unit)
+        if p.rank == 1 and default_portion is None:
+            default_portion = p
+
+        # Fallback: portion closest to 1 whole unit
         diff = abs(count - 1.0)
         if (p.rank == 1 and diff <= 0.5) or diff < best_diff:
             best_diff = diff
             best_portion = p
 
+    if default_portion is not None:
+        best_portion = default_portion
     if not best_portion or not options:
         return (None, options)
 
