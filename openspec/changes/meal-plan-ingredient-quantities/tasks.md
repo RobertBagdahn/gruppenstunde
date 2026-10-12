@@ -46,4 +46,5 @@
 
 - [x] 6.1 `npm run lint`, `npm run typecheck`, `npm test` in `frontend-food/`
 - [x] 6.2 Prüfung mit Peters Plan auf Prod (nur lesend, nach Deploy): 56 Zutaten, Summen identisch mit der Einkaufsliste, Zwiebel/Eisbergsalat-Anteile wie in der Diagnose
-- [ ] 6.3 Rückmeldung an Peter (Text liegt vor)
+- [x] 6.3 Rückmeldung an Peter
+- [x] 6.4 Datenkorrektur Zwiebel/Eisbergsalat auf Prod (Freigabe 12.10.2026, Snapshot `1791780970242`)

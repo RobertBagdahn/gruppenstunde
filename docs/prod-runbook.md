@@ -254,3 +254,16 @@ Datenoffensive lief, und kann mehrere MB groß werden. Es wird für den Prod-Ter
 - [ ] Embeddings nachziehen: `uv run python manage.py food_data_offensive --apply --steps embeddings`
       (≈ 0,15 € für alle Zutaten).
 - Rollback: DB-Snapshot.
+
+## meal-plan-ingredient-quantities — Datenkorrektur Zwiebel/Eisbergsalat (12.10.2026)
+
+Freigabe durch Robert am 12.10.2026. Snapshot vorher: Backup `1791780970242` (`inspi-db-west1`).
+Ausgeführt lokal gegen Prod über den Cloud SQL Proxy, erst als Trockenlauf (Transaktion zurückgerollt), dann mit `APPLY=1`.
+
+- [x] Rezeptmengen pro Person: #528 Sweet Onion Sauce Zwiebel 2 → 0,5; #523 BBQ Jackfruit Burger Zwiebel 1 → 0,25;
+      #340 Caesar Diät Wrap Eisbergsalat 1 → 0,3 (45 g); #529 Baguette Teriyaki Eisbergsalat 0,5 → 0,2 (30 g)
+- [x] Eisbergsalat (#30): neue Portion „Kopf“ 550 g (bestätigt, Rang 1); „1 Stück (150g)“ bleibt für bestehende Rezepte, Rang 3
+- [x] Zutaten zusammengeführt (`merge_ingredient`): „Zwiebel“ (#7599) und „Speisezwiebel gelb“ (#7527) → „Speisezwiebel“ (#38);
+      Normalportion von #38 jetzt „mittelgroße Zwiebel“ (80 g); falsche Aliase „Gemüsezwiebel(n)“ an #38 entfernt
+- [x] 90 Rezept-Caches neu berechnet
+- [x] Ergebnis Plan „Bundesrat 2026“ (#18): Zwiebeln 11,1 kg (zwei Zutaten) → 3,6 kg; Eisbergsalat 2,6 kg („17,5 Stück“) → 1,05 kg (≈ 1,9 Köpfe)

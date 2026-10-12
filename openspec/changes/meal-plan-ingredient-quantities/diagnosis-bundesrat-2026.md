@@ -58,4 +58,4 @@ Read-only-Abfrage gegen Prod am 11.10.2026 (Cloud SQL Proxy, Session `READ ONLY`
 - **Portion „1 Stück (150g)“ bei Eisbergsalat:** Ein Kopf wiegt ca. 500–600 g. Die Einkaufsliste zeigt dadurch zu viele „Stück“ (Bundesrat: 17,5 statt ca. 5 Köpfe).
 - **Doppelte Zwiebel-Zutaten:** „Zwiebel“, „Speisezwiebel“, „Gemüsezwiebel(n)“ werden getrennt aufgeführt und nicht zusammengezählt.
 
-Korrekturen erfordern Roberts Freigabe (Prod-Daten).
+Korrekturen am 12.10.2026 nach Roberts Freigabe ausgeführt, siehe `docs/prod-runbook.md` (Abschnitt „meal-plan-ingredient-quantities — Datenkorrektur“).
