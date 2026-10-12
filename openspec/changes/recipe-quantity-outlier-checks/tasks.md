@@ -40,4 +40,4 @@
 
 - [ ] 6.1 Deploy; danach `recalculate_ingredient_quantity_stats` auf Prod
 - [ ] 6.2 `check_recipe_quantities` auf Prod (Bericht), Ergebnis mit Robert durchgehen; Korrekturen nur nach Freigabe
-- [ ] 6.3 Täglichen Cloud-Run-Job für die Statistik einrichten (Tofu)
+- [x] 6.3 Täglichen Lauf eingerichtet (Tofu): Cloud Scheduler `ingredient-quantity-stats` 03:30 ruft `inspi-migrate` mit `recalculate_ingredient_quantity_stats` auf

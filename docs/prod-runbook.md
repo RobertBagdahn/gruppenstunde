@@ -267,3 +267,12 @@ Ausgeführt lokal gegen Prod über den Cloud SQL Proxy, erst als Trockenlauf (Tr
       Normalportion von #38 jetzt „mittelgroße Zwiebel“ (80 g); falsche Aliase „Gemüsezwiebel(n)“ an #38 entfernt
 - [x] 90 Rezept-Caches neu berechnet
 - [x] Ergebnis Plan „Bundesrat 2026“ (#18): Zwiebeln 11,1 kg (zwei Zutaten) → 3,6 kg; Eisbergsalat 2,6 kg („17,5 Stück“) → 1,05 kg (≈ 1,9 Köpfe)
+
+## recipe-quantity-outlier-checks — Statistik und täglicher Job (12.10.2026)
+
+- [x] Tofu (gezielt, `-target`, Plan: 4 neu, 0 geändert, 0 gelöscht): `cloudscheduler.googleapis.com`,
+      Service-Account `management-scheduler`, Rolle `run.jobsExecutorWithOverrides` auf Job `inspi-migrate`,
+      Scheduler `ingredient-quantity-stats` (täglich 03:30 Europe/Berlin) ruft `inspi-migrate` mit
+      `manage.py recalculate_ingredient_quantity_stats` auf. Der Job erhält bei jedem Deploy das aktuelle Image.
+- [ ] Nach Deploy: erster Lauf `gcloud scheduler jobs run ingredient-quantity-stats --location europe-west1`
+- [ ] Bericht `check_recipe_quantities` (nur lesend) mit Robert durchgehen
