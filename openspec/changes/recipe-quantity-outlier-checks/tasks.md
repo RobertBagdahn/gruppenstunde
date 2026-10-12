@@ -38,6 +38,6 @@
 
 ## 6. Rollout
 
-- [ ] 6.1 Deploy; danach `recalculate_ingredient_quantity_stats` auf Prod
-- [ ] 6.2 `check_recipe_quantities` auf Prod (Bericht), Ergebnis mit Robert durchgehen; Korrekturen nur nach Freigabe
+- [x] 6.1 Deploy (`f223e015`); `recalculate_ingredient_quantity_stats` auf Prod über den Scheduler (565 Zutaten)
+- [x] 6.2 `check_recipe_quantities` auf Prod (Bericht) erstellt; Korrekturen nur nach Freigabe
 - [x] 6.3 Täglichen Lauf eingerichtet (Tofu): Cloud Scheduler `ingredient-quantity-stats` 03:30 ruft `inspi-migrate` mit `recalculate_ingredient_quantity_stats` auf

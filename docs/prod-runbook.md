@@ -274,5 +274,6 @@ Ausgeführt lokal gegen Prod über den Cloud SQL Proxy, erst als Trockenlauf (Tr
       Service-Account `management-scheduler`, Rolle `run.jobsExecutorWithOverrides` auf Job `inspi-migrate`,
       Scheduler `ingredient-quantity-stats` (täglich 03:30 Europe/Berlin) ruft `inspi-migrate` mit
       `manage.py recalculate_ingredient_quantity_stats` auf. Der Job erhält bei jedem Deploy das aktuelle Image.
-- [ ] Nach Deploy: erster Lauf `gcloud scheduler jobs run ingredient-quantity-stats --location europe-west1`
-- [ ] Bericht `check_recipe_quantities` (nur lesend) mit Robert durchgehen
+- [x] Nach Deploy (`f223e015`): erster Lauf `gcloud scheduler jobs run ingredient-quantity-stats --location europe-west1` → Ausführung `inspi-migrate-qbp2d`, „Mengenstatistik für 565 Zutaten berechnet.“
+- [x] Bericht `check_recipe_quantities` auf Prod (READ-ONLY-Session, 12.10.2026): 10 auffällige Mengen, 1 ungeteilte Zeile (#530 Apfelringe), 46 unbestätigte 150-g-Stückportionen, 51 Alias-Konflikte
+- [ ] Korrekturen aus dem Bericht nur nach Roberts Freigabe
