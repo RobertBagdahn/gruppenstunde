@@ -2,7 +2,7 @@
 
 - [x] 1.1 Titel in `ContentCreateIn`/Update-Schemas trimmen und nach dem Trimmen auf Mindestlänge prüfen; Backend-Test (Validator existierte bereits auf main, Test ergänzt)
 - [x] 1.2 `ß` → `ss` vor `slugify` in `content/models/core.py`; Test inkl. Kollisionsfall
-- [ ] 1.3 (Owner-Entscheidung nötig: neuer Choice-Wert + Migration für alle Content-Typen) Standard-Zubereitungszeit auf „Keine Angabe“ setzen (Choices prüfen), Frontend-Defaults und Zod angleichen
+- [ ] 1.3 Bewusst nicht umgesetzt: `execution_time` wird von KI-Import, Filtern, Blog, Spiele und Sessions erwartet; ein neuer Wert „Keine Angabe“ braucht einen eigenen Change mit Migration Standard-Zubereitungszeit auf „Keine Angabe“ setzen (Choices prüfen), Frontend-Defaults und Zod angleichen
 
 ## 2. Datenlücken im Plan
 
@@ -18,9 +18,9 @@
 
 ## 4. Einkaufsliste
 
-- [ ] 4.1 (Owner-Entscheidung nötig: Datenmerge vs. Alias-Feld) Geprüfte Dubletten-Paare (Banane/Bananen, Möhre/Möhren, Kartoffel/Kartoffeln, Zwiebel/Zwiebeln, Gurke/Gurken, Apfel/Äpfel) über Merge/Alias auf eine kanonische Zutat abbilden
-- [ ] 4.2 Aggregation in `shopping_service.py` über kanonische Zutat; `sources` behält Ursprung
-- [ ] 4.3 (Konflikt mit Spec `quantity-display-formatting` „≈2,5 Stück“; Owner-Entscheidung nötig) Stück- und Packungsanzahl in der Anzeige aufrunden; Test mit 1.375 g / 500-g-Packung
+- [x] 4.1 Datenmerge statt Alias-Feld: Dubletten-Gruppen (Banane/Bananen, Möhre/Karotte/Möhren, Kartoffel, Zwiebel, Gurke, Apfel) in `DUPLICATE_GROUPS` ergänzt; Ausführung auf Prod nur nach Dry-Run und Freigabe (`fix_food_data_quality --steps duplicates`)
+- [x] 4.2 Keine Laufzeit-Aggregation nötig: nach dem Merge teilen sich die Rezepte eine Zutat; Test für den Merge ergänzt
+- [x] 4.3 Nur Verkaufsverpackungen (Packung, Dose, Glas, Becher, Flasche, Beutel, Tüte) werden in der Stückanzeige aufgerundet; Stücke wie „≈ 9,2 Einzelstück“ behalten die Dezimalstelle (Spec `quantity-display-formatting`); Tests
 - [x] 4.4 Einkaufen-Tab und gespeicherte Liste zeigen dieselben Werte (Regressionstest)
 
 ## 5. Frühstücksassistent

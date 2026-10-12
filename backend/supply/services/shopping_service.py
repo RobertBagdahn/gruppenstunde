@@ -11,6 +11,7 @@ it belongs to the norm-portion calorie calculation only.
 from __future__ import annotations
 
 import logging
+import math
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -431,6 +432,22 @@ def _format_natural_portion(count: int | float, name: str) -> str:
     return f"ca. {count_str} x {name}"
 
 
+_PACKAGE_PORTION_WORDS: tuple[str, ...] = ("packung", "päckchen", "dose", "glas", "becher", "flasche", "beutel", "tüte")
+
+
+def _is_package_portion(name: str) -> bool:
+    """Whether a portion is a sales package ("500g (Packung)"), which can only be bought whole."""
+    lowered = name.lower()
+    return any(word in lowered for word in _PACKAGE_PORTION_WORDS)
+
+
+def _portion_count(count: float, portion_name: str) -> float:
+    """Piece count for display; package portions are rounded up to whole packages."""
+    if _is_package_portion(portion_name):
+        return max(1, math.ceil(count - 1e-9))
+    return _rounded_piece_count(count)
+
+
 def _rounded_piece_count(count: float) -> float:
     """Round a piece count to 1 decimal, snapping to a whole number at ≥1
     (matches the ``quantity-display-formatting`` "≈3 Stück" vs "≈2,5 Stück"
@@ -473,7 +490,7 @@ def compute_portion_options(
                 "name": p.name,
                 "is_default": p.rank == 1,
                 "weight_g": p.weight_g,
-                "count": _rounded_piece_count(count),
+                "count": _portion_count(count, p.name),
             }
         )
 
@@ -495,7 +512,7 @@ def compute_portion_options(
         "name": best_portion.name,
         "is_default": best_portion.rank == 1,
         "weight_g": best_portion.weight_g,
-        "count": _rounded_piece_count(quantity_g / best_portion.weight_g),
+        "count": _portion_count(quantity_g / best_portion.weight_g, best_portion.name),
     }
     return (best, options)
 

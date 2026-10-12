@@ -102,6 +102,22 @@ class TestDuplicatesAndPrices:
         assert not target.is_deleted
         assert merge_duplicate_groups(apply=True).changed == 0
 
+    def test_singular_plural_duplicates_share_one_ingredient(self):
+        target = make_ingredient(name="Bananen")
+        source = make_ingredient(name="Banane")
+        carrots = make_ingredient(name="Möhren")
+        carrot_source = make_ingredient(name="Möhre")
+
+        assert merge_duplicate_groups(apply=False).changed == 2
+        merge_duplicate_groups(apply=True)
+
+        for ingredient in (target, carrots):
+            ingredient.refresh_from_db()
+            assert not ingredient.is_deleted
+        for ingredient in (source, carrot_source):
+            ingredient.refresh_from_db()
+            assert ingredient.is_deleted
+
     def test_missing_price_is_filled_but_existing_price_is_kept(self):
         lentils = make_ingredient(name="Berglinsen (getrocknet)", price_per_kg=None)
         priced = make_ingredient(name="Berglinsen", price_per_kg=Decimal("6.50"))

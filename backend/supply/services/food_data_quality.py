@@ -42,6 +42,13 @@ DUPLICATE_GROUPS: tuple[DuplicateGroup, ...] = (
         target="Basilikum, getrocknet",
         sources=("Basilikum, trocken", "Getrockneter Basilikum", "Basilikum getrocknet", "Basilikum trocken"),
     ),
+    # Singular/plural duplicates that split shopping list lines (food-qa-followups).
+    DuplicateGroup(target="Bananen", sources=("Banane",)),
+    DuplicateGroup(target="Möhren", sources=("Möhre", "Karotte", "Karotten")),
+    DuplicateGroup(target="Kartoffeln", sources=("Kartoffel",)),
+    DuplicateGroup(target="Zwiebeln", sources=("Zwiebel",)),
+    DuplicateGroup(target="Gurken", sources=("Gurke",)),
+    DuplicateGroup(target="Äpfel", sources=("Apfel",)),
 )
 
 # €/kg, only applied when the ingredient has no price yet.
