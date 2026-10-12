@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.test import override_settings
 
-from content.services.image_service import download_external_image
+from content.services.image_service import EXTERNAL_IMAGE_REQUEST_HEADERS, download_external_image
 
 PUBLIC_ADDRESS = [(2, 1, 6, "", ("93.184.216.34", 443))]
 
@@ -43,9 +43,11 @@ def test_download_external_image_accepts_public_image(public_dns):
     request_get.assert_called_once_with(
         "https://example.test/recipe.png",
         timeout=30,
+        headers=EXTERNAL_IMAGE_REQUEST_HEADERS,
         allow_redirects=False,
         stream=True,
     )
+    assert "python-requests" not in EXTERNAL_IMAGE_REQUEST_HEADERS["User-Agent"]
     save.assert_called_once()
     response.close.assert_called_once_with()
 

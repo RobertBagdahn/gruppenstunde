@@ -23,6 +23,17 @@ from core.services.url_safety import (
 logger = logging.getLogger(__name__)
 
 DEFAULT_EXTERNAL_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+# Image CDNs (e.g. chefkoch-cdn.de) reject requests that look like bots, especially
+# from datacenter IPs. Use the same browser-like headers as the recipe page import.
+EXTERNAL_IMAGE_REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    ),
+    "Accept": "image/webp,image/png,image/jpeg,image/gif,image/*;q=0.8,*/*;q=0.5",
+    "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+}
+
 SUPPORTED_EXTERNAL_IMAGE_TYPES = {
     "image/gif": "gif",
     "image/jpeg": "jpg",
@@ -145,6 +156,7 @@ def download_external_image(image_url: str, upload_to: str) -> str:
         response = requests.get(
             image_url,
             timeout=30,
+            headers=EXTERNAL_IMAGE_REQUEST_HEADERS,
             allow_redirects=False,
             stream=True,
         )

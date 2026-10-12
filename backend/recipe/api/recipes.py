@@ -735,12 +735,18 @@ def create_recipe(request, payload: RecipeCreateIn):
     if payload.image_url:
         from content.services.image_service import download_external_image
 
+        # The image is optional: a failing download must never block recipe creation.
         try:
             saved_image_path = download_external_image(payload.image_url, "content/")
-        except (RuntimeError, ValueError) as exc:
-            raise HttpError(422, "Das Rezeptbild konnte nicht übernommen werden") from exc
-        recipe.image.name = saved_image_path
-        recipe.save(update_fields=["image"])
+        except Exception:
+            logger.warning(
+                "Recipe image could not be imported, saving recipe without image",
+                extra={"recipe_id": recipe.id, "image_url": payload.image_url},
+                exc_info=True,
+            )
+        else:
+            recipe.image.name = saved_image_path
+            recipe.save(update_fields=["image"])
 
     # Set M2M relations (except nutritional tags — handled after items)
     if payload.scout_level_ids:
