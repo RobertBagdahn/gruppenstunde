@@ -276,4 +276,12 @@ Ausgeführt lokal gegen Prod über den Cloud SQL Proxy, erst als Trockenlauf (Tr
       `manage.py recalculate_ingredient_quantity_stats` auf. Der Job erhält bei jedem Deploy das aktuelle Image.
 - [x] Nach Deploy (`f223e015`): erster Lauf `gcloud scheduler jobs run ingredient-quantity-stats --location europe-west1` → Ausführung `inspi-migrate-qbp2d`, „Mengenstatistik für 565 Zutaten berechnet.“
 - [x] Bericht `check_recipe_quantities` auf Prod (READ-ONLY-Session, 12.10.2026): 10 auffällige Mengen, 1 ungeteilte Zeile (#530 Apfelringe), 46 unbestätigte 150-g-Stückportionen, 51 Alias-Konflikte
-- [ ] Korrekturen aus dem Bericht nur nach Roberts Freigabe
+- [x] Korrekturliste `docs/korrekturliste-mengenpruefung-2026-10-12.md`, Gruppen A, B, C von Robert freigegeben (12.10.2026).
+      Snapshot vorher: Backup `1791835375183`. Trockenlauf (zurückgerollt) und Echtlauf lokal gegen Prod über den Cloud SQL Proxy.
+  - A: 6 Rezeptzeilen (#327, #99, #432, #530) korrigiert, #412 Torte alle 9 Zeilen ÷ 3 (jetzt 107 g, 518 kcal pro Stück); Caches neu berechnet
+  - B: 5 Portionen bestätigt, 41 in „Portion (150 g)“ umbenannt und bestätigt, 16 neue Standardportionen (Stück/Stange/Knolle/Kopf/Schale);
+    bei 5 Zutaten gab es die Stück-Portion schon (Ingwer 10 g, Möhre 100 g, Karotte 80 g, Aubergine 250 g, Gemüsezwiebel 150 g)
+  - C: 41 Zutaten zusammengeführt (`merge_ingredient`), Alias „Rapsöl“ an Speiseöl vorab und 10 falsche Aliase danach entfernt
+  - Statistik neu (545 Zutaten). Bericht danach: 3 auffällige Mengen (#394 und #387 bewusst unverändert, neu #385), 1 ungeteilte Zeile (#530 Äpfel, gewollt), 0 Stückportionen, 0 Alias-Konflikte
+  - Kontrolle: keine aktiven Quell-Zutaten, keine Rezeptzeile auf gelöschter Zutat; Plan „Bundesrat 2026“ unverändert (Speisezwiebel 3,6 kg, Eisbergsalat 1,05 kg)
+- [ ] Neu aufgefallen, nicht freigegeben: #385 Kartoffel-Limetten-Curry, Gemüsebrühe-Konzentrat 15 TL (75 g) pro Person → Vorschlag 1 TL
