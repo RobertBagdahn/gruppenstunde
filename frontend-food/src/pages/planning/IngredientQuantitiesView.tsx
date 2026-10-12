@@ -56,8 +56,12 @@ export function fixedShareG(item: IngredientQuantity): number {
   return Math.max(0, item.net_quantity_g - adjustable);
 }
 
+/** Names starting with an amount ("100g Zitrone", "1/2 Stück") read wrong after a count. */
+const AMOUNT_NAMED_PORTION = /^\d/;
+
 function defaultUnit(item: IngredientQuantity) {
-  return item.unit_options.find((option) => option.is_default) ?? item.unit_options[0] ?? null;
+  const countable = item.unit_options.filter((option) => !AMOUNT_NAMED_PORTION.test(option.name));
+  return countable.find((option) => option.is_default) ?? countable[0] ?? null;
 }
 
 /** "2,3 kg · ≈ 15 Stück" for a net gram amount. */
@@ -477,14 +481,14 @@ function AdjustDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{item.ingredient_name}: Gesamtmenge anpassen</DialogTitle>
+          <DialogTitle className="pr-8">{item.ingredient_name}: Gesamtmenge anpassen</DialogTitle>
           <DialogDescription>
             Die Änderung wird anteilig auf alle Mahlzeiten verteilt. Das Rezept bleibt unverändert.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Art der Anpassung">
+        <div className="min-w-0 space-y-4">
+          <div className="grid min-w-0 grid-cols-2 gap-2" role="radiogroup" aria-label="Art der Anpassung">
             {(
               [
                 ['target_total', 'Zielmenge'],
@@ -511,13 +515,13 @@ function AdjustDialog({
           {mode === 'target_total' ? (
             <div className="space-y-1">
               <span className="text-body font-medium">Gesamt (ohne Reserve)</span>
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <DecimalInput
                   value={amount}
                   min={0}
                   onChange={setAmount}
                   aria-label="Zielmenge"
-                  className="h-10 w-28 rounded-lg border border-input bg-background px-3 text-body"
+                  className="h-10 w-24 shrink-0 rounded-lg border border-input bg-background px-3 text-body"
                   data-testid="target-amount"
                 />
                 <select
@@ -528,7 +532,7 @@ function AdjustDialog({
                     setUnitName(nextUnit.name);
                   }}
                   aria-label="Einheit"
-                  className="h-10 flex-1 rounded-lg border border-input bg-background px-3 text-body"
+                  className="h-10 min-w-0 flex-1 truncate rounded-lg border border-input bg-background px-3 text-body"
                 >
                   {unitChoices.map((choice) => (
                     <option key={choice.name} value={choice.name}>

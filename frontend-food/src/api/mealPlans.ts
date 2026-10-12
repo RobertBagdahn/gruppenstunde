@@ -530,6 +530,15 @@ export function useAdjustIngredientQuantity(mealPlanId: number) {
         body,
         IngredientQuantityAdjustOutSchema,
       ),
+    onSuccess: (result, { ingredientId }) => {
+      // Show the new totals at once; the other plan views refresh in the background.
+      queryClient.setQueryData<IngredientQuantity[]>(['meal-plan', mealPlanId, 'ingredient-quantities'], (items) => {
+        if (!items) return items;
+        if (!result.item) return items.filter((entry) => entry.ingredient_id !== ingredientId);
+        const updated = result.item;
+        return items.map((entry) => (entry.ingredient_id === ingredientId ? updated : entry));
+      });
+    },
     onSettled: () => {
       invalidateMealPlanQueries(queryClient, mealPlanId);
     },
@@ -549,6 +558,42 @@ async function sendOverrideLine(url: string, method: 'PUT' | 'DELETE', body?: Me
   return parseApiResponse(res, z.array(MealItemOverrideSchema));
 }
 
+/** Optimistic per-line change; grams scale with the quantity until the server answers. */
+export function applyLineChange(
+  items: IngredientQuantity[],
+  itemId: number,
+  recipeItemId: number,
+  body: MealItemOverrideLineIn | null,
+): IngredientQuantity[] {
+  return items.map((entry) => {
+    const index = entry.lines.findIndex((line) => line.meal_item_id === itemId && line.recipe_item_id === recipeItemId);
+    if (index < 0) return entry;
+    const line = entry.lines[index];
+    const quantity = body?.quantity_override ?? line.original_quantity_per_person;
+    const excluded = body?.excluded ?? false;
+    const gramsPerUnit = line.quantity_per_person > 0 && !line.excluded ? line.net_quantity_g / line.quantity_per_person : null;
+    const netG = excluded ? 0 : gramsPerUnit !== null ? quantity * gramsPerUnit : line.net_quantity_g;
+    const updated = {
+      ...line,
+      quantity_per_person: quantity,
+      excluded,
+      is_overridden: body?.quantity_override != null,
+      net_quantity_g: netG,
+    };
+    const lines = entry.lines.map((current, i) => (i === index ? updated : current));
+    const netTotal = Math.max(0, entry.net_quantity_g - line.net_quantity_g + netG);
+    const reserveRatio = entry.net_quantity_g > 0 ? entry.total_quantity_g / entry.net_quantity_g : 1;
+    return {
+      ...entry,
+      lines,
+      net_quantity_g: netTotal,
+      total_quantity_g: netTotal * reserveRatio,
+      quantity: entry.quantity > 0 && entry.total_quantity_g > 0 ? (entry.quantity * netTotal * reserveRatio) / entry.total_quantity_g : entry.quantity,
+      is_adjusted: lines.some((current) => current.is_overridden || current.excluded),
+    };
+  });
+}
+
 export function useSetMealItemOverrideLine(mealPlanId: number) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -564,6 +609,20 @@ export function useSetMealItemOverrideLine(mealPlanId: number) {
     }) => {
       const url = `${API_BASE}/${mealPlanId}/meal-items/${itemId}/overrides/${recipeItemId}/`;
       return body ? sendOverrideLine(url, 'PUT', body) : sendOverrideLine(url, 'DELETE');
+    },
+    onMutate: async ({ itemId, recipeItemId, body }) => {
+      const key = ['meal-plan', mealPlanId, 'ingredient-quantities'];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<IngredientQuantity[]>(key);
+      if (previous) {
+        queryClient.setQueryData<IngredientQuantity[]>(key, applyLineChange(previous, itemId, recipeItemId, body));
+      }
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['meal-plan', mealPlanId, 'ingredient-quantities'], context.previous);
+      }
     },
     onSettled: () => {
       invalidateMealPlanQueries(queryClient, mealPlanId);
