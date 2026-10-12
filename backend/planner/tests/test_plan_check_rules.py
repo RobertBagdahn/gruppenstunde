@@ -14,7 +14,7 @@ from model_bakery import baker
 
 from planner.models import Meal, MealItem, MealPlanCollaborator, MealTypeChoices
 from planner.tests import make_meal, make_meal_item, make_meal_plan
-from recipe.tests import make_recipe
+from recipe.tests import make_recipe, make_recipe_item
 
 User = get_user_model()
 
@@ -246,3 +246,71 @@ class TestDuplicateDishAndPortionOverrideRules:
         alerts = _alerts(client, plan.id, "portion_override")
         assert [a["meal_id"] for a in alerts] == [filled.id]
         assert "12 statt 10" in alerts[0]["title"]
+
+
+@pytest.mark.django_db
+class TestMissingNutritionRule:
+    def test_recipe_with_ingredient_without_nutrition_is_flagged(self, client: Client, user, plan):
+        client.force_login(user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH, start_datetime=plan.start_datetime)
+        recipe = make_recipe(title="Haferbrei")
+        ingredient = baker.make("supply.Ingredient", name="Haferflocken", energy_kcal=0, protein_g=0, fat_g=0)
+        ingredient.carbohydrate_g = 0
+        ingredient.save()
+        make_recipe_item(recipe=recipe, ingredient=ingredient, quantity=50)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        alerts = _alerts(client, plan.id, "missing_nutrition")
+        assert len(alerts) == 1
+        assert "Haferflocken" in alerts[0]["description"]
+        assert alerts[0]["severity"] == "warning"
+
+    def test_meal_payload_lists_missing_ingredients(self, client: Client, user, plan):
+        client.force_login(user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH, start_datetime=plan.start_datetime)
+        recipe = make_recipe(title="Haferbrei")
+        ingredient = baker.make("supply.Ingredient", name="Haferflocken", energy_kcal=None)
+        make_recipe_item(recipe=recipe, ingredient=ingredient, quantity=50)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        data = client.get(f"/api/meal-plans/{plan.id}/").json()
+        planned = next(m for m in data["meals"] if m["id"] == meal.id)
+        assert planned["nutrition_coverage"] == {"missing_ingredients": ["Haferflocken"]}
+
+    def test_water_without_energy_is_not_flagged(self, client: Client, user, plan):
+        client.force_login(user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH, start_datetime=plan.start_datetime)
+        recipe = make_recipe(title="Tee")
+        ingredient = baker.make(
+            "supply.Ingredient", name="Mineralwasser", energy_kcal=0, protein_g=0, fat_g=0, carbohydrate_g=0
+        )
+        make_recipe_item(recipe=recipe, ingredient=ingredient, quantity=500)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        assert _alerts(client, plan.id, "missing_nutrition") == []
+
+
+@pytest.mark.django_db
+class TestRecipeLineWithoutIngredientRule:
+    def test_line_without_portion_is_flagged(self, client: Client, user, plan):
+        from recipe.models import RecipeItem
+
+        client.force_login(user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH, start_datetime=plan.start_datetime)
+        recipe = make_recipe(title="Nudeln")
+        make_recipe_item(recipe=recipe, quantity=100)
+        RecipeItem.objects.create(recipe=recipe, portion=None, quantity=1, sort_order=5)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        alerts = _alerts(client, plan.id, "recipe_line_without_ingredient")
+        assert len(alerts) == 1
+        assert "Nudeln" in alerts[0]["title"]
+
+    def test_complete_recipe_is_not_flagged(self, client: Client, user, plan):
+        client.force_login(user)
+        meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH, start_datetime=plan.start_datetime)
+        recipe = make_recipe(title="Nudeln")
+        make_recipe_item(recipe=recipe, quantity=100)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        assert _alerts(client, plan.id, "recipe_line_without_ingredient") == []

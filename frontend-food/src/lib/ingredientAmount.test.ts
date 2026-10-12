@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { RecipeItemSchema } from '@/schemas/recipe';
 import { RecipeStepIngredientSchema } from '@/schemas/recipeStep';
-import { formatRecipeItemAmount, formatScaledRecipeAmount, formatStepIngredientLabel } from './ingredientAmount';
+import {
+  formatPortionAmount,
+  formatRecipeItemAmount,
+  formatScaledRecipeAmount,
+  formatStepIngredientLabel,
+} from './ingredientAmount';
 
 function item(overrides: Record<string, unknown>) {
   return RecipeItemSchema.parse({
@@ -122,5 +127,20 @@ describe('formatStepIngredientLabel', () => {
 
   it('falls back to the note without amount', () => {
     expect(formatStepIngredientLabel(stepIngredient({ note: 'Prise Salz' }))).toBe('Prise Salz');
+  });
+});
+
+describe('formatPortionAmount plural', () => {
+  it('uses "Portion" for exactly one', () => {
+    expect(formatPortionAmount(1, 'Portion Nudeln')).toBe('1 Portion Nudeln');
+  });
+
+  it('uses "Portionen" for several', () => {
+    expect(formatPortionAmount(7, 'Portion Nudeln')).toBe('7 Portionen Nudeln');
+    expect(formatPortionAmount(7, '1 Portion Nudeln')).toBe('7 Portionen Nudeln');
+  });
+
+  it('leaves other portion names untouched', () => {
+    expect(formatPortionAmount(3, 'Scheibe Brot')).toBe('3 Scheibe Brot');
   });
 });

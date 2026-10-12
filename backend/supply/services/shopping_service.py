@@ -64,6 +64,8 @@ class ShoppingListItem:
     portion_options: list[dict] | None = None
     package_options: list[dict] | None = None
     package_surplus_g: float | None = None
+    # Human-readable amount for items without a gram weight (e.g. "2 Stück"); stored as the list item note.
+    display_text: str = ""
     sources: list[ShoppingItemSource] | None = None
 
 
@@ -526,6 +528,7 @@ def _enrich_display_fields(
                 if qty_display == int(qty_display):
                     qty_display = int(qty_display)
                 item.piece_equivalent = {"count": qty_display, "portion_name": portion_name}
+                item.display_text = f"{qty_display} {portion_name}"
             continue
 
         if not ing:

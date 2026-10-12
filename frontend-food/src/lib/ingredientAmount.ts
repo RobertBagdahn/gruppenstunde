@@ -43,6 +43,11 @@ export function formatCount(value: number): string {
   return value.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: value < 1 ? 2 : 1 });
 }
 
+/** "Portion Nudeln" → "Portionen Nudeln" for counts above 1 (only the leading word is inflected). */
+function pluralizeLeadingPortion(name: string): string {
+  return name.replace(/^Portion\b(?!en)/, 'Portionen');
+}
+
 export function formatPortionAmount(amount: number, portionName: string): string {
   // Pre-weighed metric portions ("100g Reis") read as a multiple of the portion.
   if (/^\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l)\b/i.test(portionName)) return `${formatCount(amount)} × ${portionName}`;
@@ -51,7 +56,7 @@ export function formatPortionAmount(amount: number, portionName: string): string
   const count = match ? amount * parseFloat(match[1].replace(',', '.')) : amount;
   const name = match ? match[2] : portionName;
 
-  return `${formatCount(count)} ${name}`;
+  return `${formatCount(count)} ${count > 1 ? pluralizeLeadingPortion(name) : name}`;
 }
 
 export interface RecipeItemAmount {

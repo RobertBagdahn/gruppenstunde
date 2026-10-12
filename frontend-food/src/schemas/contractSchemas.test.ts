@@ -55,7 +55,7 @@ describe('food API contracts', () => {
   });
 
   it('accepts the extended plan-check alert types added for meal integrity', () => {
-    for (const type of ['recipe_type_mismatch', 'missing_quantity', 'meal_outside_range', 'empty_day']) {
+    for (const type of ['recipe_type_mismatch', 'missing_quantity', 'missing_nutrition', 'recipe_line_without_ingredient', 'meal_outside_range', 'empty_day']) {
       expect(
         PlanCheckAlertSchema.parse({
           id: 'alert-1',

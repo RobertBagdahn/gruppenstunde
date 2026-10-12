@@ -374,6 +374,15 @@ export function MealSlot({
                   {meal.price_coverage.missing_ingredients} {meal.price_coverage.missing_ingredients === 1 ? 'Zutat' : 'Zutaten'} ohne Preis
                 </span>
               )}
+              {meal.nutrition_coverage && meal.nutrition_coverage.missing_ingredients.length > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-warning-border bg-warning-soft text-warning text-caption font-bold"
+                  title={`Ohne Nährwerte: ${meal.nutrition_coverage.missing_ingredients.join(', ')}. Die Energie ist unvollständig.`}
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  Nährwerte unvollständig
+                </span>
+              )}
               {mealIsTooLittle && (
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-caption font-bold ${
@@ -384,7 +393,7 @@ export function MealSlot({
                   title={`Nur ${coverage.percent}% der erwarteten Energiemenge (${formatCount(mealActualKcal)} von ${formatCount(mealTargetKcal)} kcal). Jede Mahlzeit wird einzeln gegen ihren Anteil am Tagesbedarf geprüft – ein Überschuss bei anderen Mahlzeiten gleicht das nicht aus, die Tagessumme kann trotzdem passen.`}
                 >
                   <AlertCircle className="w-3 h-3" />
-                  Zu wenig Energie ({coverage.percent} %)
+                  Zu wenig Energie ({coverage.percent} %){meal.nutrition_coverage?.missing_ingredients.length ? ' – Nährwerte unvollständig' : ''}
                   <HelpHint label="Warum ist das ein Problem?" className="text-inherit">
                     Jede Mahlzeit wird einzeln mit ihrem Anteil am Tagesbedarf verglichen. Eine zu kleine Mahlzeit gilt als Problem, auch wenn die Tagessumme passt – die Gruppe wäre sonst zwischen den Mahlzeiten unterversorgt.
                   </HelpHint>

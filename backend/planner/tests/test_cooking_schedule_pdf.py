@@ -71,6 +71,30 @@ class TestCookingSchedulePdfService:
         assert isinstance(pdf, bytes)
 
     @pytest.mark.django_db
+    def test_cooking_schedule_with_decimal_price_loaded_from_db(self):
+        """Regression: DB values are Decimal and must not break float arithmetic."""
+        import datetime
+        from decimal import Decimal
+
+        from django.utils import timezone
+
+        from recipe.models import Recipe
+
+        plan = make_meal_plan(norm_portions=8)
+        recipe = make_recipe(title="Linsensuppe")
+        make_recipe_item(recipe=recipe, quantity=300)
+        Recipe.objects.filter(pk=recipe.pk).update(
+            cached_price_total=Decimal("1.03"), cached_energy_total_kcal=Decimal("278.0")
+        )
+        meal = make_meal(
+            meal_plan=plan,
+            start_datetime=timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0)),
+        )
+        make_meal_item(meal=meal, recipe=recipe)
+        pdf = generate_cooking_schedule_pdf(plan)
+        assert pdf.startswith(b"%PDF")
+
+    @pytest.mark.django_db
     def test_cooking_schedule_with_direct_ingredient(self):
         import datetime
 

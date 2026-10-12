@@ -267,6 +267,60 @@ def _check_missing_quantity(meal_plan: MealPlan, meals: list[Meal]) -> list[Plan
     return alerts
 
 
+def _check_missing_nutrition(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
+    """Warn about used ingredients without nutrition data (they would count as 0 kcal)."""
+    from planner.services.meal_completeness import meal_missing_nutrition_names
+
+    alerts: list[PlanCheckAlertOut] = []
+    for meal in meals:
+        if not meal.start_datetime or meal.is_external:
+            continue
+        names = meal_missing_nutrition_names(meal)
+        if not names:
+            continue
+        shown = ", ".join(f"«{name}»" for name in names[:3])
+        more = f" und {len(names) - 3} weitere" if len(names) > 3 else ""
+        alerts.append(
+            PlanCheckAlertOut(
+                id=f"missing-nutrition-{meal.id}",
+                type="missing_nutrition",
+                severity="warning",
+                title=f"Nährwerte fehlen bei {meal.get_meal_type_display()}",
+                description=f"Für {shown}{more} sind keine Nährwerte hinterlegt. Die Energie ist unvollständig.",
+                date=meal.start_datetime.strftime("%Y-%m-%d"),
+                meal_id=meal.id,
+                meal_type=meal.meal_type,
+            )
+        )
+    return alerts
+
+
+def _check_recipe_lines_without_ingredient(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
+    """Warn about recipe lines without ingredient; they are left out of totals and shopping list."""
+    from planner.services.meal_completeness import meal_recipe_lines_without_ingredient
+
+    alerts: list[PlanCheckAlertOut] = []
+    for meal in meals:
+        if not meal.start_datetime:
+            continue
+        for recipe_id, title in meal_recipe_lines_without_ingredient(meal):
+            alerts.append(
+                PlanCheckAlertOut(
+                    id=f"recipe-line-without-ingredient-{meal.id}-{recipe_id}",
+                    type="recipe_line_without_ingredient",
+                    severity="warning",
+                    title=f"Zutat ohne Zuordnung in «{title}»",
+                    description=(
+                        "Das Rezept enthält eine Zeile ohne Zutat. Sie fehlt in Einkaufsliste, Kosten und Energie."
+                    ),
+                    date=meal.start_datetime.strftime("%Y-%m-%d"),
+                    meal_id=meal.id,
+                    meal_type=meal.meal_type,
+                )
+            )
+    return alerts
+
+
 def _check_meal_outside_range(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
     alerts: list[PlanCheckAlertOut] = []
     if not meal_plan.start_datetime:
@@ -403,6 +457,8 @@ _RULES = [
     _check_allergen_conflicts,
     _check_recipe_type_mismatch,
     _check_missing_quantity,
+    _check_missing_nutrition,
+    _check_recipe_lines_without_ingredient,
     _check_meal_outside_range,
     _check_empty_days,
     _check_duplicate_dishes,

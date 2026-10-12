@@ -208,7 +208,7 @@ class Content(SoftDeleteModel):
     def save(self, *args, **kwargs):
         """Auto-generate slug from title with collision handling."""
         if not self.slug:
-            base_slug = slugify(self.title)
+            base_slug = slugify(self.title.replace("ß", "ss").replace("ẞ", "SS"))
             if not base_slug:
                 base_slug = "untitled"
             slug = base_slug

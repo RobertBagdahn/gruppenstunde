@@ -146,6 +146,7 @@ export const MealSchema = z.object({
   total_energy_kcal: z.number(),
   total_cost_eur: z.number(),
   price_coverage: PriceCoverageSchema.nullable(),
+  nutrition_coverage: z.object({ missing_ingredients: z.array(z.string()) }).nullable().optional(),
   items: z.array(MealItemSchema),
 });
 export type Meal = z.infer<typeof MealSchema>;
@@ -1456,6 +1457,8 @@ export const PlanCheckAlertSchema = z.object({
     'allergen_conflict',
     'recipe_type_mismatch',
     'missing_quantity',
+    'missing_nutrition',
+    'recipe_line_without_ingredient',
     'meal_outside_range',
     'empty_day',
     'duplicate_dish',

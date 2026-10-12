@@ -6,7 +6,7 @@ import { forwardRef, useState, useCallback, useEffect, useImperativeHandle, useR
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@/lib/notify';
-import { API_BASE_URL, getApiErrorMessage, parseApiResponse } from '@/lib/api';
+import { API_BASE_URL, getApiErrorMessage, getCsrfToken, parseApiResponse } from '@/lib/api';
 import { Sparkles, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import {
   useUpdateRecipeItem,
@@ -29,7 +29,7 @@ import { normalizeServingContext, scaleQuantity, toBasePerServing } from '@/lib/
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { Button } from '@/components/ui/button';
 import type { RecipeItem } from '@/schemas/recipe';
-import { PortionSchema } from '@/schemas/supply';
+import { PortionSchema, type Portion } from '@/schemas/supply';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 import { AiIngredientSuggestionSchema, type AiIngredientSuggestion } from '@/schemas/recipe';
 
@@ -165,6 +165,17 @@ type EditablePortion = EditableItem['ingredient_portions'][number];
 /** Editor display label for a portion: direct metric portions show the
  * measuring-unit name; piece-like, composite and pre-weighed portions
  * ("kleine (50g)", "100g Reis") show their own name. */
+
+/** Loads the technical gram portion, which the backend creates when an ingredient has no portion at all. */
+async function ensureGramPortion(slug: string): Promise<Portion> {
+  const res = await fetch(`${API_BASE_URL}/api/ingredients/${encodeURIComponent(slug)}/gram-portion/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'X-CSRFToken': getCsrfToken() },
+  });
+  return parseApiResponse(res, PortionSchema);
+}
+
 function portionDisplayLabel(
   portion: { name: string; quantity: number; weight_g?: number | null; measuring_unit_name: string | null; is_piece_like?: boolean | null },
   fallbackUnit = 'g',
@@ -597,7 +608,7 @@ function IngredientRow({
           return `= ${Math.round(weightG * 10) / 10} g`;
         })()}
       </span>
-      <span className="order-first min-w-0 flex-1 truncate text-body font-medium sm:order-none">{item.ingredient_name}</span>
+      <span className="order-first w-full min-w-0 basis-full truncate text-body font-medium sm:order-none sm:w-auto sm:flex-1 sm:basis-0">{item.ingredient_name}</span>
       {expandedNotes.has(item.id) || item.note ? (
         <input
           type="text"
@@ -933,6 +944,9 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       try {
         const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredient.slug}/portions/`, { credentials: 'include' });
         const portions = await res.json();
+        if (Array.isArray(portions) && portions.length === 0) {
+          portions.push(await ensureGramPortion(ingredient.slug));
+        }
 
         // Smart default: lowest-rank portion with weight_g > 0 (4.1, 4.3)
         const bestPortion = [...portions]
@@ -1264,6 +1278,9 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           credentials: 'include',
         });
         const portions = await parseApiResponse(res, PortionSchema.array());
+        if (portions.length === 0) {
+          portions.push(await ensureGramPortion(ingredientSlug));
+        }
 
         // Use rank=1 (Normalportion) as the best portion for exchange groups
         const sortedPortions = [...portions].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));

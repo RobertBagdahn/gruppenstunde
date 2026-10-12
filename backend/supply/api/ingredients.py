@@ -666,6 +666,22 @@ def list_portions(request, slug: str):
     return Portion.objects.active().filter(ingredient=ingredient).select_related("measuring_unit")
 
 
+@ingredient_router.post("/{slug}/gram-portion/", response=PortionOut)
+def ensure_gram_portion(request, slug: str):
+    """Return the technical gram portion of a visible ingredient, creating it when missing.
+
+    Lets recipe editors use ingredients without any portion (legacy data) with
+    a plain gram amount instead of failing.
+    """
+    from content.services.food_access import get_ingredient_detail_or_404
+    from supply.services.portion_integrity import get_or_create_gram_portion
+
+    require_login(request)
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    portion = get_or_create_gram_portion(ingredient)
+    return Portion.objects.select_related("measuring_unit").get(pk=portion.pk)
+
+
 @ingredient_router.post("/{slug}/portions/", response=PortionOut)
 def create_portion(request, slug: str, payload: PortionCreateIn):
     """Create a portion for an ingredient.

@@ -325,6 +325,21 @@ class TestPortions:
         assert len(data) >= 1
         assert data[0]["name"] == "100g Mehl"
 
+    def test_gram_portion_is_created_for_ingredient_without_portions(self, auth_client, ingredient):
+        ingredient.portions.all().delete()
+        resp = auth_client.post(f"/api/ingredients/{ingredient.slug}/gram-portion/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "g"
+        assert data["weight_g"] == 1.0
+        # Idempotent: a second call returns the same portion.
+        again = auth_client.post(f"/api/ingredients/{ingredient.slug}/gram-portion/")
+        assert again.json()["id"] == data["id"]
+
+    def test_gram_portion_requires_login(self, api_client, ingredient):
+        resp = api_client.post(f"/api/ingredients/{ingredient.slug}/gram-portion/")
+        assert resp.status_code == 401
+
     def test_create_portion(self, auth_client, ingredient, measuring_unit):
         ingredient.created_by = auth_client._user
         ingredient.status = "draft"

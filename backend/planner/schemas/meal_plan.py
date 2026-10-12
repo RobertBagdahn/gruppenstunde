@@ -302,6 +302,8 @@ class PlanCheckAlertOut(Schema):
         "allergen_conflict",
         "recipe_type_mismatch",
         "missing_quantity",
+        "missing_nutrition",
+        "recipe_line_without_ingredient",
         "meal_outside_range",
         "empty_day",
         "duplicate_dish",
@@ -356,6 +358,12 @@ class CopyItemsFromPlanIn(Schema):
     source_meal_id: int
 
 
+class NutritionCoverageOut(Schema):
+    """Ingredients of a meal without nutrition data (their energy is missing from the totals)."""
+
+    missing_ingredients: list[str]
+
+
 class MealOut(Schema):
     id: int
     start_datetime: dt.datetime | None = None
@@ -377,7 +385,19 @@ class MealOut(Schema):
     total_energy_kcal: float = 0.0
     total_cost_eur: float = 0.0
     price_coverage: PriceCoverageOut | None = None
+    nutrition_coverage: NutritionCoverageOut | None = None
     items: list[MealItemOut] = []
+
+    @staticmethod
+    def resolve_nutrition_coverage(obj) -> dict | None:
+        from planner.services.meal_completeness import meal_missing_nutrition_names
+
+        if obj.is_external:
+            return None
+        names = meal_missing_nutrition_names(obj)
+        if not names:
+            return None
+        return {"missing_ingredients": names}
 
     @staticmethod
     def resolve_external_energy_kcal(obj) -> float | None:

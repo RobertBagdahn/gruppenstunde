@@ -5,7 +5,8 @@ import { useRecipeSearch } from '@/api/mealPlans';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
 import { IngredientQuantityInline } from '@/pages/planning/RecipeSearchDialog';
 import { cn } from '@/lib/utils';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, plural } from '@/lib/format';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 type FilterPill = 'all' | 'recipes' | 'ingredients';
 
@@ -311,7 +312,7 @@ export function MealOmnibarDialog({
                       {item.type === 'recipe' && (
                         <>
                           <span>{recipeTypeLabel(item.data.recipe_type)}</span>
-                          {item.data.portions != null && <span>{item.data.portions} Portionen</span>}
+                          {item.data.portions != null && <span>{plural(item.data.portions, 'Portion', 'Portionen')}</span>}
                           {item.data.price_per_serving != null && <span>{formatNumber(item.data.price_per_serving, { maxDecimals: 2 })} €/P.</span>}
                         </>
                       )}
@@ -370,7 +371,7 @@ export function MealOmnibarDialog({
                     </div>
                     {(activeItem.data.description || (activeItem.data.ingredients_preview?.length ?? 0) > 0) && (
                       <div className="space-y-3 text-caption">
-                        {activeItem.data.description && <p className="text-muted-foreground leading-relaxed break-words">{activeItem.data.description}</p>}
+                        {activeItem.data.description && <MarkdownRenderer content={activeItem.data.description} className="text-muted-foreground leading-relaxed break-words" />}
                         {activeItem.data.ingredients_preview && activeItem.data.ingredients_preview.length > 0 && (
                           <div className="rounded-xl bg-card p-3 shadow-card">
                             <div className="flex items-center gap-2 font-semibold text-foreground mb-2"><Utensils className="w-3.5 h-3.5 text-primary" />Enthält unter anderem</div>
