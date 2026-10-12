@@ -476,3 +476,68 @@ resource "google_monitoring_alert_policy" "backend_memory_pressure" {
 
   depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
 }
+
+# -----------------------------------------------
+# Scheduled management commands
+# -----------------------------------------------
+# The management job's image is updated by every deploy, so scheduled runs
+# always use the current code. Runs override only the command arguments.
+
+resource "google_project_service" "cloudscheduler" {
+  project            = var.project_id
+  service            = "cloudscheduler.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_service_account" "management_scheduler" {
+  project      = var.project_id
+  account_id   = "management-scheduler"
+  display_name = "Cloud Scheduler – Django management commands"
+}
+
+resource "google_cloud_run_v2_job_iam_member" "management_scheduler_runner" {
+  project  = var.project_id
+  location = var.region
+  name     = var.management_job_name
+  role     = "roles/run.jobsExecutorWithOverrides"
+  member   = "serviceAccount:${google_service_account.management_scheduler.email}"
+}
+
+# Typical grams per person per ingredient (baseline for quantity outlier checks).
+resource "google_cloud_scheduler_job" "ingredient_quantity_stats" {
+  project     = var.project_id
+  region      = var.region
+  name        = "ingredient-quantity-stats"
+  description = "Daily: manage.py recalculate_ingredient_quantity_stats"
+  schedule    = var.ingredient_quantity_stats_schedule
+  time_zone   = "Europe/Berlin"
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://run.googleapis.com/v2/projects/${var.project_id}/locations/${var.region}/jobs/${var.management_job_name}:run"
+    headers = {
+      "Content-Type" = "application/json"
+    }
+    body = base64encode(jsonencode({
+      overrides = {
+        containerOverrides = [{
+          args = ["manage.py", "recalculate_ingredient_quantity_stats"]
+        }]
+      }
+    }))
+
+    oauth_token {
+      service_account_email = google_service_account.management_scheduler.email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler,
+    google_cloud_run_v2_job_iam_member.management_scheduler_runner,
+  ]
+}
