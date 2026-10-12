@@ -53,11 +53,13 @@ class Command(BaseCommand):
             csv_rows.append(["alias_conflict", row.kind, str(row.ingredient_id), row.ingredient_name, line])
 
         if options.get("csv"):
-            with options["csv"].open("w", newline="", encoding="utf-8") as handle:
+            # call_command passes the value as given (often a str), argparse a Path.
+            csv_path = Path(options["csv"])
+            with csv_path.open("w", newline="", encoding="utf-8") as handle:
                 writer = csv.writer(handle)
                 writer.writerow(["check", "detail", "id", "name", "finding"])
                 writer.writerows(csv_rows)
-            self.stdout.write(self.style.SUCCESS(f"CSV geschrieben: {options['csv']}"))
+            self.stdout.write(self.style.SUCCESS(f"CSV geschrieben: {csv_path}"))
 
     def _section(self, title: str, count: int) -> None:
         self.stdout.write(f"\n== {title}: {count}")

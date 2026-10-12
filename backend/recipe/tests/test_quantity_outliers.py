@@ -271,3 +271,13 @@ class TestDataQualityEndpoints:
         assert body["total"] == 1
         assert body["items"][0]["recipe_title"] == "Burger"
         assert body["items"][0]["outlier"]["median_g"] == pytest.approx(25)
+
+
+@pytest.mark.django_db
+def test_check_recipe_quantities_writes_csv_via_call_command(tmp_path):
+    from django.core.management import call_command
+
+    target = tmp_path / "report.csv"
+    call_command("check_recipe_quantities", csv=str(target))
+
+    assert target.read_text(encoding="utf-8").startswith("check,detail,id,name,finding")
