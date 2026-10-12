@@ -13,12 +13,17 @@ Beim Teilen eines Rezepts durch die Personenzahl der Quelle (`source_servings > 
 - **THEN** bleibt `source_quantity` leer
 
 ### Requirement: Ungeteilte Zeilen erkennen
-Das System SHALL Rezeptzeilen melden, die beim Teilen vermutlich nicht geteilt wurden. Mit `source_quantity` gilt eine Zeile als ungeteilt, wenn `source_servings > 1` und `quantity == source_quantity`. Ohne `source_quantity` MUST die Heuristik gelten: ganzzahlige Stückzahl ≥ 1 mit mindestens 60 g, während mindestens zwei andere Stück- oder Maß-Zeilen desselben Rezepts gebrochene Mengen haben. Import und `normalize_recipe_servings` MUST gefundene Zeilen im Bericht ausgeben; nichts wird automatisch geändert.
+Das System SHALL Rezeptzeilen melden, die beim Teilen vermutlich nicht geteilt wurden. Mit `source_quantity` gilt eine Zeile als ungeteilt, wenn `source_servings > 1` und `quantity == source_quantity`. Ohne `source_quantity` MUST die Heuristik gelten: stückartige Portion mit ganzzahliger Anzahl ≥ 1 und mindestens 60 g, während mindestens zwei andere Stück- oder Maß-Zeilen desselben Rezepts gebrochene Mengen haben. Import und `normalize_recipe_servings` MUST gefundene Zeilen im Bericht ausgeben; nichts wird automatisch geändert.
 
 #### Scenario: Sweet Onion Sauce
 - **GIVEN** ein Rezept mit `source_servings = 4`, Zeilen „0,69 EL Öl“, „0,63 Stück Butter“ und „2 mittelgroße Zwiebeln (160 g)“
 - **WHEN** die Prüfung läuft
 - **THEN** wird die Zwiebel-Zeile als ungeteilt gemeldet
+
+#### Scenario: Natürliche Pro-Person-Portion
+- **GIVEN** `source_servings = 4`, eine Zeile „1 Portion trocken (100g)“ Nudeln und gebrochene EL-Mengen
+- **WHEN** die Prüfung läuft
+- **THEN** wird die Nudel-Zeile nicht gemeldet
 
 #### Scenario: Geteilte Zeile mit Originalmenge
 - **GIVEN** `source_servings = 4`, `source_quantity = 2`, `quantity = 0.5`
@@ -57,12 +62,12 @@ Eine Rezeptzeile SHALL als auffällig gelten, wenn ihre Gramm pro Person größe
 - **THEN** zeigt die Rezept-Ansicht keinen Hinweis
 
 ### Requirement: Plan-Check-Regel „Auffällige Zutatenmenge“
-Der Plan-Check SHALL für jede Mahlzeit Rezept- und Zutatenzeilen mit ihrer effektiven Menge pro Person (inklusive `factor` und `MealItemOverride`) nach derselben Regel bewerten und je Mahlzeit und Zutat höchstens einen Alert vom Typ `quantity_outlier` erzeugen. Der Alert MUST Mahlzeit, Rezept, Zutat, Menge pro Person, üblichen Wert und einen Link auf `/meal-plans/{id}/shopping?sub=quantities&q=<Zutat>` enthalten.
+Der Plan-Check SHALL für jede Mahlzeit Rezept- und Zutatenzeilen mit ihrer effektiven Menge pro Person (inklusive `factor` und `MealItemOverride`) nach derselben Regel bewerten und je Mahlzeit und Zutat höchstens einen Alert vom Typ `quantity_outlier` erzeugen (Severity `warning`). Der Alert MUST Mahlzeit, Rezept, Zutat, Menge pro Person und üblichen Wert nennen; seine Aktion „Mengen prüfen“ SHALL zu `/meal-plans/{id}/shopping?sub=quantities&q=<Zutat>` führen.
 
 #### Scenario: Ungeteilte Zwiebel im Plan
 - **GIVEN** eine Mahlzeit enthält die Sweet Onion Sauce mit 160 g Zwiebel pro Person
 - **WHEN** der Plan-Check läuft
-- **THEN** erscheint ein Alert „Sa, 10.10. · Mittagessen: Speisezwiebel 160 g pro Person (üblich 15 g)“ mit Link zur Mengen-Ansicht
+- **THEN** erscheint ein Alert „Auffällige Menge: Speisezwiebel“ mit „Sa, 10.10. · Mittagessen · Sweet Onion Sauce: 160 g pro Person – üblich sind 15 g.“ und der Aktion „Mengen prüfen“
 
 #### Scenario: Override beseitigt den Alert
 - **WHEN** der Planer die Zwiebel in dieser Mahlzeit per Mengen-Ansicht auf 0,25 Stück (20 g) setzt
