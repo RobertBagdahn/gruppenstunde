@@ -1463,6 +1463,7 @@ export const PlanCheckAlertSchema = z.object({
     'empty_day',
     'duplicate_dish',
     'portion_override',
+    'quantity_outlier',
     'info',
   ]),
   severity: z.enum(['error', 'warning', 'info']),

@@ -28,7 +28,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { normalizeServingContext, scaleQuantity, toBasePerServing } from '@/lib/cookingQuantityScale';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { Button } from '@/components/ui/button';
-import type { RecipeItem } from '@/schemas/recipe';
+import type { QuantityOutlier, RecipeItem } from '@/schemas/recipe';
+import QuantityOutlierBadge from '@/components/recipe/QuantityOutlierBadge';
 import { PortionSchema, type Portion } from '@/schemas/supply';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 import { AiIngredientSuggestionSchema, type AiIngredientSuggestion } from '@/schemas/recipe';
@@ -55,6 +56,8 @@ export interface EditableItem {
   exchange_group_id: number | null;
   exchange_position: number | null;
   alternativeTargetItemId?: number;
+  /** Unusual amount of the saved line (warning only). */
+  quantity_outlier?: QuantityOutlier | null;
   ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number; is_weight_trusted?: boolean; is_piece_like?: boolean | null; weight_status?: string | null }[];
   /** Backend-computed weight (grams) for `baseQuantity` — authoritative, unlike
    *  the client-side `ingredient_portions[].weight_g` lookup (which can be
@@ -406,6 +409,7 @@ export function normalizeItems(
       ingredient_id: item.ingredient_id ?? null,
       ingredient_name: item.ingredient_name,
       ingredient_slug: item.ingredient_slug ?? null,
+      quantity_outlier: item.quantity_outlier ?? null,
       quantity: qty,
       quantityInput: toQuantityInput(qty),
       measuring_unit_name: label,
@@ -609,6 +613,7 @@ function IngredientRow({
         })()}
       </span>
       <span className="order-first w-full min-w-0 basis-full truncate text-body font-medium sm:order-none sm:w-auto sm:flex-1 sm:basis-0">{item.ingredient_name}</span>
+      {item.quantity_outlier && <QuantityOutlierBadge outlier={item.quantity_outlier} />}
       {expandedNotes.has(item.id) || item.note ? (
         <input
           type="text"

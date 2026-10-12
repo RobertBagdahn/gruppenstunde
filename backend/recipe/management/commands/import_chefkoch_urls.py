@@ -225,6 +225,7 @@ class Command(BaseCommand):
                                     recipe=recipe,
                                     portion_id=item.portion_id,
                                     quantity=item.quantity / max(result.servings or 1, 1),
+                                    source_quantity=item.quantity if (result.servings or 1) > 1 else None,
                                     sort_order=idx,
                                     note=item.note or "",
                                 )

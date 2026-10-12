@@ -16,7 +16,8 @@ from planner.schemas.meal_plan import MealOut, PlanCheckAlertOut
 
 if TYPE_CHECKING:
     from planner.models import MealPlan
-    from supply.models import NutritionalTag
+    from recipe.services.quantity_outliers import QuantityOutlier
+    from supply.models import Ingredient, NutritionalTag
 
 # Recipe types a meal type can plausibly contain. Deliberately separate from
 # `MEAL_TYPE_TO_RECIPE_TYPES` (which drives recipe *search* and intentionally
@@ -451,6 +452,79 @@ def _check_portion_overrides(meal_plan: MealPlan, meals: list[Meal]) -> list[Pla
     return alerts
 
 
+def _check_quantity_outliers(meal_plan: MealPlan, meals: list[Meal]) -> list[PlanCheckAlertOut]:
+    """Unusually high grams per person of an ingredient in a meal.
+
+    Uses the effective amount (factor and MealItemOverride applied) and keeps
+    one alert per meal and ingredient (the highest amount).
+    """
+    from collections import defaultdict
+
+    from planner.services.calculation_context import active_recipe_items
+    from planner.services.ingredient_quantities import meal_label
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+    from recipe.services.quantity_outliers import baseline_for, evaluate_grams, load_stats
+    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+    from supply.services.ingredient_quantity_stats import counts_for_baseline
+
+    # (meal, ingredient, source title, recipe_type, grams per person)
+    entries: list[tuple[Meal, Ingredient, str, str | None, float]] = []
+    for meal in meals:
+        if meal.is_external or not meal.start_datetime:
+            continue
+        for item in meal.items.all():
+            if item.recipe is not None and item.recipe.deleted_at is None:
+                grams: dict[int, float] = defaultdict(float)
+                ingredients: dict[int, Ingredient] = {}
+                for active in active_recipe_items(item):
+                    if not counts_for_baseline(active.recipe_item) or not active.weight_g:
+                        continue
+                    ingredient = get_recipe_item_ingredient(active.recipe_item)
+                    if ingredient is None:
+                        continue
+                    grams[ingredient.id] += active.weight_g * item.factor
+                    ingredients[ingredient.id] = ingredient
+                for ingredient_id, value in grams.items():
+                    entries.append(
+                        (meal, ingredients[ingredient_id], item.recipe.title, item.recipe.recipe_type, value)
+                    )
+            elif item.ingredient is not None and item.ingredient.deleted_at is None:
+                value = _resolve_ingredient_weight_g(item) * item.factor
+                if value > 0:
+                    entries.append((meal, item.ingredient, item.display_name or "Direkte Zutat", None, value))
+
+    stats = load_stats(ingredient.id for _, ingredient, _, _, _ in entries)
+    worst: dict[tuple[int, int], tuple[Meal, Ingredient, str, QuantityOutlier]] = {}
+    for meal, ingredient, title, recipe_type, value in entries:
+        outlier = evaluate_grams(value, baseline_for(stats.get(ingredient.id), recipe_type))
+        if outlier is None:
+            continue
+        key = (meal.id, ingredient.id)
+        current = worst.get(key)
+        if current is None or outlier.grams_per_person > current[3].grams_per_person:
+            worst[key] = (meal, ingredient, title, outlier)
+
+    alerts: list[PlanCheckAlertOut] = []
+    for meal, ingredient, title, outlier in worst.values():
+        name = ingredient.name
+        alerts.append(
+            PlanCheckAlertOut(
+                id=f"quantity-outlier-{meal.id}-{ingredient.id}",
+                type="quantity_outlier",
+                severity="warning",
+                title=f"Auffällige Menge: {name}",
+                description=f"{meal_label(meal)} · {title}: {outlier.message}.",
+                date=meal.start_datetime.strftime("%Y-%m-%d") if meal.start_datetime else None,
+                meal_id=meal.id,
+                meal_type=meal.meal_type,
+                action_label="Mengen prüfen",
+                action_type="open_quantities",
+                action_payload={"ingredient_name": name},
+            )
+        )
+    return alerts
+
+
 _RULES = [
     _check_empty_slots,
     _check_budget_excess,
@@ -463,6 +537,7 @@ _RULES = [
     _check_empty_days,
     _check_duplicate_dishes,
     _check_portion_overrides,
+    _check_quantity_outliers,
 ]
 
 

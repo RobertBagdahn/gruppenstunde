@@ -91,7 +91,7 @@ export const IngredientStatsStateSchema = lenient({
   tag: z.string(),
 });
 
-export const DATA_QUALITY_TABS = ['price', 'duplicates', 'completeness', 'missing', 'plausibility', 'buffet'] as const;
+export const DATA_QUALITY_TABS = ['price', 'duplicates', 'completeness', 'missing', 'plausibility', 'buffet', 'portions', 'aliases'] as const;
 
 export const DataQualityIngredientsStateSchema = lenient({
   tab: z.enum(DATA_QUALITY_TABS),

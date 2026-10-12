@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from ninja import Schema
 
+from recipe.schemas.items import QuantityOutlierOut
+
 # ---------------------------------------------------------------------------
 # Price Analysis
 # ---------------------------------------------------------------------------
@@ -505,3 +507,69 @@ class BuffetDataQualityReportOut(Schema):
     page_size: int
     total_pages: int
     summary: dict[str, int]
+
+
+# ---------------------------------------------------------------------------
+# Quantity outliers, suspicious piece portions, alias conflicts
+# ---------------------------------------------------------------------------
+
+
+class RecipeQuantityOutlierOut(Schema):
+    recipe_id: int
+    recipe_title: str
+    recipe_slug: str
+    recipe_item_id: int
+    ingredient_id: int | None = None
+    ingredient_name: str
+    quantity: float
+    unit_label: str
+    outlier: QuantityOutlierOut
+
+
+class PaginatedRecipeQuantityOutlierOut(Schema):
+    items: list[RecipeQuantityOutlierOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class SuspiciousPortionOut(Schema):
+    portion_id: int
+    portion_name: str
+    weight_g: float
+    weight_status: str | None = None
+    ingredient_id: int
+    ingredient_name: str
+    ingredient_slug: str
+    recipe_count: int
+    meal_item_count: int
+
+
+class PaginatedSuspiciousPortionOut(Schema):
+    items: list[SuspiciousPortionOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class AliasConflictOut(Schema):
+    kind: Literal["name_is_alias", "shared_alias"]
+    alias: str
+    ingredient_id: int
+    ingredient_name: str
+    ingredient_slug: str
+    ingredient_usage: int
+    conflicting_ingredient_id: int
+    conflicting_ingredient_name: str
+    conflicting_ingredient_slug: str
+    conflicting_ingredient_usage: int
+
+
+class PaginatedAliasConflictOut(Schema):
+    items: list[AliasConflictOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

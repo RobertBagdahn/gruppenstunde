@@ -5,6 +5,7 @@ import NutritionPlausibilityList from '@/components/data-quality/NutritionPlausi
 import PriceAnalysisTable from '@/components/data-quality/PriceAnalysisTable';
 import DuplicateDetectionList from '@/components/data-quality/DuplicateDetectionList';
 import BuffetCatalogProposalPanel from '@/components/data-quality/BuffetCatalogProposalPanel';
+import { AliasConflictList, SuspiciousPortionList } from '@/components/data-quality/QuantityChecks';
 import { useNutritionPlausibility } from '@/api/dataQuality';
 import { DataQualityIngredientsStateSchema, type DATA_QUALITY_TABS } from '@/schemas/listState';
 import { usePersistedListState } from '@/hooks/usePersistedListState';
@@ -18,6 +19,8 @@ const SUB_TABS: readonly { key: (typeof DATA_QUALITY_TABS)[number]; label: strin
   { key: 'missing', label: 'Fehlende Klassifikation' },
   { key: 'plausibility', label: 'Nährwert-Plausibilität' },
   { key: 'buffet', label: 'Buffet-Vorschläge' },
+  { key: 'portions', label: 'Stückgewichte' },
+  { key: 'aliases', label: 'Alias-Konflikte' },
 ];
 
 export default function DataQualityIngredientsPage() {
@@ -68,6 +71,8 @@ export default function DataQualityIngredientsPage() {
       {activeTab === 'missing' && <MissingClassificationList />}
       {activeTab === 'plausibility' && <NutritionPlausibilityList />}
       {activeTab === 'buffet' && <BuffetCatalogProposalPanel />}
+      {activeTab === 'portions' && <SuspiciousPortionList />}
+      {activeTab === 'aliases' && <AliasConflictList />}
     </div>
   );
 }

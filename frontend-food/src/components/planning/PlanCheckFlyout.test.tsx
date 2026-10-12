@@ -2,11 +2,30 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PlanCheckFlyout } from './PlanCheckFlyout';
 
+const navigateMock = vi.hoisted(() => vi.fn());
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
+  useNavigate: () => navigateMock,
+}));
+
 vi.mock('@/api/mealPlans', () => ({
   usePlanCheck: () => ({
     data: {
-      total_issues: 2,
+      total_issues: 3,
       alerts: [
+        {
+          id: 'quantity-outlier-5-38',
+          type: 'quantity_outlier',
+          severity: 'warning',
+          title: 'Auffällige Menge: Speisezwiebel',
+          description: 'Sa, 10.10. · Mittagessen · Sweet Onion Sauce: 160 g pro Person – üblich sind 25 g.',
+          date: '2026-10-10',
+          meal_id: 5,
+          meal_type: 'lunch',
+          action_label: 'Mengen prüfen',
+          action_type: 'open_quantities',
+          action_payload: { ingredient_name: 'Speisezwiebel' },
+        },
         {
           id: 'empty-day-2026-08-15',
           type: 'empty_day',
@@ -108,7 +127,7 @@ vi.mock('@/api/mealPlans', () => ({
 describe('PlanCheckFlyout', () => {
   it('renders trigger button with badge count', () => {
     render(<PlanCheckFlyout mealPlanId={42} />);
-    expect(screen.getByText(/Plan-Check \(2\)/i)).toBeDefined();
+    expect(screen.getByText(/Plan-Check \(3\)/i)).toBeDefined();
   });
 
   it('opens dialog on click and displays alert details with action buttons', () => {
@@ -238,5 +257,13 @@ describe('PlanCheckFlyout', () => {
 
     expect(handleOpenRefMeal).toHaveBeenCalledWith('breakfast');
     expect(handleScrollToMeal).not.toHaveBeenCalled();
+  });
+
+  it('opens the quantity view for a quantity outlier', () => {
+    render(<PlanCheckFlyout mealPlanId={42} />);
+    fireEvent.click(screen.getByRole('button', { name: /Plan-Check öffnen/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mengen prüfen' }));
+
+    expect(navigateMock).toHaveBeenCalledWith('/meal-plans/42/shopping?sub=quantities&q=Speisezwiebel');
   });
 });

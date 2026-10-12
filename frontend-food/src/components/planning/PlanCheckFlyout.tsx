@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, AlertTriangle, CheckCircle2, ChevronRight, Info, Sparkles } from 'lucide-react';
 import { usePlanCheck } from '@/api/mealPlans';
 import type { PlanCheckAlert } from '@/schemas/mealPlan';
@@ -53,6 +54,7 @@ export function PlanCheckFlyout({
   onOpenRefMeal,
 }: PlanCheckFlyoutProps) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const { data, isLoading } = usePlanCheck(mealPlanId);
 
   const totalIssues = data?.total_issues || 0;
@@ -78,6 +80,13 @@ export function PlanCheckFlyout({
       case 'open_ref_meal':
         if (alert.meal_type) onOpenRefMeal?.(alert.meal_type);
         break;
+      case 'open_quantities': {
+        const ingredientName = alert.action_payload?.ingredient_name;
+        const query = new URLSearchParams({ sub: 'quantities' });
+        if (typeof ingredientName === 'string' && ingredientName) query.set('q', ingredientName);
+        navigate(`/meal-plans/${mealPlanId}/shopping?${query}`);
+        break;
+      }
     }
   };
 

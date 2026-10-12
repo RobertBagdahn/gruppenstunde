@@ -308,6 +308,7 @@ class PlanCheckAlertOut(Schema):
         "empty_day",
         "duplicate_dish",
         "portion_override",
+        "quantity_outlier",
         "info",
     ]
     severity: Literal["error", "warning", "info"]

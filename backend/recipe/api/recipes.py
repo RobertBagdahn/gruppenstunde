@@ -913,6 +913,7 @@ def create_recipe(request, payload: RecipeCreateIn):
             ),
             client_request_id=item_data.client_request_id,
             quantity=item_data.quantity / servings_divisor,
+            source_quantity=item_data.quantity if servings_divisor > 1 else None,
             sort_order=item_data.sort_order,
             note=item_data.note,
             is_optional=item_data.is_optional,

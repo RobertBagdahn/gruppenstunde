@@ -4,7 +4,7 @@ import logging
 import math
 import uuid
 from collections import defaultdict
-from typing import Any
+from typing import Any, Literal
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models as db_models
@@ -35,10 +35,13 @@ from content.schemas.data_quality import (
     NutriScoreDistributionOut,
     NutritionPlausibilityOut,
     OutdatedPortionRecipeOut,
+    PaginatedAliasConflictOut,
     PaginatedAuditLogOut,
     PaginatedCompletenessOut,
     PaginatedDuplicatePairOut,
     PaginatedPriceAnomalyOut,
+    PaginatedRecipeQuantityOutlierOut,
+    PaginatedSuspiciousPortionOut,
     PortionPlausibilityOut,
     PriceApplyRequestIn,
     PriceApplyResponseOut,
@@ -891,6 +894,65 @@ def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
     start = (page - 1) * page_size
     page_items = items[start : start + page_size]
     return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+
+
+QUANTITY_PAGE_SIZES = (10, 20, 50)
+
+
+def _paginate_rows(rows: list, page: int, page_size: int) -> dict[str, Any]:
+    page_size = page_size if page_size in QUANTITY_PAGE_SIZES else 20
+    total = len(rows)
+    total_pages = max(1, math.ceil(total / page_size))
+    page = min(max(page, 1), total_pages)
+    start = (page - 1) * page_size
+    return {
+        "items": rows[start : start + page_size],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+@admin_router.get("/recipes/quantity-outliers/", response=PaginatedRecipeQuantityOutlierOut)
+def recipe_quantity_outliers(
+    request,
+    page: int = 1,
+    page_size: int = 20,
+    severity: Literal["warning", "danger"] | None = None,
+):
+    """Recipe lines with unusually high grams per person compared to other recipes."""
+    require_staff(request)
+    from recipe.services.quantity_report import recipe_quantity_outliers as collect
+
+    return _paginate_rows(collect(kind="high_quantity", severity=severity), page, page_size)
+
+
+@admin_router.get("/recipes/undivided-lines/", response=PaginatedRecipeQuantityOutlierOut)
+def recipe_undivided_lines(request, page: int = 1, page_size: int = 20):
+    """Lines that probably kept the source amount when the recipe was divided per person."""
+    require_staff(request)
+    from recipe.services.quantity_report import recipe_quantity_outliers as collect
+
+    return _paginate_rows(collect(kind="undivided"), page, page_size)
+
+
+@admin_router.get("/ingredients/suspicious-portions/", response=PaginatedSuspiciousPortionOut)
+def ingredient_suspicious_portions(request, page: int = 1, page_size: int = 20):
+    """Unconfirmed piece portions with the 150 g import default that are in use."""
+    require_staff(request)
+    from recipe.services.quantity_report import suspicious_portions
+
+    return _paginate_rows(suspicious_portions(), page, page_size)
+
+
+@admin_router.get("/ingredients/alias-conflicts/", response=PaginatedAliasConflictOut)
+def ingredient_alias_conflicts(request, page: int = 1, page_size: int = 20):
+    """Ingredient names that are another ingredient's alias, and aliases on two ingredients."""
+    require_staff(request)
+    from recipe.services.quantity_report import alias_conflicts
+
+    return _paginate_rows(alias_conflicts(), page, page_size)
 
 
 @admin_router.get("/ingredients/missing-system-portions/")

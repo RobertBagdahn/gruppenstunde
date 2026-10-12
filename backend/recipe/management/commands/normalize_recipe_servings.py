@@ -131,7 +131,7 @@ def normalize_recipe_to_one_portion(recipe: Recipe, *, quantities_are_total: boo
     if quantities_are_total and portions > 1:
         # One SQL update avoids firing per-item cache and embedding signals while
         # the recipe is only partially normalized.
-        recipe.recipe_items.update(quantity=F("quantity") / portions)
+        recipe.recipe_items.update(source_quantity=F("quantity"), quantity=F("quantity") / portions)
         if recipe.source_servings is None:
             recipe.source_servings = portions
             update_fields.append("source_servings")

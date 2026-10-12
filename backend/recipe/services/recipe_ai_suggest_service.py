@@ -270,6 +270,7 @@ def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
             recipe=recipe,
             portion=portion,
             quantity=item.quantity / max(data.portions or 1, 1),
+            source_quantity=item.quantity if (data.portions or 1) > 1 else None,
             sort_order=i + 1,
             is_optional=item.is_optional,
             note=note,

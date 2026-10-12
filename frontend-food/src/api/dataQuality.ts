@@ -4,7 +4,7 @@
  */
 import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import {
   PaginatedPriceAnomalySchema,
   PriceEvaluateResponseSchema,
@@ -54,7 +54,13 @@ import {
   type BuffetProposalPreview,
   type BuffetProposalExport,
 } from '@/schemas/dataQuality';
-import { PaginatedListSchema } from '@/schemas/dataQuality';
+import {
+  PaginatedListSchema,
+  RecipeQuantityOutlierSchema,
+  SuspiciousPortionSchema,
+  AliasConflictSchema,
+} from '@/schemas/dataQuality';
+import type { z } from 'zod';
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -193,6 +199,7 @@ export function useDismissDuplicate() {
       postJson(`${ADMIN_DQ}/ingredients/duplicates/dismiss/`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['data-quality-list'] });
     },
   });
 }
@@ -204,6 +211,7 @@ export function useUndismissDuplicate() {
       deleteJson(`${ADMIN_DQ}/ingredients/duplicates/dismiss/?a=${ingredient_a_id}&b=${ingredient_b_id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['data-quality-list'] });
     },
   });
 }
@@ -230,6 +238,7 @@ export function useMergeIngredients() {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['data-quality-list'] });
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
       queryClient.invalidateQueries({ queryKey: ['ingredient'] });
       queryClient.invalidateQueries({ queryKey: ['ingredient-search'] });
@@ -408,6 +417,38 @@ export function usePortionPlausibility(params: { page?: number; page_size?: numb
       return PaginatedListSchema(PortionPlausibilitySchema).parse(data);
     },
   });
+}
+
+const QUALITY_LIST_PAGE_SIZE = 20;
+
+/** Paginated staff list with "Mehr laden" (pages are appended). */
+function useQualityList<T extends z.ZodTypeAny>(path: string, itemSchema: T, params: Record<string, string> = {}) {
+  return useInfiniteQuery({
+    queryKey: ['data-quality-list', path, params] as const,
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const searchParams = new URLSearchParams({ ...params, page: String(pageParam), page_size: String(QUALITY_LIST_PAGE_SIZE) });
+      const data = await fetchJson(`${ADMIN_DQ}${path}?${searchParams}`);
+      return PaginatedListSchema(itemSchema).parse(data);
+    },
+    getNextPageParam: (last) => (last.page < last.total_pages ? last.page + 1 : undefined),
+  });
+}
+
+export function useRecipeQuantityOutliers(severity?: 'warning' | 'danger') {
+  return useQualityList('/recipes/quantity-outliers/', RecipeQuantityOutlierSchema, severity ? { severity } : {});
+}
+
+export function useRecipeUndividedLines() {
+  return useQualityList('/recipes/undivided-lines/', RecipeQuantityOutlierSchema);
+}
+
+export function useSuspiciousPortions() {
+  return useQualityList('/ingredients/suspicious-portions/', SuspiciousPortionSchema);
+}
+
+export function useAliasConflicts() {
+  return useQualityList('/ingredients/alias-conflicts/', AliasConflictSchema);
 }
 
 export function useQualityTrend(type: 'ingredients' | 'recipes' = 'ingredients') {
