@@ -33,7 +33,12 @@ def resolve_active_recipe_items(
     override_map = {override.recipe_item_id: override for override in (overrides or [])}
     result: list[ActiveRecipeItem] = []
 
-    for recipe_item in recipe.recipe_items.select_related("portion", "portion__ingredient", "ingredient").all():
+    for recipe_item in recipe.recipe_items.select_related(
+        "portion",
+        "portion__ingredient__retail_section",
+        "portion__measuring_unit",
+        "ingredient__retail_section",
+    ).all():
         portion = recipe_item.portion
         if portion is not None and portion.deleted_at is not None:
             continue
