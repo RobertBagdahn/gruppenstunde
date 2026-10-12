@@ -284,4 +284,4 @@ Ausgeführt lokal gegen Prod über den Cloud SQL Proxy, erst als Trockenlauf (Tr
   - C: 41 Zutaten zusammengeführt (`merge_ingredient`), Alias „Rapsöl“ an Speiseöl vorab und 10 falsche Aliase danach entfernt
   - Statistik neu (545 Zutaten). Bericht danach: 3 auffällige Mengen (#394 und #387 bewusst unverändert, neu #385), 1 ungeteilte Zeile (#530 Äpfel, gewollt), 0 Stückportionen, 0 Alias-Konflikte
   - Kontrolle: keine aktiven Quell-Zutaten, keine Rezeptzeile auf gelöschter Zutat; Plan „Bundesrat 2026“ unverändert (Speisezwiebel 3,6 kg, Eisbergsalat 1,05 kg)
-- [ ] Neu aufgefallen, nicht freigegeben: #385 Kartoffel-Limetten-Curry, Gemüsebrühe-Konzentrat 15 TL (75 g) pro Person → Vorschlag 1 TL
+- [x] #385 Kartoffel-Limetten-Curry nach Freigabe: Gemüsebrühe-Konzentrat 15 TL (75 g) → 1 TL (5 g) pro Person (Snapshot `1791836328962`); jetzt 624 g / 634 kcal pro Person, keine Auffälligkeit mehr
