@@ -39,9 +39,11 @@
 - [x] 5.4 Unterreiter „Mengen“ in `MealEventDetailPage.tsx` (`?sub=quantities`)
 - [x] 5.5 Badge „angepasst“ in `MealSlot.tsx` und `CookingScheduleTab.tsx`
 - [x] 5.6 Vitest: Zod-Parsing, Dialog-Umrechnung, Inline-Bearbeitung, Read-only, Grund bei nicht anpassbaren Zeilen
-- [ ] 5.7 Manueller Mobile-Check bei 320 px im Browser
+- [x] 5.7 Mobile-Check bei 320 px (Playwright gegen lokales Backend): kein horizontaler Überlauf; Dialog-Breite, Titel/Schließen-Button und Portionshinweise korrigiert; Speichern, Rückgängig, Inline-Bearbeitung und Zurücksetzen im Browser geprüft
+- [x] 5.8 Optimistisches Update für Einzelzeilen und Cache-Update nach planweiter Anpassung; `portion__measuring_unit` und Abteilungen vorgeladen (Mengenansicht 239 → 109 Queries, Einkaufsliste 157 → 107)
 
 ## 6. Abschluss
 
 - [x] 6.1 `npm run lint`, `npm run typecheck`, `npm test` in `frontend-food/`
-- [ ] 6.2 Manuelle Prüfung mit Peters Plan; Rückmeldung an Peter
+- [x] 6.2 Prüfung mit Peters Plan auf Prod (nur lesend, nach Deploy): 56 Zutaten, Summen identisch mit der Einkaufsliste, Zwiebel/Eisbergsalat-Anteile wie in der Diagnose
+- [ ] 6.3 Rückmeldung an Peter (Text liegt vor)

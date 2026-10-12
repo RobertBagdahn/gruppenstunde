@@ -48,3 +48,14 @@ Read-only-Abfrage gegen Prod am 11.10.2026 (Cloud SQL Proxy, Session `READ ONLY`
 - Rezept #529 Baguette Teriyaki: Eisbergsalat-Menge prüfen; Portion „1 Stück (150 g)“ von Eisbergsalat prüfen.
 - Prüfen, ob beim Normalisieren/Import weitere Rezepte einzelne nicht geteilte Zeilen haben (Ausreißer je Zeile gegenüber `source_servings`).
 - Hinweis an Peter: Alternativen in einer Mahlzeit mit Faktor < 1 bzw. als Varianten planen.
+
+## Rezeptdaten-Prüfung (Prod, 12.10.2026, nur lesend)
+
+231 Rezepte geprüft.
+
+- **Nicht geteilte Zeilen** (Rezept mit `source_servings > 1`, ganze Stückzahl neben gebrochenen Mengen): #528 Sweet Onion Sauce (Zwiebel 2 Stück, eindeutig falsch, erwartet 0,5) und #530 Apfelringe im Teig (1 Apfel pro Person, plausibel).
+- **Zwiebel/Knoblauch/Salat/Kräuter > 60 g pro Person:** 22 Zeilen. Auffällig: #528 (160 g), #340 Caesar Diät Wrap (1 ganzer „Stück“ Eisbergsalat), #523 Burger (1 Zwiebel, 80 g). Gurke 100 g in Salaten/Bowls und Zwiebeln in Suppen sind plausibel.
+- **Portion „1 Stück (150g)“ bei Eisbergsalat:** Ein Kopf wiegt ca. 500–600 g. Die Einkaufsliste zeigt dadurch zu viele „Stück“ (Bundesrat: 17,5 statt ca. 5 Köpfe).
+- **Doppelte Zwiebel-Zutaten:** „Zwiebel“, „Speisezwiebel“, „Gemüsezwiebel(n)“ werden getrennt aufgeführt und nicht zusammengezählt.
+
+Korrekturen erfordern Roberts Freigabe (Prod-Daten).
