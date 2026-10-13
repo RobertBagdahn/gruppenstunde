@@ -155,33 +155,138 @@ class TestMaterialCreate:
             data=json.dumps({"name": "Seil", "material_category": "outdoor"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
-    def test_create_material(self, auth_client):
+    def test_logged_in_user_can_create_material(self, auth_client):
         resp = auth_client.post(
             "/api/supplies/materials/",
             data=json.dumps(
                 {
-                    "name": "Seil",
-                    "description": "10m Seil",
-                    "material_category": "outdoor",
-                    "is_consumable": False,
+                    "name": "Pappteller",
+                    "material_category": "kitchen",
+                    "is_consumable": True,
+                    "package_size": 50,
+                    "price_per_package": 3,
                 }
             ),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["is_consumable"] is True
+        assert data["price_per_piece"] == pytest.approx(0.06)
+        assert data["can_edit"] is True
+
+    def test_create_without_price_has_no_piece_price(self, auth_client):
+        resp = auth_client.post(
+            "/api/supplies/materials/",
+            data=json.dumps({"name": "Zahnstocher", "is_consumable": True}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 201
+        assert resp.json()["price_per_piece"] is None
+
+    def test_duplicate_name_returns_existing(self, auth_client, material):
+        resp = auth_client.post(
+            "/api/supplies/materials/",
+            data=json.dumps({"name": f"  {material.name.upper()}  "}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.json()["id"] == material.id
+        assert Material.objects.filter(name__iexact=material.name).count() == 1
 
 
 @pytest.mark.django_db
 class TestMaterialUpdate:
-    def test_update_material(self, auth_client, material):
+    def test_owner_can_update_own_material(self, auth_client):
+        created = auth_client.post(
+            "/api/supplies/materials/",
+            data=json.dumps({"name": "Seil"}),
+            content_type="application/json",
+        ).json()
+        resp = auth_client.patch(
+            f"/api/supplies/materials/{created['id']}/",
+            data=json.dumps({"name": "Kletterseil", "price_per_package": 12.5, "package_size": 1}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.json()["name"] == "Kletterseil"
+        assert resp.json()["price_per_piece"] == pytest.approx(12.5)
+
+    def test_non_owner_cannot_update(self, auth_client, material):
         resp = auth_client.patch(
             f"/api/supplies/materials/{material.id}/",
             data=json.dumps({"name": "Bastelschere"}),
             content_type="application/json",
         )
         assert resp.status_code == 403
+
+    def test_admin_can_update_any(self, admin_client, material):
+        resp = admin_client.patch(
+            f"/api/supplies/materials/{material.id}/",
+            data=json.dumps({"name": "Bastelschere"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+    def test_rename_to_existing_name_conflicts(self, admin_client, material, material_consumable):
+        resp = admin_client.patch(
+            f"/api/supplies/materials/{material.id}/",
+            data=json.dumps({"name": material_consumable.name}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 409
+
+
+@pytest.mark.django_db
+class TestMaterialListFilter:
+    def test_filter_consumable(self, api_client, material, material_consumable):
+        resp = api_client.get("/api/supplies/materials/?is_consumable=true")
+        assert resp.status_code == 200
+        ids = {item["id"] for item in resp.json()["items"]}
+        assert ids == {material_consumable.id}
+
+
+@pytest.mark.django_db
+class TestMaterialMerge:
+    def test_admin_merges_and_relinks(self, admin_client, material, material_consumable):
+        from django.contrib.contenttypes.models import ContentType
+
+        from supply.models import ContentMaterialItem
+
+        ct = ContentType.objects.get_for_model(Material)
+        ContentMaterialItem.objects.create(content_type=ct, object_id=1, material=material, amount=3)
+        ContentMaterialItem.objects.create(content_type=ct, object_id=2, material=material, amount=2)
+        ContentMaterialItem.objects.create(content_type=ct, object_id=2, material=material_consumable, amount=5)
+
+        resp = admin_client.post(
+            f"/api/supplies/materials/{material.id}/merge/",
+            data=json.dumps({"target_id": material_consumable.id}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.json()["id"] == material_consumable.id
+        assert Material.objects.filter(id=material.id).count() == 0
+        assert ContentMaterialItem.objects.filter(material=material).count() == 0
+        assert ContentMaterialItem.objects.filter(material=material_consumable).count() == 2
+        assert ContentMaterialItem.objects.get(object_id=2, material=material_consumable).amount == 5
+
+    def test_non_admin_cannot_merge(self, auth_client, material, material_consumable):
+        resp = auth_client.post(
+            f"/api/supplies/materials/{material.id}/merge/",
+            data=json.dumps({"target_id": material_consumable.id}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 403
+
+    def test_merge_into_self_rejected(self, admin_client, material):
+        resp = admin_client.post(
+            f"/api/supplies/materials/{material.id}/merge/",
+            data=json.dumps({"target_id": material.id}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 422
 
 
 @pytest.mark.django_db

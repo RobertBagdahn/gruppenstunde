@@ -1,4 +1,5 @@
 import { useTags } from '@/api/tags';
+import { useMaterials } from '@/api/materials';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
@@ -27,6 +28,7 @@ interface RecipeFilterSidebarProps {
 
 export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }: RecipeFilterSidebarProps) {
   const { data: tags } = useTags();
+  const { data: devices } = useMaterials({ is_consumable: false, page_size: 100 });
 
   const selectedTagSlugs = (filters.tag_slugs as string[]) ?? [];
   const selectedOrigin = (filters.origin as string[]) ?? ['verified'];
@@ -35,6 +37,8 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
   const selectedExecutionTime = (filters.execution_time as string[]) ?? [];
   const selectedPrepMethod = (filters.preparation_method as string[]) ?? [];
   const selectedCostRanges = (filters.cost as string[]) ?? [];
+  const withMaterial = filters.material ?? '';
+  const withoutMaterial = filters.exclude_material ?? '';
 
   function toggleMulti(key: string, current: string[], value: string) {
     const next = toggleArrayValue(current, value);
@@ -59,6 +63,8 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     selectedExecutionTime.length > 0 ||
     selectedPrepMethod.length > 0 ||
     selectedCostRanges.length > 0 ||
+    withMaterial !== '' ||
+    withoutMaterial !== '' ||
     selectedOrigin.length !== 1 || selectedOrigin[0] !== 'verified';
 
   const activeFilterCount =
@@ -68,6 +74,8 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     selectedExecutionTime.length +
     selectedPrepMethod.length +
     selectedCostRanges.length +
+    (withMaterial ? 1 : 0) +
+    (withoutMaterial ? 1 : 0) +
     (selectedOrigin.length !== 1 || selectedOrigin[0] !== 'verified' ? selectedOrigin.length : 0);
 
   function toggleTag(slug: string) {
@@ -77,7 +85,14 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     onFilterChange('tag_slugs', next.length ? next : undefined);
   }
 
-  const hiddenActiveCount = selectedDifficulty.length + selectedPrepMethod.length + selectedCostRanges.length;
+  const hiddenActiveCount =
+    selectedDifficulty.length +
+    selectedPrepMethod.length +
+    selectedCostRanges.length +
+    (withMaterial ? 1 : 0) +
+    (withoutMaterial ? 1 : 0);
+
+  const deviceName = (slug: string) => devices?.items.find((d) => d.slug === slug)?.name ?? slug;
 
   return (
     <FilterSidebar activeCount={activeFilterCount}>
@@ -101,6 +116,15 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
               const opt = RECIPE_ORIGIN_OPTIONS.find((o) => o.value === val);
               return opt ? <ActiveChip key={val} label={opt.label} onRemove={() => toggleOrigin(val)} /> : null;
             })}
+            {withMaterial && (
+              <ActiveChip label={`Mit ${deviceName(withMaterial)}`} onRemove={() => onFilterChange('material', undefined)} />
+            )}
+            {withoutMaterial && (
+              <ActiveChip
+                label={`Ohne ${deviceName(withoutMaterial)}`}
+                onRemove={() => onFilterChange('exclude_material', undefined)}
+              />
+            )}
             {tags && selectedTagSlugs.map((slug) => {
               const tag = tags.find((t) => t.slug === slug);
               return tag ? <ActiveChip key={slug} label={tag.name} onRemove={() => toggleTag(slug)} /> : null;
@@ -175,6 +199,30 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
               onChange={() => toggleMulti('preparation_method', selectedPrepMethod, opt.value)}
               label={opt.label}
             />
+          ))}
+        </FilterGroup>
+
+        <FilterGroup title="Gerät" icon="cooking">
+          {[
+            { key: 'material', label: 'Mit Gerät', value: withMaterial },
+            { key: 'exclude_material', label: 'Ohne Gerät', value: withoutMaterial },
+          ].map((row) => (
+            <label key={row.key} className="block">
+              <span className="mb-1 block text-caption text-muted-foreground">{row.label}</span>
+              <select
+                aria-label={row.label}
+                value={row.value}
+                onChange={(e) => onFilterChange(row.key, e.target.value || undefined)}
+                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-body"
+              >
+                <option value="">Egal</option>
+                {(devices?.items ?? []).map((device) => (
+                  <option key={device.id} value={device.slug}>
+                    {device.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           ))}
         </FilterGroup>
 

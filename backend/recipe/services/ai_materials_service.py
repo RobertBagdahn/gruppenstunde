@@ -1,7 +1,7 @@
 """AI-powered material suggestions for recipes (Gemini Flash).
 
-Suggests consumable and helper materials (toothpicks, baking paper, twine, ...)
-separate from ingredients and kitchen equipment, matches them against the
+Suggests consumable materials (toothpicks, baking paper, paper plates, ...) and
+required devices (oven, pot, ...), separate from ingredients, matches them against the
 Material catalog and applies confirmed suggestions atomically.
 """
 
@@ -31,7 +31,15 @@ class AiMaterialSuggestionItem(BaseModel):
     """Single material suggestion from Gemini."""
 
     name: str = Field(description="Name des Materials auf Deutsch, z.B. 'Zahnstocher', 'Backpapier'")
-    quantity: str = Field(default="", description="Mengenangabe, z.B. '30 Stück', '1 Rolle', 'nach Bedarf'")
+    is_consumable: bool = Field(
+        default=True,
+        description="true für Verbrauchsmaterial (wird verbraucht), false für wiederverwendbare Geräte",
+    )
+    amount: float = Field(default=1, gt=0, description="Menge als Zahl (Anzahl Stück/Packungen)")
+    quantity_mode: str = Field(
+        default="total",
+        description="'per_portion' wenn die Menge pro Portion gilt (z.B. 1 Teller pro Portion), sonst 'total'",
+    )
 
 
 class AiMaterialsOutput(BaseModel):
@@ -49,13 +57,17 @@ class MatchedMaterialResult:
         self,
         material_id: int | None,
         suggested_name: str,
-        quantity: str,
+        is_consumable: bool,
+        amount: float,
+        quantity_mode: str,
         matched_name: str | None,
         is_new: bool,
     ):
         self.material_id = material_id
         self.suggested_name = suggested_name
-        self.quantity = quantity
+        self.is_consumable = is_consumable
+        self.amount = amount
+        self.quantity_mode = quantity_mode
         self.matched_name = matched_name
         self.is_new = is_new
 
@@ -85,7 +97,9 @@ class RecipeAiMaterialsService:
             MatchedMaterialResult(
                 material_id=m.get("material_id"),
                 suggested_name=m.get("name", ""),
-                quantity=m.get("quantity", ""),
+                is_consumable=bool(m.get("is_consumable", True)),
+                amount=float(m.get("amount") or 1),
+                quantity_mode=m.get("quantity_mode") if m.get("quantity_mode") in {"per_portion", "total"} else "total",
                 matched_name=m.get("matched_name"),
                 is_new=m.get("material_id") is None,
             )
@@ -132,7 +146,8 @@ class RecipeAiMaterialsService:
                 content_type=ct,
                 object_id=recipe.pk,
                 material_id=item_in.material_id,
-                quantity=item_in.quantity,
+                amount=item_in.amount,
+                quantity_mode=item_in.quantity_mode,
                 sort_order=last_sort + index + 1,
             )
             created.append(item)
@@ -192,15 +207,17 @@ class RecipeAiMaterialsService:
         if recipe.description:
             parts.append(f"\nBeschreibung: {recipe.description}")
         parts.append(
-            "\n\nSchlage nur Verbrauchs- und Hilfsmaterialien vor, die beim Kochen dieses "
-            "Rezepts benötigt werden, zum Beispiel Zahnstocher, Holzspieße, Backpapier, "
-            "Alufolie, Küchengarn oder Einweghandschuhe.\n"
+            "\n\nSchlage Material vor, das beim Kochen dieses Rezepts benötigt wird:\n"
+            "- Verbrauchsmaterial (is_consumable=true), zum Beispiel Pappteller, Zahnstocher, "
+            "Schaschlikspieße, Backpapier, Alufolie, Küchengarn oder Einweghandschuhe\n"
+            "- Wiederverwendbare Geräte (is_consumable=false), zum Beispiel Backofen, Herd, Topf, "
+            "Pfanne oder Auflaufform\n"
             "REGELN:\n"
             "- KEINE Zutaten oder Lebensmittel\n"
-            "- KEINE wiederverwendbaren Küchengeräte wie Töpfe, Pfannen, Messer, "
-            "Schneidebretter oder Schüsseln (das ist Equipment)\n"
-            "- Mengen als Anzeigeangabe, z.B. '30 Stück', '1 Rolle', 'nach Bedarf'\n"
-            "Gib nur Materialien zurück, die wirklich benötigt werden."
+            "- amount ist eine Zahl; bei Geräten die Anzahl (meist 1)\n"
+            "- quantity_mode='per_portion', wenn die Menge mit den Portionen wächst "
+            "(z.B. 1 Pappteller pro Portion), sonst 'total'\n"
+            "Gib nur Material zurück, das wirklich benötigt wird."
         )
 
         context_block = build_prompt_context(user)

@@ -438,8 +438,10 @@ class MealOut(Schema):
             recipe = _live_recipe(item)
             if recipe and recipe.cached_price_total is not None:
                 from planner.services.variant_service import compute_variant_cost
+                from supply.services.material_aggregation import fixed_material_cost
 
                 total += compute_variant_cost(item) * item.factor * effective_portions
+                total += fixed_material_cost(recipe)
             elif item.ingredient:
                 cost = resolve_ingredient_cost_eur(item, effective_portions=effective_portions)
                 if cost is not None:

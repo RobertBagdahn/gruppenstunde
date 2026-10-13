@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store } from 'lucide-react';
+import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store, ClipboardList } from 'lucide-react';
 import { useShoppingList, useIngredientScan } from '@/api/mealPlans';
 import type { NutritionalTagViolation, ShoppingListItem } from '@/schemas/mealPlan';
 import { useCurrentUser } from '@/api/auth';
@@ -163,6 +163,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
   const { data: scanData } = useIngredientScan(mealPlanId);
   const createFromMealPlan = useCreateFromMealPlan();
   const [showReserve, setShowReserve] = useState(false);
+  const [includeConsumables, setIncludeConsumables] = useState(true);
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
   if (isLoading) return <SkeletonTableRows rows={5} columns={3} label="Einkaufsliste wird geladen" />;
@@ -201,11 +202,23 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
 
       {/* Export to persistent shopping list */}
       {currentUser && (
+        <label className="flex items-center gap-2 text-body cursor-pointer">
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={includeConsumables}
+            onChange={(e) => setIncludeConsumables(e.target.checked)}
+            data-testid="plan-shopping-consumables"
+          />
+          Verbrauchsmaterial mit aufnehmen
+        </label>
+      )}
+      {currentUser && (
         <button
           type="button"
           disabled={createFromMealPlan.isPending}
           onClick={() => {
-            createFromMealPlan.mutate(mealPlanId, {
+            createFromMealPlan.mutate({ mealPlanId, includeConsumables }, {
               onSuccess: (created) => {
                 notify.success('Einkaufsliste erstellt');
                 navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId } });
@@ -226,6 +239,15 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
             : 'Einkaufsliste erstellen'}
         </button>
       )}
+
+      <Link
+        to={`/material-list?meal-plan=${mealPlanId}`}
+        data-testid="plan-material-list-link"
+        className="press flex items-center justify-center gap-2 rounded-lg bg-primary-soft px-4 py-2.5 text-body font-medium text-primary transition-colors hover:bg-primary-soft/80"
+      >
+        <ClipboardList className="w-4 h-4" />
+        Materialliste anzeigen
+      </Link>
 
       {Object.entries(grouped).map(([section, items]) => (
         <div key={section} className="rounded-xl bg-card overflow-hidden shadow-card">

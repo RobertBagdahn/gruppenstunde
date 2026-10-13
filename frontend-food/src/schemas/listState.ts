@@ -34,6 +34,8 @@ const recipeFilterFields = RecipeFilterSchema.pick({
   execution_time: true,
   origin: true,
   tag_slugs: true,
+  material: true,
+  exclude_material: true,
 }).shape;
 
 export const RecipeListStateSchema = lenient({
@@ -44,6 +46,8 @@ export const RecipeListStateSchema = lenient({
   execution_time: recipeFilterFields.execution_time.unwrap(),
   origin: recipeFilterFields.origin.unwrap(),
   tag_slugs: recipeFilterFields.tag_slugs.unwrap(),
+  material: recipeFilterFields.material.unwrap(),
+  exclude_material: recipeFilterFields.exclude_material.unwrap(),
   // Selected price ranges; the API bounds are derived from them.
   cost: z.array(z.enum(RECIPE_COST_RANGE_VALUES)),
   sort: z.enum(values(RECIPE_SORT_OPTIONS)),

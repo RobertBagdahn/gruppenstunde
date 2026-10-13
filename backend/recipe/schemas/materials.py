@@ -1,6 +1,11 @@
 """Pydantic schemas for recipe materials (ContentMaterialItem links)."""
 
+from typing import Literal
+
 from ninja import Schema
+from pydantic import Field
+
+QuantityMode = Literal["per_portion", "total"]
 
 
 class RecipeMaterialOut(Schema):
@@ -11,7 +16,10 @@ class RecipeMaterialOut(Schema):
     material_name: str
     material_slug: str
     material_category: str
-    quantity: str
+    is_consumable: bool
+    amount: float
+    quantity_mode: str
+    price_per_piece: float | None = None
     sort_order: int
 
     @staticmethod
@@ -30,18 +38,28 @@ class RecipeMaterialOut(Schema):
     def resolve_material_category(obj) -> str:
         return obj.material.material_category
 
+    @staticmethod
+    def resolve_is_consumable(obj) -> bool:
+        return obj.material.is_consumable
+
+    @staticmethod
+    def resolve_price_per_piece(obj) -> float | None:
+        return obj.material.price_per_piece
+
 
 class RecipeMaterialCreateIn(Schema):
     """Input for linking a material to a recipe."""
 
     material_id: int
-    quantity: str = ""
+    amount: float = Field(1, gt=0)
+    quantity_mode: QuantityMode = "total"
 
 
 class RecipeMaterialUpdateIn(Schema):
     """Input for updating a recipe material link."""
 
-    quantity: str | None = None
+    amount: float | None = Field(None, gt=0)
+    quantity_mode: QuantityMode | None = None
     sort_order: int | None = None
 
 
@@ -56,7 +74,9 @@ class AiMaterialSuggestionOut(Schema):
 
     material_id: int | None = None
     suggested_name: str
-    quantity: str = ""
+    is_consumable: bool = True
+    amount: float = 1
+    quantity_mode: str = "total"
     matched_name: str | None = None
     is_new: bool = False
 
@@ -72,4 +92,5 @@ class AiMaterialApplyIn(Schema):
     """Input for applying a matched AI material suggestion."""
 
     material_id: int
-    quantity: str = ""
+    amount: float = Field(1, gt=0)
+    quantity_mode: QuantityMode = "total"

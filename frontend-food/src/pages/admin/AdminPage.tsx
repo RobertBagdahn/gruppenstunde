@@ -3,7 +3,6 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import RetailSectionTab from './RetailSectionTab';
 import NutritionalTagTab from './NutritionalTagTab';
-import EquipmentTab from './EquipmentTab';
 import TagTab from './TagTab';
 import RuleTab from './RuleTab';
 import ApprovalTab from './ApprovalTab';
@@ -12,7 +11,6 @@ import AiFeedbackTab from './AiFeedbackTab';
 const TABS = [
   { key: 'approvals', label: 'Freigaben' },
   { key: 'retail-sections', label: 'Abteilungen' },
-  { key: 'equipment', label: 'Equipment' },
   { key: 'nutritional-tags', label: 'Ernährungstags' },
   { key: 'tags', label: 'Tags' },
   { key: 'rules', label: 'Regeln' },
@@ -65,7 +63,6 @@ export default function AdminPage() {
       {activeTab === 'approvals' && <ApprovalTab />}
       {activeTab === 'ai-feedback' && <AiFeedbackTab />}
       {activeTab === 'retail-sections' && <RetailSectionTab />}
-      {activeTab === 'equipment' && <EquipmentTab />}
       {activeTab === 'nutritional-tags' && <NutritionalTagTab />}
       {activeTab === 'tags' && <TagTab />}
       {activeTab === 'rules' && <RuleTab />}

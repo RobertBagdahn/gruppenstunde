@@ -21,7 +21,7 @@ from django.dispatch import receiver
 
 from core.services.background import run_in_background
 from recipe.models import Recipe, RecipeItem
-from supply.models import Ingredient, MeasuringUnit, Portion
+from supply.models import ContentMaterialItem, Ingredient, Material, MeasuringUnit, Portion
 
 
 def _recipes_using_ingredient(ingredient):
@@ -64,6 +64,44 @@ def recalculate_recipe_cache_on_item_change(sender, instance, **kwargs):
     except Exception:
         return
     recalculate_recipe_cache(recipe)
+
+
+# ---------------------------------------------------------------------------
+# Recipe material signals (consumable costs are part of the cached price)
+# ---------------------------------------------------------------------------
+
+
+@receiver(post_save, sender=ContentMaterialItem, dispatch_uid="recipe_material_cache_recalc_save")
+@receiver(post_delete, sender=ContentMaterialItem, dispatch_uid="recipe_material_cache_recalc_delete")
+def recalculate_recipe_cache_on_material_change(sender, instance, **kwargs):
+    """Recalculate the recipe cache when a recipe material link changes."""
+    from django.contrib.contenttypes.models import ContentType
+
+    from recipe.services.recipe_checks import recalculate_recipe_cache
+
+    recipe_ct = ContentType.objects.get_for_model(Recipe, for_concrete_model=False)
+    if instance.content_type_id != recipe_ct.pk:
+        return
+    recipe = Recipe.objects.filter(pk=instance.object_id).first()
+    if recipe is not None:
+        recalculate_recipe_cache(recipe)
+
+
+@receiver(post_save, sender=Material, dispatch_uid="recipe_material_price_cache_recalc")
+def recalculate_recipe_caches_on_material_price_change(sender, instance, created, **kwargs):
+    """Recalculate recipes that use a material whose price or package size changed."""
+    if created:
+        return
+    from django.contrib.contenttypes.models import ContentType
+
+    from recipe.services.recipe_checks import recalculate_recipe_cache
+
+    recipe_ct = ContentType.objects.get_for_model(Recipe, for_concrete_model=False)
+    recipe_ids = ContentMaterialItem.objects.filter(content_type=recipe_ct, material=instance).values_list(
+        "object_id", flat=True
+    )
+    for recipe in Recipe.objects.filter(pk__in=list(recipe_ids)):
+        recalculate_recipe_cache(recipe)
 
 
 # ---------------------------------------------------------------------------

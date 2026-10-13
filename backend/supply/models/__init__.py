@@ -1,7 +1,6 @@
 """Supply models package — re-exports all models for backward compatibility."""
 
 from .buffet_data_proposal import BuffetDataProposal
-from .equipment import Equipment
 from .ingredient import Ingredient, IngredientAlias, IngredientGroup, Package, Portion
 from .ingredient_price_proposal import IngredientPriceProposal
 from .ingredient_quantity_stats import IngredientQuantityStats
@@ -16,7 +15,6 @@ from .unit_conversion import UnitConversion
 __all__ = [
     "BuffetDataProposal",
     "ContentMaterialItem",
-    "Equipment",
     "Ingredient",
     "IngredientAlias",
     "IngredientGroup",

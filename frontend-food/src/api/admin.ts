@@ -8,18 +8,15 @@ import { z } from 'zod';
 import {
   RetailSectionSchema,
   NutritionalTagSchema,
-  EquipmentSchema,
   TagAdminSchema,
   TagDetailSchema,
   type RetailSectionIn,
   type NutritionalTagIn,
-  type EquipmentIn,
   type TagAdminIn,
 } from '@/schemas/supply';
 
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
 const NUTRITIONAL_TAG_BASE = `${API_BASE_URL}/api/nutritional-tags`;
-const EQUIPMENT_BASE = `${API_BASE_URL}/api/supply/equipment`;
 const TAG_ADMIN_BASE = `${API_BASE_URL}/api/admin/tags`;
 
 function getCsrfToken(): string {
@@ -170,49 +167,6 @@ export function useDeleteNutritionalTag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'nutritional-tags'] });
       qc.invalidateQueries({ queryKey: ['nutritional-tags'] });
-    },
-  });
-}
-
-// ===========================================================================
-// Equipment Admin Hooks
-// ===========================================================================
-
-export function useAdminEquipment() {
-  return useQuery({
-    queryKey: ['admin', 'equipment'],
-    queryFn: () => fetchJson(`${EQUIPMENT_BASE}/`, z.array(EquipmentSchema)),
-  });
-}
-
-export function useCreateEquipment() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: EquipmentIn) =>
-      postJson(`${EQUIPMENT_BASE}/`, data, EquipmentSchema),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'equipment'] });
-    },
-  });
-}
-
-export function useUpdateEquipment() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<EquipmentIn> }) =>
-      patchJson(`${EQUIPMENT_BASE}/${id}/`, data, EquipmentSchema),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'equipment'] });
-    },
-  });
-}
-
-export function useDeleteEquipment() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => deleteJson(`${EQUIPMENT_BASE}/${id}/`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'equipment'] });
     },
   });
 }

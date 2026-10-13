@@ -118,6 +118,8 @@ function buildFilterParams(filters: Partial<RecipeFilter>): string {
   if (filters.origin?.length) {
     filters.origin.forEach((v) => params.append('origin', v));
   }
+  if (filters.material) params.set('material_slug', filters.material);
+  if (filters.exclude_material) params.set('exclude_material_slug', filters.exclude_material);
   if (filters.sort) params.set('sort', filters.sort);
   if (filters.sort === 'random' && filters.seed !== undefined) params.set('seed', String(filters.seed));
   if (filters.page) params.set('page', String(filters.page));
@@ -235,7 +237,6 @@ export interface RecipeCreatePayload {
   /** Recipes always store per-person quantities; the API rejects any other value. */
   portions?: 1;
   preparation_method?: string;
-  equipment_ids?: number[];
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;
@@ -300,7 +301,6 @@ export interface RecipeUpdatePayload {
   /** Recipes always store per-person quantities; the API rejects any other value. */
   portions?: 1;
   preparation_method?: string;
-  equipment_ids?: number[];
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;

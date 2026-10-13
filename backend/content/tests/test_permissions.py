@@ -306,7 +306,7 @@ class TestPortionPermissions:
 
 @pytest.mark.django_db
 class TestStammdatenProtection:
-    def test_non_staff_cannot_create_material(self):
+    def test_non_staff_can_create_material(self):
         user = make_user()
         client = make_client(user)
 
@@ -315,7 +315,7 @@ class TestStammdatenProtection:
             data=json.dumps({"name": "Seil", "material_category": "outdoor"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 201
 
     def test_staff_can_create_material(self):
         user = make_user(role="staff")

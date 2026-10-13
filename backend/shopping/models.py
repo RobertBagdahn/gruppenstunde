@@ -45,6 +45,12 @@ class ShoppingList(models.Model):
         verbose_name=_("Quell-ID"),
         help_text=_("ID des Rezepts oder MealPlans, aus dem die Liste erstellt wurde"),
     )
+    source_portions = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Portionen der Quelle"),
+        help_text=_("Portionen, für die ein Rezept eingekauft wird (nur Rezept-Quelle)"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -79,6 +85,15 @@ class ShoppingListItem(models.Model):
         blank=True,
         related_name="shopping_list_items",
         verbose_name=_("Zutat"),
+    )
+    material = models.ForeignKey(
+        "supply.Material",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shopping_list_items",
+        verbose_name=_("Material"),
+        help_text=_("Verbrauchsmaterial; die Stückzahl steht in quantity_g"),
     )
     name = models.CharField(
         max_length=255,

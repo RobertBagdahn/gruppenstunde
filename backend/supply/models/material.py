@@ -88,6 +88,27 @@ class Material(Supply):
         blank=True,
         help_text='List of purchase links: [{"url": "...", "shop_name": "...", "price": 9.99}]',
     )
+    package_size = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Pieces per package (e.g. 50 plates).",
+    )
+    package_unit = models.CharField(max_length=30, blank=True, default="Stück")
+    price_per_package = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    retail_section = models.ForeignKey(
+        "supply.RetailSection",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="materials",
+    )
+
+    @property
+    def price_per_piece(self) -> float | None:
+        """Price of a single piece, or None when package size or price is unknown."""
+        if self.price_per_package is None or not self.package_size:
+            return None
+        return float(self.price_per_package) / self.package_size
 
     class Meta(Supply.Meta):
         verbose_name = "Material"
@@ -116,8 +137,15 @@ class ContentMaterialItem(models.Model):
         related_name="content_usages",
     )
 
-    # Quantity
+    class QuantityMode(models.TextChoices):
+        PER_PORTION = "per_portion", "Pro Portion"
+        TOTAL = "total", "Gesamt"
+
+    # Free-text quantity label (sessions and games)
     quantity = models.CharField(max_length=50, blank=True, default="")
+    # Numeric quantity used by recipes (scaled with servings in per_portion mode)
+    amount = models.FloatField(default=1)
+    quantity_mode = models.CharField(max_length=12, choices=QuantityMode.choices, default=QuantityMode.TOTAL)
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -130,4 +158,4 @@ class ContentMaterialItem(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.quantity} {self.material.name}"
+        return f"{self.quantity or self.amount} {self.material.name}"

@@ -41,6 +41,7 @@ import ContentEmotions from '@/components/content/ContentEmotions';
 import InlineEditor from '@/components/content/InlineEditor';
 import TitleImageEditor from '@/components/content/TitleImageEditor';
 import IngredientList from '@/components/supply/IngredientList';
+import RecipeMaterialsSection from '@/components/recipe/RecipeMaterialsSection';
 import InlineIngredientEditor from '@/components/recipe/InlineIngredientEditor';
 import RecipeServingContextSelector from '@/components/recipe/RecipeServingContextSelector';
 import { ContentLinkSection } from '@/components/content/ContentLinkSection';
@@ -160,6 +161,7 @@ export default function RecipeDetailPage() {
   const deleteBlockedByUsage = (recipeUsage?.plan_count ?? 0) > 0;
   const [showShoppingExport, setShowShoppingExport] = useState(false);
   const [exportPortions, setExportPortions] = useState(1);
+  const [exportConsumables, setExportConsumables] = useState(true);
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
   const [portionSheetOpen, setPortionSheetOpen] = useState(false);
   const [isInlineEditMode, setIsInlineEditMode] = useState(
@@ -893,54 +895,14 @@ export default function RecipeDetailPage() {
         )}
       </section>
 
-      {/* Recipe Materials (read-only) */}
-      {recipe.materials && recipe.materials.length > 0 && (
-        <section className="bg-card rounded-xl p-6 shadow-card">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                <Icon name="inventory_2" size={20} />
-              </span>
-              <div className="min-w-0">
-                <h2 className="flex items-center gap-2 text-section font-semibold leading-tight">
-                  Materialien
-                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-caption font-medium leading-none text-muted-foreground">
-                    {recipe.materials.length} {recipe.materials.length === 1 ? 'Material' : 'Materialien'}
-                  </span>
-                </h2>
-              </div>
-            </div>
-            {recipe.can_edit && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/recipes/${recipe.slug}/edit`)}
-                title="Materialien bearbeiten"
-                data-testid="materials-edit-trigger"
-              >
-                <Pencil className="w-4 h-4 mr-1.5" />
-                Bearbeiten
-              </Button>
-            )}
-          </div>
-          <ul className="divide-y divide-border">
-            {recipe.materials.map((material) => (
-              <li
-                key={material.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-3"
-              >
-                <span className="text-body font-medium">{material.material_name}</span>
-                {material.quantity ? (
-                  <span className="text-body text-muted-foreground">{material.quantity}</span>
-                ) : (
-                  <span className="text-caption text-muted-foreground italic">Menge nicht angegeben</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Recipe Materials: devices and consumables, scaled to the selected servings */}
+      <RecipeMaterialsSection
+        recipeId={recipe.id}
+        materials={recipe.materials ?? []}
+        servings={displayedPortions}
+        canEdit={recipe.can_edit}
+        onEdit={() => navigate(`/recipes/${recipe.slug}/edit`)}
+      />
 
       {/* Nutritional Tags */}
       {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
@@ -998,6 +960,18 @@ export default function RecipeDetailPage() {
                 <Icon name="add" size={20} />
               </button>
             </div>
+            {(recipe.materials ?? []).some((m) => m.is_consumable) && (
+              <label className="flex items-center gap-2 mb-6 text-body cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={exportConsumables}
+                  onChange={(e) => setExportConsumables(e.target.checked)}
+                  data-testid="recipe-shopping-export-consumables"
+                />
+                Verbrauchsmaterial mit aufnehmen
+              </label>
+            )}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -1005,7 +979,7 @@ export default function RecipeDetailPage() {
                 data-testid="recipe-shopping-export-submit"
                 onClick={() => {
                   createFromRecipe.mutate(
-                    { recipeId: recipe.id, portions: exportPortions },
+                    { recipeId: recipe.id, portions: exportPortions, includeConsumables: exportConsumables },
                     {
                       onSuccess: (created) => {
                         notify.success('Einkaufsliste erstellt');

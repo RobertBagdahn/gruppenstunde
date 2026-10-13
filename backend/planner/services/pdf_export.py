@@ -881,6 +881,23 @@ def _aggregate_shopping_list(meal_plan: MealPlan) -> dict:
     }
 
 
+def _build_material_cards(meal_plan: MealPlan) -> list[dict]:
+    """Material list of the plan for the PDF: devices and consumables with amounts."""
+    from supply.services.material_aggregation import aggregate_materials, meal_plan_material_entries
+
+    material_list = aggregate_materials(meal_plan_material_entries(meal_plan))
+    cards = []
+    for title, requirements in (("Geräte", material_list.devices), ("Verbrauchsmaterial", material_list.consumables)):
+        if requirements:
+            cards.append(
+                {
+                    "name": title,
+                    "items": [{"name": req.material.name, "amount": f"{req.amount:g}×"} for req in requirements],
+                }
+            )
+    return cards
+
+
 def _build_allergen_matrix(meals) -> dict | None:
     """Build allergen cross-table: days as columns, 14 EU allergens as rows."""
     from planner.services.calculation_context import active_recipe_items
@@ -1065,6 +1082,7 @@ def generate_meal_plan_pdf(
         if not exclude_shopping_list
         else {"per_day": None, "total": [], "total_count": 0, "fresh_count": 0}
     )
+    material_cards = [] if exclude_shopping_list else _build_material_cards(meal_plan)
     allergen_matrix = None if exclude_allergens else _build_allergen_matrix(days)
     nutrition_data = [] if exclude_nutrition else _build_nutrition_table(days, group_members)
     if not exclude_nutrition and not any(
@@ -1149,6 +1167,7 @@ def generate_meal_plan_pdf(
         "days": days,
         "group_members": group_members,
         "shopping_list": shopping_list,
+        "material_cards": material_cards,
         "allergen_matrix": allergen_matrix,
         "nutrition_data": nutrition_data,
         "schedule_table": schedule_table,

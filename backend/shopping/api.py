@@ -16,6 +16,7 @@ from content.api.helpers import paginate_queryset
 from core.permissions import require_login
 from core.services.user_directory import USER_SEARCH_MAX_PAGE_SIZE, search_user_directory
 from supply.models import Portion
+from supply.schemas import MaterialListResultOut
 
 from .models import (
     CollaboratorRole,
@@ -50,6 +51,7 @@ from .schemas import (
     ShoppingListOut,
     ShoppingListUpdateIn,
 )
+from .services.material_items import add_consumable_items
 
 shopping_router = Router(tags=["shopping-lists"])
 
@@ -376,6 +378,36 @@ def delete_shopping_list(request, shopping_list_id: int):
 # ---------------------------------------------------------------------------
 # Shopping List Views (summarized, by-recipe)
 # ---------------------------------------------------------------------------
+
+
+@shopping_router.get("/{shopping_list_id}/material-list/", response=MaterialListResultOut)
+def get_shopping_list_material_list(request, shopping_list_id: int):
+    """Unsaved material list of the recipes a shopping list was created from."""
+    require_login(request, READ_LOGIN_ACTION)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    _require_access(shopping_list, request.user)
+
+    from supply.services.material_aggregation import (
+        aggregate_materials,
+        material_list_payload,
+        meal_plan_material_entries,
+    )
+
+    entries: list[tuple[object, float]] = []
+    if shopping_list.source_type == SourceType.RECIPE and shopping_list.source_id:
+        from recipe.models import Recipe
+
+        recipe = Recipe.objects.filter(id=shopping_list.source_id).first()
+        if recipe is not None:
+            entries = [(recipe, shopping_list.source_portions or 1)]
+    elif shopping_list.source_type == SourceType.MEAL_EVENT and shopping_list.source_id:
+        from planner.models import MealPlan
+
+        meal_plan = MealPlan.objects.filter(id=shopping_list.source_id).first()
+        if meal_plan is not None:
+            entries = meal_plan_material_entries(meal_plan)
+
+    return material_list_payload(shopping_list.name, aggregate_materials(entries))
 
 
 @shopping_router.get("/{shopping_list_id}/view/")
@@ -722,6 +754,7 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
             owner=request.user,
             source_type=SourceType.RECIPE,
             source_id=recipe.id,
+            source_portions=portions,
         )
 
         recipe_items = recipe.recipe_items.select_related(
@@ -781,6 +814,11 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
             )
             sort_idx += 1
 
+        if payload.include_consumables:
+            from supply.services.material_aggregation import aggregate_materials
+
+            add_consumable_items(shopping_list, aggregate_materials([(recipe, portions)]), sort_idx)
+
     # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True
     shopping_list._is_owner = True
@@ -788,7 +826,7 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
 
 
 @shopping_router.post("/from-meal-plan/{meal_plan_id}/", response=ShoppingListDetailOut)
-def create_from_meal_plan(request, meal_plan_id: int):
+def create_from_meal_plan(request, meal_plan_id: int, include_consumables: bool = True):
     """Create a persistent shopping list from a MealPlan."""
     require_login(request)
 
@@ -856,6 +894,15 @@ def create_from_meal_plan(request, meal_plan_id: int):
                         recipe_slug=source.recipe_slug,
                         meal_label=source.meal_label,
                     )
+
+        if include_consumables:
+            from supply.services.material_aggregation import aggregate_materials, meal_plan_material_entries
+
+            add_consumable_items(
+                shopping_list,
+                aggregate_materials(meal_plan_material_entries(meal_plan)),
+                len(transient_items),
+            )
 
     # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True

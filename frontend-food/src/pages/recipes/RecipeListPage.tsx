@@ -408,6 +408,7 @@ function hasNonDefaultFilters(filters: Partial<RecipeFilter>): boolean {
   if (filters.origin && !(filters.origin.length === 1 && filters.origin[0] === 'verified')) return true;
   if (filters.tag_slugs?.length) return true;
   if (filters.cost?.length) return true;
+  if (filters.material || filters.exclude_material) return true;
   return false;
 }
 

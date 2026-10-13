@@ -464,6 +464,33 @@
 </div>
 {% endif %}
 
+{% if not exclude_shopping_list and material_cards %}
+<div class="shopping-list-section">
+  <div class="section-hero">
+    <div class="section-tag">ORGANISATION</div>
+    <h2>Material</h2>
+    <div class="section-desc">Geräte und Verbrauchsmaterial für alle Rezepte des Plans</div>
+  </div>
+
+  <div class="shopping-grid">
+    {% for card in material_cards %}
+    <div class="shopping-category-card">
+      <h3 class="category-title">{{ card.name }}</h3>
+      <ul class="shopping-items-list">
+      {% for item in card.items %}
+        <li>
+          <span class="item-check">☐</span>
+          <span class="item-name">{{ item.name }}</span>
+          <span class="item-amount">{{ item.amount }}</span>
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {# ==================== 6. ALLERGEN-MATRIX ==================== #}
 {% if not exclude_allergens and allergen_matrix and allergen_matrix.has_allergens %}
 <div class="allergen-matrix-section">

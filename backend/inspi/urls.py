@@ -42,7 +42,6 @@ from supply.api import (
     breakfast_catalog_router,
     buffet_catalog_router,
     data_offensive_router,
-    equipment_router,
     ingredient_group_router,
     ingredient_router,
     ingredient_statistics_router,
@@ -111,7 +110,6 @@ api.add_router("/supplies/", supply_router)
 api.add_router("/norm-person/", norm_person_router)
 api.add_router("/supply/", breakfast_catalog_router)
 api.add_router("/supply/", buffet_catalog_router)
-api.add_router("/supply/equipment/", equipment_router)
 api.add_router("/blogs/", blog_router)
 api.add_router("/games/", game_router)
 api.add_router("/tags/", tags_router)

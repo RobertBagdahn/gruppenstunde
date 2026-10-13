@@ -1,9 +1,8 @@
 # Spec: Recipe Filter Uniform
 
+## Purpose
 Einheitliche Multi-Select-Checkbox-Filter für alle Filtergruppen in der Rezeptsuche, mit Backend-Support für nicht-gewählte Filter (alle anzeigen).
-
-## ADDED Requirements
-
+## Requirements
 ### Requirement: All filter groups use multi-select checkboxes
 Alle Filtergruppen in der Rezeptsuche SHALL als Multi-Select-Checkbox-Gruppen implementiert sein. Eine leere Auswahl (nichts angehakt) SHALL bedeuten: alle Optionen dieser Gruppe werden angezeigt.
 
@@ -109,3 +108,14 @@ Auf mobilen Geräten (< 768px) SHALL die Filter-Sidebar durch einen Bottom-Sheet
 #### Scenario: Bottom sheet close behavior
 - **WHEN** der Nutzer "Anwenden" tippt oder den Overlay-Bereich antippt
 - **THEN** schließt sich der Drawer und die Filter werden auf die Ergebnisse angewandt
+
+### Requirement: Material filter in recipe list
+The recipe list SHALL filter by required material with `material_slug` ("mit") and `exclude_material_slug` ("ohne"), in both directions, stored in the URL state. The former `equipment_slug` filter MUST be removed.
+
+#### Scenario: Without oven
+- **WHEN** the user selects "ohne Backofen"
+- **THEN** only recipes without the Backofen material are listed and the URL contains `exclude_material_slug=backofen`
+
+#### Scenario: With pot
+- **WHEN** the user selects "mit Topf"
+- **THEN** only recipes requiring Topf are listed

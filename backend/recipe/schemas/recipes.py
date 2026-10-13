@@ -30,12 +30,6 @@ class NutritionalTagOut(Schema):
     is_dangerous: bool
 
 
-class EquipmentOut(Schema):
-    id: int
-    name: str
-    slug: str
-
-
 class SharedGroupOut(Schema):
     """Group exposed for a recipe's sharing information."""
 
@@ -192,7 +186,6 @@ class RecipeDetailOut(ContentDetailOut):
     # Servings of the original recipe; quantities are still stored per portion.
     source_servings: int | None = None
     preparation_method: str = ""
-    equipment: list[EquipmentOut] = []
     materials: list[RecipeMaterialOut] = []
     # Per 100 g of the whole recipe (not per portion); see cached_energy_per_portion_kcal
     cached_energy_kcal: float | None = None
@@ -360,10 +353,6 @@ class RecipeDetailOut(ContentDetailOut):
         return MealItem.objects.filter(recipe=obj).values("meal__meal_plan").distinct().count()
 
     @staticmethod
-    def resolve_equipment(obj) -> list:
-        return [{"id": e.id, "name": e.name, "slug": e.slug} for e in obj.equipment.all()]
-
-    @staticmethod
     def resolve_materials(obj) -> list:
         """Get recipe material links ordered by sort order."""
         from django.contrib.contenttypes.models import ContentType
@@ -430,7 +419,6 @@ class RecipeCreateIn(ContentCreateIn):
         return value
 
     preparation_method: str = ""
-    equipment_ids: list[int] = []
     nutritional_tag_ids: list[int] = []
     recipe_items: list[RecipeItemCreateIn] = []
     steps: list[RecipeStepIn] = []
@@ -475,7 +463,6 @@ class RecipeUpdateIn(ContentUpdateIn):
 
     source_servings: int | None = Field(None, ge=1, le=100)
     preparation_method: str | None = None
-    equipment_ids: list[int] | None = None
     nutritional_tag_ids: list[int] | None = None
     recipe_items: list[RecipeItemCreateIn] | None = None
     visibility: str | None = None
@@ -494,7 +481,8 @@ class RecipeFilterIn(Schema):
     q: str | None = None
     recipe_type: list[str] | None = None
     preparation_method: list[str] | None = None
-    equipment_slug: str | None = None
+    material_slug: str | None = None
+    exclude_material_slug: str | None = None
     scout_level_ids: list[int] | None = None
     tag_slugs: list[str] | None = None
     difficulty: list[str] | None = None
