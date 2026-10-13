@@ -4,12 +4,15 @@ import MetadataCheckList from '@/components/data-quality/MetadataCheckList';
 import CacheStalenessList from '@/components/data-quality/CacheStalenessList';
 import PortionPlausibilityList from '@/components/data-quality/PortionPlausibilityList';
 import DuplicateDetectionList from '@/components/data-quality/DuplicateDetectionList';
+import { QuantityOutlierList, UndividedLineList } from '@/components/data-quality/QuantityChecks';
 
 const SUB_TABS = [
   { key: 'duplicates', label: 'Duplikate' },
   { key: 'metadata', label: 'Metadaten-Check' },
   { key: 'cache', label: 'Cache-Staleness' },
   { key: 'portion', label: 'Portions-Plausibilität' },
+  { key: 'quantities', label: 'Auffällige Mengen' },
+  { key: 'undivided', label: 'Ungeteilte Zeilen' },
 ] as const;
 
 export default function DataQualityRecipesPage() {
@@ -38,6 +41,8 @@ export default function DataQualityRecipesPage() {
       {activeTab === 'metadata' && <MetadataCheckList />}
       {activeTab === 'cache' && <CacheStalenessList />}
       {activeTab === 'portion' && <PortionPlausibilityList />}
+      {activeTab === 'quantities' && <QuantityOutlierList />}
+      {activeTab === 'undivided' && <UndividedLineList />}
     </div>
   );
 }

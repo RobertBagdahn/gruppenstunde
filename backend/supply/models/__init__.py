@@ -3,6 +3,7 @@
 from .buffet_data_proposal import BuffetDataProposal
 from .ingredient import Ingredient, IngredientAlias, IngredientGroup, Package, Portion
 from .ingredient_price_proposal import IngredientPriceProposal
+from .ingredient_quantity_stats import IngredientQuantityStats
 from .ingredient_replacement import IngredientReplacementMapping
 from .ingredient_season import IngredientSeason
 from .material import ContentMaterialItem, Material, Supply
@@ -19,6 +20,7 @@ __all__ = [
     "IngredientGroup",
     "IngredientPackageSuggestion",
     "IngredientPriceProposal",
+    "IngredientQuantityStats",
     "IngredientReplacementMapping",
     "IngredientSeason",
     "Material",

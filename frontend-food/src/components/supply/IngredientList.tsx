@@ -17,6 +17,7 @@ import { formatPortionAmount, isGramPortion, shortUnit } from '@/lib/ingredientA
 import { standardMeasureLabel } from '@/lib/quantityUnits';
 import { cn } from '@/lib/utils';
 import UnitSwitcher from '@/components/recipe/UnitSwitcher';
+import QuantityOutlierBadge from '@/components/recipe/QuantityOutlierBadge';
 
 interface IngredientListProps {
   items: RecipeItem[];
@@ -26,6 +27,8 @@ interface IngredientListProps {
   availableConversions?: AvailableConversionBatchItem[];
   className?: string;
   showSearch?: boolean;
+  /** Show unusual-amount warnings (editors only). */
+  showQuantityOutliers?: boolean;
 }
 
 type SortMode = 'amount' | 'category';
@@ -98,6 +101,7 @@ export default function IngredientList({
   availableConversions,
   className = '',
   showSearch = true,
+  showQuantityOutliers = false,
 }: IngredientListProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -296,7 +300,8 @@ export default function IngredientList({
     const showSection = Boolean(item.ingredient_retail_section_name) && sortMode === 'amount';
 
     const pricePerKg = item.ingredient_price_per_kg;
-    const hasBadges = item.is_optional || item.has_missing_weight || showWeightWarning || isCostDriver;
+    const outlier = showQuantityOutliers ? item.quantity_outlier : null;
+    const hasBadges = item.is_optional || item.has_missing_weight || showWeightWarning || isCostDriver || Boolean(outlier);
     const hasFactsRow = showSection || weightShare != null || pricePerKg != null || priceShare != null
       || furtherPortions.length > 0;
 
@@ -374,6 +379,7 @@ export default function IngredientList({
                     optional
                   </span>
                 )}
+                {outlier && <QuantityOutlierBadge outlier={outlier} />}
                 {item.has_missing_weight && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-danger-border bg-danger-soft px-2 font-medium leading-5 text-danger">
                     <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />Gewicht unbekannt

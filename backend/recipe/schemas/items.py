@@ -1,7 +1,7 @@
 """RecipeItem schemas."""
 
 from datetime import datetime
-from typing import cast
+from typing import Literal, cast
 
 from ninja import Schema
 from pydantic import Field
@@ -15,6 +15,16 @@ class CurrentPortionOut(Schema):
     id: int
     name: str
     weight_g: float | None
+
+
+class QuantityOutlierOut(Schema):
+    kind: Literal["high_quantity", "undivided"]
+    severity: Literal["warning", "danger"]
+    grams_per_person: float
+    median_g: float | None = None
+    p90_g: float | None = None
+    sample_count: int = 0
+    message: str
 
 
 class RecipeItemOut(Schema):
@@ -53,6 +63,18 @@ class RecipeItemOut(Schema):
     weight_confirmed_at: datetime | None = None
     is_weight_trusted: bool = False
     current_portion: CurrentPortionOut | None = None
+    # Unusually high amount or undivided line (warning only, shown to editors).
+    quantity_outlier: QuantityOutlierOut | None = None
+
+    @staticmethod
+    def resolve_quantity_outlier(obj) -> QuantityOutlierOut | None:
+        from recipe.services.quantity_outliers import cached_recipe_outliers
+
+        recipe = getattr(obj, "recipe", None)
+        if recipe is None or getattr(obj, "id", None) is None:
+            return None
+        outlier = cached_recipe_outliers(recipe).get(obj.id)
+        return QuantityOutlierOut(**outlier.__dict__) if outlier else None
 
     @staticmethod
     def resolve_idempotency_key(obj) -> str | None:

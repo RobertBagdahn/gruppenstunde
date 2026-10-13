@@ -72,6 +72,12 @@ class RecipeItem(models.Model):
         help_text=_("Zutat für direkte Gramm-Mengen ohne Portion"),
     )
     quantity = models.FloatField(default=1, verbose_name=_("Menge"))
+    source_quantity = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Originalmenge"),
+        help_text=_("Ungeteilte Menge der Quelle (für source_servings Personen), gleiche Einheit wie Menge."),
+    )
     standard_measure_key = models.CharField(
         max_length=10,
         blank=True,

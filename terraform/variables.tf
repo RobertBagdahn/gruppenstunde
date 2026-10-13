@@ -151,3 +151,15 @@ variable "apple_oauth_team_id" {
   type        = string
   default     = ""
 }
+
+variable "management_job_name" {
+  description = "Cloud Run job that runs Django management commands (image updated by every deploy)"
+  type        = string
+  default     = "inspi-migrate"
+}
+
+variable "ingredient_quantity_stats_schedule" {
+  description = "Cron schedule (Europe/Berlin) for recalculating the ingredient quantity baseline"
+  type        = string
+  default     = "30 3 * * *"
+}

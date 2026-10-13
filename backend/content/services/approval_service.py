@@ -121,6 +121,14 @@ def approve_content(content_obj, reviewer, reason: str = "") -> None:
     content_obj.status = ContentStatus.APPROVED
     content_obj.save(update_fields=["status"])
 
+    from recipe.models import Recipe
+
+    if isinstance(content_obj, Recipe):
+        # Approved recipes feed the typical-quantity baseline of their ingredients.
+        from supply.services.ingredient_quantity_stats import recalculate_for_recipe
+
+        recalculate_for_recipe(content_obj)
+
     # Create audit log
     ct = ContentType.objects.get_for_model(content_obj)
     ApprovalLog.objects.create(

@@ -1,6 +1,7 @@
 /** Zod schemas for data quality features. MUST stay in sync with backend/content/schemas/data_quality.py */
 
 import { z } from 'zod';
+import { QuantityOutlierSchema } from '@/schemas/recipe';
 
 // --- Price Analysis ---
 
@@ -254,6 +255,48 @@ export const PortionPlausibilitySchema = z.object({
   issue: z.string(),
 });
 export type PortionPlausibility = z.infer<typeof PortionPlausibilitySchema>;
+
+// --- Quantity outliers, suspicious piece portions, alias conflicts (content/schemas/data_quality.py) ---
+
+export const RecipeQuantityOutlierSchema = z.object({
+  recipe_id: z.number(),
+  recipe_title: z.string(),
+  recipe_slug: z.string(),
+  recipe_item_id: z.number(),
+  ingredient_id: z.number().nullable().default(null),
+  ingredient_name: z.string(),
+  quantity: z.number(),
+  unit_label: z.string(),
+  outlier: QuantityOutlierSchema,
+});
+export type RecipeQuantityOutlier = z.infer<typeof RecipeQuantityOutlierSchema>;
+
+export const SuspiciousPortionSchema = z.object({
+  portion_id: z.number(),
+  portion_name: z.string(),
+  weight_g: z.number(),
+  weight_status: z.string().nullable().default(null),
+  ingredient_id: z.number(),
+  ingredient_name: z.string(),
+  ingredient_slug: z.string(),
+  recipe_count: z.number(),
+  meal_item_count: z.number(),
+});
+export type SuspiciousPortion = z.infer<typeof SuspiciousPortionSchema>;
+
+export const AliasConflictSchema = z.object({
+  kind: z.enum(['name_is_alias', 'shared_alias']),
+  alias: z.string(),
+  ingredient_id: z.number(),
+  ingredient_name: z.string(),
+  ingredient_slug: z.string(),
+  ingredient_usage: z.number(),
+  conflicting_ingredient_id: z.number(),
+  conflicting_ingredient_name: z.string(),
+  conflicting_ingredient_slug: z.string(),
+  conflicting_ingredient_usage: z.number(),
+});
+export type AliasConflict = z.infer<typeof AliasConflictSchema>;
 
 // --- Trend ---
 

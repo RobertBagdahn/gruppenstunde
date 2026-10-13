@@ -82,6 +82,18 @@ export const CurrentPortionSchema = z.object({
 });
 export type CurrentPortion = z.infer<typeof CurrentPortionSchema>;
 
+/** Unusual amount of a recipe line (warning only). MUST match recipe/schemas/items.py::QuantityOutlierOut. */
+export const QuantityOutlierSchema = z.object({
+  kind: z.enum(['high_quantity', 'undivided']),
+  severity: z.enum(['warning', 'danger']),
+  grams_per_person: z.number(),
+  median_g: z.number().nullable().default(null),
+  p90_g: z.number().nullable().default(null),
+  sample_count: z.number().default(0),
+  message: z.string(),
+});
+export type QuantityOutlier = z.infer<typeof QuantityOutlierSchema>;
+
 export const RecipeItemSchema = z.object({
   id: z.number(),
   portion_id: z.number().nullable(),
@@ -119,6 +131,7 @@ export const RecipeItemSchema = z.object({
   weight_confirmed_at: z.string().nullable().optional(),
   is_weight_trusted: z.boolean().optional(),
   current_portion: CurrentPortionSchema.nullable().optional(),
+  quantity_outlier: QuantityOutlierSchema.nullable().optional(),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;
 

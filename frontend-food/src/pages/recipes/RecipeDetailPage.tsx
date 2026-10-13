@@ -890,6 +890,7 @@ export default function RecipeDetailPage() {
             portionsMultiplier={isDirty ? 1 : portionsMultiplier}
             availableConversions={availableConversions?.items}
             showSearch={false}
+            showQuantityOutliers={recipe.can_edit}
           />
         )}
       </section>
