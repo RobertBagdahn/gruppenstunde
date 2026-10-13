@@ -273,7 +273,7 @@ Ausgeführt lokal gegen Prod über den Cloud SQL Proxy, erst als Trockenlauf (Tr
 Noch nichts auf Prod ausgeführt. Jeder Schritt nur nach Freigabe durch Robert; erst Trockenlauf, dann Echtlauf.
 
 - [ ] DB-Snapshot der Prod-Datenbank anlegen und Namen hier notieren (Rollback nur per Snapshot, die Migration entfernt `Equipment`).
-- [ ] Deploy mit den Migrationen `supply 0023–0025`, `recipe 0015` und `shopping 0004`: Schema-Felder, Equipment → Material
+- [ ] Deploy mit den Migrationen `supply 0024–0026`, `recipe 0016` und `shopping 0004`: Schema-Felder, Equipment → Material
       (`is_consumable=false`, Rezeptzuordnung Menge 1), Textmengen der Rezept-Materialien → Zahl. Die Migration gibt
       Mengen ohne Zahl aus (auf 1 gesetzt) — Liste hier notieren und prüfen.
 - [ ] Seed-Katalog: Trockenlauf `uv run python manage.py seed_materials`, nach Freigabe `--apply` (idempotent).

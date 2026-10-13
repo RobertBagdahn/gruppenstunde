@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("supply", "0022_buffet_data_proposal"),
+        ("supply", "0023_ingredient_quantity_stats"),
     ]
 
     operations = [

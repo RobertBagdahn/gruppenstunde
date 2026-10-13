@@ -64,8 +64,8 @@ def equipment_to_material(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("supply", "0023_material_package_fields_and_amount"),
-        ("recipe", "0014_recipe_portions_one"),
+        ("supply", "0024_material_package_fields_and_amount"),
+        ("recipe", "0015_recipe_item_source_quantity"),
         ("contenttypes", "0002_remove_content_type_name"),
     ]
 
