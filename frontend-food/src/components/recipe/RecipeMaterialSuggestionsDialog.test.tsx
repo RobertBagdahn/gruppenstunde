@@ -20,14 +20,18 @@ const suggestionsFixture = {
     {
       material_id: 12,
       suggested_name: 'Zahnstocher',
-      quantity: '30 Stück',
+      is_consumable: true,
+      amount: 30,
+      quantity_mode: 'total',
       matched_name: 'Zahnstocher',
       is_new: false,
     },
     {
       material_id: null,
       suggested_name: 'Spießhalter',
-      quantity: '1 Stück',
+      is_consumable: false,
+      amount: 1,
+      quantity_mode: 'total',
       matched_name: null,
       is_new: true,
     },
@@ -89,7 +93,7 @@ describe('RecipeMaterialSuggestionsDialog', () => {
 
     await waitFor(() => {
       expect(applyMutate).toHaveBeenCalledWith(
-        [{ material_id: 12, quantity: '30 Stück' }],
+        [{ material_id: 12, amount: 30, quantity_mode: 'total' }],
         expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
       );
     });

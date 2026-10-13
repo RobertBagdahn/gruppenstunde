@@ -73,6 +73,9 @@ export const ShoppingListItemSchema = z.object({
   unit: z.string().default('g'),
   retail_section_id: z.number().nullable().optional(),
   retail_section_name: z.string().default(''),
+  /** Consumable material; the piece count is shown in `quantity`/`unit`. */
+  material_id: z.number().nullable().default(null),
+  is_material: z.boolean().default(false),
   is_checked: z.boolean(),
   checked_by_display_name: z.string().nullable().optional(),
   checked_at: z.string().nullable().optional(),

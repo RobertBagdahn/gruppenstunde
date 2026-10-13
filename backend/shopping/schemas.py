@@ -134,6 +134,8 @@ class ShoppingListItemOut(Schema):
 
     retail_section_id: int | None = None
     retail_section_name: str = ""
+    material_id: int | None = None
+    is_material: bool = False
     is_checked: bool
     checked_by_display_name: str | None = None
     checked_at: datetime | None = None
@@ -166,6 +168,10 @@ class ShoppingListItemOut(Schema):
     def resolve_retail_section_name(obj) -> str:
         section = ShoppingListItemOut._retail_section(obj)
         return str(section.name) if section else ""
+
+    @staticmethod
+    def resolve_is_material(obj) -> bool:
+        return obj.material_id is not None
 
     @staticmethod
     def resolve_checked_by_display_name(obj) -> str | None:
@@ -408,6 +414,7 @@ class FromRecipeIn(Schema):
     """Input schema for creating a shopping list from a recipe."""
 
     portions: int = Field(default=1, ge=1)
+    include_consumables: bool = True
 
 
 from core.schemas import PaginatedUserOut, UserSimpleOut  # noqa: F401 — re-export for backward compat

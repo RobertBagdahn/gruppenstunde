@@ -18,10 +18,10 @@ export default function WizardStepMaterials({ recipeId }: WizardStepMaterialsPro
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-section font-semibold">Materialien</h2>
+        <h2 className="text-section font-semibold">Material</h2>
         <p className="text-body text-muted-foreground mt-1">
-          Verbrauchs- und Hilfsmaterialien wie Zahnstocher, Holzspieße oder Backpapier — getrennt
-          von Zutaten und Equipment.
+          Geräte wie Backofen oder Topf und Verbrauchsmaterial wie Pappteller, Zahnstocher oder
+          Backpapier — getrennt von den Zutaten.
         </p>
       </div>
       <RecipeMaterialsEditor recipeId={recipeId} onSuggestClick={() => setSuggestionsOpen(true)} />

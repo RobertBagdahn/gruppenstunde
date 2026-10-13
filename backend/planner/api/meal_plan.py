@@ -103,6 +103,7 @@ from recipe.models import Recipe, RecipeItem
 from recipe.schemas import SuggestionDashboardOut
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.models import Ingredient
+from supply.schemas import MaterialListResultOut
 
 logger = logging.getLogger(__name__)
 
@@ -1978,6 +1979,21 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
 # ==========================================================================
 
 
+@meal_plan_router.get("/{meal_plan_id}/material-list/", response=MaterialListResultOut)
+def meal_plan_material_list(request, meal_plan_id: int):
+    """Unsaved material list (devices and consumables) of all cooked recipes in a plan."""
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+
+    from supply.services.material_aggregation import (
+        aggregate_materials,
+        material_list_payload,
+        meal_plan_material_entries,
+    )
+
+    return material_list_payload(meal_plan.name, aggregate_materials(meal_plan_material_entries(meal_plan)))
+
+
 @meal_plan_router.get("/{meal_plan_id}/costs/", response=MealPlanCostSummaryOut)
 def cost_summary(request, meal_plan_id: int):
     """Get aggregated cost breakdown for the entire meal plan."""
@@ -2078,6 +2094,13 @@ def cost_summary(request, meal_plan_id: int):
                         recipe_item_cost += price
                     else:
                         missing_ingredients += 1
+
+                # Fixed-amount consumables (e.g. one pack of toothpicks) cost the same for any servings.
+                from supply.services.material_aggregation import fixed_material_cost
+
+                fixed_cost = Decimal(str(round(fixed_material_cost(item.recipe), 4)))
+                meal_cost += fixed_cost
+                recipe_item_cost += fixed_cost
 
                 recipe_costs[rid]["total_cost"] += recipe_item_cost
                 # Accumulate weighted data for cost_per_person calculation

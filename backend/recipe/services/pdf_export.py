@@ -78,18 +78,19 @@ def _parse_markdown_steps(markdown_text: str | None) -> list[str]:
     return steps
 
 
-def _get_recipe_materials(recipe: Recipe) -> list[dict[str, str]]:
-    """Collect recipe material links (consumables/helpers, separate from equipment)."""
-    from django.contrib.contenttypes.models import ContentType
+def _get_recipe_materials(recipe: Recipe, servings: float = 1) -> list[dict[str, str]]:
+    """Collect recipe material links (devices and consumables)."""
 
-    from supply.models import ContentMaterialItem
+    from supply.services.material_aggregation import recipe_material_items, scaled_amount
 
-    ct = ContentType.objects.get_for_model(Recipe, for_concrete_model=False)
+    items = recipe_material_items([recipe.pk]).get(recipe.pk, [])
     return [
-        {"name": item.material.name, "quantity": item.quantity}
-        for item in ContentMaterialItem.objects.filter(content_type=ct, object_id=recipe.pk)
-        .select_related("material")
-        .order_by("sort_order")
+        {
+            "name": item.material.name,
+            "quantity": f"{scaled_amount(item, servings):g}×",
+            "is_consumable": item.material.is_consumable,
+        }
+        for item in items
     ]
 
 
@@ -192,7 +193,7 @@ class RecipePdfExport:
         self.ingredients = rows
 
     def _build_materials(self) -> None:
-        self.materials = _get_recipe_materials(self.recipe)
+        self.materials = _get_recipe_materials(self.recipe, self.servings)
 
     def _build_steps(self) -> None:
         resolved = resolve_recipe_steps(self.recipe, scale=self.scale)

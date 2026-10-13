@@ -22,6 +22,9 @@ const CreateIngredientPage = lazyPage(() => import('./pages/ingredients/CreateIn
 const IngredientEditPage = lazyPage(() => import('./pages/ingredients/IngredientEditPage'));
 const IngredientDetailPage = lazyPage(() => import('./pages/ingredients/IngredientDetailPage'));
 const IngredientStatisticsPage = lazyPage(() => import('./pages/ingredients/statistics/IngredientStatisticsPage'));
+const MaterialListPage = lazyPage(() => import('./pages/materials/MaterialListPage'));
+const MaterialDetailPage = lazyPage(() => import('./pages/materials/MaterialDetailPage'));
+const MaterialChecklistPage = lazyPage(() => import('./pages/materials/MaterialChecklistPage'));
 const MealPlanLandingPage = lazyPage(() => import('./pages/tools/MealEventLandingPage'));
 const MealPlanListPage = lazyPage(() => import('./pages/planning/MealEventListPage'));
 const MealPlanDetailPage = lazyPage(() => import('./pages/planning/MealEventDetailPage'));
@@ -72,6 +75,11 @@ export default function App() {
         <Route path="/ingredients/:slug/edit" element={<IngredientEditPage />} />
         <Route path="/ingredients/:slug" element={<IngredientDetailPage />} />
         <Route path="/ingredients/statistics/:tab?" element={<IngredientStatisticsPage />} />
+
+        {/* Material (devices and consumables) */}
+        <Route path="/material" element={<MaterialListPage />} />
+        <Route path="/material-list" element={<MaterialChecklistPage />} />
+        <Route path="/material/:slug" element={<MaterialDetailPage />} />
 
         {/* Meal Plans */}
         <Route path="/meal-plans" element={<MealPlanLandingPage />} />

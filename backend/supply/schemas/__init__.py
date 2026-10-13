@@ -43,11 +43,13 @@ from .ingredients import (
     StandardMeasureOut,
     UnitOptionOut,
 )
+from .material_list import MaterialListEntryOut, MaterialListResultOut
 from .materials import (
     ContentMaterialItemIn,
     ContentMaterialItemOut,
     MaterialCreateIn,
     MaterialListOut,
+    MaterialMergeIn,
     MaterialOut,
     MaterialUpdateIn,
     PaginatedMaterialOut,
@@ -79,8 +81,6 @@ from .portion_repair import (
     PortionRepairRejectOut,
 )
 from .reference import (
-    EquipmentIn,
-    EquipmentOut,
     IngredientGroupOut,
     MeasuringUnitOut,
     NutritionalTagIn,
@@ -99,8 +99,6 @@ __all__ = [
     "ContentMaterialItemIn",
     "ContentMaterialItemOut",
     "DgeReferencePointOut",
-    "EquipmentIn",
-    "EquipmentOut",
     "IngredientAiCreateIn",
     "IngredientAiSuggestOut",
     "IngredientAliasOut",
@@ -121,7 +119,10 @@ __all__ = [
     "IngredientUnitOptionsOut",
     "IngredientUpdateIn",
     "MaterialCreateIn",
+    "MaterialListEntryOut",
     "MaterialListOut",
+    "MaterialListResultOut",
+    "MaterialMergeIn",
     "MaterialOut",
     "MaterialUpdateIn",
     "MeasuringUnitOut",

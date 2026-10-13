@@ -240,13 +240,15 @@ export function useCreateFromRecipe() {
     mutationFn: ({
       recipeId,
       portions = 1,
+      includeConsumables = true,
     }: {
       recipeId: number;
       portions?: number;
+      includeConsumables?: boolean;
     }) =>
       postJson(
         `${API_BASE}/from-recipe/${recipeId}/`,
-        { portions },
+        { portions, include_consumables: includeConsumables },
         ShoppingListDetailSchema,
       ),
     onSuccess: () => {
@@ -258,9 +260,15 @@ export function useCreateFromRecipe() {
 export function useCreateFromMealPlan() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (mealPlanId: number) =>
+    mutationFn: ({
+      mealPlanId,
+      includeConsumables = true,
+    }: {
+      mealPlanId: number;
+      includeConsumables?: boolean;
+    }) =>
       postJson(
-        `${API_BASE}/from-meal-plan/${mealPlanId}/`,
+        `${API_BASE}/from-meal-plan/${mealPlanId}/?include_consumables=${includeConsumables}`,
         {},
         ShoppingListDetailSchema,
       ),

@@ -27,6 +27,8 @@ import {
 import { IngredientReviewPreviewSchema } from './ingredientReview';
 import { PortionMagicApplySchema, PortionMagicPreviewSchema } from './supply';
 import { PortionRepairFindingSchema } from './portionRepair';
+import { MaterialListResultSchema, MaterialSchema } from './supply';
+import { ShoppingListItemSchema } from './shoppingList';
 
 describe('food API contracts', () => {
   it('maps legacy execution-time values to the current German label', () => {
@@ -290,40 +292,37 @@ const RECIPE_DETAIL_BASE = {
 };
 
 describe('recipe material contracts', () => {
+  const MATERIAL_BASE = {
+    id: 7,
+    material_id: 12,
+    material_name: 'Pappteller',
+    material_slug: 'pappteller',
+    material_category: 'kitchen',
+    is_consumable: true,
+    amount: 1,
+    quantity_mode: 'per_portion',
+    sort_order: 0,
+  };
+
   it('parses populated material records', () => {
-    const material = RecipeMaterialSchema.parse({
-      id: 7,
-      material_id: 12,
-      material_name: 'Zahnstocher',
-      material_slug: 'zahnstocher',
-      material_category: 'kitchen',
-      quantity: '30 Stück',
-      sort_order: 0,
-    });
-    expect(material).toMatchObject({ material_name: 'Zahnstocher', quantity: '30 Stück' });
+    const material = RecipeMaterialSchema.parse({ ...MATERIAL_BASE, price_per_piece: 0.06 });
+    expect(material).toMatchObject({ material_name: 'Pappteller', amount: 1, quantity_mode: 'per_portion' });
+    expect(material.price_per_piece).toBe(0.06);
   });
 
-  it('parses legacy admin-created records with empty or missing quantity', () => {
-    const legacy = RecipeMaterialSchema.parse({
-      id: 8,
-      material_id: 13,
-      material_name: 'Backpapier',
-      material_slug: 'backpapier',
-      material_category: 'kitchen',
-      quantity: '',
-      sort_order: 1,
-    });
-    expect(legacy.quantity).toBe('');
+  it('defaults the piece price to null and rejects unknown modes', () => {
+    expect(RecipeMaterialSchema.parse(MATERIAL_BASE).price_per_piece).toBeNull();
+    expect(() => RecipeMaterialSchema.parse({ ...MATERIAL_BASE, quantity_mode: 'weekly' })).toThrow();
+  });
 
-    const missingQuantity = RecipeMaterialSchema.parse({
-      id: 9,
-      material_id: 14,
-      material_name: 'Alufolie',
-      material_slug: 'alufolie',
-      material_category: 'kitchen',
-      sort_order: 2,
+  it('parses devices that are not consumable', () => {
+    const device = RecipeMaterialSchema.parse({
+      ...MATERIAL_BASE,
+      material_name: 'Topf',
+      is_consumable: false,
+      quantity_mode: 'total',
     });
-    expect(missingQuantity.quantity).toBe('');
+    expect(device.is_consumable).toBe(false);
   });
 
   it('defaults materials to an empty list on recipe detail', () => {
@@ -331,24 +330,9 @@ describe('recipe material contracts', () => {
     expect(parsed.materials).toEqual([]);
   });
 
-  it('keeps materials separate from equipment and recipe items', () => {
-    const parsed = RecipeDetailSchema.parse({
-      ...RECIPE_DETAIL_BASE,
-      equipment: [{ id: 1, name: 'Topf', slug: 'topf' }],
-      materials: [
-        {
-          id: 7,
-          material_id: 12,
-          material_name: 'Zahnstocher',
-          material_slug: 'zahnstocher',
-          material_category: 'kitchen',
-          quantity: '30 Stück',
-          sort_order: 0,
-        },
-      ],
-    });
+  it('keeps materials separate from recipe items', () => {
+    const parsed = RecipeDetailSchema.parse({ ...RECIPE_DETAIL_BASE, materials: [MATERIAL_BASE] });
     expect(parsed.materials).toHaveLength(1);
-    expect(parsed.equipment).toHaveLength(1);
     expect(parsed.recipe_items).toEqual([]);
   });
 
@@ -358,14 +342,18 @@ describe('recipe material contracts', () => {
         {
           material_id: 12,
           suggested_name: 'Zahnstocher',
-          quantity: '30 Stück',
+          is_consumable: true,
+          amount: 30,
+          quantity_mode: 'total',
           matched_name: 'Zahnstocher',
           is_new: false,
         },
         {
           material_id: null,
           suggested_name: 'Spießhalter',
-          quantity: '1 Stück',
+          is_consumable: false,
+          amount: 1,
+          quantity_mode: 'total',
           matched_name: null,
           is_new: true,
         },
@@ -373,7 +361,71 @@ describe('recipe material contracts', () => {
       ai_interaction_id: 'ai-interaction-1',
     });
     expect(parsed.items[0].is_new).toBe(false);
+    expect(parsed.items[0].amount).toBe(30);
+    expect(parsed.items[1].is_consumable).toBe(false);
     expect(parsed.items[1].is_new).toBe(true);
+  });
+});
+
+describe('material list contracts', () => {
+  it('parses an aggregated material list', () => {
+    const parsed = MaterialListResultSchema.parse({
+      title: 'Sommerlager',
+      devices: [
+        {
+          material_id: 1,
+          name: 'Topf',
+          slug: 'topf',
+          is_consumable: false,
+          amount: 2,
+          price_per_piece: null,
+          cost: null,
+          recipes: [{ id: 3, title: 'Eintopf', slug: 'eintopf', amount: 2 }],
+        },
+      ],
+      consumables: [],
+      total_cost: 0,
+    });
+    expect(parsed.devices[0].recipes[0].title).toBe('Eintopf');
+  });
+
+  it('parses a material and its piece price', () => {
+    const material = MaterialSchema.parse({
+      id: 4,
+      name: 'Pappteller',
+      slug: 'pappteller',
+      description: '',
+      material_category: 'kitchen',
+      is_consumable: true,
+      image_url: null,
+      purchase_links: [],
+      package_size: 50,
+      package_unit: 'Stück',
+      price_per_package: 3,
+      price_per_piece: 0.06,
+      retail_section_id: null,
+      retail_section_name: null,
+      created_at: '2026-10-12T10:00:00Z',
+      can_edit: true,
+      can_delete: false,
+    });
+    expect(material.price_per_piece).toBe(0.06);
+  });
+
+  it('marks consumable shopping list items', () => {
+    const item = ShoppingListItemSchema.parse({
+      id: 1,
+      name: 'Pappteller',
+      quantity_g: 40,
+      quantity: 40,
+      unit: 'Stück',
+      material_id: 4,
+      is_material: true,
+      is_checked: false,
+      sort_order: 0,
+    });
+    expect(item.is_material).toBe(true);
+    expect(ShoppingListItemSchema.parse({ id: 2, name: 'Mehl', quantity_g: 1, is_checked: false, sort_order: 1 }).is_material).toBe(false);
   });
 });
 

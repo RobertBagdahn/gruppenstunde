@@ -822,7 +822,7 @@ export function useIngredientComparison(
 }
 
 // ==========================================================================
-// Material catalog (used by recipe material editor)
+// Material catalog search (used by recipe material editor)
 // ==========================================================================
 
 export function useMaterialSearch(query: string, enabled = true) {

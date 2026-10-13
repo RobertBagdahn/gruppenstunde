@@ -112,6 +112,7 @@ export function invalidateRecipeMaterialData(queryClient: QueryClient, recipeId:
   queryClient.invalidateQueries({ queryKey: ['recipe-materials', recipeId] });
   queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
   queryClient.invalidateQueries({ queryKey: ['recipe', 'slug'] });
+  queryClient.invalidateQueries({ queryKey: ['material-list'] });
 }
 
 // ==========================================================================
@@ -130,9 +131,12 @@ export function useRecipeMaterials(recipeId: number) {
 // Mutation hooks
 // ==========================================================================
 
+export type QuantityMode = 'per_portion' | 'total';
+
 export interface CreateRecipeMaterialInput {
   material_id: number;
-  quantity: string;
+  amount: number;
+  quantity_mode: QuantityMode;
 }
 
 export function useCreateRecipeMaterial(recipeId: number) {
@@ -145,7 +149,8 @@ export function useCreateRecipeMaterial(recipeId: number) {
 }
 
 export interface UpdateRecipeMaterialInput {
-  quantity?: string;
+  amount?: number;
+  quantity_mode?: QuantityMode;
   sort_order?: number;
 }
 
@@ -185,7 +190,8 @@ export function useSuggestRecipeMaterials(recipeId: number) {
 
 export interface ApplyRecipeMaterialInput {
   material_id: number;
-  quantity: string;
+  amount: number;
+  quantity_mode: QuantityMode;
 }
 
 export function useApplyRecipeMaterials(recipeId: number) {

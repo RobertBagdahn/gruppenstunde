@@ -17,6 +17,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { QUANTITY_MODE_LABELS } from '@/lib/materialAmount';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import EmptyState from '@/components/shared/EmptyState';
 import {
@@ -67,7 +68,11 @@ export default function RecipeMaterialSuggestionsDialog({
   const handleApply = () => {
     const toApply = matched
       .filter((item) => item.material_id !== null && selectedIds.includes(item.material_id))
-      .map((item) => ({ material_id: item.material_id as number, quantity: item.quantity }));
+      .map((item) => ({
+        material_id: item.material_id as number,
+        amount: item.amount,
+        quantity_mode: item.quantity_mode,
+      }));
     if (toApply.length === 0) {
       notify.error('Bitte wähle mindestens ein Material aus');
       return;
@@ -91,7 +96,7 @@ export default function RecipeMaterialSuggestionsDialog({
         <DialogHeader>
           <DialogTitle>Materialien vorschlagen lassen</DialogTitle>
           <DialogDescription>
-            Die KI schlägt Verbrauchs- und Hilfsmaterialien für dieses Rezept vor. Bestätigte
+            Die KI schlägt Geräte und Verbrauchsmaterial für dieses Rezept vor. Bestätigte
             Vorschläge werden erst nach dem Übernehmen gespeichert.
           </DialogDescription>
         </DialogHeader>
@@ -141,9 +146,10 @@ export default function RecipeMaterialSuggestionsDialog({
                           </span>
                         )}
                       </span>
-                      {suggestion.quantity && (
-                        <span className="block text-caption text-muted-foreground mt-0.5">{suggestion.quantity}</span>
-                      )}
+                      <span className="block text-caption text-muted-foreground mt-0.5">
+                        {suggestion.is_consumable ? 'Verbrauchsmaterial' : 'Gerät'}, {suggestion.amount}×
+                        {suggestion.is_consumable ? ` ${QUANTITY_MODE_LABELS[suggestion.quantity_mode]}` : ''}
+                      </span>
                       {!isMatched && (
                         <span className="block text-caption text-muted-foreground mt-0.5">
                           Lege das Material zuerst im Material-Katalog an.

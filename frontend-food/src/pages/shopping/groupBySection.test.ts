@@ -40,4 +40,21 @@ describe('groupBySection', () => {
 
     expect(groups.Obst.map((entry) => entry.name)).toEqual(['Bananen', 'Äpfel']);
   });
+
+  it('puts consumable materials in their own last section', () => {
+    const groups = groupBySection([
+      item(1, 'Pappteller', '', { is_material: true }),
+      item(2, '2 kg Zimt', ''),
+      item(3, 'Bananen', 'Obst'),
+    ]);
+
+    expect(Object.keys(groups)).toEqual(['Obst', 'Sonstiges', 'Verbrauchsmaterial']);
+    expect(groups.Verbrauchsmaterial.map((entry) => entry.name)).toEqual(['Pappteller']);
+  });
+
+  it('keeps a material section even when the material has a retail section', () => {
+    const groups = groupBySection([item(1, 'Servietten', 'Haushalt', { is_material: true })]);
+
+    expect(Object.keys(groups)).toEqual(['Verbrauchsmaterial']);
+  });
 });

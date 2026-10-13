@@ -3,7 +3,7 @@
  * checkboxes, progress bar, collaborator management, and real-time updates.
  */
 import { useState, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import HeroBand from '@/components/shared/HeroBand';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
@@ -35,7 +35,7 @@ import UnauthGate from '@/components/shared/UnauthGate';
 import { ApiError } from '@/lib/api';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart } from 'lucide-react';
+import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList } from 'lucide-react';
 import { formatEuro } from '@/lib/format';
 import { PageSkeleton } from '@/components/ui/skeleton';
 
@@ -335,6 +335,18 @@ export default function ShoppingListDetailPage() {
       {/* Progress */}
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
 
+      {/* Material list (devices and consumables of the source recipes) */}
+      {(list.source_type === 'recipe' || list.source_type === 'meal_event') && (
+        <Link
+          to={`/material-list?shopping-list=${list.id}`}
+          data-testid="shopping-material-list-link"
+          className="press mb-6 flex items-center justify-center gap-2 rounded-lg bg-primary-soft px-4 py-2.5 text-body font-medium text-primary transition-colors hover:bg-primary-soft/80"
+        >
+          <ClipboardList className="w-4 h-4" />
+          Materialliste anzeigen
+        </Link>
+      )}
+
       {/* Total price */}
       {items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
         <div className="flex items-center justify-between bg-card rounded-xl px-4 py-3 mb-6 shadow-card">
@@ -474,8 +486,15 @@ export default function ShoppingListDetailPage() {
 
 // --- Helpers ---
 
-/** Heading of entries without retail section (free text); always listed last. */
+/** Heading of entries without retail section (free text); listed after all retail sections. */
 const OTHER_SECTION = 'Sonstiges';
+
+/** Heading of consumable materials (paper plates, skewers ...); always listed last. */
+export const MATERIAL_SECTION = 'Verbrauchsmaterial';
+
+function sectionOf(item: ShoppingListItem): string {
+  return item.is_material ? MATERIAL_SECTION : item.retail_section_name || OTHER_SECTION;
+}
 
 export function groupBySection(
   items: ShoppingListItem[],
@@ -484,18 +503,23 @@ export function groupBySection(
 
   // Preserve the server's retail-section order and sort only within sections.
   const sorted = [...items].sort((a, b) => {
-    if ((a.retail_section_name || OTHER_SECTION) !== (b.retail_section_name || OTHER_SECTION)) return 0;
+    if (sectionOf(a) !== sectionOf(b)) return 0;
     if (a.is_checked !== b.is_checked) return a.is_checked ? 1 : -1;
     return a.sort_order - b.sort_order;
   });
 
   for (const item of sorted) {
-    const section = item.retail_section_name || OTHER_SECTION;
+    const section = sectionOf(item);
     if (!groups[section]) groups[section] = [];
     groups[section].push(item);
   }
 
-  // Free-text entries have no section and would otherwise come first, headless.
-  const { [OTHER_SECTION]: other, ...sections } = groups;
-  return other ? { ...sections, [OTHER_SECTION]: other } : sections;
+  // Free-text entries have no section and would otherwise come first, headless;
+  // consumable materials form the final block.
+  const { [OTHER_SECTION]: other, [MATERIAL_SECTION]: materials, ...sections } = groups;
+  return {
+    ...sections,
+    ...(other ? { [OTHER_SECTION]: other } : {}),
+    ...(materials ? { [MATERIAL_SECTION]: materials } : {}),
+  };
 }

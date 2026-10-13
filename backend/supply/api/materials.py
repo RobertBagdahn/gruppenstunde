@@ -1,4 +1,4 @@
-"""Material CRUD and search endpoints."""
+"""Material CRUD, search and merge endpoints."""
 
 import math
 
@@ -7,52 +7,67 @@ from django.shortcuts import get_object_or_404
 from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
-from supply.models import Material
+from core.permissions import require_login
+from supply.models import Material, RetailSection
 from supply.schemas import (
     MaterialCreateIn,
     MaterialListOut,
+    MaterialMergeIn,
     MaterialOut,
     MaterialUpdateIn,
     MeasuringUnitOut,
     PaginatedMaterialOut,
 )
+from supply.services.materials import (
+    can_delete_material,
+    can_edit_material,
+    find_existing_material,
+    merge_materials,
+    normalize_material_name,
+)
 
 router = Router(tags=["supplies"])
 
 
-def _is_staff_user(user) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_staff:
-        return True
-    return getattr(getattr(user, "profile", None), "role", None) in {"staff", "admin"}
+def _annotate_permissions(request, material: Material) -> Material:
+    material.can_edit = can_edit_material(request.user, material)
+    material.can_delete = can_delete_material(request.user)
+    return material
+
+
+def _resolve_retail_section(section_id: int | None) -> RetailSection | None:
+    if section_id is None:
+        return None
+    section = RetailSection.objects.filter(pk=section_id).first()
+    if section is None:
+        raise HttpError(422, "Unbekannte Supermarkt-Abteilung.")
+    return section
 
 
 class MaterialFilterIn(Schema):
     q: str = ""
     material_category: str | None = None
+    is_consumable: bool | None = None
     page: int = 1
     page_size: int = 20
 
 
 @router.get("/materials/", response=PaginatedMaterialOut)
 def list_materials(request, filters: Query[MaterialFilterIn]):
-    """List materials with search and category filter."""
-    qs = Material.objects.all()
+    """List materials with search, category and consumable filter."""
+    qs = Material.objects.select_related("retail_section")
 
     if filters.q:
         qs = qs.filter(Q(name__icontains=filters.q) | Q(description__icontains=filters.q))
     if filters.material_category:
         qs = qs.filter(material_category=filters.material_category)
+    if filters.is_consumable is not None:
+        qs = qs.filter(is_consumable=filters.is_consumable)
 
     total = qs.count()
     total_pages = max(1, math.ceil(total / filters.page_size))
     offset = (filters.page - 1) * filters.page_size
-    items = qs[offset : offset + filters.page_size]
-
-    for item in items:
-        item.can_edit = request.user.is_staff
-        item.can_delete = request.user.is_staff
+    items = [_annotate_permissions(request, item) for item in qs[offset : offset + filters.page_size]]
 
     return {
         "items": items,
@@ -65,78 +80,106 @@ def list_materials(request, filters: Query[MaterialFilterIn]):
 
 @router.get("/materials/search/", response=list[MaterialListOut])
 def search_materials(request, q: str = ""):
-    """Fast search for materials (used in content creation stepper)."""
-    if not q or len(q) < 1:
-        return list(Material.objects.all()[:20])
-    return list(Material.objects.filter(Q(name__icontains=q) | Q(description__icontains=q))[:20])
+    """Fast search for materials (used in the recipe material editor)."""
+    qs = Material.objects.all()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    return [_annotate_permissions(request, item) for item in qs[:20]]
 
 
 @router.get("/materials/by-slug/{slug}/", response=MaterialOut)
 def get_material_by_slug(request, slug: str):
     """Get a material by slug."""
-    material = get_object_or_404(Material, slug=slug)
-    material.can_edit = request.user.is_staff
-    material.can_delete = request.user.is_staff
-    return material
+    material = get_object_or_404(Material.objects.select_related("retail_section"), slug=slug)
+    return _annotate_permissions(request, material)
 
 
 @router.get("/materials/{material_id}/", response=MaterialOut)
 def get_material(request, material_id: int):
     """Get a material by ID."""
-    material = get_object_or_404(Material, id=material_id)
-    material.can_edit = request.user.is_staff
-    material.can_delete = request.user.is_staff
-    return material
+    material = get_object_or_404(Material.objects.select_related("retail_section"), id=material_id)
+    return _annotate_permissions(request, material)
 
 
-@router.post("/materials/", response={201: MaterialOut})
+@router.post("/materials/", response={200: MaterialOut, 201: MaterialOut})
 def create_material(request, payload: MaterialCreateIn):
-    """Create a new material."""
-    if not _is_staff_user(request.user):
-        raise HttpError(403, "Nur Staff dürfen Materialien anlegen.")
+    """Create a material; returns the existing one (200) when the name is already taken."""
+    user = require_login(request, "um Material anzulegen")
+    name = normalize_material_name(payload.name)
+    if not name:
+        raise HttpError(422, "Der Name darf nicht leer sein.")
+
+    existing = find_existing_material(name)
+    if existing is not None:
+        return Status(200, _annotate_permissions(request, existing))
 
     material = Material.objects.create(
-        name=payload.name,
+        name=name,
         description=payload.description,
         material_category=payload.material_category,
         is_consumable=payload.is_consumable,
-        created_by=request.user,
+        package_size=payload.package_size,
+        package_unit=payload.package_unit,
+        price_per_package=payload.price_per_package,
+        retail_section=_resolve_retail_section(payload.retail_section_id),
+        created_by=user,
     )
-    material.can_edit = request.user.is_staff
-    material.can_delete = request.user.is_staff
-    return Status(201, material)
+    return Status(201, _annotate_permissions(request, material))
 
 
 @router.patch("/materials/{material_id}/", response=MaterialOut)
 def update_material(request, material_id: int, payload: MaterialUpdateIn):
-    """Update a material."""
-    if not _is_staff_user(request.user):
-        raise HttpError(403, "Nur Staff dürfen Materialien bearbeiten.")
-
+    """Update a material (own materials; admins any)."""
+    user = require_login(request, "um Material zu bearbeiten")
     material = get_object_or_404(Material, id=material_id)
+    if not can_edit_material(user, material):
+        raise HttpError(403, "Keine Berechtigung, dieses Material zu bearbeiten.")
+
+    data = payload.dict(exclude_unset=True)
+    if "name" in data:
+        data["name"] = normalize_material_name(data["name"] or "")
+        if not data["name"]:
+            raise HttpError(422, "Der Name darf nicht leer sein.")
+        other = find_existing_material(data["name"])
+        if other is not None and other.pk != material.pk:
+            raise HttpError(409, "Ein Material mit diesem Namen existiert bereits.")
+    if "retail_section_id" in data:
+        _resolve_retail_section(data["retail_section_id"])
 
     update_fields = []
-    for field in ["name", "description", "material_category", "is_consumable"]:
-        value = getattr(payload, field, None)
-        if value is not None:
-            setattr(material, field, value)
-            update_fields.append(field)
+    for field, value in data.items():
+        if value is None and field in {"name", "material_category", "is_consumable", "package_unit", "description"}:
+            continue
+        setattr(material, field, value)
+        update_fields.append(field)
 
-    material.updated_by = request.user
+    material.updated_by = user
     update_fields.append("updated_by")
+    material.save(update_fields=update_fields)
 
-    if update_fields:
-        material.save(update_fields=update_fields)
+    material.refresh_from_db()
+    return _annotate_permissions(request, material)
 
-    material.can_edit = request.user.is_staff
-    material.can_delete = request.user.is_staff
-    return material
+
+@router.post("/materials/{material_id}/merge/", response=MaterialOut)
+def merge_material(request, material_id: int, payload: MaterialMergeIn):
+    """Merge this material into another one (admin only)."""
+    user = require_login(request, "um Material zusammenzuführen")
+    if not can_delete_material(user):
+        raise HttpError(403, "Nur Admins dürfen Material zusammenführen.")
+    source = get_object_or_404(Material, id=material_id)
+    target = get_object_or_404(Material, id=payload.target_id)
+    if source.pk == target.pk:
+        raise HttpError(422, "Quelle und Ziel sind identisch.")
+    merged = merge_materials(source, target)
+    return _annotate_permissions(request, merged)
 
 
 @router.delete("/materials/{material_id}/", response={204: None})
 def delete_material(request, material_id: int):
     """Soft-delete a material (admin only)."""
-    if not _is_staff_user(request.user):
+    user = require_login(request, "um Material zu löschen")
+    if not can_delete_material(user):
         raise HttpError(403, "Nur Admins dürfen Materialien löschen.")
 
     material = get_object_or_404(Material, id=material_id)

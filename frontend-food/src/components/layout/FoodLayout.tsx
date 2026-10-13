@@ -20,6 +20,7 @@ const PREFETCH: Record<string, () => Promise<unknown>> = {
   '/': () => import('@/pages/HomePage'),
   '/recipes': () => import('@/pages/recipes/RecipeListPage'),
   '/ingredients': () => import('@/pages/ingredients/IngredientListPage'),
+  '/material': () => import('@/pages/materials/MaterialListPage'),
   '/meal-plans/app': () => import('@/pages/planning/MealEventListPage'),
   '/shopping-lists': () => import('@/pages/shopping/ShoppingListPage'),
 };
@@ -50,6 +51,7 @@ const navItems: { to: string; icon: string; label: string; area: PageArea }[] = 
   { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label, area: 'recipes' },
   { to: TOOL_INGREDIENTS.basePath, icon: TOOL_INGREDIENTS.icon, label: TOOL_INGREDIENTS.label, area: 'ingredients' },
   { to: '/meal-plans/app', icon: TOOL_MEAL_PLAN.icon, label: TOOL_MEAL_PLAN.label, area: 'planner' },
+  { to: '/material', icon: 'inventory_2', label: 'Material', area: 'neutral' },
   { to: TOOL_SHOPPING_LISTS.basePath, icon: TOOL_SHOPPING_LISTS.icon, label: TOOL_SHOPPING_LISTS.label, area: 'shopping' },
 ];
 

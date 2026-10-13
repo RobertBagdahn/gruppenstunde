@@ -33,7 +33,10 @@ export const RecipeMaterialSchema = z.object({
   material_name: z.string(),
   material_slug: z.string(),
   material_category: z.string(),
-  quantity: z.string().default(''),
+  is_consumable: z.boolean(),
+  amount: z.number(),
+  quantity_mode: z.enum(['per_portion', 'total']),
+  price_per_piece: z.number().nullable().default(null),
   sort_order: z.number(),
 });
 export type RecipeMaterial = z.output<typeof RecipeMaterialSchema>;
@@ -43,7 +46,9 @@ export type RecipeMaterial = z.output<typeof RecipeMaterialSchema>;
 export const AiMaterialSuggestionSchema = z.object({
   material_id: z.number().nullable(),
   suggested_name: z.string(),
-  quantity: z.string().default(''),
+  is_consumable: z.boolean().default(true),
+  amount: z.number().default(1),
+  quantity_mode: z.enum(['per_portion', 'total']).default('total'),
   matched_name: z.string().nullable(),
   is_new: z.boolean().default(false),
 });
@@ -244,11 +249,6 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   // Servings of the original recipe; quantities stay stored per person.
   source_servings: z.number().nullable().optional(),
   preparation_method: z.string().default(''),
-  equipment: z.array(z.object({
-    id: z.number(),
-    name: z.string(),
-    slug: z.string(),
-  })).default([]),
   materials: z.array(RecipeMaterialSchema).default([]),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
@@ -317,6 +317,9 @@ export const RecipeFilterSchema = z.object({
   preparation_method: z.array(z.string()).optional(),
   scout_level_ids: z.array(z.number()).optional(),
   tag_slugs: z.array(z.string()).optional(),
+  // Material (device) slug the recipe must / must not need.
+  material: z.string().optional(),
+  exclude_material: z.string().optional(),
   difficulty: z.array(z.string()).optional(),
   costs_min: z.number().optional(),
   costs_max: z.number().optional(),

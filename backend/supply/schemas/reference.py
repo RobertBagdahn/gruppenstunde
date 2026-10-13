@@ -1,7 +1,6 @@
 """Pydantic schemas for reference/lookup models."""
 
 from ninja import Schema
-from pydantic import ConfigDict
 
 
 class MeasuringUnitOut(Schema):
@@ -76,21 +75,3 @@ class IngredientGroupOut(Schema):
     id: int
     name: str
     slug: str
-
-
-class EquipmentOut(Schema):
-    """Output schema for kitchen equipment."""
-
-    id: int
-    name: str
-    slug: str
-    sort_order: int
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class EquipmentIn(Schema):
-    """Input schema for creating/updating equipment."""
-
-    name: str
-    sort_order: int = 0

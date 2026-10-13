@@ -267,3 +267,14 @@ Ausgeführt lokal gegen Prod über den Cloud SQL Proxy, erst als Trockenlauf (Tr
       Normalportion von #38 jetzt „mittelgroße Zwiebel“ (80 g); falsche Aliase „Gemüsezwiebel(n)“ an #38 entfernt
 - [x] 90 Rezept-Caches neu berechnet
 - [x] Ergebnis Plan „Bundesrat 2026“ (#18): Zwiebeln 11,1 kg (zwei Zutaten) → 3,6 kg; Eisbergsalat 2,6 kg („17,5 Stück“) → 1,05 kg (≈ 1,9 Köpfe)
+
+## recipe-materials-consumables — Material statt Equipment (offen)
+
+Noch nichts auf Prod ausgeführt. Jeder Schritt nur nach Freigabe durch Robert; erst Trockenlauf, dann Echtlauf.
+
+- [ ] DB-Snapshot der Prod-Datenbank anlegen und Namen hier notieren (Rollback nur per Snapshot, die Migration entfernt `Equipment`).
+- [ ] Deploy mit den Migrationen `supply 0023–0025`, `recipe 0015` und `shopping 0004`: Schema-Felder, Equipment → Material
+      (`is_consumable=false`, Rezeptzuordnung Menge 1), Textmengen der Rezept-Materialien → Zahl. Die Migration gibt
+      Mengen ohne Zahl aus (auf 1 gesetzt) — Liste hier notieren und prüfen.
+- [ ] Seed-Katalog: Trockenlauf `uv run python manage.py seed_materials`, nach Freigabe `--apply` (idempotent).
+- [ ] Danach prüfen: Material-Seite, ein Rezept mit Gerät/Verbrauchsmaterial, Einkaufsliste mit Abschnitt „Verbrauchsmaterial“.

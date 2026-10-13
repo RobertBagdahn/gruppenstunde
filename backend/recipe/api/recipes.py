@@ -6,8 +6,9 @@ import random
 import time
 from typing import cast
 
+from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError, transaction
-from django.db.models import CharField, FloatField, Q, Value
+from django.db.models import CharField, Exists, FloatField, OuterRef, Q, Value
 from django.db.models.functions import MD5, Cast, Concat, Lower
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -56,6 +57,7 @@ from recipe.schemas.import_schemas import (
     SmartRecipeInputIn,
 )
 from recipe.schemas.ingredient_review import IngredientReviewPreviewOut, RecipeImportSourceIn
+from supply.models import ContentMaterialItem
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +125,19 @@ def _is_transitively_visible_recipe(recipe: Recipe, request) -> bool:
 # ==========================================================================
 
 
+def _has_material_subquery(material_slug: str) -> Exists:
+    """Exists-subquery: the recipe links a material with the given slug."""
+    ct = ContentType.objects.get_for_model(Recipe, for_concrete_model=False)
+    return Exists(
+        ContentMaterialItem.objects.filter(
+            content_type=ct,
+            object_id=OuterRef("pk"),
+            material__slug=material_slug,
+            material__deleted_at__isnull=True,
+        )
+    )
+
+
 @router.get("/", response=PaginatedRecipeOut)
 def list_recipes(request, filters: Query[RecipeFilterIn]):
     """List recipes with pagination and filters."""
@@ -139,8 +154,10 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
     if filters.preparation_method:
         qs = qs.filter(preparation_method__in=filters.preparation_method)
 
-    if filters.equipment_slug:
-        qs = qs.filter(equipment__slug=filters.equipment_slug)
+    if filters.material_slug:
+        qs = qs.filter(_has_material_subquery(filters.material_slug))
+    if filters.exclude_material_slug:
+        qs = qs.exclude(_has_material_subquery(filters.exclude_material_slug))
 
     if filters.scout_level_ids:
         qs = qs.filter(scout_levels__id__in=filters.scout_level_ids).distinct()
@@ -758,8 +775,6 @@ def create_recipe(request, payload: RecipeCreateIn):
         from content.services.buffet_tags import without_buffet_tags_for_non_staff
 
         recipe.tags.set(without_buffet_tags_for_non_staff(request.user, _resolve_tag_ids(payload.tag_ids)))
-    if payload.equipment_ids:
-        recipe.equipment.set(payload.equipment_ids)
 
     recipe.authors.add(request.user)
 
@@ -1038,7 +1053,6 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
 
         require_unchanged_buffet_tags(request.user, recipe.tags.values_list("id", flat=True), _resolve_tag_ids(tag_ids))
     nutritional_tag_ids = data.pop("nutritional_tag_ids", None)
-    equipment_ids = data.pop("equipment_ids", None)
     recipe_items_data = data.pop("recipe_items", None)
     authors_ids = data.pop("authors_ids", None)
     shared_group_ids = data.pop("shared_group_ids", None)
@@ -1056,8 +1070,6 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         recipe.scout_levels.set(valid_ids)
     if tag_ids is not None:
         recipe.tags.set(_resolve_tag_ids(tag_ids))
-    if equipment_ids is not None:
-        recipe.equipment.set(equipment_ids)
     if authors_ids is not None:
         from django.contrib.auth import get_user_model
 

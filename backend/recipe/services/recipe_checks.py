@@ -429,6 +429,15 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
             priced_count += 1
             total_price += price * Decimal(str(weight_g)) / Decimal("1000")
 
+    # Per-portion consumables (e.g. 1 plate per person) are part of the price per person.
+    # Fixed-amount consumables cannot be expressed per person; plan totals add them separately.
+    from supply.services.material_aggregation import per_portion_material_cost
+
+    material_cost = per_portion_material_cost(recipe)
+    if material_cost is not None:
+        total_price += Decimal(str(round(material_cost, 4)))
+        has_prices = True
+
     energy_per_100g = values.get("energy_kcal")
     recipe.cached_energy_total_kcal = (
         float(energy_per_100g) * (total_weight_g / 100.0) if energy_per_100g and total_weight_g else None

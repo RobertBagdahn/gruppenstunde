@@ -92,17 +92,18 @@ class TestRecipePdfService:
     def test_recipe_pdf_collects_materials(self):
         recipe = make_recipe(title="Spieße")
         make_recipe_item(recipe=recipe, quantity=200)
-        material = Material.objects.create(name="Zahnstocher", material_category="kitchen")
+        material = Material.objects.create(name="Zahnstocher", material_category="kitchen", is_consumable=True)
         ct = ContentType.objects.get_for_model(recipe.__class__)
         ContentMaterialItem.objects.create(
             content_type=ct,
             object_id=recipe.id,
             material=material,
-            quantity="30 Stück",
+            amount=5,
+            quantity_mode="per_portion",
             sort_order=0,
         )
-        materials = _get_recipe_materials(recipe)
-        assert materials == [{"name": "Zahnstocher", "quantity": "30 Stück"}]
+        materials = _get_recipe_materials(recipe, servings=6)
+        assert materials == [{"name": "Zahnstocher", "quantity": "30×", "is_consumable": True}]
         pdf = generate_recipe_pdf(recipe)
         assert isinstance(pdf, bytes)
 

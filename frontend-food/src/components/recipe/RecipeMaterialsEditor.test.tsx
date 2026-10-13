@@ -17,6 +17,10 @@ vi.mock('@/api/supplies', () => ({
   useMaterialSearch: vi.fn(),
 }));
 
+vi.mock('@/api/materials', () => ({
+  useCreateMaterial: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 import {
   useRecipeMaterials,
   useCreateRecipeMaterial,
@@ -33,16 +37,22 @@ const materialsFixture: RecipeMaterial[] = [
     material_name: 'Zahnstocher',
     material_slug: 'zahnstocher',
     material_category: 'kitchen',
-    quantity: '30 Stück',
+    is_consumable: true,
+    amount: 30,
+    quantity_mode: 'total',
+    price_per_piece: null,
     sort_order: 0,
   },
   {
     id: 8,
     material_id: 13,
-    material_name: 'Backpapier',
-    material_slug: 'backpapier',
+    material_name: 'Backofen',
+    material_slug: 'backofen',
     material_category: 'kitchen',
-    quantity: '1 Rolle',
+    is_consumable: false,
+    amount: 1,
+    quantity_mode: 'total',
+    price_per_piece: null,
     sort_order: 1,
   },
 ];
@@ -95,7 +105,7 @@ describe('RecipeMaterialsEditor', () => {
     (useMaterialSearch as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ data: undefined });
   });
 
-  it('renders material rows with quantities', () => {
+  it('renders devices and consumables with amounts', () => {
     (useRecipeMaterials as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       data: materialsFixture,
       isLoading: false,
@@ -106,9 +116,10 @@ describe('RecipeMaterialsEditor', () => {
     renderEditor();
 
     expect(screen.getByText('Zahnstocher')).toBeTruthy();
-    expect(screen.getByText('Backpapier')).toBeTruthy();
-    expect(screen.getByDisplayValue('30 Stück')).toBeTruthy();
-    expect(screen.getByDisplayValue('1 Rolle')).toBeTruthy();
+    expect(screen.getByText('Backofen')).toBeTruthy();
+    expect(screen.getByDisplayValue('30')).toBeTruthy();
+    expect(screen.getByText('Gerät')).toBeTruthy();
+    expect(screen.getByText('Verbrauchsmaterial')).toBeTruthy();
     expect(createMutate).not.toHaveBeenCalled();
   });
 
@@ -122,10 +133,10 @@ describe('RecipeMaterialsEditor', () => {
     mockMaterialHooks();
     renderEditor();
 
-    expect(screen.getByText('Keine Materialien')).toBeTruthy();
+    expect(screen.getByText('Kein Material')).toBeTruthy();
   });
 
-  it('persists quantity edits on blur', async () => {
+  it('persists amount edits on blur', async () => {
     (useRecipeMaterials as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       data: materialsFixture,
       isLoading: false,
@@ -135,13 +146,13 @@ describe('RecipeMaterialsEditor', () => {
     const { updateMutate } = mockMaterialHooks();
     renderEditor();
 
-    const input = screen.getByDisplayValue('30 Stück');
-    fireEvent.change(input, { target: { value: '50 Stück' } });
+    const input = screen.getByDisplayValue('30');
+    fireEvent.change(input, { target: { value: '50' } });
     fireEvent.blur(input);
 
     await waitFor(() => {
       expect(updateMutate).toHaveBeenCalledWith(
-        { itemId: 7, data: { quantity: '50 Stück' } },
+        { itemId: 7, data: { amount: 50 } },
         expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
       );
     });
@@ -170,7 +181,7 @@ describe('RecipeMaterialsEditor', () => {
     });
     const { createMutate } = mockMaterialHooks();
     (useMaterialSearch as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      data: [{ id: 99, name: 'Alufolie', slug: 'alufolie', material_category: 'kitchen' }],
+      data: [{ id: 99, name: 'Alufolie', slug: 'alufolie', material_category: 'kitchen', is_consumable: true, can_edit: false, can_delete: false }],
     });
     renderEditor();
 
@@ -179,15 +190,32 @@ describe('RecipeMaterialsEditor', () => {
       expect(screen.getByText('Alufolie')).toBeTruthy();
     });
     fireEvent.click(screen.getByText('Alufolie'));
-    fireEvent.change(screen.getByLabelText('Menge des neuen Materials'), { target: { value: '1 Rolle' } });
+    fireEvent.change(screen.getByLabelText('Menge des neuen Materials'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Berechnung des neuen Materials'), { target: { value: 'per_portion' } });
     fireEvent.click(screen.getByTestId('materials-add-button'));
 
     await waitFor(() => {
       expect(createMutate).toHaveBeenCalledWith(
-        { material_id: 99, quantity: '1 Rolle' },
+        { material_id: 99, amount: 2, quantity_mode: 'per_portion' },
         expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
       );
     });
+  });
+
+  it('switches the calculation mode of a consumable', () => {
+    (useRecipeMaterials as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: materialsFixture,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    const { updateMutate } = mockMaterialHooks();
+    renderEditor();
+
+    fireEvent.change(screen.getByLabelText('Berechnung für Zahnstocher'), { target: { value: 'per_portion' } });
+    expect(updateMutate).toHaveBeenCalledWith({ itemId: 7, data: { quantity_mode: 'per_portion' } }, expect.any(Object));
+    // Devices have no calculation mode.
+    expect(screen.queryByLabelText('Berechnung für Backofen')).toBeNull();
   });
 
   it('reorders via move buttons', () => {

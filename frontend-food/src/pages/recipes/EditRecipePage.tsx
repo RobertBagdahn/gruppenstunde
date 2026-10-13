@@ -2,7 +2,6 @@ import TitleBand from '@/components/shared/TitleBand';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe, type RecipeUpdatePayload } from '@/api/recipes';
-import { useAdminEquipment } from '@/api/admin';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { useCurrentUser } from '@/api/auth';
 import MarkdownEditor from '@/components/MarkdownEditor';
@@ -40,7 +39,6 @@ export default function EditRecipePage() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedScoutIds, setSelectedScoutIds] = useState<number[]>([]);
   const [preparationMethod, setPreparationMethod] = useState('');
-  const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<number[]>([]);
   const [materialsDialogOpen, setMaterialsDialogOpen] = useState(false);
   const [initialized, setInitialized] = useState(false);
   // Staff-only fields
@@ -50,7 +48,6 @@ export default function EditRecipePage() {
 
   const { data: allTags } = useTags();
   const { data: scoutLevels } = useScoutLevels();
-  const { data: equipment } = useAdminEquipment();
 
   // Pre-populate form when recipe loads
   useEffect(() => {
@@ -66,7 +63,6 @@ export default function EditRecipePage() {
       setSelectedTagIds(recipe.tags.map((t) => t.id));
       setSelectedScoutIds(recipe.scout_levels.map((s) => s.id));
       setPreparationMethod(recipe.preparation_method || '');
-      setSelectedEquipmentIds(recipe.equipment?.map((e) => e.id) || []);
       // Staff fields
       setStatus(recipe.status || '');
       setSourceUrl(recipe.source_url || '');
@@ -100,7 +96,6 @@ export default function EditRecipePage() {
       title: title.trim(),
       recipe_type: recipeType,
       preparation_method: preparationMethod || undefined,
-      equipment_ids: selectedEquipmentIds.length > 0 ? selectedEquipmentIds : undefined,
       summary: summary.trim(),
       description: description.trim(),
       difficulty: difficulty || undefined,
@@ -225,46 +220,11 @@ export default function EditRecipePage() {
           </div>
         </div>
 
-        {/* Equipment */}
-        {equipment && equipment.length > 0 && (
-          <div className="bg-card rounded-xl p-5 shadow-card">
-            <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-              <Icon name="skillet" size={20} className="text-primary" />
-              Equipment
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {equipment.map((eq) => {
-                const isSelected = selectedEquipmentIds.includes(eq.id);
-                return (
-                  <button
-                    key={eq.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedEquipmentIds((prev) =>
-                        prev.includes(eq.id)
-                          ? prev.filter((id) => id !== eq.id)
-                          : [...prev, eq.id],
-                      );
-                    }}
-                    className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
-                      isSelected
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background hover:bg-muted'
-                    }`}
-                  >
-                    {eq.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Materials */}
         <div className="bg-card rounded-xl p-5 shadow-card">
           <label className="flex items-center gap-1.5 text-body font-medium mb-3">
             <Icon name="inventory_2" size={20} className="text-primary" />
-            Materialien
+            Material
           </label>
           <RecipeMaterialsEditor
             recipeId={recipe.id}

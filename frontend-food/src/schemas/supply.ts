@@ -42,6 +42,12 @@ export const MaterialSchema = z.object({
   is_consumable: z.boolean(),
   image_url: z.string().nullable(),
   purchase_links: z.array(z.unknown()).default([]),
+  package_size: z.number().nullable().default(null),
+  package_unit: z.string().default('Stück'),
+  price_per_package: z.number().nullable().default(null),
+  price_per_piece: z.number().nullable().default(null),
+  retail_section_id: z.number().nullable().default(null),
+  retail_section_name: z.string().nullable().default(null),
   created_at: z.string(),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
@@ -55,6 +61,9 @@ export const MaterialListItemSchema = z.object({
   slug: z.string(),
   material_category: z.string(),
   is_consumable: z.boolean(),
+  package_size: z.number().nullable().default(null),
+  package_unit: z.string().default('Stück'),
+  price_per_piece: z.number().nullable().default(null),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
 });
@@ -72,6 +81,48 @@ export const ContentMaterialItemSchema = z.object({
   sort_order: z.number(),
 });
 export type ContentMaterialItem = z.infer<typeof ContentMaterialItemSchema>;
+
+/** Create/update payload of a material (backend: MaterialCreateIn / MaterialUpdateIn). */
+export const MaterialInSchema = z.object({
+  name: z.string().trim().min(1, 'Name ist erforderlich'),
+  description: z.string().default(''),
+  material_category: z.string().default('other'),
+  is_consumable: z.boolean().default(false),
+  package_size: z.number().positive('Muss größer als 0 sein').nullable().default(null),
+  package_unit: z.string().default('Stück'),
+  price_per_package: z.number().min(0, 'Darf nicht negativ sein').nullable().default(null),
+  retail_section_id: z.number().nullable().default(null),
+});
+export type MaterialIn = z.input<typeof MaterialInSchema>;
+
+// --- Material list (unsaved, from recipe / plan / shopping list) ---
+
+export const MaterialListRecipeSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  amount: z.number(),
+});
+
+export const MaterialListEntrySchema = z.object({
+  material_id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  is_consumable: z.boolean(),
+  amount: z.number(),
+  price_per_piece: z.number().nullable(),
+  cost: z.number().nullable(),
+  recipes: z.array(MaterialListRecipeSchema),
+});
+export type MaterialListEntry = z.output<typeof MaterialListEntrySchema>;
+
+export const MaterialListResultSchema = z.object({
+  title: z.string(),
+  devices: z.array(MaterialListEntrySchema),
+  consumables: z.array(MaterialListEntrySchema),
+  total_cost: z.number(),
+});
+export type MaterialListResult = z.output<typeof MaterialListResultSchema>;
 
 // --- Paginated material response ---
 
@@ -861,24 +912,6 @@ export const IngredientImportUrlOutSchema = z.object({
   nutrition: IngredientNutritionDraftSchema.nullable(),
 });
 export type IngredientImportUrlOut = z.infer<typeof IngredientImportUrlOutSchema>;
-
-// ============================================================================
-// Equipment
-// ============================================================================
-
-export const EquipmentSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  slug: z.string(),
-  sort_order: z.number(),
-});
-export type Equipment = z.infer<typeof EquipmentSchema>;
-
-export const EquipmentInSchema = z.object({
-  name: z.string().min(1, 'Name ist erforderlich'),
-  sort_order: z.number(),
-});
-export type EquipmentIn = z.infer<typeof EquipmentInSchema>;
 
 // ============================================================================
 // Tag Admin

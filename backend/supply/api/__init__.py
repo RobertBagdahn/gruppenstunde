@@ -3,7 +3,6 @@
 from .breakfast_catalog import breakfast_catalog_router
 from .buffet_catalog import buffet_catalog_router
 from .data_offensive import data_offensive_router
-from .equipment import equipment_router
 from .ingredient_groups import ingredient_group_router
 from .ingredient_statistics import ingredient_statistics_router
 from .ingredients import ingredient_router
@@ -19,7 +18,6 @@ __all__ = [
     "breakfast_catalog_router",
     "buffet_catalog_router",
     "data_offensive_router",
-    "equipment_router",
     "ingredient_group_router",
     "ingredient_router",
     "ingredient_statistics_router",

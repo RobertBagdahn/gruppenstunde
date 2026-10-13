@@ -209,19 +209,13 @@ class Recipe(Content):
         help_text=_("Manuell gesetzte Ernährungshinweise, bleiben bei Sync erhalten"),
     )
 
-    # --- Preparation method and equipment ---
+    # --- Preparation method ---
     preparation_method = models.CharField(
         max_length=50,
         choices=PreparationMethod.choices,
         blank=True,
         default="",
         verbose_name=_("Zubereitungsart"),
-    )
-    equipment = models.ManyToManyField(
-        "supply.Equipment",
-        blank=True,
-        related_name="recipes",
-        verbose_name=_("Equipment"),
     )
 
     # --- Runtime-only attributes (set by services/API, never persisted) ---

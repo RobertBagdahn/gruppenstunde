@@ -17,6 +17,8 @@ from recipe.schemas import (
     RecipeMaterialUpdateIn,
 )
 from supply.models import ContentMaterialItem, Material
+from supply.schemas import MaterialListResultOut
+from supply.services.material_aggregation import aggregate_materials, material_list_payload
 
 from .items import _get_visible_recipe_or_404
 
@@ -57,12 +59,20 @@ def list_recipe_materials(request, recipe_id: int):
     return _materials_for_recipe(recipe).order_by("sort_order")
 
 
+@router.get("/{recipe_id}/material-list/", response=MaterialListResultOut)
+def recipe_material_list(request, recipe_id: int, servings: float = 1):
+    """Unsaved material list of one recipe scaled to `servings`."""
+    recipe = _get_visible_recipe_or_404(request, recipe_id, require_auth=False)
+    if servings <= 0:
+        raise HttpError(422, "Die Portionenzahl muss größer als 0 sein.")
+    return material_list_payload(recipe.title, aggregate_materials([(recipe, servings)]))
+
+
 @router.post("/{recipe_id}/materials/", response={201: RecipeMaterialOut, 200: RecipeMaterialOut})
 def create_recipe_material(request, recipe_id: int, payload: RecipeMaterialCreateIn):
     """Link a material to a recipe.
 
-    Duplicate links are merged deterministically: the quantity is updated when
-    provided and the existing link is returned instead of creating a new row.
+    Duplicate links are merged deterministically: the amount and mode are updated and the existing link is returned instead of creating a new row.
     """
     with transaction.atomic():
         recipe = _get_visible_recipe_or_404(request, recipe_id)
@@ -79,16 +89,17 @@ def create_recipe_material(request, recipe_id: int, payload: RecipeMaterialCreat
             .first()
         )
         if item is not None:
-            if payload.quantity:
-                item.quantity = payload.quantity
-                item.save(update_fields=["quantity"])
+            item.amount = payload.amount
+            item.quantity_mode = payload.quantity_mode
+            item.save(update_fields=["amount", "quantity_mode"])
             return Status(200, item)
 
         item = ContentMaterialItem.objects.create(
             content_type=ct,
             object_id=recipe.pk,
             material=material,
-            quantity=payload.quantity,
+            amount=payload.amount,
+            quantity_mode=payload.quantity_mode,
             sort_order=_next_sort_order(recipe),
         )
     return Status(201, item)
@@ -138,7 +149,9 @@ def ai_suggest_materials(request, recipe_id: int):
             {
                 "material_id": r.material_id,
                 "suggested_name": r.suggested_name,
-                "quantity": r.quantity,
+                "is_consumable": r.is_consumable,
+                "amount": r.amount,
+                "quantity_mode": r.quantity_mode,
                 "matched_name": r.matched_name,
                 "is_new": r.is_new,
             }
@@ -168,7 +181,7 @@ def ai_apply_materials(request, recipe_id: int, payload: list[AiMaterialApplyIn]
 
 @router.patch("/{recipe_id}/materials/{item_id}/", response=RecipeMaterialOut)
 def update_recipe_material(request, recipe_id: int, item_id: int, payload: RecipeMaterialUpdateIn):
-    """Update quantity or sort order of a recipe material link."""
+    """Update amount, mode or sort order of a recipe material link."""
     with transaction.atomic():
         recipe = _get_visible_recipe_or_404(request, recipe_id)
         recipe = Recipe.objects.select_for_update().get(pk=recipe.pk)
