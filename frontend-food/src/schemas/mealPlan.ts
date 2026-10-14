@@ -15,7 +15,7 @@ import { UtensilsCrossed, Moon, Cookie, GlassWater } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
 import { PriceCoverageSchema } from './recipe';
 import { QuantityWarningSchema } from './buffet';
-import { UnitKindSchema } from './quantityUnits';
+import { UnitKindSchema, UnitOptionSchema } from './quantityUnits';
 import { planDateKey } from '@/lib/mealPlanDateTime';
 
 // Lightweight nutritional tag schema for search results (backend only returns id+name)
@@ -470,12 +470,6 @@ export const PortionOptionSchema = z.object({
   count: z.number().default(0),
 });
 
-export const ShoppingPieceEquivalentSchema = z.object({
-  count: z.number(),
-  portion_name: z.string(),
-});
-export type ShoppingPieceEquivalent = z.infer<typeof ShoppingPieceEquivalentSchema>;
-
 export const ShoppingPackageOptionSchema = z.object({
   count: z.number(),
   package_name: z.string(),
@@ -496,7 +490,7 @@ export const ShoppingListItemSchema = z.object({
   unit: z.enum(['g', 'ml']).default('g'),
   retail_section: z.string(),
   estimated_price_eur: z.number().nullable(),
-  piece_equivalent: ShoppingPieceEquivalentSchema.nullable().optional(),
+  start_unit: UnitOptionSchema.nullable().default(null),
   portion_options: z.array(PortionOptionSchema).default([]),
   package_options: z.array(ShoppingPackageOptionSchema).default([]),
   /** count × package weight − total_quantity_g; negative when rounded down within tolerance. */
@@ -549,7 +543,8 @@ export const IngredientQuantitySchema = z.object({
   total_quantity_g: z.number(),
   quantity: z.number().default(0),
   unit: z.enum(['g', 'ml']).default('g'),
-  piece_equivalent: ShoppingPieceEquivalentSchema.nullable().default(null),
+  start_unit: UnitOptionSchema.nullable().default(null),
+  display_text: z.string().default(''),
   has_trusted_weight: z.boolean().default(true),
   is_adjusted: z.boolean().default(false),
   unit_options: z.array(IngredientQuantityUnitOptionSchema).default([]),

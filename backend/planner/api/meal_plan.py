@@ -91,7 +91,6 @@ from planner.schemas import (
     ShoppingItemSourceOut,
     ShoppingListItemOut,
     ShoppingPackageOptionOut,
-    ShoppingPieceEquivalentOut,
     SuggestionPanelIn,
     SuggestionPanelOut,
     WizardItemsBulkIn,
@@ -105,6 +104,7 @@ from recipe.schemas import SuggestionDashboardOut
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.models import Ingredient
 from supply.schemas import MaterialListResultOut
+from supply.schemas.ingredients import UnitOptionOut
 
 logger = logging.getLogger(__name__)
 
@@ -2291,7 +2291,7 @@ def shopping_list(request, meal_plan_id: int):
             unit=item.unit,
             retail_section=item.retail_section,
             estimated_price_eur=item.estimated_price_eur,
-            piece_equivalent=ShoppingPieceEquivalentOut(**item.piece_equivalent) if item.piece_equivalent else None,
+            start_unit=UnitOptionOut(**item.start_unit) if item.start_unit else None,
             portion_options=[ShoppingItemPortionOptionOut(**po) for po in (item.portion_options or [])],
             package_options=[ShoppingPackageOptionOut(**pk) for pk in (item.package_options or [])],
             package_surplus_g=item.package_surplus_g,

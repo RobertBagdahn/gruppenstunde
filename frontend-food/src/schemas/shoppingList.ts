@@ -3,6 +3,7 @@
  * MUST stay in sync with backend/shopping/schemas.py
  */
 import { z } from 'zod';
+import { UnitOptionSchema } from './quantityUnits';
 import { QuantityWarningSchema } from './buffet';
 
 // --- Collaborator ---
@@ -26,15 +27,6 @@ export const PortionOptionSchema = z.object({
 });
 
 export type PortionOption = z.output<typeof PortionOptionSchema>;
-
-// --- Piece Equivalent (single best-matching natural portion) ---
-
-export const ShoppingPieceEquivalentSchema = z.object({
-  count: z.number(),
-  portion_name: z.string(),
-});
-
-export type ShoppingPieceEquivalent = z.output<typeof ShoppingPieceEquivalentSchema>;
 
 // --- Package Option (shop-bought package count) ---
 
@@ -84,7 +76,8 @@ export const ShoppingListItemSchema = z.object({
   ingredient_id: z.number().nullable().optional(),
   ingredient_slug: z.string().nullable().optional(),
   estimated_price_eur: z.number().nullable().optional(),
-  piece_equivalent: ShoppingPieceEquivalentSchema.nullable().optional(),
+  /** Unit the amount is shown in first (standard portion, else g/ml); `quantity_g` stays the stored amount. */
+  start_unit: UnitOptionSchema.nullable().default(null),
   portion_options: z.array(PortionOptionSchema).default([]),
   package_options: z.array(ShoppingPackageOptionSchema).default([]),
   /** count × package weight − quantity_g; negative when rounded down within tolerance. */

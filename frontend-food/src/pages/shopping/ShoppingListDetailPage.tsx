@@ -404,6 +404,12 @@ export default function ShoppingListDetailPage() {
                     canEdit={canEdit}
                     onCheck={handleCheck}
                     onDelete={handleDeleteItem}
+                    onUpdateQuantity={(itemId, quantityG) =>
+                      updateItem.mutate(
+                        { itemId, quantity_g: quantityG },
+                        { onError: (err) => notify.error('Menge konnte nicht geändert werden', { error: err }) },
+                      )
+                    }
                     recentChecker={recentCheckers[item.id]}
                   />
                 ))}

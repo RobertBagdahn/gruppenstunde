@@ -71,8 +71,9 @@ function ShoppingItemWithSources({
             {formatShoppingQuantity(
               item.quantity || item.total_quantity_g || 0,
               item.unit,
-              item.piece_equivalent,
+              item.start_unit,
               item.package_options[0],
+              item.total_quantity_g,
             )}
             {showReserve && (item.reserve_quantity_g || 0) > 0 && (
               <span className="text-caption text-muted-foreground/70">

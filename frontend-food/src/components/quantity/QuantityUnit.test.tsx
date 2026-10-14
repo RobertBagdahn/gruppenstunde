@@ -99,7 +99,7 @@ describe('QuantityUnitInput', () => {
     expect(screen.getByText('= 120 g')).toBeTruthy();
     fireEvent.blur(input);
 
-    expect(onCommit).toHaveBeenCalledWith({ quantity: 2, portion_id: 7, measuring_unit_id: null, standard_measure_key: null });
+    expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ quantity: 2, portion_id: 7, measuring_unit_id: null, standard_measure_key: null }));
   });
 
   it('saves a pinch of salt as a standard measure', () => {
@@ -111,7 +111,7 @@ describe('QuantityUnitInput', () => {
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.blur(input);
 
-    expect(onCommit).toHaveBeenCalledWith({ quantity: 1, portion_id: null, measuring_unit_id: null, standard_measure_key: 'prise' });
+    expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ quantity: 1, portion_id: null, measuring_unit_id: null, standard_measure_key: 'prise' }));
   });
 
   it('keeps the unit when only the number changes', () => {
@@ -121,7 +121,7 @@ describe('QuantityUnitInput', () => {
     fireEvent.change(input, { target: { value: '100' } });
     fireEvent.blur(input);
 
-    expect(onCommit).toHaveBeenCalledWith({ quantity: 100 });
+    expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ quantity: 100 }));
   });
 
   it('saves a unit switch at constant weight right away when onConvertUnit is given', () => {
@@ -165,7 +165,7 @@ describe('QuantityUnitInput', () => {
     expect(onConvertUnit).not.toHaveBeenCalled();
 
     fireEvent.blur(input);
-    expect(onCommit).toHaveBeenCalledWith({ quantity: 1, portion_id: 8, measuring_unit_id: null, standard_measure_key: null });
+    expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ quantity: 1, portion_id: 8, measuring_unit_id: null, standard_measure_key: null }));
   });
 
   it('keeps a typed amount pending instead of converting immediately', () => {
@@ -180,6 +180,6 @@ describe('QuantityUnitInput', () => {
     expect(onConvertUnit).not.toHaveBeenCalled();
     expect(input.value).toBe('2');
     fireEvent.blur(input);
-    expect(onCommit).toHaveBeenCalledWith({ quantity: 2, portion_id: 7, measuring_unit_id: null, standard_measure_key: null });
+    expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ quantity: 2, portion_id: 7, measuring_unit_id: null, standard_measure_key: null }));
   });
 });

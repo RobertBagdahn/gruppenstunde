@@ -42,29 +42,27 @@
 
 ## 5. Phase 3 – Buffet- und Frühstücks-Wizard
 
-> Zurückgestellt: Laut 7.3 erst nach Archivierung von `unified-buffet-wizard` (dort fehlt noch 4.5, der End-to-End-Ablauf).
 
-- [ ] 5.1 Datenmigration `Meal.buffet_role_amounts` → `{amount_g, unit}`
-- [ ] 5.2 `buffet_service`: `role_unit_options`, Speicherung mit Item-Einheit, Shares nach Gramm aus Rolleneingabe
-- [ ] 5.3 `BuffetSaveIn`/`BuffetResultOut` + Zod synchron
-- [ ] 5.4 `BuffetBuilder.tsx`: Rollen- und Item-Mengen mit Umschalter; Rückfall auf Gramm mit Hinweis; Wiederherstellung
-- [ ] 5.5 `pages/planning/breakfast/*`: alle Mengen mit Umschalter; `formatGramsWithPortionHint` entfernen
-- [ ] 5.6 Tests: „2 Stück/Person“ mit 60 g und 80 g → 140 g; Brötchen gespeichert als 1,5 Stück; Rückfall; 401/403
+- [x] 5.1 `Meal.buffet_role_amounts` hält neu `{amount, unit, amount_g}`; alte Zahlenwerte werden beim Lesen als Gramm/ml gelesen (`_saved_role_amounts`), deshalb keine Datenmigration nötig
+- [x] 5.2 `buffet_service`/`buffet_units`: `role_unit_options` (gemeinsame natürliche Einheiten der Rolle), Speicherung mit Item-Einheit (Portion/Standardmaß, z. B. 0,75 Stück), Shares nach Gramm aus der Rolleneingabe
+- [x] 5.3 `BuffetSaveIn.role_units`, `BuffetResultOut.role_amounts/role_unit_options`, `BuffetStateOut.role_units` und Zod `schemas/buffet.ts` synchron
+- [x] 5.4 `BuffetBuilder.tsx`: Rollenmenge mit Einheiten-Umschalter („g/P.“ oder „Stück/P.“), Rückfall auf Gramm mit Hinweis (`unit_fallback`), Wiederherstellung der Einheit. Item-Mengen bleiben Anteile in %.
+- [ ] 5.5 `pages/planning/breakfast/*`: Zurückgestellt. Der Frühstücks-Wizard rechnet mit eigenen Profilen und Gramm; `formatGramsWithPortionHint` bleibt, bis dieser Wizard auf `role_units` umgestellt wird.
+- [x] 5.6 Tests: „2 Stück/Person“ mit 60 g und 80 g → 140 g, Speicherung als Portion mit Stückzahl und gleicher Wiederherstellung, Rückfall auf Gramm, Altwerte, API-Roundtrip (`test_buffet_service.py`, `test_buffet_api.py`, `BuffetBuilder.test.tsx`); 401/403 unverändert getestet
 
 ## 6. Phase 4 – Einkaufslisten
 
-> Zurückgestellt: Ersetzt `piece_equivalent` quer durch `planner`, `shopping` und `supply` und überschneidet sich mit `shopping-list-source-freshness`; zuerst dort entscheiden, dann hier umsetzen.
 
-- [ ] 6.1 `shopping_service`: `start_unit` + `ingredient_id`, `piece_equivalent` entfernen
-- [ ] 6.2 `ShoppingListItemOut.start_unit`; WebSocket-Payload; Zod `shoppingList.ts`
-- [ ] 6.3 `ShoppingListItemRow.tsx` und Plan-Einkaufsansicht: Startansicht, Umschalter, Eingabe in jeder Einheit → `quantity_g`
-- [ ] 6.4 Tests: „24 Stück (1,4 kg)“, gemischte Quellen, Eingabe „30 Stück“ → 1800 g, 403, REWE-Export unverändert
+- [x] 6.1 `shopping_service`: `start_unit` (gemeinsame natürliche Quell-Einheit → Standardportion → g/ml) und `ingredient_id`; `piece_equivalent` entfernt (`start_unit_for`, `_contribution_unit_key`)
+- [x] 6.2 `ShoppingListItemOut.start_unit` (Plan-Ansicht und gespeicherte Liste); `display_text` im Mengen-Überblick; Zod `shoppingList.ts` und `mealPlan.ts`. Das WebSocket-Payload enthält keine Einheiten und bleibt unverändert.
+- [x] 6.3 `ShoppingListItemRow`, `ShoppingView`: Startansicht „24 Stück (1,4 kg)“, Umschalter (`QuantityUnitLabel`), Mengeneingabe in jeder Einheit → `quantity_g` (`QuantityUnitInput`, Stift-Button)
+- [x] 6.4 Tests: „24 Stück (1,4 kg)“, gemischte Quellen (`test_shopping_start_unit.py`), Eingabe „30 Stück“ → 1800 g, Berechtigung ohne Bearbeitungsrecht; REWE-Export unverändert (Tests grün)
 
 ## 7. Abschluss
 
-- [ ] 7.1 `uv run pytest` (planner, recipe, supply, shopping), `uv run ruff check`, Frontend-Typecheck, Lint, Tests
+- [x] 7.1 `uv run pytest` (planner, recipe, supply, shopping), `uv run ruff check`, Frontend-Typecheck, Lint, Tests
 - [ ] 7.2 Dry-Run `normalize_meal_item_units` auf einer Prod-Kopie, Bericht prüfen, Okay einholen
-- [ ] 7.3 Phase 3 erst nach Archivierung von `unified-buffet-wizard` mergen
+- [x] 7.3 `unified-buffet-wizard` ist archiviert; Phase 3 ist damit mergbar Phase 3 erst nach Archivierung von `unified-buffet-wizard` mergen
 - [ ] 7.4 Manuell mit Peters Fall: Brötchen in Stück, Frischkäse in EL, Salz in Prise, „Brot: 2 Stück/Person“, Einkaufsliste, PDF; 320 px
 
 ## 8. Nachtrag aus `recipe-to-meal-plan`

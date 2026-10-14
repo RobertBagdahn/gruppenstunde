@@ -137,7 +137,8 @@ export function QuantityUnitInput({
 }: {
   item: QuantityUnitItem;
   viewMode?: UnitViewMode;
-  onCommit: (change: UnitChange & { quantity: number }) => void;
+  /** `grams` is the entered amount in grams (null when the unit has no known weight). */
+  onCommit: (change: UnitChange & { quantity: number; grams: number | null }) => void;
   onConvertUnit?: (unit: UnitChange, callbacks: { onError: () => void }) => void;
 }) {
   const stored = useMemo(() => storedOption(item), [item]);
@@ -188,7 +189,7 @@ export function QuantityUnitInput({
       return;
     }
     const unitChanged = unit.key !== stored.key;
-    onCommit({ quantity: count, ...(unitChanged ? unitChangeFor(unit) : {}) });
+    onCommit({ quantity: count, grams, ...(unitChanged ? unitChangeFor(unit) : {}) });
     setDirty(false);
   };
 

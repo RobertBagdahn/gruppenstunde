@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ROUTER_FUTURE_FLAGS } from '@/lib/routerFuture';
 import ShoppingListItemRow from './ShoppingListItemRow';
@@ -14,34 +15,99 @@ function item(overrides: Partial<ShoppingListItem> = {}): ShoppingListItem {
     is_checked: false,
     sort_order: 0,
     estimated_price_eur: 1.5,
-    piece_equivalent: { count: 64, portion_name: 'TL' },
     ...overrides,
   });
 }
 
-function renderRow(i: ShoppingListItem) {
+const startUnit = (label: string, gramsPerUnit: number, kind: 'portion' | 'standard' = 'portion') => ({
+  key: `${kind}:${label}`,
+  kind,
+  label,
+  grams_per_unit: gramsPerUnit,
+  is_approx: false,
+  has_weight: true,
+  portion_id: kind === 'portion' ? 11 : null,
+  measuring_unit_id: null,
+  standard_measure_key: kind === 'standard' ? 'el' : null,
+});
+
+function withProviders(children: React.ReactNode) {
+  return (
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter future={ROUTER_FUTURE_FLAGS}>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
+}
+
+function renderRow(i: ShoppingListItem, onUpdateQuantity?: (id: number, grams: number) => void) {
   return render(
-    <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
-      <ShoppingListItemRow item={i} canEdit onCheck={vi.fn()} />
-    </MemoryRouter>,
+    withProviders(<ShoppingListItemRow item={i} canEdit onCheck={vi.fn()} onUpdateQuantity={onUpdateQuantity} />),
   );
 }
 
 describe('ShoppingListItemRow', () => {
-  it('shows amount first and piece equivalent second', () => {
-    renderRow(item());
-    expect(screen.getByText('320 g · ≈ 64 TL')).toBeInTheDocument();
+  it('shows the start unit with its grams', () => {
+    renderRow(item({ ingredient_id: 7, start_unit: startUnit('TL', 5) }));
+    expect(screen.getByText('64 TL (320 g)')).toBeInTheDocument();
     expect(screen.getByText('1,50 €')).toBeInTheDocument();
   });
 
-  it('uses German decimals for kilograms and fractional pieces', () => {
-    renderRow(item({ quantity_g: 1300, piece_equivalent: { count: 2.5, portion_name: 'Stück' } }));
-    expect(screen.getByText('1,3 kg · ≈ 2,5 Stück')).toBeInTheDocument();
+  it('uses German decimals for fractional pieces and kilograms', () => {
+    renderRow(item({ ingredient_id: 7, quantity_g: 1300, start_unit: startUnit('Stück', 520) }));
+    expect(screen.getByText('2,5 Stück (1,3 kg)')).toBeInTheDocument();
   });
 
-  it('shows only the amount without piece equivalent', () => {
-    renderRow(item({ piece_equivalent: null }));
+  it('shows 24 Stück with 1,4 kg like in the screenshot case', () => {
+    renderRow(item({ name: 'Brötchen', ingredient_id: 9, quantity_g: 1440, start_unit: startUnit('Stück', 60) }));
+    expect(screen.getByText('24 Stück (1,4 kg)')).toBeInTheDocument();
+  });
+
+  it('shows only the gram amount without an ingredient or start unit', () => {
+    renderRow(item());
     expect(screen.getByText('320 g')).toBeInTheDocument();
+  });
+
+  it('puts the package need after the start unit', () => {
+    renderRow(
+      item({
+        ingredient_id: 7,
+        quantity_g: 700,
+        start_unit: startUnit('Stück', 250),
+        package_options: [{ count: 3, package_name: 'Packung', weight_g: 250 }],
+        package_surplus_g: 50,
+      }),
+    );
+    expect(screen.getByText(/2,8 Stück \(700 g\)/)).toBeInTheDocument();
+    expect(screen.getByText(/3 × 250-g-Packung/)).toBeInTheDocument();
+  });
+
+  it('saves an amount entered in the start unit as grams', () => {
+    const onUpdateQuantity = vi.fn();
+    renderRow(item({ name: 'Brötchen', ingredient_id: 9, quantity_g: 1440, start_unit: startUnit('Stück', 60) }), onUpdateQuantity);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menge von „Brötchen“ ändern' }));
+    const input = screen.getByLabelText('Menge');
+    fireEvent.change(input, { target: { value: '30' } });
+    fireEvent.blur(input);
+
+    expect(onUpdateQuantity).toHaveBeenCalledWith(1, 1800);
+  });
+
+  it('offers no amount editing without edit permission or a known unit', () => {
+    const { unmount } = render(
+      withProviders(
+        <ShoppingListItemRow
+          item={item({ ingredient_id: 7, start_unit: startUnit('TL', 5) })}
+          canEdit={false}
+          onCheck={vi.fn()}
+          onUpdateQuantity={vi.fn()}
+        />,
+      ),
+    );
+    expect(screen.queryByRole('button', { name: /Menge von/ })).toBeNull();
+    unmount();
+    renderRow(item(), vi.fn());
+    expect(screen.queryByRole('button', { name: /Menge von/ })).toBeNull();
   });
 
   it('expands portion options with exact portion weights', () => {
@@ -62,7 +128,6 @@ describe('ShoppingListItemRow', () => {
     renderRow(
       item({
         quantity_g: 700,
-        piece_equivalent: null,
         package_options: [{ count: 3, package_name: 'Packung', weight_g: 250 }],
         package_surplus_g: 50,
       }),
@@ -75,7 +140,6 @@ describe('ShoppingListItemRow', () => {
     renderRow(
       item({
         quantity_g: 1020,
-        piece_equivalent: null,
         package_options: [{ count: 2, package_name: 'Packung', weight_g: 500 }],
         package_surplus_g: -20,
       }),
@@ -85,14 +149,14 @@ describe('ShoppingListItemRow', () => {
   });
 
   it('shows liquids in litres from the display quantity', () => {
-    renderRow(item({ name: 'Milch', quantity_g: 9400, quantity: 9126, unit: 'ml', piece_equivalent: null }));
+    renderRow(item({ name: 'Milch', quantity_g: 9400, quantity: 9126, unit: 'ml' }));
     expect(screen.getByText('9,1 l')).toBeInTheDocument();
   });
 
   describe('deleting manual entries', () => {
     it('offers delete for a manual entry (no sources) and reports the item', () => {
       const onDelete = vi.fn();
-      const manual = item({ name: 'ZZ-TEST Klebeband', quantity_g: 0, piece_equivalent: null, estimated_price_eur: null });
+      const manual = item({ name: 'ZZ-TEST Klebeband', quantity_g: 0, estimated_price_eur: null });
       render(
         <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
           <ShoppingListItemRow item={manual} canEdit onCheck={vi.fn()} onDelete={onDelete} />
@@ -120,7 +184,7 @@ describe('ShoppingListItemRow', () => {
     it('offers no delete without edit permission', () => {
       render(
         <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
-          <ShoppingListItemRow item={item({ piece_equivalent: null })} canEdit={false} onCheck={vi.fn()} onDelete={vi.fn()} />
+          <ShoppingListItemRow item={item()} canEdit={false} onCheck={vi.fn()} onDelete={vi.fn()} />
         </MemoryRouter>,
       );
 

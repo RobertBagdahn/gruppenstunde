@@ -6,10 +6,17 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
-import { Check, ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
+import { Check, ChevronRight, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { QuantityUnitInput, QuantityUnitLabel, type QuantityUnitItem } from '@/components/quantity/QuantityUnit';
 import { formatEuro, formatWeight } from '@/lib/format';
 import { HelpHint } from '@/components/ui/help-hint';
-import { PACKAGE_RESERVE_HELP, formatItemPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
+import {
+  PACKAGE_RESERVE_HELP,
+  formatItemPackageReserve,
+  formatPackageNeed,
+  formatPortionOption,
+  formatShoppingQuantity,
+} from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -17,8 +24,30 @@ interface ShoppingListItemRowProps {
   onCheck: (itemId: number, isChecked: boolean) => void;
   /** Deletes the item. Only offered for manual entries (without recipe/plan sources). */
   onDelete?: (item: ShoppingListItem) => void;
+  /** Saves a new amount in grams (entered in any unit). Offered for ingredient entries with a known unit. */
+  onUpdateQuantity?: (itemId: number, quantityG: number) => void;
   /** Name of the user who just checked this item (for real-time indicator) */
   recentChecker?: string | null;
+}
+
+/** The stored gram amount expressed in the item's start unit, or null when no usable unit is known. */
+function toQuantityUnitItem(item: ShoppingListItem): QuantityUnitItem | null {
+  const unit = item.start_unit;
+  if (!item.ingredient_id || !unit || !unit.grams_per_unit || unit.grams_per_unit <= 0 || item.quantity_g <= 0) {
+    return null;
+  }
+  return {
+    ingredient_id: item.ingredient_id,
+    ingredient_slug: item.ingredient_slug ?? undefined,
+    quantity: item.quantity_g / unit.grams_per_unit,
+    quantity_g: item.quantity_g,
+    unit_kind: unit.kind,
+    unit_label: unit.label,
+    is_weight_approx: unit.is_approx,
+    portion_id: unit.portion_id,
+    standard_measure_key: unit.standard_measure_key,
+    measuring_unit_id: unit.measuring_unit_id,
+  };
 }
 
 export default function ShoppingListItemRow({
@@ -26,11 +55,13 @@ export default function ShoppingListItemRow({
   canEdit,
   onCheck,
   onDelete,
+  onUpdateQuantity,
   recentChecker,
 }: ShoppingListItemRowProps) {
   const [showChecker, setShowChecker] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
   const [portionsExpanded, setPortionsExpanded] = useState(false);
+  const [editingQuantity, setEditingQuantity] = useState(false);
 
   const hasSources = item.sources && item.sources.length > 0;
   const hasPortionOptions = item.portion_options && item.portion_options.length > 1;
@@ -51,9 +82,13 @@ export default function ShoppingListItemRow({
   const quantityLabel = formatShoppingQuantity(
     item.quantity || item.quantity_g,
     item.unit,
-    item.piece_equivalent,
+    item.start_unit,
     item.package_options[0],
+    item.quantity_g,
   );
+  // Start unit with its grams, switchable for viewing and enterable in any unit.
+  const unitItem = toQuantityUnitItem(item);
+  const packageNeed = item.package_options[0] ? formatPackageNeed(item.package_options[0]) : '';
   const reserveLabel = formatItemPackageReserve(item);
 
   return (
@@ -117,12 +152,55 @@ export default function ShoppingListItemRow({
                 {item.name}
               </span>
             )}
-            {quantityLabel && (
-              <span className="text-caption font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
-                {quantityLabel}
+            {unitItem && !editingQuantity ? (
+              <span
+                className="inline-flex flex-wrap items-center gap-x-1.5 text-caption font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <QuantityUnitLabel item={unitItem} />
+                {packageNeed && <span>· {packageNeed}</span>}
               </span>
+            ) : (
+              !editingQuantity &&
+              quantityLabel && (
+                <span className="text-caption font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
+                  {quantityLabel}
+                </span>
+              )
+            )}
+            {unitItem && canEdit && onUpdateQuantity && !editingQuantity && !item.is_checked && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setEditingQuantity(true);
+                }}
+                aria-label={`Menge von „${item.name}“ ändern`}
+                title="Menge ändern"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
             )}
           </div>
+          {editingQuantity && unitItem && (
+            <div className="mt-1 flex flex-wrap items-center gap-2" onClick={(event) => event.stopPropagation()}>
+              <QuantityUnitInput
+                item={unitItem}
+                onCommit={({ grams }) => {
+                  if (grams != null && grams > 0) onUpdateQuantity?.(item.id, Math.round(grams * 100) / 100);
+                  setEditingQuantity(false);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setEditingQuantity(false)}
+                className="text-caption font-semibold text-muted-foreground hover:underline"
+              >
+                Abbrechen
+              </button>
+            </div>
+          )}
           {reserveLabel && (
             <p className="text-caption text-muted-foreground mt-0.5 flex items-center gap-1">
               {reserveLabel}

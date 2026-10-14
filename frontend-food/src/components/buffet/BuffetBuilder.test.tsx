@@ -78,6 +78,7 @@ const emptyState: BuffetState = {
   template_id: null,
   selections: [],
   role_amounts: {},
+  role_units: {},
   manual_item_count: 0,
   manual_items_policy: null,
   warnings: [],
@@ -93,6 +94,8 @@ function makeResult(overrides: Partial<BuffetResult> = {}): BuffetResult {
     cost_per_person: 1.2,
     cost_total: 4.8,
     warnings: [],
+    role_amounts: {},
+    role_unit_options: {},
     ...overrides,
   };
 }
@@ -376,6 +379,73 @@ describe('BuffetBuilder', () => {
     expect(sweetRole.getByRole('spinbutton', { name: 'Menge pro Person für Belag süß' })).toHaveValue(35);
   });
 
+  it('offers the common units of a role and sends the role amount in the chosen unit', () => {
+    vi.mocked(useBuffetPreview).mockReturnValue({
+      preview: previewFn,
+      result: makeResult({
+        role_unit_options: { 'buffet-bread': [{ key: 'portion:stück', kind: 'portion', label: 'Stück' }] },
+        role_amounts: { 'buffet-bread': { amount: 150, unit: 'grams', amount_g: 150 } },
+      }),
+      isPending: false,
+      error: null,
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof useBuffetPreview>);
+    renderBuilder();
+    choosePreset();
+
+    const breadRole = within(screen.getByTestId('buffet-role-buffet-bread'));
+    fireEvent.change(breadRole.getByRole('combobox', { name: 'Einheit für Brot & Gebäck' }), {
+      target: { value: 'portion:stück' },
+    });
+
+    expect(breadRole.getByRole('spinbutton', { name: 'Menge pro Person für Brot & Gebäck' })).toHaveValue(1);
+    expect(previewFn).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        roleUnits: { 'buffet-bread': 'portion:stück' },
+        roleAmounts: expect.objectContaining({ 'buffet-bread': 1 }),
+      }),
+    );
+  });
+
+  it('switches back to grams with the weight the preview computed', () => {
+    vi.mocked(useBuffetState).mockReturnValue({
+      data: {
+        ...emptyState,
+        template_id: 1,
+        selections: [{
+          role_slug: 'buffet-bread',
+          ingredient_id: 10,
+          recipe_id: null,
+          kind: 'ingredient',
+          share_percent: 100,
+          name: 'Baguette',
+          energy_kcal_per_100g: 250,
+          price_per_kg: 3,
+          weight_per_serving_g: null,
+        }],
+        role_amounts: { 'buffet-bread': 2 },
+        role_units: { 'buffet-bread': 'portion:stück' },
+      },
+    } as unknown as ReturnType<typeof useBuffetState>);
+    vi.mocked(useBuffetPreview).mockReturnValue({
+      preview: previewFn,
+      result: makeResult({
+        role_unit_options: { 'buffet-bread': [{ key: 'portion:stück', kind: 'portion', label: 'Stück' }] },
+        role_amounts: { 'buffet-bread': { amount: 2, unit: 'portion:stück', amount_g: 140 } },
+      }),
+      isPending: false,
+      error: null,
+      reset: vi.fn(),
+    } as unknown as ReturnType<typeof useBuffetPreview>);
+    renderBuilder();
+
+    const breadRole = within(screen.getByTestId('buffet-role-buffet-bread'));
+    expect(breadRole.getByRole('spinbutton', { name: 'Menge pro Person für Brot & Gebäck' })).toHaveValue(2);
+    fireEvent.change(breadRole.getByRole('combobox', { name: 'Einheit für Brot & Gebäck' }), { target: { value: '' } });
+
+    expect(breadRole.getByRole('spinbutton', { name: 'Menge pro Person für Brot & Gebäck' })).toHaveValue(140);
+  });
+
   it('restores a free selection that is no longer in the role catalog', () => {
     vi.mocked(useBuffetState).mockReturnValue({
       data: {
@@ -448,6 +518,7 @@ describe('BuffetBuilder', () => {
         templateId: 1,
         selections: [{ role_slug: 'buffet-bread', ingredient_id: 10, recipe_id: null, share_percent: 100 }],
         roleAmounts: { 'buffet-bread': 150 },
+        roleUnits: {},
         manualItemsPolicy: 'preserve',
       },
       expect.anything(),

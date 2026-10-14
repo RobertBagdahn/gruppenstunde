@@ -1,15 +1,18 @@
 /**
  * Display-string composition for the structured shopping-list quantity
- * fields (piece_equivalent, portion_options, package_options). Mirrors the
+ * fields (start_unit, portion_options, package_options). Mirrors the
  * shape the backend used to send pre-formatted (see design.md deviation for
  * `meal-plan-integrity-and-number-formatting`) but composes it client-side
  * from the raw numeric fields via `@/lib/format`.
  */
 import { formatCount, formatExactWeight, formatNumber, formatVolume, formatWeight } from '@/lib/format';
+import { formatAmount } from '@/lib/quantityUnits';
 
-interface PieceEquivalentLike {
-  count: number;
-  portion_name: string;
+interface StartUnitLike {
+  kind: 'grams' | 'milliliters' | 'portion' | 'standard';
+  label: string;
+  grams_per_unit: number | null;
+  is_approx: boolean;
 }
 
 interface PortionOptionLike {
@@ -27,18 +30,22 @@ interface PackageOptionLike {
 }
 
 /**
- * "≈ 2,5 Scheiben". A portion that names its own count ("6 Eier", "1 mittelgroße
- * Kartoffel") is resolved into the real piece count: 1,1 × "6 Eier" → "≈ 6,6 Eier".
+ * Amount in the start unit with its grams: "44,5 mittelgroße Zwiebel (3,6 kg)", "24 Stück (1,4 kg)".
+ * Counts of 10 and more are rounded to whole pieces (shoppers buy whole pieces).
+ * Returns '' for metric start units; those use the plain gram/ml amount.
  */
-export function formatPieceEquivalent(pe: PieceEquivalentLike): string {
-  // "100g Gemüsebrühe" names a weight, not a piece count: keep it as a multiplier.
-  if (/^\d+(?:[.,]\d+)?\s?(?:g|kg|ml|l)\b/i.test(pe.portion_name.trim())) {
-    return `≈ ${formatNumber(pe.count, { maxDecimals: pe.count >= 10 ? 0 : 1 })} × ${pe.portion_name}`;
-  }
-  const named = pe.portion_name.trim().match(/^(\d+(?:[.,]\d+)?)\s+(\D.*)$/);
-  const pieces = named ? pe.count * Number.parseFloat(named[1].replace(',', '.')) : pe.count;
-  const label = named ? named[2] : pe.portion_name;
-  return `≈ ${formatNumber(pieces, { maxDecimals: pieces >= 10 ? 0 : 1 })} ${label}`;
+export function formatStartUnitAmount(grams: number, startUnit: StartUnitLike | null | undefined): string {
+  if (!startUnit || (startUnit.kind !== 'portion' && startUnit.kind !== 'standard')) return '';
+  if (!startUnit.grams_per_unit || startUnit.grams_per_unit <= 0 || grams <= 0) return '';
+  const count = grams / startUnit.grams_per_unit;
+  const shown = count >= 10 ? Math.round(count) : Math.round(count * 10) / 10;
+  return formatAmount({
+    count: shown,
+    kind: startUnit.kind,
+    label: startUnit.label,
+    grams,
+    gramsApprox: startUnit.is_approx,
+  });
 }
 
 /** "2,5 × Scheibe (à 25 g)" */
@@ -138,19 +145,19 @@ export function formatShoppingAmount(quantity: number, unit: string): string {
 }
 
 /**
- * "1,0 kg · 2 × 500-g-Packung" or "320 g · ≈ 64 TL" — amount first, then the
- * package need (preferred, a real purchasable unit) or the piece equivalent.
+ * "44 Zwiebeln (3,6 kg) · 2 × 500-g-Packung" or "320 g · 2 × 500-g-Packung": the start unit with its
+ * grams first (plain gram/ml amount for metric start units), then the package need.
  */
 export function formatShoppingQuantity(
   quantity: number,
   unit: string,
-  pieceEquivalent?: PieceEquivalentLike | null,
+  startUnit?: StartUnitLike | null,
   packageOption?: PackageOptionLike | null,
+  grams?: number | null,
 ): string {
-  const amount = formatShoppingAmount(quantity, unit);
-  let secondary = '';
-  if (packageOption) secondary = formatPackageNeed(packageOption);
-  else if (pieceEquivalent) secondary = formatPieceEquivalent(pieceEquivalent);
+  const natural = formatStartUnitAmount(grams ?? (unit === 'g' ? quantity : 0), startUnit);
+  const amount = natural || formatShoppingAmount(quantity, unit);
+  const secondary = packageOption ? formatPackageNeed(packageOption) : '';
   if (!secondary) return amount;
   return amount ? `${amount} · ${secondary}` : secondary;
 }

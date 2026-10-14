@@ -12,7 +12,6 @@ import {
 import {
   PortionOptionSchema,
   ShoppingItemSourceSchema,
-  ShoppingPieceEquivalentSchema,
   ShoppingPackageOptionSchema,
   MealPlanCostSummarySchema,
   PlanCheckAlertSchema,
@@ -46,11 +45,27 @@ describe('food API contracts', () => {
     });
   });
 
-  it('parses structured piece-equivalent and package-option shopping fields', () => {
-    expect(ShoppingPieceEquivalentSchema.parse({ count: 2.5, portion_name: 'Scheiben' })).toEqual({
-      count: 2.5,
-      portion_name: 'Scheiben',
-    });
+  it('parses the structured start unit and package-option shopping fields', () => {
+    expect(
+      ShoppingListItemSchema.parse({
+        id: 1,
+        name: 'Zwiebel',
+        quantity_g: 3560,
+        is_checked: false,
+        sort_order: 0,
+        start_unit: {
+          key: 'portion:3',
+          kind: 'portion',
+          label: 'Zwiebel',
+          grams_per_unit: 80,
+          is_approx: false,
+          has_weight: true,
+          portion_id: 3,
+          measuring_unit_id: null,
+          standard_measure_key: null,
+        },
+      }).start_unit?.grams_per_unit,
+    ).toBe(80);
     expect(
       ShoppingPackageOptionSchema.parse({ count: 2, package_name: 'Packung', weight_g: 500 }),
     ).toEqual({ count: 2, package_name: 'Packung', weight_g: 500 });

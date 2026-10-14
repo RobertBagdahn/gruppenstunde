@@ -4,7 +4,7 @@ import {
   formatPackageNeed,
   formatItemPackageReserve,
   formatPackageReserve,
-  formatPieceEquivalent,
+  formatStartUnitAmount,
   formatPortionOption,
   formatShoppingAmount,
   formatShoppingQuantity,
@@ -21,17 +21,31 @@ describe('shoppingItemDisplay', () => {
     expect(formatShoppingAmount(250, 'ml')).toBe('250 ml');
       });
 
-  it('combines amount and piece equivalent: amount first, pieces second', () => {
-    expect(formatShoppingQuantity(320, 'g', { count: 64, portion_name: 'TL' })).toBe('320 g · ≈ 64 TL');
-    expect(formatShoppingQuantity(1300, 'g', { count: 26, portion_name: 'Scheiben' })).toBe('1,3 kg · ≈ 26 Scheiben');
-    expect(formatShoppingQuantity(320, 'g', null)).toBe('320 g');
+  const unit = (label: string, gramsPerUnit: number, kind: 'portion' | 'standard' = 'portion') => ({
+    kind,
+    label,
+    grams_per_unit: gramsPerUnit,
+    is_approx: false,
   });
 
-  it('uses a German comma for fractional piece equivalents', () => {
-    expect(formatPieceEquivalent({ count: 2.5, portion_name: 'Stück' })).toBe('≈ 2,5 Stück');
-    expect(formatPieceEquivalent({ count: 51.8, portion_name: '1 mittelgroße Kartoffel' })).toBe('≈ 52 mittelgroße Kartoffel');
-    expect(formatPieceEquivalent({ count: 1.1, portion_name: '6 Eier' })).toBe('≈ 6,6 Eier');
-    expect(formatPieceEquivalent({ count: 14.6, portion_name: '100g Gemüsebrühe' })).toBe('≈ 15 × 100g Gemüsebrühe');
+  it('combines the start unit with its grams: unit first, grams in brackets', () => {
+    expect(formatShoppingQuantity(320, 'g', unit('TL', 5), null, 320)).toBe('64 TL (320 g)');
+    expect(formatShoppingQuantity(1300, 'g', unit('Scheibe', 50), null, 1300)).toBe('26 Scheibe (1,3 kg)');
+    expect(formatShoppingQuantity(320, 'g', null, null, 320)).toBe('320 g');
+  });
+
+  it('shows metric start units as the plain amount', () => {
+    expect(formatStartUnitAmount(320, { kind: 'grams', label: 'g', grams_per_unit: 1, is_approx: false })).toBe('');
+    expect(formatShoppingQuantity(9126, 'ml', { kind: 'milliliters', label: 'ml', grams_per_unit: 1.03, is_approx: false }, null, 9400)).toBe('9,1 l');
+  });
+
+  it('rounds counts: one decimal below 10 and whole pieces from 10', () => {
+    expect(formatStartUnitAmount(150, unit('Stück', 60))).toBe('2,5 Stück (150 g)');
+    expect(formatStartUnitAmount(3560, unit('mittelgroße Zwiebel', 80))).toBe('45 mittelgroße Zwiebel (3,6 kg)');
+  });
+
+  it('marks standard measures without a known density as approximate', () => {
+    expect(formatStartUnitAmount(45, { ...unit('EL', 15, 'standard'), is_approx: true })).toBe('3 EL (≈ 45 g)');
   });
 
   it('formats portion and package options with exact weights', () => {
@@ -45,9 +59,9 @@ describe('shoppingItemDisplay', () => {
     expect(formatPackageNeed({ count: 2, package_name: 'Packung', weight_g: 500 })).toBe('2 × 500-g-Packung');
   });
 
-  it('puts the package need after the amount, preferring it over the piece equivalent', () => {
+  it('puts the package need after the amount', () => {
     expect(
-      formatShoppingQuantity(700, 'g', { count: 2.8, portion_name: 'Stück' }, { count: 3, package_name: 'Packung', weight_g: 250 }),
+      formatShoppingQuantity(700, 'g', null, { count: 3, package_name: 'Packung', weight_g: 250 }, 700),
     ).toBe('700 g · 3 × 250-g-Packung');
   });
 

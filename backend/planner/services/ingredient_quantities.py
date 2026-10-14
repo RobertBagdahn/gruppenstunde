@@ -82,9 +82,11 @@ class IngredientQuantity:
     total_quantity_g: float
     quantity: float
     unit: str
-    piece_equivalent: dict | None
+    start_unit: dict | None
     has_trusted_weight: bool
     is_adjusted: bool
+    # Amount text for items without a trusted gram weight (e.g. "2,5 Stück").
+    display_text: str = ""
     unit_options: list[UnitOption] = field(default_factory=list)
     lines: list[QuantityLine] = field(default_factory=list)
 
@@ -294,7 +296,8 @@ def build_ingredient_quantities(meal_plan: MealPlan, ingredient_id: int | None =
                 total_quantity_g=item.total_quantity_g,
                 quantity=item.quantity,
                 unit=item.unit,
-                piece_equivalent=item.piece_equivalent,
+                start_unit=item.start_unit,
+                display_text=item.display_text,
                 has_trusted_weight=item.ingredient_id not in has_raw,
                 is_adjusted=False,
             )
@@ -315,7 +318,7 @@ def build_ingredient_quantities(meal_plan: MealPlan, ingredient_id: int | None =
                 total_quantity_g=0.0,
                 quantity=0.0,
                 unit="g",
-                piece_equivalent=None,
+                start_unit=None,
                 has_trusted_weight=True,
                 is_adjusted=True,
             )
