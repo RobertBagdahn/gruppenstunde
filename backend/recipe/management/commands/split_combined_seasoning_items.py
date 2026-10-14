@@ -23,9 +23,11 @@ SEASONINGS = (("Jodsalz", "Salz"), ("gemahlener schwarzer Pfeffer", "Pfeffer"))
 
 def affected_items() -> list[Any]:
     from recipe.models import RecipeItem
+    from supply.models import Ingredient
 
+    combined_ids = Ingredient.objects.filter(name=COMBINED_NAME, deleted_at__isnull=True).values("id")
     return list(
-        RecipeItem.objects.filter(portion__ingredient__name=COMBINED_NAME, portion__ingredient__deleted_at__isnull=True)
+        RecipeItem.objects.filter(portion__ingredient__in=combined_ids)
         .select_related("portion__ingredient", "recipe")
         .order_by("recipe_id", "sort_order", "id")
     )

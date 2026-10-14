@@ -91,7 +91,10 @@ def _saved_role_amounts(stored: dict[str, Any] | None) -> tuple[dict[str, float]
     units: dict[str, str] = {}
     for slug, value in (stored or {}).items():
         if isinstance(value, dict):
-            amounts[slug] = float(value.get("amount", value.get("amount_g", 0)))
+            raw_amount = value.get("amount")
+            if raw_amount is None:
+                raw_amount = value.get("amount_g", 0)
+            amounts[slug] = float(raw_amount or 0)
             unit = value.get("unit")
             if unit and unit not in ("grams", "milliliters"):
                 units[slug] = str(unit)
