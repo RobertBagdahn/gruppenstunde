@@ -1,5 +1,9 @@
-## ADDED Requirements
+# kitchen-unit-display Specification
 
+## Purpose
+Specification of kitchen-unit-display.
+
+## Requirements
 ### Requirement: Einheiten-Umschalter pro Zutat im Rezept
 Das System MUSS auf der Rezept-Detailseite pro Zutat einen Umschalter anbieten, der die Menge in alternativen Küchenmaßeinheiten anzeigt.
 

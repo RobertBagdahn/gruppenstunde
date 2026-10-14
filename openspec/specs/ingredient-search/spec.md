@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-search Specification
 
+## Purpose
+Specification of ingredient-search.
+
+## Requirements
 ### Requirement: Sortierung im Ingredient-List-Endpoint
 Der Endpoint `GET /api/ingredients/` SHALL einen optionalen `ordering`-Query-Parameter akzeptieren.
 

@@ -3,8 +3,7 @@
 ## Purpose
 Defines logging requirements for recipe list endpoint search queries, capturing query text, result counts, and structured JSON output.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Recipe search logging
 
 The system SHALL log every non-empty search query on the recipe list endpoint (`GET /api/recipes/?q=...`) to the `SearchLog` table. Each log entry SHALL store the query text, the total number of results, and the authenticated user (if any). Additionally, the system SHALL write a structured JSON log line to stdout for ingestion by Cloud Logging.

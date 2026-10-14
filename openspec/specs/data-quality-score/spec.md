@@ -3,8 +3,7 @@
 ## Purpose
 Defines the 0-100 data quality completeness score for ingredients and recipes, visible to all users on detail pages, and the impact analysis showing how many recipes reference an ingredient.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Ingredient quality score
 Jede Zutat SHALL einen `quality_score` (IntegerField, 0-100, nullable, default NULL) haben, der den Vollständigkeitsgrad der Datenfelder repräsentiert.
 

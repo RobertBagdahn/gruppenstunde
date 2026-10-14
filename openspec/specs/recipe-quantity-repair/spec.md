@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-quantity-repair Specification
 
+## Purpose
+Specification of recipe-quantity-repair.
+
+## Requirements
 ### Requirement: Management-Command zur Portion-/Mengen-Bereinigung
 Das System MUSS einen Management-Command bereitstellen, der bestehende Inkonsistenzen zwischen Portionen und RecipeItems in fester Reihenfolge bereinigt: (1) Dedupe doppelter `rank=1`-Portionen, (2) Rebind von RecipeItems auf gelöschte Portionen, (3) AI-gestützte Plausibilitätsprüfung aller Rezeptmengen, (4) vollständige Cache-Neuberechnung betroffener Rezepte.
 

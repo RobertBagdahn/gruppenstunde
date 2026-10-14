@@ -1,5 +1,9 @@
-## ADDED Requirements
+# nutrition-min-only-display Specification
 
+## Purpose
+Specification of nutrition-min-only-display.
+
+## Requirements
 ### Requirement: Darstellung reiner Untergrenzen-Nährstoffe als Mindest-Schwelle
 Das System SHALL Nährstoffe ohne definiertes Maximum (z.B. Ballaststoffe) im Nährwert-Diagramm als Mindest-Schwelle darstellen, sodass Werte über dem Minimum als erreicht/gut und NICHT als Überschreitung („zu viel") erscheinen.
 

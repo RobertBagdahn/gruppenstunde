@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-type-stats Specification
 
+## Purpose
+Specification of recipe-type-stats.
+
+## Requirements
 ### Requirement: RecipeTypeStats-Aggregat mit Histogramm-Buckets
 Das System SHALL ein `RecipeTypeStats`-Model bereitstellen, das pro `recipe_type` aggregierte Statistiken und Histogramm-Buckets für Preis pro Portion, Kalorien pro Portion und Protein pro Portion speichert. Die Aggregation SHALL nur veröffentlichte Rezepte (`ContentStatus.APPROVED`) berücksichtigen. Pro Metrik SHALL eine feste Anzahl Buckets (Standard 12) mit `{min, max, count}` aus dem Wertebereich [Gesamt-Min, Gesamt-Max] gespeichert werden. Zusätzlich SHALL min/max/avg/median je Metrik und die Nutri-Score-Verteilung (A–E) gespeichert werden.
 

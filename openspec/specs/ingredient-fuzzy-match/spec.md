@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-fuzzy-match Specification
 
+## Purpose
+Specification of ingredient-fuzzy-match.
+
+## Requirements
 ### Requirement: Ingredient Fuzzy Match API
 The system SHALL provide GET /api/ingredients/suggest/?q=<text> that returns ranked ingredient matches using PostgreSQL pg_trgm similarity.
 

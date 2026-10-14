@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-waitlist Specification
 
+## Purpose
+Specification of event-waitlist.
+
+## Requirements
 ### Requirement: WaitlistEntry model
 A new `WaitlistEntry` model SHALL be created to track users waiting for a spot in a full booking option.
 

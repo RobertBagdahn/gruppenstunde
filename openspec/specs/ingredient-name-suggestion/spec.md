@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-name-suggestion Specification
 
+## Purpose
+Specification of ingredient-name-suggestion.
+
+## Requirements
 ### Requirement: AI suggests improved ingredient name
 The `suggest_all_fields` endpoint SHALL return a `name_suggestion` field with a more specific, disambiguated ingredient name. The suggestion SHALL NOT contain brand names, quantity/weight specifications, or marketing language. It SHALL include distinguishing characteristics (e.g. fat percentage, variety, processing form).
 

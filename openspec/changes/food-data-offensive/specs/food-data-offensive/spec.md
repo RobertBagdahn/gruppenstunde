@@ -10,7 +10,7 @@ The system SHALL evaluate every ingredient against one shared rule set (per 100 
 
 #### Scenario: Broken import detected
 - **WHEN** an ingredient has `fat_g = 0` and `fat_sat_g = 0.1`
-- **THEN** the issue `broken_import` is reported and the deterministic repair sets energy, fat and carbohydrates to `NULL`
+- **THEN** the issue `broken_import` is reported and the deterministic repair sets energy and fat to `NULL`, and carbohydrates to `NULL` only when carbohydrates are 0 while sugar is greater than 0 (Owner decision 2026-10-14: the repair never discards a non-zero carbohydrate value)
 
 #### Scenario: kJ stored as kcal
 - **WHEN** `energy_kcal = 1500`

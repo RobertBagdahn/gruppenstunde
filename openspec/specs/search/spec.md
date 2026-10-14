@@ -1,5 +1,3 @@
-## MODIFIED Requirements
-
 ### Requirement: Unified search across all content types
 The search service SHALL search across content types (GroupSession, Blog, Game, Recipe, Event) but SHALL NOT include Tags in search results. The search SHALL use the same hybrid approach (fulltext + pgvector + filters) but SHALL NOT query the Tag table for search results. Tags SHALL remain available only through the autocomplete endpoint.
 
@@ -29,8 +27,6 @@ The frontend search page SHALL display filter tabs only for content types that a
 - **THEN** the tab bar SHALL display tabs for: Alle, Gruppenstunden, Wissensbeiträge, Spiele, Rezepte, Events
 - **THEN** the tab bar SHALL NOT display a "Tags" tab
 
-## REMOVED Requirements
-
 ### Requirement: Idea-only search endpoint
 **Reason**: Replaced by unified search across all content types
 **Migration**: `/api/ideas/search/` is replaced by `/api/search/`
@@ -38,8 +34,6 @@ The frontend search page SHALL display filter tabs only for content types that a
 ### Requirement: Idea-only autocomplete
 **Reason**: Replaced by unified autocomplete
 **Migration**: `/api/ideas/autocomplete/` is replaced by `/api/search/autocomplete/`
-
-## ADDED Requirements
 
 ### Requirement: Command palette as search entry point
 

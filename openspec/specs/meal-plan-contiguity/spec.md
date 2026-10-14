@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-plan-contiguity Specification
 
+## Purpose
+Specification of meal-plan-contiguity.
+
+## Requirements
 ### Requirement: Contiguous date range validation
 
 The system SHALL validate that every date in a MealPlan's date range `[start_datetime.date(), end_datetime.date()]` has at least one associated Meal record. This validation MUST run after every day-level write operation.

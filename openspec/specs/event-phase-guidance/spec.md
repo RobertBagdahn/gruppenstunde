@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-phase-guidance Specification
 
+## Purpose
+Specification of event-phase-guidance.
+
+## Requirements
 ### Requirement: Contextual phase explanation with action instructions
 Each event phase SHALL have a dedicated contextual explanation consisting of a status description and a concrete action instruction. The explanation SHALL be displayed prominently in the "Übersicht" tab of the event dashboard, replacing the current generic info banner.
 

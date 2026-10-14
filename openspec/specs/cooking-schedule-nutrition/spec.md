@@ -1,5 +1,9 @@
-## ADDED Requirements
+# cooking-schedule-nutrition Specification
 
+## Purpose
+Specification of cooking-schedule-nutrition.
+
+## Requirements
 ### Requirement: Nährwerte pro Mahlzeit im Kochplan
 
 Das System SHALL pro CookingScheduleItem die Nährwerte des Rezepts skaliert auf die tatsächlichen Portionen zurückgeben: `total_energy_kcal`, `total_protein_g`, `total_fat_g`, `total_carbohydrate_g`.

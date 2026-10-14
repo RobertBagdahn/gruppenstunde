@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-wizard-overhaul Specification
 
+## Purpose
+Specification of event-wizard-overhaul.
+
+## Requirements
 ### Requirement: 8-step wizard structure
 The event creation wizard SHALL consist of 8 sequential steps: Grunddaten (step 1), Gruppe & Einladung (step 2), Datum & Ort (step 3), Anmeldung (step 4), Buchungsoptionen (step 5), Packliste & Felder (step 6), Einladungstext (step 7), and Zusammenfassung (step 8). Only step 1 (event name) and step 8 (summary/confirmation) SHALL be required. Steps 2 through 7 SHALL be optional and skippable. The wizard SHALL be accessible at the frontend route `/events/app/new`.
 

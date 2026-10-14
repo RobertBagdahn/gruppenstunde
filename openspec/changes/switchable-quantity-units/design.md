@@ -86,6 +86,13 @@ Ein CheckConstraint auf Feld-Ebene stellt „höchstens eins von portion/standar
 ### 8. Startauswahl beim Hinzufügen
 Omnibar und Rezept-Editor: Standardportion (niedrigster Rank, vertrauenswürdiges Gewicht, nicht „g“) × 1, sonst 100 g. Das ist bestehende Logik aus `smart-ingredient-default`, die die Omnibar jetzt ebenfalls nutzt; bisher nahm sie `portions[0]`.
 
+### 9. Abgleich mit `direct-gram-recipe-items` (Entscheidung zu Aufgabe 4.0a)
+Beide Gramm-Darstellungen bleiben gültig und werden von `resolve_recipe_item_grams` einheitlich aufgelöst:
+- **Direktgramm** (`portion = NULL`, `ingredient` gesetzt): `quantity` sind Gramm. Das ist der Zustand der archivierten Capability `direct-gram-recipe-items` und bleibt unverändert.
+- **„g“-Basisportion** (`portion` = Basisportion der Zutat, `quantity` = Anzahl): so legt der Rezept-Editor Gramm an.
+- **Standardmaß** (`standard_measure_key` gesetzt): verwendet die „g“-Basisportion als Zutatenanker; die Zutat ist dadurch eindeutig, ohne dass `ingredient` direkt gesetzt sein muss.
+Eine Kombination aus `standard_measure_key` und Direktgramm (ohne Portion) ist nicht zulässig; die Service-Validierung lehnt sie ab. Die Specs von `direct-gram-recipe-items` ändern sich nicht, weil Direktgramm-Posten weiter Gramm bedeuten; das Standardmaß ergänzt sie nur.
+
 ## Betroffene Dateien
 
 **Backend**

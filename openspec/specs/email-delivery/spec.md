@@ -1,5 +1,9 @@
-## ADDED Requirements
+# email-delivery Specification
 
+## Purpose
+Specification of email-delivery.
+
+## Requirements
 ### Requirement: SMTP-Based Email Dispatch
 The backend system MUST support SMTP-based email dispatch for transaction-oriented system events (e.g., registration verification, password resets, and account updates).
 

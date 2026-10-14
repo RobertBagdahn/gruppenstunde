@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-plan-arrival-departure-days Specification
 
+## Purpose
+Specification of meal-plan-arrival-departure-days.
+
+## Requirements
 ### Requirement: Anreise-/Abreisetag als Teiltag
 Das System SHALL am ersten Tag eines Essensplans Mahlzeiten, deren Startzeit vor der Plan-Startzeit liegt, nicht anlegen, und am letzten Tag Mahlzeiten, deren Endzeit nach der Plan-Endzeit liegt, nicht anlegen.
 

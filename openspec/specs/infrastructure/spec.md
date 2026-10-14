@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+# infrastructure Specification
 
 ### Requirement: Ziel-Architektur
 
@@ -22,8 +22,10 @@ Das System SHALL folgende Cloud-Architektur verwenden.
 - `inspi-backend`: west3 → **west1**
 - `inspi-db`: west3 → **west1**
 
-## ADDED Requirements
+## Purpose
+Specification of infrastructure.
 
+## Requirements
 ### Requirement: Same-Origin API-Routing
 
 Frontend-API-Calls SHALL über den nginx-Proxy der eigenen Cloud-Run-Service laufen, nicht direkt per Cross-Origin-Request zum Backend.

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-meal-import-dialog Specification
 
+## Purpose
+Specification of event-meal-import-dialog.
+
+## Requirements
 ### Requirement: Copy meal source selection dialog
 The frontend SHALL provide a multi-step dialog (`CopyFromPlanDialog`) to choose a source plan, day and meal. The dialog SHALL offer search/filter on the plan list, show a meal preview before copying, and set a provenance note on the target meal.
 

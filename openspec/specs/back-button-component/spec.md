@@ -1,5 +1,9 @@
-## ADDED Requirements
+# back-button-component Specification
 
+## Purpose
+Specification of back-button-component.
+
+## Requirements
 ### Requirement: BackButton rendert als Link wenn `to` gegeben
 Die Komponente rendert ein `<Link>` Element mit der angegebenen Route.
 

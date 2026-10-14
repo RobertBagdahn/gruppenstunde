@@ -3,8 +3,7 @@
 ## Purpose
 Defines logging requirements for ingredient list endpoint name-based search queries, capturing query text, result counts, and structured JSON output.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Ingredient search logging
 
 The system SHALL log every non-empty name search on the ingredient list endpoint (`GET /api/ingredients/?name=...`) to the `SearchLog` table. Each log entry SHALL store the query text, the total number of matching ingredients, and the authenticated user (if any). Additionally, the system SHALL write a structured JSON log line to stdout for ingestion by Cloud Logging.

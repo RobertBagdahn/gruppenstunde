@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-plural-matching Specification
 
+## Purpose
+Specification of ingredient-plural-matching.
+
+## Requirements
 ### Requirement: Term-Normalisierung via deutsches Stemming
 Das System SHALL eine Normalisierungs-Utility bereitstellen, die einen deutschen Begriff auf eine sprachlich normalisierte Form (Stamm) abbildet, sodass Singular- und Pluralformen (inkl. häufiger unregelmäßiger Plurale wie „Apfel"/„Äpfel") auf dieselbe Form abgebildet werden.
 

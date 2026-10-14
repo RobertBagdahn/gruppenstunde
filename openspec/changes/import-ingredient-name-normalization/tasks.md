@@ -5,7 +5,7 @@
 
 ## 2. Matching
 
-- [ ] 2.1 Kopfnomen-Stufe nach Stufe 1: exakter Name/Alias des Kopfs, Ergebnis `needs_review=True`, `matched_via="head"`, Notiz mit Zusatz – Review 2026-10-11: Stufe, `matched_via="head"` und Notiz sind umgesetzt, `needs_review=True` fehlt (`recipe/services/ingredient_matcher.py`, Kopf-Treffer); der Wizard zeigt den Treffer trotzdem als „Zu prüfen“. Die Notiz „mit Kohlensäure“ erreicht die Review-Zeile nicht (`IngredientReviewRowOut` ohne Notizfeld)
+- [x] 2.1 Kopfnomen-Stufe nach Stufe 1: exakter Name/Alias des Kopfs, Ergebnis `needs_review=True`, `matched_via="head"`, Notiz mit Zusatz; die Notiz erreicht die Review-Zeile (`IngredientReviewRowOut.note`, Zod `note`, Anzeige „Zusatz: …“)
 - [x] 2.2 Kandidatenvergleich: Klammer-Zusätze entfernen, vorhandene Plural-Logik (`ingredient-plural-matching`) wiederverwenden
 - [x] 2.3 Hinweistexte nach Trefferstärke (`FUZZY_THRESHOLD`), Text in `_fuzzy_result` korrigieren (nur Fuzzy-Stufe; Grauzonen-Texte der Jaccard- und Embedding-Stufe lauten noch anders als „ähnlich, bitte prüfen“)
 

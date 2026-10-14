@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-program-editor Specification
 
+## Purpose
+Specification of event-program-editor.
+
+## Requirements
 ### Requirement: Timeline-style program view per day
 The event program editor SHALL display a timeline-style view of EventDaySlots grouped by day.
 

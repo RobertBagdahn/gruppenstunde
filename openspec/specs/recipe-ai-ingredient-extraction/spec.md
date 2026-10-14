@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-ai-ingredient-extraction Specification
 
+## Purpose
+Specification of recipe-ai-ingredient-extraction.
+
+## Requirements
 ### Requirement: Refurbish liefert Zutaten-Vorschläge für Rezepte
 Der AI-Refurbish-Endpoint liefert bei `content_type="recipe"` zusätzlich zu den Standard-Feldern eine Liste vorgeschlagener Zutaten mit Name, Menge, Einheit und optionaler DB-Referenz.
 

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# portion-reorder-fix Specification
 
+## Purpose
+Specification of portion-reorder-fix.
+
+## Requirements
 ### Requirement: Drag-&-Drop-Sortierung schließt die g-Portion aus
 Das System SHALL beim Sortieren der Portionen per Drag & Drop nur die sortierbaren (nicht-`g`-) Portionen neu durchnummerieren (rank 1..N). Die `g`-Portion SHALL ihren festen rank 9999 behalten und nicht Teil der Reorder-Payload sein.
 

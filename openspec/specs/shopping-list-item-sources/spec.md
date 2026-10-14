@@ -1,5 +1,9 @@
-## ADDED Requirements
+# shopping-list-item-sources Specification
 
+## Purpose
+Specification of shopping-list-item-sources.
+
+## Requirements
 ### Requirement: Source tracking for aggregated shopping list items
 Jedes aggregierte Einkaufslisten-Item muss seine Herkunft (Rezept + Mahlzeit + Teilmenge) nachvollziehbar speichern und anzeigen können.
 

@@ -417,8 +417,6 @@ Alle Datums- und Zeitangaben MUST konsistent behandelt werden.
 
 # Umlaut Correction
 
-## MODIFIED Requirements
-
 ### Requirement: Konsistente Umlaut-Verwendung
 
 Alle deutschen Texte in der Codebase MÜSSEN korrekte Umlaute verwenden.

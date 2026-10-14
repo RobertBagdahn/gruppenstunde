@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-packages Specification
 
+## Purpose
+Specification of ingredient-packages.
+
+## Requirements
 ### Requirement: Package list on ingredient detail
 Die Zutatendetailseite SHALL eine Sektion "Packungen" anzeigen, die alle Packages der Zutat auflistet und CRUD-Operationen erlaubt.
 

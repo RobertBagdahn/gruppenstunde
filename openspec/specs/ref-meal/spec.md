@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ref-meal Specification
 
+## Purpose
+Specification of ref-meal.
+
+## Requirements
 ### Requirement: RefMeal erstellen
 Das System SHALL erlauben, pro MealPlan und meal_type maximal ein RefMeal (Meal mit `is_reference=True`) zu erstellen. Ein RefMeal hat keinen konkreten Zeitpunkt (`start_datetime=NULL`). Für `meal_type=breakfast` SHALL das RefMeal erst beim Abschluss des Frühstücks-Wizards erstellt werden, nicht beim Öffnen.
 

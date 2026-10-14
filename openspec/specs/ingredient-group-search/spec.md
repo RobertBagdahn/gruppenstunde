@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-group-search Specification
 
+## Purpose
+Specification of ingredient-group-search.
+
+## Requirements
 ### Requirement: IngredientGroup Model
 
 The system SHALL provide an `IngredientGroup` model with fields `name` (unique) and `slug` (unique, auto-generated from name).

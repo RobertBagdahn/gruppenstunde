@@ -1,5 +1,9 @@
-## ADDED Requirements
+# retail-section-backfill Specification
 
+## Purpose
+Specification of retail-section-backfill.
+
+## Requirements
 ### Requirement: Backfill von Supermarktabteilungen für Bestandszutaten
 
 Das System SHALL ein idempotentes Management-Command `backfill_retail_sections` bereitstellen, das allen Zutaten ohne gesetzte `retail_section` über das bestehende Keyword-Mapping (`get_retail_section`) eine Abteilung zuordnet.

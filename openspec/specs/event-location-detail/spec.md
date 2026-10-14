@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-location-detail Specification
 
+## Purpose
+Specification of event-location-detail.
+
+## Requirements
 ### Requirement: Latitude and longitude fields on EventLocation and MeetingPoint
 The `EventLocation` and `MeetingPoint` Django models SHALL each have two new nullable FloatField fields: `latitude` and `longitude`. Both fields SHALL default to `null`. The corresponding Pydantic schemas SHALL expose these fields as `Optional[float]`. The Zod schemas in the frontend SHALL mirror the backend schemas with `z.number().nullable()`.
 

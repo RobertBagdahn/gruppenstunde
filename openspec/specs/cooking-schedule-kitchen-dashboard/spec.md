@@ -1,5 +1,9 @@
-## ADDED Requirements
+# cooking-schedule-kitchen-dashboard Specification
 
+## Purpose
+Specification of cooking-schedule-kitchen-dashboard.
+
+## Requirements
 ### Requirement: Küchen-Dashboard als eigenständige Seite
 
 Das System SHALL eine neue Route `/meal-plans/:id/cooking-schedule/kitchen` bereitstellen, die eine für den Bildschirm optimierte, interaktive Kochplan-Ansicht anzeigt.

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ref-meal-auto-sync Specification
 
+## Purpose
+Specification of ref-meal-auto-sync.
+
+## Requirements
 ### Requirement: Auto-Sync verlinkter Mahlzeiten beim Speichern eines RefMeals
 Das System SHALL beim Speichern (Aktualisieren) eines RefMeals dessen Items in alle verlinkten Mahlzeiten mit `is_synced = true` übernehmen, sodass kein separater manueller Sync-Schritt nötig ist. Mahlzeiten mit `is_synced = false` (entkoppelt) SHALL NICHT verändert werden.
 

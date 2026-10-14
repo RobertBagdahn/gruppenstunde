@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-parent-access Specification
 
+## Purpose
+Specification of event-parent-access.
+
+## Requirements
 ### Requirement: ParentAccessToken model
 A new `ParentAccessToken` model SHALL be created to enable token-based parent access to event information.
 

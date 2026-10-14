@@ -1,5 +1,9 @@
-## ADDED Requirements
+# unit-conversion Specification
 
+## Purpose
+Specification of unit-conversion.
+
+## Requirements
 ### Requirement: UnitConversion Model
 The system SHALL provide a UnitConversion model with fields: from_unit, to_unit, factor (Decimal), and ingredient (optional FK for ingredient-specific densities).
 
@@ -51,8 +55,6 @@ Die Funktion `resolve_measuring_unit_name` löst den Einheitsnamen für ein Reci
 #### Scenario: RecipeItem mit Portion ohne MeasuringUnit
 - **WHEN** ein RecipeItem eine `portion` hat aber diese Portion keine `measuring_unit` hat
 - **THEN** gibt `resolve_measuring_unit_name` NULL zurück
-
-## REMOVED Requirements
 
 ### Requirement: Fehlende Küchenmaßeinheiten
 

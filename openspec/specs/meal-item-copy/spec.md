@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+# meal-item-copy Specification
 
 ### Requirement: Copy meal items from another plan to a meal
 A user SHALL be able to copy all items from any accessible MealPlan into the currently edited meal. The source meal plan SHALL be selectable via a multi-step dialog (plan with search/filter → day → meal with preview). All items SHALL always be copied (no item-level selection). The copy SHALL preserve each source item's recipe/ingredient, quantity, measuring unit, factor and display name. The target meal SHALL have its `note` set to "Importiert aus «{source_plan_name}»". The target meal SHALL belong to the current plan being edited. A target meal that is `is_synced` SHALL NOT be a valid copy destination. The operation SHALL be exposed as a backend endpoint.
@@ -20,8 +20,6 @@ A user SHALL be able to copy all items from any accessible MealPlan into the cur
 - **WHEN** a selected source plan has no days or meals
 - **THEN** the dialog SHALL show a "Keine Mahlzeiten vorhanden" message
 
-## REMOVED Requirements
-
 ### Requirement: Item-level selection during copy
 **Reason**: Replaced by always-copying-all-items approach. The new dialog always copies all items from the selected meal.
 **Migration**: The existing `item_ids` parameter in `CopyItemsFromPlanIn` is removed.
@@ -36,8 +34,10 @@ A user SHALL be able to copy all items from any accessible MealPlan into the cur
 - **THEN** step 4 shows checkboxes for individual items
 - **Reason**: Step 4 is removed. Items preview is informational only (no checkboxes).
 
-## ADDED Requirements
+## Purpose
+Specification of meal-item-copy.
 
+## Requirements
 ### Requirement: Copy source selection dialog
 The frontend SHALL provide a multi-step dialog (`CopyFromPlanDialog`) to choose a source plan, day and meal. The dialog SHALL offer search/filter on the plan list, show a meal preview before copying, and set a provenance note on the target meal.
 

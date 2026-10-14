@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-scout-fields Specification
 
+## Purpose
+Specification of ingredient-scout-fields.
+
+## Requirements
 ### Requirement: Ingredient has storage_type field
 The Ingredient model SHALL have a `storage_type` field (CharField with StorageTypeChoices) indicating how the ingredient must be stored.
 

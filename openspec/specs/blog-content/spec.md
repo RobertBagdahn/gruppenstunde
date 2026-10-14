@@ -1,5 +1,9 @@
-## ADDED Requirements
+# blog-content Specification
 
+## Purpose
+Specification of blog-content.
+
+## Requirements
 ### Requirement: Blog Content Type
 The system SHALL provide a `Blog` model inheriting from `Content` for knowledge articles (Wissensbeiträge). Additional fields: blog_type (TextChoices), reading_time_minutes (IntegerField, auto-calculated), show_table_of_contents (BooleanField, default True).
 

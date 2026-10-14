@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-tab-consolidation Specification
 
+## Purpose
+Specification of event-tab-consolidation.
+
+## Requirements
 ### Requirement: Consolidated tab structure from 12 to 7 tabs
 The event organizer dashboard SHALL consolidate from 12 tabs to 7 tabs. The new tab structure SHALL be: "Übersicht" (merged from Übersicht + Anmeldung), "Teilnehmende" (merged from Teilnehmende + Verwaltung), "Einladung & Gäste" (merged from Einladung + Eingeladene), "Packliste" (unchanged), "Zahlungen" (unchanged, with filters), "Aktivität" (merged from Timeline + E-Mails + Exporte), and "Einstellungen" (unchanged).
 

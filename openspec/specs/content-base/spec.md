@@ -1,5 +1,9 @@
-## ADDED Requirements
+# content-base Specification
 
+## Purpose
+Specification of content-base.
+
+## Requirements
 ### Requirement: Abstract Content Base Class
 The system SHALL provide an abstract Django model `Content` that serves as the base class for all content types (GroupSession, Blog, Game, Recipe). The abstract model SHALL include the following shared fields: title (CharField, max 255), slug (SlugField, unique per table), summary (TextField), description (TextField, Markdown), difficulty (TextChoices), costs_rating (TextChoices), execution_time (TextChoices), preparation_time (TextChoices), status (TextChoices: draft/submitted/approved/rejected/archived), image (ImageField), embedding (VectorField 768-dim, nullable), view_count (IntegerField), like_score (IntegerField), created_at (DateTimeField), updated_at (DateTimeField), deleted_at (DateTimeField, nullable), authors (M2M to User), tags (M2M to Tag), scout_levels (M2M to ScoutLevel).
 
@@ -147,8 +151,6 @@ Der Autor-Bereich MUSS auf allen Content-Detailseiten am unteren Ende positionie
 
 # Content Linking
 
-## ADDED Requirements
-
 ### Requirement: Generic ContentLink Model
 The system SHALL provide a `ContentLink` model that enables linking between any two content items across all content types. The model SHALL use Django's ContentType framework for polymorphic source and target references. Fields: source_content_type (FK to ContentType), source_object_id (PositiveIntegerField), target_content_type (FK to ContentType), target_object_id (PositiveIntegerField), link_type (TextChoices: manual/embedding/ai_suggested), relevance_score (FloatField, nullable), is_rejected (BooleanField), created_by (FK to User, nullable), created_at (DateTimeField).
 
@@ -213,8 +215,6 @@ The system SHALL provide an `EmbeddingFeedback` model for tracking quality issue
 ---
 
 # Content Embeddings
-
-## ADDED Requirements
 
 ### Requirement: Embedding Generation Pipeline
 The system SHALL generate text embeddings for all content items using `gemini-embedding-001` via Vertex AI. Embeddings SHALL be generated from a concatenation of title, summary, description, and tag names. For Recipe content, the embedding text SHALL additionally include human-readable serialization of all associated Ingredients (via RecipeItems → Portions → Ingredients) including their nutritional values, scores, and tags. Embeddings SHALL be stored as pgvector `VectorField` in each content table, using the dimension validated by the ingredient-embedding-simplification experiment (see design.md). The system SHALL request embeddings directly from the Vertex AI SDK (`google.genai`) with native dimensionality configuration (`output_dimensionality`) rather than via Cloud SQL's native `embedding()` SQL function, since the latter does not support dimension configuration.
@@ -288,8 +288,6 @@ The system SHALL allow admins to mark embedding-based recommendations as "not re
 ---
 
 # Content Approval
-
-## ADDED Requirements
 
 ### Requirement: Content Approval Status Flow
 The system SHALL implement a status-based approval workflow for all content types. Status transitions: draft → submitted → approved/rejected. Rejected content MAY be resubmitted after editing. Only content with status 'approved' SHALL appear in the global search and public listings.
@@ -371,8 +369,6 @@ The system SHALL maintain an ApprovalLog for audit trail purposes. Fields: conte
 ---
 
 # Content Permissions
-
-## ADDED Requirements
 
 ### Requirement: can_delete permission field in API responses
 The system SHALL return a `can_delete` boolean field alongside `can_edit` in all content API responses (both detail and list endpoints). The `can_delete` field SHALL be `true` when the authenticated user is staff (`is_staff=True`), and `false` otherwise.
@@ -472,8 +468,6 @@ The frontend SHALL display edit (pencil) and delete (trash) icon buttons on `Con
 ---
 
 # Content Stepper
-
-## ADDED Requirements
 
 ### Requirement: Multi-Step Content Creation Stepper
 The system SHALL provide a multi-step stepper component for creating all content types. The stepper SHALL guide users through content creation step by step with a progress indicator. Only the title field SHALL be required at creation time.
@@ -583,8 +577,6 @@ Content editing SHALL NOT use the stepper. Instead, each section in the detail v
 
 # Comments & Emotions
 
-## MODIFIED Requirements
-
 ### Requirement: Generic ContentComment Model
 The system SHALL provide a single `ContentComment` model that works with all content types via Django ContentType framework. Fields: content_type (FK to ContentType), object_id (PositiveIntegerField), parent (FK to self, nullable for nesting), text (TextField), author_name (CharField for anonymous), user (FK to User, nullable), status (TextChoices: pending/approved/rejected), created_at, updated_at.
 
@@ -629,8 +621,6 @@ The system SHALL provide a single `ContentView` model for bot-free view tracking
 - **WHEN** a ContentView already exists for the same content object and session_key within the last 24 hours
 - **THEN** no new ContentView SHALL be created
 - **THEN** the `view_count` SHALL NOT be incremented
-
-## REMOVED Requirements
 
 ### Requirement: Comment Model (content app)
 **Reason**: Replaced by generic ContentComment

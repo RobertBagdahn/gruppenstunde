@@ -296,3 +296,22 @@ Noch nichts auf Prod ausgeführt. Jeder Schritt nur nach Freigabe durch Robert; 
   - Statistik neu (545 Zutaten). Bericht danach: 3 auffällige Mengen (#394 und #387 bewusst unverändert, neu #385), 1 ungeteilte Zeile (#530 Äpfel, gewollt), 0 Stückportionen, 0 Alias-Konflikte
   - Kontrolle: keine aktiven Quell-Zutaten, keine Rezeptzeile auf gelöschter Zutat; Plan „Bundesrat 2026“ unverändert (Speisezwiebel 3,6 kg, Eisbergsalat 1,05 kg)
 - [x] #385 Kartoffel-Limetten-Curry nach Freigabe: Gemüsebrühe-Konzentrat 15 TL (75 g) → 1 TL (5 g) pro Person (Snapshot `1791836328962`); jetzt 624 g / 634 kcal pro Person, keine Auffälligkeit mehr
+
+## recipe-to-meal-plan, meal-plan-input-guardrails, shopping-list-source-freshness (14.10.2026)
+
+Keine Schema-Migration in diesen Changes; die Migrationen von `recipe-materials-consumables` (siehe oben) sind separat.
+Alle Schritte hier sind **lesend**; es gibt in diesen Changes kein `--apply`. Erst nach dem Deploy des Branches, damit die
+Commands im Image vorhanden sind. Aufruf als Cloud Run Job:
+`gcloud run jobs execute inspi-migrate --region europe-west1 --wait --args="manage.py,<command>"`.
+
+- [ ] Dichte-Bericht (Haferdrink „1 Liter à 980 ml“): `report_volume_portion_density` listet Volumen-Portionen, deren
+      `weight_g` um mehr als 1 % von Volumen × Dichte abweicht. Ausgabe prüfen; Korrekturen als A/B/C-Vorschläge an Peter,
+      Änderungen nur nach Roberts Freigabe (Peters Plandaten nicht still ändern).
+- [ ] Grenzwert-Bericht: `report_meal_plan_bounds` listet Pläne, Mahlzeiten und Einträge außerhalb der neuen Wertebereiche
+      (Reserve 1,0–2,0, PAL 1,0–2,5, Tagesanteile 0–1 mit Summe ≤ 1,5, Normportionen ≤ 1000, Override 1–1000,
+      Menge ≤ 100 000 g, Planlänge ≤ 60 Tage, ≤ 500 Mahlzeiten). Berechnungen begrenzen diese Werte zur Laufzeit; der
+      Bericht ändert nichts. Auffälligkeiten an Robert melden, Korrektur nur nach Freigabe.
+- [ ] Nach dem Deploy prüfen: Rezept → „Zum Essensplan“, Omnibar-Vorschau („Rezept ansehen“, Zutaten mit Mengen),
+      Buffet-Suche „Zwiebel“ (Treffer mit Badge „Zutat zum Kochen“), Einkaufsliste mit Hinweis „Essensplan wurde seit
+      Erstellung geändert“ nach einer Planänderung.
+- Rollback: Code-Rollback über das vorherige Image; es gibt keine Datenänderung.

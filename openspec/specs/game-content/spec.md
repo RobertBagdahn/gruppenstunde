@@ -1,5 +1,9 @@
-## ADDED Requirements
+# game-content Specification
 
+## Purpose
+Specification of game-content.
+
+## Requirements
 ### Requirement: Game Content Type
 The system SHALL provide a `Game` model inheriting from `Content` for games and activities (Spiele). Additional fields: game_type (TextChoices), min_players (IntegerField, nullable), max_players (IntegerField, nullable), play_area (TextChoices: indoor/outdoor/both), game_duration_minutes (IntegerField, nullable), rules (TextField, Markdown).
 

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# homepage-redesign Specification
 
+## Purpose
+Specification of homepage-redesign.
+
+## Requirements
 ### Requirement: Kategorien verlinken auf Tags
 Die Kategorien-Section auf der Homepage MUSS auf Tag-basierte Filter verlinken statt auf Volltext-Suche. Jede Kategorie MUSS ein `tagSlug`-Feld haben, das auf den entsprechenden Tag in der Datenbank verweist.
 
@@ -79,8 +83,6 @@ Die Planungs-Tools Section MUSS "Aktionen" als erstes Item enthalten (statt "Ver
 ---
 
 # Landing Page Real Sandbox
-
-## ADDED Requirements
 
 ### Requirement: Fake-Sandbox in EventsLandingPage entfernen
 Die EventsLandingPage MUSS den interaktiven Fake-Sandbox-Simulator (EventSandbox mit hardcodierten Demo-Events, Teilnehmern und Stats) entfernen und durch eine kompakte Vorschau ersetzen.

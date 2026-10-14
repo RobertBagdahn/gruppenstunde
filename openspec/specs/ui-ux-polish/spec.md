@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ui-ux-polish Specification
 
+## Purpose
+Specification of ui-ux-polish.
+
+## Requirements
 ### Requirement: Konsistente Karten-Hover-Effekte
 Alle klickbaren Karten im System MÜSSEN einheitliche Hover-Effekte verwenden: `hover:-translate-y-1 transition-all duration-200 hover:shadow-md`.
 
@@ -117,8 +121,6 @@ The application SHALL reset the scroll position to the top of the page when the 
 ---
 
 # UI Navigation Restructure
-
-## ADDED Requirements
 
 ### Requirement: Veranstaltungen wird zu Aktionen umbenannt
 Das System MUSS alle UI-Texte, die "Veranstaltungen" oder "Veranstaltung" enthalten, durch "Aktionen" bzw. "Aktion" ersetzen. Code-Identifier (Variablen, Routen, API-Pfade) bleiben unverändert auf Englisch ("event").

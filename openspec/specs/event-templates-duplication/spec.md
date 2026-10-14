@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-templates-duplication Specification
 
+## Purpose
+Specification of event-templates-duplication.
+
+## Requirements
 ### Requirement: Event template flag
 Events SHALL support being marked as templates via an `is_template: BooleanField` on the Event model. Template events serve as copy sources and are never published.
 

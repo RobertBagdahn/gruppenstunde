@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-popularity Specification
 
+## Purpose
+Specification of recipe-popularity.
+
+## Requirements
 ### Requirement: Recipe usage count tracking
 The system SHALL maintain a denormalized `usage_count` field on each Recipe that reflects how many times it has been added to any MealPlan (via MealItem).
 

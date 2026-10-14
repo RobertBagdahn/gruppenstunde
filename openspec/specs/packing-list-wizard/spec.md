@@ -1,5 +1,9 @@
-## ADDED Requirements
+# packing-list-wizard Specification
 
+## Purpose
+Specification of packing-list-wizard.
+
+## Requirements
 ### Requirement: Wizard page at /packing-lists/new
 The system SHALL provide a wizard page at `/packing-lists/new` that guides authenticated users through creating a context-based packing list.
 

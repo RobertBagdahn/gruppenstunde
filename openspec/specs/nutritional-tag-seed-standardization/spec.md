@@ -3,8 +3,7 @@
 ## Purpose
 Definiert die standardisierten NutritionalTag-Seed-Daten mit konsistenter name/name_opposite-Semantik, einheitlichen Namensschemata und vollständiger EU-Allergen-Abdeckung.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: name enthält immer das menschliche Merkmal
 
 Der `name` eines NutritionalTag-Eintrags MUSS das menschliche Ernährungsmerkmal beschreiben (z.B. "Vegan", "Eiallergie", "Laktoseunverträglichkeit"). `name_opposite` MUSS den konkreten problematischen Inhaltsstoff beschreiben (z.B. "Tierische Produkte", "Ei und Eierzeugnisse", "Laktose").

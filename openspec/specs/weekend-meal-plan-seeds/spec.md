@@ -1,5 +1,9 @@
-## ADDED Requirements
+# weekend-meal-plan-seeds Specification
 
+## Purpose
+Specification of weekend-meal-plan-seeds.
+
+## Requirements
 ### Requirement: Neue Zutaten für Wochenend-Rezepte
 
 Das System muss 3 zusätzliche Zutaten im Seed bereitstellen: Paprikapulver, Kreuzkümmel, Chilipulver.

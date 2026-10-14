@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-actions-menu Specification
 
+## Purpose
+Specification of meal-actions-menu.
+
+## Requirements
 ### Requirement: Shared meal actions menu
 A single reusable meal actions menu component (`MealActionsMenu`) SHALL be provided and embedded identically in both the Tagesplan (`MealSlot`) and the Tabelle (`TableView`). The menu SHALL expose the following actions for an editable meal: Portionen ändern (`override_portions`), Extern essen (`is_external` + price/calories), Auf Soll skalieren, Soll ändern (`day_part_factor`), Notiz (`note`), RefMeal verknüpfen/entkoppeln, Items kopieren, Mahlzeit löschen.
 

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# measuring-unit-cleanup Specification
 
+## Purpose
+Specification of measuring-unit-cleanup.
+
+## Requirements
 ### Requirement: Bereinigte MeasuringUnit-Referenzdaten
 
 Das System SHALL genau 10 MeasuringUnit-Datensätze mit korrekten Typen und Umrechnungsfaktoren bereitstellen. Die Portions-KI SHALL diese Referenzdaten nutzen und darf keine stückartige Einheit als Gramm behandeln, wenn eine echte kanonische Zuordnung vorhanden ist.

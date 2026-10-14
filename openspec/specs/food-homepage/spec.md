@@ -1,5 +1,9 @@
-## ADDED Requirements
+# food-homepage Specification
 
+## Purpose
+Specification of food-homepage.
+
+## Requirements
 ### Requirement: Food Dashboard API endpoint
 The system SHALL provide a `GET /api/food/dashboard/` endpoint that returns aggregated statistics across all food modules without requiring authentication.
 

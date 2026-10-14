@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-portion-scaling-edit Specification
 
+## Purpose
+Specification of recipe-portion-scaling-edit.
+
+## Requirements
 ### Requirement: Proportional scaling on display portion change
 
 When the user changes the displayed portion count in the recipe detail view or InlineIngredientEditor, all ingredient quantities are scaled proportionally. The database always stores per-1-person quantities (servings=1). Scaling is for display purposes and does not change stored values unless explicitly saving in edit mode.

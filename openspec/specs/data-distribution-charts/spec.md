@@ -3,8 +3,7 @@
 ## Purpose
 Defines public interactive data distribution charts for ingredient and recipe cost, calorie, and nutrient distributions using Recharts.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Öffentliche Datenverteilungs-Seite
 Das food-frontend SHALL eine öffentliche Seite `/data-quality/distributions` bereitstellen, die interaktive Datenverteilungs-Charts für Zutaten und Rezepte anzeigt.
 

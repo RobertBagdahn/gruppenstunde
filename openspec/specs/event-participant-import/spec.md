@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-participant-import Specification
 
+## Purpose
+Specification of event-participant-import.
+
+## Requirements
 ### Requirement: Import API endpoint
 A new `POST /api/events/{slug}/import/` endpoint SHALL accept a multipart form upload containing a CSV or Excel file to import participants.
 

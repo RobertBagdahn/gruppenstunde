@@ -1,5 +1,9 @@
-## ADDED Requirements
+# rewe-basket-export Specification
 
+## Purpose
+Specification of rewe-basket-export.
+
+## Requirements
 ### Requirement: Export-Token Erzeugung
 Das System SHALL für eine gegebene Einkaufsliste einen kurzlebigen, personengebundenen Export-Token erzeugen, der ausschließlich Lesezugriff auf die Artikel-Exportdaten dieser Liste gewährt.
 
