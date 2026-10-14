@@ -45,7 +45,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
             # External energy is already entered as the meal's per-person value.
             totals["energy_kcal"] = meal.external_energy_kcal
         else:
-            totals["energy_kcal"] = NORM_PERSON_DAILY_KCAL * meal.day_part_factor
+            totals["energy_kcal"] = NORM_PERSON_DAILY_KCAL * meal.safe_day_part_factor
         return totals
 
     items = (

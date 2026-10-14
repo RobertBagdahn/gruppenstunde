@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-search-dialog-stability Specification
 
+## Purpose
+Specification of recipe-search-dialog-stability.
+
+## Requirements
 ### Requirement: Stable result list during search transitions
 
 The RecipeSearchDialog SHALL maintain visible search results while a new search query is being fetched. The result list SHALL NOT flash empty or show "Keine Ergebnisse" between query changes.

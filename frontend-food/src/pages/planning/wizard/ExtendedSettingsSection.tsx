@@ -1,6 +1,8 @@
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealPlanWizardState } from '@/schemas/mealPlan';
 import { formatNumber } from '@/lib/format';
+import { RESERVE_FACTOR_HINT } from '@/lib/mealPlanBounds';
+import { validateBasics } from './validateBasics';
 import { SuggestionContextFields } from '@/components/planning/suggestions/SuggestionContextFields';
 
 interface ExtendedSettingsSectionProps {
@@ -27,6 +29,7 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
   };
 
   const factorsSum = Object.values(state.day_part_factors).reduce((a, b) => a + b, 0);
+  const limitErrors = validateBasics(state);
 
   return (
     <div className="border border-border rounded-xl bg-card/50 p-4 sm:p-5 space-y-5">
@@ -52,8 +55,12 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
             step={0.05}
             value={state.reserve_factor}
             onChange={(e) => onChange({ reserve_factor: Number(e.target.value) })}
+            aria-invalid={limitErrors.reserve ? true : undefined}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
+          <p role={limitErrors.reserve ? 'alert' : undefined} className={`mt-1 text-caption ${limitErrors.reserve ? 'text-danger' : 'text-muted-foreground'}`}>
+            {limitErrors.reserve ?? RESERVE_FACTOR_HINT}
+          </p>
         </div>
         <div>
           <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Budget (€/Person/Tag)</label>
@@ -132,6 +139,7 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
           </span>
           {' '}(Sollte idealerweise 1,00 ergeben)
         </p>
+        {limitErrors.dayParts && <p role="alert" className="mt-1 text-caption text-danger">{limitErrors.dayParts}</p>}
       </div>
 
       <div>

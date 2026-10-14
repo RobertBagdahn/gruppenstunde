@@ -66,6 +66,7 @@ class TestReviewCandidatesAndQuantities:
 
         row = result.rows[0]
         assert row.selected_ingredient_id == ing.id
+        assert row.selected_ingredient_slug == ing.slug
         assert row.candidates
         assert all(c.slug for c in row.candidates)
         assert row.suggested_quantity == 5.0

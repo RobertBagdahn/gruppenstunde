@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-ingredient-sort Specification
 
+## Purpose
+Specification of recipe-ingredient-sort.
+
+## Requirements
 ### Requirement: Zutaten im Edit-Mode nach Gewicht sortieren
 
 Der InlineIngredientEditor SHALL Zutaten beim Initialisieren nach `weight_g` absteigend sortieren, so dass die Reihenfolge mit dem View-Mode (IngredientList) übereinstimmt.

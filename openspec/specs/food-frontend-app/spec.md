@@ -1,5 +1,9 @@
-## ADDED Requirements
+# food-frontend-app Specification
 
+## Purpose
+Specification of food-frontend-app.
+
+## Requirements
 ### Requirement: Food app runs as independent Vite application
 The system SHALL provide a separate Vite/React application at `frontend-food/` that runs independently from the main frontend on port 5174.
 

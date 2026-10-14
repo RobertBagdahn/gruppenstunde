@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-plan-pdf-export Specification
 
+## Purpose
+Specification of meal-plan-pdf-export.
+
+## Requirements
 ### Requirement: Deckblatt mit Logo und Metadaten
 Das PDF SHALL ein Deckblatt enthalten mit Inspi-Logo (global konfiguriert via Django Settings), Plan-Name, Zeitraum (d. MMMM yyyy – d. MMMM yyyy), Norm-Portionen, Reservefaktor und Gesamtskalierungsfaktor.
 

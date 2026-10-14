@@ -1,3 +1,4 @@
+import { QUANTITY_COUNT_MAX, QUANTITY_GRAMS_MAX } from '@/lib/mealPlanBounds';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple, X } from 'lucide-react';
 import { useNutritionalTags } from '@/api/supplies';
@@ -514,7 +515,7 @@ export function IngredientQuantityInline({
   const [quantityInput, setQuantityInput] = useState(() => formatDecimalInput(startPortionId != null ? 1 : 100));
   const [note, setNote] = useState('');
   const quantity = parseDecimalInput(quantityInput);
-  const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
+  const validQuantity = quantity !== null && quantity >= 0.1 && quantity <= QUANTITY_COUNT_MAX ? quantity : null;
 
   const selectedPortion = ingredient.portions.find(
     (p) => String(p.id) === selectedPortionId,
@@ -523,6 +524,7 @@ export function IngredientQuantityInline({
   const totalWeightG = selectedPortion?.weight_g && validQuantity !== null
     ? validQuantity * selectedPortion.weight_g
     : null;
+  const tooHeavy = totalWeightG !== null && totalWeightG > QUANTITY_GRAMS_MAX;
 
   return (
     <div className="flex flex-1 min-h-0 flex-col">
@@ -577,6 +579,11 @@ export function IngredientQuantityInline({
           />
         </div>
 
+        {tooHeavy && (
+          <p role="alert" className="text-caption text-destructive">
+            Die Menge darf höchstens {formatWeight(QUANTITY_GRAMS_MAX)} ergeben.
+          </p>
+        )}
         {totalWeightG && selectedPortion?.weight_g && (
           <p className="text-caption text-muted-foreground">
             {formatNumber(validQuantity ?? 0, { maxDecimals: 2 })} × {formatExactWeight(selectedPortion.weight_g)} = {formatWeight(totalWeightG)}
@@ -595,7 +602,7 @@ export function IngredientQuantityInline({
           onClick={() => {
             if (validQuantity !== null) onConfirm(ingredient.id, selectedPortion, validQuantity, note.trim());
           }}
-          disabled={validQuantity === null}
+          disabled={validQuantity === null || tooHeavy}
           className="px-4 py-2 text-body rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           Hinzufügen

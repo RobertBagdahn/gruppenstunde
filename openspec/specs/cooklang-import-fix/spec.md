@@ -1,5 +1,9 @@
-## ADDED Requirements
+# cooklang-import-fix Specification
 
+## Purpose
+Specification of cooklang-import-fix.
+
+## Requirements
 ### Requirement: Korrekte Unit-Zuordnung
 
 Der Import muss Cooklang-Unit-Strings (`g`, `ml`, `EL`, `TL`, `kg`, `l`) korrekt auf die existierenden `MeasuringUnit`-Einträge in der Datenbank mappen.

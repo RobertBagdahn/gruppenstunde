@@ -1,5 +1,9 @@
-## ADDED Requirements
+# fine-grained-quantity-rounding Specification
 
+## Purpose
+Specification of fine-grained-quantity-rounding.
+
+## Requirements
 ### Requirement: Feinere Rundung für kleine Mengen
 
 Die `smartRound()`-Funktion muss Mengen unter 10 feiner runden, damit kleine Zutatenmengen korrekt angezeigt werden. Die Grenzen sind konsistent mit `quantity-display-formatting`.

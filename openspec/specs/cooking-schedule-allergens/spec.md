@@ -1,5 +1,9 @@
-## ADDED Requirements
+# cooking-schedule-allergens Specification
 
+## Purpose
+Specification of cooking-schedule-allergens.
+
+## Requirements
 ### Requirement: Allergen/NutritionalTag-Informationen im Kochplan
 
 Das System SHALL pro CookingScheduleItem die nutritional_tags des Rezepts und pro CookingScheduleIngredient die nutritional_tags der Zutat zurückgeben.

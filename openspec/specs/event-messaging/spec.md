@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-messaging Specification
 
+## Purpose
+Specification of event-messaging.
+
+## Requirements
 ### Requirement: Send messages via channel selection
 The system SHALL allow event organizers to choose between E-Mail and WhatsApp as the delivery channel when composing a message to event participants. The channel selection SHALL be explicit and clearly visible in the messaging UI.
 

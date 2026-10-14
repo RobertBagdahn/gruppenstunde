@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-url-import Specification
 
+## Purpose
+Specification of ingredient-url-import.
+
+## Requirements
 ### Requirement: URL-Import-Endpoint für Zutaten
 Das System SHALL einen POST-Endpoint unter `/api/ingredients/import-from-url/` bereitstellen, der eine URL entgegennimmt, die Seite via Gemini scraped (mit Google Search Grounding), und ein strukturiertes Zutat-Entwurf-Objekt zurückgibt. Die KI erkennt die Quellart selbst (Produktseite, Open Food Facts, USDA FDC, Rezeptseite etc.).
 

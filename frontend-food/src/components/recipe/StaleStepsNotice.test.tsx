@@ -21,6 +21,7 @@ function row(key: string, name: string): IngredientReviewRow {
     quantity: 1,
     suggested_quantity: 1,
     reason: '',
+    note: '',
     technical_details: null,
     conflicts: [],
     new_ingredient_draft: null,

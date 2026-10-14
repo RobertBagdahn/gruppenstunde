@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 from core.services.gemini import DEFAULT_TEXT_MODEL, GeminiUnavailableError, gemini_call
 from supply.choices import AiReviewVerdictChoices, RetailSectionSourceChoices
 from supply.data.retail_sections import RETAIL_SECTIONS
+from supply.services.ingredient_ai_suggest_service import INGREDIENT_DATA_RULES
 from supply.services.nutrition_plausibility import (
     KJ_PER_KCAL,
     SODIUM_MG_PER_G_SALT,
@@ -147,27 +148,19 @@ def build_review_prompt(ingredients: list[Ingredient]) -> str:
     return f"""Du bist Lebensmittel-Datenkurator für eine deutsche Koch- und Einkaufsplattform für Pfadfinderlager.
 Prüfe jede Zutat und liefere korrigierte Stammdaten. Antworte für JEDE id genau einmal.
 
-BEZUG DER NÄHRWERTE
-- Immer pro 100 g des Produkts im Verkaufszustand: roh/ungekocht, Pulver als Pulver, TK-Ware gefroren,
-  Getränke pro 100 ml ≈ 100 g. Nutze typische Werte aus BLS/Souci-Fachmann-Kraut und deutschen Etiketten.
-- Energie IMMER in kcal. Werte über 900 kcal sind unmöglich (reines Öl ≈ 900). Ein Wert, der etwa
-  {KJ_PER_KCAL:g}-mal zu hoch ist, war kJ.
+{INGREDIENT_DATA_RULES}
+
+BATCH-HINWEISE
+- Ein Wert, der etwa {KJ_PER_KCAL:g}-mal zu hoch ist, war kJ.
 - "?" bedeutet unbekannt: dann einen realistischen Wert schätzen. 0 nur, wenn wirklich 0 (z. B. Fett in Zucker).
 - Werte, die unter "auffällig" genannt sind, sind verdächtig und müssen neu bestimmt werden. Übrige plausible
   Werte übernehmen (nicht grundlos ändern).
-
-HARTE REGELN (müssen in deiner Antwort gelten)
-1. sugar_g <= carbohydrate_g und fat_sat_g <= fat_g.
-2. protein_g + fat_g + carbohydrate_g + fibre_g <= 100. Kohlenhydrate nach EU-Definition OHNE Ballaststoffe
-   (Chiasamen ≈ 2 g KH / 34 g Ballaststoffe, nicht US-"total carbs").
-3. energy_kcal ≈ 4·protein + 4·carbohydrate + 9·fat + 2·fibre (±15 %; Alkohol zusätzlich 7 kcal/g).
-4. salt_g ist Kochsalz (Natrium × 2,5 / 1000). Frisches Obst/Gemüse hat fast kein Salz.
+- Die harten Regeln oben (Zucker ≤ Kohlenhydrate, gesättigte Fette ≤ Fett, Summe ≤ 100 g, Energie nach Atwater,
+  Salz = Kochsalz) müssen in deiner Antwort gelten. Chiasamen ≈ 2 g KH / 34 g Ballaststoffe, nicht US-"total carbs".
 
 WARENGRUPPE (genau eine aus der Liste; entscheidend ist die Verkaufsform, nicht die Zutat darin)
 {sections}
-Beispiele: Orangensaft → Säfte & Smoothies (nicht Obst). Getrocknete Aprikosen → Nüsse, Samen & Trockenobst.
-TK-Erbsen → TK Obst & Gemüse. Paprikapulver → Gewürze & Trockenkräuter. Kichererbsen (Dose) → Konserven & Gläser.
-Erdbeerjoghurt → Joghurt, Quark & Desserts. Schokolade Erdbeere → Süßwaren & Kekse. Vegane Wurst → Fleischersatz & Tofu.
+Zusätzliches Beispiel: Vegane Wurst → Fleischersatz & Tofu.
 
 URTEIL (verdict)
 - not_an_ingredient: Testdaten (z. B. "E2E", "Test", Zahlenketten), Non-Food, Nahrungsergänzungsmittel.

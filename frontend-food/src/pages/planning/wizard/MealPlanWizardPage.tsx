@@ -164,7 +164,7 @@ export default function MealPlanWizardPage() {
   const isStepValid = () => {
     if (step === 'basics') {
       const errors = validateBasics(state);
-      return state.name.trim().length > 0 && !errors.portions && !errors.period;
+      return state.name.trim().length > 0 && !errors.portions && !errors.period && !errors.reserve && !errors.dayParts;
     }
     if (step === 'strategy') {
       if (state.strategy === 'reference') return state.reference_plan_id !== null;

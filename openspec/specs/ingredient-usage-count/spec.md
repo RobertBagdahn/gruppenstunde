@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-usage-count Specification
 
+## Purpose
+Specification of ingredient-usage-count.
+
+## Requirements
 ### Requirement: Ingredient usage_count field
 The Ingredient model SHALL have a `usage_count` field (IntegerField, default=0) that tracks how many RecipeItem instances reference the ingredient via its portion.
 

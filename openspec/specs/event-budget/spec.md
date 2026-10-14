@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-budget Specification
 
+## Purpose
+Specification of event-budget.
+
+## Requirements
 ### Requirement: BudgetItem model
 An optional BudgetItem model SHALL be created to track manual budget line items for an event.
 

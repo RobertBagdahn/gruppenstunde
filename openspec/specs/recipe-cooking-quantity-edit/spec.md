@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-cooking-quantity-edit Specification
 
+## Purpose
+Specification of recipe-cooking-quantity-edit.
+
+## Requirements
 ### Requirement: Auffindbarer Einstieg zur Bearbeitung in Kochmengen
 Das System SHALL einen sichtbaren Einstiegspunkt bereitstellen, mit dem ein Rezept in Kochmengen (für eine wählbare Personenzahl) bearbeitet werden kann, unabhängig von der aktuellen Anzeige-Skalierung.
 

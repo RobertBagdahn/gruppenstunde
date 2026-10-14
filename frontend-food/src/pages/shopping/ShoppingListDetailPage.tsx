@@ -15,12 +15,14 @@ import {
   useDeleteShoppingListItem,
   useDeleteShoppingList,
   useUpdateShoppingList,
+  useCreateFromMealPlan,
 } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import ShoppingListItemRow from '@/components/shopping/ShoppingListItemRow';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
+import SourceFreshnessNotice from '@/components/shopping/SourceFreshnessNotice';
 import CollaboratorManager from '@/components/shopping/CollaboratorManager';
 import KitchenReminderSection from '@/components/shopping/KitchenReminderSection';
 import ReweExportButton from '@/components/shopping/ReweExportButton';
@@ -56,6 +58,7 @@ export default function ShoppingListDetailPage() {
   const deleteItem = useDeleteShoppingListItem(listId);
   const deleteList = useDeleteShoppingList();
   const updateList = useUpdateShoppingList(listId);
+  const createFromMealPlan = useCreateFromMealPlan();
 
   const { optimisticCheck, rollback } = useOptimisticCheckItem(listId);
 
@@ -324,6 +327,22 @@ export default function ShoppingListDetailPage() {
         <span>von <span className="font-semibold text-hero-foreground">{list.owner_display_name}</span></span>
       </div>
       </HeroBand>
+
+      <SourceFreshnessNotice
+        status={list.source_status}
+        pending={createFromMealPlan.isPending}
+        className="mb-6"
+        onCreateNew={list.source_id ? () => createFromMealPlan.mutate(
+          { mealPlanId: list.source_id as number },
+          {
+            onSuccess: (created) => {
+              notify.success('Neue Einkaufsliste erstellt');
+              navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId: list.source_id } });
+            },
+            onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
+          },
+        ) : undefined}
+      />
 
       {/* Quantity plausibility warnings from generation */}
       {warnings.length > 0 && (

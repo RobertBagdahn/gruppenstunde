@@ -228,7 +228,7 @@ def compute_buffet(
     portions = float(meal.effective_portions or 1)
     result = BuffetResult(
         portions=portions,
-        target_kcal_per_person=NORM_PERSON_DAILY_KCAL * meal.day_part_factor,
+        target_kcal_per_person=NORM_PERSON_DAILY_KCAL * meal.safe_day_part_factor,
         warnings=_missing_data_warnings(selections),
     )
     if manual_items_policy == "replace":

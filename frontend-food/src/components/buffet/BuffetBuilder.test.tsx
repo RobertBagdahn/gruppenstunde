@@ -732,7 +732,6 @@ describe('BuffetBuilder', () => {
     choosePreset();
     fireEvent.change(screen.getByPlaceholderText('Weitere hinzufügen…'), { target: { value: 'Bier' } });
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Auch Backzutaten & Gewürze' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Alkoholische Treffer ausblenden' }));
 
     await waitFor(() => {
@@ -741,7 +740,6 @@ describe('BuffetBuilder', () => {
           q: 'Bier',
           role: 'buffet-bread',
           mealType: 'lunch',
-          includeNonStandalone: true,
           excludeAlcohol: true,
         }),
         { enabled: true },

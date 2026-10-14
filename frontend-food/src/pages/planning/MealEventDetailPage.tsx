@@ -1,3 +1,4 @@
+import { ApiError } from '@/lib/api';
 import { MealPlanDetailStateSchema } from '@/schemas/listState';
 import type { MealItemUpdateHandler } from '@/components/planning/MealItemAmountEditor';
 import { usePersistedListState } from '@/hooks/usePersistedListState';
@@ -550,7 +551,13 @@ export default function MealPlanDetailPage() {
             </DialogTitle>
           </DialogHeader>
           {plan.can_edit && (
-            <SettingsPanel planId={mealPlanId} plan={plan} onSave={handleSaveSettings} isPending={updateMutation.isPending} />
+            <SettingsPanel
+              planId={mealPlanId}
+              plan={plan}
+              onSave={handleSaveSettings}
+              isPending={updateMutation.isPending}
+              serverFieldMessages={updateMutation.error instanceof ApiError ? updateMutation.error.fieldMessages : undefined}
+            />
           )}
         </DialogContent>
       </Dialog>

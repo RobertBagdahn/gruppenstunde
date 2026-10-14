@@ -3,8 +3,7 @@
 ## Purpose
 Defines field-level audit logging for ingredient and recipe changes, tracking who changed what field, when, and the old/new values.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: ChangeAuditLog Modell
 Das System SHALL ein `ChangeAuditLog` Modell bereitstellen, das Feld-Änderungen an Zutaten und Rezepten protokolliert.
 

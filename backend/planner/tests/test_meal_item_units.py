@@ -201,7 +201,7 @@ class TestMealItemUnits:
         other = baker.make(User)
         client.force_login(other)
 
-        resp = _patch_item(client, setup["plan"], item, {"unit": {"kind": "standard", "standard_measure_key": "el"}})
+        resp = _patch_item(client, setup["plan"], item, {"standard_measure_key": "el"})
 
         assert resp.status_code in (403, 404)
         item.refresh_from_db()
@@ -212,7 +212,7 @@ class TestMealItemUnits:
             meal=setup["meal"], ingredient=setup["roll"], quantity=90, measuring_unit=setup["gram"]
         )
 
-        resp = _patch_item(Client(), setup["plan"], item, {"unit": {"kind": "grams"}})
+        resp = _patch_item(Client(), setup["plan"], item, {"portion_id": setup["roll_piece"].id})
 
         assert resp.status_code == 401
 
@@ -261,6 +261,58 @@ def test_unit_options_endpoint(client: Client):
     labels = [option["label"] for option in entry["options"]]
     assert labels == ["Stück", "Hälfte", "EL", "TL", "Tasse", "Prise", "Msp", "g", "ml"]
     assert entry["options"][0]["grams_per_unit"] == 60
+
+
+@pytest.mark.django_db
+def test_unit_options_work_without_login_for_public_ingredients():
+    gram = make_measuring_unit(name="Gramm")
+    roll = make_ingredient(name="Öffentliches Brötchen")
+    make_portion(
+        roll, name="Stück", quantity=1.0, weight_g=60.0, rank=1, weight_status="confirmed", measuring_unit=gram
+    )
+
+    resp = Client().get(f"/api/ingredients/unit-options/?ids={roll.id}")
+
+    assert resp.status_code == 200
+    assert [entry["ingredient_id"] for entry in resp.json()] == [roll.id]
+
+
+@pytest.mark.django_db
+class TestRefMealSyncKeepsUnits:
+    def _ref(self, plan):
+        from planner.models import Meal
+
+        return Meal.objects.create(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.BREAKFAST,
+            day_part_factor=0.25,
+            is_reference=True,
+            start_datetime=None,
+            end_datetime=None,
+        )
+
+    def test_sync_copies_portion_and_standard_measure(self, setup):
+        from planner.api.ref_meal import _sync_ref_meal_to_targets
+
+        ref = self._ref(setup["plan"])
+        MealItem.objects.create(meal=ref, ingredient=setup["roll"], quantity=2, portion=setup["roll_piece"])
+        MealItem.objects.create(meal=ref, ingredient=setup["cheese"], quantity=3, standard_measure_key="el")
+        meal = setup["meal"]
+        meal.ref_meal = ref
+        meal.is_synced = True
+        meal.save()
+
+        assert _sync_ref_meal_to_targets(ref) == 1
+
+        by_ingredient = {item.ingredient_id: item for item in meal.items.all()}
+        roll_item = by_ingredient[setup["roll"].id]
+        cheese_item = by_ingredient[setup["cheese"].id]
+        assert roll_item.portion_id == setup["roll_piece"].id
+        assert roll_item.quantity == 2
+        assert roll_item.measuring_unit_id is None
+        assert cheese_item.standard_measure_key == "el"
+        assert cheese_item.portion_id is None
+        assert cheese_item.quantity == 3
 
 
 @pytest.mark.django_db

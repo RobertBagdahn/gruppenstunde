@@ -1,5 +1,9 @@
-## ADDED Requirements
+# group-session Specification
 
+## Purpose
+Specification of group-session.
+
+## Requirements
 ### Requirement: GroupSession Content Type
 The system SHALL provide a `GroupSession` model inheriting from `Content` for scout group meeting ideas (Gruppenstundenideen). Additional fields: session_type (TextChoices), min_participants (IntegerField, nullable), max_participants (IntegerField, nullable), location_type (TextChoices: indoor/outdoor/both).
 

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-room-assignment Specification
 
+## Purpose
+Specification of event-room-assignment.
+
+## Requirements
 ### Requirement: RoomAssignment model
 A new `RoomAssignment` model SHALL be created to represent rooms or tents that participants can be assigned to.
 

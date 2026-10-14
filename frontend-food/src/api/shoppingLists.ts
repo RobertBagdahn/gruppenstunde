@@ -48,6 +48,8 @@ export interface ShoppingListQuery {
   q?: string;
   sort?: 'newest' | 'oldest' | 'name_asc';
   mine?: boolean;
+  sourceType?: 'manual' | 'recipe' | 'meal_event';
+  sourceId?: number;
 }
 
 export function useShoppingLists(
@@ -56,12 +58,12 @@ export function useShoppingLists(
   query: ShoppingListQuery = {},
   options: { enabled?: boolean } = {},
 ) {
-  const { q = '', sort = 'newest', mine = false } = query;
+  const { q = '', sort = 'newest', mine = false, sourceType, sourceId } = query;
   return useQuery({
     enabled: options.enabled ?? true,
     // Keep the previous page visible while the next one loads (food-loading-states).
     placeholderData: keepPreviousData,
-    queryKey: ['shopping-lists', page, pageSize, q, sort, mine] as const,
+    queryKey: ['shopping-lists', page, pageSize, q, sort, mine, sourceType ?? null, sourceId ?? null] as const,
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -70,6 +72,8 @@ export function useShoppingLists(
       });
       if (q) params.set('q', q);
       if (mine) params.set('mine', 'true');
+      if (sourceType) params.set('source_type', sourceType);
+      if (sourceId !== undefined) params.set('source_id', String(sourceId));
       return fetchJson(`${API_BASE}/?${params.toString()}`, PaginatedShoppingListsSchema);
     },
   });

@@ -8,6 +8,7 @@ import {
   useShoppingLists,
   useCreateShoppingList,
   useDeleteShoppingList,
+  useCreateFromMealPlan,
 } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
@@ -21,12 +22,23 @@ import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import { ShoppingListStateSchema } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
 import EmptyState from '@/components/shared/EmptyState';
+import SourceFreshnessNotice from '@/components/shopping/SourceFreshnessNotice';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { SkeletonCardGrid } from '@/components/ui/skeleton';
 
-function ShoppingListCard({ list, onDelete }: { list: ShoppingList; onDelete: (list: ShoppingList) => void }) {
+function ShoppingListCard({
+  list,
+  onDelete,
+  onCreateNew,
+  creatingNew,
+}: {
+  list: ShoppingList;
+  onDelete: (list: ShoppingList) => void;
+  onCreateNew: (list: ShoppingList) => void;
+  creatingNew: boolean;
+}) {
   const sourceLabel = SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type;
   const updatedAt = new Date(list.updated_at);
   const timeAgo = getTimeAgo(updatedAt);
@@ -80,6 +92,12 @@ function ShoppingListCard({ list, onDelete }: { list: ShoppingList; onDelete: (l
           className="mt-4"
         />
       </Link>
+      <SourceFreshnessNotice
+        status={list.source_status}
+        pending={creatingNew}
+        className="mt-2"
+        onCreateNew={list.source_id ? () => onCreateNew(list) : undefined}
+      />
       {list.can_delete && (
         <button
           type="button"
@@ -129,6 +147,23 @@ export default function ShoppingListPage() {
   const { data, isPending: isLoading, error } = useShoppingLists(page, 20, { q, sort, mine: myDataOnly }, { enabled: restored });
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
+  const createFromMealPlan = useCreateFromMealPlan();
+  const [creatingFromListId, setCreatingFromListId] = useState<number | null>(null);
+  const createNewFromPlan = (source: ShoppingList) => {
+    if (!source.source_id) return;
+    setCreatingFromListId(source.id);
+    createFromMealPlan.mutate(
+      { mealPlanId: source.source_id },
+      {
+        onSuccess: (created) => {
+          notify.success('Neue Einkaufsliste erstellt');
+          navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId: source.source_id } });
+        },
+        onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
+        onSettled: () => setCreatingFromListId(null),
+      },
+    );
+  };
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
@@ -313,7 +348,13 @@ export default function ShoppingListPage() {
       ) : (
         <div className="stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {sortedLists.map((list) => (
-            <ShoppingListCard key={list.id} list={list} onDelete={setDeleteTarget} />
+            <ShoppingListCard
+              key={list.id}
+              list={list}
+              onDelete={setDeleteTarget}
+              onCreateNew={createNewFromPlan}
+              creatingNew={creatingFromListId === list.id}
+            />
           ))}
         </div>
       )}

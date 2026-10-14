@@ -2,8 +2,10 @@
 
 Grundlegende Such- und Anzeigefunktionalität der Rezeptsuche unter `/recipes`.
 
-## ADDED Requirements
+## Purpose
+Specification of recipe-search.
 
+## Requirements
 ### Requirement: Default origin is verified
 Die Rezeptsuche SHALL standardmäßig nur verifizierte Rezepte (Inspi-verifiziert, `owner__isnull=True, status="approved"`) anzeigen. Community- und eigene Rezepte müssen explizit über den `Anzeigen`-Filter zugeschaltet werden.
 

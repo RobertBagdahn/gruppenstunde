@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-preview-dialog Specification
 
+## Purpose
+Specification of recipe-preview-dialog.
+
+## Requirements
 ### Requirement: Recipe preview dialog
 
 The system SHALL display a RecipePreviewDialog when the user clicks on a recipe in the RecipeSearchDialog, showing key recipe information before confirming addition. The dialog SHALL use `RecipeSearchResult` type fields and SHALL NOT reference `portions` or `servings` fields that are absent from the type.

@@ -88,7 +88,6 @@ export interface BuffetCatalogSearchInput {
   mealType: string;
   kind: 'all' | 'ingredient' | 'recipe';
   recipeType?: string;
-  includeNonStandalone: boolean;
   excludeAlcohol: boolean;
 }
 
@@ -102,7 +101,6 @@ export function useBuffetCatalogSearch(
     role: input.role,
     meal_type: input.mealType,
     kind: input.kind,
-    include_non_standalone: String(input.includeNonStandalone),
     exclude_alcohol: String(input.excludeAlcohol),
     limit: '30',
   });

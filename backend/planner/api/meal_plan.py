@@ -84,6 +84,7 @@ from planner.schemas import (
     PopularRecipesResponseOut,
     RecentlyUsedRecipesResponseOut,
     RecipeCostOut,
+    RecipePreviewOut,
     RecipeSuggestionOut,
     SearchRecipesResponseOut,
     ShoppingItemPortionOptionOut,
@@ -233,8 +234,38 @@ def _describe_integrity_error(error: IntegrityError, ingredient, recipe) -> Http
     return HttpError(409, "Dieses Rezept oder diese Zutat ist bereits in dieser Mahlzeit enthalten")
 
 
+def _enforce_plan_limits(
+    meal_plan: MealPlan,
+    *,
+    start: dt.datetime | None = None,
+    end: dt.datetime | None = None,
+    adding_meals: int = 0,
+) -> None:
+    """Reject a plan period or meal count beyond the allowed maximum (HTTP 422) before anything is created."""
+    from core.errors import ApiError
+    from planner.services import input_bounds
+
+    try:
+        if start is not None and end is not None:
+            input_bounds.check_plan_period(start, end)
+        if adding_meals:
+            input_bounds.check_meal_count(Meal.objects.filter(meal_plan=meal_plan).count(), adding_meals)
+    except ValueError as exc:
+        field = "end_datetime" if start is not None and end is not None else "meals"
+        raise ApiError(422, "invalid_input", str(exc), extra={"fields": [field]}) from exc
+
+
 def _create_meal_item(**kwargs):
     """Create MealItem with IntegrityError handling for race conditions."""
+    from planner.services.meal_item_units import ensure_amount_in_bounds
+
+    ensure_amount_in_bounds(
+        ingredient=kwargs.get("ingredient"),
+        quantity=kwargs.get("quantity"),
+        portion=kwargs.get("portion"),
+        standard_measure_key=kwargs.get("standard_measure_key"),
+        measuring_unit=kwargs.get("measuring_unit"),
+    )
     try:
         return MealItem.objects.create(**kwargs)
     except IntegrityError as e:
@@ -330,24 +361,16 @@ def check_duplicates_in_input(items: list) -> dict[str, list[int]]:
 
 
 def _meal_plan_ingredient_search_queryset(request: Any, query: str) -> QuerySet[Ingredient]:
-    """Return visible, verified ingredients in relevance order for meal search."""
+    """Return visible ingredients (verified plus the user's own drafts) in relevance order for meal search."""
     from content.services.food_access import visible_ingredient_queryset
-    from supply.choices import IngredientStatusChoices
+    from supply.services.ingredient_search import draft_or_verified_for, search_ingredients
 
     queryset = visible_ingredient_queryset(request.user).filter(
-        status=IngredientStatusChoices.VERIFIED,
+        draft_or_verified_for(request.user),
         deleted_at__isnull=True,
     )
     if query and len(query) >= 2:
-        queryset = queryset.filter(name__icontains=query).annotate(
-            search_rank=Case(
-                When(name__iexact=query, then=Value(0)),
-                When(name__istartswith=query, then=Value(1)),
-                default=Value(2),
-                output_field=IntegerField(),
-            )
-        )
-        return queryset.order_by("search_rank", "-usage_count", "name", "id")
+        return search_ingredients(queryset, query)
 
     return queryset.filter(is_standalone_food=True).order_by("-usage_count", "name", "id")
 
@@ -685,6 +708,12 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
         exclude_fields.add("is_template")
 
     patch_data = payload.dict(exclude_unset=True, exclude=exclude_fields)
+    if "start_datetime" in patch_data or "end_datetime" in patch_data:
+        _enforce_plan_limits(
+            meal_plan,
+            start=patch_data.get("start_datetime") or meal_plan.start_datetime,
+            end=patch_data.get("end_datetime") or meal_plan.end_datetime,
+        )
     requested_norm_portions_manual = patch_data.get("norm_portions_manual", meal_plan.norm_portions_manual)
     was_norm_portions_manual = meal_plan.norm_portions_manual
 
@@ -834,7 +863,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
             name=payload.name,
             description=source_with_data.description,
             norm_portions=payload.norm_portions,
-            reserve_factor=source_with_data.reserve_factor,
+            reserve_factor=source_with_data.safe_reserve_factor,
             visibility=source_with_data.visibility,
             day_part_factors=source_with_data.day_part_factors,
             meal_default_times=source_with_data.meal_default_times,
@@ -926,6 +955,18 @@ def add_day(request, meal_plan_id: int, payload: MealDayBulkCreateIn):
     if Meal.objects.filter(meal_plan=meal_plan, start_datetime__date=payload.date).exists():
         raise HttpError(400, "Dieser Tag existiert bereits im Essensplan")
 
+    if meal_plan.start_datetime and meal_plan.end_datetime:
+        new_start = min(meal_plan.start_datetime.date(), payload.date)
+        new_end = max(meal_plan.end_datetime.date(), payload.date)
+        _enforce_plan_limits(
+            meal_plan,
+            start=dt.datetime.combine(new_start, dt.time(0, 0)),
+            end=dt.datetime.combine(new_end, dt.time(0, 0)),
+            adding_meals=3,
+        )
+    else:
+        _enforce_plan_limits(meal_plan, adding_meals=3)
+
     # Auto-extend range if date is outside current range
     if meal_plan.start_datetime and meal_plan.end_datetime:
         if payload.date < meal_plan.start_datetime.date():
@@ -987,6 +1028,13 @@ def add_day_before(request, meal_plan_id: int):
     if not meal_plan.start_datetime or not meal_plan.end_datetime:
         raise HttpError(400, "Essensplan hat kein Start-/Enddatum")
 
+    _enforce_plan_limits(
+        meal_plan,
+        start=meal_plan.start_datetime - dt.timedelta(days=1),
+        end=meal_plan.end_datetime,
+        adding_meals=3,
+    )
+
     # Backfill the current first day (it becomes a middle day now)
     old_first_date = meal_plan.start_datetime.date()
     meal_plan.create_meals_for_date_timeaware(old_first_date, is_first=False, is_last=False)
@@ -1010,6 +1058,13 @@ def add_day_after(request, meal_plan_id: int):
 
     if not meal_plan.start_datetime or not meal_plan.end_datetime:
         raise HttpError(400, "Essensplan hat kein Start-/Enddatum")
+
+    _enforce_plan_limits(
+        meal_plan,
+        start=meal_plan.start_datetime,
+        end=meal_plan.end_datetime + dt.timedelta(days=1),
+        adding_meals=3,
+    )
 
     # Backfill the current last day (it becomes a middle day now)
     old_last_date = meal_plan.end_datetime.date()
@@ -1036,6 +1091,8 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
     require_login(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
+
+    _enforce_plan_limits(meal_plan, adding_meals=1)
 
     meal_date = payload.start_datetime.date()
     # Only enforce uniqueness for non-snack meal types (snack can have multiple per day)
@@ -1506,12 +1563,19 @@ def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
     A unit change with `quantity` stores exactly that count in the new unit.
     """
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
-    from planner.services.meal_item_units import resolve_unit_fields
+    from planner.services.meal_item_units import ensure_amount_in_bounds, resolve_unit_fields
 
     fields = payload.model_fields_set
     changes_unit = bool({"portion_id", "measuring_unit_id", "standard_measure_key"} & fields)
     if not changes_unit:
         if payload.quantity is not None:
+            ensure_amount_in_bounds(
+                ingredient=item.ingredient,
+                quantity=payload.quantity,
+                portion=item.portion,
+                standard_measure_key=item.standard_measure_key,
+                measuring_unit=item.measuring_unit,
+            )
             item.quantity = payload.quantity
             item.save(update_fields=["quantity"])
         return
@@ -1541,6 +1605,13 @@ def _apply_unit_change(item: MealItem, payload: MealItemUpdateIn) -> None:
         item.quantity = round(grams / grams_per_unit, 3)
         if item.quantity <= 0:
             raise HttpError(422, "Die Menge ist in dieser Einheit zu klein.")
+    ensure_amount_in_bounds(
+        ingredient=item.ingredient,
+        quantity=item.quantity,
+        portion=item.portion,
+        standard_measure_key=item.standard_measure_key,
+        measuring_unit=item.measuring_unit,
+    )
     item.save(update_fields=["quantity", "measuring_unit", "portion", "standard_measure_key"])
 
 
@@ -1649,7 +1720,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     if current_kcal <= 0:
         raise HttpError(400, "Mahlzeit enthält keine Kalorien, Skalierung nicht möglich.")
 
-    target_kcal = NORM_PERSON_DAILY_KCAL * meal.day_part_factor
+    target_kcal = NORM_PERSON_DAILY_KCAL * meal.safe_day_part_factor
     scale = target_kcal / current_kcal
 
     from django.db import transaction
@@ -1969,7 +2040,7 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
         **totals,
         **per_portion,
         norm_portions=meal_plan.norm_portions,
-        reserve_factor=meal_plan.reserve_factor,
+        reserve_factor=meal_plan.safe_reserve_factor,
         scaling_factor=meal_plan.scaling_factor,
     )
 
@@ -2143,7 +2214,7 @@ def cost_summary(request, meal_plan_id: int):
     # Cost per person over the whole plan = sum of every meal's cost per person
     # (not total / summed portions, which would yield a per-meal average).
     cost_per_person = sum((d["per_person"] for d in day_costs.values()), Decimal("0"))
-    reserve_factor = meal_plan.reserve_factor or 1.0
+    reserve_factor = meal_plan.safe_reserve_factor
     total_cost_with_reserve = total_cost * Decimal(str(reserve_factor))
 
     days: list[DayCostOut] = []
@@ -2546,6 +2617,53 @@ def recently_used_recipes(
 # ==========================================================================
 
 
+@meal_plan_router.get("/recipes/{recipe_id}/preview/", response=RecipePreviewOut)
+def recipe_preview(request, recipe_id: int, portions: int | None = None):
+    """Full recipe preview for the meal search: description, ingredient amounts for ``portions``, tags, allergens."""
+    require_login(request)
+    from content.services.food_access import get_visible_recipe_or_404
+    from recipe.schemas.items import RecipeItemOut
+    from supply.utils import format_weight
+
+    recipe = cast(Recipe, get_visible_recipe_or_404(request.user, recipe_id))
+    target = max(1, min(portions or recipe.portions or 1, 10000))
+    scale = target / recipe.portions if recipe.portions else 1.0
+
+    ingredients: list[dict[str, str]] = []
+    items = recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").order_by(
+        "sort_order", "id"
+    )
+    for item in items:
+        # The instance is only used for display and never saved: scale the count in memory.
+        item.quantity = item.quantity * scale
+        portion_ingredient = item.portion.ingredient if item.portion is not None else None
+        name = portion_ingredient.name if portion_ingredient is not None else ""
+        if not name:
+            from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+            resolved = get_recipe_item_ingredient(item)
+            name = resolved.name if resolved is not None else ""
+        if not name:
+            continue
+        # Weight is the compact, unambiguous amount; the long portion text only backs up unknown weights.
+        grams = RecipeItemOut.resolve_weight_g(item)
+        label = format_weight(grams) if grams > 0 else RecipeItemOut.resolve_portion_display(item)
+        ingredients.append({"name": name, "amount_label": label})
+
+    tags = list(recipe.nutritional_tags.all())
+    return {
+        "id": recipe.id,
+        "title": recipe.title,
+        "slug": recipe.slug,
+        "description": recipe.description or None,
+        "recipe_portions": recipe.portions,
+        "target_portions": target,
+        "ingredients": ingredients,
+        "nutritional_tags": [{"id": t.id, "name": t.name, "is_dangerous": t.is_dangerous} for t in tags],
+        "allergens": [t.name for t in tags if t.is_dangerous],
+    }
+
+
 @meal_plan_router.get("/recipes/search/", response=SearchRecipesResponseOut)
 def search_recipes(
     request,
@@ -2746,7 +2864,7 @@ def search_recipes(
     recipes = []
     for r in recipes_qs:
         tags = nutritional_tags_map.get(r.id, [])
-        description = (r.description or "")[:200] if r.description else None
+        description = r.description or None
         badge = _resolve_recipe_badge(r, request.user)
         price_per_serving = round(float(r.cached_price_total), 2) if r.cached_price_total else None
         recipes.append(

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-plan-cost-dashboard Specification
 
+## Purpose
+Specification of meal-plan-cost-dashboard.
+
+## Requirements
 ### Requirement: Kosten-Aggregation API
 
 Das Backend berechnet aggregierte Kosten eines MealPlans basierend auf `Ingredient.price_per_kg`, Mengen und Portionsskalierung. Die Kostenskalierung MUSS `effective_portions` pro Mahlzeit verwenden (= `override_portions or norm_portions`), niemals hartcodiert `norm_portions`, wenn eine Mahlzeit `override_portions` gesetzt hat. Der PAL/Aktivitätsfaktor wird nicht einbezogen. Die API SHALL die Gesamtkosten sowohl **ohne** Reservefaktor als auch **mit** Reservefaktor (`Kosten ohne Reserve × reserve_factor`) ausweisen.

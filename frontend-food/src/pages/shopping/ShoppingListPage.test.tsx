@@ -7,6 +7,7 @@ import { ShoppingListSchema, type ShoppingList } from '@/schemas/shoppingList';
 import ShoppingListPage from './ShoppingListPage';
 
 const removeList = vi.fn();
+const createFromMealPlan = vi.fn();
 
 function list(overrides: Partial<ShoppingList>): ShoppingList {
   return ShoppingListSchema.parse({
@@ -25,6 +26,8 @@ function list(overrides: Partial<ShoppingList>): ShoppingList {
 const lists = [
   list({ id: 1, name: 'ZZ-TEST Wocheneinkauf' }),
   list({ id: 2, name: 'Geteilte Liste', owner_id: 9, can_delete: false }),
+  list({ id: 3, name: 'Planliste', source_type: 'meal_event', source_id: 41, source_status: 'changed' }),
+  list({ id: 4, name: 'Aktuelle Planliste', source_type: 'meal_event', source_id: 42, source_status: 'current' }),
 ];
 
 vi.mock('@/api/shoppingLists', () => ({
@@ -35,6 +38,7 @@ vi.mock('@/api/shoppingLists', () => ({
   }),
   useCreateShoppingList: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteShoppingList: () => ({ mutate: removeList, isPending: false }),
+  useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
 }));
 vi.mock('@/api/auth', () => ({ useCurrentUser: () => ({ isLoading: false, data: { id: 5 } }) }));
 
@@ -68,5 +72,19 @@ describe('ShoppingListPage delete action', () => {
     expect(within(dialog).getByText('Einkaufsliste „ZZ-TEST Wocheneinkauf“ löschen?')).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Löschen' }));
     expect(removeList).toHaveBeenCalledWith(1, expect.anything());
+  });
+});
+
+describe('ShoppingListPage source freshness', () => {
+  it('marks only lists whose plan changed and offers a new list for them', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const notices = await screen.findAllByTestId('source-freshness-notice');
+    expect(notices).toHaveLength(1);
+    expect(within(notices[0]).getByText('Essensplan wurde seit Erstellung geändert')).toBeInTheDocument();
+
+    await user.click(within(notices[0]).getByRole('button', { name: 'Neue Liste erstellen' }));
+    expect(createFromMealPlan).toHaveBeenCalledWith({ mealPlanId: 41 }, expect.anything());
   });
 });

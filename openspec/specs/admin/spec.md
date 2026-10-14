@@ -1,5 +1,9 @@
-## ADDED Requirements
+# admin Specification
 
+## Purpose
+Specification of admin.
+
+## Requirements
 ### Requirement: Embedding Admin View
 The admin interface SHALL provide a dedicated "Embeddings" section for viewing and managing content embeddings across all content types.
 
@@ -45,8 +49,6 @@ The admin interface SHALL provide a view for reviewing embedding quality feedbac
 - **WHEN** an admin navigates to the embedding feedback section
 - **THEN** all EmbeddingFeedback entries SHALL be listed with: source title, target title, feedback_type, notes, created_by, created_at
 - **THEN** the admin SHALL be able to filter by feedback_type and date range
-
-## MODIFIED Requirements
 
 ### Requirement: Admin Dashboard Statistics
 The admin dashboard SHALL include statistics for all content types, not just Ideas. Admin users (`is_staff=True`) SHALL have full edit and delete access to all content across the platform, with edit and delete UI elements visible on both list and detail views in the public-facing frontend.

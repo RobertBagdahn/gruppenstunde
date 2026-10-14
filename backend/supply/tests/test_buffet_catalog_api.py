@@ -181,18 +181,29 @@ class TestBuffetCatalogSearch:
         assert items[1]["is_favorite"] is False
         assert items[2]["recipe_type"] == "snack"
 
-    def test_non_standalone_filter_is_off_by_default_and_can_be_expanded(self):
+    def test_cooking_ingredients_are_found_but_rank_after_standalone_items(self):
+        onion = make_ingredient(name="Speisezwiebel", is_standalone_food=False)
+        standalone = make_ingredient(name="Zwiebelmett", is_standalone_food=True)
+        client, _ = _client_with_user()
+
+        response = client.get("/api/supply/buffet-catalog/search/?q=Zwiebel&role=buffet-fresh&meal_type=lunch")
+
+        assert response.status_code == 200
+        items = response.json()
+        assert [item["id"] for item in items] == [standalone.id, onion.id]
+        assert items[0]["is_cooking_ingredient"] is False
+        assert items[1]["is_cooking_ingredient"] is True
+
+    def test_deprecated_include_non_standalone_parameter_is_ignored(self):
         ingredient = make_ingredient(name="Mehl", is_standalone_food=False)
         client, _ = _client_with_user()
 
-        default_response = client.get("/api/supply/buffet-catalog/search/?q=Mehl&role=buffet-fresh&meal_type=lunch")
-        expanded_response = client.get(
-            "/api/supply/buffet-catalog/search/?q=Mehl&role=buffet-fresh&meal_type=lunch&include_non_standalone=true"
+        response = client.get(
+            "/api/supply/buffet-catalog/search/?q=Mehl&role=buffet-fresh&meal_type=lunch&include_non_standalone=false"
         )
 
-        assert default_response.status_code == expanded_response.status_code == 200
-        assert default_response.json() == []
-        assert [item["id"] for item in expanded_response.json()] == [ingredient.id]
+        assert response.status_code == 200
+        assert [item["id"] for item in response.json()] == [ingredient.id]
 
     def test_alcohol_filter_is_opt_in_and_alcohol_is_never_a_favorite(self):
         roles = make_buffet_roles()

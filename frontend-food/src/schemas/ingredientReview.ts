@@ -81,6 +81,7 @@ export const IngredientReviewRowSchema = z.object({
   quantity: z.number().positive().nullable().default(null),
   suggested_quantity: z.number().positive().nullable().default(null),
   reason: z.string().default(''),
+  note: z.string().default(''),
   technical_details: ReviewTechnicalDetailsSchema.nullable().default(null),
   conflicts: z.array(z.string()).default([]),
   new_ingredient_draft: TemporaryIngredientDraftSchema.nullable().default(null),

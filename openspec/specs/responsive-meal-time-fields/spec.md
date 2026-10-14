@@ -1,5 +1,9 @@
-## ADDED Requirements
+# responsive-meal-time-fields Specification
 
+## Purpose
+Specification of responsive-meal-time-fields.
+
+## Requirements
 ### Requirement: Responsive meal-time layout
 
 The meal-plan wizard and existing meal-plan settings SHALL render the four meal default-time groups responsively without horizontal overflow. Each group SHALL contain adjacent start and end time fields.

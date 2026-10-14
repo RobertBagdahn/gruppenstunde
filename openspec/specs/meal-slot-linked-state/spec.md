@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-slot-linked-state Specification
 
+## Purpose
+Specification of meal-slot-linked-state.
+
+## Requirements
 ### Requirement: Verknüpfte Meals sind read-only
 Wenn eine Mahlzeit mit einer Referenz-Mahlzeit verknüpft ist (`is_synced = true`), darf der User die Items nicht bearbeiten.
 

@@ -23,11 +23,26 @@ Das System SHALL `MealItem.note` als optionalen Freitext (leer erlaubt, maximal 
 - **THEN** liefert die API `note=""` und die UI zeigt keine Notizzeile
 
 ### Requirement: Notiz in der Plan-Zeile und im Dialog
-Die Plan-Zeile einer Einzelzutat SHALL eine vorhandene Notiz anzeigen und für Nutzer mit Bearbeitungsrecht änderbar machen. Der Hinzufügen-Dialog für Einzelzutaten SHALL ein optionales Notiz-Feld enthalten.
+Die Plan-Zeile einer Einzelzutat SHALL in Tages- und Tabellenansicht eine vorhandene Notiz neben der Zutat anzeigen. Nutzer mit Bearbeitungsrecht SHALL die Notiz dort hinzufügen, ändern und löschen können. Nutzer ohne Bearbeitungsrecht SHALL die Notiz lesen, aber nicht ändern können. Der Hinzufügen-Dialog für Einzelzutaten SHALL ein optionales Notiz-Feld enthalten. Rezepteinträge können eine Notiz über die API speichern, erhalten in den Planansichten aber keine Notiz-Bedienung.
 
 #### Scenario: Notiz in der Zeile bearbeiten
 - **WHEN** der Nutzer in der Zeile die Notiz ändert und das Feld verlässt
 - **THEN** wird die Notiz gespeichert und in der Zeile angezeigt
+
+#### Scenario: Notiz nach Neuladen
+- **GIVEN** ein bearbeitbarer Plan enthält eine Einzelzutat
+- **WHEN** der Nutzer eine Notiz speichert und die Planseite neu lädt
+- **THEN** zeigt die Zeile die gespeicherte Notiz
+
+#### Scenario: Notiz löschen
+- **GIVEN** eine Einzelzutat besitzt eine Notiz
+- **WHEN** der Nutzer den Notiztext entfernt und speichert
+- **THEN** ist die Notiz leer und die Zeile zeigt keinen alten Text
+
+#### Scenario: Keine Bearbeitungsrechte
+- **GIVEN** der Nutzer darf den Plan nur ansehen
+- **WHEN** die Einzelzutat angezeigt wird
+- **THEN** ist die Notiz lesbar und es gibt keine Bearbeitungsaktion
 
 ### Requirement: Notiz im PDF-Export
 Der PDF-Export des Essensplans SHALL die Notiz einer Einzelzutat neben der Zutat ausgeben, wenn eine vorhanden ist.
@@ -35,3 +50,11 @@ Der PDF-Export des Essensplans SHALL die Notiz einer Einzelzutat neben der Zutat
 #### Scenario: Notiz im PDF
 - **WHEN** ein Plan-Eintrag eine Notiz hat und der Plan als PDF exportiert wird
 - **THEN** enthält das PDF die Notiz bei diesem Eintrag
+
+### Requirement: Notiz beim Kopieren erhalten
+Beim Kopieren von MealItems in eine andere Mahlzeit und beim Duplizieren eines Essensplans SHALL die Item-Notiz unverändert übernommen werden.
+
+#### Scenario: Notiz beim Kopieren erhalten
+- **GIVEN** ein Quell-MealItem hat die Notiz „ohne Zwiebeln“
+- **WHEN** das Item in eine andere Mahlzeit kopiert oder der ganze Essensplan dupliziert wird
+- **THEN** enthält das kopierte MealItem die Notiz „ohne Zwiebeln“

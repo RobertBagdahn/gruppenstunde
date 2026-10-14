@@ -1,5 +1,9 @@
-## ADDED Requirements
+# content-collaborator Specification
 
+## Purpose
+Specification of content-collaborator.
+
+## Requirements
 ### Requirement: ContentCollaborator Model
 The system SHALL provide a `ContentCollaborator` model with `GenericForeignKey` for sharing any model instance with users or groups. Fields: `content_type` (FK to ContentType), `object_id` (PositiveIntegerField), `user` (FK to User, nullable), `group` (FK to UserGroup, nullable), `role` (CharField, choices: viewer/editor/admin), `created_by` (FK to User), `created_at` (DateTimeField). A CheckConstraint SHALL enforce that at least one of `user` or `group` is set. A UniqueConstraint SHALL enforce uniqueness on (`content_type`, `object_id`, `user`, `group`).
 

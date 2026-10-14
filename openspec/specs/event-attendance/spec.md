@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-attendance Specification
 
+## Purpose
+Specification of event-attendance.
+
+## Requirements
 ### Requirement: AttendanceRecord model
 A new `AttendanceRecord` model SHALL be created to track participant check-in and check-out.
 

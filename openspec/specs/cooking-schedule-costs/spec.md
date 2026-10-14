@@ -1,5 +1,9 @@
-## ADDED Requirements
+# cooking-schedule-costs Specification
 
+## Purpose
+Specification of cooking-schedule-costs.
+
+## Requirements
 ### Requirement: Kosten pro Rezept im Kochplan
 
 Das System SHALL pro CookingScheduleItem die Kosten `total_cost_eur` (float) zurückgeben. Die Berechnung SHALL identisch zur existierenden Cost-Summary-Logik erfolgen: `compute_variant_cost(item) * item.factor * (effective_portions / portions)`.

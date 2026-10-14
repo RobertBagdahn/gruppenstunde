@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-autocomplete Specification
 
+## Purpose
+Specification of ingredient-autocomplete.
+
+## Requirements
 ### Requirement: Ghost-Text Autocomplete Component
 The frontend SHALL provide an enhanced autocomplete input component with inline ghost-text suggestion preview for ingredient selection.
 

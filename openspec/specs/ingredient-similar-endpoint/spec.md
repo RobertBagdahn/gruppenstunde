@@ -3,8 +3,7 @@
 ## Purpose
 Defines the public API endpoint that returns the top N most similar ingredients based on pgvector embedding cosine distance.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Similar ingredients endpoint
 Das System SHALL einen öffentlichen Endpoint bereitstellen, der zu einer gegebenen Zutat die ähnlichsten Zutaten basierend auf einer kalibrierten %-Ähnlichkeit der Embeddings zurückgibt.
 

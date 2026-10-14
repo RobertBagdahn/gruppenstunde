@@ -49,4 +49,5 @@ class BuffetCatalogSearchItemOut(Schema):
     piece_weight_g: float | None = None
     recipe_type: str | None = None
     is_favorite: bool
+    is_cooking_ingredient: bool = False
     role_slugs: list[str] = []

@@ -17,6 +17,7 @@ import {
   NutritionSummarySchema,
   ShoppingListItemSchema,
   UnifiedSearchResponseSchema,
+  RecipePreviewSchema,
   RecipePopularResponseSchema,
   MealItemVariantInSchema,
   type MealItemVariantIn,
@@ -687,6 +688,16 @@ export function useRecipeSearch(params: RecipeSearchParams) {
         !!nutritional_tag_ids?.length ||
         !!meal_type),
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useRecipePreview(recipeId: number | null, portions: number, enabled = true) {
+  return useQuery({
+    queryKey: ['recipe-preview', recipeId, portions] as const,
+    queryFn: () =>
+      fetchJson(`${API_BASE}/recipes/${recipeId}/preview/?portions=${portions}`, RecipePreviewSchema),
+    enabled: enabled && recipeId !== null,
+    staleTime: 60_000,
   });
 }
 

@@ -6,7 +6,7 @@
 
 ## 2. Tests
 
-- [ ] 2.1 Komponententests mit den Produktivtest-Fällen (Spaghetti, Zwiebel, Olivenöl, Salz) und Item ohne Portion/Einheit – Review 2026-10-11: Spaghetti, Zwiebel, Olivenöl und „ohne Portion/Einheit“ sind in `lib/ingredientAmount.test.ts` und `RecipeIngredientsTable.test.tsx` abgedeckt; der Salz-Fall (z. B. Prise) fehlt noch
+- [x] 2.1 Komponententests mit den Produktivtest-Fällen (Spaghetti, Zwiebel, Olivenöl, Salz/Prise) und Item ohne Portion/Einheit in `lib/ingredientAmount.test.ts` und `RecipeIngredientsTable.test.tsx`
 - [x] 2.2 Bestehende Tests der Detailseite und des Wizards (`RecipeWizard.test.tsx`, `RecipeWizardFlow.test.tsx`) laufen unverändert
 
 ## 3. Abschluss

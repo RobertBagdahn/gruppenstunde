@@ -24,6 +24,7 @@ from planner.schemas import (
     RefMealUpdateIn,
 )
 from planner.services.meal_item_units import copy_unit_fields, resolve_unit_fields
+from planner.services.plan_touch import touch_meal_plan
 
 
 def _ref_item_unit_kwargs(item_in: RefMealItemIn) -> dict[str, Any]:
@@ -42,6 +43,15 @@ def _ref_item_unit_kwargs(item_in: RefMealItemIn) -> dict[str, Any]:
 
 
 def _create_ref_meal_item(**kwargs):
+    from planner.services.meal_item_units import ensure_amount_in_bounds
+
+    ensure_amount_in_bounds(
+        ingredient=kwargs.get("ingredient"),
+        quantity=kwargs.get("quantity"),
+        portion=kwargs.get("portion"),
+        standard_measure_key=kwargs.get("standard_measure_key"),
+        measuring_unit=kwargs.get("measuring_unit"),
+    )
     try:
         return MealItem.objects.create(**kwargs)
     except IntegrityError as e:
@@ -257,6 +267,7 @@ def delete_ref_meal(request, plan_id: int, ref_meal_id: int):
 
     # Unlink all synced meals
     Meal.objects.filter(ref_meal=ref_meal).update(ref_meal=None, is_synced=False)
+    touch_meal_plan(ref_meal.meal_plan_id)
     ref_meal.delete()
     return Status(204, None)
 
@@ -344,6 +355,7 @@ def link_all_meals(request, plan_id: int, meal_type: str):
 
     meals = plan.meals.filter(meal_type=meal_type, is_reference=False)
     meals.update(ref_meal=ref_meal, is_synced=True)
+    touch_meal_plan(plan.id)
 
     count = _sync_ref_meal_to_targets(ref_meal)
     return {"linked_meals": count}

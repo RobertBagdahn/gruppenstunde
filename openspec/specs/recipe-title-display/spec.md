@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-title-display Specification
 
+## Purpose
+Specification of recipe-title-display.
+
+## Requirements
 ### Requirement: Recipe titles display on up to two lines in card view
 
 The `RecipeCard` component SHALL display recipe titles using `line-clamp-2` instead of `truncate`, allowing titles to wrap onto a second line before being cut off with an ellipsis.

@@ -43,6 +43,7 @@ class TestProductionCases:
 
         assert result.ingredient_id == catalog["wasser"].id
         assert result.matched_via == "head"
+        assert result.needs_review is True
         assert "mit Kohlensäure" in result.note
 
     def test_kokosmilch_is_not_cut_to_milch(self, catalog):
@@ -100,3 +101,4 @@ def test_review_rows_have_no_new_ingredient_draft_when_a_verified_match_exists(c
     assert by_source["Prise(n) Salz"].selected_ingredient_id == catalog["salz"].id
     assert by_source["Mineralwasser mit Kohlensäure"].selected_ingredient_id == catalog["wasser"].id
     assert all(row.new_ingredient_draft is None for row in result.rows)
+    assert "mit Kohlensäure" in by_source["Mineralwasser mit Kohlensäure"].note

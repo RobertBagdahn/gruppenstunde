@@ -1,5 +1,9 @@
-## ADDED Requirements
+# search-autocomplete Specification
 
+## Purpose
+Specification of search-autocomplete.
+
+## Requirements
 ### Requirement: Recipe Search Dialog with Autocomplete
 
 The "Rezept für Abendessen wählen"-dialog SHALL support text-based search with live autocomplete, showing mixed recipe and ingredient results with rich metadata.

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-ai-quantity-estimate Specification
 
+## Purpose
+Specification of recipe-ai-quantity-estimate.
+
+## Requirements
 ### Requirement: AI quantity estimate endpoint
 The system SHALL provide an API endpoint `POST /api/recipes/{recipe_id}/estimate-quantities/` that uses Gemini Flash to estimate realistic gram-amounts per person for all existing `RecipeItem`s of a recipe.
 

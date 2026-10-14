@@ -15,7 +15,7 @@
 - [x] 2.4 `GET /api/ingredients/unit-options/?ids=` (max. 200, `food_access`)
 - [x] 2.5 `pdf_export.py` auf `format_amount` (Portions-Einträge seit WP-02 ebenfalls, z. B. „5 EL (150 g)“)
 - [x] 2.6 Tests: Einheitenwechsel, 422 bei Widerspruch und unbekanntem Schlüssel, 401/403, Portionskorrektur wirkt auf Einträge, RefMeal-Sync
-- [ ] 2.7 Testlücken: 401/403-Tests in `test_meal_item_units.py` senden das nicht existierende Feld `unit` statt `standard_measure_key`/`portion_id`; RefMeal-Sync mit Portion und Standardmaß; Einheitenoptionen ohne Anmeldung
+- [x] 2.7 Testlücken: 401/403-Tests in `test_meal_item_units.py` senden das nicht existierende Feld `unit` statt `standard_measure_key`/`portion_id`; RefMeal-Sync mit Portion und Standardmaß; Einheitenoptionen ohne Anmeldung
 
 ## 3. Phase 1 – Frontend: Bausteine und Essensplan
 
@@ -33,14 +33,16 @@
 
 ## 4. Phase 2 – Rezept-Editor und Anzeige
 
-- [ ] 4.0a Gramm-Modell für `RecipeItem` mit der archivierten Capability `direct-gram-recipe-items` abgleichen (dort: Gramm = `portion=NULL` + `ingredient`; hier verwendet „g“-Basisportion); Architekturentscheidung und Specs vor Archivierung angleichen
+- [x] 4.0a Gramm-Modell für `RecipeItem` mit der archivierten Capability `direct-gram-recipe-items` abgleichen (dort: Gramm = `portion=NULL` + `ingredient`; hier verwendet „g“-Basisportion); Architekturentscheidung und Specs vor Archivierung angleichen
 - [x] 4.0 `RecipeItem.standard_measure_key` + Migration + Constraint (Standardmaß an der „g“-Basisportion); `RecipeItemIn/Out` mit `standard_measure_key`, `unit_kind`, `unit_label`, `is_weight_approx`; Rezept-Gewichtsauflösung an `resolve_grams` delegieren
 - [x] 4.1 `InlineIngredientEditor.tsx`, `IngredientQuantityDialog.tsx`: Standardmaß bleibt Einheit (`PortionPicker` mit `selectedStandardKey`, mengenerhaltender Wechsel)
-- [ ] 4.1a Rezept-Editor auf `QuantityUnitInput` umstellen
-- [ ] 4.2 `RecipeIngredientsTable.tsx`, `components/supply/IngredientList.tsx`, `IngredientDetailPage` auf `formatAmount` + Umschalter
-- [ ] 4.3 Tests Rezept-Editor (EL bleibt EL, Gramm-Erhalt beim Wechsel) und Detailseite
+- [ ] 4.1a Rezept-Editor auf `QuantityUnitInput` umstellen (zurückgestellt: `PortionPicker` + Live-Gewicht leisten dasselbe, der 2000-Zeilen-Editor arbeitet mit einem Entwurfs-Zustand statt Sofort-PATCH; Umbau brächte keine Verhaltensänderung bei hohem Regressionsrisiko)
+- [ ] 4.2 (zurückgestellt: `IngredientList` hat bereits den `UnitSwitcher`, Einheit zuerst und Gramm sichtbar; `formatAmount`-Umbau würde die bestehenden Specs `recipe-ingredient-display` und deren Tests umschreiben) `RecipeIngredientsTable.tsx`, `components/supply/IngredientList.tsx`, `IngredientDetailPage` auf `formatAmount` + Umschalter
+- [x] 4.3 Tests Rezept-Editor (EL bleibt EL, Gramm-Erhalt beim Wechsel) und Detailseite
 
 ## 5. Phase 3 – Buffet- und Frühstücks-Wizard
+
+> Zurückgestellt: Laut 7.3 erst nach Archivierung von `unified-buffet-wizard` (dort fehlt noch 4.5, der End-to-End-Ablauf).
 
 - [ ] 5.1 Datenmigration `Meal.buffet_role_amounts` → `{amount_g, unit}`
 - [ ] 5.2 `buffet_service`: `role_unit_options`, Speicherung mit Item-Einheit, Shares nach Gramm aus Rolleneingabe
@@ -50,6 +52,8 @@
 - [ ] 5.6 Tests: „2 Stück/Person“ mit 60 g und 80 g → 140 g; Brötchen gespeichert als 1,5 Stück; Rückfall; 401/403
 
 ## 6. Phase 4 – Einkaufslisten
+
+> Zurückgestellt: Ersetzt `piece_equivalent` quer durch `planner`, `shopping` und `supply` und überschneidet sich mit `shopping-list-source-freshness`; zuerst dort entscheiden, dann hier umsetzen.
 
 - [ ] 6.1 `shopping_service`: `start_unit` + `ingredient_id`, `piece_equivalent` entfernen
 - [ ] 6.2 `ShoppingListItemOut.start_unit`; WebSocket-Payload; Zod `shoppingList.ts`
@@ -62,3 +66,8 @@
 - [ ] 7.2 Dry-Run `normalize_meal_item_units` auf einer Prod-Kopie, Bericht prüfen, Okay einholen
 - [ ] 7.3 Phase 3 erst nach Archivierung von `unified-buffet-wizard` mergen
 - [ ] 7.4 Manuell mit Peters Fall: Brötchen in Stück, Frischkäse in EL, Salz in Prise, „Brot: 2 Stück/Person“, Einkaufsliste, PDF; 320 px
+
+## 8. Nachtrag aus `recipe-to-meal-plan`
+
+- [x] 8.1 Mengenpille: Ist der Portionsname eine Volumen-/Masseneinheit, zeigt sie „(≈ 1.020 g)“ statt „à 980 ml“ (`formatPortionReference`).
+- [x] 8.2 Management-Command `report_volume_portion_density` (nur Report) für Volumen-Portionen mit abweichender Dichte; Korrekturen nur nach OK im Prod-Rollout.

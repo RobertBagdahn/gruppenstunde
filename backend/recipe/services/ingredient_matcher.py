@@ -473,6 +473,8 @@ class IngredientMatcher:
             confidence=confidence,
             matched_via=via,
             note=note,
+            # A head-noun match drops an addition ("mit Kohlensäure"): a human confirms it.
+            needs_review=via == "head",
             candidates=listed[:5],
             reason=reason,
             technical_details={"stage": "normalized", "comparison": via},

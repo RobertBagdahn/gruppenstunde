@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+# event-smart-defaults Specification
 
 ### Requirement: Default event name with auto-incrementing number
 The event creation form SHALL pre-fill the event name with "Mein Lager" followed by an auto-incrementing number based on the user's existing events. The number SHALL be determined via an API call.
@@ -69,8 +69,10 @@ The event creation form SHALL automatically set the registration deadline to the
 - **THEN** the system SHALL NOT overwrite the user's choice on subsequent start date changes
 - **THEN** the auto-fill SHALL only apply when the deadline has not been manually edited
 
-## ADDED Requirements
+## Purpose
+Specification of event-smart-defaults.
 
+## Requirements
 ### Requirement: Auto-fill end date from start date
 The event creation form SHALL automatically set the end date when a start date is selected.
 

@@ -12,6 +12,8 @@ import { IngredientAutocomplete } from './IngredientAutocomplete';
 import { useIngredientPortions } from '@/api/supplies';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ErrorDisplay from '@/components/ErrorDisplay';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   isIngredientReviewRowComplete,
   useRecipeIngredientReviewStore,
@@ -266,6 +268,8 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   const {
     data: dialogPortions = [],
     isSuccess: dialogPortionsReady,
+    error: dialogPortionsError,
+    refetch: refetchDialogPortions,
   } = useIngredientPortions(quantityIngredient?.slug ?? '');
   const draft = row.new_ingredient_draft;
 
@@ -455,6 +459,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
           />
           </div>
           <p className="text-caption text-muted-foreground mt-1">{row.reason || 'Manuelle Zuordnung erforderlich'}</p>
+          {row.note && <p className="text-caption text-muted-foreground" data-testid="review-row-note">Zusatz: {row.note}</p>}
 
           {/* Candidate alternatives */}
           {alternativeCandidates.length > 0 && (
@@ -622,6 +627,29 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       )}
 
       {/* Quantity dialog for existing ingredients */}
+      {quantityIngredient && !dialogPortionsReady && (
+        <Dialog open onOpenChange={(isOpen) => { if (!isOpen) setQuantityIngredient(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-section font-display">{quantityIngredient.name}</DialogTitle>
+            </DialogHeader>
+            {dialogPortionsError || !quantityIngredient.slug ? (
+              <ErrorDisplay
+                variant="inline"
+                error={dialogPortionsError ?? new Error('Portionen konnten nicht geladen werden')}
+                title="Portionen konnten nicht geladen werden"
+                onRetry={quantityIngredient.slug ? () => void refetchDialogPortions() : undefined}
+              />
+            ) : (
+              <div className="space-y-3" role="status" aria-label="Portionen werden geladen">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-2/3" />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
       {quantityIngredient && dialogPortionsReady && (
         <IngredientQuantityDialog
           key={quantityIngredient.slug}

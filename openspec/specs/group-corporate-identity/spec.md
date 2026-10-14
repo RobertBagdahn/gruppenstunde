@@ -1,5 +1,9 @@
-## ADDED Requirements
+# group-corporate-identity Specification
 
+## Purpose
+Specification of group-corporate-identity.
+
+## Requirements
 ### Requirement: Group Corporate Identity data model
 The system SHALL provide a `GroupCorporateIdentity` model as a OneToOneField on `UserGroup` that stores all CI-related data. The model SHALL include: `primary_color` (hex, default `#4a3a6b`), `secondary_color` (hex, default `#e8e4f0`), `logo` (ImageField, max 500KB), `slogan` (max 200 chars), `greeting_text` (TextField), `footer_text` (TextField), `payment_info` (TextField), `signature_text` (TextField).
 
@@ -89,8 +93,6 @@ The system SHALL provide a helper function `get_event_ci(event)` that resolves t
 
 # CI Email Templates
 
-## ADDED Requirements
-
 ### Requirement: HTML email base template with CI styling
 The system SHALL provide an HTML email base template at `backend/event/templates/event/email/base.html` that renders CI-branded emails. The template SHALL use inline CSS and table-based layout for maximum email client compatibility. The template SHALL include a header with the group's logo and primary color, a content block, and a footer with the group's footer text.
 
@@ -143,8 +145,6 @@ The system SHALL provide an HTML template `backend/event/templates/event/email/i
 ---
 
 # CI Invitation PDF
-
-## ADDED Requirements
 
 ### Requirement: Invitation PDF generation
 The system SHALL provide a service `InvitationPdfService` in `backend/event/services/invitation_pdf.py` that generates a branded A4 portrait PDF for event invitations using ReportLab. The PDF SHALL include the group's CI (logo, colors, text blocks).

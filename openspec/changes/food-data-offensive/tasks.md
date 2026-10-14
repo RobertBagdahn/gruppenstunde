@@ -14,7 +14,7 @@
 ## 2. KI
 - [x] 2.1 Alle Text-Services auf `DEFAULT_TEXT_MODEL` (`gemini-3.5-flash-lite`)
 - [x] 2.2 Zauberstab-Prompt überarbeitet (Kontext, Regeln, Warengruppe, Enums, EU-KH)
-- [ ] 2.3 Gemeinsame `INGREDIENT_DATA_RULES` für Fill-Missing, AI-Create, Batch – Review 2026-10-11: Fill-Missing und AI-Create nutzen die Konstante; der Batch-Review-Prompt (`ingredient_ai_review_service.py`) hat eigene Regeln (Atwater ±15 % statt ±25 % im Regelwerk) und importiert sie nicht
+- [x] 2.3 Gemeinsame `INGREDIENT_DATA_RULES` für Fill-Missing, AI-Create und Batch-Review: `build_review_prompt` bettet die Konstante ein (Test `test_batch_prompt_embeds_the_shared_ingredient_data_rules`)
 - [x] 2.4 `ai_create_ingredient` verwendet vorhandene Namen wieder
 
 ## 3. API & Frontend
@@ -28,4 +28,4 @@
 - [ ] 4.3 Produktion: `migrate` → `food_offensive_apply --apply` → Embeddings
 - [ ] 4.4 Offene Freigaben im Cockpit: 69 Umbenennungen, 82 Duplikatverdachte, 7 Nicht-Zutaten, Namensvarianten
 - [ ] 4.5 Folgearbeiten aus design.md D5/D6 (Import-Gate, product_form)
-- [ ] 4.6 Spec-Abgleich: Szenario „Import-Fehler“ verlangt Energie, Fett **und** Kohlenhydrate = NULL; `nutrition_plausibility.py` setzt KH nur bei KH = 0 und Zucker > 0 auf NULL (Test deckt nur diesen Fall ab). Code oder Szenario angleichen
+- [x] 4.6 Spec-Abgleich entschieden (Owner 2026-10-14): Szenario „Import-Fehler“ an den Code angeglichen (KH nur bei KH = 0 und Zucker > 0 auf `NULL`).

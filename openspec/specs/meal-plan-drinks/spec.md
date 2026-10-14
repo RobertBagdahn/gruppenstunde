@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-plan-drinks Specification
 
+## Purpose
+Specification of meal-plan-drinks.
+
+## Requirements
 ### Requirement: Drinks excluded from calorie day balance
 Meals of type `drinks` SHALL be excluded from the calorie (kcal) day balance in both the Tagesplan day header and the backend nutrition summary. Their own calories MAY be shown informationally on the drinks slot, but SHALL NOT contribute to the day's Soll or Ist kcal totals.
 

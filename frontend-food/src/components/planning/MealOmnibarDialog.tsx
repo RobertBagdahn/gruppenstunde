@@ -1,34 +1,18 @@
 import { Fragment, useState, useEffect, useRef, useMemo } from 'react';
-import { Search, ChefHat, Carrot, Sparkles, Check, X, Users, Euro, AlertCircle, Plus, BadgeCheck, Flame, Utensils } from 'lucide-react';
+import { Search, ChefHat, Carrot, Sparkles, Check, X, AlertCircle, Plus, Info } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRecipeSearch } from '@/api/mealPlans';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
 import { IngredientQuantityInline } from '@/pages/planning/RecipeSearchDialog';
 import { cn } from '@/lib/utils';
 import { formatNumber, plural } from '@/lib/format';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
+import RecipePreviewContent, { recipeTypeLabel } from './RecipePreviewContent';
+import RecipePreviewSheet from './RecipePreviewSheet';
 
 type FilterPill = 'all' | 'recipes' | 'ingredients';
 
 /** In the `Alle` pill each group shows only its best matches. */
-const ALL_GROUP_LIMIT = 5;
-
-const RECIPE_TYPE_LABELS: Record<string, string> = {
-  breakfast: 'Frühstück',
-  warm_meal: 'Warme Mahlzeit',
-  cold_meal: 'Kalte Mahlzeit',
-  snack: 'Snack',
-  drink: 'Getränk',
-  dessert: 'Dessert',
-};
-
-function recipeTypeLabel(type: string): string {
-  return RECIPE_TYPE_LABELS[type] ?? 'Rezept';
-}
-
-function formatOptionalBadge(value: number | null | undefined, suffix: string): string | null {
-  return value == null ? null : `${Math.round(value)} ${suffix}`;
-}
+const ALL_GROUP_LIMIT = 8;
 
 export interface MealOmnibarDialogProps {
   open: boolean;
@@ -68,6 +52,7 @@ export function MealOmnibarDialog({
   const [filter, setFilter] = useState<FilterPill>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [quantityIngredient, setQuantityIngredient] = useState<IngredientSearchResult | null>(null);
+  const [sheetRecipe, setSheetRecipe] = useState<RecipeSearchResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus input when opening
@@ -77,6 +62,7 @@ export function MealOmnibarDialog({
       setFilter('all');
       setSelectedIndex(0);
       setQuantityIngredient(null);
+      setSheetRecipe(null);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
@@ -317,6 +303,9 @@ export function MealOmnibarDialog({
                         </>
                       )}
                       {item.type === 'ingredient' && <span>Einzelzutat</span>}
+                      {item.type === 'ingredient' && item.data.status === 'draft' && (
+                        <span className="rounded-full bg-warning-soft px-2 py-0.5 text-warning">Entwurf</span>
+                      )}
                     </div>
                   </div>
 
@@ -344,53 +333,7 @@ export function MealOmnibarDialog({
             {activeItem ? (
               <div className="space-y-5">
                 {activeItem.type === 'recipe' && (
-                  <>
-                    <div>
-                      <div className="flex items-center gap-2 text-caption font-semibold text-primary mb-2">
-                        <ChefHat className="w-4 h-4" />
-                        {recipeTypeLabel(activeItem.data.recipe_type)}
-                        {activeItem.data.recipe_badge === 'verified' && (
-                          <span className="inline-flex items-center gap-1 text-muted-foreground"><BadgeCheck className="w-3.5 h-3.5" />Verifiziert</span>
-                        )}
-                      </div>
-                      <h3 className="font-display font-bold text-section text-foreground leading-tight break-words">
-                        {activeItem.data.title}
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-caption">
-                        <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card px-3 py-2 font-semibold text-foreground break-words shadow-card">
-                          <Users className="w-3.5 h-3.5 text-primary" />
-                          {normPortions} Personen
-                        </span>
-                        {activeItem.data.price_per_serving != null && (
-                          <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-card px-3 py-2 font-semibold text-foreground break-words shadow-card">
-                            <Euro className="w-3.5 h-3.5 text-success" />
-                            {formatNumber((activeItem.data.price_per_serving * normPortions), { maxDecimals: 2 })} € gesamt
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {(activeItem.data.description || (activeItem.data.ingredients_preview?.length ?? 0) > 0) && (
-                      <div className="space-y-3 text-caption">
-                        {activeItem.data.description && <MarkdownRenderer content={activeItem.data.description} className="text-muted-foreground leading-relaxed break-words" />}
-                        {activeItem.data.ingredients_preview && activeItem.data.ingredients_preview.length > 0 && (
-                          <div className="rounded-xl bg-card p-3 shadow-card">
-                            <div className="flex items-center gap-2 font-semibold text-foreground mb-2"><Utensils className="w-3.5 h-3.5 text-primary" />Enthält unter anderem</div>
-                            <p className="text-muted-foreground leading-relaxed break-words">{activeItem.data.ingredients_preview.join(' · ')}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {(activeItem.data.cached_energy_kcal != null || activeItem.data.cached_protein_g != null || activeItem.data.nutritional_tags?.length) && (
-                      <div className="rounded-xl bg-card p-3 space-y-2 shadow-card">
-                        <div className="flex items-center gap-2 text-caption font-semibold text-foreground"><Flame className="w-3.5 h-3.5 text-primary" />Nährwerte und Hinweise</div>
-                        <div className="flex flex-wrap gap-2 text-caption text-muted-foreground">
-                          {formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal/100 g') && <span>{formatOptionalBadge(activeItem.data.cached_energy_kcal, 'kcal/100 g')}</span>}
-                          {formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein/100 g') && <span>{formatOptionalBadge(activeItem.data.cached_protein_g, 'g Protein/100 g')}</span>}
-                          {activeItem.data.nutritional_tags?.map((tag) => <span key={tag.id} className="rounded-full bg-primary/10 px-2 py-1 text-primary">{tag.name}</span>)}
-                        </div>
-                      </div>
-                    )}
-                  </>
+                  <RecipePreviewContent recipe={activeItem.data} normPortions={normPortions} />
                 )}
 
                 {activeItem.type === 'ingredient' && (
@@ -447,19 +390,41 @@ export function MealOmnibarDialog({
                   : `${recipeTypeLabel(activeItem.data.recipe_type)}${activeItem.data.price_per_serving == null ? '' : ` · ${formatNumber(activeItem.data.price_per_serving * normPortions, { maxDecimals: 2 })} € gesamt`}`}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleConfirmSelection(activeItem)}
-              className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-caption bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              {activeItem.type === 'recipe' ? `Gericht hinzufügen (${normPortions} P.)` : 'Zutat hinzufügen'}
-            </button>
+            <div className="flex gap-2">
+              {activeItem.type === 'recipe' && (
+                <button
+                  type="button"
+                  onClick={() => setSheetRecipe(activeItem.data)}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-caption font-bold text-foreground hover:bg-muted"
+                >
+                  <Info className="w-4 h-4" />
+                  Details
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleConfirmSelection(activeItem)}
+                className="min-w-0 flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-caption bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                {activeItem.type === 'recipe' ? `Gericht hinzufügen (${normPortions} P.)` : 'Zutat hinzufügen'}
+              </button>
+            </div>
           </div>
         )}
         </>
         )}
       </DialogContent>
+      <RecipePreviewSheet
+        recipe={sheetRecipe}
+        normPortions={normPortions}
+        onOpenChange={(isOpen) => { if (!isOpen) setSheetRecipe(null); }}
+        onAdd={(recipe) => {
+          setSheetRecipe(null);
+          onSelectRecipe(recipe.id, recipe.title);
+          onOpenChange(false);
+        }}
+      />
     </Dialog>
   );
 }

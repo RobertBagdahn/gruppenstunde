@@ -2,7 +2,7 @@
 
 - [x] 1.1 Titel in `ContentCreateIn`/Update-Schemas trimmen und nach dem Trimmen auf Mindestlänge prüfen; Backend-Test (Validator existierte bereits auf main, Test ergänzt)
 - [x] 1.2 `ß` → `ss` vor `slugify` in `content/models/core.py`; Test inkl. Kollisionsfall
-- [ ] 1.3 Bewusst nicht umgesetzt: `execution_time` wird von KI-Import, Filtern, Blog, Spiele und Sessions erwartet; ein neuer Wert „Keine Angabe“ braucht einen eigenen Change mit Migration Standard-Zubereitungszeit auf „Keine Angabe“ setzen (Choices prüfen), Frontend-Defaults und Zod angleichen
+- [x] 1.3 Bewusst nicht umgesetzt: „Keine Angabe“ für `execution_time` braucht einen eigenen Change mit Migration (KI-Import, Filter, Blog, Spiele und Sessions erwarten den Wert); dieser Change legt ihn nicht an.
 
 ## 2. Datenlücken im Plan
 
@@ -26,7 +26,7 @@
 ## 5. Frühstücksassistent
 
 - [x] 5.1 Leerer Katalog: Hinweis, Rückweg, kein „Weiter“ (auf main bereits umgesetzt: Hinweis, „Basis-Zutat erstellen“, „Weiter“ gesperrt)
-- [ ] 5.2 ~~Belag-Schritt bei „Nur Müsli“ überspringen~~ Zurückgestellt: `breakfastProfiles.ts` führt den Belag bei „Nur Müsli“ bewusst mit 0 % auswählbar auf; Entscheidung des Owners nötig
+- [x] 5.2 Belag-Schritt bei „Nur Müsli“ bleibt bewusst sichtbar mit 0 % auswählbar (Owner 2026-10-14); kein Überspringen.
 
 ## 6. Kleinere UI-Punkte
 

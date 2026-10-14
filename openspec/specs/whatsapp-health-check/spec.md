@@ -1,5 +1,9 @@
-## ADDED Requirements
+# whatsapp-health-check Specification
 
+## Purpose
+Specification of whatsapp-health-check.
+
+## Requirements
 ### Requirement: Send test message to own number
 The system SHALL allow authenticated users to send a test WhatsApp message to their own phone number to verify the connection is working. The test message SHALL use a predefined text and SHALL NOT count against the regular message rate limit.
 

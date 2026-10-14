@@ -1,5 +1,9 @@
-## ADDED Requirements
+# whatsapp-connection Specification
 
+## Purpose
+Specification of whatsapp-connection.
+
+## Requirements
 ### Requirement: Connect WhatsApp account via QR code
 The system SHALL allow authenticated users to connect their personal WhatsApp account by scanning a QR code displayed on the profile page. The QR code SHALL be generated server-side by the neonize library and displayed as a Base64-encoded PNG image. The system SHALL poll for connection status every 2 seconds until the pairing is complete or times out.
 

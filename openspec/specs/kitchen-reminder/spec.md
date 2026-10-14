@@ -1,5 +1,9 @@
-## ADDED Requirements
+# kitchen-reminder Specification
 
+## Purpose
+Specification of kitchen-reminder.
+
+## Requirements
 ### Requirement: Küchenbedarf-Erinnerungen anzeigen
 Alle veröffentlichten Küchenbedarf-Artikel werden am Ende jeder Einkaufsliste gruppiert nach Kategorie angezeigt. Zusätzlich sieht ein eingeloggter User seine eigenen unveröffentlichten Vorschläge.
 

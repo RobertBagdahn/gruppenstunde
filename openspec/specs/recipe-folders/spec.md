@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-folders Specification
 
+## Purpose
+Specification of recipe-folders.
+
+## Requirements
 ### Requirement: RecipeFolder Model
 The system SHALL provide a RecipeFolder model with fields: name, owner FK, sort_order (int), and parent FK (self-referential, nullable for top-level folders).
 

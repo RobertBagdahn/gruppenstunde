@@ -1,5 +1,9 @@
-## ADDED Requirements
+# nutrition-unit-badges Specification
 
+## Purpose
+Specification of nutrition-unit-badges.
+
+## Requirements
 ### Requirement: Nutrition base badges on recipe detail page
 
 Die Recipe-Detailseite SHALL für jede Section, die Nährwerte anzeigt, einen visuellen Badge mit der Bezugsgröße anzeigen. Es gibt drei Badge-Typen: "pro 100g", "pro Portion", "gesamt".

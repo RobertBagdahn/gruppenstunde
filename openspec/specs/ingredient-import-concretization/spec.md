@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-import-concretization Specification
 
+## Purpose
+Specification of ingredient-import-concretization.
+
+## Requirements
 ### Requirement: Konkretisierung von Grundzutaten beim KI-Import
 Das System SHALL den KI-Import-Prompt (`backend/recipe/services/url_import_service.py` und analog `ai_ingredients_service.py`) so anweisen, dass Grundzutaten nicht mehr pauschal weggelassen, sondern konkretisiert importiert werden. Insbesondere SHALL „Salz" als „Jodsalz" und „Pfeffer" als „Schwarzer Pfeffer gemahlen" importiert werden. Konkretisierte Grundzutaten zählen regulär zu Nährwerten und Einkaufsliste.
 

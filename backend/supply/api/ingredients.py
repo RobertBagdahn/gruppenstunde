@@ -203,9 +203,9 @@ def list_ingredients(
     qs = _visible_ingredients_qs(request)
 
     if name:
-        qs = qs.filter(
-            Q(name__icontains=name) | Q(aliases__name__icontains=name) | Q(groups__name__icontains=name)
-        ).distinct()
+        from supply.services.ingredient_search import ingredient_name_q
+
+        qs = qs.filter(ingredient_name_q(name) | Q(groups__name__icontains=name)).distinct()
 
     if group:
         qs = qs.filter(groups__slug=group)

@@ -96,6 +96,10 @@ export type ShoppingListItem = z.output<typeof ShoppingListItemSchema>;
 
 // --- List (summary for list views) ---
 
+/** Freshness of a list created from a meal plan; null for other lists or without access to the plan. */
+export const ShoppingListSourceStatusSchema = z.enum(['current', 'changed', 'deleted']);
+export type ShoppingListSourceStatus = z.infer<typeof ShoppingListSourceStatusSchema>;
+
 export const ShoppingListSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -110,6 +114,8 @@ export const ShoppingListSchema = z.object({
   updated_at: z.string(),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
+  source_status: ShoppingListSourceStatusSchema.nullable().default(null),
+  source_updated_at: z.string().nullable().default(null),
 });
 
 export type ShoppingList = z.output<typeof ShoppingListSchema>;
@@ -130,6 +136,8 @@ export const ShoppingListDetailSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   warnings: z.array(QuantityWarningSchema).default([]),
+  source_status: ShoppingListSourceStatusSchema.nullable().default(null),
+  source_updated_at: z.string().nullable().default(null),
 });
 
 export type ShoppingListDetail = z.output<typeof ShoppingListDetailSchema>;

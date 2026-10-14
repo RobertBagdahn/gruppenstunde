@@ -83,6 +83,18 @@ function configureMocks() {
   } as unknown as ReturnType<typeof useDeleteMealPlanTag>);
 }
 
+function renderPanelWithServerErrors(serverFieldMessages: Record<string, string>) {
+  return render(
+    <SettingsPanel
+      planId={1}
+      plan={{ ...basePlan, event_id: null, has_group_members: false }}
+      onSave={vi.fn()}
+      isPending={false}
+      serverFieldMessages={serverFieldMessages}
+    />,
+  );
+}
+
 function renderPanel(
   plan: TestPlan,
   onSave: (data: SettingsData) => void = vi.fn<(data: SettingsData) => void>(),
@@ -180,5 +192,34 @@ describe('SettingsPanel norm portions', () => {
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ norm_portions_manual: false }));
     expect(onSave.mock.calls[0][0]).not.toHaveProperty('norm_portions');
+  });
+});
+
+describe('SettingsPanel input limits', () => {
+  beforeEach(() => {
+    configureMocks();
+  });
+
+  it('shows the allowed range and blocks saving for a reserve factor outside 1,0 to 2,0', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn<(data: SettingsData) => void>();
+    renderPanel({ ...basePlan, event_id: null, has_group_members: false }, onSave);
+
+    expect(screen.getByText('Erlaubt: 1,0 bis 2,0')).toBeInTheDocument();
+    const reserve = screen.getByRole('spinbutton', { name: 'Reservefaktor' });
+    await user.clear(reserve);
+    await user.type(reserve, '2.5');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Der Reservefaktor muss zwischen 1,0 und 2,0 liegen.');
+    const save = screen.getByRole('button', { name: 'Speichern' });
+    expect(save).toBeDisabled();
+    await user.click(save);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('shows the server message at the field of a 422', () => {
+    renderPanelWithServerErrors({ activity_factor: 'Der Aktivitätsfaktor muss zwischen 1,0 und 2,5 liegen.' });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Der Aktivitätsfaktor muss zwischen 1,0 und 2,5 liegen.');
   });
 });

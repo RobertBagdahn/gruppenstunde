@@ -126,6 +126,8 @@ def list_shopping_lists(
     q: str = "",
     sort: Literal["newest", "oldest", "name_asc"] = "newest",
     mine: bool = False,
+    source_type: Literal["manual", "recipe", "meal_event"] | None = None,
+    source_id: int | None = None,
 ):
     """List shopping lists the user owns or collaborates on.
 
@@ -148,6 +150,10 @@ def list_shopping_lists(
         qs = qs.filter(name__icontains=q)
     if mine:
         qs = qs.filter(owner=request.user)
+    if source_type is not None:
+        qs = qs.filter(source_type=source_type)
+    if source_id is not None:
+        qs = qs.filter(source_id=source_id)
     ordering = {
         "newest": ("-updated_at", "-id"),
         "oldest": ("updated_at", "id"),
@@ -155,7 +161,11 @@ def list_shopping_lists(
     }[sort]
     qs = qs.order_by(*ordering)
     result = paginate_queryset(qs, page, page_size)
+    from shopping.services.source_status import freshness_for_lists
+
+    freshness = freshness_for_lists(request.user, result["items"])
     for item in result["items"]:
+        item._source_freshness = freshness.get(item.id)
         if item.owner_id == request.user.id:
             item.can_edit = True
             item.can_delete = True
@@ -335,6 +345,7 @@ def get_shopping_list(request, shopping_list_id: int):
     )
     shopping_list._is_owner = role == "owner"
     shopping_list.quantity_warnings = _quantity_warnings(shopping_list)
+    shopping_list._request_user = request.user
     return shopping_list
 
 
@@ -907,6 +918,7 @@ def create_from_meal_plan(request, meal_plan_id: int, include_consumables: bool 
     # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True
     shopping_list._is_owner = True
+    shopping_list._request_user = request.user
     from planner.services.quantity_plausibility import check_meals
 
     shopping_list.quantity_warnings = check_meals(meal_plan.meals.filter(is_reference=False))

@@ -3,8 +3,7 @@
 ## Purpose
 Definiert den Staff-only Zutaten-Merge-Flow: Von der IngredientEditPage und dem DuplicateDetectionList-Admin-Dashboard aus können zwei Zutaten zusammengeführt werden — mit Suche, Preview und Sicherheitswarnung.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Ingredient Soft-Delete
 Das Ingredient-Model SHALL Soft-Delete unterstützen und weiche statt harte Löschung verwenden.
 

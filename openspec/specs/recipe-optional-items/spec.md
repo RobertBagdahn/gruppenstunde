@@ -1,9 +1,13 @@
+# recipe-optional-items Specification
+
 > **⚠️ MODIFIED — Varianten statt Splits**
 > Optionale Items existieren weiterhin. Die Planung verwendet jetzt `MealItem.active_recipe_item_ids`
 > statt `MealItemSplit`. Siehe `openspec/changes/variant-items/`.
 
-## ADDED Requirements
+## Purpose
+Specification of recipe-optional-items.
 
+## Requirements
 ### Requirement: Rezeptautor kann Zutaten als optional markieren
 
 Der Autor eines Rezepts SHALL einzelne `RecipeItem`-Einträge als optional markieren können (`is_optional=True`). Eine optionale Zutat ist situationsabhängig — beim Einplanen entscheidet der Planer mit einem Portionen-Split, wie viele Portionen die Zutat erhalten.
@@ -52,8 +56,6 @@ Wenn ein MealItem keine Varianten-Einträge für eine optionale Zutat in `active
 
 - **WHEN** die optionale Zutat in keiner `MealItem.active_recipe_item_ids`-Liste einer Variante enthalten ist
 - **THEN** erscheint die Zutat nicht in der Einkaufsliste
-
-## MODIFIED Requirements
 
 ### Requirement: Delete-Protection über active_recipe_item_ids
 

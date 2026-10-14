@@ -1,5 +1,9 @@
-## ADDED Requirements
+# event-persons-ui Specification
 
+## Purpose
+Specification of event-persons-ui.
+
+## Requirements
 ### Requirement: Persons list page route
 A new route `/events/app/persons` SHALL be created to display a CRUD list page for managing Person records. This page is frontend-only and uses the existing Person API at `/api/persons/`.
 

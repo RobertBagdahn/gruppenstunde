@@ -1,5 +1,9 @@
-## ADDED Requirements
+# ingredient-tags Specification
 
+## Purpose
+Specification of ingredient-tags.
+
+## Requirements
 ### Requirement: IngredientDetailOut SHALL include tags
 Das `IngredientDetailOut`-Schema SHALL ein `tags: list[TagOut]`-Feld enthalten mit allen content.Tags der Zutat.
 

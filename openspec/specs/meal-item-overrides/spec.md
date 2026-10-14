@@ -1,5 +1,9 @@
-## ADDED Requirements
+# meal-item-overrides Specification
 
+## Purpose
+Specification of meal-item-overrides.
+
+## Requirements
 ### Requirement: MealItemOverride Model
 The system SHALL provide a MealItemOverride model with: meal_item FK, recipe_item FK, quantity_override (nullable Decimal), and excluded (bool, default false).
 

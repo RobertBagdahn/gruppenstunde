@@ -1,7 +1,7 @@
 import { PageSkeleton } from '@/components/ui/skeleton';
 import SectionBoundary from '@/components/shared/SectionBoundary';
 import { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, AlertTriangle, Minus, Plus, Clock, BarChart2, Users, BadgeCheck, Link2 } from 'lucide-react';
+import { CalendarPlus, Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, AlertTriangle, Minus, Plus, Clock, BarChart2, Users, BadgeCheck, Link2 } from 'lucide-react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { EntityLink } from '@/components/shared/EntityLink';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
@@ -69,6 +69,8 @@ import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
 import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import { notify } from '@/lib/notify';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
+import AddRecipeToMealPlanDialog from '@/components/recipe/AddRecipeToMealPlanDialog';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import { RecipeAnalysisTabs } from '@/components/recipe/RecipeAnalysisTabs';
 import { PriceTab } from '@/components/recipe/PriceTab';
@@ -128,6 +130,9 @@ export default function RecipeDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode');
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [mealPlanDialogOpen, setMealPlanDialogOpen] = useState(false);
+  const { guard: requireLogin } = useRequireLogin();
+  const openMealPlanDialog = () => requireLogin(() => setMealPlanDialogOpen(true), { reason: 'Melde dich an, um Rezepte in deine Essenspläne zu legen.' });
 
   const { data: recipe, isLoading, error, refetch } = useRecipeBySlug(slug ?? '');
   const recipeId = recipe?.id ?? 0;
@@ -523,6 +528,14 @@ export default function RecipeDetailPage() {
                   Bearbeiten
                 </Link>
               )}
+              <button
+                type="button"
+                onClick={openMealPlanDialog}
+                className="press inline-flex h-11 items-center gap-2 rounded-lg bg-hero-soft px-4 text-body font-bold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+              >
+                <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+                Zum Essensplan
+              </button>
               <button
                 type="button"
                 onClick={() => setPdfDialogOpen(true)}
@@ -1413,10 +1426,18 @@ export default function RecipeDetailPage() {
       </div>
       </div>
 
+      <AddRecipeToMealPlanDialog
+        open={mealPlanDialogOpen}
+        onOpenChange={setMealPlanDialogOpen}
+        recipeId={recipe.id}
+        recipeTitle={recipe.title}
+      />
+
       {/* Mobile Action Bar */}
       <RecipeMobileActionBar
         onOpenShoppingList={handleOpenShoppingList}
         onOpenPortions={() => setPortionSheetOpen(true)}
+        onAddToMealPlan={openMealPlanDialog}
         recipeSlug={slug}
         canCook={canCook}
       />

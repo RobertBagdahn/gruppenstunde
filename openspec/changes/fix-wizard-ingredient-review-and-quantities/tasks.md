@@ -5,7 +5,7 @@
 - [x] 1.3 Tests: 2 EL Olivenöl → 2, 1 Zwiebel → 1, Prise Salz, g und Dose unverändert, Portion ohne Gewicht überspringt Direktabgleich
 - [x] 1.4 `_suggested_portion_count` in `ingredient_review_service.py` gegen die neuen Fälle über `preview_recipe_ingredients` testen
 - [x] 1.5 Review-Zeile übernimmt die direkt gefundene Portion statt der Rang-1-Portion (`convert_to_portion`, WP-02; Test `test_review_selects_directly_matched_rank2_portion`)
-- [ ] 1.6 Direktabgleich auch über `portion.measuring_unit` und für weitere Pluralformen („Dosen“, „Zehen“, „Scheiben“, „Gläser“) – Spec und Design verlangen „Name oder Messeinheit“, der Code gleicht derzeit nur normalisierte Portionsnamen ab; umsetzen oder Spec eingrenzen
+- [x] 1.6 Direktabgleich über Portionsname **oder** `portion.measuring_unit` und weitere Pluralformen („Dosen“, „Zehen“, „Scheiben“, „Gläser“, „Packungen“) in `UnitGramConverter._direct_portion_count`; Tests in `recipe/tests/test_unit_gram_conversion.py`
 
 ## 2. Frontend: Review-Schritt (frontend-food)
 

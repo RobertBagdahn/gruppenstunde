@@ -1,5 +1,9 @@
-## ADDED Requirements
+# recipe-detail-enrichments Specification
 
+## Purpose
+Specification of recipe-detail-enrichments.
+
+## Requirements
 ### Requirement: Nährwert-Tabelle mit pro-Portion-, Gesamt- und DGE-Spalten
 Die Rezept-Detailseite SHALL eine ausklappbare Nährwert-Tabelle anzeigen, die je Nährwert (Energie, Protein, Fett, Kohlenhydrate, Zucker, Ballaststoffe, Salz) drei Werte zeigt: pro 100g, pro Portion und prozentualer Anteil am DGE-Referenzwert. Bei gesetzter Portionszahl `n` SHALL zusätzlich eine Gesamt-Spalte (× n) erscheinen.
 

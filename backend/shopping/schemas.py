@@ -1,6 +1,7 @@
 """Pydantic schemas for the Shopping app."""
 
 from datetime import datetime
+from typing import Literal
 
 from ninja import Schema
 from pydantic import Field
@@ -295,6 +296,19 @@ class ShoppingListItemUpdateIn(Schema):
 # --- List schemas ---
 
 
+def _freshness_of(obj):
+    """Freshness attached by the API (batched for lists); computed on demand for a single list."""
+    from shopping.services.source_status import NO_STATUS, freshness_for_lists
+
+    cached = getattr(obj, "_source_freshness", None)
+    if cached is not None:
+        return cached
+    user = getattr(obj, "_request_user", None)
+    if user is None:
+        return NO_STATUS
+    return freshness_for_lists(user, [obj]).get(obj.id, NO_STATUS)
+
+
 class ShoppingListOut(Schema):
     """Output schema for shopping list in list views (summary)."""
 
@@ -311,6 +325,17 @@ class ShoppingListOut(Schema):
     updated_at: datetime
     can_edit: bool = False
     can_delete: bool = False
+    # Only for lists created from a meal plan; null for others and without read access to the plan.
+    source_status: Literal["current", "changed", "deleted"] | None = None
+    source_updated_at: datetime | None = None
+
+    @staticmethod
+    def resolve_source_status(obj) -> str | None:
+        return _freshness_of(obj).status
+
+    @staticmethod
+    def resolve_source_updated_at(obj) -> datetime | None:
+        return _freshness_of(obj).updated_at
 
     @staticmethod
     def resolve_owner_display_name(obj) -> str:
@@ -347,6 +372,16 @@ class ShoppingListDetailOut(Schema):
     updated_at: datetime
     # Only filled when the list is generated from a meal plan.
     warnings: list[QuantityWarningOut] = []
+    source_status: Literal["current", "changed", "deleted"] | None = None
+    source_updated_at: datetime | None = None
+
+    @staticmethod
+    def resolve_source_status(obj) -> str | None:
+        return _freshness_of(obj).status
+
+    @staticmethod
+    def resolve_source_updated_at(obj) -> datetime | None:
+        return _freshness_of(obj).updated_at
 
     @staticmethod
     def resolve_warnings(obj) -> list[dict]:

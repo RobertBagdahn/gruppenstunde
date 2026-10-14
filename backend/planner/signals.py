@@ -5,7 +5,8 @@ from django.db.models.functions import Greatest
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
-from planner.models.meal_plan import MealItem
+from planner.models.meal_plan import Meal, MealItem
+from planner.services.plan_touch import touch_meal_plan, touch_meal_plan_for_meal
 
 
 @receiver(post_save, sender=MealItem, dispatch_uid="planner.increment_usage_count_on_create")
@@ -58,3 +59,16 @@ def decrement_usage_count_on_delete(sender, instance, **kwargs):
 
         # Use GREATEST to prevent usage_count going below 0
         Recipe.objects.filter(pk=instance.recipe_id).update(usage_count=Greatest(F("usage_count") - 1, 0))
+
+
+@receiver(post_save, sender=MealItem, dispatch_uid="planner.touch_plan_on_item_save")
+@receiver(post_delete, sender=MealItem, dispatch_uid="planner.touch_plan_on_item_delete")
+def touch_plan_on_item_change(sender, instance, **kwargs):
+    """A created, changed or deleted item makes shopping lists of the plan outdated."""
+    touch_meal_plan_for_meal(instance.meal_id)
+
+
+@receiver(post_save, sender=Meal, dispatch_uid="planner.touch_plan_on_meal_save")
+@receiver(post_delete, sender=Meal, dispatch_uid="planner.touch_plan_on_meal_delete")
+def touch_plan_on_meal_change(sender, instance, **kwargs):
+    touch_meal_plan(instance.meal_plan_id)

@@ -1,5 +1,9 @@
-## ADDED Requirements
+# cost-overview-page Specification
 
+## Purpose
+Specification of cost-overview-page.
+
+## Requirements
 ### Requirement: Cost Calculation Overview Page
 Eine eigenständige Seite unter `/cost-calculation` zeigt aggregierte Kosteninformationen über alle Rezepte und MealPlans.
 

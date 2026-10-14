@@ -103,6 +103,7 @@ export const BuffetCatalogSearchItemSchema = z.object({
   piece_weight_g: z.number().nullable().optional(),
   recipe_type: z.string().nullable(),
   is_favorite: z.boolean(),
+  is_cooking_ingredient: z.boolean().default(false),
   role_slugs: z.array(z.string()),
 });
 export type BuffetCatalogSearchItem = z.infer<typeof BuffetCatalogSearchItemSchema>;

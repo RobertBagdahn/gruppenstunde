@@ -3,8 +3,7 @@
 ## Purpose
 Defines statistical price anomaly detection for ingredients and the batch AI price re-evaluation workflow.
 
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Preisausreißer-Erkennung
 Das System SHALL Zutaten mit auffälligen `price_per_kg`-Werten identifizieren und in einer Liste darstellen.
 

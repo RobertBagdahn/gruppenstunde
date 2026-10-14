@@ -240,6 +240,64 @@ def test_apply_rank_collision_returns_conflict_without_partial_changes(client, i
 
 
 @pytest.mark.django_db
+def test_apply_rolls_back_earlier_operations_when_a_later_operation_fails(client, ingredient, gram_unit):
+    """No `save` mock: a later operation fails for real and the endpoint's transaction undoes the first one."""
+    Portion.objects.create(
+        ingredient=ingredient, name="100g", measuring_unit=gram_unit, quantity=100, weight_g=100, rank=1
+    )
+    unweighted = Portion(
+        ingredient=ingredient, name="Scheibe", measuring_unit=gram_unit, quantity=1, weight_g=None, rank=2
+    )
+    unweighted.save()
+    from supply.services.portion_magic_wand import _context, _token
+
+    ingredient.refresh_from_db()
+    payload = {
+        "preview_token": _token(_context(ingredient)),
+        "operations": [
+            {
+                "operation_id": "weigh-slice",
+                "operation": "replace",
+                "source_portion_id": unweighted.id,
+                "name": "Scheibe",
+                "quantity": 1,
+                "measuring_unit_name": "Gramm",
+                "rank": 2,
+                "proposed_weight_g": 30,
+                "selected": False,
+                "requires_manual_weight": False,
+                "delete_without_replacement": False,
+            },
+            {
+                "operation_id": "duplicate-name",
+                "operation": "create",
+                "source_portion_id": None,
+                "name": "100g",
+                "quantity": 1,
+                "measuring_unit_name": "Gramm",
+                "rank": 3,
+                "proposed_weight_g": 55,
+                "selected": True,
+                "requires_manual_weight": False,
+                "delete_without_replacement": False,
+            },
+        ],
+    }
+
+    response = client.post(
+        f"{BASE}/{ingredient.slug}/portions/magic-wand/apply/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code in (409, 422), response.content
+    unweighted.refresh_from_db()
+    assert unweighted.weight_g is None
+    assert unweighted.deleted_at is None
+    assert Portion.objects.filter(ingredient=ingredient, name="100g").count() == 1
+
+
+@pytest.mark.django_db
 def test_hotdog_preview_returns_positive_piece_estimate_without_mutation(client, user, gram_unit):
     ingredient = make_ingredient(name="Hotdog-Brötchen", slug="hotdog-broetchen", status="draft", created_by=user)
     with patch("supply.services.portion_magic_wand.gemini_call") as gemini:

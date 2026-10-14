@@ -1,5 +1,9 @@
-## ADDED Requirements
+# portion-soft-delete Specification
 
+## Purpose
+Specification of portion-soft-delete.
+
+## Requirements
 ### Requirement: Soft-Delete für Portionen
 Portionen können soft-gelöscht werden. Eine gelöschte Portion bleibt in der Datenbank, wird aber in Listings und Auswahllisten nicht mehr angezeigt. Ist die zu löschende Portion noch von mindestens einem `RecipeItem` referenziert, MUSS das System diese RecipeItems zuerst automatisch auf die aktuell gültige `rank=1`-Portion derselben Zutat umhängen (Gramm-Menge erhalten), bevor die Portion soft-gelöscht wird.
 

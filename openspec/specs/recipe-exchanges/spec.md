@@ -1,9 +1,13 @@
+# recipe-exchanges Specification
+
 > **⚠️ MODIFIED — Varianten statt Splits**
 > Exchange-Gruppen existieren weiterhin. Die Planung verwendet jetzt `MealItem.active_recipe_item_ids`
 > statt `MealItemSplit`. Siehe `openspec/changes/variant-items/`.
 
-## ADDED Requirements
+## Purpose
+Specification of recipe-exchanges.
 
+## Requirements
 ### Requirement: Rezeptautor kann Exchange-Gruppen anlegen
 
 Der Autor eines Rezepts SHALL Exchange-Gruppen anlegen können, die austauschbare Zutaten zusammenfassen. Eine Exchange-Gruppe gehört zu einem Rezept und hat einen optionalen Namen (z.B. "Käse-Ersatz"). Jedes Mitglied der Gruppe ist ein `RecipeItem` mit `exchange_group`-FK und `exchange_position` (int). `exchange_position=0` ist das Original/Default.
@@ -76,8 +80,6 @@ Das System SHALL CRUD-Endpunkte für Exchange-Gruppen bereitstellen, zugänglich
 
 - **WHEN** `DELETE /{recipe_id}/exchanges/{group_id}/` aufgerufen wird und Varianten-Items auf Glieder verweisen
 - **THEN** antwortet das Backend mit HTTP 409 und einer deutschen Fehlermeldung
-
-## MODIFIED Requirements
 
 ### Requirement: Delete-Protection über active_recipe_item_ids
 

@@ -60,6 +60,15 @@ def _review_portion(portion: Portion) -> ReviewPortionOut:
     )
 
 
+def ingredient_slug_for(ingredient_id: int | None) -> str:
+    """Slug of an ingredient; the review UI loads portions by slug, so rows must carry it."""
+    if ingredient_id is None:
+        return ""
+    from supply.models import Ingredient
+
+    return Ingredient.objects.filter(pk=ingredient_id).values_list("slug", flat=True).first() or ""
+
+
 def _portion_for_ingredient(ingredient_id: int) -> ReviewPortionOut | None:
     from supply.models import Portion
 
@@ -250,6 +259,7 @@ def preview_recipe_ingredients(
                     source_text=ingredient.original_name,
                     sources=[source_output],
                     selected_ingredient_id=match.ingredient_id,
+                    selected_ingredient_slug=ingredient_slug_for(match.ingredient_id),
                     selected_ingredient_name=match.name,
                     suggested_ingredient_id=match.ingredient_id,
                     suggested_ingredient_name=match.name or ingredient.original_name,
@@ -259,6 +269,7 @@ def preview_recipe_ingredients(
                     quantity=quantity,
                     suggested_quantity=suggested_quantity,
                     reason=reason,
+                    note=match.note,
                     technical_details=ReviewTechnicalDetailsOut(
                         method=match.matched_via,
                         confidence=match.confidence,
