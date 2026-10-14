@@ -12,7 +12,7 @@ import {
   useBuffetPreview,
   useSaveBuffet,
 } from '@/api/buffet';
-import type { BuffetCatalogItem, BuffetCatalogRole, BuffetTemplate } from '@/schemas/buffet';
+import type { BuffetCatalogItem, BuffetCatalogRole, BuffetRoleUnitOption, BuffetTemplate } from '@/schemas/buffet';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import { getApiErrorMessage } from '@/lib/api';
@@ -46,7 +46,10 @@ interface RoleFormState {
   expanded: boolean;
   selected: Set<SelectionKey>;
   shares: Record<SelectionKey, ItemShareState>;
+  /** g/ml of the role, or the count of `unit` when a natural unit ("Stück", "EL") is chosen. */
   amount: number;
+  /** Natural unit key shared by all items of the role; null for g/ml. */
+  unit: string | null;
 }
 
 type BuffetBuilderStep = 'preset' | 'configure' | 'review';
@@ -286,6 +289,7 @@ export function BuffetBuilder({
         selected,
         shares: normalizeShares([...selected], savedShares),
         amount,
+        unit: (restoreThisTemplate ? savedState?.role_units?.[role.role.slug] : undefined) ?? null,
       };
     }
     setRoleStates(next);
@@ -295,9 +299,11 @@ export function BuffetBuilder({
   const buildSelections = () => {
     const selections: { role_slug: string; ingredient_id?: number | null; recipe_id?: number | null; share_percent: number }[] = [];
     const roleAmounts: Record<string, number> = {};
+    const roleUnits: Record<string, string> = {};
     for (const [roleSlug, state] of Object.entries(roleStates)) {
       if (state.selected.size === 0) continue;
       roleAmounts[roleSlug] = state.amount;
+      if (state.unit) roleUnits[roleSlug] = state.unit;
       for (const key of state.selected) {
         const [kind, idStr] = key.split(':');
         const id = Number(idStr);
@@ -309,19 +315,19 @@ export function BuffetBuilder({
         });
       }
     }
-    return { selections, roleAmounts };
+    return { selections, roleAmounts, roleUnits };
   };
 
   const retryPreview = () => {
     if (!template) return;
-    const { selections, roleAmounts } = buildSelections();
-    preview({ templateId: template.id, selections, roleAmounts, manualItemsPolicy });
+    const { selections, roleAmounts, roleUnits } = buildSelections();
+    preview({ templateId: template.id, selections, roleAmounts, roleUnits, manualItemsPolicy });
   };
 
   useEffect(() => {
     if (!template || seededTemplateRef.current !== template.id || Object.keys(roleStates).length === 0) return;
-    const { selections, roleAmounts } = buildSelections();
-    preview({ templateId: template.id, selections, roleAmounts, manualItemsPolicy });
+    const { selections, roleAmounts, roleUnits } = buildSelections();
+    preview({ templateId: template.id, selections, roleAmounts, roleUnits, manualItemsPolicy });
     // buildSelections reads roleStates/template; re-run whenever either changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roleStates, template, preview, manualItemsPolicy]);
@@ -416,6 +422,17 @@ export function BuffetBuilder({
     });
   };
 
+  // Switching to a natural unit starts at 1; switching back keeps the weight the preview computed.
+  const setUnit = (roleSlug: string, unit: string | null, defaultAmount: number) => {
+    setRoleStates((current) => {
+      const state = current[roleSlug];
+      if (!state || state.unit === unit) return current;
+      const grams = previewResult?.role_amounts?.[roleSlug]?.amount_g;
+      const amount = unit ? 1 : Math.max(Math.round(grams ?? defaultAmount), 1);
+      return { ...current, [roleSlug]: { ...state, unit, amount } };
+    });
+  };
+
   const toggleExpanded = (roleSlug: string) => {
     setRoleStates((current) => {
       const state = current[roleSlug];
@@ -434,9 +451,9 @@ export function BuffetBuilder({
 
   const handleSave = () => {
     if (!template) return;
-    const { selections, roleAmounts } = buildSelections();
+    const { selections, roleAmounts, roleUnits } = buildSelections();
     saveBuffet.mutate(
-      { templateId: template.id, selections, roleAmounts, manualItemsPolicy },
+      { templateId: template.id, selections, roleAmounts, roleUnits, manualItemsPolicy },
       {
         onSuccess: () => {
           notify.success('Buffet gespeichert', { description: `${template.name} für ${normPortions} Personen` });
@@ -532,7 +549,10 @@ export function BuffetBuilder({
                     <li key={`${item.role_slug}-${item.kind}-${item.id}`} className="flex flex-wrap items-center justify-between gap-2 p-3 text-body">
                       <span>{item.name} <span className="text-caption text-muted-foreground">({buffetRoleName(item.role_slug)})</span></span>
                       <span className="text-caption text-muted-foreground">
-                        {formatNumber(item.amount_per_person, { maxDecimals: 1 })} {item.unit}/P. · {Math.round(item.share_percent)} %
+                        {item.unit_label && item.unit_count != null
+                          ? `${formatNumber(item.unit_count, { maxDecimals: 2 })} ${item.unit_label} (${formatNumber(item.amount_per_person, { maxDecimals: 0 })} ${item.unit})/P.`
+                          : `${formatNumber(item.amount_per_person, { maxDecimals: 1 })} ${item.unit}/P.`}
+                        {' '}· {Math.round(item.share_percent)} %
                       </span>
                     </li>
                   ))}
@@ -636,6 +656,8 @@ export function BuffetBuilder({
                 onSearchChange={(value) => setRoleSearch((current) => ({ ...current, [role.role.slug]: value }))}
                 onToggleItem={(item) => toggleItem(role.role.slug, item)}
                 onAmountChange={(amount) => setAmount(role.role.slug, amount)}
+                unitOptions={previewResult?.role_unit_options?.[role.role.slug] ?? []}
+                onUnitChange={(unit) => setUnit(role.role.slug, unit, role.amount_per_person ?? 0)}
                 onShareChange={(key, value) => setItemShare(role.role.slug, key, value)}
                 onShareLock={(key) => toggleItemShareLock(role.role.slug, key)}
                 onToggleExpanded={() => toggleExpanded(role.role.slug)}
@@ -828,6 +850,8 @@ function RoleSection({
   onSearchChange,
   onToggleItem,
   onAmountChange,
+  unitOptions,
+  onUnitChange,
   onShareChange,
   onShareLock,
   onToggleExpanded,
@@ -842,11 +866,15 @@ function RoleSection({
   onSearchChange: (value: string) => void;
   onToggleItem: (item: BuffetCatalogItem) => void;
   onAmountChange: (amount: number) => void;
+  unitOptions: BuffetRoleUnitOption[];
+  onUnitChange: (unit: string | null) => void;
   onShareChange: (key: SelectionKey, value: number) => void;
   onShareLock: (key: SelectionKey) => void;
   onToggleExpanded: () => void;
 }) {
   const expanded = state?.expanded ?? role.enabled_by_default;
+  const naturalUnit = state?.unit ?? null;
+  const naturalUnitLabel = unitOptions.find((option) => option.key === naturalUnit)?.label ?? null;
   const selected = state?.selected ?? new Set<SelectionKey>();
   const roleItemKeys = new Set(role.items.map(itemKey));
   const selectedCustomItems = customItems.filter((item) => selected.has(itemKey(item)) && !roleItemKeys.has(itemKey(item)));
@@ -892,18 +920,34 @@ function RoleSection({
           <Icon name={expanded ? 'expand_less' : 'expand_more'} size={20} className="ml-auto shrink-0 text-muted-foreground" />
         </button>
         {role.amount_per_person != null && (
-          <label className="flex shrink-0 items-center gap-1 text-caption text-muted-foreground">
+          <div className="flex shrink-0 items-center gap-1 text-caption text-muted-foreground">
             <input
               type="number"
-              min={0.1}
-              step={role.unit === 'ml' ? 10 : 5}
+              min={naturalUnit ? 0.25 : 0.1}
+              step={naturalUnit ? 0.5 : role.unit === 'ml' ? 10 : 5}
               value={state?.amount ?? role.amount_per_person}
               onChange={(event) => onAmountChange(Number(event.target.value))}
               className="w-16 rounded-lg border border-border bg-background px-1.5 py-1 text-right text-caption"
               aria-label={`Menge pro Person für ${role.role.name}`}
             />
-            {role.unit}/P.
-          </label>
+            {unitOptions.length > 0 ? (
+              <select
+                value={state?.unit ?? ''}
+                onChange={(event) => onUnitChange(event.target.value || null)}
+                aria-label={`Einheit für ${role.role.name}`}
+                className="max-w-[7rem] rounded-lg border border-border bg-background px-1 py-1 text-caption"
+              >
+                <option value="">{role.unit}/P.</option>
+                {unitOptions.map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.label}/P.
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span>{role.unit}/P.</span>
+            )}
+          </div>
         )}
       </div>
 
@@ -911,12 +955,15 @@ function RoleSection({
         <div className="space-y-3 px-4 pb-4">
           {role.amount_per_person != null && (
             <label className="flex flex-col gap-1 text-caption text-muted-foreground">
-              <span>Menge pro Person: {formatNumber(state?.amount ?? role.amount_per_person, { maxDecimals: 0 })} {role.unit}</span>
+              <span>
+                Menge pro Person: {formatNumber(state?.amount ?? role.amount_per_person, { maxDecimals: naturalUnit ? 2 : 0 })}{' '}
+                {naturalUnit ? (naturalUnitLabel ?? 'Einheiten') : role.unit}
+              </span>
               <input
                 type="range"
-                min={role.unit === 'ml' ? 25 : 5}
-                max={Math.max(role.amount_per_person * 3, role.unit === 'ml' ? 500 : 300)}
-                step={role.unit === 'ml' ? 10 : 5}
+                min={naturalUnit ? 0.5 : role.unit === 'ml' ? 25 : 5}
+                max={naturalUnit ? 10 : Math.max(role.amount_per_person * 3, role.unit === 'ml' ? 500 : 300)}
+                step={naturalUnit ? 0.5 : role.unit === 'ml' ? 10 : 5}
                 value={state?.amount ?? role.amount_per_person}
                 onChange={(event) => onAmountChange(Number(event.target.value))}
                 className="w-full accent-primary"

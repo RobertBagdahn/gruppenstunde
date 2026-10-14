@@ -184,6 +184,9 @@ def format_shopping_item(item: ShoppingListItem) -> str:
         option = item.package_options[0]
         label = _format_package_label(option["package_name"], option["weight_g"], option.get("volume_ml"))
         parts.append(f"{option['count']} × {label}")
-    if item.piece_equivalent:
-        parts.append(_format_piece_equivalent(item.piece_equivalent["count"], item.piece_equivalent["portion_name"]))
+    unit = item.start_unit
+    if unit and unit["kind"] in ("portion", "standard") and unit.get("grams_per_unit"):
+        count = item.total_quantity_g / unit["grams_per_unit"]
+        if count >= 0.5:
+            parts.append(_format_piece_equivalent(count, unit["label"]))
     return " · ".join(parts) if parts else "0 g"

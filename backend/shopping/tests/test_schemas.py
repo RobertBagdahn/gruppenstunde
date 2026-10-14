@@ -29,132 +29,76 @@ def shopping_list(user):
 
 
 # ---------------------------------------------------------------------------
-# resolve_piece_equivalent / resolve_portion_options / resolve_package_options
+# resolve_start_unit / resolve_portion_options / resolve_package_options
 #
-# The API returns structured data (count + portion_name), not a formatted
-# string; the frontend formats it (quantity-display-formatting spec).
+# The API returns structured data (a unit option with grams per unit), not a formatted
+# string; the frontend divides the stored grams and formats (switchable-quantity-units).
 # ---------------------------------------------------------------------------
 
 
+def _start(item):
+    return ShoppingListItemOut.resolve_start_unit(item)
+
+
 @pytest.mark.django_db
-class TestResolvePieceEquivalent:
-    """Test the ShoppingListItemOut.resolve_piece_equivalent resolver."""
+class TestResolveStartUnit:
+    """Test the ShoppingListItemOut.resolve_start_unit resolver."""
 
     def test_no_ingredient_returns_none(self, shopping_list):
-        """When no ingredient is attached, there is no piece equivalent."""
         item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Custom Item",
-            quantity_g=250,
-            unit="g",
+            shopping_list=shopping_list, name="Custom Item", quantity_g=250, unit="g"
         )
-        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
+        assert _start(item) is None
 
-    def test_liquid_ingredient_does_not_show_piece_equivalent(self, shopping_list):
-        oil = make_ingredient(name="Olivenöl", physical_viscosity="liquid")
-        make_portion(ingredient=oil, name="Stück", quantity=1, weight_g=1000, rank=1)
+    def test_liquid_without_portion_starts_in_milliliters(self, shopping_list):
+        oil = make_ingredient(name="Olivenöl", physical_viscosity="liquid", physical_density=0.92)
         item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name=oil.name,
-            quantity_g=1000,
-            unit="g",
-            ingredient=oil,
+            shopping_list=shopping_list, name=oil.name, quantity_g=1000, unit="ml", ingredient=oil
         )
 
-        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
+        result = _start(item)
 
-    def test_non_gram_unit_returns_none(self, shopping_list):
-        """When unit is not 'g', piece equivalents (computed from gram weights) don't apply."""
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Milk",
-            quantity_g=1000,
-            unit="ml",
-        )
-        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
+        assert result["kind"] == "milliliters"
+        assert result["grams_per_unit"] == pytest.approx(0.92)
 
-    def test_single_named_portion_preferred(self, shopping_list):
-        """Ingredient with a named portion returns {count, portion_name}."""
+    def test_single_named_portion_is_the_start_unit(self, shopping_list):
         ingredient = make_ingredient(name="Bauernbrot", energy_kcal=265)
-        make_portion(
-            ingredient=ingredient,
-            name="Scheibe",
-            quantity=1,
-            weight_g=50,
-            weight_status="confirmed",
-            rank=1,
+        portion = make_portion(
+            ingredient=ingredient, name="Scheibe", quantity=1, weight_g=50, weight_status="confirmed", rank=1
         )
         item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Bauernbrot",
-            quantity_g=150,  # 3 slices × 50g
-            unit="g",
-            ingredient=ingredient,
+            shopping_list=shopping_list, name="Bauernbrot", quantity_g=150, unit="g", ingredient=ingredient
         )
-        result = ShoppingListItemOut.resolve_piece_equivalent(item)
-        assert result == {"count": 3, "portion_name": "Scheibe"}
 
-    def test_empty_quantity_returns_none(self, shopping_list):
-        """Quantity of 0 returns no piece equivalent."""
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Empty Item",
-            quantity_g=0,
-            unit="g",
+        result = _start(item)
+
+        assert (result["kind"], result["key"], result["label"], result["grams_per_unit"]) == (
+            "portion",
+            f"portion:{portion.pk}",
+            "Scheibe",
+            50,
         )
-        assert ShoppingListItemOut.resolve_piece_equivalent(item) is None
 
-    def test_ingredient_without_named_portions_falls_back_to_base_gram_unit(self, shopping_list):
-        """Every ingredient has an auto-created base "g" portion (weight_g=1,
-        see supply.signals.ensure_ingredient_gram_portion); with no other
-        portion defined, that's what the piece equivalent resolves to."""
+    def test_ingredient_without_named_portions_starts_in_grams(self, shopping_list):
         ingredient = make_ingredient(name="No Portions")
         item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="No Portions",
-            quantity_g=500,
-            unit="g",
-            ingredient=ingredient,
+            shopping_list=shopping_list, name="No Portions", quantity_g=500, unit="g", ingredient=ingredient
         )
-        assert ShoppingListItemOut.resolve_piece_equivalent(item) == {"count": 500, "portion_name": "g"}
 
-    def test_rounding_to_one_decimal_place(self, shopping_list):
-        """Fractional counts are rounded to 1 decimal (frontend formats the comma)."""
-        ingredient = make_ingredient(name="Bread")
-        make_portion(
-            ingredient=ingredient,
-            name="Scheibe",
-            quantity=1,
-            weight_g=50,
-            weight_status="confirmed",
-            rank=1,
-        )
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Bread",
-            quantity_g=85,  # 1.7 slices
-            unit="g",
-            ingredient=ingredient,
-        )
-        result = ShoppingListItemOut.resolve_piece_equivalent(item)
-        assert result == {"count": 1.7, "portion_name": "Scheibe"}
+        result = _start(item)
+
+        assert (result["kind"], result["grams_per_unit"]) == ("grams", 1.0)
 
     def test_portion_priority_ranking_respected(self, shopping_list):
-        """The primary portion (rank 1) is preferred as the piece equivalent."""
         ingredient = make_ingredient(name="Test")
         make_portion(ingredient=ingredient, name="B", weight_g=100, rank=2)
         make_portion(ingredient=ingredient, name="A", weight_g=100, rank=1)
         make_portion(ingredient=ingredient, name="C", weight_g=100, rank=3)
-
         item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Test",
-            quantity_g=200,
-            unit="g",
-            ingredient=ingredient,
+            shopping_list=shopping_list, name="Test", quantity_g=200, unit="g", ingredient=ingredient
         )
-        result = ShoppingListItemOut.resolve_piece_equivalent(item)
-        assert result["portion_name"] == "A"
+
+        assert _start(item)["label"] == "A"
 
     def test_default_portion_wins_for_large_quantities(self, shopping_list):
         """Large amounts use the standard portion, not the largest one (spec shopping-list-piece-equivalents)."""
@@ -169,14 +113,12 @@ class TestResolvePieceEquivalent:
         )
         make_portion(ingredient=ingredient, name="1 Portion", quantity=1, weight_g=120, rank=3)
         item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            name="Speisezwiebel",
-            quantity_g=3560,
-            unit="g",
-            ingredient=ingredient,
+            shopping_list=shopping_list, name="Speisezwiebel", quantity_g=3560, unit="g", ingredient=ingredient
         )
-        result = ShoppingListItemOut.resolve_piece_equivalent(item)
-        assert result == {"count": 44.5, "portion_name": "mittelgroße Zwiebel"}
+
+        result = _start(item)
+
+        assert (result["label"], result["grams_per_unit"]) == ("mittelgroße Zwiebel", 80)
         options = ShoppingListItemOut.resolve_portion_options(item)
         assert {option["name"] for option in options} >= {"mittelgroße Zwiebel", "1 Portion"}
 
