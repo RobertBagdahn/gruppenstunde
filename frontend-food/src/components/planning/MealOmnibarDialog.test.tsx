@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MealOmnibarDialog } from './MealOmnibarDialog';
 
 const searchData = vi.hoisted(() => ({
   current: { recipes: [] as unknown[], ingredients: [] as unknown[] },
 }));
 
+const previewData = vi.hoisted(() => ({ current: undefined as unknown }));
+
 vi.mock('@/api/mealPlans', () => ({
   useRecipeSearch: () => ({ data: searchData.current, isLoading: false }),
+  useRecipePreview: () => ({ data: previewData.current, isLoading: false }),
 }));
 
 const baseRecipe = {
@@ -23,6 +26,7 @@ const baseIngredient = { id: 201, name: 'Haferflocken', slug: 'haferflocken', po
 
 beforeEach(() => {
   searchData.current = { recipes: [baseRecipe], ingredients: [baseIngredient] };
+  previewData.current = undefined;
 });
 
 describe('MealOmnibarDialog', () => {
@@ -111,7 +115,7 @@ describe('MealOmnibarDialog', () => {
     expect(screen.queryByRole('button', { name: /Sets/i })).toBeNull();
   });
 
-  it('groups "Alle" into five recipes and five ingredients', () => {
+  it('groups "Alle" into eight recipes and eight ingredients', () => {
     searchData.current = {
       recipes: Array.from({ length: 25 }, (_, n) => ({ ...baseRecipe, id: 1000 + n, title: `Rezept ${n}` })),
       ingredients: Array.from({ length: 25 }, (_, n) => ({ ...baseIngredient, id: 2000 + n, name: `Zutat ${n}` })),
@@ -124,9 +128,9 @@ describe('MealOmnibarDialog', () => {
       />
     );
 
-    // 5 list entries + the active recipe's title in the preview column and in the phone bar
-    expect(screen.getAllByText(/^Rezept \d+$/)).toHaveLength(5 + 2);
-    expect(screen.getAllByText(/^Zutat \d+$/)).toHaveLength(5);
+    // 8 list entries + the active recipe's title in the preview column and in the phone bar
+    expect(screen.getAllByText(/^Rezept \d+$/)).toHaveLength(8 + 2);
+    expect(screen.getAllByText(/^Zutat \d+$/)).toHaveLength(8);
     expect(screen.getByRole('button', { name: /Alle 25 Rezepte anzeigen/ })).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: /Alle 25 Zutaten anzeigen/ }));
@@ -181,5 +185,45 @@ describe('MealOmnibarDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
 
     expect(handleSelectIngredient).toHaveBeenCalledWith(201, 5, 1, 2, 'Haferflocken', 'Bio');
+  });
+
+  it('shows the recipe link, all ingredients with amounts, allergens and a collapsible description', () => {
+    previewData.current = {
+      id: 101,
+      title: 'Spaghetti Bolognese',
+      slug: 'spaghetti-bolognese',
+      description: 'Sehr lange Beschreibung. '.repeat(20),
+      recipe_portions: 1,
+      target_portions: 10,
+      ingredients: [
+        { name: 'Hackfleisch', amount_label: '1,5 kg' },
+        { name: 'Spaghetti', amount_label: '1 kg' },
+      ],
+      nutritional_tags: [{ id: 1, name: 'Laktose', is_dangerous: true }, { id: 2, name: 'Vegetarisch', is_dangerous: false }],
+      allergens: ['Laktose'],
+    };
+    render(<MealOmnibarDialog open={true} onOpenChange={() => {}} onSelectRecipe={() => {}} />);
+
+    const link = screen.getAllByRole('link', { name: /Rezept ansehen/ })[0];
+    expect(link.getAttribute('href')).toBe('/recipes/spaghetti-bolognese');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(screen.getByTestId('recipe-preview-tags').textContent).toContain('Laktose');
+
+    fireEvent.click(screen.getByRole('button', { name: /Alle 2 Zutaten mit Mengen/ }));
+    expect(screen.getByTestId('recipe-preview-ingredients').textContent).toContain('1,5 kg');
+
+    expect(screen.getByRole('button', { name: 'Mehr' })).toBeDefined();
+  });
+
+  it('opens a details sheet from the phone bar and adds from it', () => {
+    const handleSelectRecipe = vi.fn();
+    render(<MealOmnibarDialog open={true} onOpenChange={() => {}} onSelectRecipe={handleSelectRecipe} normPortions={12} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Details/ }));
+    // The open sheet hides the underlying dialog from the accessibility tree.
+    const sheetAdd = within(screen.getByRole('dialog')).getByRole('button', { name: /Gericht hinzufügen \(12 P\.\)/ });
+    fireEvent.click(sheetAdd);
+
+    expect(handleSelectRecipe).toHaveBeenCalledWith(101, 'Spaghetti Bolognese');
   });
 });

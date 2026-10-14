@@ -62,6 +62,7 @@ function greyZoneRow(overrides: Partial<IngredientReviewRow> = {}): IngredientRe
     quantity: null,
     suggested_quantity: null,
     reason: 'Die semantische Ähnlichkeit ist nicht eindeutig.',
+    note: '',
     technical_details: null,
     conflicts: [],
     new_ingredient_draft: null,
@@ -162,6 +163,7 @@ describe('RecipeIngredientReviewStep', () => {
       selected_portion: { ...portions[0], is_new: false },
       quantity: null,
       reason: 'Menge fehlt – bitte Menge und Portion festlegen.',
+      note: '',
     });
 
     it('shows "Menge fehlt" and opens the quantity dialog from the primary action', () => {
@@ -177,6 +179,49 @@ describe('RecipeIngredientReviewStep', () => {
       expect(useRecipeIngredientReviewStore.getState().rows[0].quantity).toBe(1);
       expect(screen.getByRole('button', { name: 'Vorschlag bestätigen' })).toBeEnabled();
     });
+  });
+
+  it('opens the quantity dialog for an AI row that carries a slug', () => {
+    useRecipeIngredientReviewStore.setState({
+      rows: [greyZoneRow({
+        selected_ingredient_id: 1,
+        selected_ingredient_slug: 'ananas',
+        selected_ingredient_name: 'Ananas',
+        selected_portion: { ...portions[0], is_new: false },
+        quantity: 2,
+        status: 'open',
+      })],
+    });
+    renderReviewStep();
+
+    fireEvent.click(screen.getByRole('button', { name: /Menge und Portion/ }));
+    expect(screen.getByText('Ananas hinzufügen')).toBeInTheDocument();
+  });
+
+  it('shows a skeleton while the portions load and an error with retry when they fail', () => {
+    const refetch = vi.fn();
+    vi.mocked(useIngredientPortions).mockImplementation((() => ({
+      data: [],
+      isSuccess: false,
+      error: new Error('boom'),
+      refetch,
+    })) as never);
+    useRecipeIngredientReviewStore.setState({
+      rows: [greyZoneRow({
+        selected_ingredient_id: 1,
+        selected_ingredient_slug: 'ananas',
+        selected_ingredient_name: 'Ananas',
+        selected_portion: { ...portions[0], is_new: false },
+        quantity: 2,
+        status: 'open',
+      })],
+    });
+    renderReviewStep();
+
+    fireEvent.click(screen.getByRole('button', { name: /Menge und Portion/ }));
+    expect(screen.getByText('Portionen konnten nicht geladen werden')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it('keeps portion and quantity when the quantity dialog is cancelled', () => {

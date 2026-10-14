@@ -3,6 +3,14 @@
  * MUST stay in sync with backend/planner/schemas.py (MealPlan section)
  */
 import { z } from 'zod';
+import {
+  DAY_PART_FACTOR_MAX,
+  DAY_PART_FACTOR_MIN,
+  DAY_PART_FACTORS_SUM_MAX,
+  activityFactorError,
+  normPortionsError,
+  reserveFactorError,
+} from '@/lib/mealPlanBounds';
 import { UtensilsCrossed, Moon, Cookie, GlassWater } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
 import { PriceCoverageSchema } from './recipe';
@@ -191,18 +199,35 @@ export const MealPlanNameSchema = z
   .min(1, 'Der Planname darf nicht leer sein.')
   .max(MEAL_PLAN_NAME_MAX_LENGTH, `Der Planname darf höchstens ${MEAL_PLAN_NAME_MAX_LENGTH} Zeichen lang sein.`);
 
+const NormPortionsSchema = z
+  .number()
+  .refine((value) => normPortionsError(value) === null, { message: normPortionsError(0) ?? '' });
+const ReserveFactorSchema = z
+  .number()
+  .refine((value) => reserveFactorError(value) === null, { message: reserveFactorError(0) ?? '' });
+const ActivityFactorSchema = z
+  .number()
+  .refine((value) => activityFactorError(value) === null, { message: activityFactorError(0) ?? '' });
+const DayPartFactorsSchema = z
+  .record(
+    z.number().min(DAY_PART_FACTOR_MIN, 'Der Tagesanteil muss zwischen 0,0 und 1,0 liegen.').max(DAY_PART_FACTOR_MAX, 'Der Tagesanteil muss zwischen 0,0 und 1,0 liegen.'),
+  )
+  .refine((factors) => Object.values(factors).reduce((sum, value) => sum + value, 0) <= DAY_PART_FACTORS_SUM_MAX, {
+    message: 'Die Tagesanteile dürfen zusammen höchstens 1,5 ergeben.',
+  });
+
 export const MealPlanCreateInSchema = z.object({
   name: MealPlanNameSchema,
   description: z.string().optional(),
-  norm_portions: z.number().positive().max(1000).optional(),
-  reserve_factor: z.number().optional(),
-  activity_factor: z.number().optional(),
+  norm_portions: NormPortionsSchema.optional(),
+  reserve_factor: ReserveFactorSchema.optional(),
+  activity_factor: ActivityFactorSchema.optional(),
   budget_per_person_per_day: z.number().nullable().optional(),
   visibility: MealPlanVisibilitySchema.optional(),
   event_id: z.number().nullable().optional(),
   start_datetime: z.string().nullable().optional(),
   end_datetime: z.string().nullable().optional(),
-  day_part_factors: z.record(z.number()).optional(),
+  day_part_factors: DayPartFactorsSchema.optional(),
   meal_default_times: z.record(z.array(z.string())).optional(),
   nutritional_tag_ids: z.array(z.number()).optional(),
   age_groups: z.array(AgeGroupSchema).optional(),
@@ -216,14 +241,14 @@ export type MealPlanCreateIn = z.input<typeof MealPlanCreateInSchema>;
 export const MealPlanUpdateInSchema = z.object({
   name: MealPlanNameSchema.optional(),
   description: z.string().optional(),
-  norm_portions: z.number().positive().max(1000).optional(),
+  norm_portions: NormPortionsSchema.optional(),
   norm_portions_manual: z.boolean().optional(),
-  reserve_factor: z.number().optional(),
-  activity_factor: z.number().optional(),
+  reserve_factor: ReserveFactorSchema.optional(),
+  activity_factor: ActivityFactorSchema.optional(),
   budget_per_person_per_day: z.number().nullable().optional(),
   start_datetime: z.string().nullable().optional(),
   end_datetime: z.string().nullable().optional(),
-  day_part_factors: z.record(z.number()).optional(),
+  day_part_factors: DayPartFactorsSchema.optional(),
   meal_default_times: z.record(z.array(z.string())).optional(),
   visibility: MealPlanVisibilitySchema.optional(),
   nutritional_tag_ids: z.array(z.number()).optional(),
@@ -587,6 +612,23 @@ export const RecipeSearchResultSchema = z.object({
   price_per_serving: z.number().nullable().optional(),
 });
 export type RecipeSearchResult = z.infer<typeof RecipeSearchResultSchema>;
+
+// ==========================================================================
+// Recipe Preview (full details for the meal search)
+// ==========================================================================
+
+export const RecipePreviewSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  description: z.string().nullable().optional(),
+  recipe_portions: z.number().nullable().optional(),
+  target_portions: z.number(),
+  ingredients: z.array(z.object({ name: z.string(), amount_label: z.string().default('') })),
+  nutritional_tags: z.array(z.object({ id: z.number(), name: z.string(), is_dangerous: z.boolean().default(false) })),
+  allergens: z.array(z.string()),
+});
+export type RecipePreview = z.infer<typeof RecipePreviewSchema>;
 
 // ==========================================================================
 // Popular Recipes

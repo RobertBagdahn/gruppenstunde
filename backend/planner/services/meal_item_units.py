@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 from ninja.errors import HttpError
 
+from core.errors import ApiError
+from planner.services import input_bounds
 from supply.services.portion_resolution import is_direct_metric_portion
 from supply.services.quantity_units import (
     GRAM_UNIT_NAMES,
@@ -150,3 +152,34 @@ def unit_label(item: MealItem) -> str:
         standard_measure_key=item.standard_measure_key,
         measuring_unit=item.measuring_unit,
     ).label
+
+
+def ensure_amount_in_bounds(
+    *,
+    ingredient: Any,
+    quantity: float | None,
+    portion: Any = None,
+    standard_measure_key: str | None = None,
+    measuring_unit: Any = None,
+) -> None:
+    """Reject an ingredient amount whose resolved grams exceed the allowed maximum (HTTP 422).
+
+    Unknown weights are not checked here; the count itself is bounded by the request schema.
+    """
+    if ingredient is None or not quantity:
+        return
+    from supply.services.quantity_units import resolve_grams
+
+    result = resolve_grams(
+        ingredient=ingredient,
+        quantity=float(quantity),
+        portion=portion,
+        standard_measure_key=standard_measure_key,
+        measuring_unit=measuring_unit,
+    )
+    if result is None or result.missing:
+        return
+    try:
+        input_bounds.check_quantity_grams(result.grams)
+    except ValueError as exc:
+        raise ApiError(422, "invalid_input", str(exc), extra={"fields": ["quantity"]}) from exc

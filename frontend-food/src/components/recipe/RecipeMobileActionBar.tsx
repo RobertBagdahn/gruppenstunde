@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/icon';
 interface RecipeMobileActionBarProps {
   onOpenShoppingList: () => void;
   onOpenPortions: () => void;
+  onAddToMealPlan?: () => void;
   recipeSlug?: string;
   /** Show "Kochen starten" only when the recipe has steps to cook. */
   canCook?: boolean;
@@ -17,6 +18,7 @@ interface RecipeMobileActionBarProps {
 export default function RecipeMobileActionBar({
   onOpenShoppingList,
   onOpenPortions,
+  onAddToMealPlan,
   recipeSlug,
   canCook = true,
 }: RecipeMobileActionBarProps) {
@@ -90,7 +92,7 @@ export default function RecipeMobileActionBar({
       className={cn(
         'fixed bottom-16 inset-x-0 h-[4.5rem] pb-[env(safe-area-inset-bottom)] lg:hidden',
         'bg-card/95 backdrop-blur-xl shadow-raised z-40 animate-sheet-up',
-        'flex items-center gap-2 px-4',
+        'flex items-center gap-2 px-3',
         'transition-transform duration-200',
         isTextareaFocused && 'translate-y-full',
       )}
@@ -99,20 +101,31 @@ export default function RecipeMobileActionBar({
         type="button"
         onClick={onOpenShoppingList}
         aria-label="Einkaufsliste erstellen"
-        className="press flex-1 flex items-center justify-center gap-2 h-12 text-body font-bold bg-primary text-primary-foreground rounded-xl shadow-soft hover:bg-primary/90 transition-colors"
+        className="press min-w-0 flex-1 flex items-center justify-center gap-1 h-12 px-1.5 text-caption min-[360px]:gap-1.5 min-[360px]:px-2 min-[360px]:text-body font-bold bg-primary text-primary-foreground rounded-xl shadow-soft hover:bg-primary/90 transition-colors"
       >
-        <Icon name="shopping_cart" size={20} />
+        <Icon name="shopping_cart" size={20} className="hidden min-[360px]:block" />
         Einkaufsliste
       </button>
       <button
         type="button"
         onClick={onOpenPortions}
         aria-label="Portionen skalieren"
-        className="press flex-1 flex items-center justify-center gap-2 h-12 text-body font-bold bg-primary-soft text-primary rounded-xl hover:bg-primary-soft-border/70 transition-colors"
+        className="press min-w-0 flex-1 flex items-center justify-center gap-1 h-12 px-1.5 text-caption min-[360px]:gap-1.5 min-[360px]:px-2 min-[360px]:text-body font-bold bg-primary-soft text-primary rounded-xl hover:bg-primary-soft-border/70 transition-colors"
       >
-        <Icon name="restaurant" size={20} />
+        <Icon name="restaurant" size={20} className="hidden min-[360px]:block" />
         Portionen
       </button>
+
+      {onAddToMealPlan && (
+        <button
+          type="button"
+          onClick={onAddToMealPlan}
+          aria-label="Zum Essensplan"
+          className="press flex shrink-0 items-center justify-center w-12 h-12 rounded-xl bg-secondary hover:bg-muted transition-colors"
+        >
+          <Icon name="calendar_month" size={20} />
+        </button>
+      )}
 
       {/* Overflow menu */}
       <div className="relative" ref={menuRef}>
@@ -120,7 +133,7 @@ export default function RecipeMobileActionBar({
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Weitere Aktionen"
-          className="press flex items-center justify-center w-12 h-12 rounded-xl bg-secondary hover:bg-muted transition-colors"
+          className="press flex shrink-0 items-center justify-center w-12 h-12 rounded-xl bg-secondary hover:bg-muted transition-colors"
         >
           <Icon name="more_vert" size={20} />
         </button>

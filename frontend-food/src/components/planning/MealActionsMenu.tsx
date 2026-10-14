@@ -1,3 +1,9 @@
+import {
+  DAY_PART_FACTOR_HINT,
+  OVERRIDE_PORTIONS_HINT,
+  dayPartFactorError,
+  overridePortionsError,
+} from '@/lib/mealPlanBounds';
 import { useState, useEffect } from 'react';
 import {
   MoreVertical,
@@ -153,7 +159,12 @@ export function MealActionsMenu({
 
   if (!canEdit) return null;
 
+  const dayPartError = dayPartFactorError(Number(dayPartFactor));
+  const portionsError = overridePortions.trim() === '' ? null : overridePortionsError(Number(overridePortions));
+  const hasLimitErrors = Boolean(dayPartError || portionsError);
+
   const handleSave = () => {
+    if (hasLimitErrors) return;
     const updatedPortions = overridePortions.trim() === '' ? null : Number(overridePortions);
     const updatedEnergy = externalEnergyKcal.trim() === '' ? null : Number(externalEnergyKcal);
     const updatedCost = externalCostPerPerson.trim() === '' ? null : Number(externalCostPerPerson);
@@ -259,8 +270,12 @@ export function MealActionsMenu({
                   max={1}
                   step={0.01}
                   value={dayPartFactor}
+                  aria-invalid={dayPartError ? true : undefined}
                   onChange={(e) => setDayPartFactor(Number(e.target.value))}
                 />
+                <p role={dayPartError ? 'alert' : undefined} className={`text-caption ${dayPartError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {dayPartError ?? DAY_PART_FACTOR_HINT}
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -270,9 +285,15 @@ export function MealActionsMenu({
                   type="number"
                   min={1}
                   placeholder="Wie Plan"
+                  max={1000}
+                  step={1}
                   value={overridePortions}
+                  aria-invalid={portionsError ? true : undefined}
                   onChange={(e) => setOverridePortions(e.target.value)}
                 />
+                <p role={portionsError ? 'alert' : undefined} className={`text-caption ${portionsError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {portionsError ?? OVERRIDE_PORTIONS_HINT}
+                </p>
               </div>
             </div>
 
@@ -331,7 +352,7 @@ export function MealActionsMenu({
             <Button variant="outline" onClick={() => setShowSettings(false)}>
               Abbrechen
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={handleSave} disabled={hasLimitErrors}>
               Speichern
             </Button>
           </DialogFooter>

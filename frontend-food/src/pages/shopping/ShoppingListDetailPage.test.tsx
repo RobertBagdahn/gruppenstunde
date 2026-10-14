@@ -10,6 +10,7 @@ import ShoppingListDetailPage from './ShoppingListDetailPage';
 const deleteItem = vi.fn();
 const addItem = vi.fn();
 const notifySuccess = vi.fn();
+const createFromMealPlan = vi.fn();
 
 let currentUser: { id: number; display_name: string } | null = { id: 5, display_name: 'Eule' };
 let listQuery: { data?: ShoppingListDetail; isLoading: boolean; error: Error | null };
@@ -38,6 +39,7 @@ vi.mock('@/api/shoppingLists', () => ({
   useDeleteShoppingListItem: () => ({ mutate: deleteItem }),
   useDeleteShoppingList: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateShoppingList: () => ({ mutate: vi.fn() }),
+  useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
 }));
 vi.mock('@/hooks/useShoppingListWebSocket', () => ({
   useShoppingListWebSocket: () => ({ isConnected: false, sendEvent: vi.fn() }),
@@ -68,6 +70,7 @@ describe('ShoppingListDetailPage', () => {
     deleteItem.mockReset();
     addItem.mockReset();
     notifySuccess.mockReset();
+    createFromMealPlan.mockReset();
   });
 
   it('asks anonymous visitors to log in instead of showing a raw error', () => {
@@ -104,5 +107,56 @@ describe('ShoppingListDetailPage', () => {
       expect.objectContaining({ name: 'Klebeband', unit: 'Stück', is_checked: true, sort_order: 4 }),
       expect.anything(),
     );
+  });
+
+  describe('source freshness', () => {
+    const planList = (status: 'current' | 'changed' | 'deleted' | null) =>
+      ShoppingListDetailSchema.parse({
+        ...detail(),
+        source_type: 'meal_event',
+        source_id: 41,
+        source_status: status,
+      });
+
+    it('shows the hint with "Neue Liste erstellen" and opens the new list', async () => {
+      const user = userEvent.setup();
+      listQuery = { data: planList('changed'), isLoading: false, error: null };
+      createFromMealPlan.mockImplementation((_vars: unknown, options: { onSuccess: (created: { id: number; warnings: unknown[] }) => void }) =>
+        options.onSuccess({ id: 99, warnings: [] }),
+      );
+      render(
+        <MemoryRouter initialEntries={['/shopping-lists/3']}>
+          <Routes>
+            <Route path="/shopping-lists/:id" element={<ShoppingListDetailPage />} />
+            <Route path="/shopping-lists/99" element={<p>Neue Liste geöffnet</p>} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByText('Essensplan wurde seit Erstellung geändert')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Neue Liste erstellen' }));
+
+      expect(createFromMealPlan).toHaveBeenCalledWith({ mealPlanId: 41 }, expect.anything());
+      expect(await screen.findByText('Neue Liste geöffnet')).toBeInTheDocument();
+    });
+
+    it('shows no hint for a current list or without status', () => {
+      listQuery = { data: planList('current'), isLoading: false, error: null };
+      const { unmount } = renderPage();
+      expect(screen.queryByTestId('source-freshness-notice')).not.toBeInTheDocument();
+      unmount();
+
+      listQuery = { data: planList(null), isLoading: false, error: null };
+      renderPage();
+      expect(screen.queryByTestId('source-freshness-notice')).not.toBeInTheDocument();
+    });
+
+    it('says the plan was deleted without offering an action', () => {
+      listQuery = { data: planList('deleted'), isLoading: false, error: null };
+      renderPage();
+
+      expect(screen.getByText('Der Essensplan wurde gelöscht.')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Neue Liste erstellen' })).not.toBeInTheDocument();
+    });
   });
 });

@@ -1,3 +1,5 @@
+import { NORM_PORTIONS_MAX, normPortionsError } from '@/lib/mealPlanBounds';
+import { validateBasics } from '@/pages/planning/wizard/validateBasics';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Plus } from 'lucide-react';
@@ -35,9 +37,16 @@ export function CreateMealPlanDialog({ open, onOpenChange, onSuccess }: CreateMe
   const [endDate, setEndDate] = useState(weekend.sunday);
   const [portions, setPortions] = useState(10);
 
+  const portionsError = normPortionsError(portions);
+  const periodError = validateBasics({
+    norm_portions: portions,
+    start_datetime: `${startDate}T08:00`,
+    end_datetime: `${endDate}T20:00`,
+  }).period ?? null;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || portionsError || periodError) return;
 
     const startDatetime = `${startDate}T08:00:00`;
     const endDatetime = `${endDate}T20:00:00`;
@@ -142,9 +151,10 @@ export function CreateMealPlanDialog({ open, onOpenChange, onSuccess }: CreateMe
                 id="plan-portions"
                 type="number"
                 min={1}
-                max={500}
+                max={NORM_PORTIONS_MAX}
                 required
                 value={portions}
+                aria-invalid={portionsError ? true : undefined}
                 onChange={(e) => setPortions(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-soft"
               />
@@ -152,6 +162,9 @@ export function CreateMealPlanDialog({ open, onOpenChange, onSuccess }: CreateMe
                 Personen
               </span>
             </div>
+            {(portionsError || periodError) && (
+              <p role="alert" className="text-caption text-destructive mt-1.5">{portionsError ?? periodError}</p>
+            )}
             <p className="text-caption text-muted-foreground mt-1.5">
               Standard-Tageseinteilung (Frühstück, Mittag, Abendessen) und 10% Einkaufsreserve werden automatisch hinterlegt.
             </p>
@@ -167,7 +180,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, onSuccess }: CreateMe
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending || !name.trim()}
+              disabled={createMutation.isPending || !name.trim() || Boolean(portionsError) || Boolean(periodError)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-caption font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />

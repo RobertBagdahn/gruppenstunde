@@ -140,3 +140,10 @@ def test_rename_without_new_name_counts_as_corrected(sections):
     ing = Ingredient.objects.create(name="Ajvar mild", energy_kcal=None)
     apply_review(ing, make_review(ing.id, verdict="rename", suggested_name="Ajvar mild"), sections=sections)
     assert ing.ai_review_verdict == "corrected"
+
+
+def test_batch_prompt_embeds_the_shared_ingredient_data_rules():
+    from supply.services.ingredient_ai_review_service import build_review_prompt
+    from supply.services.ingredient_ai_suggest_service import INGREDIENT_DATA_RULES
+
+    assert INGREDIENT_DATA_RULES in build_review_prompt([])

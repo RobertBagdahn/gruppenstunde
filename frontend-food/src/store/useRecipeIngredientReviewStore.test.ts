@@ -17,7 +17,7 @@ const preview: IngredientReviewPreview = {
     selected_ingredient_slug: 'apfel', selected_ingredient_name: 'Apfel',
     suggested_ingredient_id: 1, suggested_ingredient_name: 'Apfel', candidates: [],
     selected_portion: { id: 2, name: 'Stück', quantity: 1, weight_g: 120, measuring_unit_id: 1, measuring_unit_name: 'Stück', is_new: false },
-    suggested_portion: null, quantity: 1, suggested_quantity: 1, reason: 'Exakt',
+    suggested_portion: null, quantity: 1, suggested_quantity: 1, reason: 'Exakt', note: '',
     technical_details: null, conflicts: [], new_ingredient_draft: null, status: 'open',
   }],
 };

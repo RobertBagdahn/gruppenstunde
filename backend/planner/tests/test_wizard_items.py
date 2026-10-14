@@ -343,6 +343,77 @@ class TestWizardItemsEndpoint:
         # Existing items should still be there (transaction rolled back)
         assert MealItem.objects.filter(meal=meal).count() == old_count
 
+    @pytest.mark.parametrize("portion_problem", ["foreign", "inactive"])
+    def test_bulk_wizard_rolls_back_existing_items_for_a_foreign_or_inactive_portion(
+        self, client: Client, portion_problem: str
+    ):
+        user = self._login(client)
+        unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
+        plan = make_meal_plan(created_by=user)
+        start = timezone.now().replace(hour=8, minute=0, second=0, microsecond=0)
+        meal = make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.BREAKFAST,
+            start_datetime=start,
+            end_datetime=start + dt.timedelta(hours=1),
+        )
+        existing_recipe = baker.make("recipe.Recipe", title="Bestehendes Frühstück", portions=1)
+        baker.make(MealItem, meal=meal, recipe=existing_recipe, factor=1.0)
+
+        ingredient = baker.make("supply.Ingredient", name="Birne Rollback")
+        valid = Portion.objects.create(
+            ingredient=ingredient,
+            name="Stück",
+            measuring_unit=unit,
+            quantity=1,
+            weight_g=120,
+            rank=1,
+            weight_status="confirmed",
+            weight_source="manual",
+        )
+        if portion_problem == "foreign":
+            other = baker.make("supply.Ingredient", name="Apfel Rollback")
+            bad = Portion.objects.create(
+                ingredient=other,
+                name="Stück",
+                measuring_unit=unit,
+                quantity=1,
+                weight_g=150,
+                rank=1,
+                weight_status="confirmed",
+                weight_source="manual",
+            )
+        else:
+            bad = Portion.objects.create(
+                ingredient=ingredient,
+                name="Alt",
+                measuring_unit=unit,
+                quantity=1,
+                weight_g=90,
+                rank=2,
+                weight_status="confirmed",
+                weight_source="manual",
+                deleted_at=timezone.now(),
+            )
+
+        response = client.post(
+            f"/api/meal-plans/{plan.id}/meals/wizard-items/bulk/",
+            data=json.dumps(
+                {
+                    "meal_ids": [meal.id],
+                    "items": [
+                        {"ingredient_id": ingredient.id, "quantity": 1, "portion_id": valid.id},
+                        {"ingredient_id": ingredient.id, "quantity": 1, "portion_id": bad.id},
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 422, response.content
+        remaining = list(MealItem.objects.filter(meal=meal).values_list("recipe_id", "ingredient_id"))
+        assert remaining == [(existing_recipe.id, None)]
+
     def test_meal_not_found(self, client: Client):
         user = self._login(client)
         plan = make_meal_plan(created_by=user)

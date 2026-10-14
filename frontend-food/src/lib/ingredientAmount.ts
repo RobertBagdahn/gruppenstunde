@@ -6,7 +6,7 @@ import type { RecipeItem } from '@/schemas/recipe';
 import type { RecipeStepIngredient } from '@/schemas/recipeStep';
 import type { Portion } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
-import { formatWeight } from '@/lib/format';
+import { formatNumber, formatWeight } from '@/lib/format';
 import { standardMeasureLabel } from '@/lib/quantityUnits';
 
 /** Short display names for measuring units */
@@ -33,6 +33,25 @@ const BASE_METRIC_UNIT_NAMES = new Set(['Gramm', 'g', 'kg', 'Kilogramm', 'Millil
 export function isGramPortion(portionName?: string | null, unitName?: string | null): boolean {
   if (!portionName) return BASE_METRIC_UNIT_NAMES.has(unitName ?? '');
   return BASE_METRIC_UNIT_NAMES.has(portionName) || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg|ml|l)\b/i.test(portionName);
+}
+
+/**
+ * A portion whose name is itself a volume or mass ("Liter", "1 Liter", "ml", "kg"). Showing its
+ * weight as "à 980 ml" contradicts the name, so callers show the weight in grams instead.
+ */
+export function isVolumeOrMassPortionName(name?: string | null): boolean {
+  if (!name) return false;
+  return /^(?:\d+(?:[.,]\d+)?\s+)?(?:liter|l|milliliter|ml|gramm|g|kilogramm|kg)(?![\p{L}])/iu.test(name.trim());
+}
+
+/**
+ * Reference text next to a portion pill: "à 125 g" for natural portions (Scheibe, EL), but
+ * "(≈ 1.020 g)" when the portion name is a volume/mass unit, so "1 Liter" never reads "à 980 ml".
+ * `perUnit` is the already formatted per-portion amount used for natural portions.
+ */
+export function formatPortionReference(portionName: string | null | undefined, unitWeightG: number, perUnit: string): string {
+  if (isVolumeOrMassPortionName(portionName)) return `(≈ ${formatNumber(unitWeightG, { maxDecimals: 0 })} g)`;
+  return `à ${perUnit}`;
 }
 
 export function shortUnit(name: string): string {

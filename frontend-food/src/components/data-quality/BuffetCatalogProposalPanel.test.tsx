@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { ApiError } from '@/lib/api';
+import { toast } from 'sonner';
 import BuffetCatalogProposalPanel from './BuffetCatalogProposalPanel';
 import {
   useBuffetCandidates,
@@ -142,5 +144,83 @@ describe('BuffetCatalogProposalPanel', () => {
     expect(screen.getByLabelText('Zutatenname')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'KI-Vorschlag erzeugen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Als Vorschlag speichern' })).toBeInTheDocument();
+  });
+
+  it('keeps the form open and shows the server message when required fields are missing', async () => {
+    createMutate.mockRejectedValueOnce(new ApiError(422, 'Unprocessable', { detail: 'Der Name der neuen Zutat fehlt.' }));
+    render(<BuffetCatalogProposalPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Neuen Vorschlag erfassen' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Als Vorschlag speichern' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    const [title, options] = vi.mocked(toast.error).mock.calls[0] as [string, { description: string }];
+    expect(title).toBe('Vorschlag konnte nicht gespeichert werden');
+    expect(options.description).toBe('Der Name der neuen Zutat fehlt.');
+    expect(screen.getByLabelText('Zutatenname')).toBeInTheDocument();
+  });
+
+  it('prefills the form from an AI suggestion, lets staff edit it and saves it as a mixed proposal', async () => {
+    const suggest = vi.fn().mockResolvedValue({
+      name: 'Salzstangen',
+      ai_interaction_id: 'ai-1',
+      proposed_data: { name: 'Salzstangen', energy_kcal: 380, retail_section: 'Knabberartikel', is_standalone_food: true },
+    });
+    vi.mocked(useSuggestBuffetItem).mockReturnValue({ mutateAsync: suggest, isPending: false } as unknown as ReturnType<typeof useSuggestBuffetItem>);
+    render(<BuffetCatalogProposalPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Neuen Vorschlag erfassen' }));
+
+    fireEvent.change(screen.getByLabelText('Zutatenname'), { target: { value: 'Salzstange' } });
+    fireEvent.click(screen.getByRole('button', { name: 'KI-Vorschlag erzeugen' }));
+    await waitFor(() => expect((screen.getByLabelText('Energie (kcal/100 g)') as HTMLInputElement).value).toBe('380'));
+    expect((screen.getByLabelText('Zutatenname') as HTMLInputElement).value).toBe('Salzstangen');
+
+    fireEvent.change(screen.getByLabelText('Energie (kcal/100 g)'), { target: { value: '385' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Als Vorschlag speichern' }));
+
+    await waitFor(() => expect(createMutate).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'create',
+      origin: 'mixed',
+      proposed_data: expect.objectContaining({ name: 'Salzstangen', energy_kcal: 385, ai_interaction_id: 'ai-1' }),
+    })));
+  });
+
+  it('blocks approval while the preview is stale and enables it after a current preview', () => {
+    vi.mocked(useBuffetDataProposals).mockReturnValue({
+      data: {
+        items: [{ ...proposal, id: 44, preview_current: false }, { ...proposal, id: 45, preview_current: true }],
+        total: 2,
+        page: 1,
+        page_size: 20,
+        total_pages: 1,
+      },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useBuffetDataProposals>);
+    render(<BuffetCatalogProposalPanel />);
+
+    const approve = screen.getAllByRole('button', { name: 'Freigeben' });
+    expect(approve[0]).toBeDisabled();
+    expect(approve[1]).toBeEnabled();
+    expect(screen.getAllByText('Vor Freigabe erst erneut testen')).toHaveLength(1);
+  });
+
+  it('exports the approved mapping as a JSON download', async () => {
+    const exportMutate = vi.fn().mockResolvedValue({ approved: [] });
+    vi.mocked(useExportBuffetProposals).mockReturnValue({ mutateAsync: exportMutate, isPending: false } as unknown as ReturnType<typeof useExportBuffetProposals>);
+    const createUrl = vi.fn(() => 'blob:mapping');
+    const revokeUrl = vi.fn();
+    Object.assign(URL, { createObjectURL: createUrl, revokeObjectURL: revokeUrl });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    render(<BuffetCatalogProposalPanel />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mapping exportieren' }));
+
+    await waitFor(() => expect(exportMutate).toHaveBeenCalledTimes(1));
+    expect(createUrl).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(toast.success).toHaveBeenCalled();
+    click.mockRestore();
   });
 });

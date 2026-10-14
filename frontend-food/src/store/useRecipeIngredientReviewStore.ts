@@ -111,6 +111,7 @@ export const useRecipeIngredientReviewStore = create<RecipeIngredientReviewState
       quantity: null,
       suggested_quantity: null,
       reason: 'Suche eine Zutat und lege Menge und Portion fest.',
+      note: '',
       technical_details: null,
       conflicts: [],
       new_ingredient_draft: null,

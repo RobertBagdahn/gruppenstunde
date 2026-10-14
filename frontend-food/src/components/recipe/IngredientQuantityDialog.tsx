@@ -11,6 +11,7 @@ import { standardMeasureLabel } from '@/lib/quantityUnits';
 import type { Portion } from '@/schemas/supply';
 import { formatExactWeight, formatWeight } from '@/lib/format';
 import { formatDecimalInput, parseDecimalInput } from '@/lib/decimalInput';
+import { QUANTITY_COUNT_MAX } from '@/lib/mealPlanBounds';
 
 interface IngredientQuantityDialogProps {
   ingredient: { id: number; name: string; slug: string; portions: Portion[] };
@@ -72,7 +73,7 @@ export default function IngredientQuantityDialog({
     formatDecimalInput(initialQuantity > 0 ? initialQuantity : 1),
   );
   const quantity = parseDecimalInput(quantityInput);
-  const validQuantity = quantity !== null && quantity >= 0.1 ? quantity : null;
+  const validQuantity = quantity !== null && quantity >= 0.1 && quantity <= QUANTITY_COUNT_MAX ? quantity : null;
 
   const [selectedMeasure, setSelectedMeasure] = useState<PickerStandardMeasure | null>(null);
 

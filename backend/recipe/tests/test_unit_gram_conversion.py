@@ -160,3 +160,49 @@ class TestDirectPortionMatch:
         make_portion(ing, name="mittelgroße Zwiebel", quantity=1.0, weight_g=80.0, rank=1, weight_status="ai_proposed")
         with patch("core.services.gemini.gemini_call", return_value=(None, None)):
             assert UnitGramConverter.convert_to_portion_count(1, "Stück", ing) is None
+
+
+@pytest.mark.django_db
+class TestDirectPortionMatching:
+    """A recipe unit that is one of the ingredient's own portions counts that portion (name or measuring unit)."""
+
+    @pytest.mark.parametrize(
+        ("unit", "portion_name"),
+        [
+            ("Dosen", "Dose"),
+            ("Zehen", "Zehe"),
+            ("Scheiben", "Scheibe"),
+            ("Gläser", "Glas"),
+            ("Packungen", "Packung"),
+        ],
+    )
+    def test_plural_units_match_the_singular_portion(self, unit, portion_name):
+        ing = make_ingredient(name=f"Zutat {portion_name}")
+        portion = make_portion(ing, name=portion_name, quantity=1.0, weight_g=100.0, rank=2, weight_status="confirmed")
+        make_portion(ing, name="Portion", quantity=1.0, weight_g=500.0, rank=1, weight_status="confirmed")
+
+        result = UnitGramConverter.convert_to_portion(3, unit, ing, allow_ai_estimate=False)
+
+        assert result is not None
+        assert (result.count, result.portion.id) == (3.0, portion.id)
+
+    def test_matches_through_the_measuring_unit_name(self):
+        from supply.tests import make_measuring_unit
+
+        spoon = make_measuring_unit(name="Esslöffel", quantity=15, unit="g")
+        ing = make_ingredient(name="Honig Direkt")
+        portion = make_portion(
+            ing,
+            name="gehäufter Löffel",
+            quantity=1.0,
+            weight_g=25.0,
+            rank=2,
+            weight_status="confirmed",
+            measuring_unit=spoon,
+        )
+        make_portion(ing, name="Glas", quantity=1.0, weight_g=500.0, rank=1, weight_status="confirmed")
+
+        result = UnitGramConverter.convert_to_portion(2, "EL", ing, allow_ai_estimate=False)
+
+        assert result is not None
+        assert (result.count, result.portion.id) == (2.0, portion.id)

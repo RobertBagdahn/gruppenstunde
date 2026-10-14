@@ -13,7 +13,7 @@ import type { RecipeItem } from '@/schemas/recipe';
 import type { AvailableConversionBatchItem, Portion } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
-import { formatPortionAmount, isGramPortion, shortUnit } from '@/lib/ingredientAmount';
+import { formatPortionAmount, formatPortionReference, isGramPortion, shortUnit } from '@/lib/ingredientAmount';
 import { standardMeasureLabel } from '@/lib/quantityUnits';
 import { cn } from '@/lib/utils';
 import UnitSwitcher from '@/components/recipe/UnitSwitcher';
@@ -76,7 +76,7 @@ function PortionPill({
       )}
       <span className="sr-only">{title}:</span>
       <span className="min-w-0 break-words font-medium">{amount}</span>
-      {perUnit && <span className="shrink-0 text-caption text-muted-foreground">à {perUnit}</span>}
+      {perUnit && <span className="shrink-0 text-caption text-muted-foreground">{perUnit}</span>}
     </span>
   );
 }
@@ -247,7 +247,11 @@ export default function IngredientList({
       ? (item.quantity > 0 ? item.weight_g / item.quantity : 0)
       : selectedPortion?.weight_g ?? 0;
     const selectedPerUnit = selectedDisplay && selectedUnitWeightG > 0
-      ? `${standardKey && item.is_weight_approx ? '≈ ' : ''}${formatQuantity(selectedUnitWeightG, item.ingredient_viscosity, item.ingredient_density).display}`
+      ? formatPortionReference(
+        selectedName,
+        selectedUnitWeightG,
+        `${standardKey && item.is_weight_approx ? '≈ ' : ''}${formatQuantity(selectedUnitWeightG, item.ingredient_viscosity, item.ingredient_density).display}`,
+      )
       : null;
 
     // Primary portion: lowest-rank non-gram portion with a weight (rank=1 = Normalportion).
@@ -263,7 +267,11 @@ export default function IngredientList({
       ? formatPortionAmount(primaryAmount, shortUnit(primaryPortion.name))
       : null;
     const primaryPerUnit = primaryDisplay && primaryPortion?.weight_g
-      ? formatQuantity(primaryPortion.weight_g, item.ingredient_viscosity, item.ingredient_density).display
+      ? formatPortionReference(
+        primaryPortion.name,
+        primaryPortion.weight_g,
+        formatQuantity(primaryPortion.weight_g, item.ingredient_viscosity, item.ingredient_density).display,
+      )
       : null;
 
     const isExpanded = expandedItems.has(item.id);

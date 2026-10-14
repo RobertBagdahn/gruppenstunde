@@ -54,14 +54,12 @@ type BuffetBuilderStep = 'preset' | 'configure' | 'review';
 interface BuffetSearchFilters {
   kind: 'all' | 'ingredient' | 'recipe';
   recipeType: string;
-  includeNonStandalone: boolean;
   excludeAlcohol: boolean;
 }
 
 const DEFAULT_SEARCH_FILTERS: BuffetSearchFilters = {
   kind: 'all',
   recipeType: '',
-  includeNonStandalone: false,
   excludeAlcohol: false,
 };
 const WIZARD_STEPS = [
@@ -460,7 +458,7 @@ export function BuffetBuilder({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-border shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-border shadow-2xl [&>*]:min-w-0">
         <DialogHeader className="p-4 sm:p-5 border-b border-border bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-section sm:text-section font-display font-bold text-foreground">
@@ -617,13 +615,6 @@ export function BuffetBuilder({
                   </Select>
                 </div>
               )}
-              <label className="flex items-center gap-2 text-caption text-foreground">
-                <Checkbox
-                  checked={searchFilters.includeNonStandalone}
-                  onCheckedChange={(checked) => setSearchFilters((current) => ({ ...current, includeNonStandalone: checked === true }))}
-                />
-                Auch Backzutaten & Gewürze
-              </label>
               <label className="flex items-center gap-2 text-caption text-foreground">
                 <Checkbox
                   checked={searchFilters.excludeAlcohol}
@@ -880,7 +871,6 @@ function RoleSection({
       mealType,
       kind: filters.kind,
       recipeType: filters.recipeType || undefined,
-      includeNonStandalone: filters.includeNonStandalone,
       excludeAlcohol: filters.excludeAlcohol,
     },
     { enabled: expanded && debouncedSearch.length >= 2 },
@@ -1050,6 +1040,7 @@ function RoleSection({
                           {result.kind === 'ingredient' ? 'Zutat' : 'Rezept'}
                         </span>
                         <span className="truncate text-body font-semibold text-foreground">{result.name}</span>
+                        {result.is_cooking_ingredient && <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-caption text-muted-foreground">Zutat zum Kochen</span>}
                         {!result.is_favorite && <span className="shrink-0 rounded-full bg-info-soft px-2 py-0.5 text-caption text-info">Eigene Auswahl</span>}
                       </span>
                       <span className="flex shrink-0 items-center gap-3 text-caption text-muted-foreground">

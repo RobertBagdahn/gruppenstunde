@@ -111,10 +111,10 @@ def collect_ingredient_contributions(
     from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
     from supply.models import Portion
 
-    # A reserve factor <= 0 is invalid; fall back to no reserve (1.0) so that
-    # neither the scaling factor nor the net/reserve breakdown can divide by zero.
-    reserve_factor = meal_plan.reserve_factor if (meal_plan.reserve_factor or 0) > 0 else 1.0
-    scaling = scaling_override if scaling_override is not None else meal_plan.norm_portions * reserve_factor
+    # Legacy rows may hold impossible values: the reserve factor is limited to its allowed range
+    # (never <= 0, so the net/reserve breakdown cannot divide by zero).
+    reserve_factor = meal_plan.safe_reserve_factor
+    scaling = scaling_override if scaling_override is not None else meal_plan.effective_norm_portions * reserve_factor
 
     # Collect all MealItems from non-reference, non-external meals
     meal_items = list(
@@ -156,8 +156,8 @@ def collect_ingredient_contributions(
     for mi in meal_items:
         meal = mi.meal
         if meal and meal.override_portions is not None:
-            meal_scaling = meal.override_portions * reserve_factor
-            effective_portions: float = meal.override_portions
+            meal_scaling = meal.effective_portions * reserve_factor
+            effective_portions: float = meal.effective_portions
         else:
             meal_scaling = scaling
             effective_portions = float(meal_plan.norm_portions or 1)

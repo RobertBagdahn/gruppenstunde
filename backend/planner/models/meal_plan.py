@@ -249,15 +249,15 @@ class MealPlan(models.Model):
         for member in members:
             if member.gender == "no_answer":
                 male = calculate_group_norm_factor(
-                    [PersonSpec(age=member.age, gender=Gender.MALE, pal=self.activity_factor)]
+                    [PersonSpec(age=member.age, gender=Gender.MALE, pal=self.safe_activity_factor)]
                 )
                 female = calculate_group_norm_factor(
-                    [PersonSpec(age=member.age, gender=Gender.FEMALE, pal=self.activity_factor)]
+                    [PersonSpec(age=member.age, gender=Gender.FEMALE, pal=self.safe_activity_factor)]
                 )
                 persons.append(0.5 * (male + female))
             else:
                 gender = Gender.MALE if member.gender == "male" else Gender.FEMALE
-                persons.append(PersonSpec(age=member.age, gender=gender, pal=self.activity_factor))
+                persons.append(PersonSpec(age=member.age, gender=gender, pal=self.safe_activity_factor))
 
         total = calculate_group_norm_factor([p for p in persons if isinstance(p, PersonSpec)])
         total += sum(p for p in persons if isinstance(p, int | float))
@@ -286,7 +286,28 @@ class MealPlan(models.Model):
         PAL/activity factor is intentionally excluded: it is a calorie-demand
         factor (norm-portion calculator), not a physical purchase-quantity factor.
         """
-        return self.norm_portions * self.reserve_factor
+        return self.effective_norm_portions * self.safe_reserve_factor
+
+    @property
+    def effective_norm_portions(self) -> float:
+        """Stored norm portions limited to the allowed range."""
+        from planner.services.input_bounds import NORM_PORTIONS_MAX
+
+        value = float(self.norm_portions or 0)
+        return min(value, NORM_PORTIONS_MAX) if value > 0 else 1.0
+
+    @property
+    def safe_reserve_factor(self) -> float:
+        """Stored reserve factor limited to the allowed range (legacy rows may hold impossible values)."""
+        from planner.services.input_bounds import clamp_reserve_factor
+
+        return clamp_reserve_factor(self.reserve_factor)
+
+    @property
+    def safe_activity_factor(self) -> float:
+        from planner.services.input_bounds import clamp_activity_factor
+
+        return clamp_activity_factor(self.activity_factor)
 
     def create_default_meals_for_date(self, date: dt.date) -> list["Meal"]:
         """Create the default meal slots (breakfast, lunch, dinner) for a given date."""
@@ -545,9 +566,20 @@ class Meal(models.Model):
         otherwise the plan's ``norm_portions``. This is the single portion
         concept all per-meal energy/cost calculations must use.
         """
+        from planner.services import input_bounds
+
         if self.override_portions is not None:
-            return float(self.override_portions)
-        return float(self.meal_plan.norm_portions or 1)
+            return float(
+                min(max(self.override_portions, input_bounds.OVERRIDE_PORTIONS_MIN), input_bounds.OVERRIDE_PORTIONS_MAX)
+            )
+        return self.meal_plan.effective_norm_portions
+
+    @property
+    def safe_day_part_factor(self) -> float:
+        """Stored day part factor limited to the allowed range."""
+        from planner.services.input_bounds import clamp_day_part_factor
+
+        return clamp_day_part_factor(self.day_part_factor)
 
     def clean(self) -> None:
         """Validate meal constraints."""

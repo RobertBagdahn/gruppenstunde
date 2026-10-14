@@ -466,7 +466,7 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                 sub_meals = []
                 for variant_id, variant_items in sorted(items_by_variant.items()):
                     for item in variant_items:
-                        sub_meals.append(_build_sub_meal(item, portions, meal_plan.reserve_factor, overrides))
+                        sub_meals.append(_build_sub_meal(item, portions, meal_plan.safe_reserve_factor, overrides))
                 meal_data.append(
                     {
                         "meal_id": meal.id,
@@ -492,15 +492,17 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                 )
             else:
                 breakfast_card = (
-                    _build_breakfast_card(items, portions, meal_plan.reserve_factor)
+                    _build_breakfast_card(items, portions, meal_plan.safe_reserve_factor)
                     if meal.meal_type == "breakfast"
                     else None
                 )
-                direct_card = None if breakfast_card else _build_direct_card(items, portions, meal_plan.reserve_factor)
+                direct_card = (
+                    None if breakfast_card else _build_direct_card(items, portions, meal_plan.safe_reserve_factor)
+                )
                 card_items = [i for i in items if i.recipe or not direct_card]
                 items_data = []
                 for item in card_items:
-                    items_data.append(_build_item_data(item, portions, meal_plan.reserve_factor, overrides))
+                    items_data.append(_build_item_data(item, portions, meal_plan.safe_reserve_factor, overrides))
                 meal_data.append(
                     {
                         "meal_id": meal.id,
@@ -1128,7 +1130,7 @@ def generate_meal_plan_pdf(
         for day in days
     ]
 
-    total_cost = _estimate_total_cost(days, float(meal_plan.reserve_factor or 1.0))
+    total_cost = _estimate_total_cost(days, float(meal_plan.safe_reserve_factor or 1.0))
     total_cost_display = f"{_format_decimal(total_cost, 2)} €" if total_cost is not None else ""
 
     # Raw ORM objects are needed while deriving nutrition/allergens, but not by the template.
@@ -1151,7 +1153,7 @@ def generate_meal_plan_pdf(
         if float(meal_plan.norm_portions).is_integer()
         else _format_decimal(float(meal_plan.norm_portions), 1)
     )
-    reserve_factor_str = _format_decimal(float(meal_plan.reserve_factor), 2)
+    reserve_factor_str = _format_decimal(float(meal_plan.safe_reserve_factor), 2)
     scaling_factor_str = _format_decimal(float(meal_plan.scaling_factor), 2)
 
     context = {
@@ -1160,7 +1162,7 @@ def generate_meal_plan_pdf(
         "date_label": date_label,
         "norm_portions": meal_plan.norm_portions,
         "norm_portions_display": norm_portions_str,
-        "reserve_factor": meal_plan.reserve_factor,
+        "reserve_factor": meal_plan.safe_reserve_factor,
         "reserve_factor_display": reserve_factor_str,
         "scaling_factor": meal_plan.scaling_factor,
         "scaling_factor_display": scaling_factor_str,

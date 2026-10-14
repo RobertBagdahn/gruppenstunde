@@ -76,6 +76,8 @@ class IngredientReviewRowOut(BaseModel):
     quantity: float | None = Field(default=None, gt=0)
     suggested_quantity: float | None = Field(default=None, gt=0)
     reason: str = ""
+    # Addition dropped by the matcher ("mit Kohlensäure"); shown so the user can judge the match.
+    note: str = ""
     technical_details: ReviewTechnicalDetailsOut | None = None
     conflicts: list[str] = Field(default_factory=list)
     new_ingredient_draft: TemporaryIngredientDraftOut | None = None

@@ -71,4 +71,36 @@ describe('IngredientList', () => {
     fireEvent.click(screen.getAllByText('Tee')[0].closest('li')!);
     expect(screen.getByText('30,00 €/kg')).toBeTruthy();
   });
+
+  it('keeps a standard measure as the unit and shows its weight', () => {
+    const item = {
+      ...makeItem(1, 'Frischkäse', 45, null),
+      quantity: 3,
+      weight_g: 45,
+      standard_measure_key: 'el',
+      unit_kind: 'standard',
+      unit_label: 'EL',
+      ingredient_portions: [],
+    } as RecipeItem;
+    renderList([item, makeItem(2, 'Salz', 5, null)]);
+    expect(screen.getByText('3 EL')).toBeTruthy();
+    expect(screen.getByText('à 15 g')).toBeTruthy();
+  });
+
+  it('shows the weight instead of a contradicting à-volume for a liter portion', () => {
+    const item = {
+      ...makeItem(1, 'Haferdrink natur', 1000, null),
+      quantity: 1,
+      portion_id: 7,
+      portion_name: '1 Liter',
+      ingredient_density: 1.02,
+      ingredient_viscosity: 'liquid',
+      ingredient_portions: [
+        { id: 7, name: '1 Liter', quantity: 1, weight_g: 1000, measuring_unit_name: 'Milliliter', rank: 1, is_weight_trusted: true },
+      ],
+    } as unknown as RecipeItem;
+    renderList([item, makeItem(2, 'Salz', 5, null)]);
+    expect(screen.getByText('(≈ 1.000 g)')).toBeTruthy();
+    expect(screen.queryByText(/à .* ml/)).toBeNull();
+  });
 });

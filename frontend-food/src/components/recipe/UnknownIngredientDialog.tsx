@@ -30,7 +30,7 @@ const SuggestionSchema = z.object({
 interface UnknownIngredientDialogProps {
   open: boolean;
   query: string;
-  onSelect: (ingredientId: number, ingredientName: string) => void;
+  onSelect: (ingredientId: number, ingredientName: string, ingredientSlug: string) => void;
   onCreateNew: (name: string) => void;
   onClose: () => void;
 }
@@ -73,7 +73,7 @@ export function UnknownIngredientDialog({
               <button
                 key={s.id}
                 className="flex w-full items-center justify-between rounded-lg border p-3 text-left hover:bg-accent transition-colors"
-                onClick={() => onSelect(s.id, s.name)}
+                onClick={() => onSelect(s.id, s.name, s.slug)}
               >
                 <div>
                   <span className="font-medium">{s.name}</span>

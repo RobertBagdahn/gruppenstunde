@@ -35,6 +35,7 @@ const row: IngredientReviewRow = {
   quantity: null,
   suggested_quantity: null,
   reason: '',
+  note: '',
   technical_details: null,
   conflicts: [],
   new_ingredient_draft: null,

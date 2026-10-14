@@ -68,12 +68,19 @@ PORTION_NAMES_FOR_UNIT: dict[str, frozenset[str]] = {
     "msp": frozenset({"msp", "messerspitze"}),
     "messerspitze": frozenset({"msp", "messerspitze"}),
     "bund": frozenset({"bund"}),
+    "bunde": frozenset({"bund"}),
     "dose": frozenset({"dose"}),
-    "glas": frozenset({"glas"}),
+    "dosen": frozenset({"dose"}),
+    "glas": frozenset({"glas", "glas/gläser"}),
+    "gläser": frozenset({"glas", "glas/gläser"}),
+    "glaeser": frozenset({"glas", "glas/gläser"}),
     "becher": frozenset({"becher"}),
     "packung": frozenset({"packung"}),
+    "packungen": frozenset({"packung"}),
     "zehe": frozenset({"zehe"}),
+    "zehen": frozenset({"zehe"}),
     "scheibe": frozenset({"scheibe"}),
+    "scheiben": frozenset({"scheibe"}),
 }
 PIECE_UNITS: frozenset[str] = frozenset({"", "stück", "stueck", "stk", "stk."})
 
@@ -188,14 +195,18 @@ class UnitGramConverter:
             return None
         if unit_key in PIECE_UNITS:
 
-            def matches(name: str) -> bool:
-                return is_piece_like_name(name)
+            def matches(portion: Any) -> bool:
+                return is_piece_like_name(portion.name)
 
         elif unit_key in PORTION_NAMES_FOR_UNIT:
             wanted = PORTION_NAMES_FOR_UNIT[unit_key]
 
-            def matches(name: str) -> bool:
-                return normalize_portion_name(name) in wanted
+            def matches(portion: Any) -> bool:
+                # "Name or measuring unit": the portion is called "Esslöffel" or its unit is.
+                if normalize_portion_name(portion.name) in wanted:
+                    return True
+                unit_name = portion.measuring_unit.name if portion.measuring_unit else ""
+                return normalize_portion_name(unit_name) in wanted
 
         else:
             return None
@@ -208,7 +219,7 @@ class UnitGramConverter:
         )
         for portion in portions:
             weight = _trusted_weight(portion)
-            if weight is None or weight <= 0 or not matches(portion.name):
+            if weight is None or weight <= 0 or not matches(portion):
                 continue
             per_portion = float(portion.quantity or 1) or 1.0
             return PortionCount(count=max(round(quantity / per_portion, 2), 0.01), portion=portion)

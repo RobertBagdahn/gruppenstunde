@@ -51,7 +51,7 @@ def search_buffet_catalog(
     q: str = "",
     kind: Literal["all", "ingredient", "recipe"] = "all",
     recipe_type: str | None = None,
-    include_non_standalone: bool = False,
+    include_non_standalone: bool = False,  # deprecated: cooking ingredients are always searched
     exclude_alcohol: bool = False,
     limit: int = 30,
 ) -> list[dict[str, Any]]:
@@ -74,7 +74,6 @@ def search_buffet_catalog(
         meal_type=meal_type,
         kind=kind,
         recipe_type=recipe_type,
-        include_non_standalone=include_non_standalone,
         exclude_alcohol=exclude_alcohol,
         limit=limit,
     )
@@ -89,6 +88,7 @@ def search_buffet_catalog(
             "piece_weight_g": item.piece_weight_g,
             "recipe_type": item.recipe_type,
             "is_favorite": item.is_favorite,
+            "is_cooking_ingredient": item.is_cooking_ingredient,
             "role_slugs": list(item.role_slugs),
         }
         for item in results

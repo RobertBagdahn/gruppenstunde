@@ -24,4 +24,15 @@ describe('validateBasics', () => {
     expect(validateBasics({ ...valid, end_datetime: '' })).toEqual({});
     expect(validateBasics({ ...valid, start_datetime: '' })).toEqual({});
   });
+
+  it('rejects a period longer than 60 days', () => {
+    expect(validateBasics({ ...valid, end_datetime: '2026-12-31T12:00' }).period).toContain('60 Tage');
+    expect(validateBasics({ ...valid, end_datetime: '2026-12-08T12:00' }).period).toBeUndefined();
+  });
+
+  it('rejects a reserve factor outside 1,0 to 2,0', () => {
+    expect(validateBasics({ ...valid, reserve_factor: 2.5 }).reserve).toContain('1,0 und 2,0');
+    expect(validateBasics({ ...valid, reserve_factor: -100 }).reserve).toBeDefined();
+    expect(validateBasics({ ...valid, reserve_factor: 1.1 }).reserve).toBeUndefined();
+  });
 });

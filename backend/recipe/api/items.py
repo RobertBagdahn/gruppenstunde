@@ -859,6 +859,7 @@ def ai_suggest_ingredients_preview(request, recipe_id: int):
         raise HttpError(403, "Keine Berechtigung")
 
     from recipe.services.ai_ingredients_service import RecipeAiIngredientsService
+    from recipe.services.ingredient_review_service import ingredient_slug_for
 
     results, interaction_id = RecipeAiIngredientsService().get_full_suggestions(recipe, user=request.user)
     if results is None:
@@ -879,6 +880,7 @@ def ai_suggest_ingredients_preview(request, recipe_id: int):
                 key=f"existing-recipe-{recipe.id}-{index}",
                 source_text=result.ingredient_name,
                 selected_ingredient_id=result.ingredient_id,
+                selected_ingredient_slug=ingredient_slug_for(result.ingredient_id),
                 selected_ingredient_name=result.ingredient_name,
                 suggested_ingredient_id=result.ingredient_id,
                 suggested_ingredient_name=result.ingredient_name,

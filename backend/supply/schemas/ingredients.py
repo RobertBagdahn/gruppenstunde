@@ -4,8 +4,10 @@ from datetime import datetime
 from typing import Literal, cast
 
 from ninja import Schema
+from pydantic import field_validator
 
 from content.schemas.base import TagOut
+from planner.services import input_bounds
 
 from .ingredient_price_proposals import IngredientPriceProposalOut
 from .reference import IngredientGroupOut, NutritionalTagOut
@@ -96,6 +98,11 @@ class PortionCreateIn(Schema):
     weight_g: float | None = None
     rank: int = 1
 
+    @field_validator("weight_g")
+    @classmethod
+    def validate_weight_g(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_portion_weight_g(value)
+
 
 class PortionUpdateIn(Schema):
     """Input schema for updating a portion."""
@@ -105,6 +112,11 @@ class PortionUpdateIn(Schema):
     measuring_unit_id: int | None = None
     weight_g: float | None = None
     rank: int | None = None
+
+    @field_validator("weight_g")
+    @classmethod
+    def validate_weight_g(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_portion_weight_g(value)
 
 
 class PortionUpdateOut(PortionOut):

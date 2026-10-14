@@ -8,6 +8,8 @@ from typing import Any, Literal
 
 from django.db.models import Prefetch, Q, QuerySet
 
+from supply.services.ingredient_search import fold_umlauts, ingredient_name_q, name_rank, query_variants
+
 BUFFET_ROLE_SLUGS: tuple[str, ...] = (
     "buffet-bread",
     "buffet-fat",
@@ -52,6 +54,7 @@ class BuffetCatalogItem:
     recipe_type: str | None = None
     is_favorite: bool = False
     is_template_default: bool = False
+    is_cooking_ingredient: bool = False
     role_slugs: tuple[str, ...] = ()
 
 
@@ -241,34 +244,25 @@ def items_for_role(
 
 
 def _fold_umlauts(value: str) -> str:
-    folded = unicodedata.normalize("NFKC", value).casefold()
-    return folded.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    return fold_umlauts(value)
 
 
 def _query_variants(query: str) -> tuple[str, ...]:
-    """Expand common German umlaut transliterations for database lookups."""
-    seed = unicodedata.normalize("NFKC", query).strip().casefold()
-    variants = {seed}
-    for value in tuple(variants):
-        variants.add(value.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss"))
-        variants.add(value.replace("ae", "ä").replace("oe", "ö").replace("ue", "ü").replace("ss", "ß"))
-    return tuple(
-        sorted(variants, key=lambda value: (value.casefold() != seed.casefold(), len(value), value.casefold()))
-    )
+    return query_variants(query)
 
 
 def _name_query(query: str, *, name_field: str, aliases: bool) -> Q:
+    if name_field == "name":
+        return ingredient_name_q(query, aliases=aliases)
     condition = Q()
-    for variant in _query_variants(query):
+    for variant in query_variants(query):
         condition |= Q(**{f"{name_field}__icontains": variant})
-        if aliases:
-            condition |= Q(aliases__name__icontains=variant)
     return condition
 
 
 def _starts_with_query(name: str, aliases: list[str], query: str) -> bool:
-    folded_query = _fold_umlauts(query)
-    return any(_fold_umlauts(value).startswith(folded_query) for value in [name, *aliases])
+    folded_query = fold_umlauts(query)
+    return any(fold_umlauts(value).startswith(folded_query) for value in [name, *aliases])
 
 
 def search_buffet_items(
@@ -279,7 +273,6 @@ def search_buffet_items(
     meal_type: str,
     kind: Literal["all", "ingredient", "recipe"] = "all",
     recipe_type: str | None = None,
-    include_non_standalone: bool = False,
     exclude_alcohol: bool = False,
     limit: int = 30,
 ) -> list[BuffetCatalogItem]:
@@ -316,12 +309,23 @@ def search_buffet_items(
             item.is_favorite = role_slug in item.role_slugs and not alcoholic
             if exclude_alcohol and alcoholic:
                 continue
-            if not include_non_standalone and not ingredient.is_standalone_food and not item.is_favorite:
-                continue
             aliases = [alias.name for alias in ingredient.aliases.all()]
-            relevance_group = 0 if item.is_favorite else 1 if ingredient.is_standalone_food else 3
-            prefix_rank = 0 if _starts_with_query(ingredient.name, aliases, normalized_query) else 1
-            results.append(((relevance_group, 0, prefix_rank, item.name.casefold(), item.kind, item.id), item))
+            item.is_cooking_ingredient = not ingredient.is_standalone_food and not item.is_favorite
+            # Cooking ingredients (onion, flour, spices) stay findable but rank after ready-to-eat items.
+            relevance_group = 0 if item.is_favorite else 1 if ingredient.is_standalone_food else 4
+            results.append(
+                (
+                    (
+                        relevance_group,
+                        0,
+                        name_rank(ingredient.name, aliases, normalized_query),
+                        item.name.casefold(),
+                        item.kind,
+                        item.id,
+                    ),
+                    item,
+                )
+            )
 
     if kind in ("all", "recipe"):
         recipes = (
@@ -347,7 +351,7 @@ def search_buffet_items(
                 recipe_type_rank = matching_recipe_types.index(recipe.recipe_type)
             else:
                 relevance_group = 3
-            prefix_rank = 0 if _starts_with_query(recipe.title, [], normalized_query) else 1
+            prefix_rank = name_rank(recipe.title, [], normalized_query)
             results.append(
                 ((relevance_group, recipe_type_rank, prefix_rank, item.name.casefold(), item.kind, item.id), item)
             )

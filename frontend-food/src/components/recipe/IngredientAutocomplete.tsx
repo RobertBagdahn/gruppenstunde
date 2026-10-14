@@ -428,8 +428,8 @@ export function IngredientAutocomplete({
       <UnknownIngredientDialog
         open={showUnknownDialog}
         query={value}
-        onSelect={(id, name) => {
-          onSelect({ id, name, slug: '' });
+        onSelect={(id, name, slug) => {
+          onSelect({ id, name, slug });
           onChange(name);
           setShowUnknownDialog(false);
         }}

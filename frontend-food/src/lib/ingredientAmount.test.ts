@@ -3,7 +3,9 @@ import { RecipeItemSchema } from '@/schemas/recipe';
 import { RecipeStepIngredientSchema } from '@/schemas/recipeStep';
 import {
   formatPortionAmount,
+  formatPortionReference,
   formatRecipeItemAmount,
+  isVolumeOrMassPortionName,
   formatScaledRecipeAmount,
   formatStepIngredientLabel,
 } from './ingredientAmount';
@@ -42,6 +44,14 @@ describe('formatRecipeItemAmount (wizard preview cases from the production test)
       item({ ingredient_name: 'Olivenöl', portion_name: 'Esslöffel', measuring_unit_name: 'Esslöffel', quantity: 0.46, weight_g: 6.9 }),
     );
     expect(amount.primary).toBe('0,46 EL');
+  });
+
+  it('shows a pinch of salt as a portion count with its weight (Prise abbreviated like EL)', () => {
+    const amount = formatRecipeItemAmount(
+      item({ ingredient_name: 'Salz', portion_name: 'Prise', measuring_unit_name: 'Gramm', quantity: 2, weight_g: 1 }),
+    );
+    expect(amount.primary).toBe('2 Pr.');
+    expect(amount.secondary).toBe('1 g');
   });
 
   it('keeps metric amounts without a secondary line', () => {
@@ -142,5 +152,24 @@ describe('formatPortionAmount plural', () => {
 
   it('leaves other portion names untouched', () => {
     expect(formatPortionAmount(3, 'Scheibe Brot')).toBe('3 Scheibe Brot');
+  });
+});
+
+describe('portion reference text', () => {
+  it('detects portion names that are volume or mass units', () => {
+    expect(isVolumeOrMassPortionName('Liter')).toBe(true);
+    expect(isVolumeOrMassPortionName('1 Liter')).toBe(true);
+    expect(isVolumeOrMassPortionName('500 ml')).toBe(true);
+    expect(isVolumeOrMassPortionName('Scheibe')).toBe(false);
+    expect(isVolumeOrMassPortionName('Löffel')).toBe(false);
+    expect(isVolumeOrMassPortionName(null)).toBe(false);
+  });
+
+  it('shows the weight instead of a contradicting à-volume for volume portions', () => {
+    expect(formatPortionReference('1 Liter', 1020, '980 ml')).toBe('(≈ 1.020 g)');
+  });
+
+  it('keeps the à-text for natural portions', () => {
+    expect(formatPortionReference('Scheibe', 25, '25 g')).toBe('à 25 g');
   });
 });

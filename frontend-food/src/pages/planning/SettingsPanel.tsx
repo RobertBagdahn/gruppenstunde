@@ -8,6 +8,16 @@ import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/lib/mealPlanDate
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 import { formatNumber } from '@/lib/format';
 import {
+  ACTIVITY_FACTOR_HINT,
+  DAY_PART_FACTORS_SUM_MAX,
+  NORM_PORTIONS_HINT,
+  RESERVE_FACTOR_HINT,
+  activityFactorError,
+  dayPartFactorError,
+  normPortionsError,
+  reserveFactorError,
+} from '@/lib/mealPlanBounds';
+import {
   SuggestionContextFields,
   type SuggestionContextValue,
 } from '@/components/planning/suggestions/SuggestionContextFields';
@@ -52,6 +62,8 @@ interface SettingsPanelProps {
     nutritional_tag_ids?: number[];
   } & Partial<SuggestionContextValue>) => void;
   isPending: boolean;
+  /** German messages per field of the last server-side 422, shown at the matching field. */
+  serverFieldMessages?: Record<string, string>;
 }
 
 export default function SettingsPanel({
@@ -59,6 +71,7 @@ export default function SettingsPanel({
   plan,
   onSave,
   isPending,
+  serverFieldMessages,
 }: SettingsPanelProps) {
   const [name, setName] = useState(plan.name);
   const [description, setDescription] = useState(plan.description);
@@ -82,7 +95,7 @@ export default function SettingsPanel({
   const createTag = useCreateMealPlanTag(planId);
   const deleteTag = useDeleteMealPlanTag(planId);
   const isEventLinked = plan.event_id != null;
-  const hasValidManualNormPortions = Number.isInteger(portions) && portions >= 1;
+  const hasValidManualNormPortions = Number.isInteger(portions) && portions >= 1 && normPortionsError(portions) === null;
   const hasValidDateRange = Boolean(startDatetime) && (!endDatetime || endDatetime > startDatetime);
 
   const toggleTag = (tagId: number) => {
@@ -110,6 +123,15 @@ export default function SettingsPanel({
     snack: 0.10,
   };
   const [factors, setFactors] = useState<Record<string, number>>(plan.day_part_factors || defaultFactors);
+  const portionsFieldError = normPortionsError(portions) ?? serverFieldMessages?.norm_portions ?? null;
+  const reserveError = reserveFactorError(reserve) ?? serverFieldMessages?.reserve_factor ?? null;
+  const activityError = activityFactorError(activityFactor) ?? serverFieldMessages?.activity_factor ?? null;
+  const factorsSum = Object.values(factors).reduce((a, b) => a + b, 0);
+  const serverFactorsError = serverFieldMessages?.day_part_factors ?? null;
+  const factorsError = serverFactorsError ?? Object.values(factors).map(dayPartFactorError).find((message) => message !== null)
+    ?? (factorsSum > DAY_PART_FACTORS_SUM_MAX ? 'Die Tagesanteile dürfen zusammen höchstens 1,5 ergeben.' : null);
+  const needsPortionsCheck = !(isEventLinked && !manualNormPortions);
+  const hasFieldErrors = Boolean(reserveError || activityError || factorsError || (needsPortionsCheck && portionsFieldError));
 
   return (
     <div className="rounded-xl bg-card p-5 sm:p-6 space-y-5 font-sans shadow-card">
@@ -192,8 +214,14 @@ export default function SettingsPanel({
               step={0.5}
               value={portions}
               onChange={(e) => setPortions(Number(e.target.value))}
+              aria-invalid={portionsFieldError ? true : undefined}
               className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
             />
+          )}
+          {needsPortionsCheck && (
+            <p role={portionsFieldError ? 'alert' : undefined} className={`mt-1 text-caption ${portionsFieldError ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {portionsFieldError ?? NORM_PORTIONS_HINT}
+            </p>
           )}
         </div>
         <div>
@@ -209,6 +237,9 @@ export default function SettingsPanel({
             <option value={1.75}>1,75 — aktiv (Lager)</option>
             <option value={2.0}>2,0 — sehr aktiv (Hajk)</option>
           </select>
+          <p role={activityError ? 'alert' : undefined} className={`mt-1 text-caption ${activityError ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {activityError ?? ACTIVITY_FACTOR_HINT}
+          </p>
         </div>
         <div>
           <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Reservefaktor</label>
@@ -219,8 +250,13 @@ export default function SettingsPanel({
             step={0.05}
             value={reserve}
             onChange={(e) => setReserve(Number(e.target.value))}
+            aria-label="Reservefaktor"
+            aria-invalid={reserveError ? true : undefined}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
+          <p role={reserveError ? 'alert' : undefined} className={`mt-1 text-caption ${reserveError ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {reserveError ?? RESERVE_FACTOR_HINT}
+          </p>
         </div>
         <div>
           <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">Budget (€/Person/Tag)</label>
@@ -290,6 +326,7 @@ export default function SettingsPanel({
             {formatNumber(Object.values(factors).reduce((a, b) => a + b, 0), { maxDecimals: 2 })}
           </span> (Sollte idealerweise 1,00 ergeben).
         </p>
+        {factorsError && <p role="alert" className="mt-1 text-caption text-destructive">{factorsError}</p>}
       </div>
 
       <div className="border-t border-border pt-5">
@@ -396,7 +433,7 @@ export default function SettingsPanel({
             nutritional_tag_ids: nutritionalTagIds,
             ...suggestionContext,
           })}
-          disabled={isPending || !hasValidDateRange || (isEventLinked && manualNormPortions && !hasValidManualNormPortions)}
+          disabled={isPending || !hasValidDateRange || hasFieldErrors || (isEventLinked && manualNormPortions && !hasValidManualNormPortions)}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
         >
           {isPending ? 'Speichern...' : 'Speichern'}

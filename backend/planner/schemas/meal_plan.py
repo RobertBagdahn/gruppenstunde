@@ -9,6 +9,7 @@ from pydantic import Field, field_validator, model_validator
 
 from core.services.user_directory import public_display_name
 from planner.schemas.buffet import QuantityWarningOut
+from planner.services import input_bounds
 from planner.services.meal_item_helpers import (
     resolve_ingredient_cost_eur,
     resolve_ingredient_energy_kcal,
@@ -259,7 +260,19 @@ class MealItemCreateIn(Schema):
     standard_measure_key: str | None = None
     display_name: str | None = None
     note: str = Field(default="", max_length=500)
-    factor: float = Field(default=1.0, gt=0)
+    factor: float = 1.0
+
+    @field_validator("factor")
+    @classmethod
+    def validate_factor(cls, value: float) -> float:
+        return input_bounds.check_meal_item_factor(value)
+
+    @field_validator("quantity")
+    @classmethod
+    def validate_quantity_bounds(cls, value: float | None) -> float | None:
+        if value is None:
+            return value
+        return input_bounds.check_quantity_count(value)
 
     @model_validator(mode="after")
     def validate_ingredient_quantity(self):
@@ -269,13 +282,25 @@ class MealItemCreateIn(Schema):
 
 
 class MealItemUpdateIn(Schema):
-    factor: float | None = Field(default=None, gt=0)
+    factor: float | None = None
     quantity: float | None = None
     servings: float | None = Field(default=None, gt=0)
     portion_id: int | None = None
     measuring_unit_id: int | None = None
     standard_measure_key: str | None = None
     note: str | None = Field(default=None, max_length=500)
+
+    @field_validator("factor")
+    @classmethod
+    def validate_factor(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_meal_item_factor(value)
+
+    @field_validator("quantity")
+    @classmethod
+    def validate_quantity_bounds(cls, value: float | None) -> float | None:
+        if value is None:
+            return value
+        return input_bounds.check_quantity_count(value)
 
     @model_validator(mode="after")
     def validate_quantity_not_cleared(self):
@@ -412,7 +437,7 @@ class MealOut(Schema):
         if obj.is_external:
             if obj.external_energy_kcal is not None:
                 return cast(float, obj.external_energy_kcal * effective_portions)
-            return cast(float, NORM_PERSON_DAILY_KCAL * obj.day_part_factor * effective_portions)
+            return cast(float, NORM_PERSON_DAILY_KCAL * obj.safe_day_part_factor * effective_portions)
         total = 0.0
         for item in obj.items.all():
             recipe = _live_recipe(item)
@@ -484,6 +509,11 @@ class MealCreateIn(Schema):
     day_part_factor: float | None = None
     display_name: str | None = None
 
+    @field_validator("day_part_factor")
+    @classmethod
+    def validate_day_part_factor(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_day_part_factor(value)
+
 
 class MealUpdateIn(Schema):
     override_portions: int | None = None
@@ -496,6 +526,16 @@ class MealUpdateIn(Schema):
     external_cost_per_person: float | None = None
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
+
+    @field_validator("override_portions")
+    @classmethod
+    def validate_override_portions(cls, value: int | None) -> int | None:
+        return input_bounds.check_override_portions(value)
+
+    @field_validator("day_part_factor")
+    @classmethod
+    def validate_day_part_factor(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_day_part_factor(value)
 
 
 class MealDayBulkCreateIn(Schema):
@@ -630,6 +670,16 @@ class MealPlanDuplicateIn(Schema):
     end_datetime: dt.datetime
     norm_portions: float
 
+    @field_validator("norm_portions")
+    @classmethod
+    def validate_norm_portions(cls, value: float) -> float:
+        return input_bounds.check_norm_portions(value)
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        input_bounds.check_plan_period(self.start_datetime, self.end_datetime)
+        return self
+
 
 class MealPlanCreateIn(Schema):
     name: str = Field(min_length=1, max_length=200)
@@ -643,7 +693,7 @@ class MealPlanCreateIn(Schema):
             raise ValueError("Der Planname darf nicht leer sein.")
         return value
 
-    norm_portions: float = Field(10.0, gt=0, le=1000)
+    norm_portions: float = 10.0
     reserve_factor: float = 1.1
     budget_per_person_per_day: float | None = None
     age_groups: list[AgeGroup] = []
@@ -660,6 +710,31 @@ class MealPlanCreateIn(Schema):
     meal_default_times: dict[str, list[str]] | None = None
     nutritional_tag_ids: list[int] | None = None
 
+    @field_validator("norm_portions")
+    @classmethod
+    def validate_norm_portions(cls, value: float) -> float:
+        return input_bounds.check_norm_portions(value)
+
+    @field_validator("reserve_factor")
+    @classmethod
+    def validate_reserve_factor(cls, value: float) -> float:
+        return input_bounds.check_reserve_factor(value)
+
+    @field_validator("activity_factor")
+    @classmethod
+    def validate_activity_factor(cls, value: float) -> float:
+        return input_bounds.check_activity_factor(value)
+
+    @field_validator("day_part_factors")
+    @classmethod
+    def validate_day_part_factors(cls, value: dict[str, float] | None) -> dict[str, float] | None:
+        return value if value is None else input_bounds.check_day_part_factors(value)
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        input_bounds.check_plan_period(self.start_datetime, self.end_datetime)
+        return self
+
 
 class MealPlanUpdateIn(Schema):
     name: str | None = Field(default=None, max_length=200)
@@ -675,7 +750,7 @@ class MealPlanUpdateIn(Schema):
         return value
 
     description: str | None = None
-    norm_portions: float | None = Field(None, gt=0, le=1000)
+    norm_portions: float | None = None
     norm_portions_manual: bool | None = None
     reserve_factor: float | None = None
     activity_factor: float | None = None
@@ -692,6 +767,31 @@ class MealPlanUpdateIn(Schema):
     visibility: Literal["private", "group", "public", "draft"] | None = None
     nutritional_tag_ids: list[int] | None = None
     is_template: bool | None = None  # Only respected when set by admins
+
+    @field_validator("norm_portions")
+    @classmethod
+    def validate_norm_portions(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_norm_portions(value)
+
+    @field_validator("reserve_factor")
+    @classmethod
+    def validate_reserve_factor(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_reserve_factor(value)
+
+    @field_validator("activity_factor")
+    @classmethod
+    def validate_activity_factor(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_activity_factor(value)
+
+    @field_validator("day_part_factors")
+    @classmethod
+    def validate_day_part_factors(cls, value: dict[str, float] | None) -> dict[str, float] | None:
+        return value if value is None else input_bounds.check_day_part_factors(value)
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        input_bounds.check_plan_period(self.start_datetime, self.end_datetime)
+        return self
 
     @model_validator(mode="after")
     def validate_manual_norm_portions(self):
@@ -1092,7 +1192,17 @@ class RefMealItemIn(Schema):
     portion_id: int | None = None
     standard_measure_key: str | None = None
     display_name: str | None = None
-    factor: float = Field(default=1.0, gt=0)
+    factor: float = 1.0
+
+    @field_validator("factor")
+    @classmethod
+    def validate_factor(cls, value: float) -> float:
+        return input_bounds.check_meal_item_factor(value)
+
+    @field_validator("quantity")
+    @classmethod
+    def validate_quantity_bounds(cls, value: float | None) -> float | None:
+        return value if value is None else input_bounds.check_quantity_count(value)
 
     @model_validator(mode="after")
     def validate_ingredient_quantity(self):
@@ -1310,6 +1420,31 @@ class NutritionalTagPreviewOut(Schema):
 
     id: int
     name: str
+
+
+class RecipePreviewTagOut(Schema):
+    id: int
+    name: str
+    is_dangerous: bool = False
+
+
+class RecipePreviewIngredientOut(Schema):
+    name: str
+    amount_label: str = ""
+
+
+class RecipePreviewOut(Schema):
+    """Full recipe preview for the meal search: description, scaled ingredients, tags, allergens."""
+
+    id: int
+    title: str
+    slug: str
+    description: str | None = None
+    recipe_portions: int | None = None
+    target_portions: int
+    ingredients: list[RecipePreviewIngredientOut] = []
+    nutritional_tags: list[RecipePreviewTagOut] = []
+    allergens: list[str] = []
 
 
 class RecipeSearchResultOut(Schema):

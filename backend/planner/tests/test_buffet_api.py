@@ -465,3 +465,54 @@ class TestBuffetEndpointSharesAndPolicy:
         assert [warning["code"] for warning in data["warnings"]] == ["hidden_saved_items"]
         assert "nicht mehr sichtbar" in data["warnings"][0]["message"]
         assert "Verstecktes Brot" not in json.dumps(data)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("meal_type", "role_slug", "unit"),
+    [
+        (MealTypeChoices.BREAKFAST, "buffet-bread", "g"),
+        (MealTypeChoices.LUNCH, "buffet-main", "g"),
+        (MealTypeChoices.DINNER, "buffet-salad", "g"),
+        (MealTypeChoices.SNACK, "buffet-sweet-snack", "g"),
+        (MealTypeChoices.DRINKS, "buffet-drink", "ml"),
+    ],
+)
+def test_integrated_flow_for_every_meal_type(auth_client, gram_unit, meal_type, role_slug, unit):
+    """Free search -> preview (no write) -> save -> reopen the state, for each meal type."""
+    meal_plan = make_meal_plan(created_by=auth_client._user)
+    meal = make_meal(meal_plan=meal_plan, meal_type=meal_type, override_portions=4)
+    template = make_buffet_template(
+        slug=f"flow-{meal_type}",
+        roles={role_slug: (100, unit, True)},
+        meal_types=[str(meal_type)],
+    )
+    role_tag = template.roles.get(role__slug=role_slug).role
+    ingredient = make_ingredient(name=f"Flow Zutat {meal_type}", is_standalone_food=True)
+    ingredient.tags.add(role_tag)
+
+    found = auth_client.get(
+        "/api/supply/buffet-catalog/search/",
+        {"q": "Flow Zutat", "role": role_slug, "meal_type": str(meal_type)},
+    )
+    assert found.status_code == 200, found.content
+    assert ingredient.id in [row["id"] for row in found.json()]
+
+    body = {
+        "template_id": template.id,
+        "selections": [{"role_slug": role_slug, "ingredient_id": ingredient.id}],
+    }
+    preview = _post_buffet(auth_client, meal_plan.id, meal.id, {**body, "dry_run": True})
+    assert preview.status_code == 200, preview.content
+    assert preview.json()["saved"] is False
+    assert MealItem.objects.filter(meal=meal).count() == 0
+
+    saved = _post_buffet(auth_client, meal_plan.id, meal.id, {**body, "dry_run": False})
+    assert saved.status_code == 200, saved.content
+    assert saved.json()["saved"] is True
+    assert MealItem.objects.filter(meal=meal, ingredient=ingredient, buffet_role=role_slug).exists()
+
+    reopened = auth_client.get(f"/api/meal-plans/{meal_plan.id}/meals/{meal.id}/buffet/")
+    assert reopened.status_code == 200
+    assert reopened.json()["template_id"] == template.id
+    assert [row["ingredient_id"] for row in reopened.json()["selections"]] == [ingredient.id]
