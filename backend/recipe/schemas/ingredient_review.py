@@ -59,6 +59,23 @@ class TemporaryIngredientDraftOut(BaseModel):
     quantity: float | None = Field(default=None, gt=0, description="Suggested portion count from the import")
 
 
+class IngredientDraftRequestIn(BaseModel):
+    """'Zutat anlegen' for one review row: the source line and its parsed amount."""
+
+    source_text: str = Field(min_length=1, max_length=500)
+    quantity: float | None = Field(default=None, gt=0)
+    unit: str = Field(default="", max_length=40)
+
+
+class IngredientDraftOut(BaseModel):
+    """AI-enriched draft for a new ingredient plus existing ingredients it may duplicate."""
+
+    draft: TemporaryIngredientDraftOut
+    duplicates: list[IngredientMatchCandidateOut] = Field(default_factory=list)
+    # False when the AI enrichment was unavailable: only name and amount are filled.
+    is_enriched: bool = True
+
+
 class IngredientReviewRowOut(BaseModel):
     """One immutable source row plus the current human-review proposal."""
 
@@ -75,6 +92,12 @@ class IngredientReviewRowOut(BaseModel):
     suggested_portion: ReviewPortionOut | None = None
     quantity: float | None = Field(default=None, gt=0)
     suggested_quantity: float | None = Field(default=None, gt=0)
+    # The amount is a default for "nach Belieben" (e.g. 1 Prise), not from the source.
+    quantity_estimated: bool = False
+    # Original line when one source line was split into several rows ("Salz und Pfeffer").
+    source_line: str = ""
+    # Query the matcher searched for; sent back on save so confirmed choices are learned.
+    match_query: str = ""
     reason: str = ""
     # Addition dropped by the matcher ("mit Kohlensäure"); shown so the user can judge the match.
     note: str = ""
@@ -105,6 +128,7 @@ class IngredientReviewRowIn(BaseModel):
     selected_portion_id: int | None = None
     quantity: float = Field(gt=0)
     temporary_ingredient: TemporaryIngredientDraftOut | None = None
+    match_query: str = Field(default="", max_length=255)
 
 
 class IngredientReviewFinalizeIn(BaseModel):

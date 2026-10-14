@@ -59,8 +59,19 @@ class TestMetricConversion:
 
     def test_rounding_to_two_decimals(self):
         ing = make_ingredient(name="Öl")
+        make_portion(ing, name="Portion", quantity=1.0, weight_g=50.0, rank=1)
+        # 15 ml × category density 0.92 for oil = 13.8 g → 0.276 portions.
+        assert UnitGramConverter.convert_to_portion_count(1, "EL", ing) == 0.28
+
+    def test_tiny_count_switches_to_the_gram_portion(self):
+        ing = make_ingredient(name="Öl")
         make_portion(ing, name="Portion", quantity=1.0, weight_g=130.0, rank=1)
-        assert UnitGramConverter.convert_to_portion_count(1, "EL", ing) == 0.12
+
+        result = UnitGramConverter.convert_to_portion(1, "EL", ing)
+
+        assert result is not None
+        assert result.portion.name == "g"
+        assert result.count == 13.8
 
 
 @pytest.mark.django_db
@@ -157,7 +168,19 @@ class TestDirectPortionMatch:
 
     def test_unconfirmed_piece_weight_is_not_trusted(self):
         ing = make_ingredient(name="Zwiebel")
-        make_portion(ing, name="mittelgroße Zwiebel", quantity=1.0, weight_g=80.0, rank=1, weight_status="ai_proposed")
+        untrusted = make_portion(
+            ing, name="mittelgroße Zwiebel", quantity=1.0, weight_g=80.0, rank=1, weight_status="ai_proposed"
+        )
+        with patch("core.services.gemini.gemini_call", return_value=(None, None)):
+            result = UnitGramConverter.convert_to_portion(1, "Stück", ing)
+        # The typical piece weight (100 g) is used, never the AI-proposed 80 g.
+        assert result is not None
+        assert result.portion.id != untrusted.id
+        assert result.count * result.portion.weight_g == 100
+
+    def test_unknown_piece_without_trusted_portion_stays_open(self):
+        ing = make_ingredient(name="Freekeh")
+        make_portion(ing, name="Stück", quantity=1.0, weight_g=80.0, rank=1, weight_status="ai_proposed")
         with patch("core.services.gemini.gemini_call", return_value=(None, None)):
             assert UnitGramConverter.convert_to_portion_count(1, "Stück", ing) is None
 
@@ -206,3 +229,101 @@ class TestDirectPortionMatching:
 
         assert result is not None
         assert (result.count, result.portion.id) == (2.0, portion.id)
+
+
+@pytest.mark.django_db
+class TestImportMatchingOverhaul:
+    """Rules from the Chefkoch benchmark (openspec import-ingredient-matching-overhaul)."""
+
+    def test_teaspoon_portion_is_recognized_by_its_name(self):
+        ing = make_ingredient(name="Knoblauchpulver Test")
+        portion = make_portion(ing, name="1 TL (2g)", quantity=1.0, weight_g=2.0, rank=1, weight_status="imported")
+
+        result = UnitGramConverter.convert_to_portion(1, "TL", ing, allow_ai_estimate=False)
+
+        assert result is not None
+        assert (result.count, result.portion.id) == (1.0, portion.id)
+
+    def test_ml_portion_with_spoon_measuring_unit_is_not_a_spoon(self):
+        from supply.tests import make_measuring_unit
+
+        spoon = make_measuring_unit(name="Esslöffel", quantity=10, unit="g")
+        ing = make_ingredient(name="Limettensaft Test")
+        make_portion(
+            ing, name="200 ml", quantity=200.0, weight_g=200.0, rank=1, weight_status="imported", measuring_unit=spoon
+        )
+
+        result = UnitGramConverter.convert_to_portion(1, "EL", ing, allow_ai_estimate=False)
+
+        assert result is not None
+        assert result.count * result.portion.weight_g == pytest.approx(15)
+
+    def test_implausible_spoon_portion_falls_back_to_the_standard_measure(self):
+        ing = make_ingredient(name="Honig Test")
+        make_portion(ing, name="1 EL Honig", quantity=1.0, weight_g=10.0, rank=1, weight_status="imported")
+
+        assert UnitGramConverter.convert_to_grams(1, "EL", ing) == pytest.approx(21)
+
+    def test_size_selects_or_scales_piece_portions(self):
+        ing = make_ingredient(name="Zwiebel Test")
+        make_portion(ing, name="Stück", quantity=1.0, weight_g=100.0, rank=1, weight_status="confirmed")
+        small = make_portion(ing, name="kleines Stück", quantity=1.0, weight_g=50.0, rank=2, weight_status="confirmed")
+
+        large = UnitGramConverter.convert_to_portion(3, "", ing, size="large")
+        assert large is not None
+        assert large.count * large.portion.weight_g == pytest.approx(450)
+
+        tiny = UnitGramConverter.convert_to_portion(2, "", ing, size="small")
+        assert tiny is not None
+        assert (tiny.count, tiny.portion.id) == (2.0, small.id)
+
+        plain = UnitGramConverter.convert_to_portion(1, "", ing)
+        assert plain is not None
+        assert plain.portion.weight_g == 100
+
+    def test_piece_weight_table_without_piece_portion(self):
+        ing = make_ingredient(name="Kirschtomaten Test")
+        make_portion(ing, name="100g", quantity=100.0, weight_g=100.0, rank=2, weight_status="imported")
+
+        assert UnitGramConverter.convert_to_grams(10, "", ing) == pytest.approx(150)
+
+    @pytest.mark.parametrize(
+        ("unit", "name", "hint", "grams"),
+        [
+            ("Bund", "Rosmarin", "", 20),
+            ("Pck.", "Backpulver", "", 16),
+            ("Packung", "Blätterteig", "tk Blätterteig", 450),
+            ("Stange/n", "Lauch", "", 200),
+            ("Knolle", "Sellerie (Knolle)", "", 700),
+            ("Glas", "Weißwein", "", 150),
+        ],
+    )
+    def test_standard_unit_weights_without_ai(self, unit, name, hint, grams):
+        ing = make_ingredient(name=name)
+        with patch("core.services.gemini.gemini_call") as mocked:
+            assert UnitGramConverter.convert_to_grams(1, unit, ing, hint=hint) == pytest.approx(grams)
+            mocked.assert_not_called()
+
+    def test_implausible_pinch_portion_is_replaced_by_half_a_gram(self):
+        ing = make_ingredient(name="Cayennepfeffer Test")
+        make_portion(ing, name="Prise", quantity=1.0, weight_g=1.0, rank=1, weight_status="confirmed")
+
+        result = UnitGramConverter.convert_to_portion(1, "Prise", ing)
+
+        assert result is not None
+        assert result.count * result.portion.weight_g == pytest.approx(0.5)
+
+    def test_powder_without_density_uses_the_category_density(self):
+        ing = make_ingredient(name="Kartoffelpüree-Pulver Test")
+
+        assert UnitGramConverter.convert_to_grams(4, "EL", ing) == pytest.approx(30)
+
+    def test_tiny_amount_uses_a_readable_portion(self):
+        ing = make_ingredient(name="Zucker Test")
+        make_portion(ing, name="100g Zucker", quantity=100.0, weight_g=100.0, rank=1, weight_status="imported")
+
+        result = UnitGramConverter.convert_to_portion(1, "Prise", ing)
+
+        assert result is not None
+        assert result.portion.name == "g"
+        assert result.count == 0.5

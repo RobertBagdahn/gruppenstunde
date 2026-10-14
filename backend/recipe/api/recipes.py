@@ -56,7 +56,12 @@ from recipe.schemas.import_schemas import (
     RecipeItemDraftOut,
     SmartRecipeInputIn,
 )
-from recipe.schemas.ingredient_review import IngredientReviewPreviewOut, RecipeImportSourceIn
+from recipe.schemas.ingredient_review import (
+    IngredientDraftOut,
+    IngredientDraftRequestIn,
+    IngredientReviewPreviewOut,
+    RecipeImportSourceIn,
+)
 from supply.models import ContentMaterialItem
 
 logger = logging.getLogger(__name__)
@@ -307,6 +312,16 @@ def preview_recipe_ingredient_review(request, payload: RecipeIngredientReviewSou
             IngredientReviewPreviewOut.model_validate(preview).model_dump(mode="json"),
         )
     return preview
+
+
+@router.post("/ingredient-review/new-ingredient-draft/", response=IngredientDraftOut)
+def new_ingredient_review_draft(request, payload: IngredientDraftRequestIn):
+    """ "Zutat anlegen": AI-enriched draft for an open review row, nothing is saved."""
+    require_login(request, "um eine neue Zutat anzulegen")
+
+    from recipe.services.ingredient_review_service import new_ingredient_draft
+
+    return new_ingredient_draft(payload.source_text, payload.quantity, payload.unit, request.user)
 
 
 @router.post("/import-from-url/", response=RecipeImportPreviewOut)
@@ -779,8 +794,13 @@ def create_recipe(request, payload: RecipeCreateIn):
     recipe.authors.add(request.user)
 
     # Create recipe items first (triggers sync_recipe_nutritional_tags via signal)
+    learned: list[tuple[str, int | None, int | None]] = []
     for index, item_data in enumerate(payload.recipe_items):
         portion_id = item_data.portion_id
+        if payload.ingredient_review_rows is not None and index < len(payload.ingredient_review_rows):
+            learned_query = payload.ingredient_review_rows[index].match_query
+        else:
+            learned_query = ""
         if payload.ingredient_review_rows is not None:
             review = payload.ingredient_review_rows[index] if index < len(payload.ingredient_review_rows) else None
             if review is None:
@@ -933,6 +953,18 @@ def create_recipe(request, payload: RecipeCreateIn):
             note=item_data.note,
             is_optional=item_data.is_optional,
         )
+        if learned_query:
+            learned.append(
+                (learned_query, selected_portion.ingredient_id if selected_portion else None, direct_ingredient_id)
+            )
+
+    # Confirmed review choices teach the import matcher (never for anonymous users).
+    from recipe.services.learned_mapping import record_confirmation
+
+    for learned_query, portion_ingredient_id, direct_id in learned:
+        ingredient_id = portion_ingredient_id or direct_id
+        if ingredient_id is not None:
+            record_confirmation(learned_query, ingredient_id, request.user)
 
     from recipe.models import RecipeStep, RecipeStepIngredient
 

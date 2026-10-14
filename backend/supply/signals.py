@@ -1,12 +1,12 @@
 """Signals for supply app — Portion weight_g calculation, embedding generation, quality score calculation, and audit logging."""
 
 from django.db import transaction
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from core.services.background import run_in_background
 
-from .models import Ingredient, MeasuringUnit, Portion
+from .models import Ingredient, IngredientAlias, MeasuringUnit, Portion
 
 
 @receiver(pre_save, sender=Portion, dispatch_uid="supply.calculate_portion_weight_g")
@@ -192,3 +192,14 @@ def log_ingredient_changes(sender, instance: Ingredient, created: bool, **kwargs
         old_value = old_values.get(field)
         if str(old_value) != str(new_value):
             log_field_change(instance, field, old_value, new_value, user=user)
+
+
+@receiver(post_save, sender=Ingredient, dispatch_uid="supply.invalidate_matching_index_ingredient_save")
+@receiver(post_delete, sender=Ingredient, dispatch_uid="supply.invalidate_matching_index_ingredient_delete")
+@receiver(post_save, sender=IngredientAlias, dispatch_uid="supply.invalidate_matching_index_alias_save")
+@receiver(post_delete, sender=IngredientAlias, dispatch_uid="supply.invalidate_matching_index_alias_delete")
+def invalidate_matching_index(sender, **kwargs) -> None:
+    """Names, aliases and matchability feed the import matching index."""
+    from recipe.services.matching_index import bump_catalog_version
+
+    bump_catalog_version()

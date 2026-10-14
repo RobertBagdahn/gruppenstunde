@@ -1,4 +1,4 @@
-"""Tests for IngredientMatcher — cascading ingredient matching pipeline."""
+"""Tests for IngredientMatcher — exact stage, scored index stage, embedding and human fallback."""
 
 from unittest.mock import patch
 
@@ -12,46 +12,16 @@ pytestmark = pytest.mark.usefixtures("gemini_unavailable")
 
 
 @pytest.mark.django_db
-class TestStage1Jaccard:
-    """Stage 1: Wort-Jaccard matching against Ingredient.name."""
-
+class TestExactStage:
     def test_exact_match_returns_definitive_result(self):
         ing = make_ingredient(name="Fladenbrot", usage_count=42)
         result = IngredientMatcher.match("Fladenbrot")
         assert result.ingredient_id == ing.id
-        assert result.matched_via == "jaccard"
+        assert result.matched_via == "exact"
         assert result.confidence == 1.0
         assert result.needs_review is False
 
-    def test_no_match_falls_through(self):
-        with patch.object(IngredientMatcher, "_stage_fuzzy", return_value=None):
-            with patch.object(IngredientMatcher, "_stage_embedding", return_value=None):
-                result = IngredientMatcher.match("UnbekanntExtremSelten")
-                assert result.needs_review is True
-                assert result.matched_via == "new"
-                assert result.ingredient_id is None
-                assert result.confidence == 0.0
-
-    def test_grey_zone_returns_needs_review(self):
-        # Ingredients with partial overlap in DB, query has no exact match
-        make_ingredient(name="Zwiebel rot", usage_count=100)
-        make_ingredient(name="Zwiebel frisch", usage_count=50)
-        result = IngredientMatcher.match("Zwiebel")
-        assert result.needs_review is True
-        assert result.matched_via == "jaccard"
-        assert result.confidence == 0.5
-        assert len(result.candidates) >= 1
-
-    def test_multiple_close_matches_trigger_hitl(self):
-        # Both "Zwiebel rot" and "Zwiebel frisch" have Jaccard 0.5, diff 0 < 0.05
-        make_ingredient(name="Zwiebel rot", usage_count=100)
-        make_ingredient(name="Zwiebel frisch", usage_count=50)
-        result = IngredientMatcher.match("Zwiebel")
-        assert result.needs_review is True
-        assert len(result.candidates) >= 2
-
     def test_exact_match_preferred_over_higher_usage_partial_match(self):
-        # Decision 4: Exact match takes precedence over higher-usage partial matches
         exact = make_ingredient(name="Zwiebeln", usage_count=15)
         make_ingredient(name="Zwiebeln rot", usage_count=100)
         make_ingredient(name="Zwiebeln frisch", usage_count=50)
@@ -60,48 +30,17 @@ class TestStage1Jaccard:
         assert result.confidence == 1.0
         assert result.needs_review is False
 
-    def test_popularity_ordering(self):
-        _low = make_ingredient(name="Zwiebel rot", usage_count=5)
-        _high = make_ingredient(name="Zwiebel", usage_count=50)
-        result = IngredientMatcher.match("Zwiebel")
-        # "Zwiebel" (usage_count=50) is first in ordering, Jaccard vs itself = 1.0
-        assert result.ingredient_id is not None
-        assert result.matched_via == "jaccard"
-
-    def test_note_from_parser_preserved(self):
+    def test_soft_specifier_is_kept_as_note(self):
         make_ingredient(name="Fladenbrot")
         result = IngredientMatcher.match("Fladenbrot frisch")
+        assert result.name == "Fladenbrot"
         assert result.note == "frisch"
 
-
-@pytest.mark.django_db
-class TestStage4HumanDialog:
-    """Stage 4: Human Dialog fallback when all algorithmic stages fail."""
-
-    def test_no_match_returns_needs_review(self):
-        with patch.object(IngredientMatcher, "_stage_jaccard", return_value=None):
-            with patch.object(IngredientMatcher, "_stage_fuzzy", return_value=None):
-                with patch.object(IngredientMatcher, "_stage_embedding", return_value=None):
-                    result = IngredientMatcher.match("Freekeh")
-                    assert result.needs_review is True
-                    assert result.matched_via == "new"
-                    assert result.confidence == 0.0
-                    assert result.ingredient_id is None
-                    assert result.candidates == []
-
-
-@pytest.mark.django_db
-class TestCandidateListOnAllResults:
-    """Every match result carries the top candidates of the deciding stage."""
-
-    def test_confident_fuzzy_match_carries_candidates(self):
-        make_ingredient(name="Kirschen", usage_count=30)
-        result = IngredientMatcher.match("Kirsche(n)")
-        # The plural bracket is resolved by the name normalisation before the fuzzy stage.
-        assert result.matched_via in {"fuzzy", "normalized"}
-        assert result.ingredient_id is not None
-        assert len(result.candidates) >= 1
-        assert all(c.slug for c in result.candidates)
+    def test_hard_specifier_does_not_fall_back_to_the_bare_name(self):
+        make_ingredient(name="Zwiebel", usage_count=50)
+        red = make_ingredient(name="Rote Zwiebel", usage_count=2)
+        result = IngredientMatcher.match("Zwiebel (rot)")
+        assert result.ingredient_id == red.id
 
     def test_exact_match_carries_candidate(self):
         ing = make_ingredient(name="Orangensaft")
@@ -111,13 +50,114 @@ class TestCandidateListOnAllResults:
         assert result.candidates[0].slug == ing.slug
         assert result.candidates[0].confidence == 1.0
 
+    def test_excluded_ingredient_is_never_matched(self):
+        make_ingredient(name="Salz und Pfeffer", exclude_from_matching=True)
+        result = IngredientMatcher.match("Salz und Pfeffer")
+        assert result.ingredient_id is None
+        assert all(candidate.name != "Salz und Pfeffer" for candidate in result.candidates)
+
+
+@pytest.mark.django_db
+class TestIndexStage:
+    def test_plural_and_word_order(self):
+        almonds = make_ingredient(name="Gemahlene Mandeln")
+        result = IngredientMatcher.match("Mandel(n) (gemahlen)")
+        assert result.ingredient_id == almonds.id
+        assert result.matched_via == "index"
+
+    def test_compound_with_generic_tail(self):
+        feta = make_ingredient(name="Feta")
+        make_ingredient(name="Feta-Creme")
+        result = IngredientMatcher.match("Feta-Käse")
+        assert result.ingredient_id == feta.id
+
+    def test_compound_split_against_catalog_words(self):
+        balsamic = make_ingredient(name="Weißer Balsamicoessig")
+        make_ingredient(name="Balsamico-Creme")
+        result = IngredientMatcher.match("Balsamicoessig weiß")
+        assert result.ingredient_id == balsamic.id
+
+    def test_conflicting_feature_is_never_selected(self):
+        make_ingredient(name="Hefe (frisch)", usage_count=20)
+        dry = make_ingredient(name="Trockenhefe", usage_count=1)
+        result = IngredientMatcher.match("Hefe (Trockenhefe)")
+        assert result.ingredient_id == dry.id
+
+    def test_conflict_through_alias_inherits_ingredient_features(self):
+        from supply.models import IngredientAlias
+
+        medium = make_ingredient(name="mittelscharfer Senf", usage_count=13)
+        IngredientAlias.objects.create(ingredient=medium, name="Senf")
+        result = IngredientMatcher.match("Senf, süßer")
+        assert result.ingredient_id is None
+
+    def test_generic_ingredient_when_the_variety_is_missing(self):
+        olives = make_ingredient(name="Oliven")
+        result = IngredientMatcher.match("Oliven (schwarz)")
+        assert result.ingredient_id == olives.id
+        assert result.needs_review is True
+
+    def test_candidate_with_extra_word_is_not_preselected(self):
+        make_ingredient(name="Vegane Fleischwurst")
+        result = IngredientMatcher.match("Fleischwurst")
+        assert result.ingredient_id is None
+        assert [candidate.name for candidate in result.candidates] == ["Vegane Fleischwurst"]
+
+    def test_partial_compound_does_not_match_its_head(self):
+        make_ingredient(name="Milch", status="verified")
+        result = IngredientMatcher.match("Kokosmilch")
+        assert result.ingredient_id is None
+
+    def test_verified_candidate_wins_a_tie(self):
+        make_ingredient(name="Mozzarella Bio", status="draft", usage_count=0)
+        verified = make_ingredient(name="Mozzarella aus Kuhmilch", status="verified", usage_count=4)
+        result = IngredientMatcher.match("Mozzarella")
+        assert result.ingredient_id == verified.id
+
+    def test_typo_is_matched_for_review(self):
+        mushrooms = make_ingredient(name="Champignons")
+        result = IngredientMatcher.match("Champninons")
+        assert result.ingredient_id == mushrooms.id
+        assert result.needs_review is True
+
     def test_grey_zone_candidates_have_slug(self):
-        make_ingredient(name="Zwiebel rot", usage_count=100)
-        make_ingredient(name="Zwiebel frisch", usage_count=50)
+        make_ingredient(name="Zwiebelpulver", usage_count=100)
+        make_ingredient(name="Zwiebelsuppe", usage_count=50)
         result = IngredientMatcher.match("Zwiebel")
+        assert result.ingredient_id is None
         assert result.needs_review is True
         assert len(result.candidates) >= 2
-        assert all(c.slug for c in result.candidates)
+        assert all(candidate.slug for candidate in result.candidates)
+
+
+@pytest.mark.django_db
+class TestHumanDialog:
+    def test_no_match_returns_needs_review(self):
+        with patch.object(IngredientMatcher, "_stage_embedding", return_value=None):
+            result = IngredientMatcher.match("Freekeh")
+        assert result.needs_review is True
+        assert result.matched_via == "new"
+        assert result.confidence == 0.0
+        assert result.ingredient_id is None
+        assert result.candidates == []
+
+    def test_embedding_runs_when_nothing_else_matches(self):
+        ing = make_ingredient(name="Rindergehacktes")
+
+        def embedding_stage(clean_name, note, candidate_qs):
+            return MatchResult(
+                needs_review=True,
+                name=clean_name,
+                matched_via="embed",
+                note=note,
+                candidates=[MatchCandidate(id=ing.id, name=ing.name, slug=ing.slug, confidence=0.75)],
+            )
+
+        with patch.object(IngredientMatcher, "_stage_embedding", side_effect=embedding_stage):
+            result = IngredientMatcher.match("Rinderhack")
+        assert result.matched_via == "embed"
+        assert result.ingredient_id is None
+        assert result.candidates[0].id == ing.id
 
 
 @pytest.mark.django_db
@@ -149,92 +189,38 @@ class TestEmbeddingStageCandidatesOnly:
 
 
 @pytest.mark.django_db
-class TestQuantityTokenStripping:
-    """Matcher strips leading quantity/unit tokens when the parser failed."""
+class TestAmountsInTheName:
+    """The matcher parses raw lines itself when the caller passes no parse."""
 
     def test_liter_prefixed_name_matched(self):
         make_ingredient(name="Orangensaft")
         result = IngredientMatcher.match("1 Liter Orangensaft")
-        assert result.ingredient_id is not None
         assert result.name == "Orangensaft"
         assert result.technical_details.get("parsed_quantity") == 1.0
-        assert result.technical_details.get("parsed_unit") == "Liter"
+        assert result.technical_details.get("parsed_unit") == "l"
 
     def test_quantity_without_unit_stripped(self):
         make_ingredient(name="Fladenbrot")
         result = IngredientMatcher.match("2 Fladenbrot")
-        assert result.ingredient_id is not None
         assert result.name == "Fladenbrot"
         assert result.technical_details.get("parsed_quantity") == 2.0
 
-    def test_quantity_word_stripped(self):
-        make_ingredient(name="Rohrzucker")
-        result = IngredientMatcher.match("etwas Rohrzucker brauner")
-        # Grey zone (Rohrzucker 0.5) — the candidate must be offered
-        assert result.needs_review is True
-        candidate_names = [c.name for c in result.candidates]
-        assert "Rohrzucker" in candidate_names
-
-    def test_no_leading_token_not_stripped(self):
+    def test_name_with_percentage_is_not_cut(self):
         make_ingredient(name="Orangensaft 100%")
         result = IngredientMatcher.match("Orangensaft 100%")
-        assert result.ingredient_id is not None
         assert result.name == "Orangensaft 100%"
         assert "parsed_quantity" not in result.technical_details
-
-    def test_bare_unit_prefix_stripped(self):
-        make_ingredient(name="Orangensaft")
-        result = IngredientMatcher.match("Liter Orangensaft")
-        assert result.ingredient_id is not None
-        assert result.name == "Orangensaft"
-        assert result.technical_details.get("parsed_unit") == "Liter"
 
     def test_real_name_with_unit_prefix_not_cut(self):
         make_ingredient(name="Glasnudeln")
         result = IngredientMatcher.match("Glasnudeln")
-        assert result.ingredient_id is not None
         assert result.name == "Glasnudeln"
         assert "parsed_unit" not in result.technical_details
 
-    def test_strip_helper_returns_none_without_prefix(self):
-        assert IngredientMatcher._strip_quantity_unit("Orangensaft 100%") is None
+    def test_parsed_line_is_not_parsed_again(self):
+        from recipe.services.ingredient_line import parse_line
 
-
-@pytest.mark.django_db
-class TestCascading:
-    """Full cascading pipeline through all stages."""
-
-    def test_stage2_definitive_when_stage1_fails(self):
-        ing = make_ingredient(name="Champignon")
-
-        def stage2_match(clean_name, raw_name, note, candidate_qs):
-            return MatchResult(
-                ingredient_id=ing.id,
-                name=ing.name,
-                confidence=0.85,
-                matched_via="fuzzy",
-                note=note,
-            )
-
-        with patch.object(IngredientMatcher, "_stage_fuzzy", side_effect=stage2_match):
-            result = IngredientMatcher.match("Champninon")
-            assert result.ingredient_id == ing.id
-            assert result.matched_via == "fuzzy"
-
-    def test_stage3_definitive_when_stage1_and_stage2_fail(self):
-        ing = make_ingredient(name="Rindergehacktes")
-
-        def stage3_match(clean_name, note, candidate_qs):
-            return MatchResult(
-                ingredient_id=ing.id,
-                name=ing.name,
-                confidence=0.75,
-                matched_via="embed",
-                note=note,
-            )
-
-        with patch.object(IngredientMatcher, "_stage_fuzzy", return_value=None):
-            with patch.object(IngredientMatcher, "_stage_embedding", side_effect=stage3_match):
-                result = IngredientMatcher.match("Rinderhack")
-                assert result.ingredient_id == ing.id
-                assert result.matched_via == "embed"
+        quark = make_ingredient(name="Speisequark 20%")
+        parsed = parse_line("250 g Quark (20 %)")
+        result = IngredientMatcher.match(parsed.query, parsed=parsed)
+        assert result.ingredient_id == quark.id

@@ -163,6 +163,7 @@ export const useRecipeIngredientReviewStore = create<RecipeIngredientReviewState
       // Only send the AI draft when the user actually confirmed it; picking an
       // existing ingredient afterwards must not create a new one.
       temporary_ingredient: row.selected_portion?.is_new ? row.new_ingredient_draft : null,
+      match_query: row.match_query ?? '',
     }));
   },
 }));

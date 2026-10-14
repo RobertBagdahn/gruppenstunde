@@ -215,6 +215,11 @@ class Ingredient(SoftDeleteModel):
         verbose_name=_("Eigenständig konsumierbar"),
         help_text=_("Kann roh/direkt gegessen werden (z.B. Obst, Getränke, Süßigkeiten)"),
     )
+    exclude_from_matching = models.BooleanField(
+        default=False,
+        verbose_name=_("Vom Import-Matching ausschließen"),
+        help_text=_("Kombi-Zutaten wie „Salz und Pfeffer“: bleiben in Rezepten, werden beim Import nie vorgeschlagen."),
+    )
 
     status = models.CharField(
         max_length=20,

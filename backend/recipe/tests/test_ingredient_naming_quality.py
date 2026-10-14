@@ -49,8 +49,7 @@ class TestMatchIngredientsIntegration:
         make_ingredient(name="Tomate frisch", usage_count=10)
         service = RecipeAiIngredientsService()
 
-        with patch.object(IngredientMatcher, "_stage_fuzzy", return_value=None):
-            with patch.object(IngredientMatcher, "_stage_embedding", return_value=None):
-                suggestion = AiIngredientSuggestion(name="Tomatenmark", estimated_grams=30)
-                results = service.match_ingredients([suggestion])
-                assert results[0].is_new_ingredient is True
+        with patch.object(IngredientMatcher, "_stage_embedding", return_value=None):
+            suggestion = AiIngredientSuggestion(name="Tomatenmark", estimated_grams=30)
+            results = service.match_ingredients([suggestion])
+            assert results[0].is_new_ingredient is True

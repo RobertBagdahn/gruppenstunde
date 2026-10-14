@@ -29,7 +29,7 @@ class TestProductionCases:
         result = IngredientMatcher.match("Prise(n) Salz")
 
         assert result.ingredient_id == catalog["salz"].id
-        assert result.matched_via in {"jaccard", "normalized"}
+        assert result.matched_via == "exact"
 
     def test_grosse_eier_match_eier_groesse_m(self, catalog):
         result = IngredientMatcher.match("große Ei(er), Größe L")
@@ -42,7 +42,7 @@ class TestProductionCases:
         result = IngredientMatcher.match("Mineralwasser mit Kohlensäure")
 
         assert result.ingredient_id == catalog["wasser"].id
-        assert result.matched_via == "head"
+        assert result.matched_via == "index"
         assert result.needs_review is True
         assert "mit Kohlensäure" in result.note
 

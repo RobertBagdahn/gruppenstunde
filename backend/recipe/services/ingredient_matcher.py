@@ -1,14 +1,15 @@
 """Unified ingredient matching pipeline with cascading confidence stages.
 
 Stages:
-  1. Wort-Jaccard (threshold 0.90)
-  2. pg_trgm + Levenshtein (threshold 0.70)
+  1. Exact name or alias of the parsed query
+  2. Scored match on the in-memory index (`matching_index`): normalized tokens,
+     compounds, head noun, specifiers and conflicting features
   3. Embedding via pgvector — candidates only, never an automatic match
   4. Human-in-the-Loop + Gemini enrichment
 
-All stages search both Ingredient.name and IngredientAlias.name.
-Candidates are ordered by usage_count descending. Every result carries
-the top candidates of the deciding stage.
+All stages search both Ingredient.name and IngredientAlias.name and skip
+ingredients excluded from matching. Every result carries the top candidates
+of the deciding stage.
 """
 
 from __future__ import annotations
@@ -19,14 +20,12 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from recipe.services.ingredient_name_normalization import NormalizedName, normalize_ingredient_name
-from recipe.services.ingredient_parser import IngredientNameParser
-
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
     from django.db.models import QuerySet
 
     from recipe.models import Recipe
+    from recipe.services.ingredient_line import ParsedLine
 
 logger = logging.getLogger(__name__)
 
@@ -45,29 +44,6 @@ EMBEDDING_THRESHOLD = _get_setting("INGREDIENT_MATCHER_EMBEDDING_THRESHOLD", 0.5
 GREY_ZONE_MIN = _get_setting("INGREDIENT_MATCHER_GREY_ZONE_MIN", 0.30)
 MULTI_MATCH_SCORE_DIFF = _get_setting("INGREDIENT_MATCHER_MULTI_MATCH_DIFF", 0.05)
 MAX_CANDIDATES_PER_STAGE = 8
-HEAD_MATCH_CONFIDENCE = 0.90
-NORMALIZED_MATCH_CONFIDENCE = 0.95
-
-_BRACKET_ADDITION = re.compile(r"\s*\([^)]*\)")
-
-# Fallback quantity/unit stripping — applied when the parser could not split
-# cleanly. Longer alternatives first so "Liter" wins over "l".
-QUANTITY_UNIT_STRIP_PATTERN = re.compile(
-    r"^(?P<qty>\d+(?:[.,]\d+)?)\s*(?P<unit>kg|g|ml|Liter|l|EL|TL|Msp\.?|Pck\.?|Pkg\.?|Bd\.?|"
-    r"Stück|Dose[n]?|Glas|Gläser|Tasse[n]?|Becher|Packung[en]?|Päckchen|Handvoll|Bund|Prise|Schuss|Scheibe[n]?|Zehe[n]?)?\s+",
-    re.IGNORECASE,
-)
-QUANTITY_WORD_STRIP_PATTERN = re.compile(
-    r"^(?:etwas|ein\s+paar|einige|ein|eine|einen|einer|ca\.?|circa|etwa|rund)\s+",
-    re.IGNORECASE,
-)
-# Leading bare unit without a number — Gemini extractions often echo
-# "Liter Orangensaft" after stripping the quantity themselves.
-BARE_UNIT_STRIP_PATTERN = re.compile(
-    r"^(?:kg|g|ml|Liter|l|EL|TL|Stück|Dose|Glas|Gläser|Tasse|Becher|Packung|Päckchen|Handvoll|Bund|Prise|Schuss|Scheibe|Zehe)\s+",
-    re.IGNORECASE,
-)
-
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas
@@ -119,6 +95,7 @@ class IngredientMatcher:
         raw_name: str,
         user: AbstractBaseUser | None = None,
         recipe: Recipe | None = None,
+        parsed: ParsedLine | None = None,
     ) -> MatchResult:
         """Full pipeline: parse → match → enrich if needed.
 
@@ -131,74 +108,254 @@ class IngredientMatcher:
         with replacement context (`replacement_for_item_id`,
         `replacement_reason`, `replacement_confidence`).
         """
-        result = cls._match_core(raw_name, user)
+        result = cls._match_core(raw_name, user, parsed)
         if recipe is not None and result.ingredient_id is not None:
             return cls._apply_replacement_context(result, recipe)
         return result
 
     @classmethod
-    def _match_core(cls, raw_name: str, user: AbstractBaseUser | None = None) -> MatchResult:
+    def _match_core(
+        cls, raw_name: str, user: AbstractBaseUser | None = None, parsed: ParsedLine | None = None
+    ) -> MatchResult:
         """Core matching pipeline without recipe-specific replacement context.
 
         Candidates are limited to Ingredients ``user`` may read plus system drafts
         (``food_access.matchable_ingredient_queryset``); never private Ingredients
-        of other users.
+        of other users, never ingredients excluded from matching.
         """
-        candidate_qs = cls._candidate_queryset(user)
-        # Plural brackets, amount words, sizes and additions are resolved first; the parser,
-        # the stages and the exact comparison then work on the cleaned name.
-        normalized = normalize_ingredient_name(raw_name)
-        working_name = normalized.text if normalized.changed and normalized.text else raw_name
-        parsed = IngredientNameParser.parse(working_name)
-        note = parsed.note or ", ".join(normalized.qualifiers)
-        # Low-confidence parser matches are suggestions only. Keep the raw
-        # spelling so typoed input can reach the fuzzy stage.
-        clean_name = parsed.name if parsed.confidence >= 0.9 else working_name.strip()
-        strip_details: dict[str, Any] = {}
+        from recipe.services.ingredient_line import parse_line
 
-        if parsed.confidence < 0.9:
-            stripped = cls._strip_quantity_unit(working_name)
-            if stripped is not None and stripped["rest"].strip():
-                clean_name = stripped["rest"].strip()
-                strip_details = {
-                    "parsed_quantity": stripped["quantity"],
-                    "parsed_unit": stripped["unit"],
-                }
-        elif parsed.quantity or parsed.unit:
-            strip_details = {"parsed_quantity": parsed.quantity, "parsed_unit": parsed.unit}
+        # Callers that already parsed the source line pass it; re-parsing the query
+        # would read "20 % Quark" as an amount of 20.
+        parsed = parsed or parse_line(raw_name)
+        query = parsed.query or raw_name.strip()
+        addition = cls._addition_text(parsed.name)
+        note = ", ".join(value for value in (parsed.note, addition) if value)
+        details: dict[str, Any] = {}
+        if parsed.has_amount:
+            details = {"parsed_quantity": parsed.quantity, "parsed_unit": parsed.unit}
+        allowed_ids = set(cls._candidate_queryset(user).values_list("pk", flat=True))
 
-        # Stage 1: Wort-Jaccard
-        result = cls._stage_jaccard(clean_name, working_name.strip(), note, candidate_qs)
-        if result is not None and result.ingredient_id is not None:
-            result.technical_details.update(strip_details)
-            return result
+        stages = (
+            lambda: cls._stage_learned(query, note, allowed_ids, trusted_only=True),
+            lambda: cls._stage_exact(query, parsed, raw_name, note, allowed_ids),
+            lambda: cls._stage_learned(query, note, allowed_ids, trusted_only=False),
+            lambda: cls._stage_index(query, note, allowed_ids),
+            lambda: cls._stage_embedding(query, note, cls._candidate_queryset(user)),
+        )
+        for stage in stages:
+            result = stage()
+            if result is not None:
+                result.technical_details.update(details)
+                if result.ingredient_id is not None:
+                    result.note = cls._note_with_dropped_specifiers(result, parsed.specifiers, note)
+                return result
 
-        # Stage 1b: head noun / plural / bracket-insensitive match. Runs before a grey-zone
-        # Jaccard result so "Mineralwasser mit Kohlensäure" finds "Mineralwasser".
-        head_result = cls._stage_normalized(normalized, clean_name, note, candidate_qs, grey_zone=result)
-        if head_result is not None:
-            head_result.technical_details.update(strip_details)
-            return head_result
-        if result is not None:
-            result.technical_details.update(strip_details)
-            return result
-
-        # Stage 2: pg_trgm + Levenshtein
-        result = cls._stage_fuzzy(clean_name, working_name.strip(), note, candidate_qs)
-        if result is not None:
-            result.technical_details.update(strip_details)
-            return result
-
-        # Stage 3: Embedding
-        result = cls._stage_embedding(clean_name, note, candidate_qs)
-        if result is not None:
-            result.technical_details.update(strip_details)
-            return result
-
-        # Stage 4: No algorithmic match → HITL
-        result = cls._stage_human_dialog(clean_name, note)
-        result.technical_details.update(strip_details)
+        result = cls._stage_human_dialog(query, note)
+        result.technical_details.update(details)
         return result
+
+    @staticmethod
+    def _note_with_dropped_specifiers(result: MatchResult, specifiers: list[str], note: str) -> str:
+        """Specifiers the chosen ingredient does not carry ("Fladenbrot frisch" → note "frisch")."""
+        name = result.name.lower()
+        dropped = [spec for spec in specifiers if spec[:5].lower() not in name]
+        return ", ".join(value for value in (*dropped, note) if value)
+
+    @staticmethod
+    def _addition_text(name: str) -> str:
+        """'Mineralwasser mit Kohlensäure' → 'mit Kohlensäure'."""
+        match = re.search(r"\s((?:mit|ohne)\s.+)$", name, re.IGNORECASE)
+        return match.group(1).strip() if match else ""
+
+    # -------------------------------------------------------------------
+    # Learned mappings from confirmed reviews
+    # -------------------------------------------------------------------
+
+    @classmethod
+    def _stage_learned(cls, query: str, note: str, allowed_ids: set[int], trusted_only: bool) -> MatchResult | None:
+        """A query people confirmed before: a match once two people agreed, else a suggestion."""
+        from recipe.services.learned_mapping import lookup
+
+        learned = lookup(query, allowed_ids)
+        if learned is None or (trusted_only and not learned.is_trusted):
+            return None
+        return MatchResult(
+            ingredient_id=learned.ingredient_id,
+            name=learned.name,
+            confidence=1.0 if learned.is_trusted else 0.9,
+            matched_via="learned",
+            note=note,
+            needs_review=not learned.is_trusted,
+            candidates=[MatchCandidate(id=learned.ingredient_id, name=learned.name, slug=learned.slug, confidence=1.0)],
+            reason=(
+                "Diese Zuordnung wurde bei früheren Importen mehrfach bestätigt."
+                if learned.is_trusted
+                else "Diese Zuordnung wurde bei einem früheren Import bestätigt – bitte prüfen."
+            ),
+            technical_details={"stage": "learned", "confirmations": learned.confirmations},
+        )
+
+    # -------------------------------------------------------------------
+    # Stage 1: exact name or alias
+    # -------------------------------------------------------------------
+
+    @classmethod
+    def _stage_exact(
+        cls, query: str, parsed: Any, raw_name: str, note: str, allowed_ids: set[int]
+    ) -> MatchResult | None:
+        """Exact (case-insensitive) name or alias of the query.
+
+        The bare name is also tried when the dropped specifiers are soft ("frischer
+        Ingwer" → "Ingwer"), never when they select a different ingredient ("rote Zwiebel").
+        """
+        from recipe.services.matching_index import SOFT_SPECIFIERS
+        from supply.models import Ingredient, IngredientAlias
+
+        names = [query]
+        if parsed.name and all(spec in SOFT_SPECIFIERS for spec in parsed.specifiers):
+            names.append(parsed.name)
+        names.append(raw_name.strip())
+        for name in dict.fromkeys(value for value in names if value):
+            hits: list[tuple[dict[str, Any], str]] = [
+                (dict(row), "exact_name")
+                for row in Ingredient.objects.filter(name__iexact=name, pk__in=allowed_ids).values(
+                    "id", "name", "slug", "status", "usage_count"
+                )
+            ]
+            for alias in IngredientAlias.objects.filter(
+                name__iexact=name, ingredient_id__in=allowed_ids
+            ).select_related("ingredient"):
+                hits.append(
+                    (
+                        {
+                            "id": alias.ingredient_id,
+                            "name": alias.ingredient.name,
+                            "slug": alias.ingredient.slug,
+                            "status": alias.ingredient.status,
+                            "usage_count": alias.ingredient.usage_count,
+                        },
+                        "alias",
+                    )
+                )
+            if not hits:
+                continue
+            # A verified ingredient (by name or alias) beats a draft duplicate of the same name.
+            ingredient, comparison = min(
+                hits,
+                key=lambda hit: (hit[0]["status"] != "verified", hit[1] != "exact_name", -(hit[0]["usage_count"] or 0)),
+            )
+            return MatchResult(
+                ingredient_id=ingredient["id"],
+                name=ingredient["name"],
+                confidence=1.0,
+                matched_via="exact",
+                note=note,
+                candidates=[
+                    MatchCandidate(
+                        id=ingredient["id"], name=ingredient["name"], slug=ingredient["slug"], confidence=1.0
+                    )
+                ],
+                reason=(
+                    "Der Zutatenname entspricht genau einer vorhandenen Zutat."
+                    if comparison == "exact_name"
+                    else "Ein vorhandener Alias entspricht dem eingegebenen Zutatennamen."
+                ),
+                technical_details={"stage": "exact", "comparison": comparison},
+            )
+        return None
+
+    # -------------------------------------------------------------------
+    # Stage 2: scored index match
+    # -------------------------------------------------------------------
+
+    @classmethod
+    def _stage_index(cls, query: str, note: str, allowed_ids: set[int]) -> MatchResult | None:
+        """Pick a candidate when it covers the query without contradicting it.
+
+        - strong: all core words covered, same head noun, required specifiers present,
+          no conflicting feature → selected (needs review unless unambiguous)
+        - generic: like strong but a required specifier is missing and the candidate has
+          no other words ("schwarze Oliven" → "Oliven") → preselected, needs review
+        - otherwise: grey-zone candidates only
+        """
+        from recipe.services.matching_index import get_index
+
+        ranked = get_index().search(query, allowed_ids, limit=10)
+        if not ranked:
+            return None
+        listed = [
+            MatchCandidate(
+                id=candidate.entry.ingredient_id,
+                name=candidate.entry.name,
+                slug=candidate.entry.slug,
+                confidence=candidate.score,
+            )
+            for candidate in ranked
+            if not candidate.conflict
+        ][:5]
+        technical = {"stage": "index", "score": ranked[0].score}
+
+        acceptable = [c for c in ranked if not c.conflict and c.covers_core and c.head_match and c.extra_words == 0]
+        strong = sorted((c for c in acceptable if c.specifiers_ok), key=lambda c: c.selection_key)
+        if strong:
+            best = strong[0]
+            alternatives = [c for c in strong[1:] if not c.exact]
+            is_close = not best.exact and bool(alternatives)
+            needs_review = not best.exact or best.fuzzy or is_close or bool(cls._addition_text(query))
+            return MatchResult(
+                ingredient_id=best.entry.ingredient_id,
+                name=best.entry.name,
+                confidence=1.0 if best.exact else best.score,
+                matched_via="index",
+                note=note,
+                needs_review=needs_review,
+                candidates=cls._with_selected_first(best, listed),
+                reason=(
+                    "Der Name entspricht einer vorhandenen Zutat."
+                    if not needs_review
+                    else "Mehrere passende Zutaten gefunden, die übliche ist vorausgewählt – bitte prüfen."
+                    if is_close
+                    else "Die Zutat stimmt bis auf Zusätze mit einer vorhandenen Zutat überein – bitte prüfen."
+                ),
+                technical_details={**technical, "decision": "strong"},
+            )
+
+        generic = sorted((c for c in acceptable if not c.fuzzy and c.extra_core == 0), key=lambda c: c.selection_key)
+        if generic:
+            best = generic[0]
+            return MatchResult(
+                ingredient_id=best.entry.ingredient_id,
+                name=best.entry.name,
+                confidence=best.score,
+                matched_via="index",
+                note=note,
+                needs_review=True,
+                candidates=cls._with_selected_first(best, listed),
+                reason="Allgemeinere Zutat vorausgewählt, die genaue Sorte fehlt im Katalog – bitte prüfen.",
+                technical_details={**technical, "decision": "generic"},
+            )
+
+        grey = [candidate for candidate in listed if candidate.confidence >= GREY_ZONE_MIN]
+        if not grey:
+            return None
+        return MatchResult(
+            needs_review=True,
+            name=query,
+            note=note,
+            candidates=grey,
+            matched_via="index",
+            confidence=grey[0].confidence,
+            reason=cls._similarity_hint(grey[0].confidence),
+            technical_details={**technical, "decision": "grey"},
+        )
+
+    @staticmethod
+    def _with_selected_first(best: Any, listed: list[MatchCandidate]) -> list[MatchCandidate]:
+        selected = MatchCandidate(
+            id=best.entry.ingredient_id, name=best.entry.name, slug=best.entry.slug, confidence=best.score
+        )
+        return [selected, *[candidate for candidate in listed if candidate.id != selected.id]][:5]
 
     # -------------------------------------------------------------------
     # Replacement context (generic-to-concrete mappings)
@@ -247,331 +404,12 @@ class IngredientMatcher:
 
         return result
 
-    # -------------------------------------------------------------------
-    # Stage 1: Wort-Jaccard
-    # -------------------------------------------------------------------
-
-    @classmethod
-    def _stage_jaccard(cls, clean_name: str, raw_name: str, note: str, candidate_qs: QuerySet) -> MatchResult | None:
-        query_words = set(clean_name.lower().split())
-        if not query_words:
-            return None
-
-        candidates = cls._get_candidates_ordered(candidate_qs)
-
-        # Decision 4: Prefer exact name or alias matches
-        clean_lower = clean_name.lower()
-        raw_lower = raw_name.lower()
-        for cand in candidates:
-            cand_name_lower = cand["name"].lower()
-            if cand_name_lower in (clean_lower, raw_lower):
-                return MatchResult(
-                    ingredient_id=cand["id"],
-                    name=cand["name"],
-                    confidence=1.0,
-                    matched_via="jaccard",
-                    note=note,
-                    candidates=[
-                        MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=1.0)
-                    ],
-                    reason="Der Zutatenname entspricht genau einer vorhandenen Zutat.",
-                    technical_details={"stage": "jaccard", "comparison": "exact_name"},
-                )
-
-        from supply.models import IngredientAlias
-
-        alias = (
-            IngredientAlias.objects.filter(name__iexact=clean_name)
-            .select_related("ingredient")
-            .filter(ingredient__deleted_at__isnull=True, ingredient_id__in=candidate_qs.values("pk"))
-            .first()
-        )
-        if not alias and raw_name != clean_name:
-            alias = (
-                IngredientAlias.objects.filter(name__iexact=raw_name)
-                .select_related("ingredient")
-                .filter(ingredient__deleted_at__isnull=True, ingredient_id__in=candidate_qs.values("pk"))
-                .first()
-            )
-        if alias:
-            return MatchResult(
-                ingredient_id=alias.ingredient_id,
-                name=alias.ingredient.name,
-                confidence=1.0,
-                matched_via="jaccard",
-                note=note,
-                candidates=[
-                    MatchCandidate(
-                        id=alias.ingredient_id,
-                        name=alias.ingredient.name,
-                        slug=alias.ingredient.slug,
-                        confidence=1.0,
-                    )
-                ],
-                reason="Ein vorhandener Alias entspricht dem eingegebenen Zutatenname.",
-                technical_details={"stage": "jaccard", "comparison": "alias"},
-            )
-
-        results: list[MatchCandidate] = []
-        for cand in candidates:
-            cand_words = set(cand["name"].lower().split())
-            intersection = query_words & cand_words
-            union = query_words | cand_words
-            if not union:
-                continue
-            score = len(intersection) / len(union)
-            if score >= 1.0:
-                return MatchResult(
-                    ingredient_id=cand["id"],
-                    name=cand["name"],
-                    confidence=1.0,
-                    matched_via="jaccard",
-                    note=note,
-                    candidates=[
-                        MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=1.0)
-                    ],
-                    reason="Die Wörter des Zutatenname passen vollständig zu einer vorhandenen Zutat.",
-                    technical_details={"stage": "jaccard", "score": score},
-                )
-            if score >= GREY_ZONE_MIN:
-                results.append(
-                    MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=score)
-                )
-
-        if not results:
-            return None
-
-        results.sort(key=lambda c: c.confidence, reverse=True)
-        best = results[0]
-
-        # Multiple close matches? (Only if not an exact match)
-        is_exact = best.confidence >= 1.0 or best.name.lower() == clean_name.lower()
-        if (
-            not is_exact
-            and len(results) > 1
-            and (results[0].confidence - results[1].confidence) < MULTI_MATCH_SCORE_DIFF
-        ):
-            return MatchResult(
-                needs_review=True,
-                name=clean_name,
-                note=note,
-                candidates=results[:5],
-                matched_via="jaccard",
-                confidence=best.confidence,
-                reason="Mehrere Zutaten sind ähnlich wahrscheinlich und müssen geprüft werden.",
-                technical_details={"stage": "jaccard", "score": best.confidence},
-            )
-
-        if best.confidence >= JACCARD_THRESHOLD:
-            return MatchResult(
-                ingredient_id=best.id,
-                name=best.name,
-                confidence=best.confidence,
-                matched_via="jaccard",
-                note=note,
-                candidates=results[:5],
-                reason="Die Wörter des Namens passen ausreichend zu einer vorhandenen Zutat.",
-                technical_details={"stage": "jaccard", "score": best.confidence},
-            )
-
-        # Grey zone
-        if best.confidence >= GREY_ZONE_MIN:
-            return MatchResult(
-                needs_review=True,
-                name=clean_name,
-                note=note,
-                candidates=results[:5],
-                matched_via="jaccard",
-                confidence=best.confidence,
-                reason="Mehrere Zutaten sind ähnlich wahrscheinlich und müssen geprüft werden.",
-                technical_details={"stage": "fuzzy", "score": best.confidence},
-            )
-
-        return None
-
-    # -------------------------------------------------------------------
-    # Stage 2: pg_trgm + Levenshtein
-    # -------------------------------------------------------------------
-
-    # -------------------------------------------------------------------
-    # Stage 1b: normalized / head-noun match
-    # -------------------------------------------------------------------
-
-    @staticmethod
-    def _comparison_key(name: str) -> str:
-        """Name without bracket additions, stemmed so that singular and plural agree."""
-        from supply.services.term_normalization import normalize_term
-
-        return normalize_term(_BRACKET_ADDITION.sub("", name).strip())
-
-    @classmethod
-    def _stage_normalized(
-        cls,
-        normalized: NormalizedName,
-        clean_name: str,
-        note: str,
-        candidate_qs: QuerySet,
-        grey_zone: MatchResult | None = None,
-    ) -> MatchResult | None:
-        """Match on bracket-insensitive, stemmed names; fall back to the head noun.
-
-        ``Ei`` finds ``Eier (Größe M)``; ``Mineralwasser mit Kohlensäure`` finds ``Mineralwasser``.
-        Candidates stay ordered by usage; the result keeps the cut-off addition as a note.
-        """
-        from supply.models import IngredientAlias
-
-        targets: list[tuple[str, str]] = []
-        for label, value in (("normalized", clean_name), ("normalized", normalized.text), ("head", normalized.head)):
-            if value and value.strip() and all(value.strip().lower() != seen.lower() for _, seen in targets):
-                targets.append((label, value.strip()))
-        if not targets:
-            return None
-
-        keys = {cls._comparison_key(value): label for label, value in targets}
-        candidates = cls._get_candidates_ordered(candidate_qs)
-        matches = [
-            (keys[key], cand) for cand in candidates if (key := cls._comparison_key(cand["name"])) in keys and key
-        ]
-
-        if not matches:
-            for _label, value in targets:
-                alias = (
-                    IngredientAlias.objects.filter(name__iexact=value, ingredient_id__in=candidate_qs.values("pk"))
-                    .select_related("ingredient")
-                    .filter(ingredient__deleted_at__isnull=True)
-                    .first()
-                )
-                if alias:
-                    matches.append(
-                        (
-                            "head" if value == normalized.head else "normalized",
-                            {"id": alias.ingredient_id, "name": alias.ingredient.name, "slug": alias.ingredient.slug},
-                        )
-                    )
-                    break
-        if not matches:
-            return None
-
-        via, best = matches[0]
-        confidence = HEAD_MATCH_CONFIDENCE if via == "head" else NORMALIZED_MATCH_CONFIDENCE
-        listed = [
-            MatchCandidate(id=cand["id"], name=cand["name"], slug=cand.get("slug", ""), confidence=confidence)
-            for _via, cand in matches
-        ]
-        seen_ids = {cand.id for cand in listed}
-        if grey_zone is not None:
-            listed.extend(cand for cand in grey_zone.candidates if cand.id not in seen_ids)
-
-        reason = (
-            "Die Zutat stimmt bis auf einen Zusatz mit einer vorhandenen Zutat überein."
-            if via == "head"
-            else "Der Name entspricht einer vorhandenen Zutat (Plural und Klammerzusatz ignoriert)."
-        )
-        return MatchResult(
-            ingredient_id=best["id"],
-            name=best["name"],
-            confidence=confidence,
-            matched_via=via,
-            note=note,
-            # A head-noun match drops an addition ("mit Kohlensäure"): a human confirms it.
-            needs_review=via == "head",
-            candidates=listed[:5],
-            reason=reason,
-            technical_details={"stage": "normalized", "comparison": via},
-        )
-
-    @classmethod
-    def _stage_fuzzy(cls, clean_name: str, raw_name: str, note: str, candidate_qs: QuerySet) -> MatchResult | None:
-        from django.db import connection
-
-        if connection.vendor == "sqlite":
-            results: list[MatchCandidate] = []
-            for ing in cls._get_candidates_ordered(candidate_qs):
-                score = cls._normalized_levenshtein(clean_name.lower(), ing["name"].lower())
-                if score >= GREY_ZONE_MIN:
-                    results.append(
-                        MatchCandidate(id=ing["id"], name=ing["name"], slug=ing.get("slug", ""), confidence=score)
-                    )
-            results.sort(key=lambda candidate: candidate.confidence, reverse=True)
-            return cls._fuzzy_result(clean_name, note, results[:MAX_CANDIDATES_PER_STAGE])
-
-        from django.contrib.postgres.search import TrigramSimilarity
-
-        trigram_qs = (
-            candidate_qs.annotate(
-                similarity=TrigramSimilarity("name", clean_name),
-            )
-            .filter(similarity__gt=0.2)
-            .order_by("-similarity")[:MAX_CANDIDATES_PER_STAGE]
-        )
-
-        trigram_results: list[MatchCandidate] = []
-        for trigram_ing in trigram_qs:
-            trigram_score = float(trigram_ing.similarity)
-            levenshtein_score = cls._normalized_levenshtein(clean_name.lower(), trigram_ing.name.lower())
-            combined = 0.6 * trigram_score + 0.4 * levenshtein_score
-
-            if combined >= GREY_ZONE_MIN:
-                trigram_results.append(
-                    MatchCandidate(id=trigram_ing.id, name=trigram_ing.name, slug=trigram_ing.slug, confidence=combined)
-                )
-
-        return cls._fuzzy_result(clean_name, note, trigram_results)
-
     @staticmethod
     def _similarity_hint(confidence: float) -> str:
         """Hint text that never claims more than the score supports."""
         if confidence >= FUZZY_THRESHOLD:
             return "Der Name ist einer vorhandenen Zutat ausreichend ähnlich."
         return "Ähnlich zu einer vorhandenen Zutat, bitte prüfen."
-
-    @classmethod
-    def _fuzzy_result(cls, clean_name: str, note: str, results: list[MatchCandidate]) -> MatchResult | None:
-        if not results:
-            return None
-
-        best = results[0]
-
-        is_exact = best.confidence >= 1.0 or best.name.lower() == clean_name.lower()
-        if (
-            not is_exact
-            and len(results) > 1
-            and (results[0].confidence - results[1].confidence) < MULTI_MATCH_SCORE_DIFF
-        ):
-            return MatchResult(
-                needs_review=True,
-                name=clean_name,
-                note=note,
-                candidates=results[:5],
-                matched_via="fuzzy",
-                confidence=best.confidence,
-                reason=cls._similarity_hint(best.confidence),
-                technical_details={"stage": "fuzzy", "score": best.confidence},
-            )
-
-        if best.confidence >= FUZZY_THRESHOLD:
-            return MatchResult(
-                ingredient_id=best.id,
-                name=best.name,
-                confidence=best.confidence,
-                matched_via="fuzzy",
-                note=note,
-                candidates=results[:5],
-            )
-
-        if best.confidence >= GREY_ZONE_MIN:
-            return MatchResult(
-                needs_review=True,
-                name=clean_name,
-                note=note,
-                candidates=results[:5],
-                matched_via="fuzzy",
-                confidence=best.confidence,
-                reason=cls._similarity_hint(best.confidence),
-                technical_details={"stage": "embedding", "score": best.confidence},
-            )
-
-        return None
 
     # -------------------------------------------------------------------
     # Stage 3: Embedding (pgvector)
@@ -653,51 +491,14 @@ class IngredientMatcher:
     # -------------------------------------------------------------------
 
     @classmethod
-    def _strip_quantity_unit(cls, raw_name: str) -> dict[str, Any] | None:
-        """Strip a leading quantity/unit token from a raw ingredient string.
-
-        Returns {"quantity": float, "unit": str, "rest": str} or None when
-        nothing was stripped. Purely a fallback for unparsed inputs; the
-        parser remains the primary quantity/unit splitter. A leading bare unit
-        (Gemini often strips the number itself) is only accepted when the
-        remainder is a known ingredient, so real names like "Glasnudeln" are
-        never cut apart.
-        """
-        stripped = raw_name.strip()
-
-        unit_match = QUANTITY_UNIT_STRIP_PATTERN.match(stripped)
-        if unit_match:
-            qty_str = unit_match.group("qty").replace(",", ".")
-            return {
-                "quantity": float(qty_str),
-                "unit": unit_match.group("unit") or "",
-                "rest": stripped[unit_match.end() :],
-            }
-
-        word_match = QUANTITY_WORD_STRIP_PATTERN.match(stripped)
-        if word_match:
-            return {"quantity": 0, "unit": "", "rest": stripped[word_match.end() :]}
-
-        bare_match = BARE_UNIT_STRIP_PATTERN.match(stripped)
-        if bare_match:
-            rest = stripped[bare_match.end() :].strip()
-            if rest and IngredientNameParser._ingredient_exists(rest):
-                return {"quantity": 0, "unit": bare_match.group(0).strip(), "rest": rest}
-
-        return None
-
-    @classmethod
     def _candidate_queryset(cls, user: AbstractBaseUser | None) -> QuerySet:
         """Plain Ingredient queryset restricted to matchable candidates for ``user``."""
         from content.services.food_access import matchable_ingredient_queryset
         from supply.models import Ingredient
 
-        return Ingredient.objects.filter(pk__in=matchable_ingredient_queryset(user).values("pk"))
-
-    @classmethod
-    def _get_candidates_ordered(cls, candidate_qs: QuerySet) -> list[dict[str, Any]]:
-        """Return candidate ingredients (id, name, slug) ordered by usage_count DESC."""
-        return [dict(row) for row in candidate_qs.order_by("-usage_count", "name").values("id", "name", "slug")]
+        return Ingredient.objects.filter(
+            pk__in=matchable_ingredient_queryset(user).values("pk"), exclude_from_matching=False
+        )
 
     @classmethod
     def _normalized_levenshtein(cls, a: str, b: str) -> float:

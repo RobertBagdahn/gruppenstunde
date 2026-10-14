@@ -6,6 +6,7 @@ from .ingredient_price_proposal import IngredientPriceProposal
 from .ingredient_quantity_stats import IngredientQuantityStats
 from .ingredient_replacement import IngredientReplacementMapping
 from .ingredient_season import IngredientSeason
+from .learned_mapping import LearnedIngredientMapping
 from .material import ContentMaterialItem, Material, Supply
 from .package_suggestion import IngredientPackageSuggestion
 from .portion_repair import PortionRepairFinding
@@ -23,6 +24,7 @@ __all__ = [
     "IngredientQuantityStats",
     "IngredientReplacementMapping",
     "IngredientSeason",
+    "LearnedIngredientMapping",
     "Material",
     "MeasuringUnit",
     "NutritionalTag",

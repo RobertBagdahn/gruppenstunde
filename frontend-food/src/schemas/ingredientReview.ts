@@ -80,6 +80,9 @@ export const IngredientReviewRowSchema = z.object({
   suggested_portion: ReviewPortionSchema.nullable().default(null),
   quantity: z.number().positive().nullable().default(null),
   suggested_quantity: z.number().positive().nullable().default(null),
+  quantity_estimated: z.boolean().optional(),
+  source_line: z.string().optional(),
+  match_query: z.string().optional(),
   reason: z.string().default(''),
   note: z.string().default(''),
   technical_details: ReviewTechnicalDetailsSchema.nullable().default(null),
@@ -107,6 +110,7 @@ export const IngredientReviewRowInputSchema = z.object({
   selected_portion_id: z.number().nullable().default(null),
   quantity: z.number().positive(),
   temporary_ingredient: TemporaryIngredientDraftSchema.nullable().default(null),
+  match_query: z.string().max(255).optional(),
 });
 export type IngredientReviewRowInput = z.infer<typeof IngredientReviewRowInputSchema>;
 

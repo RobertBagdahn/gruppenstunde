@@ -7,6 +7,8 @@ from .dashboard import (
 )
 from .import_schemas import RecipeDraftOut
 from .ingredient_review import (
+    IngredientDraftOut,
+    IngredientDraftRequestIn,
     IngredientMatchCandidateOut,
     IngredientReviewErrorOut,
     IngredientReviewFinalizeIn,
@@ -127,6 +129,8 @@ __all__ = [
     "GeneratedRecipeStepsOut",
     "ImprovementListOut",
     "ImprovementOut",
+    "IngredientDraftOut",
+    "IngredientDraftRequestIn",
     "IngredientMatchCandidateOut",
     "IngredientReviewErrorOut",
     "IngredientReviewFinalizeIn",

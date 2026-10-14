@@ -84,10 +84,13 @@ def test_microdata_parser_extracts_steps_and_servings():
 
 
 def test_ingredient_parser_handles_german_units_and_adjectives():
-    assert _parse_ingredient_string("2 Stück").name == "Stück"
-    assert _parse_ingredient_string("2 Stück").unit == "Stück"
-    assert _parse_ingredient_string("2 große Tomaten").name == "große Tomaten"
-    assert _parse_ingredient_string("2 große Tomaten").unit == ""
+    assert _parse_ingredient_string("2 Stück Äpfel").unit == "Stück"
+    assert _parse_ingredient_string("2 EL Öl").unit == "EL"
+    tomatoes = _parse_ingredient_string("2 große Tomaten")
+    assert tomatoes.name == "Tomaten"
+    assert tomatoes.unit == ""
+    assert tomatoes.parsed is not None
+    assert tomatoes.parsed.size == "large"
 
 
 def test_json_ld_parser_prefers_complete_recipe_node():

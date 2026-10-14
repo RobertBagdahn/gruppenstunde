@@ -2,7 +2,7 @@
 
 Supports:
 - Schema.org JSON-LD Recipe markup (generic, works on most recipe sites)
-- Chefkoch.de fallback scraping
+- Chefkoch.de ingredient table (preferred for ingredients) and fallback scraping
 """
 
 import json
@@ -20,7 +20,9 @@ from core.services.url_safety import (
     is_blocked_address,
     resolve_public_addresses,
 )
+from recipe.data.ingredient_line_vocabulary import unit_display
 from recipe.services.exceptions import NoRecipeFoundError, SourceUnreachableError
+from recipe.services.ingredient_line import ParsedLine, parse_cells, parse_line
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,8 @@ class ImportedIngredient:
     name: str
     quantity: str = ""
     unit: str = ""
+    # Structured parse of the source line; None for sources that only deliver a name.
+    parsed: ParsedLine | None = None
 
 
 @dataclass
@@ -88,15 +92,34 @@ def import_from_url(url: str) -> ImportedRecipe:
     except httpx.HTTPError as e:
         raise SourceUnreachableError(f"Seite konnte nicht geladen werden: {e}") from e
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    return parse_recipe_html(response.text, url)
+
+
+def parse_recipe_html(html: str, url: str) -> ImportedRecipe:
+    """Parse a fetched recipe page: JSON-LD first, then site-specific and microdata fallbacks."""
+    parsed_url = urlparse(url)
+    soup = BeautifulSoup(html, "html.parser")
+    is_chefkoch = bool(parsed_url.hostname and parsed_url.hostname.lower().endswith("chefkoch.de"))
 
     # Try Schema.org JSON-LD first
     recipe = _parse_json_ld(soup, url)
+    if is_chefkoch:
+        # The ingredient table keeps amount, name and properties in separate cells, which is
+        # more reliable than re-parsing the flattened JSON-LD strings. Pages in Chefkoch's
+        # newer layout ship no JSON-LD at all.
+        table_ingredients = _parse_chefkoch_table(soup)
+        if table_ingredients:
+            if recipe is None:
+                recipe = _parse_chefkoch(soup, url) or ImportedRecipe(source_url=url)
+                if not recipe.title:
+                    title_element = soup.find("h1")
+                    recipe.title = title_element.get_text(strip=True) if title_element else ""
+            recipe.ingredients = table_ingredients
     if recipe and recipe.title and (recipe.ingredients or recipe.steps):
         return recipe
 
     # Fallback: Chefkoch-specific
-    if parsed_url.hostname and parsed_url.hostname.lower().endswith("chefkoch.de"):
+    if is_chefkoch:
         recipe = _parse_chefkoch(soup, url)
         if recipe and recipe.title and (recipe.ingredients or recipe.steps):
             return recipe
@@ -243,6 +266,25 @@ def _parse_chefkoch(soup: BeautifulSoup, url: str) -> ImportedRecipe | None:
     return recipe if recipe.title else None
 
 
+def _parse_chefkoch_table(soup: BeautifulSoup) -> list[ImportedIngredient]:
+    """Ingredients from Chefkoch's ingredient table: amount cell, name and properties."""
+    ingredients: list[ImportedIngredient] = []
+    for row in soup.select("tr.ds-ingredients-table__tr"):
+        cells = row.find_all("td")
+        name_element = row.select_one(".ds-ingredients-table__ingredient-name")
+        if len(cells) < 2 or name_element is None:
+            continue
+        properties_element = row.select_one(".ds-ingredients-table__ingredient-properties")
+        parsed = parse_cells(
+            cells[0].get_text(" ", strip=True),
+            name_element.get_text(" ", strip=True),
+            properties_element.get_text(" ", strip=True) if properties_element else "",
+        )
+        if parsed.name:
+            ingredients.append(_imported_from_parsed(parsed))
+    return ingredients
+
+
 def _parse_microdata(soup: BeautifulSoup, url: str) -> ImportedRecipe | None:
     """Fallback: parse microdata itemtype=Recipe."""
     recipe_el = soup.find(itemtype=re.compile(r"schema.org/Recipe"))
@@ -280,25 +322,17 @@ def _parse_microdata(soup: BeautifulSoup, url: str) -> ImportedRecipe | None:
 
 def _parse_ingredient_string(s: str) -> ImportedIngredient:
     """Parse a free-text ingredient string like '200 g Mehl'."""
-    s = s.strip()
-    # Pattern: optional quantity, optional unit, name
-    quantity_match = re.match(r"^(\d+(?:[\.,]\d+)?)(?:\s+|$)(.*)$", s)
-    if quantity_match:
-        quantity = quantity_match.group(1).replace(",", ".")
-        remainder = quantity_match.group(2).strip()
-        unit_match = re.match(
-            r"^(kg|g|ml|Liter|l|EL|TL|Stück|Stk\.?|Dosen?|Gläser|Glas|Tassen|Tasse|Becher|Packungen|Päckchen|Handvoll|Prise|Bund|Scheiben?|Zehen?)(?:\s+|$)(.*)$",
-            remainder,
-            re.IGNORECASE,
-        )
-        if unit_match:
-            unit = unit_match.group(1)
-            name = unit_match.group(2).strip() or unit
-        else:
-            unit = ""
-            name = remainder
-        return ImportedIngredient(quantity=quantity, unit=unit, name=name)
-    return ImportedIngredient(name=s)
+    return _imported_from_parsed(parse_line(s))
+
+
+def _imported_from_parsed(parsed: ParsedLine) -> ImportedIngredient:
+    name = parsed.query or parsed.source_line
+    # The size ("große") is part of the amount, not of the name.
+    note = ", ".join(part for part in parsed.note.split(", ") if part and part != parsed.size_word)
+    if note:
+        name = f"{name} ({note})"
+    quantity = f"{parsed.quantity:g}" if parsed.quantity else ""
+    return ImportedIngredient(name=name, quantity=quantity, unit=unit_display(parsed.unit), parsed=parsed)
 
 
 def _validate_public_hostname(hostname: str | None) -> None:
