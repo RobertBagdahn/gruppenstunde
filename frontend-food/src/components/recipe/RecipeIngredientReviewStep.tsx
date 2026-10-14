@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import { Check, ChevronDown, Plus, Scale, Search, Sparkles, Trash2 } from 'lucide-react';
+import { useIngredientDraftMutation } from '@/api/recipeImport';
+import type { IngredientMatchCandidate } from '@/schemas/ingredientReview';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import {
   Dialog,
@@ -250,6 +252,8 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
   );
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [alternativesOpen, setAlternativesOpen] = useState(false);
+  const [draftDuplicates, setDraftDuplicates] = useState<IngredientMatchCandidate[]>([]);
+  const draftMutation = useIngredientDraftMutation();
   const [newIngredientOpen, setNewIngredientOpen] = useState(false);
   const [removeLastOpen, setRemoveLastOpen] = useState(false);
   const [quantityIngredient, setQuantityIngredient] = useState<{
@@ -316,6 +320,35 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       name: row.selected_ingredient_name,
       slug: row.selected_ingredient_slug,
     });
+  };
+
+  // "Zutat anlegen": the backend enriches a draft from the row text (name without
+  // amount, nutrition, portion, converted quantity). Duplicates are offered first.
+  const handleCreateDraft = async () => {
+    try {
+      const response = await draftMutation.mutateAsync({
+        source_text: row.source_text,
+        quantity: row.suggested_quantity ?? null,
+        unit: '',
+      });
+      setSearchValue(response.draft.name);
+      setDraftDuplicates(response.duplicates);
+      updateRow(row.key, {
+        selected_ingredient_id: null,
+        selected_ingredient_slug: '',
+        selected_ingredient_name: response.draft.name,
+        selected_portion: null,
+        quantity: null,
+        new_ingredient_draft: response.draft,
+        status: 'unresolved',
+        reason: response.is_enriched
+          ? 'Neue Zutat: KI-Vorschlag prüfen und Menge bestätigen.'
+          : 'Neue Zutat: Nährwerte und Portion bitte selbst ergänzen.',
+      });
+      setNewIngredientOpen(true);
+    } catch (error) {
+      notify.error(error instanceof Error ? error.message : 'Die Zutat konnte nicht vorbereitet werden.');
+    }
   };
 
   const selectCandidate = (id: number, name: string, slug: string) => {
@@ -460,6 +493,40 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
           </div>
           <p className="text-caption text-muted-foreground mt-1">{row.reason || 'Manuelle Zuordnung erforderlich'}</p>
           {row.note && <p className="text-caption text-muted-foreground" data-testid="review-row-note">Zusatz: {row.note}</p>}
+
+          {row.selected_ingredient_id === null && (
+            <div className="mt-2 space-y-2">
+              <button
+                type="button"
+                onClick={handleCreateDraft}
+                disabled={draftMutation.isPending}
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body text-primary disabled:opacity-60"
+              >
+                <Sparkles className="h-4 w-4" />
+                {draftMutation.isPending ? 'Wird vorbereitet…' : 'Zutat anlegen'}
+              </button>
+              {draftDuplicates.length > 0 && (
+                <div className="rounded-lg border border-warning-border bg-warning-soft p-2 text-caption" data-testid="review-row-duplicates">
+                  <p className="font-medium text-warning">Vorhandene Zutat verwenden?</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {draftDuplicates.map((candidate) => (
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        onClick={() => {
+                          setDraftDuplicates([]);
+                          selectCandidate(candidate.id, candidate.name, candidate.slug);
+                        }}
+                        className="rounded-full border bg-white px-2.5 py-1 text-caption hover:bg-muted"
+                      >
+                        {candidate.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Candidate alternatives */}
           {alternativeCandidates.length > 0 && (

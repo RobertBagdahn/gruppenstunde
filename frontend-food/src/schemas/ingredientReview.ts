@@ -66,6 +66,13 @@ export const TemporaryIngredientDraftSchema = z.object({
 });
 export type TemporaryIngredientDraft = z.infer<typeof TemporaryIngredientDraftSchema>;
 
+export const IngredientDraftResponseSchema = z.object({
+  draft: TemporaryIngredientDraftSchema,
+  duplicates: z.array(IngredientMatchCandidateSchema).default([]),
+  is_enriched: z.boolean().default(true),
+});
+export type IngredientDraftResponse = z.infer<typeof IngredientDraftResponseSchema>;
+
 export const IngredientReviewRowSchema = z.object({
   key: z.string(),
   source_text: z.string(),

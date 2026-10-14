@@ -5,7 +5,9 @@ import { AI_META } from '@/lib/queryMeta';
 import { API_BASE_URL } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
 import {
+  IngredientDraftResponseSchema,
   IngredientReviewPreviewSchema,
+  type IngredientDraftResponse,
   type IngredientReviewPreview,
   type RecipeImportSource,
 } from '@/schemas/ingredientReview';
@@ -81,6 +83,35 @@ export function useRecipeIngredientReviewPreview() {
         throw new RecipeImportError(getImportErrorMessage(error.error_code, error.detail), error.error_code);
       }
       return IngredientReviewPreviewSchema.parse(await res.json());
+    },
+  });
+}
+
+export interface IngredientDraftRequest {
+  source_text: string;
+  quantity: number | null;
+  unit: string;
+}
+
+/** "Zutat anlegen" for one open review row: AI-enriched draft, nothing is saved. */
+export function useIngredientDraftMutation() {
+  return useMutation({
+    meta: AI_META,
+    mutationFn: async (request: IngredientDraftRequest): Promise<IngredientDraftResponse> => {
+      const res = await fetch(`${API_BASE_URL}/api/recipes/ingredient-review/new-ingredient-draft/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        credentials: 'include',
+        body: JSON.stringify(request),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Die Zutat konnte nicht vorbereitet werden' }));
+        throw new RecipeImportError(getImportErrorMessage(error.error_code, error.detail), error.error_code);
+      }
+      return IngredientDraftResponseSchema.parse(await res.json());
     },
   });
 }

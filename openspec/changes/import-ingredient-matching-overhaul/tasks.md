@@ -38,20 +38,20 @@
 
 ## 5. Backend – Zutat per Knopfdruck
 
-- [ ] 5.1 Pydantic `IngredientDraftRequestIn`, `IngredientDraftOut` (Entwurf + `duplicates`); `IngredientReviewRowOut` um `quantity_estimated`, `source_line`, `ai_reason` erweitern
-- [ ] 5.2 Service + Endpunkt `POST /api/recipes/ingredient-review/new-ingredient-draft/` (401 anonym, normalisierter Name, Anreicherung, Mengenumrechnung, Dubletten-Kandidaten); Tests Happy Path, 401, Gemini nicht verfügbar
+- [x] 5.1 Pydantic `IngredientDraftRequestIn`, `IngredientDraftOut` (Entwurf + `duplicates`); `IngredientReviewRowOut` um `quantity_estimated`, `source_line`, `match_query` erweitert (`ai_reason` entfällt: die Begründung steht in `reason`)
+- [x] 5.2 Service + Endpunkt `POST /api/recipes/ingredient-review/new-ingredient-draft/` (401 anonym, normalisierter Name, Anreicherung, Mengenumrechnung, Dubletten-Kandidaten); Tests Happy Path, 401, Gemini nicht verfügbar
 
 ## 6. Frontend (frontend-food)
 
-- [ ] 6.1 Zod-Schemas in `src/schemas/ingredientReview.ts` synchronisieren
-- [ ] 6.2 Mutation-Hook `useIngredientDraftMutation`
-- [ ] 6.3 `RecipeIngredientReviewStep.tsx`: Button „Zutat anlegen“ in jeder unbestätigten Zeile, Dialog „Vorhandene Zutat verwenden?“, Badge „geschätzt“, Originalzeile bei geteilten Zeilen, KI-Begründung
-- [ ] 6.4 Vitest für Button, Dubletten-Hinweis und Badge; Typecheck und Lint
+- [x] 6.1 Zod-Schemas in `src/schemas/ingredientReview.ts` synchronisieren
+- [x] 6.2 Mutation-Hook `useIngredientDraftMutation`
+- [x] 6.3 `RecipeIngredientReviewStep.tsx`: Button „Zutat anlegen“ in jeder unbestätigten Zeile, Dialog „Vorhandene Zutat verwenden?“, Badge „geschätzt“, Originalzeile bei geteilten Zeilen, KI-Begründung
+- [x] 6.4 Vitest für Button, Dubletten-Hinweis und Badge; Typecheck und Lint
 
 ## 7. Daten & Abschluss
 
-- [ ] 7.1 Command `split_combined_seasoning_items` (Rezeptzeilen „Salz und Pfeffer“ → je 1 Prise Jodsalz + gemahlener schwarzer Pfeffer, danach soft-delete + `exclude_from_matching`), Dry-Run-Bericht; Test
+- [x] 7.1 Command `split_combined_seasoning_items` (Rezeptzeilen „Salz und Pfeffer“ → je 1 Prise Jodsalz + gemahlener schwarzer Pfeffer, danach soft-delete + `exclude_from_matching`), Dry-Run-Bericht; Test
 - [x] 7.2 Kontrollsatz (1.5) einmal messen und im Bericht festhalten
-- [ ] 7.3 Ziel-Ratchet erreicht: Zutat ≥ 90 %, falsch ≤ 3 %, Menge ≥ 85 %, ohne Nacharbeit ≥ 75 %
-- [ ] 7.4 `uv run python manage.py makemigrations --check`, `uv run pytest`, Frontend-Tests; Change `import-ingredient-name-normalization` als aufgegangen markieren
+- [x] 7.3 Ziel-Ratchet erreicht: Zutat ≥ 90 %, falsch ≤ 3 %, Menge ≥ 85 %, ohne Nacharbeit ≥ 75 %
+- [x] 7.4 `makemigrations --check`, `pytest` (Backend gesamt), Frontend-Tests grün; Change `import-ingredient-name-normalization` ist im Ergebnis aufgegangen (Archivierung beim Abschluss)
 - [ ] 7.5 Prod-Schritte (Audit, Löffel-Fix, Salz/Pfeffer-Split, Embedding-Backfill) in den gebündelten Rollout eintragen: Dry-Run zuerst, `--apply` nur nach OK
