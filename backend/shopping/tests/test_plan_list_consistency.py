@@ -51,7 +51,7 @@ def test_saved_list_matches_plan_shopping_tab():
 
     assert saved_item["quantity"] == tab_item["quantity"]
     assert saved_item["unit"] == tab_item["unit"]
-    assert saved_item["piece_equivalent"] == tab_item["piece_equivalent"]
+    assert saved_item["start_unit"] == tab_item["start_unit"]
 
 
 @pytest.mark.django_db

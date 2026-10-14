@@ -16,6 +16,7 @@ from django.db import transaction
 from django.db.models import QuerySet
 
 from planner.models import BuffetTemplate, BuffetUnitChoices, Meal, MealItem
+from planner.services.buffet_units import common_unit_options, is_metric_key, unit_portion, unit_weight_g
 from planner.services.quantity_plausibility import QuantityWarning, check
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.services.buffet_catalog import recipe_weight_per_serving_g
@@ -52,6 +53,10 @@ class BuffetResultItem:
     energy_kcal_per_person: float | None
     cost_per_person: float | None
     cost_total: float | None
+    # Set when the role amount was entered in a natural unit: count of that unit per person.
+    unit_key: str | None = None
+    unit_label: str | None = None
+    unit_count: float | None = None
 
 
 @dataclass
@@ -79,6 +84,10 @@ class BuffetResult:
     cost_per_person: float | None = 0.0
     cost_total: float | None = 0.0
     warnings: list[BuffetWarning] = field(default_factory=list)
+    # role slug -> {"amount": entered amount, "unit": unit key, "amount_g": per-person total in the role's g/ml}
+    role_amounts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # role slug -> units every ingredient of the role has (`[{key, kind, label}]`)
+    role_unit_options: dict[str, list[dict[str, str]]] = field(default_factory=dict)
 
 
 def _unit_by_name(name: str) -> Any:
@@ -221,10 +230,16 @@ def compute_buffet(
     role_amounts: dict[str, float] | None,
     meal: Meal,
     manual_items_policy: str = "preserve",
+    role_units: dict[str, str] | None = None,
 ) -> BuffetResult:
-    """Per-person amounts, totals, kcal, costs and warnings for a selection."""
+    """Per-person amounts, totals, kcal, costs and warnings for a selection.
+
+    ``role_amounts[role]`` is in ``role_units[role]``: grams/milliliters of the template role, or the count of a
+    natural unit ("2" × "Stück") that every ingredient of the role has.
+    """
     validate_selections(template, selections)
     role_amounts = role_amounts or {}
+    role_units = role_units or {}
     portions = float(meal.effective_portions or 1)
     result = BuffetResult(
         portions=portions,
@@ -257,12 +272,83 @@ def compute_buffet(
             raise BuffetError(f"Für die Rolle {role_slug} ist keine Menge konfiguriert.")
         amount = float(configured_amount)
         shares = _resolved_shares(role_selections)
-        for selection, share_percent in zip(role_selections, shares, strict=True):
-            share = amount * share_percent / 100
+
+        role_ingredients = [selection.ingredient for selection in role_selections]
+        if all(ingredient is not None for ingredient in role_ingredients):
+            result.role_unit_options[role_slug] = [
+                {"key": option.key, "kind": option.kind, "label": option.label}
+                for option in common_unit_options(role_ingredients)
+            ]
+
+        unit_key = role_units.get(role_slug)
+        weights: list[float] | None = None
+        if not is_metric_key(unit_key) and unit_key is not None:
+            candidate = (
+                [unit_weight_g(ingredient, unit_key) for ingredient in role_ingredients]
+                if all(ingredient is not None for ingredient in role_ingredients)
+                else None
+            )
+            if candidate is None or any(weight is None for weight in candidate):
+                result.warnings.append(
+                    BuffetWarning(
+                        "unit_fallback",
+                        f"Die Einheit passt nicht zu allen Items der Rolle {role_slug}; es wird in Gramm gerechnet.",
+                    )
+                )
+                unit_key = None
+                amount = float(template_role.amount_per_person)
+            else:
+                weights = [float(weight) for weight in candidate if weight is not None]
+
+        item_amounts: list[float]
+        item_counts: list[float | None]
+        item_shares: list[float]
+        if weights is not None:
+            # Entered shares are gram shares; convert to count shares, then grams per item.
+            explicit_shares = any(selection.share_percent is not None for selection in role_selections)
+            # Without entered shares every item gets the same count ("1 Stück" each); entered or restored
+            # shares are gram shares.
+            count_weights = (
+                [share / weight for share, weight in zip(shares, weights, strict=True)]
+                if explicit_shares
+                else [1.0] * len(role_selections)
+            )
+            count_total = sum(count_weights) or 1.0
+            counts = [amount * weight / count_total for weight in count_weights]
+            item_grams = [count * weight for count, weight in zip(counts, weights, strict=True)]
+            item_amounts = [
+                grams / (ingredient.physical_density or 1.0)
+                if template_role.unit == BuffetUnitChoices.MILLILITER
+                else grams
+                for grams, ingredient in zip(item_grams, role_ingredients, strict=True)
+            ]
+            total = sum(item_amounts) or 1.0
+            item_shares = [100 * value / total for value in item_amounts]
+            item_counts = list(counts)
+            result.role_amounts[role_slug] = {"amount": amount, "unit": unit_key, "amount_g": round(total, 2)}
+        else:
+            item_amounts = [amount * share_percent / 100 for share_percent in shares]
+            item_shares = list(shares)
+            item_counts = [None] * len(role_selections)
+            result.role_amounts[role_slug] = {
+                "amount": amount,
+                "unit": "milliliters" if template_role.unit == BuffetUnitChoices.MILLILITER else "grams",
+                "amount_g": amount,
+            }
+
+        for selection, share_percent, share, count in zip(
+            role_selections, item_shares, item_amounts, item_counts, strict=True
+        ):
             kind, selected_object = _selection_object(selection)
             if kind == "ingredient":
                 ingredient = selected_object
                 kcal, cost = _ingredient_values(ingredient, share, template_role.unit)
+                unit_label = None
+                if count is not None and unit_key is not None:
+                    unit_label = next(
+                        (o["label"] for o in result.role_unit_options.get(role_slug, []) if o["key"] == unit_key),
+                        None,
+                    )
                 item = BuffetResultItem(
                     role_slug=role_slug,
                     share_percent=round(share_percent, 4),
@@ -276,17 +362,36 @@ def compute_buffet(
                     energy_kcal_per_person=kcal,
                     cost_per_person=cost,
                     cost_total=cost * portions if cost is not None else None,
+                    unit_key=unit_key if count is not None else None,
+                    unit_label=unit_label,
+                    unit_count=round(count, 3) if count is not None else None,
                 )
-                preview_items.append(
-                    MealItem(
-                        meal=meal,
-                        ingredient=ingredient,
-                        quantity=Decimal(str(round(share, 2))),
-                        measuring_unit=ml_unit if template_role.unit == BuffetUnitChoices.MILLILITER else grams_unit,
-                        buffet_role=role_slug,
-                        buffet_share_percent=round(share_percent, 4),
+                if count is not None and unit_key is not None:
+                    portion = unit_portion(ingredient, unit_key)
+                    preview_items.append(
+                        MealItem(
+                            meal=meal,
+                            ingredient=ingredient,
+                            quantity=Decimal(str(round(count, 3))),
+                            portion=portion,
+                            standard_measure_key=unit_key.split(":", 1)[1] if unit_key.startswith("standard:") else "",
+                            buffet_role=role_slug,
+                            buffet_share_percent=round(share_percent, 4),
+                        )
                     )
-                )
+                else:
+                    preview_items.append(
+                        MealItem(
+                            meal=meal,
+                            ingredient=ingredient,
+                            quantity=Decimal(str(round(share, 2))),
+                            measuring_unit=ml_unit
+                            if template_role.unit == BuffetUnitChoices.MILLILITER
+                            else grams_unit,
+                            buffet_role=role_slug,
+                            buffet_share_percent=round(share_percent, 4),
+                        )
+                    )
             else:
                 recipe = selected_object
                 serving_g = recipe_weight_per_serving_g(recipe)
@@ -323,9 +428,10 @@ def save_buffet(
     selections: list[BuffetSelection],
     role_amounts: dict[str, float] | None,
     manual_items_policy: str = "preserve",
+    role_units: dict[str, str] | None = None,
 ) -> BuffetResult:
     """Replace buffet items and optionally replace manual meal entries."""
-    result = compute_buffet(template, selections, role_amounts, meal, manual_items_policy)
+    result = compute_buffet(template, selections, role_amounts, meal, manual_items_policy, role_units)
     grams_unit, ml_unit = gram_unit(), milliliter_unit()
     selection_by_key = {(s.role_slug, kind, obj.id): s for s in selections for kind, obj in [_selection_object(s)]}
 
@@ -336,7 +442,21 @@ def save_buffet(
             meal.items.filter(buffet_role="").delete()
         for item in result.items:
             selection = selection_by_key[(item.role_slug, item.kind, item.id)]
-            if item.kind == "ingredient":
+            if item.kind == "ingredient" and item.unit_key is not None and item.unit_count is not None:
+                # Saved in the entered unit ("1,5 Stück"), so a corrected portion weight still applies.
+                MealItem.objects.create(
+                    meal=meal,
+                    ingredient=selection.ingredient,
+                    quantity=Decimal(str(round(item.unit_count, 3))),
+                    portion=unit_portion(selection.ingredient, item.unit_key),
+                    standard_measure_key=item.unit_key.split(":", 1)[1]
+                    if item.unit_key.startswith("standard:")
+                    else "",
+                    factor=1.0,
+                    buffet_role=item.role_slug,
+                    buffet_share_percent=item.share_percent,
+                )
+            elif item.kind == "ingredient":
                 MealItem.objects.create(
                     meal=meal,
                     ingredient=selection.ingredient,
@@ -356,7 +476,11 @@ def save_buffet(
                 )
         meal.buffet_template = template
         meal.breakfast_profile = ""
-        meal.buffet_role_amounts = {slug: float(value) for slug, value in (role_amounts or {}).items()}
+        # Only roles the caller configured are stored; the dict carries the entered amount, its unit and the grams.
+        meal.buffet_role_amounts = {
+            slug: result.role_amounts.get(slug) or {"amount": float(value), "unit": "grams", "amount_g": float(value)}
+            for slug, value in (role_amounts or {}).items()
+        }
         meal.buffet_manual_items_policy = manual_items_policy
         meal.save(
             update_fields=["buffet_template", "breakfast_profile", "buffet_role_amounts", "buffet_manual_items_policy"]

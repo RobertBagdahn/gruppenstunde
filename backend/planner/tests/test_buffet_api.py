@@ -516,3 +516,39 @@ def test_integrated_flow_for_every_meal_type(auth_client, gram_unit, meal_type, 
     assert reopened.status_code == 200
     assert reopened.json()["template_id"] == template.id
     assert [row["ingredient_id"] for row in reopened.json()["selections"]] == [ingredient.id]
+
+
+@pytest.mark.django_db
+def test_role_amount_in_a_natural_unit_roundtrips_through_the_api(auth_client, gram_unit):
+    meal_plan = make_meal_plan(created_by=auth_client._user)
+    meal = make_meal(meal_plan=meal_plan, override_portions=4)
+    template = make_buffet_template(slug="unit-flow", roles={"buffet-bread": (100, "g", True)})
+    bread_tag = template.roles.get(role__slug="buffet-bread").role
+    roll = make_ingredient(name="Brötchen Einheit")
+    roll.tags.add(bread_tag)
+    Portion.objects.create(
+        ingredient=roll,
+        name="Stück",
+        measuring_unit=gram_unit,
+        quantity=1,
+        weight_g=60,
+        rank=1,
+        weight_status="confirmed",
+        weight_source="manual",
+    )
+    body = {
+        "template_id": template.id,
+        "selections": [{"role_slug": "buffet-bread", "ingredient_id": roll.id}],
+        "role_amounts": {"buffet-bread": 2},
+        "role_units": {"buffet-bread": "portion:stück"},
+    }
+
+    preview = _post_buffet(auth_client, meal_plan.id, meal.id, {**body, "dry_run": True}).json()
+    assert preview["role_amounts"]["buffet-bread"]["amount_g"] == 120
+    assert preview["items"][0]["unit_label"] == "Stück"
+    assert [option["label"] for option in preview["role_unit_options"]["buffet-bread"]][:1] == ["Stück"]
+
+    assert _post_buffet(auth_client, meal_plan.id, meal.id, {**body, "dry_run": False}).status_code == 200
+    state = auth_client.get(f"/api/meal-plans/{meal_plan.id}/meals/{meal.id}/buffet/").json()
+    assert state["role_amounts"] == {"buffet-bread": 2.0}
+    assert state["role_units"] == {"buffet-bread": "portion:stück"}

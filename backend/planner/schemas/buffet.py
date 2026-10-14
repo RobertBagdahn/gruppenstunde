@@ -71,7 +71,9 @@ class BuffetSelectionIn(Schema):
 class BuffetSaveIn(Schema):
     template_id: int
     selections: list[BuffetSelectionIn] = []
+    # Amount per person in `role_units[role]`: g/ml of the template role, or the count of a natural unit.
     role_amounts: dict[str, float] | None = None
+    role_units: dict[str, str] | None = None
     manual_items_policy: Literal["preserve", "replace"] = "preserve"
     dry_run: bool = False
 
@@ -96,6 +98,22 @@ class BuffetResultItemOut(Schema):
     energy_kcal_per_person: float | None = None
     cost_per_person: float | None = None
     cost_total: float | None = None
+    # Set when the role amount was entered in a natural unit ("1,5 Stück" instead of 90 g).
+    unit_key: str | None = None
+    unit_label: str | None = None
+    unit_count: float | None = None
+
+
+class BuffetRoleAmountOut(Schema):
+    amount: float
+    unit: str
+    amount_g: float
+
+
+class BuffetRoleUnitOptionOut(Schema):
+    key: str
+    kind: Literal["portion", "standard"]
+    label: str
 
 
 class BuffetResultOut(Schema):
@@ -107,6 +125,8 @@ class BuffetResultOut(Schema):
     cost_per_person: float | None = None
     cost_total: float | None = None
     warnings: list[BuffetWarningOut] = []
+    role_amounts: dict[str, BuffetRoleAmountOut] = {}
+    role_unit_options: dict[str, list[BuffetRoleUnitOptionOut]] = {}
 
 
 class BuffetStateSelectionOut(Schema):
@@ -126,6 +146,8 @@ class BuffetStateOut(Schema):
     template_id: int | None = None
     selections: list[BuffetStateSelectionOut] = []
     role_amounts: dict[str, float] = {}
+    # Unit key per role when the amount was entered in a natural unit; absent for g/ml.
+    role_units: dict[str, str] = {}
     manual_item_count: int = 0
     manual_items_policy: Literal["preserve", "replace"] | None = None
     warnings: list[BuffetWarningOut] = []

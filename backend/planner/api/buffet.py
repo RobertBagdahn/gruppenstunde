@@ -80,7 +80,24 @@ def _result_out(result: BuffetResult, *, saved: bool) -> dict[str, Any]:
         "cost_per_person": round(result.cost_per_person, 2) if result.cost_per_person is not None else None,
         "cost_total": round(result.cost_total, 2) if result.cost_total is not None else None,
         "warnings": [warning.as_dict() for warning in result.warnings],
+        "role_amounts": result.role_amounts,
+        "role_unit_options": result.role_unit_options,
     }
+
+
+def _saved_role_amounts(stored: dict[str, Any] | None) -> tuple[dict[str, float], dict[str, str]]:
+    """Entered amounts and natural units of a saved buffet; legacy rows hold a plain gram/ml number."""
+    amounts: dict[str, float] = {}
+    units: dict[str, str] = {}
+    for slug, value in (stored or {}).items():
+        if isinstance(value, dict):
+            amounts[slug] = float(value.get("amount", value.get("amount_g", 0)))
+            unit = value.get("unit")
+            if unit and unit not in ("grams", "milliliters"):
+                units[slug] = str(unit)
+        else:
+            amounts[slug] = float(value)
+    return amounts, units
 
 
 def _get_meal(meal_plan_id: int, meal_id: int, request: HttpRequest, *, edit: bool) -> Meal:
@@ -195,10 +212,12 @@ def get_buffet_state(request: HttpRequest, meal_plan_id: int, meal_id: int) -> d
             }
         )
     manual_count = meal.items.filter(buffet_role="", is_breakfast_assistant=False).count()
+    role_amounts, role_units = _saved_role_amounts(meal.buffet_role_amounts)
     return {
         "template_id": meal.buffet_template_id,
         "selections": selections,
-        "role_amounts": meal.buffet_role_amounts or {},
+        "role_amounts": role_amounts,
+        "role_units": role_units,
         "manual_item_count": manual_count,
         "manual_items_policy": meal.buffet_manual_items_policy or None,
         "warnings": warnings,
@@ -250,6 +269,7 @@ def save_meal_buffet(request: HttpRequest, meal_plan_id: int, meal_id: int, payl
                 payload.role_amounts,
                 meal,
                 manual_items_policy=payload.manual_items_policy,
+                role_units=payload.role_units,
             )
         else:
             result = save_buffet(
@@ -258,6 +278,7 @@ def save_meal_buffet(request: HttpRequest, meal_plan_id: int, meal_id: int, payl
                 selections,
                 payload.role_amounts,
                 manual_items_policy=payload.manual_items_policy,
+                role_units=payload.role_units,
             )
     except BuffetError as exc:
         raise HttpError(422, str(exc)) from exc

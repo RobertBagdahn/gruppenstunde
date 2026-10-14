@@ -126,7 +126,9 @@ export type BuffetManualItemsPolicy = z.infer<typeof BuffetManualItemsPolicySche
 export const BuffetSaveInSchema = z.object({
   template_id: z.number(),
   selections: z.array(BuffetSelectionInSchema).default([]),
+  /** Amount per person in `role_units[role]`: g/ml of the role, or the count of a natural unit. */
   role_amounts: z.record(z.string(), z.number()).nullable().optional(),
+  role_units: z.record(z.string(), z.string()).nullable().optional(),
   manual_items_policy: BuffetManualItemsPolicySchema.default('preserve'),
   dry_run: z.boolean().default(false),
 });
@@ -145,6 +147,10 @@ export const BuffetResultItemSchema = z.object({
   energy_kcal_per_person: z.number().nullable().optional(),
   cost_per_person: z.number().nullable().optional(),
   cost_total: z.number().nullable().optional(),
+  /** Set when the role amount was entered in a natural unit ("1,5 Stück" instead of 90 g). */
+  unit_key: z.string().nullable().default(null),
+  unit_label: z.string().nullable().default(null),
+  unit_count: z.number().nullable().default(null),
 });
 export type BuffetResultItem = z.infer<typeof BuffetResultItemSchema>;
 
@@ -161,6 +167,19 @@ export const BuffetWarningSchema = z.object({
 });
 export type BuffetWarning = z.infer<typeof BuffetWarningSchema>;
 
+export const BuffetRoleAmountSchema = z.object({
+  amount: z.number(),
+  unit: z.string(),
+  amount_g: z.number(),
+});
+
+export const BuffetRoleUnitOptionSchema = z.object({
+  key: z.string(),
+  kind: z.enum(['portion', 'standard']),
+  label: z.string(),
+});
+export type BuffetRoleUnitOption = z.infer<typeof BuffetRoleUnitOptionSchema>;
+
 export const BuffetResultSchema = z.object({
   saved: z.boolean(),
   portions: z.number(),
@@ -170,6 +189,9 @@ export const BuffetResultSchema = z.object({
   cost_per_person: z.number().nullable(),
   cost_total: z.number().nullable(),
   warnings: z.array(BuffetWarningSchema).default([]),
+  role_amounts: z.record(z.string(), BuffetRoleAmountSchema).default({}),
+  /** Units every ingredient of a role has; the role amount can be entered in them. */
+  role_unit_options: z.record(z.string(), z.array(BuffetRoleUnitOptionSchema)).default({}),
 });
 export type BuffetResult = z.infer<typeof BuffetResultSchema>;
 
@@ -191,6 +213,8 @@ export const BuffetStateSchema = z.object({
   template_id: z.number().nullable().optional(),
   selections: z.array(BuffetStateSelectionSchema).default([]),
   role_amounts: z.record(z.string(), z.number()).default({}),
+  /** Natural unit per role when the amount was entered in one; absent for g/ml. */
+  role_units: z.record(z.string(), z.string()).default({}),
   manual_item_count: z.number().default(0),
   /** Manual-items decision of the last buffet save; null before the first save. */
   manual_items_policy: BuffetManualItemsPolicySchema.nullable().default(null),

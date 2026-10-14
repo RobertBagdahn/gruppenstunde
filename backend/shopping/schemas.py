@@ -8,6 +8,7 @@ from pydantic import Field
 
 from core.services.user_directory import public_display_name
 from planner.schemas.buffet import QuantityWarningOut
+from supply.schemas.ingredients import UnitOptionOut
 
 # --- Collaborator schemas ---
 
@@ -78,14 +79,6 @@ class ShoppingItemPortionOptionOut(Schema):
     count: float = 0.0
 
 
-class ShoppingPieceEquivalentOut(Schema):
-    """The single best-matching natural portion for a quantity (e.g. "≈ 3
-    Scheiben"). Structured so the frontend formats the count and word."""
-
-    count: float
-    portion_name: str
-
-
 class ShoppingPackageOptionOut(Schema):
     """A shop-bought package count for a quantity (e.g. "2 × 500 g Packung").
     Only present when the ingredient has a rank=1 Package."""
@@ -145,7 +138,8 @@ class ShoppingListItemOut(Schema):
     ingredient_id: int | None = None
     ingredient_slug: str | None = None
     estimated_price_eur: float | None = None
-    piece_equivalent: ShoppingPieceEquivalentOut | None = None
+    # Unit the amount is shown in first (standard portion, else g/ml); the amount itself stays `quantity_g`.
+    start_unit: UnitOptionOut | None = None
     portion_options: list[ShoppingItemPortionOptionOut] = []
     package_options: list[ShoppingPackageOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
@@ -200,26 +194,16 @@ class ShoppingListItemOut(Schema):
         return round(float(price), 2) if price is not None else None
 
     @staticmethod
-    def resolve_piece_equivalent(obj) -> dict | None:
-        from supply.choices import LIQUID_VISCOSITIES
+    def resolve_start_unit(obj) -> dict | None:
+        if not obj.ingredient:
+            return None
+        from supply.services.shopping_service import compute_portion_options, start_unit_for
 
-        if (
-            not obj.ingredient
-            or obj.ingredient.physical_viscosity in LIQUID_VISCOSITIES
-            or not obj.quantity_g
-            or obj.quantity_g <= 0
-            or obj.unit != "g"
-        ):
-            return None
-        portions = list(obj.ingredient.portions.order_by("rank", "name"))
-        if not portions:
-            return None
-        from supply.services.shopping_service import compute_portion_options
-
-        best, _ = compute_portion_options(obj.quantity_g, portions)
-        if not best:
-            return None
-        return {"count": best["count"], "portion_name": best["name"]}
+        portions = [p for p in obj.ingredient.portions.order_by("rank", "name") if p.deleted_at is None]
+        best = None
+        if portions and obj.quantity_g and obj.quantity_g > 0:
+            best, _ = compute_portion_options(obj.quantity_g, portions)
+        return start_unit_for(obj.ingredient, portions, set(), best["name"] if best else None, obj.unit)
 
     @staticmethod
     def resolve_portion_options(obj) -> list[dict]:

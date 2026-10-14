@@ -16,6 +16,7 @@ from planner.services.meal_item_helpers import (
 )
 from recipe.schemas.recipes import PriceCoverageOut
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
+from supply.schemas.ingredients import UnitOptionOut
 from supply.schemas.reference import NutritionalTagOut
 
 
@@ -1017,11 +1018,6 @@ class ShoppingItemPortionOptionOut(Schema):
     count: float = 0.0
 
 
-class ShoppingPieceEquivalentOut(Schema):
-    count: float
-    portion_name: str
-
-
 class ShoppingPackageOptionOut(Schema):
     count: int
     package_name: str
@@ -1041,7 +1037,7 @@ class ShoppingListItemOut(Schema):
     unit: Literal["g", "ml"] = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
-    piece_equivalent: ShoppingPieceEquivalentOut | None = None
+    start_unit: UnitOptionOut | None = None
     portion_options: list[ShoppingItemPortionOptionOut] = []
     package_options: list[ShoppingPackageOptionOut] = []
     # count × package weight − quantity_g; negative when rounded down within tolerance.
@@ -1092,7 +1088,8 @@ class IngredientQuantityOut(Schema):
     total_quantity_g: float
     quantity: float = 0.0
     unit: Literal["g", "ml"] = "g"
-    piece_equivalent: ShoppingPieceEquivalentOut | None = None
+    start_unit: UnitOptionOut | None = None
+    display_text: str = ""
     has_trusted_weight: bool = True
     is_adjusted: bool = False
     unit_options: list[IngredientQuantityUnitOptionOut] = []

@@ -66,8 +66,8 @@ function defaultUnit(item: IngredientQuantity) {
 
 /** "2,3 kg · ≈ 15 Stück" for a net gram amount. */
 export function formatNetAmount(item: IngredientQuantity, netG: number): string {
-  if (!item.has_trusted_weight && item.piece_equivalent) {
-    return `≈ ${formatNumber(item.piece_equivalent.count)} ${item.piece_equivalent.portion_name}`;
+  if (!item.has_trusted_weight && item.display_text) {
+    return `≈ ${item.display_text}`;
   }
   const weight = formatWeight(netG);
   const unit = defaultUnit(item);

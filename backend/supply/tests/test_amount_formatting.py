@@ -87,7 +87,7 @@ class TestShoppingFormat:
             total_quantity_g=8800.0,
             unit="g",
             package_options=[{"count": 18, "package_name": "Packung", "weight_g": 500.0, "volume_ml": None}],
-            piece_equivalent=None,
+            start_unit=None,
         )
         assert format_shopping_item(item) == "8,8 kg · 18 × 500-g-Packung"
 
@@ -97,14 +97,12 @@ class TestShoppingFormat:
             total_quantity_g=3100.0,
             unit="g",
             package_options=None,
-            piece_equivalent={"count": 7.6, "portion_name": "Stück"},
+            start_unit={"kind": "portion", "label": "Stück", "grams_per_unit": 3100.0 / 7.6},
         )
         assert format_shopping_item(item) == "3,1 kg · ≈ 8 Stück"
 
     def test_amount_only(self):
-        item = SimpleNamespace(
-            quantity=320.0, total_quantity_g=320.0, unit="g", package_options=None, piece_equivalent=None
-        )
+        item = SimpleNamespace(quantity=320.0, total_quantity_g=320.0, unit="g", package_options=None, start_unit=None)
         assert format_shopping_item(item) == "320 g"
 
     def test_piece_equivalent_rounds_up_to_whole_pieces(self):
@@ -113,7 +111,7 @@ class TestShoppingFormat:
             total_quantity_g=5700.0,
             unit="g",
             package_options=None,
-            piece_equivalent={"count": 22.8, "portion_name": "Stück"},
+            start_unit={"kind": "portion", "label": "Stück", "grams_per_unit": 5700.0 / 22.8},
         )
         assert format_shopping_item(item) == "5,7 kg · ≈ 23 Stück"
 
@@ -123,6 +121,6 @@ class TestShoppingFormat:
             total_quantity_g=5700.0,
             unit="g",
             package_options=[{"count": 23, "package_name": "Stück", "weight_g": 250.0, "volume_ml": None}],
-            piece_equivalent={"count": 22.8, "portion_name": "Stück"},
+            start_unit={"kind": "portion", "label": "Stück", "grams_per_unit": 5700.0 / 22.8},
         )
         assert format_shopping_item(item) == "5,7 kg · 23 × 250-g-Stück · ≈ 23 Stück"

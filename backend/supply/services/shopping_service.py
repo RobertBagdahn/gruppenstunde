@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from supply.services.portion_resolution import resolve_trusted_weight
+from supply.services.portion_resolution import is_direct_metric_portion, resolve_trusted_weight
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,8 @@ class ShoppingListItem:
     unit: str = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
-    piece_equivalent: dict | None = None
+    # Unit the amount is shown in first: common source unit, else the standard portion, else g/ml.
+    start_unit: dict | None = None
     portion_options: list[dict] | None = None
     package_options: list[dict] | None = None
     package_surplus_g: float | None = None
@@ -249,6 +250,8 @@ def aggregate_contributions(collected: CollectedContributions) -> list[ShoppingL
     sources_map: dict[int, dict[tuple[int | None, int | None], ShoppingItemSource]] = {}
     # ingredient_id -> (total raw quantity, portion name) for items without grams
     raw_quantities: dict[int, tuple[float, str]] = {}
+    # ingredient_id -> unit option keys the contributions were entered in
+    source_unit_keys: dict[int, set[str]] = {}
 
     for contribution in collected.contributions:
         ing = contribution.ingredient
@@ -256,6 +259,7 @@ def aggregate_contributions(collected: CollectedContributions) -> list[ShoppingL
         weight_g = contribution.weight_g
         if contribution.recipe_item is None:
             ingredient_cache[ing.id] = ing
+        source_unit_keys.setdefault(ing.id, set()).add(_contribution_unit_key(contribution))
 
         if contribution.raw_quantity is not None:
             previous = raw_quantities.get(ing.id)
@@ -336,7 +340,7 @@ def aggregate_contributions(collected: CollectedContributions) -> list[ShoppingL
                 source.quantity_g = round(source.quantity_g, 2)
 
     # Add display_quantity and natural_portions
-    _enrich_display_fields(aggregated, raw_quantities)
+    _enrich_display_fields(aggregated, raw_quantities, source_unit_keys)
 
     # Sort by retail section rank (Laden-Rundgang), then name
     rank_by_name = _retail_section_rank_map()
@@ -517,17 +521,138 @@ def compute_portion_options(
     return (best, options)
 
 
+def _contribution_unit_key(contribution: IngredientContribution) -> str:
+    """Unit option key a contribution was entered in ("portion:12", "standard:el", "grams", "milliliters")."""
+    from supply.services.portion_resolution import is_direct_metric_portion
+    from supply.services.quantity_units import unit_kind_of_measuring_unit
+
+    source = contribution.recipe_item if contribution.recipe_item is not None else contribution.meal_item
+    standard_key = getattr(source, "standard_measure_key", "") or ""
+    if standard_key:
+        return f"standard:{standard_key}"
+    portion = getattr(source, "portion", None)
+    if portion is not None and not is_direct_metric_portion(portion):
+        return f"portion:{portion.pk}"
+    kind = unit_kind_of_measuring_unit(getattr(source, "measuring_unit", None))
+    return "milliliters" if kind == "milliliters" else "grams"
+
+
+def _unit_option_dict(
+    ingredient: Ingredient,
+    portions: list,
+    key: str,
+) -> dict | None:
+    """Serialisable unit option for `key`, or None when the unit has no usable weight."""
+    from supply.services.quantity_units import _density, portion_label, standard_measure_grams
+
+    if key.startswith("portion:"):
+        portion = next((p for p in portions if f"portion:{p.pk}" == key), None)
+        weight = resolve_trusted_weight(portion) if portion is not None else None
+        if portion is None or weight is None:
+            return None
+        return {
+            "key": key,
+            "kind": "portion",
+            "label": portion_label(portion),
+            "grams_per_unit": float(weight),
+            "is_approx": False,
+            "has_weight": True,
+            "portion_id": portion.pk,
+            "measuring_unit_id": None,
+            "standard_measure_key": None,
+        }
+    if key.startswith("standard:"):
+        measure_key = key.split(":", 1)[1]
+        grams, approx = standard_measure_grams(ingredient, measure_key)
+        if grams <= 0:
+            return None
+        from supply.services.quantity_units import STANDARD_MEASURE_LABELS
+
+        return {
+            "key": key,
+            "kind": "standard",
+            "label": STANDARD_MEASURE_LABELS.get(measure_key, measure_key),
+            "grams_per_unit": float(grams),
+            "is_approx": approx,
+            "has_weight": True,
+            "portion_id": None,
+            "measuring_unit_id": None,
+            "standard_measure_key": measure_key,
+        }
+    if key == "milliliters":
+        density, explicit = _density(ingredient)
+        return {
+            "key": key,
+            "kind": "milliliters",
+            "label": "ml",
+            "grams_per_unit": float(density),
+            "is_approx": not explicit,
+            "has_weight": True,
+            "portion_id": None,
+            "measuring_unit_id": None,
+            "standard_measure_key": None,
+        }
+    return {
+        "key": "grams",
+        "kind": "grams",
+        "label": "g",
+        "grams_per_unit": 1.0,
+        "is_approx": False,
+        "has_weight": True,
+        "portion_id": None,
+        "measuring_unit_id": None,
+        "standard_measure_key": None,
+    }
+
+
+def start_unit_for(
+    ingredient: Ingredient,
+    portions: list,
+    source_keys: set[str],
+    best_portion_name: str | None,
+    display_unit: str,
+) -> dict | None:
+    """Start unit of a shopping item.
+
+    1. The one natural unit all contributions were entered in (e.g. every recipe counts "Stück").
+    2. The standard portion that best describes the total ("≈ 44 Zwiebeln").
+    3. Grams, or milliliters for liquids.
+    """
+    # Metric entries ("200 g") name no natural unit, so they do not decide the start unit.
+    if len(source_keys) == 1 and next(iter(source_keys)) not in ("grams", "milliliters"):
+        common = _unit_option_dict(ingredient, portions, next(iter(source_keys)))
+        if common is not None:
+            return common
+    if best_portion_name:
+        best = next(
+            (
+                p
+                for p in portions
+                if p.name == best_portion_name
+                and resolve_trusted_weight(p) is not None
+                and not is_direct_metric_portion(p)
+            ),
+            None,
+        )
+        if best is not None:
+            return _unit_option_dict(ingredient, portions, f"portion:{best.pk}")
+    return _unit_option_dict(ingredient, portions, "milliliters" if display_unit == "ml" else "grams")
+
+
 def _enrich_display_fields(
     aggregated: dict[int, ShoppingListItem],
     raw_quantities: dict[int, tuple[float, str]] | None = None,
+    source_unit_keys: dict[int, set[str]] | None = None,
 ) -> None:
-    """Add piece_equivalent, portion_options, and package_options (structured
+    """Add start_unit, portion_options, and package_options (structured
     data — the frontend formats) to shopping list items."""
     from supply.models import Ingredient
     from supply.utils import compute_package_need, get_shopping_portion, shopping_quantity
 
     if raw_quantities is None:
         raw_quantities = {}
+    if source_unit_keys is None:
+        source_unit_keys = {}
 
     ingredient_ids = list(aggregated.keys())
     ingredients = {ing.id: ing for ing in Ingredient.objects.filter(id__in=ingredient_ids).prefetch_related("portions")}
@@ -544,7 +669,6 @@ def _enrich_display_fields(
                 qty_display = round(raw_qty, 1)
                 if qty_display == int(qty_display):
                     qty_display = int(qty_display)
-                item.piece_equivalent = {"count": qty_display, "portion_name": portion_name}
                 item.display_text = f"{qty_display} {portion_name}"
             continue
 
@@ -557,11 +681,14 @@ def _enrich_display_fields(
         portions.sort(key=lambda p: (p.rank, p.name))
         if portions:
             best, options = compute_portion_options(item.total_quantity_g, portions)
-            if best:
-                item.piece_equivalent = {"count": best["count"], "portion_name": best["name"]}
             item.portion_options = options
+        else:
+            best = None
 
         item.quantity, item.unit = shopping_quantity(item.total_quantity_g, ing)
+        item.start_unit = start_unit_for(
+            ing, portions, source_unit_keys.get(ing_id, set()), best["name"] if best else None, item.unit
+        )
 
         package = get_shopping_portion(ing)
         need = compute_package_need(item.total_quantity_g, package.weight_g) if package else None

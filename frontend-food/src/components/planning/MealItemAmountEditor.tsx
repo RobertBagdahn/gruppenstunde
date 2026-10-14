@@ -55,7 +55,7 @@ export function MealItemAmountEditor({
     <QuantityUnitInput
       item={item}
       viewMode={viewMode}
-      onCommit={(change) => onUpdateItem(item.id, change)}
+      onCommit={({ grams: _grams, ...change }) => onUpdateItem(item.id, change)}
       onConvertUnit={convertUnit}
     />
   );

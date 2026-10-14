@@ -302,7 +302,7 @@ class TestSaveBuffet:
         )
         meal.refresh_from_db()
         assert meal.buffet_template_id == template.id
-        assert meal.buffet_role_amounts == {"buffet-bread": 150.0}
+        assert meal.buffet_role_amounts == {"buffet-bread": {"amount": 150.0, "unit": "grams", "amount_g": 150.0}}
 
 
 @pytest.mark.django_db
@@ -323,3 +323,105 @@ class TestComputeBuffetRecipeFallbackWarning:
             fallback[0].message == "Nudelsalat: Portionsgewicht fehlt; es wird eine gleichmäßige Ersatzmenge verwendet."
         )
         assert result.items[0].factor == pytest.approx(1.0)
+
+
+@pytest.mark.django_db
+class TestRoleAmountsInNaturalUnits:
+    """`2 Stück pro Person` converts with each item's own weight (openspec `switchable-quantity-units`)."""
+
+    def _setup(self, gram_unit, *, second_has_piece=True):
+        from supply.models import Portion
+
+        template = make_buffet_template(roles={"buffet-bread": (150, "g", True)})
+        bread_tag = template.roles.get(role__slug="buffet-bread").role
+        small = _tagged_ingredient(bread_tag, name="Kleines Brötchen")
+        large = _tagged_ingredient(bread_tag, name="Großes Brötchen")
+        small_piece = Portion.objects.create(
+            ingredient=small,
+            name="Stück",
+            measuring_unit=gram_unit,
+            quantity=1,
+            weight_g=60,
+            rank=1,
+            weight_status="confirmed",
+            weight_source="manual",
+        )
+        large_piece = None
+        if second_has_piece:
+            large_piece = Portion.objects.create(
+                ingredient=large,
+                name="Stück",
+                measuring_unit=gram_unit,
+                quantity=1,
+                weight_g=80,
+                rank=1,
+                weight_status="confirmed",
+                weight_source="manual",
+            )
+        meal = make_meal(meal_plan=make_meal_plan(norm_portions=10), override_portions=10)
+        selections = [
+            BuffetSelection(role_slug="buffet-bread", ingredient=small),
+            BuffetSelection(role_slug="buffet-bread", ingredient=large),
+        ]
+        return template, meal, selections, small_piece, large_piece
+
+    def test_two_pieces_with_different_weights_give_140_grams(self, gram_unit):
+        template, meal, selections, *_ = self._setup(gram_unit)
+
+        result = compute_buffet(
+            template, selections, {"buffet-bread": 2}, meal, role_units={"buffet-bread": "portion:stück"}
+        )
+
+        assert result.role_amounts["buffet-bread"] == {"amount": 2, "unit": "portion:stück", "amount_g": 140.0}
+        assert [round(item.amount_per_person, 1) for item in result.items] == [60.0, 80.0]
+        assert [item.unit_count for item in result.items] == [1.0, 1.0]
+        assert {option["label"] for option in result.role_unit_options["buffet-bread"]} >= {"Stück"}
+
+    def test_saved_items_keep_the_unit_and_restore_the_same_count(self, gram_unit):
+        template, meal, selections, small_piece, large_piece = self._setup(gram_unit)
+
+        result = save_buffet(
+            meal, template, selections, {"buffet-bread": 1.5}, role_units={"buffet-bread": "portion:stück"}
+        )
+
+        items = {item.ingredient.name: item for item in meal.items.exclude(buffet_role="")}
+        assert float(items["Kleines Brötchen"].quantity) == 0.75
+        assert items["Kleines Brötchen"].portion_id == small_piece.id
+        assert items["Großes Brötchen"].portion_id == large_piece.id
+        assert meal.buffet_role_amounts["buffet-bread"]["unit"] == "portion:stück"
+        # Restoring: the saved gram shares plus the same count give the same grams again.
+        shares = [item.share_percent for item in result.items]
+        restored = compute_buffet(
+            template,
+            [
+                BuffetSelection(role_slug="buffet-bread", ingredient=selection.ingredient, share_percent=share)
+                for selection, share in zip(selections, shares, strict=True)
+            ],
+            {"buffet-bread": 1.5},
+            meal,
+            role_units={"buffet-bread": "portion:stück"},
+        )
+        assert restored.role_amounts["buffet-bread"]["amount_g"] == pytest.approx(
+            result.role_amounts["buffet-bread"]["amount_g"], abs=0.02
+        )
+
+    def test_falls_back_to_grams_with_a_warning_when_an_item_lacks_the_unit(self, gram_unit):
+        template, meal, selections, *_ = self._setup(gram_unit, second_has_piece=False)
+
+        result = compute_buffet(
+            template, selections, {"buffet-bread": 2}, meal, role_units={"buffet-bread": "portion:stück"}
+        )
+
+        assert any(warning.code == "unit_fallback" for warning in result.warnings)
+        assert result.role_amounts["buffet-bread"]["unit"] == "grams"
+        assert result.role_amounts["buffet-bread"]["amount_g"] == 150
+        assert all(item.unit_count is None for item in result.items)
+
+    def test_legacy_plain_number_is_read_as_grams(self):
+        from planner.api.buffet import _saved_role_amounts
+
+        assert _saved_role_amounts({"buffet-bread": 150.0}) == ({"buffet-bread": 150.0}, {})
+        assert _saved_role_amounts({"buffet-bread": {"amount": 2, "unit": "portion:stück", "amount_g": 140}}) == (
+            {"buffet-bread": 2.0},
+            {"buffet-bread": "portion:stück"},
+        )
