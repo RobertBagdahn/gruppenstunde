@@ -18,7 +18,7 @@ from django.db import transaction
 from django.utils import timezone
 
 COMBINED_NAME = "Salz und Pfeffer"
-SEASONINGS = (("Jodsalz", "Salz"), ("gemahlener schwarzer Pfeffer", "Pfeffer"))
+SEASONINGS = (("Jodsalz", "Salz"), ("Gemahlener Pfeffer", "Pfeffer"))
 
 
 def affected_items() -> list[Any]:
