@@ -14,7 +14,7 @@ def seasoning_setup(db):
     combined = make_ingredient(name="Salz und Pfeffer", status="verified")
     combined_portion = make_portion(combined, name="Prise", quantity=1, weight_g=1, rank=1)
     salt = make_ingredient(name="Jodsalz", status="verified")
-    pepper = make_ingredient(name="gemahlener schwarzer Pfeffer", status="verified")
+    pepper = make_ingredient(name="Gemahlener Pfeffer", status="verified")
     recipe = Recipe.objects.create(title="Gulasch", portions=1)
     item = RecipeItem.objects.create(
         recipe=recipe, portion=combined_portion, quantity=1, sort_order=3, note="nach Belieben"
