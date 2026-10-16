@@ -40,7 +40,9 @@ def _require_edit_permission(request, recipe: Recipe) -> None:
 def _materials_for_recipe(recipe: Recipe):
     """Return the recipe-scoped ContentMaterialItem queryset with material loaded."""
     ct = _recipe_content_type()
-    return ContentMaterialItem.objects.filter(content_type=ct, object_id=recipe.pk).select_related("material")
+    return ContentMaterialItem.objects.filter(
+        content_type=ct, object_id=recipe.pk, material__deleted_at__isnull=True
+    ).select_related("material")
 
 
 def _next_sort_order(recipe: Recipe) -> int:

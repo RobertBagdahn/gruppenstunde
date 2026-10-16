@@ -37,7 +37,7 @@ import UnauthGate from '@/components/shared/UnauthGate';
 import { ApiError } from '@/lib/api';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList } from 'lucide-react';
+import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { formatEuro } from '@/lib/format';
 import { PageSkeleton } from '@/components/ui/skeleton';
 
@@ -95,6 +95,8 @@ export default function ShoppingListDetailPage() {
   });
 
   // Add item form state
+  const [allSourcesOpen, setAllSourcesOpen] = useState(false);
+  const [sourcesSignal, setSourcesSignal] = useState<{ open: boolean } | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -354,6 +356,25 @@ export default function ShoppingListDetailPage() {
       {/* Progress */}
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
 
+      {/* Recipe sources of all entries at once */}
+      {items.some((item) => item.sources && item.sources.length > 0) && (
+        <div className="mb-6 flex justify-end">
+          <button
+            type="button"
+            data-testid="shopping-toggle-all-sources"
+            onClick={() => {
+              const open = !allSourcesOpen;
+              setAllSourcesOpen(open);
+              setSourcesSignal({ open });
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-caption font-semibold text-primary hover:bg-primary-soft"
+          >
+            {allSourcesOpen ? <ChevronsDownUp className="w-4 h-4" /> : <ChevronsUpDown className="w-4 h-4" />}
+            {allSourcesOpen ? 'Alle Rezepte ausblenden' : 'Alle Rezepte anzeigen'}
+          </button>
+        </div>
+      )}
+
       {/* Material list (devices and consumables of the source recipes) */}
       {(list.source_type === 'recipe' || list.source_type === 'meal_event') && (
         <Link
@@ -411,6 +432,7 @@ export default function ShoppingListDetailPage() {
                       )
                     }
                     recentChecker={recentCheckers[item.id]}
+                    sourcesSignal={sourcesSignal}
                   />
                 ))}
               </div>

@@ -28,6 +28,8 @@ interface ShoppingListItemRowProps {
   onUpdateQuantity?: (itemId: number, quantityG: number) => void;
   /** Name of the user who just checked this item (for real-time indicator) */
   recentChecker?: string | null;
+  /** Set by the list header to open or close all recipe sources at once; a new object per click re-applies it. */
+  sourcesSignal?: { open: boolean } | null;
 }
 
 /** The stored gram amount expressed in the item's start unit, or null when no usable unit is known. */
@@ -57,6 +59,7 @@ export default function ShoppingListItemRow({
   onDelete,
   onUpdateQuantity,
   recentChecker,
+  sourcesSignal,
 }: ShoppingListItemRowProps) {
   const [showChecker, setShowChecker] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
@@ -64,6 +67,11 @@ export default function ShoppingListItemRow({
   const [editingQuantity, setEditingQuantity] = useState(false);
 
   const hasSources = item.sources && item.sources.length > 0;
+
+  // Header "alle ein-/ausklappen": apply the requested state whenever a new signal arrives.
+  useEffect(() => {
+    if (sourcesSignal) setSourcesExpanded(sourcesSignal.open);
+  }, [sourcesSignal]);
   const hasPortionOptions = item.portion_options && item.portion_options.length > 1;
   // Entries generated from recipes or plans are rebuilt from their source; only manual ones can be removed.
   const canDelete = canEdit && !!onDelete && !hasSources;
