@@ -360,7 +360,12 @@ class RecipeDetailOut(ContentDetailOut):
         from supply.models import ContentMaterialItem
 
         ct = ContentType.objects.get_for_model(obj.__class__, for_concrete_model=False)
-        return list(ContentMaterialItem.objects.filter(content_type=ct, object_id=obj.pk).select_related("material"))
+        # Soft-deleted materials are hidden here too, so the recipe and its material lists agree.
+        return list(
+            ContentMaterialItem.objects.filter(
+                content_type=ct, object_id=obj.pk, material__deleted_at__isnull=True
+            ).select_related("material")
+        )
 
     @staticmethod
     def resolve_has_structured_steps(obj) -> bool:

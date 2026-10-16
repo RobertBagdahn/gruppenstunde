@@ -4,7 +4,8 @@ import type { MealItemUpdateHandler } from '@/components/planning/MealItemAmount
 import { usePersistedListState } from '@/hooks/usePersistedListState';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate, useLocation, useSearchParams, NavLink } from 'react-router-dom';
+import { useShoppingLists } from '@/api/shoppingLists';
+import { useParams, useNavigate, useLocation, useSearchParams, NavLink, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import HeroBand from '@/components/shared/HeroBand';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
@@ -84,6 +85,14 @@ export default function MealPlanDetailPage() {
   const mealPlanId = Number(id) || 0;
 
   const { data: plan, error, isLoading, refetch } = useMealPlan(mealPlanId);
+  // Lists created from this plan are snapshots; warn here when the plan changed after they were made.
+  const { data: planShoppingLists } = useShoppingLists(
+    1,
+    50,
+    { sourceType: 'meal_event', sourceId: mealPlanId },
+    { enabled: mealPlanId > 0 },
+  );
+  const changedShoppingLists = (planShoppingLists?.items ?? []).filter((list) => list.source_status === 'changed');
   const updateMutation = useUpdateMealPlan(mealPlanId);
   const addDayBeforeMutation = useAddDayBefore(mealPlanId);
   const addDayAfterMutation = useAddDayAfter(mealPlanId);
@@ -540,6 +549,23 @@ export default function MealPlanDetailPage() {
         })}
       </nav>
       </HeroBand>
+
+      {changedShoppingLists.length > 0 && (
+        <div role="alert" data-testid="plan-changed-warning" className="rounded-xl bg-card p-3 shadow-card border border-warning/40 text-body">
+          <p className="font-semibold text-warning">Der Plan wurde nach dem Erstellen der Einkaufsliste geändert.</p>
+          <p className="text-caption text-muted-foreground mt-1">
+            Betroffen:{' '}
+            {changedShoppingLists.map((list, index) => (
+              <span key={list.id}>
+                {index > 0 && ', '}
+                <Link to={`/shopping-lists/${list.id}`} className="font-medium text-primary hover:underline">
+                  {list.name}
+                </Link>
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
 
       {/* Settings Dialog */}
       <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>

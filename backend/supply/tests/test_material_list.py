@@ -116,6 +116,20 @@ class TestMaterialListEndpoints:
         assert data["consumables"][0]["amount"] == 20
         assert data["devices"][0]["amount"] == 1
 
+    def test_soft_deleted_material_is_hidden_in_recipe_and_plan(self, client, user, plate, pot):
+        plan = make_meal_plan(created_by=user, norm_portions=10)
+        recipe = make_recipe(title="Eintopf")
+        _link(recipe, plate, 1, "per_portion")
+        _link(recipe, pot, 1)
+        make_meal_item(meal=make_meal(meal_plan=plan, meal_type="lunch"), recipe=recipe)
+        plate.soft_delete()
+        plan_data = client.get(f"/api/meal-plans/{plan.id}/material-list/").json()
+        assert [m["name"] for m in plan_data["devices"]] == ["Topf"]
+        assert plan_data["consumables"] == []
+        recipe_data = client.get(f"/api/recipes/{recipe.id}/material-list/?servings=10").json()
+        assert [m["name"] for m in recipe_data["devices"]] == ["Topf"]
+        assert recipe_data["consumables"] == []
+
     def test_plan_material_list_forbidden_for_strangers(self, plate, django_user_model):
         owner = django_user_model.objects.create_user(username="own", email="o@example.com", password="x")
         stranger = Client()
