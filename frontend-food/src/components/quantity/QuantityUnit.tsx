@@ -6,6 +6,7 @@ import {
   amountParts,
   formatAmount,
   formatCount,
+  isWeightPortion,
   optionKeyFor,
   toCount,
   toGrams,
@@ -99,7 +100,7 @@ export function QuantityUnitLabel({
 }) {
   const [viewOption, setViewOption] = useState<UnitOption | null>(null);
   const { options, isLoading, request } = useLazyUnitOptions(item.ingredient_id);
-  const effective = viewOption ?? (viewMode === 'grams' ? GRAMS_OPTION : null);
+  const effective = viewOption ?? (viewMode === 'grams' || isWeightPortion(item) ? GRAMS_OPTION : null);
   const text = formatAmount(amountParts(item, effective));
 
   if (!item.ingredient_id) return <span className={className}>{text}</span>;
