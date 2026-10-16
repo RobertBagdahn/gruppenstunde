@@ -13,6 +13,8 @@ import type { IngredientReviewRow, ReviewPortion } from '@/schemas/ingredientRev
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import { useIngredient, useIngredientPortions } from '@/api/supplies';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
+import type { PickerStandardMeasure } from './PortionPicker';
+import { standardMeasureLabel } from '@/lib/quantityUnits';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -126,6 +128,7 @@ function NewIngredientDialog({
       selected_ingredient_name: draft.name,
       selected_portion: { ...portion, is_new: true },
       suggested_portion: { ...portion, is_new: true },
+      standard_measure_key: null,
       quantity: validQuantity,
       status: 'changed',
       reason: 'Neue Zutat vom Menschen bestätigt.',
@@ -305,6 +308,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       selected_ingredient_name: name,
       selected_ingredient_slug: slug,
       selected_portion: null,
+      standard_measure_key: null,
       quantity: null,
       // An existing ingredient replaces any pending "Neue Zutat prüfen" draft.
       new_ingredient_draft: null,
@@ -340,6 +344,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
         selected_ingredient_slug: '',
         selected_ingredient_name: response.draft.name,
         selected_portion: null,
+        standard_measure_key: null,
         quantity: null,
         new_ingredient_draft: response.draft,
         status: 'unresolved',
@@ -380,6 +385,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       selected_ingredient_slug: '',
       selected_ingredient_name: value,
       selected_portion: null,
+      standard_measure_key: null,
       quantity: null,
       status: 'unresolved',
       reason: 'Bitte wähle eine Zutat aus der Suche.',
@@ -407,7 +413,12 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
 
   const missingQuantity = row.selected_ingredient_id !== null && row.quantity === null;
 
-  const handleQuantityConfirm = (portionId: number | null, _measuringUnitId: number | null, quantity: number) => {
+  const handleQuantityConfirm = (
+    portionId: number | null,
+    _measuringUnitId: number | null,
+    quantity: number,
+    standardMeasure?: PickerStandardMeasure | null,
+  ) => {
     if (!quantityIngredient) return;
     const portion = dialogPortions.find((p) => p.id === portionId);
     const selectedPortion: ReviewPortion | null = portion
@@ -424,11 +435,14 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
     updateRow(row.key, {
       selected_portion: selectedPortion,
       suggested_portion: selectedPortion,
+      standard_measure_key: standardMeasure?.key ?? null,
       quantity,
       status: 'changed',
-      reason: selectedPortion
-        ? 'Portion und Menge vom Menschen bestätigt.'
-        : 'Menge in Gramm vom Menschen bestätigt.',
+      reason: standardMeasure
+        ? `Menge in ${standardMeasureLabel(standardMeasure.key)} vom Menschen bestätigt.`
+        : selectedPortion
+          ? 'Portion und Menge vom Menschen bestätigt.'
+          : 'Menge in Gramm vom Menschen bestätigt.',
     });
     setQuantityIngredient(null);
   };
@@ -476,6 +490,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
                 selected_ingredient_slug: '',
                 selected_ingredient_name: draftName,
                 selected_portion: null,
+                standard_measure_key: null,
                 quantity: null,
                 new_ingredient_draft: row.new_ingredient_draft ?? {
                   name: draftName,
@@ -608,8 +623,10 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
             <p className="font-medium text-warning">Menge fehlt</p>
           ) : (
             <p className="text-emphasis font-semibold">
-              {formatNumber(row.quantity, { maxDecimals: 2 })} × {row.selected_portion?.name ?? '—'}
-              {row.selected_portion?.weight_g ? (
+              {formatNumber(row.quantity, { maxDecimals: 2 })} × {row.standard_measure_key
+                ? standardMeasureLabel(row.standard_measure_key)
+                : row.selected_portion?.name ?? '—'}
+              {row.selected_portion?.weight_g && !row.standard_measure_key ? (
                 <span className="block text-caption font-normal text-muted-foreground">
                   à {formatExactWeight(row.selected_portion.weight_g)}
                 </span>
@@ -734,8 +751,10 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
           }}
           onConfirm={handleQuantityConfirm}
           initialPortionId={row.selected_portion?.id ?? null}
+          initialStandardKey={row.standard_measure_key}
           initialQuantity={row.selected_portion ? (row.quantity ?? 1) : (row.suggested_quantity ?? 1)}
           confirmLabel="Übernehmen"
+          keepStandardMeasure
         />
       )}
 

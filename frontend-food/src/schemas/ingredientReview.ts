@@ -85,6 +85,8 @@ export const IngredientReviewRowSchema = z.object({
   candidates: z.array(IngredientMatchCandidateSchema).default([]),
   selected_portion: ReviewPortionSchema.nullable().default(null),
   suggested_portion: ReviewPortionSchema.nullable().default(null),
+  /** Client-side choice only (not sent by the backend): the quantity counts this standard measure (el, tl, …). */
+  standard_measure_key: z.string().nullish(),
   quantity: z.number().positive().nullable().default(null),
   suggested_quantity: z.number().positive().nullable().default(null),
   quantity_estimated: z.boolean().optional(),

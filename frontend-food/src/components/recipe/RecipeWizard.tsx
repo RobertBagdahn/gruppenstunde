@@ -362,9 +362,12 @@ export default function RecipeWizard() {
       ...(basics.servings !== null ? { input_servings: basics.servings } : {}),
     };
     if (finalizedRows) {
+      // Finalized rows keep the store order, so index i belongs to the same review row.
+      const reviewRows = useRecipeIngredientReviewStore.getState().rows;
       // Totals for the original servings; the backend normalizes to one portion.
       payload.recipe_items = finalizedRows.map((row, index) => ({
         portion_id: row.selected_portion_id,
+        standard_measure_key: reviewRows[index]?.standard_measure_key ?? '',
         quantity: row.quantity,
         sort_order: index,
         note: '',

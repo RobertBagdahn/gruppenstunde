@@ -136,3 +136,44 @@ class TestRecipeItemStandardMeasure:
         assert get_recipe_item_weight_g(item) == pytest.approx(400.0)
         [active] = resolve_active_recipe_items(recipe)
         assert active.weight_g == pytest.approx(400.0)
+
+
+@pytest.mark.django_db
+class TestCreateRecipeKeepsStandardMeasure:
+    def test_reviewed_tablespoon_is_stored_as_unit(self, auth_client):
+        """Creating a recipe from the ingredient review keeps "5 EL" instead of converting to grams."""
+        ingredient = make_ingredient(name="Olivenöl")
+        gram_portion = ingredient.portions.get(name="g")
+
+        resp = auth_client.post(
+            "/api/recipes/",
+            data=json.dumps(
+                {
+                    "title": "Dressing",
+                    "input_servings": 1,
+                    "recipe_items": [
+                        {
+                            "portion_id": gram_portion.id,
+                            "standard_measure_key": "el",
+                            "quantity": 5,
+                            "sort_order": 0,
+                        }
+                    ],
+                    "ingredient_review_rows": [
+                        {
+                            "key": "row-1",
+                            "status": "confirmed",
+                            "selected_ingredient_id": ingredient.id,
+                            "selected_portion_id": gram_portion.id,
+                            "quantity": 5,
+                        }
+                    ],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 200, resp.content
+        item = RecipeItem.objects.get(recipe_id=resp.json()["id"])
+        assert item.standard_measure_key == "el"
+        assert item.quantity == 5

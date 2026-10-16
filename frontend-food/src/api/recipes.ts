@@ -247,6 +247,8 @@ export interface RecipeCreatePayload {
   recipe_items?: Array<{
     portion_id?: number | null;
     ingredient_id?: number | null;
+    /** Standard measure key (el, tl, …); '' = portion/gram item. */
+    standard_measure_key?: string;
     quantity?: number;
     measuring_unit_id?: number | null;
     sort_order?: number;

@@ -69,6 +69,50 @@ describe('IngredientQuantityDialog', () => {
     vi.mocked(useStandardMeasures).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useStandardMeasures>);
   });
 
+  it('reopens with a stored standard measure instead of falling back to grams', () => {
+    vi.mocked(useStandardMeasures).mockReturnValue({
+      data: [{ key: 'el', name: '1 EL', grams: 15, volume_ml: 15, is_approx: true }],
+    } as unknown as ReturnType<typeof useStandardMeasures>);
+    const onConfirm = vi.fn();
+    render(
+      <IngredientQuantityDialog
+        ingredient={{ id: 1, name: 'Weizenmehl Type 405', slug: 'weizenmehl-type-405', portions: [cup, gram] }}
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        keepStandardMeasure
+        initialStandardKey="el"
+        initialQuantity={5}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(11, 6, 5, expect.objectContaining({ key: 'el', grams: 15 }));
+    vi.mocked(useStandardMeasures).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useStandardMeasures>);
+  });
+
+  it('does not confirm a stored standard measure before the catalog has loaded', () => {
+    vi.mocked(useStandardMeasures).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useStandardMeasures>);
+    const onConfirm = vi.fn();
+    render(
+      <IngredientQuantityDialog
+        ingredient={{ id: 1, name: 'Weizenmehl Type 405', slug: 'weizenmehl-type-405', portions: [cup, gram] }}
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+        keepStandardMeasure
+        initialStandardKey="el"
+        initialQuantity={5}
+      />,
+    );
+
+    const confirm = screen.getByRole('button', { name: 'Hinzufügen' });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   it('confirms the default portion with its id', () => {
     const onConfirm = renderDialog([cup, gram]);
 
