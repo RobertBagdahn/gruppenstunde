@@ -8,13 +8,21 @@ import {
 } from '@/components/ui/dialog';
 import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
 import { standardMeasureLabel } from '@/lib/quantityUnits';
-import type { Portion } from '@/schemas/supply';
-import { formatExactWeight } from '@/lib/format';
+import { LIQUID_VISCOSITIES, type Portion } from '@/schemas/supply';
+import { formatExactWeight, formatNumber } from '@/lib/format';
 import { formatDecimalInput, parseDecimalInput } from '@/lib/decimalInput';
 import { QUANTITY_COUNT_MAX } from '@/lib/mealPlanBounds';
 
 interface IngredientQuantityDialogProps {
-  ingredient: { id: number; name: string; slug: string; portions: Portion[] };
+  ingredient: {
+    id: number;
+    name: string;
+    slug: string;
+    portions: Portion[];
+    /** Density in g/ml; only used for liquids to offer milliliters. */
+    physical_density?: number | null;
+    physical_viscosity?: string | null;
+  };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** `standardMeasure` is only set with `keepStandardMeasure`: then `quantity`
@@ -76,16 +84,29 @@ export default function IngredientQuantityDialog({
   const validQuantity = quantity !== null && quantity >= 0.1 && quantity <= QUANTITY_COUNT_MAX ? quantity : null;
 
   const [selectedMeasure, setSelectedMeasure] = useState<PickerStandardMeasure | null>(null);
+  // Milliliter entry for liquids: the quantity counts ml, converted with the density.
+  const [isMilliliterMode, setIsMilliliterMode] = useState(false);
+
+  const density = ingredient.physical_density ?? null;
+  const canUseMilliliters =
+    gramPortion !== null
+    && LIQUID_VISCOSITIES.has(ingredient.physical_viscosity ?? '')
+    && density !== null
+    && density > 0;
 
   const selectedPortion = ingredient.portions.find(
     (p) => String(p.id) === selectedPortionId,
   ) ?? null;
 
+  const milliliterWeightG = isMilliliterMode && density && validQuantity !== null
+    ? validQuantity * density
+    : null;
   const unitWeightG = selectedMeasure ? selectedMeasure.grams : selectedPortion?.weight_g ?? null;
-  const totalWeightG = unitWeightG && validQuantity !== null ? validQuantity * unitWeightG : null;
+  const totalWeightG = milliliterWeightG ?? (unitWeightG && validQuantity !== null ? validQuantity * unitWeightG : null);
 
   const handleSelectStandardMeasure = (measure: PickerStandardMeasure) => {
     if (!gramPortion) return;
+    setIsMilliliterMode(false);
     if (keepStandardMeasure) {
       // Gram-preserving count of the measure; one measure when the weight is unknown.
       const count = totalWeightG && measure.grams > 0
@@ -102,19 +123,38 @@ export default function IngredientQuantityDialog({
 
   const handleSelectPortion = (portionId: number) => {
     setSelectedMeasure(null);
+    setIsMilliliterMode(false);
     setSelectedPortionId(String(portionId));
   };
 
   const handleSelectGrams = () => {
     setSelectedMeasure(null);
+    setIsMilliliterMode(false);
     if (gramPortion) setSelectedPortionId(String(gramPortion.id));
   };
 
+  // Switching to milliliters keeps the current weight: 1 ml counts as 1 g × density.
+  const handleSelectMilliliters = () => {
+    if (!gramPortion || !density) return;
+    setSelectedMeasure(null);
+    if (totalWeightG && totalWeightG > 0) {
+      setQuantityInput(formatDecimalInput(Math.round(totalWeightG / density)));
+    }
+    setIsMilliliterMode(true);
+    setSelectedPortionId(String(gramPortion.id));
+  };
+
   // A confirmed quantity always belongs to a concrete portion — grams map to the
-  // ingredient's gram portion, never to "whatever is first".
+  // ingredient's gram portion, never to "whatever is first". Milliliters are
+  // confirmed as grams on that gram portion.
   const handleConfirm = () => {
     if (!selectedPortion || validQuantity === null) return;
     const measuringUnitId = selectedPortion.measuring_unit_id ?? null;
+    if (isMilliliterMode) {
+      if (!gramPortion || milliliterWeightG === null) return;
+      onConfirm(gramPortion.id, gramPortion.measuring_unit_id ?? null, Math.round(milliliterWeightG * 100) / 100);
+      return;
+    }
     if (selectedMeasure) {
       onConfirm(selectedPortion.id, measuringUnitId, validQuantity, selectedMeasure);
     } else {
@@ -171,15 +211,25 @@ export default function IngredientQuantityDialog({
                   // Grams and standard measures need the ingredient's gram portion.
                   ingredientSlug={gramPortion ? ingredient.slug : undefined}
                   showGramsSection={gramPortion !== null}
+                  showMilliliterSection={canUseMilliliters}
+                  isMilliliterSelected={isMilliliterMode}
+                  milliliterDensity={density}
                   onSelectPortion={handleSelectPortion}
                   onSelectStandardMeasure={handleSelectStandardMeasure}
                   onSelectGrams={handleSelectGrams}
+                  onSelectMilliliters={handleSelectMilliliters}
                 />
               </div>
             </div>
           )}
 
-          {totalWeightG && unitWeightG && (
+          {isMilliliterMode && density && validQuantity !== null && totalWeightG !== null && (
+            <p className="text-caption text-muted-foreground">
+              {formatNumber(validQuantity, { maxDecimals: 2 })} ml × {formatNumber(density, { maxDecimals: 2 })} g/ml = {formatExactWeight(totalWeightG)}
+            </p>
+          )}
+
+          {!isMilliliterMode && totalWeightG && unitWeightG && (
             <p className="text-caption text-muted-foreground">
               {validQuantity} × {selectedMeasure ? `${standardMeasureLabel(selectedMeasure.key)} (${formatExactWeight(unitWeightG)})` : formatExactWeight(unitWeightG)}
               {' '}= {selectedMeasure?.is_approx ? '≈ ' : ''}{formatExactWeight(totalWeightG)}

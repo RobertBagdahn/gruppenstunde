@@ -56,6 +56,12 @@ interface PortionPickerProps {
   onSelectStandardMeasure: (measure: PickerStandardMeasure) => void;
   onSelectGrams: () => void;
   showGramsSection?: boolean;
+  /** Offer a "Milliliter" entry for liquids with a known density. */
+  showMilliliterSection?: boolean;
+  isMilliliterSelected?: boolean;
+  /** Density in g/ml, shown next to the milliliter entry. */
+  milliliterDensity?: number | null;
+  onSelectMilliliters?: () => void;
   className?: string;
 }
 
@@ -73,6 +79,10 @@ export default function PortionPicker({
   onSelectStandardMeasure,
   onSelectGrams,
   showGramsSection = true,
+  showMilliliterSection = false,
+  isMilliliterSelected = false,
+  milliliterDensity = null,
+  onSelectMilliliters,
   className,
 }: PortionPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -81,25 +91,33 @@ export default function PortionPicker({
   const close = () => setIsOpen(false);
 
   const isStandardSelected = !!selectedStandardKey;
+  // Standard measures and milliliters replace the ingredient's own portion as the unit.
+  const isUnitOverride = isStandardSelected || isMilliliterSelected;
   const selectedMeasure = isStandardSelected
     ? standardMeasures.find((measure) => measure.key === selectedStandardKey) ?? null
     : null;
-  const selectedPortion = !isStandardSelected && value != null ? portions.find((p) => p.id === value) ?? null : null;
+  const selectedPortion = !isUnitOverride && value != null ? portions.find((p) => p.id === value) ?? null : null;
   const isFallbackSelected =
-    !isStandardSelected && !selectedPortion && value != null && selectedFallback?.id === value;
+    !isUnitOverride && !selectedPortion && value != null && selectedFallback?.id === value;
   const triggerLabel = isStandardSelected
     ? standardMeasureLabel(selectedStandardKey!)
-    : selectedPortion
-      ? portionDisplayName(selectedPortion)
-      : isFallbackSelected
-        ? selectedFallback!.name
-        : 'Gramm';
+    : isMilliliterSelected
+      ? 'Milliliter'
+      : selectedPortion
+        ? portionDisplayName(selectedPortion)
+        : isFallbackSelected
+          ? selectedFallback!.name
+          : 'Gramm';
   const triggerWeightG = isStandardSelected
     ? selectedMeasure?.grams ?? null
-    : selectedPortion?.weight_g ?? (isFallbackSelected ? selectedFallback!.weight_g : null);
-  const triggerWeight = triggerWeightG && triggerWeightG > 0
-    ? `${selectedMeasure?.is_approx ? '≈ ' : ''}${formatExactWeight(triggerWeightG)}`
-    : ((selectedPortion || isFallbackSelected) ? 'Gewicht fehlt' : null);
+    : isMilliliterSelected
+      ? null
+      : selectedPortion?.weight_g ?? (isFallbackSelected ? selectedFallback!.weight_g : null);
+  const triggerWeight = isMilliliterSelected
+    ? null
+    : triggerWeightG && triggerWeightG > 0
+      ? `${selectedMeasure?.is_approx ? '≈ ' : ''}${formatExactWeight(triggerWeightG)}`
+      : ((selectedPortion || isFallbackSelected) ? 'Gewicht fehlt' : null);
 
   const sortedPortions = [...portions].sort((a, b) => a.rank - b.rank);
 
@@ -129,7 +147,7 @@ export default function PortionPicker({
               Zutat
             </p>
             {sortedPortions.map((portion) => {
-              const isSelected = !isStandardSelected && portion.id === value;
+              const isSelected = !isUnitOverride && portion.id === value;
               const hasWeight = !!(portion.weight_g && portion.weight_g > 0);
               return (
                 <button
@@ -195,6 +213,34 @@ export default function PortionPicker({
               </>
             )}
 
+            {/* Milliliter für Flüssigkeiten mit bekannter Dichte */}
+            {showMilliliterSection && onSelectMilliliters && (
+              <>
+                <p className="px-2 pt-2 pb-1 text-caption font-medium uppercase tracking-wide text-muted-foreground/70">
+                  Volumen
+                </p>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isMilliliterSelected}
+                  onClick={() => {
+                    onSelectMilliliters();
+                    close();
+                  }}
+                  className={cn(
+                    'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left',
+                    isMilliliterSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
+                  )}
+                >
+                  <span>Milliliter</span>
+                  <span className="text-caption text-muted-foreground shrink-0 tabular-nums">
+                    {milliliterDensity ? `× ${formatNumber(milliliterDensity, { maxDecimals: 2 })} g/ml` : ''}
+                  </span>
+                  {isMilliliterSelected && <Check size={14} className="shrink-0 text-primary" />}
+                </button>
+              </>
+            )}
+
             {/* Direkte Gramm-Eingabe */}
             {showGramsSection && (
               <>
@@ -204,19 +250,19 @@ export default function PortionPicker({
                 <button
                   type="button"
                   role="option"
-                  aria-selected={value == null && !isStandardSelected}
+                  aria-selected={value == null && !isStandardSelected && !isMilliliterSelected}
                   onClick={() => {
                     onSelectGrams();
                     close();
                   }}
                   className={cn(
                     'w-full flex items-center justify-between gap-1 px-2 py-1.5 text-body rounded-lg transition-colors text-left',
-                    value == null && !isStandardSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
+                    value == null && !isStandardSelected && !isMilliliterSelected ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground',
                   )}
                 >
                   <span>Gramm</span>
                   <span className="text-caption text-muted-foreground shrink-0">freie Menge</span>
-                  {value == null && !isStandardSelected && <Check size={14} className="shrink-0 text-primary" />}
+                  {value == null && !isStandardSelected && !isMilliliterSelected && <Check size={14} className="shrink-0 text-primary" />}
                 </button>
               </>
             )}

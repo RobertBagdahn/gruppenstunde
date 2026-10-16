@@ -13,6 +13,7 @@ vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), succe
 
 vi.mock('@/api/supplies', () => ({
   useIngredientPortions: vi.fn(() => ({ data: [] })),
+  useIngredient: vi.fn(() => ({ data: undefined })),
   useRetailSections: vi.fn(() => ({ data: [] })),
   useStandardMeasures: vi.fn(() => ({ data: [] })),
   useIngredientGroups: vi.fn(() => ({ data: [] })),
