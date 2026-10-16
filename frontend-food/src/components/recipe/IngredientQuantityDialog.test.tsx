@@ -149,4 +149,70 @@ describe('IngredientQuantityDialog', () => {
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.getByText(/noch keine Portion/)).toBeTruthy();
   });
+
+  it('converts milliliters of a liquid to grams with its density', () => {
+    const onConfirm = vi.fn();
+    render(
+      <IngredientQuantityDialog
+        ingredient={{
+          id: 2,
+          name: 'Rapsöl',
+          slug: 'rapsoel',
+          portions: [cup, gram],
+          physical_density: 0.92,
+          physical_viscosity: 'liquid',
+        }}
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Portion wählen' }));
+    fireEvent.click(screen.getByRole('option', { name: /^Milliliter/ }));
+    fireEvent.change(screen.getByLabelText('Menge'), { target: { value: '1300' } });
+
+    expect(screen.getByText('1.300 ml × 0,92 g/ml = 1,2 kg')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(onConfirm).toHaveBeenCalledWith(11, 6, 1196);
+  });
+
+  it('hides the milliliter entry for liquids without a gram portion', () => {
+    render(
+      <IngredientQuantityDialog
+        ingredient={{ id: 5, name: 'Öl', slug: 'oel', portions: [cup], physical_density: 0.92, physical_viscosity: 'liquid' }}
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Portion wählen' }));
+    expect(screen.queryByRole('option', { name: /^Milliliter/ })).toBeNull();
+  });
+
+  it('hides the milliliter entry for solids and for liquids without density', () => {
+    const { unmount } = render(
+      <IngredientQuantityDialog
+        ingredient={{ id: 3, name: 'Mehl', slug: 'mehl', portions: [cup, gram], physical_density: 0.6, physical_viscosity: 'solid' }}
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Portion wählen' }));
+    expect(screen.queryByRole('option', { name: /^Milliliter/ })).toBeNull();
+    unmount();
+
+    render(
+      <IngredientQuantityDialog
+        ingredient={{ id: 4, name: 'Honig', slug: 'honig', portions: [cup, gram], physical_density: null, physical_viscosity: 'liquid' }}
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Portion wählen' }));
+    expect(screen.queryByRole('option', { name: /^Milliliter/ })).toBeNull();
+  });
 });

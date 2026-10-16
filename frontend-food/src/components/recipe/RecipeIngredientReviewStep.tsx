@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import type { IngredientReviewRow, ReviewPortion } from '@/schemas/ingredientReview';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
-import { useIngredientPortions } from '@/api/supplies';
+import { useIngredient, useIngredientPortions } from '@/api/supplies';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -275,6 +275,8 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
     error: dialogPortionsError,
     refetch: refetchDialogPortions,
   } = useIngredientPortions(quantityIngredient?.slug ?? '');
+  // Density and viscosity for milliliter entry in the quantity dialog.
+  const { data: quantityDetail } = useIngredient(quantityIngredient?.slug ?? '');
   const draft = row.new_ingredient_draft;
 
   const updateDraft = (field: string, value: string) => {
@@ -720,7 +722,12 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       {quantityIngredient && dialogPortionsReady && (
         <IngredientQuantityDialog
           key={quantityIngredient.slug}
-          ingredient={{ ...quantityIngredient, portions: dialogPortions }}
+          ingredient={{
+            ...quantityIngredient,
+            portions: dialogPortions,
+            physical_density: quantityDetail?.physical_density ?? null,
+            physical_viscosity: quantityDetail?.physical_viscosity ?? null,
+          }}
           open={!!quantityIngredient}
           onOpenChange={(isOpen) => {
             if (!isOpen) setQuantityIngredient(null);

@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { API_BASE_URL, getApiErrorMessage, parseApiResponse } from '@/lib/api';
 import { notify } from '@/lib/notify';
-import { useIngredientSearch } from '@/api/supplies';
+import { useIngredient, useIngredientSearch } from '@/api/supplies';
 import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/api/supplies';
 import { PortionSchema, type Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
@@ -175,6 +175,8 @@ export default function IngredientDetailSearchDialog({
   const [page, setPage] = useState(1);
   const [quantityDialogIngredient, setQuantityDialogIngredient] = useState<SelectedIngredient | null>(null);
   const [loadingPortionsFor, setLoadingPortionsFor] = useState<string | null>(null);
+  // Density and viscosity are not in the list items; the quantity dialog needs them for milliliters.
+  const { data: quantityDialogDetail } = useIngredient(quantityDialogIngredient?.slug ?? '');
 
   const deferredQuery = useDeferredValue(query);
 
@@ -482,7 +484,11 @@ export default function IngredientDetailSearchDialog({
       {/* Mengenauswahl-Dialog */}
       {quantityDialogIngredient && (
         <IngredientQuantityDialog
-          ingredient={quantityDialogIngredient}
+          ingredient={{
+            ...quantityDialogIngredient,
+            physical_density: quantityDialogDetail?.physical_density ?? null,
+            physical_viscosity: quantityDialogDetail?.physical_viscosity ?? null,
+          }}
           open={!!quantityDialogIngredient}
           onOpenChange={(isOpen) => {
             if (!isOpen) setQuantityDialogIngredient(null);

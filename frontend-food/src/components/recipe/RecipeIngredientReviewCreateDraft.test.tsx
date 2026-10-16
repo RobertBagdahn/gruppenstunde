@@ -14,6 +14,7 @@ vi.mock('@/api/recipeImport', () => ({
 
 vi.mock('@/api/supplies', () => ({
   useIngredientPortions: vi.fn(() => ({ data: [], isSuccess: false })),
+  useIngredient: vi.fn(() => ({ data: undefined })),
   useRetailSections: vi.fn(() => ({ data: [] })),
   useStandardMeasures: vi.fn(() => ({ data: [] })),
   useIngredientGroups: vi.fn(() => ({ data: [] })),
