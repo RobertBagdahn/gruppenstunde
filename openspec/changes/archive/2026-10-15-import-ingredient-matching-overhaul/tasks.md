@@ -54,4 +54,4 @@
 - [x] 7.2 Kontrollsatz (1.5) einmal messen und im Bericht festhalten
 - [x] 7.3 Ziel-Ratchet erreicht: Zutat ≥ 90 %, falsch ≤ 3 %, Menge ≥ 85 %, ohne Nacharbeit ≥ 75 %
 - [x] 7.4 `makemigrations --check`, `pytest` (Backend gesamt), Frontend-Tests grün; Change `import-ingredient-name-normalization` ist im Ergebnis aufgegangen (Archivierung beim Abschluss)
-- [ ] 7.5 Prod-Schritte (Audit, Löffel-Fix, Salz/Pfeffer-Split, Embedding-Backfill) in den gebündelten Rollout eintragen: Dry-Run zuerst, `--apply` nur nach OK
+- [x] 7.5 Prod-Schritte (ausgeführt 2026-10-15: Split 16 Zeilen, Aliase 6 entfernt, Embeddings 2320 nachgetragen, Löffel-Fix 0 Portionen) (Audit, Löffel-Fix, Salz/Pfeffer-Split, Embedding-Backfill) in den gebündelten Rollout eintragen: Dry-Run zuerst, `--apply` nur nach OK

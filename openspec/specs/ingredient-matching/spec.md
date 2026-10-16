@@ -50,47 +50,35 @@ The system SHALL parse raw ingredient strings and extract quantity and unit on a
 
 ### Requirement: Cascading Ingredient Matcher
 
-The system SHALL provide a unified `IngredientMatcher` service with four cascading stages: Wort-Jaccard, pg_trgm+Levenshtein, Embedding (pgvector), Human Dialog + Gemini enrichment. Each stage SHALL compute a confidence score (0.0–1.0). All stages SHALL search both `Ingredient.name` and `IngredientAlias.name`. The first stage whose score exceeds its threshold SHALL return the match immediately (first-above-threshold). Candidates SHALL be ordered by `usage_count` (descending) before scoring. If multiple candidates pass a threshold with score difference < 0.05, the system SHALL trigger Human-in-the-Loop. If no candidate exceeds a stage threshold but at least one has confidence ≥ 0.3 (grey zone), the system SHALL trigger Human-in-the-Loop with the top 5 candidates. The embedding stage SHALL never produce an automatic match: its best candidate SHALL only be returned as a `needs_review` result with the top 5 candidates. Every match result SHALL carry the top candidates of the deciding stage.
+The system SHALL provide a unified `IngredientMatcher` service with these cascading stages: learned mapping, exact name/alias, scored candidate match (normalized tokens, trigram, head noun), embedding rerank (candidates only), AI rerank per recipe (suggestion only), Human Dialog + Gemini enrichment. Each stage SHALL compute a confidence score (0.0–1.0). All stages SHALL search both `Ingredient.name` and `IngredientAlias.name`. The scored stage SHALL run on an in-memory index so that SQLite and PostgreSQL yield identical results. The first stage whose score exceeds its threshold SHALL return the match immediately. If several candidates are within 0.05 of the best score, the system SHALL preselect the canonical candidate (verified before draft, alias owner before others, higher `usage_count`, shorter name) as a suggestion with `needs_review=true` instead of leaving the row unselected. If no candidate exceeds a stage threshold but at least one has confidence ≥ 0.3 (grey zone), the system SHALL return `needs_review=true` with the top 5 candidates. The embedding and AI stages SHALL never produce an automatic match. Every match result SHALL carry the top candidates of the deciding stage.
 
-#### Scenario: Exact word-Jaccard match
-- **WHEN** the matcher searches for "Fladenbrot" and DB has "Fladenbrot" (usage_count=42)
-- **THEN** Stage 1 SHALL compute Jaccard=1.0, exceed threshold 0.90, and return MATCH with confidence=1.0
+#### Scenario: Exact match
+- **WHEN** the matcher searches for "Fladenbrot" and DB has "Fladenbrot"
+- **THEN** it SHALL return a match with confidence 1.0
 
-#### Scenario: Word form variation cascades to fuzzy
-- **WHEN** the matcher searches for "rote Zwiebel" and DB has "Zwiebel rot" as alias (usage_count=15)
-- **THEN** Stage 1 SHALL compute Jaccard({rote, zwiebel}, {zwiebel, rot}) = 1/3 ≈ 0.33, fail threshold 0.90, cascade to Stage 2
+#### Scenario: Word order does not matter
+- **WHEN** the matcher searches for "Mandeln gemahlen" and DB has "Gemahlene Mandeln"
+- **THEN** the scored stage SHALL return "Gemahlene Mandeln" as match
 
-#### Scenario: Typo caught by fuzzy stage
-- **WHEN** the matcher searches for "Champninon" (typo) and DB has "Champignon" (usage_count=30)
-- **THEN** Stage 1 SHALL compute Jaccard {champninon} vs {champignon} ≈ word sets identical → Jaccard=1.0 but not exact string match, cascade to Stage 2; Stage 2 SHALL compute pg_trgm + Levenshtein weighted score ≥ 0.70 and return MATCH
+#### Scenario: Compound split
+- **WHEN** the matcher searches for "Feta-Käse" and DB has "Feta"
+- **THEN** "Feta" SHALL be returned as match
 
-#### Scenario: Semantic match via embedding only proposes candidates
-- **WHEN** the matcher searches for "Rinderhack" and DB has "Rindergehacktes" (no Jaccard/fuzzy match)
-- **THEN** Stage 3 SHALL find cosine distance ≤ threshold via pgvector and return `needs_review=true` with the top 5 embedding candidates; it SHALL NOT return an automatic match
+#### Scenario: Equal candidates preselect the canonical one
+- **WHEN** the matcher searches for "Rohrzucker" and "Rohrzucker braun", "Brauner Rohrzucker", "Dunkler Rohrzucker" score within 0.05
+- **THEN** the verified or most used candidate SHALL be preselected with `needs_review=true` and all candidates listed
 
-#### Scenario: Embedding candidates carry confidence
-- **WHEN** an embedding-stage result is returned
-- **THEN** the candidate list SHALL include the sigmoid-calibrated confidence per candidate
+#### Scenario: Same result on SQLite and PostgreSQL
+- **WHEN** the benchmark runs against SQLite and against PostgreSQL with the same catalog
+- **THEN** every row SHALL get the same selected ingredient
 
-#### Scenario: Confident match carries stage candidates
-- **WHEN** a stage returns a match above its threshold
-- **THEN** the result SHALL include the top candidates of that stage alongside the match
+#### Scenario: Embedding only proposes candidates
+- **WHEN** the embedding stage reranks candidates for "Rinderhack"
+- **THEN** it SHALL return `needs_review=true` and SHALL NOT return an automatic match
 
-#### Scenario: No match found — human dialog then enrichment
-- **WHEN** all three algorithm stages find no match for "Freekeh"
-- **THEN** the system SHALL open the existing ingredient search dialog for manual selection; when the user chooses "neu anlegen", create a minimal Ingredient with status=DRAFT, call Gemini `enrich()` for nutritional data, and return the new ingredient
-
-#### Scenario: Grey zone triggers top-5 suggestions
-- **WHEN** Stage 2 finds a candidate with confidence 0.45 (below threshold 0.70, above 0.3) and no other stages succeed
-- **THEN** the system SHALL return needs_review=true with the top 5 candidates and open the search dialog
-
-#### Scenario: Multiple similar matches trigger human selection
-- **WHEN** Stage 1 finds two candidates "Zwiebel frisch" (score 0.95) and "Zwiebel rot" (score 0.93) — score difference 0.02 < 0.05
-- **THEN** the system SHALL return needs_review=true with both candidates and open the search dialog
-
-#### Scenario: Popularity ordering
-- **WHEN** multiple candidates match "Zwiebel" (e.g., "Zwiebel frisch" usage=100, "Zwiebel rot" usage=5, "Zwiebel getrocknet" usage=20)
-- **THEN** candidates SHALL be scored in order: "Zwiebel frisch" first (highest usage_count)
+#### Scenario: No match found
+- **WHEN** no stage finds a candidate for "Freekeh"
+- **THEN** the row SHALL stay open and offer "Zutat anlegen"
 
 ### Requirement: Gemini Enrichment Service
 
@@ -197,3 +185,54 @@ When the parser produces no name with a quantity/unit split (confidence below 0.
 #### Scenario: No leading token — no stripping
 - **WHEN** a raw string starts with the ingredient name (e.g. "Orangensaft 100%")
 - **THEN** the matcher SHALL not strip any token and SHALL match against the full name
+
+### Requirement: Konfliktwörter verhindern Fehlzuordnungen
+Der Matcher SHALL Merkmalsgruppen kennen (u. a. frisch/getrocknet/trocken, rot/weiß/gelb/grün, edelsüß/rosenscharf/scharf/geräuchert, mager/20 %/40 %, süß/mittelscharf/scharf, Vollkorn/Type 405, TK/Dose/frisch). Enthalten Anfrage und Kandidat verschiedene Werte derselben Gruppe, MUST der Kandidat nicht automatisch gewählt werden. Enthält die Anfrage einen Spezifizierer, den der Kandidat nicht trägt, MUST der Kandidat höchstens als Vorschlag erscheinen.
+
+#### Scenario: Trockenhefe
+- **WHEN** die Anfrage `Trockenhefe` lautet und `Hefe (frisch)` sowie `Trockenhefe` existieren
+- **THEN** wird `Trockenhefe` gewählt, nie `Hefe (frisch)`
+
+#### Scenario: Rote Zwiebel
+- **WHEN** die Anfrage `rote Zwiebel` lautet
+- **THEN** wird nicht die generische `Zwiebel` automatisch gewählt
+
+#### Scenario: Paprikapulver edelsüß
+- **WHEN** die Anfrage `Paprikapulver edelsüß` lautet
+- **THEN** wird `Paprikapulver (geräuchert)` nicht gewählt
+
+### Requirement: Vom Matching ausgeschlossene Zutaten
+Eine Zutat SHALL über ein Feld `exclude_from_matching` vom Matching ausgeschlossen werden können. Ausgeschlossene Zutaten MUST in keiner Matcher-Stufe als Treffer oder Kandidat erscheinen; bestehende Rezepte MUST unverändert bleiben.
+
+#### Scenario: Kombi-Zutat
+- **GIVEN** `Salz und Pfeffer` ist ausgeschlossen
+- **WHEN** die Zeile `Salz und Pfeffer` importiert wird
+- **THEN** erscheint `Salz und Pfeffer` weder als Treffer noch als Kandidat
+
+### Requirement: Alias-Audit
+Das System SHALL einen Management-Command `audit_ingredient_aliases` bereitstellen, der Aliase meldet, die generischer als ihre Zutat sind (Alias ist Kopfnomen eines anderen Katalogeintrags oder einer anderen Zutat mit höherer Nutzung) oder auf mehrere Zutaten zeigen. Ohne `--apply` MUST er nur berichten.
+
+#### Scenario: Zu generischer Alias
+- **GIVEN** der Alias `Hähnchen` gehört zu `Hähnchenbrustfilet`
+- **WHEN** `audit_ingredient_aliases` läuft
+- **THEN** wird der Alias als zu generisch gemeldet
+
+### Requirement: KI-Reranker für offene Zeilen
+Für angemeldete Nutzer SHALL das System nach dem algorithmischen Matching genau einen Gemini-Aufruf pro Rezept ausführen, der für jede offene Zeile aus deren Top-10-Kandidaten-IDs eine Zutat oder „neu“ wählt und begründet. Die Wahl MUST als Vorschlag mit `needs_review=true` erscheinen. Für anonyme Nutzer oder bei nicht verfügbarem Gemini MUST der Schritt ohne Fehler entfallen.
+
+#### Scenario: Vorschlag für offene Zeile
+- **GIVEN** die Zeile `Balsamico weiß` ist offen mit Kandidat `Weißer Balsamicoessig`
+- **WHEN** der Reranker `Weißer Balsamicoessig` wählt
+- **THEN** ist die Zutat vorbelegt, Status „zu prüfen“, mit KI-Begründung
+
+#### Scenario: Anonyme Vorschau
+- **GIVEN** ein nicht angemeldeter Besucher
+- **WHEN** die Vorschau berechnet wird
+- **THEN** findet kein Reranker-Aufruf statt
+
+### Requirement: Embeddings für alle matchbaren Zutaten
+Jede matchbare Zutat SHALL ein Embedding besitzen. Ein Management-Command MUST fehlende Embeddings in Batches nachziehen; neue und umbenannte Zutaten MUST ein Embedding erhalten.
+
+#### Scenario: Backfill
+- **WHEN** der Backfill-Command läuft
+- **THEN** haben danach alle nicht gelöschten Zutaten ein Embedding
