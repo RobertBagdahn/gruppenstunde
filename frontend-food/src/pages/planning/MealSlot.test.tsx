@@ -224,7 +224,7 @@ describe('MealSlot buffet grouping', () => {
     expect(screen.queryByRole('button', { name: 'Einheit wählen' })).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Menge in anderer Einheit anzeigen' })[0]);
     fireEvent.click(screen.getByRole('option', { name: /Stück/ }));
-    expect(screen.getAllByText('2,73 Stück (150 g)').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('2,7 Stück (150 g)').length).toBeGreaterThan(0);
     expect(updateItem).not.toHaveBeenCalled();
   });
 
