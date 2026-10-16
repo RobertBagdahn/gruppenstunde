@@ -161,3 +161,14 @@ export function formatShoppingQuantity(
   if (!secondary) return amount;
   return amount ? `${amount} · ${secondary}` : secondary;
 }
+
+/** "14:32 Uhr" for today, "12.10., 14:32 Uhr" for earlier days; empty for a missing or invalid timestamp. */
+export function formatWhen(iso: string | null | undefined, now: Date = new Date()): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const time = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  if (date.toDateString() === now.toDateString()) return `${time} Uhr`;
+  const day = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  return `${day}, ${time} Uhr`;
+}

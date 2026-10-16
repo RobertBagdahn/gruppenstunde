@@ -2,7 +2,7 @@
  * ShoppingListDetailPage — Detail view with items grouped by retail section,
  * checkboxes, progress bar, collaborator management, and real-time updates.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import HeroBand from '@/components/shared/HeroBand';
@@ -16,6 +16,7 @@ import {
   useDeleteShoppingList,
   useUpdateShoppingList,
   useCreateFromMealPlan,
+  useShoppingListSync,
 } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
@@ -23,6 +24,7 @@ import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import ShoppingListItemRow from '@/components/shopping/ShoppingListItemRow';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import SourceFreshnessNotice from '@/components/shopping/SourceFreshnessNotice';
+import ShareLinkManager from '@/components/shopping/ShareLinkManager';
 import CollaboratorManager from '@/components/shopping/CollaboratorManager';
 import KitchenReminderSection from '@/components/shopping/KitchenReminderSection';
 import ReweExportButton from '@/components/shopping/ReweExportButton';
@@ -37,7 +39,8 @@ import UnauthGate from '@/components/shared/UnauthGate';
 import { ApiError } from '@/lib/api';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
-import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { clearGuestCredentials, getGuestCredentials } from '@/lib/shoppingGuest';
+import { Trash2, Plus, Users, Share2, UserRound, ShoppingBasket, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { formatEuro } from '@/lib/format';
 import { PageSkeleton } from '@/components/ui/skeleton';
 
@@ -49,6 +52,8 @@ export default function ShoppingListDetailPage() {
   const navigationState = location.state as { warnings?: QuantityWarning[]; mealPlanId?: number } | null;
 
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  // A device that joined through an invitation link has no account but a guest identity.
+  const guestCredentials = getGuestCredentials(listId);
   const { data: list, isLoading, error, refetch } = useShoppingList(listId);
   // The generation endpoint reports plausibility warnings only in its own response;
   // they are carried here via navigation state right after "Einkaufsliste erstellen".
@@ -65,13 +70,12 @@ export default function ShoppingListDetailPage() {
   // Track recent checkers for real-time indicator
   const [recentCheckers, setRecentCheckers] = useState<Record<number, string>>({});
 
+  const viewerName = list?.viewer_display_name || user?.display_name || '';
   const handleWsEvent = useCallback(
     (event: ShoppingListEvent) => {
-      if (
-        (event.type === 'item.checked' || event.type === 'item.unchecked') &&
-        event.sender &&
-        event.sender_id !== user?.id
-      ) {
+      // Own actions come back through the socket too; guests have no user id, so their name decides.
+      const isOwnEvent = event.sender_id != null ? event.sender_id === user?.id : event.sender === viewerName;
+      if ((event.type === 'item.checked' || event.type === 'item.unchecked') && event.sender && !isOwnEvent) {
         const itemId = event.data.item_id as number;
         if (itemId) {
           setRecentCheckers((prev) => ({ ...prev, [itemId]: event.sender }));
@@ -87,12 +91,14 @@ export default function ShoppingListDetailPage() {
         }
       }
     },
-    [user?.id],
+    [user?.id, viewerName],
   );
 
   const { isConnected, sendEvent } = useShoppingListWebSocket(listId, {
     onEvent: handleWsEvent,
   });
+  // Production serves no WebSocket: a polled change marker keeps the list current (slower while the socket is up).
+  useShoppingListSync(listId, list?.stamp, isConnected);
 
   // Add item form state
   const [allSourcesOpen, setAllSourcesOpen] = useState(false);
@@ -101,11 +107,50 @@ export default function ShoppingListDetailPage() {
   const [newItemName, setNewItemName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  // Shopping mode: only the entries, in big tap targets (remembered per device).
+  const [shopMode, setShopModeState] = useState(() => {
+    try {
+      return window.localStorage.getItem('inspi.shopping.shopMode') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setShopMode = (on: boolean) => {
+    setShopModeState(on);
+    try {
+      window.localStorage.setItem('inspi.shopping.shopMode', on ? '1' : '0');
+    } catch {
+      // Not remembered in private mode.
+    }
+  };
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
+  // The guest's stored secret stopped working (link renewed or guest removed): tell them once, then forget it.
+  const [guestAccessEnded, setGuestAccessEnded] = useState(false);
+  useEffect(() => {
+    if (error instanceof ApiError && error.status === 404 && getGuestCredentials(listId)) {
+      clearGuestCredentials(listId);
+      setGuestAccessEnded(true);
+    }
+  }, [error, listId]);
+
+  if (guestAccessEnded) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <ErrorDisplay
+          error={error}
+          title="Dein Zugang zur Einkaufsliste wurde beendet"
+          description="Der Einladungslink wurde erneuert oder du wurdest entfernt. Frag nach einem neuen Link."
+          onBack={() => navigate('/shopping-lists')}
+          backLabel="Zu meinen Einkaufslisten"
+        />
+      </div>
+    );
+  }
 
   // Anonymous visitors (or an expired session) get a login hint instead of an error.
-  if ((!userLoading && !user) || (error instanceof ApiError && error.status === 401)) {
+  if ((!userLoading && !user && !guestCredentials) || (error instanceof ApiError && error.status === 401)) {
     return (
       <UnauthGate
         title="Einkaufsliste"
@@ -135,7 +180,8 @@ export default function ShoppingListDetailPage() {
     );
   }
 
-  const isOwner = list.is_owner ?? (user?.id === list.owner_id);
+  const isGuest = list.viewer_guest_id !== null;
+  const isOwner = !isGuest && (list.is_owner ?? (user?.id === list.owner_id));
   const canEdit = list.can_edit ?? false;
 
   // Group items by retail section
@@ -148,7 +194,7 @@ export default function ShoppingListDetailPage() {
   const totalCount = items.length;
 
   const handleCheck = (itemId: number, isChecked: boolean) => {
-    const previousData = optimisticCheck(itemId, isChecked, user?.display_name ?? '');
+    const previousData = optimisticCheck(itemId, isChecked, viewerName);
 
     updateItem.mutate(
       { itemId, is_checked: isChecked },
@@ -305,7 +351,32 @@ export default function ShoppingListDetailPage() {
                 )}
                 title={isConnected ? 'Verbunden' : 'Nicht verbunden'}
               />
-              {isOwner && (
+              <button
+                type="button"
+                onClick={() => setShopMode(!shopMode)}
+                aria-label={shopMode ? 'Einkaufsmodus beenden' : 'Einkaufsmodus starten'}
+                aria-pressed={shopMode}
+                data-testid="shopping-shop-mode-toggle"
+                className={cn(
+                  'press flex h-11 w-11 items-center justify-center rounded-lg transition-colors',
+                  shopMode ? 'bg-hero-foreground text-foreground' : 'bg-hero-soft text-hero-foreground hover:bg-hero-muted/30',
+                )}
+              >
+                <ShoppingBasket className="w-4 h-4" />
+              </button>
+              {list.can_manage && !shopMode && (
+                <button
+                  type="button"
+                  onClick={() => setShowShare((open) => !open)}
+                  aria-label="Einkaufsliste teilen"
+                  aria-expanded={showShare}
+                  data-testid="shopping-share-toggle"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-muted/30"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+              )}
+              {isOwner && !shopMode && (
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
@@ -330,6 +401,23 @@ export default function ShoppingListDetailPage() {
       </div>
       </HeroBand>
 
+      {isGuest && !shopMode && (
+        <div
+          className="mb-6 flex items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-body text-primary"
+          data-testid="shopping-guest-banner"
+        >
+          <UserRound className="h-4 w-4 shrink-0" />
+          <span>
+            Du bist als <strong>{list.viewer_display_name}</strong> dabei. Alle sehen, was du einträgst und abhakst.
+          </span>
+        </div>
+      )}
+
+      {list.can_manage && !shopMode && (showShare || list.share_token) && (
+        <ShareLinkManager listId={listId} listName={list.name} shareToken={list.share_token} guests={list.guests} />
+      )}
+
+      {!shopMode && (
       <SourceFreshnessNotice
         status={list.source_status}
         pending={createFromMealPlan.isPending}
@@ -345,9 +433,10 @@ export default function ShoppingListDetailPage() {
           },
         ) : undefined}
       />
+      )}
 
       {/* Quantity plausibility warnings from generation */}
-      {warnings.length > 0 && (
+      {!shopMode && warnings.length > 0 && (
         <div className="mb-6">
           <QuantityWarningsBanner warnings={warnings} mealPlanId={navigationState?.mealPlanId ?? list.source_id ?? undefined} />
         </div>
@@ -357,7 +446,7 @@ export default function ShoppingListDetailPage() {
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
 
       {/* Recipe sources of all entries at once */}
-      {items.some((item) => item.sources && item.sources.length > 0) && (
+      {!shopMode && items.some((item) => item.sources && item.sources.length > 0) && (
         <div className="mb-6 flex justify-end">
           <button
             type="button"
@@ -376,7 +465,7 @@ export default function ShoppingListDetailPage() {
       )}
 
       {/* Material list (devices and consumables of the source recipes) */}
-      {(list.source_type === 'recipe' || list.source_type === 'meal_event') && (
+      {!isGuest && !shopMode && (list.source_type === 'recipe' || list.source_type === 'meal_event') && (
         <Link
           to={`/material-list?shopping-list=${list.id}`}
           data-testid="shopping-material-list-link"
@@ -388,7 +477,7 @@ export default function ShoppingListDetailPage() {
       )}
 
       {/* Total price */}
-      {items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
+      {!shopMode && items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
         <div className="flex items-center justify-between bg-card rounded-xl px-4 py-3 mb-6 shadow-card">
           <span className="text-body font-semibold text-muted-foreground">
             Geschätzter Gesamtpreis
@@ -433,6 +522,13 @@ export default function ShoppingListDetailPage() {
                     }
                     recentChecker={recentCheckers[item.id]}
                     sourcesSignal={sourcesSignal}
+                    shopMode={shopMode}
+                    onClaim={(itemId, claimed) =>
+                      updateItem.mutate(
+                        { itemId, claimed },
+                        { onError: (err) => notify.error('Zuständigkeit konnte nicht geändert werden', { error: err }) },
+                      )
+                    }
                   />
                 ))}
               </div>
@@ -488,18 +584,21 @@ export default function ShoppingListDetailPage() {
       )}
 
       {/* REWE Export */}
-      <section className="mt-6 bg-card rounded-xl p-5 shadow-card">
-        <h2 className="flex items-center gap-2 text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4">
-          <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
-          REWE-Export
-        </h2>
-        <ReweExportButton listId={listId} listName={list.name} items={items} />
-      </section>
+      {!isGuest && !shopMode && (
+        <section className="mt-6 bg-card rounded-xl p-5 shadow-card">
+          <h2 className="flex items-center gap-2 text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4">
+            <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
+            REWE-Export
+          </h2>
+          <ReweExportButton listId={listId} listName={list.name} items={items} />
+        </section>
+      )}
 
       {/* Kitchen Reminder Section */}
-      <KitchenReminderSection />
+      {!isGuest && !shopMode && <KitchenReminderSection />}
 
       {/* Collaborators section */}
+      {!isGuest && !shopMode && (
       <section className="mt-8 bg-card rounded-xl p-5 shadow-card">
         <button
           type="button"
@@ -527,6 +626,7 @@ export default function ShoppingListDetailPage() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

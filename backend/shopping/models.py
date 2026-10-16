@@ -51,6 +51,14 @@ class ShoppingList(models.Model):
         verbose_name=_("Portionen der Quelle"),
         help_text=_("Portionen, für die ein Rezept eingekauft wird (nur Rezept-Quelle)"),
     )
+    share_token = models.UUIDField(
+        null=True,
+        blank=True,
+        unique=True,
+        editable=False,
+        verbose_name=_("Einladungs-Token"),
+        help_text=_("Wer den Link kennt, kann ohne Konto mitarbeiten; leer = Teilen aus"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,6 +75,34 @@ class ShoppingList(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class ShoppingListGuest(models.Model):
+    """Person without an account who joined a list through its invitation link."""
+
+    shopping_list = models.ForeignKey(
+        ShoppingList,
+        on_delete=models.CASCADE,
+        related_name="guests",
+        verbose_name=_("Einkaufsliste"),
+    )
+    name = models.CharField(max_length=40, verbose_name=_("Name"))
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        verbose_name=_("Gast-Token"),
+        help_text=_("Geheimer Schlüssel des Geräts; wird im Browser gespeichert"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Einkaufslisten-Gast")
+        verbose_name_plural = _("Einkaufslisten-Gäste")
+        ordering = ["created_at", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.shopping_list.name})"
 
 
 class ShoppingListItem(models.Model):
@@ -132,6 +168,46 @@ class ShoppingListItem(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Abgehakt am"),
+    )
+    checked_by_guest = models.ForeignKey(
+        ShoppingListGuest,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="checked_items",
+        verbose_name=_("Abgehakt von (Gast)"),
+    )
+    claimed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="claimed_shopping_items",
+        verbose_name=_("Übernommen von"),
+    )
+    claimed_by_guest = models.ForeignKey(
+        ShoppingListGuest,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="claimed_items",
+        verbose_name=_("Übernommen von (Gast)"),
+    )
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="added_shopping_items",
+        verbose_name=_("Hinzugefügt von"),
+    )
+    added_by_guest = models.ForeignKey(
+        ShoppingListGuest,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="added_items",
+        verbose_name=_("Hinzugefügt von (Gast)"),
     )
     sort_order = models.IntegerField(
         default=0,

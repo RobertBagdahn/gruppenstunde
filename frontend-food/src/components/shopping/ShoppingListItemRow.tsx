@@ -16,6 +16,7 @@ import {
   formatPackageNeed,
   formatPortionOption,
   formatShoppingQuantity,
+  formatWhen,
 } from '@/lib/shoppingItemDisplay';
 
 interface ShoppingListItemRowProps {
@@ -30,6 +31,10 @@ interface ShoppingListItemRowProps {
   recentChecker?: string | null;
   /** Set by the list header to open or close all recipe sources at once; a new object per click re-applies it. */
   sourcesSignal?: { open: boolean } | null;
+  /** Takes over (true) or releases (false) the entry ("Ich hole das"). */
+  onClaim?: (itemId: number, claimed: boolean) => void;
+  /** Shopping mode: big tap targets, only what is needed in the store. */
+  shopMode?: boolean;
 }
 
 /** The stored gram amount expressed in the item's start unit, or null when no usable unit is known. */
@@ -60,6 +65,8 @@ export default function ShoppingListItemRow({
   onUpdateQuantity,
   recentChecker,
   sourcesSignal,
+  onClaim,
+  shopMode = false,
 }: ShoppingListItemRowProps) {
   const [showChecker, setShowChecker] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
@@ -74,7 +81,7 @@ export default function ShoppingListItemRow({
   }, [sourcesSignal]);
   const hasPortionOptions = item.portion_options && item.portion_options.length > 1;
   // Entries generated from recipes or plans are rebuilt from their source; only manual ones can be removed.
-  const canDelete = canEdit && !!onDelete && !hasSources;
+  const canDelete = canEdit && !!onDelete && !hasSources && item.can_delete;
 
   // Show the recent checker name briefly, then fade out
   useEffect(() => {
@@ -103,7 +110,8 @@ export default function ShoppingListItemRow({
     <div className="font-sans" data-testid={`shopping-item-${item.id}`}>
       <div
         className={cn(
-          'flex items-center gap-3 py-2 px-2 -mx-2 rounded-xl transition-colors',
+          'flex items-center gap-3 px-2 -mx-2 rounded-xl transition-colors',
+          shopMode ? 'py-3' : 'py-2',
           item.is_checked && 'opacity-60',
           canEdit && 'hover:bg-muted/50',
         )}
@@ -114,7 +122,8 @@ export default function ShoppingListItemRow({
           disabled={!canEdit}
           onClick={() => onCheck(item.id, !item.is_checked)}
           className={cn(
-            'flex items-center justify-center w-11 h-11 shrink-0 rounded-xl border-2 transition-all shadow-soft',
+            'flex items-center justify-center shrink-0 rounded-xl border-2 transition-all shadow-soft',
+            shopMode ? 'w-14 h-14' : 'w-11 h-11',
             item.is_checked
               ? 'bg-primary border-primary text-primary-foreground'
               : 'border-muted-foreground/30 hover:border-primary bg-card',
@@ -143,7 +152,8 @@ export default function ShoppingListItemRow({
               <Link
                 to={`/ingredients/${item.ingredient_slug}`}
                 className={cn(
-                  'font-semibold text-body hover:text-primary transition-colors text-foreground',
+                  'font-semibold hover:text-primary transition-colors text-foreground',
+                  shopMode ? 'text-emphasis' : 'text-body',
                   item.is_checked && 'line-through text-muted-foreground',
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -153,7 +163,8 @@ export default function ShoppingListItemRow({
             ) : (
               <span
                 className={cn(
-                  'font-semibold text-body text-foreground',
+                  'font-semibold text-foreground',
+                  shopMode ? 'text-emphasis' : 'text-body',
                   item.is_checked && 'line-through text-muted-foreground',
                 )}
               >
@@ -266,6 +277,54 @@ export default function ShoppingListItemRow({
               ))}
             </div>
           )}
+          {/* Who takes care of it */}
+          {onClaim && canEdit && !item.is_checked && (
+            <p className="mt-0.5 text-caption" data-testid={`shopping-item-${item.id}-claim`}>
+              {item.claimed_by_me ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClaim(item.id, false);
+                  }}
+                  className="rounded-lg bg-primary-soft px-2 py-0.5 font-semibold text-primary hover:bg-primary-soft-border/70"
+                >
+                  Du holst das · Freigeben
+                </button>
+              ) : item.claimed_by_display_name ? (
+                <span className="font-semibold text-primary">{item.claimed_by_display_name} holt das</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClaim(item.id, true);
+                  }}
+                  className="rounded-lg px-2 py-0.5 font-semibold text-primary hover:bg-primary-soft"
+                >
+                  Ich hole das
+                </button>
+              )}
+            </p>
+          )}
+          {/* Who added the entry and when; who checked it and when */}
+          {!shopMode && (item.added_by_display_name || (item.is_checked && item.checked_by_display_name)) && (
+            <p className="mt-0.5 text-caption text-muted-foreground" data-testid={`shopping-item-${item.id}-attribution`}>
+              {item.added_by_display_name && (
+                <span>
+                  Hinzugefügt von {item.added_by_display_name}
+                  {formatWhen(item.created_at) && ` · ${formatWhen(item.created_at)}`}
+                </span>
+              )}
+              {item.added_by_display_name && item.is_checked && item.checked_by_display_name && <span aria-hidden="true"> · </span>}
+              {item.is_checked && item.checked_by_display_name && (
+                <span>
+                  Abgehakt von {item.checked_by_display_name}
+                  {formatWhen(item.checked_at) && ` · ${formatWhen(item.checked_at)}`}
+                </span>
+              )}
+            </p>
+          )}
           {/* Real-time checker indicator */}
           {showChecker && recentChecker && (
             <p className="text-caption text-primary font-semibold mt-0.5 animate-fade-inUp">
@@ -286,12 +345,6 @@ export default function ShoppingListItemRow({
           </button>
         )}
 
-        {/* Checked-by indicator */}
-        {item.is_checked && item.checked_by_display_name && !showChecker && (
-          <span className="text-caption font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40 shrink-0">
-            {item.checked_by_display_name}
-          </span>
-        )}
       </div>
 
       {/* Expanded sources */}

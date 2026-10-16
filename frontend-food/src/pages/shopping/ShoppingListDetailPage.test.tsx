@@ -25,7 +25,9 @@ function detail(): ShoppingListDetail {
     updated_at: '2026-10-11T10:00:00Z',
     can_edit: true,
     is_owner: true,
-    items: [{ id: 10, name: 'Klebeband', quantity_g: 0, unit: 'Stück', is_checked: true, sort_order: 4 }],
+    items: [
+      { id: 10, name: 'Klebeband', quantity_g: 0, unit: 'Stück', is_checked: true, sort_order: 4, can_delete: true },
+    ],
   });
 }
 
@@ -40,6 +42,10 @@ vi.mock('@/api/shoppingLists', () => ({
   useDeleteShoppingList: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateShoppingList: () => ({ mutate: vi.fn() }),
   useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
+  useShoppingListSync: vi.fn(),
+  useEnableSharing: () => ({ mutate: vi.fn(), isPending: false }),
+  useDisableSharing: () => ({ mutate: vi.fn(), isPending: false }),
+  useRemoveGuest: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock('@/hooks/useShoppingListWebSocket', () => ({
   useShoppingListWebSocket: () => ({ isConnected: false, sendEvent: vi.fn() }),
@@ -157,6 +163,75 @@ describe('ShoppingListDetailPage', () => {
 
       expect(screen.getByText('Der Essensplan wurde gelöscht.')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Neue Liste erstellen' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('invitation link', () => {
+    const guestList = () =>
+      ShoppingListDetailSchema.parse({
+        ...detail(),
+        owner_id: 1,
+        is_owner: false,
+        can_manage: false,
+        viewer_guest_id: 8,
+        viewer_display_name: 'Anna',
+        items: [{ id: 10, name: 'Brot', quantity_g: 0, is_checked: false, sort_order: 0, can_delete: false }],
+      });
+
+    it('lets a guest without account in and says who they are', () => {
+      currentUser = null;
+      window.localStorage.setItem(
+        'inspi.shopping.guest.3',
+        JSON.stringify({ guestToken: 't', name: 'Anna', shareToken: 's' }),
+      );
+      listQuery = { data: guestList(), isLoading: false, error: null };
+
+      renderPage();
+
+      expect(screen.getByTestId('shopping-guest-banner')).toHaveTextContent('Du bist als Anna dabei');
+      expect(screen.queryByText('REWE-Export')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('shopping-share-toggle')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Einkaufsliste löschen' })).not.toBeInTheDocument();
+      window.localStorage.clear();
+    });
+
+    it('offers the share section to owners and shows the link once sharing is on', () => {
+      listQuery = {
+        data: ShoppingListDetailSchema.parse({ ...detail(), can_manage: true, share_token: 'abc-123', guests: [{ id: 1, name: 'Ben', created_at: '2026-10-11T10:00:00Z' }] }),
+        isLoading: false,
+        error: null,
+      };
+
+      renderPage();
+
+      expect(screen.getByTestId('shopping-share-url')).toHaveValue(`${window.location.origin}/shopping-lists/join/abc-123`);
+      expect(screen.getByTestId('shopping-guest-1')).toHaveTextContent('Ben');
+    });
+
+    it('keeps the share section hidden for members who cannot manage', () => {
+      renderPage();
+      expect(screen.queryByTestId('shopping-share-section')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('shopping mode', () => {
+    it('hides everything but the entries and remembers the choice', async () => {
+      const user = userEvent.setup();
+      listQuery = {
+        data: ShoppingListDetailSchema.parse({ ...detail(), can_manage: true, share_token: 'abc' }),
+        isLoading: false,
+        error: null,
+      };
+      renderPage();
+      expect(screen.getByTestId('shopping-share-section')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('shopping-shop-mode-toggle'));
+
+      expect(screen.queryByTestId('shopping-share-section')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Einkaufsliste löschen' })).not.toBeInTheDocument();
+      expect(screen.getByText('Klebeband')).toBeInTheDocument();
+      expect(window.localStorage.getItem('inspi.shopping.shopMode')).toBe('1');
+      window.localStorage.clear();
     });
   });
 });

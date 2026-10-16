@@ -156,7 +156,7 @@ describe('ShoppingListItemRow', () => {
   describe('deleting manual entries', () => {
     it('offers delete for a manual entry (no sources) and reports the item', () => {
       const onDelete = vi.fn();
-      const manual = item({ name: 'ZZ-TEST Klebeband', quantity_g: 0, estimated_price_eur: null });
+      const manual = item({ name: 'ZZ-TEST Klebeband', quantity_g: 0, estimated_price_eur: null, can_delete: true });
       render(
         <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
           <ShoppingListItemRow item={manual} canEdit onCheck={vi.fn()} onDelete={onDelete} />
@@ -166,6 +166,16 @@ describe('ShoppingListItemRow', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Eintrag „ZZ-TEST Klebeband“ löschen' }));
 
       expect(onDelete).toHaveBeenCalledWith(manual);
+    });
+
+    it('offers no delete when the backend withholds it (guest, foreign entry)', () => {
+      render(
+        <MemoryRouter future={ROUTER_FUTURE_FLAGS}>
+          <ShoppingListItemRow item={item({ can_delete: false })} canEdit onCheck={vi.fn()} onDelete={vi.fn()} />
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByRole('button', { name: /löschen/ })).not.toBeInTheDocument();
     });
 
     it('offers no delete for entries generated from a recipe', () => {
@@ -189,6 +199,54 @@ describe('ShoppingListItemRow', () => {
       );
 
       expect(screen.queryByRole('button', { name: /löschen/ })).toBeNull();
+    });
+  });
+
+  describe('attribution', () => {
+    it('shows who added and who checked the entry', () => {
+      renderRow(
+        item({
+          is_checked: true,
+          added_by_display_name: 'Anna',
+          created_at: '2020-03-01T08:05:00Z',
+          checked_by_display_name: 'Ben',
+          checked_at: '2020-03-01T09:30:00Z',
+        }),
+      );
+
+      const text = screen.getByTestId('shopping-item-1-attribution').textContent ?? '';
+      expect(text).toContain('Hinzugefügt von Anna');
+      expect(text).toContain('Abgehakt von Ben');
+    });
+
+    it('shows nothing for generated entries nobody touched', () => {
+      renderRow(item());
+      expect(screen.queryByTestId('shopping-item-1-attribution')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('claiming ("Ich hole das")', () => {
+    const renderClaim = (i: ShoppingListItem, onClaim = vi.fn()) => {
+      render(withProviders(<ShoppingListItemRow item={i} canEdit onCheck={vi.fn()} onClaim={onClaim} />));
+      return onClaim;
+    };
+
+    it('takes over a free entry', () => {
+      const onClaim = renderClaim(item());
+      fireEvent.click(screen.getByRole('button', { name: 'Ich hole das' }));
+      expect(onClaim).toHaveBeenCalledWith(1, true);
+    });
+
+    it('lets me release my own claim', () => {
+      const onClaim = renderClaim(item({ claimed_by_display_name: 'Anna', claimed_by_me: true }));
+      fireEvent.click(screen.getByRole('button', { name: /Freigeben/ }));
+      expect(onClaim).toHaveBeenCalledWith(1, false);
+    });
+
+    it('shows who else takes it without an action', () => {
+      renderClaim(item({ claimed_by_display_name: 'Ben' }));
+      expect(screen.getByText('Ben holt das')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Ich hole das' })).not.toBeInTheDocument();
     });
   });
 });

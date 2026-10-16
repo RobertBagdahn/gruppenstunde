@@ -1,13 +1,15 @@
 """WebSocket consumer for real-time shopping list collaboration."""
 
 from datetime import datetime
+from urllib.parse import parse_qs
+from uuid import UUID
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 from core.services.user_directory import public_display_name
 
-from .models import ShoppingList, ShoppingListCollaborator
+from .models import ShoppingList, ShoppingListCollaborator, ShoppingListGuest
 
 
 class ShoppingListConsumer(AsyncJsonWebsocketConsumer):
@@ -22,18 +24,19 @@ class ShoppingListConsumer(AsyncJsonWebsocketConsumer):
         self.group_name = f"shopping_list_{self.shopping_list_id}"
 
         user = self.scope.get("user")
-        if not user or user.is_anonymous:
-            await self.close(code=4403)
-            return
+        self.sender_id: int | None = None
+        self.sender_display_name: str = ""
 
-        # Check access
-        has_access = await self._check_access(user)
-        if not has_access:
-            await self.close(code=4403)
-            return
-
-        self.sender_id: int = user.id
-        self.sender_display_name: str = await self._display_name(user)
+        if user and not user.is_anonymous and await self._check_access(user):
+            self.sender_id = user.id
+            self.sender_display_name = await self._display_name(user)
+        else:
+            # Guests of an invitation link cannot send cookies; their secret rides in the query string.
+            guest_name = await self._guest_name()
+            if guest_name is None:
+                await self.close(code=4403)
+                return
+            self.sender_display_name = guest_name
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -77,6 +80,19 @@ class ShoppingListConsumer(AsyncJsonWebsocketConsumer):
                 "timestamp": event.get("timestamp", ""),
             }
         )
+
+    @database_sync_to_async
+    def _guest_name(self) -> str | None:
+        """Name of the guest whose token is in the query string; None if missing or revoked."""
+        raw = parse_qs(self.scope.get("query_string", b"").decode()).get("guest", [""])[0]
+        try:
+            token = UUID(raw)
+        except ValueError:
+            return None
+        guest = ShoppingListGuest.objects.filter(
+            token=token, shopping_list_id=self.shopping_list_id, shopping_list__share_token__isnull=False
+        ).first()
+        return guest.name if guest else None
 
     @database_sync_to_async
     def _display_name(self, user) -> str:

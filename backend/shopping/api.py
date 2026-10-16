@@ -3,6 +3,7 @@
 import math
 from datetime import timedelta
 from typing import Literal
+from uuid import UUID, uuid4
 
 from django.db import transaction
 from django.db.models import Count, Q
@@ -14,7 +15,7 @@ from ninja.errors import HttpError
 
 from content.api.helpers import paginate_queryset
 from core.permissions import require_login
-from core.services.user_directory import USER_SEARCH_MAX_PAGE_SIZE, search_user_directory
+from core.services.user_directory import USER_SEARCH_MAX_PAGE_SIZE, public_display_name, search_user_directory
 from supply.models import Portion
 from supply.schemas import MaterialListResultOut
 
@@ -25,6 +26,7 @@ from .models import (
     ReweExportToken,
     ShoppingList,
     ShoppingListCollaborator,
+    ShoppingListGuest,
     ShoppingListItem,
     ShoppingListItemSource,
     SourceType,
@@ -42,6 +44,9 @@ from .schemas import (
     ReweExportListResponse,
     ReweExportTokenResponse,
     ReweReportRequest,
+    SharedListJoinIn,
+    SharedListJoinOut,
+    SharedListPreviewOut,
     ShoppingListCollaboratorOut,
     ShoppingListCreateIn,
     ShoppingListDetailOut,
@@ -49,9 +54,20 @@ from .schemas import (
     ShoppingListItemOut,
     ShoppingListItemUpdateIn,
     ShoppingListOut,
+    ShoppingListPulseOut,
+    ShoppingListShareOut,
     ShoppingListUpdateIn,
 )
+from .services.access import (
+    MAX_GUESTS_PER_LIST,
+    Actor,
+    guest_from_request,
+    require_actor_edit,
+    require_login_unless_guest,
+    resolve_actor,
+)
 from .services.material_items import add_consumable_items
+from .services.pulse import list_stamp
 
 shopping_router = Router(tags=["shopping-lists"])
 
@@ -111,6 +127,42 @@ def _require_owner(shopping_list: ShoppingList, user) -> None:
     _require_access(shopping_list, user)
     if shopping_list.owner_id != user.id and not getattr(user, "is_staff", False):
         raise HttpError(403, "Nur der Besitzer kann die Liste löschen")
+
+
+def _attach_actor(shopping_list: ShoppingList, actor: Actor) -> None:
+    """Expose what the viewer may do (and who they are) to the detail schema."""
+    shopping_list._can_edit = actor.can_edit
+    shopping_list._is_owner = actor.role == "owner"
+    shopping_list._can_manage = actor.can_manage
+    shopping_list._viewer_guest_id = actor.guest.id if actor.guest else None
+    shopping_list._viewer_display_name = actor.display_name
+    shopping_list._request_user = actor.user
+    shopping_list._viewer_actor = actor
+
+
+def _item_can_delete(item: ShoppingListItem, actor: Actor) -> bool:
+    """Generated entries are rebuilt from their source; guests remove only what they added."""
+    if not actor.can_edit or item.sources.exists():
+        return False
+    return actor.guest is None or item.added_by_guest_id == actor.guest.id
+
+
+def _shared_list_or_404(token: str) -> ShoppingList:
+    try:
+        share_token = UUID(token)
+    except (ValueError, TypeError):
+        raise HttpError(404, "Dieser Einladungslink ist nicht mehr gültig")
+    shopping_list = ShoppingList.objects.filter(share_token=share_token).select_related("owner__profile").first()
+    if shopping_list is None:
+        raise HttpError(404, "Dieser Einladungslink ist nicht mehr gültig")
+    return shopping_list
+
+
+def _share_payload(shopping_list: ShoppingList) -> dict:
+    return {
+        "share_token": str(shopping_list.share_token) if shopping_list.share_token else None,
+        "guests": list(shopping_list.guests.all()),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +252,64 @@ def list_users(
     """Search users by name (or exact e-mail) for the collaborator invite flow."""
     require_login(request)
     return search_user_directory(q, page=page, page_size=page_size)
+
+
+# ---------------------------------------------------------------------------
+# Invitation link: join without an account (static routes before /{shopping_list_id}/)
+# ---------------------------------------------------------------------------
+
+
+@shopping_router.get("/shared/{token}/", response=SharedListPreviewOut)
+def preview_shared_list(request, token: str):
+    """Identity of the list behind an invitation link; shows no entries before joining."""
+    shopping_list = _shared_list_or_404(token)
+    guest = guest_from_request(request, shopping_list)
+    user = request.user if request.user.is_authenticated else None
+    from .services.access import member_role
+
+    is_member = user is not None and member_role(shopping_list, user) is not None
+    return SharedListPreviewOut(
+        list_id=shopping_list.id,
+        name=shopping_list.name,
+        owner_display_name=public_display_name(shopping_list.owner),
+        items_count=shopping_list.items.count(),
+        checked_count=shopping_list.items.filter(is_checked=True).count(),
+        already_member=is_member or guest is not None,
+        guest_name=guest.name if guest else None,
+    )
+
+
+@shopping_router.post("/shared/{token}/join/", response=SharedListJoinOut)
+def join_shared_list(request, token: str, payload: SharedListJoinIn):
+    """Join through the link: accounts become editors, everyone else joins as a named guest."""
+    shopping_list = _shared_list_or_404(token)
+
+    from .services.access import member_role
+
+    if request.user.is_authenticated:
+        if member_role(shopping_list, request.user) is None:
+            ShoppingListCollaborator.objects.get_or_create(
+                shopping_list=shopping_list, user=request.user, defaults={"role": CollaboratorRole.EDITOR}
+            )
+        return SharedListJoinOut(list_id=shopping_list.id, display_name=public_display_name(request.user))
+
+    name = " ".join(payload.name.split())
+    if not name:
+        raise HttpError(422, "Bitte gib deinen Namen ein, damit die anderen sehen, wer was abhakt.")
+
+    guest = guest_from_request(request, shopping_list)
+    if guest is not None:
+        # A returning device keeps its identity; entering another name renames it.
+        if guest.name != name:
+            guest.name = name
+            guest.save(update_fields=["name"])
+    else:
+        if shopping_list.guests.count() >= MAX_GUESTS_PER_LIST:
+            raise HttpError(400, "Diese Liste hat die maximale Zahl an Gästen erreicht.")
+        guest = ShoppingListGuest.objects.create(shopping_list=shopping_list, name=name)
+    return SharedListJoinOut(
+        list_id=shopping_list.id, display_name=guest.name, guest_token=str(guest.token), guest_id=guest.id
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -332,21 +442,24 @@ def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
 @shopping_router.get("/{shopping_list_id}/", response=ShoppingListDetailOut)
 def get_shopping_list(request, shopping_list_id: int):
     """Get shopping list detail with items and collaborators."""
-    require_login(request, READ_LOGIN_ACTION)
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
-    role = _require_access(shopping_list, request.user)
+    actor = resolve_actor(request, shopping_list)
 
-    # Inject can_edit and is_owner for the response — these depend on the
-    # request user, so we attach them as attributes.
-    shopping_list._can_edit = role in (
-        "owner",
-        CollaboratorRole.ADMIN,
-        CollaboratorRole.EDITOR,
-    )
-    shopping_list._is_owner = role == "owner"
+    # Permissions depend on the viewer, so they are attached as attributes.
+    _attach_actor(shopping_list, actor)
     shopping_list.quantity_warnings = _quantity_warnings(shopping_list)
-    shopping_list._request_user = request.user
     return shopping_list
+
+
+@shopping_router.get("/{shopping_list_id}/pulse/", response=ShoppingListPulseOut)
+def get_shopping_list_pulse(request, shopping_list_id: int):
+    """Change marker for polling: one aggregate query instead of the full, heavy list."""
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    resolve_actor(request, shopping_list)
+
+    return ShoppingListPulseOut(stamp=list_stamp(shopping_list))
 
 
 def _quantity_warnings(shopping_list: ShoppingList) -> list:
@@ -369,7 +482,12 @@ def update_shopping_list(request, shopping_list_id: int, payload: ShoppingListUp
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_admin(shopping_list, request.user)
 
-    data = payload.dict(exclude_unset=True)
+    # An explicit null must not clear the (required) name.
+    data = {key: value for key, value in payload.dict(exclude_unset=True).items() if value is not None}
+    if "name" in data:
+        data["name"] = data["name"].strip()
+        if not data["name"]:
+            raise HttpError(422, "Bitte gib einen Namen für die Liste ein.")
     for field, value in data.items():
         setattr(shopping_list, field, value)
     shopping_list.save()
@@ -394,9 +512,9 @@ def delete_shopping_list(request, shopping_list_id: int):
 @shopping_router.get("/{shopping_list_id}/material-list/", response=MaterialListResultOut)
 def get_shopping_list_material_list(request, shopping_list_id: int):
     """Unsaved material list of the recipes a shopping list was created from."""
-    require_login(request, READ_LOGIN_ACTION)
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
-    _require_access(shopping_list, request.user)
+    resolve_actor(request, shopping_list)
 
     from supply.services.material_aggregation import (
         aggregate_materials,
@@ -430,9 +548,9 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
     - summarized: group by ingredient, sum quantities
     - by_recipe: group by source recipe
     """
-    require_login(request, READ_LOGIN_ACTION)
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
-    _require_access(shopping_list, request.user)
+    resolve_actor(request, shopping_list)
 
     items = (
         shopping_list.items.select_related("ingredient", "retail_section", "ingredient__retail_section")
@@ -509,16 +627,20 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
 @shopping_router.post("/{shopping_list_id}/items/", response=ShoppingListItemOut)
 def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     """Add an item to a shopping list."""
-    require_login(request)
+    require_login_unless_guest(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
-    _require_edit(shopping_list, request.user)
+    actor = require_actor_edit(resolve_actor(request, shopping_list))
 
     from supply.models.ingredient import Ingredient
     from supply.models.reference import RetailSection
 
     data = payload.dict(exclude={"ingredient_id", "retail_section_id"})
+    data["name"] = data["name"].strip()
+    if not data["name"]:
+        raise HttpError(422, "Bitte gib einen Namen für den Eintrag ein.")
+    data.update(added_by=actor.user, added_by_guest=actor.guest)
     if payload.is_checked:
-        data.update(checked_by=request.user, checked_at=timezone.now())
+        data.update(checked_by=actor.user, checked_by_guest=actor.guest, checked_at=timezone.now())
     ingredient = None
     retail_section = None
     matched_from_text = False
@@ -528,7 +650,7 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     if payload.ingredient_id is None and payload.quantity_g == 0 and payload.unit == "g":
         from shopping.services.item_matching import parse_manual_ingredient_quantity
 
-        parsed = parse_manual_ingredient_quantity(payload.name, request.user)
+        parsed = parse_manual_ingredient_quantity(data["name"], actor.user)
         if parsed is not None:
             ingredient = parsed.ingredient
             matched_from_text = True
@@ -568,6 +690,7 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
                 item.retail_section = retail_section
                 update_fields.append("retail_section")
             item.save(update_fields=update_fields)
+            item._can_delete = _item_can_delete(item, actor)
             return item
 
     item = ShoppingListItem.objects.create(
@@ -576,6 +699,7 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
         retail_section=retail_section,
         **data,
     )
+    item._can_delete = _item_can_delete(item, actor)
     return item
 
 
@@ -587,12 +711,22 @@ def update_item(
     payload: ShoppingListItemUpdateIn,
 ):
     """Update or check/uncheck a shopping list item."""
-    require_login(request)
+    require_login_unless_guest(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
-    _require_edit(shopping_list, request.user)
+    actor = require_actor_edit(resolve_actor(request, shopping_list))
     item = get_object_or_404(ShoppingListItem, id=item_id, shopping_list=shopping_list)
 
-    data = payload.dict(exclude_unset=True)
+    claimed = payload.claimed
+    # An explicit null never clears a required field; only the section and the note may be emptied.
+    data = {
+        key: value
+        for key, value in payload.dict(exclude_unset=True).items()
+        if (value is not None or key == "retail_section_id") and key != "claimed"
+    }
+    if "name" in data:
+        data["name"] = data["name"].strip()
+        if not data["name"]:
+            raise HttpError(422, "Bitte gib einen Namen für den Eintrag ein.")
 
     # Handle retail_section FK
     if "retail_section_id" in data:
@@ -607,29 +741,50 @@ def update_item(
     # Handle is_checked → set checked_by / checked_at
     if "is_checked" in data:
         if data["is_checked"]:
-            item.is_checked = True
-            item.checked_by = request.user
-            item.checked_at = timezone.now()
+            # Two people ticking the same entry at once: the first one stays the checker.
+            if not item.is_checked:
+                item.is_checked = True
+                item.checked_by = actor.user
+                item.checked_by_guest = actor.guest
+                item.checked_at = timezone.now()
         else:
             item.is_checked = False
             item.checked_by = None
+            item.checked_by_guest = None
             item.checked_at = None
         data.pop("is_checked")
+
+    if claimed is True:
+        if item.claimed_by_id or item.claimed_by_guest_id:
+            if not actor.owns_claim(item):
+                raise HttpError(409, "Diesen Eintrag hat schon jemand übernommen")
+        else:
+            item.claimed_by = actor.user
+            item.claimed_by_guest = actor.guest
+    elif claimed is False and (actor.owns_claim(item) or actor.can_manage):
+        item.claimed_by = None
+        item.claimed_by_guest = None
+    elif claimed is False and (item.claimed_by_id or item.claimed_by_guest_id):
+        raise HttpError(403, "Nur wer den Eintrag übernommen hat, kann ihn wieder freigeben")
 
     for field, value in data.items():
         setattr(item, field, value)
 
     item.save()
+    item._claimed_by_me = actor.owns_claim(item)
+    item._can_delete = _item_can_delete(item, actor)
     return item
 
 
 @shopping_router.delete("/{shopping_list_id}/items/{item_id}/")
 def delete_item(request, shopping_list_id: int, item_id: int):
-    """Remove an item from a shopping list."""
-    require_login(request)
+    """Remove an item from a shopping list; guests may remove only entries they added."""
+    require_login_unless_guest(request)
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
-    _require_edit(shopping_list, request.user)
+    actor = require_actor_edit(resolve_actor(request, shopping_list))
     item = get_object_or_404(ShoppingListItem, id=item_id, shopping_list=shopping_list)
+    if actor.guest is not None and item.added_by_guest_id != actor.guest.id:
+        raise HttpError(403, "Gäste können nur eigene Einträge löschen")
     item.delete()
     return {"success": True, "message": "Eintrag gelöscht"}
 
@@ -711,6 +866,59 @@ def remove_collaborator(request, shopping_list_id: int, collab_id: int):
     collab = get_object_or_404(ShoppingListCollaborator, id=collab_id, shopping_list=shopping_list)
     collab.delete()
     return {"success": True, "message": "Mitglied entfernt"}
+
+
+# ---------------------------------------------------------------------------
+# Invitation link management (owner/admin)
+# ---------------------------------------------------------------------------
+
+
+def _managed_list(request, shopping_list_id: int) -> ShoppingList:
+    require_login(request)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    _require_admin(shopping_list, request.user)
+    return shopping_list
+
+
+@shopping_router.post("/{shopping_list_id}/share/", response=ShoppingListShareOut)
+def enable_sharing(request, shopping_list_id: int):
+    """Turn the invitation link on (keeps the current link if it is already on)."""
+    shopping_list = _managed_list(request, shopping_list_id)
+    if shopping_list.share_token is None:
+        shopping_list.share_token = uuid4()
+        shopping_list.save(update_fields=["share_token", "updated_at"])
+    return _share_payload(shopping_list)
+
+
+@shopping_router.post("/{shopping_list_id}/share/regenerate/", response=ShoppingListShareOut)
+def regenerate_sharing(request, shopping_list_id: int):
+    """Replace the link; the old one and everyone who joined through it lose access."""
+    shopping_list = _managed_list(request, shopping_list_id)
+    with transaction.atomic():
+        shopping_list.guests.all().delete()
+        shopping_list.share_token = uuid4()
+        shopping_list.save(update_fields=["share_token", "updated_at"])
+    return _share_payload(shopping_list)
+
+
+@shopping_router.delete("/{shopping_list_id}/share/", response=ShoppingListShareOut)
+def disable_sharing(request, shopping_list_id: int):
+    """Turn the link off; guests lose access, their entries stay (without attribution)."""
+    shopping_list = _managed_list(request, shopping_list_id)
+    with transaction.atomic():
+        shopping_list.guests.all().delete()
+        shopping_list.share_token = None
+        shopping_list.save(update_fields=["share_token", "updated_at"])
+    return _share_payload(shopping_list)
+
+
+@shopping_router.delete("/{shopping_list_id}/guests/{guest_id}/")
+def remove_guest(request, shopping_list_id: int, guest_id: int):
+    """Remove one guest; the link keeps working for everyone else."""
+    shopping_list = _managed_list(request, shopping_list_id)
+    guest = get_object_or_404(ShoppingListGuest, id=guest_id, shopping_list=shopping_list)
+    guest.delete()
+    return {"success": True, "message": "Gast entfernt"}
 
 
 # ---------------------------------------------------------------------------
@@ -830,9 +1038,7 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
 
             add_consumable_items(shopping_list, aggregate_materials([(recipe, portions)]), sort_idx)
 
-    # Attach can_edit and is_owner for the response
-    shopping_list._can_edit = True
-    shopping_list._is_owner = True
+    _attach_actor(shopping_list, Actor(role="owner", user=request.user))
     return shopping_list
 
 
@@ -915,10 +1121,7 @@ def create_from_meal_plan(request, meal_plan_id: int, include_consumables: bool 
                 len(transient_items),
             )
 
-    # Attach can_edit and is_owner for the response
-    shopping_list._can_edit = True
-    shopping_list._is_owner = True
-    shopping_list._request_user = request.user
+    _attach_actor(shopping_list, Actor(role="owner", user=request.user))
     from planner.services.quantity_plausibility import check_meals
 
     shopping_list.quantity_warnings = check_meals(meal_plan.meals.filter(is_reference=False))

@@ -71,6 +71,14 @@ export const ShoppingListItemSchema = z.object({
   is_checked: z.boolean(),
   checked_by_display_name: z.string().nullable().optional(),
   checked_at: z.string().nullable().optional(),
+  /** Who put the entry on the list; null for entries generated from a recipe or plan. */
+  added_by_display_name: z.string().nullable().default(null),
+  created_at: z.string().default(''),
+  /** Who takes care of buying it; `claimed_by_me` is resolved per viewer. */
+  claimed_by_display_name: z.string().nullable().default(null),
+  claimed_by_me: z.boolean().default(false),
+  /** Resolved per viewer by the backend (guests remove only their own entries). */
+  can_delete: z.boolean().default(false),
   sort_order: z.number(),
   note: z.string().default(''),
   ingredient_id: z.number().nullable().optional(),
@@ -113,6 +121,46 @@ export const ShoppingListSchema = z.object({
 
 export type ShoppingList = z.output<typeof ShoppingListSchema>;
 
+// --- Invitation link ---
+
+export const ShoppingListGuestSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  created_at: z.string(),
+});
+
+export type ShoppingListGuest = z.output<typeof ShoppingListGuestSchema>;
+
+export const ShoppingListShareSchema = z.object({
+  share_token: z.string().nullable().default(null),
+  guests: z.array(ShoppingListGuestSchema).default([]),
+});
+
+export type ShoppingListShare = z.output<typeof ShoppingListShareSchema>;
+
+export const SharedListPreviewSchema = z.object({
+  list_id: z.number(),
+  name: z.string(),
+  owner_display_name: z.string().default(''),
+  items_count: z.number().default(0),
+  checked_count: z.number().default(0),
+  already_member: z.boolean().default(false),
+  guest_name: z.string().nullable().default(null),
+});
+
+export type SharedListPreview = z.output<typeof SharedListPreviewSchema>;
+
+export const SharedListJoinSchema = z.object({
+  list_id: z.number(),
+  display_name: z.string(),
+  guest_token: z.string().nullable().default(null),
+  guest_id: z.number().nullable().default(null),
+});
+
+export type SharedListJoin = z.output<typeof SharedListJoinSchema>;
+
+export const ShoppingListPulseSchema = z.object({ stamp: z.string() });
+
 // --- Detail ---
 
 export const ShoppingListDetailSchema = z.object({
@@ -126,6 +174,15 @@ export const ShoppingListDetailSchema = z.object({
   collaborators: z.array(ShoppingListCollaboratorSchema).default([]),
   can_edit: z.boolean().default(false),
   is_owner: z.boolean().default(false),
+  /** Owner/admin: may manage the invitation link and the guests. */
+  can_manage: z.boolean().default(false),
+  share_token: z.string().nullable().default(null),
+  guests: z.array(ShoppingListGuestSchema).default([]),
+  /** Set for guests: who the viewer is on this list. */
+  viewer_guest_id: z.number().nullable().default(null),
+  viewer_display_name: z.string().default(''),
+  /** Change marker compared with the polled `/pulse/` stamp. */
+  stamp: z.string().default(''),
   created_at: z.string(),
   updated_at: z.string(),
   warnings: z.array(QuantityWarningSchema).default([]),

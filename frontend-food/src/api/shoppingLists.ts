@@ -2,11 +2,17 @@
  * TanStack Query hooks for the Shopping List API.
  * MUST stay in sync with backend/shopping/api.py
  */
-import { API_BASE_URL, fetchWithCsrf, parseApiResponse } from '@/lib/api';
+import { API_BASE_URL, ApiError, fetchWithCsrf, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { z } from 'zod';
+import { guestHeaders } from '@/lib/shoppingGuest';
 import {
   PaginatedShoppingListsSchema,
+  SharedListJoinSchema,
+  SharedListPreviewSchema,
+  ShoppingListPulseSchema,
+  ShoppingListShareSchema,
   ShoppingListSchema,
   ShoppingListDetailSchema,
   ShoppingListItemSchema,
@@ -18,28 +24,37 @@ const API_BASE = `${API_BASE_URL}/api/shopping-lists`;
 
 // --- Fetch helpers (ApiError with the German backend detail, never raw status texts) ---
 
-async function fetchJson<T extends z.ZodTypeAny>(url: string, schema: T): Promise<z.output<T>> {
-  return parseApiResponse(await fetch(url, { credentials: 'include' }), schema);
+/**
+ * `listId` adds the guest header of an invitation-link visitor; members authenticate by session cookie.
+ */
+async function fetchJson<T extends z.ZodTypeAny>(url: string, schema: T, listId?: number): Promise<z.output<T>> {
+  const headers = listId ? guestHeaders(listId) : {};
+  return parseApiResponse(await fetch(url, { credentials: 'include', headers }), schema);
 }
 
 async function postJson<T extends z.ZodTypeAny>(
   url: string,
   body: unknown,
   schema: T,
+  listId?: number,
 ): Promise<z.output<T>> {
-  return parseApiResponse(await fetchWithCsrf(url, { method: 'POST', body: JSON.stringify(body) }), schema);
+  const headers = listId ? guestHeaders(listId) : {};
+  return parseApiResponse(await fetchWithCsrf(url, { method: 'POST', body: JSON.stringify(body), headers }), schema);
 }
 
 async function patchJson<T extends z.ZodTypeAny>(
   url: string,
   body: unknown,
   schema: T,
+  listId?: number,
 ): Promise<z.output<T>> {
-  return parseApiResponse(await fetchWithCsrf(url, { method: 'PATCH', body: JSON.stringify(body) }), schema);
+  const headers = listId ? guestHeaders(listId) : {};
+  return parseApiResponse(await fetchWithCsrf(url, { method: 'PATCH', body: JSON.stringify(body), headers }), schema);
 }
 
-async function deleteJson(url: string): Promise<void> {
-  await parseApiResponse(await fetchWithCsrf(url, { method: 'DELETE' }));
+async function deleteJson(url: string, listId?: number): Promise<void> {
+  const headers = listId ? guestHeaders(listId) : {};
+  await parseApiResponse(await fetchWithCsrf(url, { method: 'DELETE', headers }));
 }
 
 // --- Shopping List CRUD hooks ---
@@ -82,8 +97,92 @@ export function useShoppingLists(
 export function useShoppingList(id: number) {
   return useQuery({
     queryKey: ['shopping-list', id] as const,
-    queryFn: () => fetchJson(`${API_BASE}/${id}/`, ShoppingListDetailSchema),
+    queryFn: () => fetchJson(`${API_BASE}/${id}/`, ShoppingListDetailSchema, id),
     enabled: id > 0,
+  });
+}
+
+const PULSE_INTERVAL_MS = 5000;
+/** With a live socket the marker is only a safety net (e.g. for revoked access, which a socket cannot report). */
+const PULSE_INTERVAL_CONNECTED_MS = 20000;
+
+/**
+ * Keeps a list current without WebSockets (production serves none): polls a tiny change marker
+ * and reloads the list only when it differs from the one the loaded list carries.
+ * Pauses in background tabs and catches up when the tab regains focus.
+ */
+export function useShoppingListSync(listId: number, loadedStamp: string | undefined, socketConnected: boolean) {
+  const queryClient = useQueryClient();
+  const { data, error } = useQuery({
+    queryKey: ['shopping-list-pulse', listId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${listId}/pulse/`, ShoppingListPulseSchema, listId),
+    enabled: listId > 0 && !!loadedStamp,
+    refetchInterval: socketConnected ? PULSE_INTERVAL_CONNECTED_MS : PULSE_INTERVAL_MS,
+    refetchOnWindowFocus: 'always',
+    staleTime: 0,
+    retry: false,
+  });
+  // Access ended (link renewed, guest removed, list deleted): let the list itself report it.
+  const accessLost = error instanceof ApiError && (error.status === 404 || error.status === 401);
+  useEffect(() => {
+    if (accessLost) void queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
+  }, [accessLost, listId, queryClient]);
+  useEffect(() => {
+    if (data && loadedStamp && data.stamp !== loadedStamp) {
+      void queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
+    }
+  }, [data, loadedStamp, listId, queryClient]);
+}
+
+// --- Invitation link (join without an account) ---
+
+export function useSharedListPreview(token: string, listIdForGuest?: number) {
+  return useQuery({
+    queryKey: ['shopping-list-shared', token] as const,
+    queryFn: () => fetchJson(`${API_BASE}/shared/${token}/`, SharedListPreviewSchema, listIdForGuest),
+    enabled: token.length > 0,
+    retry: false,
+    staleTime: 0,
+  });
+}
+
+export function useJoinSharedList(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, listId }: { name: string; listId?: number }) =>
+      postJson(`${API_BASE}/shared/${token}/join/`, { name }, SharedListJoinSchema, listId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
+    },
+  });
+}
+
+export function useEnableSharing(listId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (action: 'enable' | 'regenerate') =>
+      postJson(
+        `${API_BASE}/${listId}/share/${action === 'regenerate' ? 'regenerate/' : ''}`,
+        {},
+        ShoppingListShareSchema,
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] }),
+  });
+}
+
+export function useDisableSharing(listId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => deleteJson(`${API_BASE}/${listId}/share/`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] }),
+  });
+}
+
+export function useRemoveGuest(listId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (guestId: number) => deleteJson(`${API_BASE}/${listId}/guests/${guestId}/`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] }),
   });
 }
 
@@ -134,7 +233,7 @@ export function useAddShoppingListItem(listId: number) {
       sort_order?: number;
       note?: string;
       is_checked?: boolean;
-    }) => postJson(`${API_BASE}/${listId}/items/`, payload, ShoppingListItemSchema),
+    }) => postJson(`${API_BASE}/${listId}/items/`, payload, ShoppingListItemSchema, listId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
@@ -157,7 +256,9 @@ export function useUpdateShoppingListItem(listId: number) {
       is_checked?: boolean;
       sort_order?: number;
       note?: string;
-    }) => patchJson(`${API_BASE}/${listId}/items/${itemId}/`, payload, ShoppingListItemSchema),
+      /** true: "Ich hole das"; false: release. */
+      claimed?: boolean;
+    }) => patchJson(`${API_BASE}/${listId}/items/${itemId}/`, payload, ShoppingListItemSchema, listId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
@@ -171,7 +272,7 @@ export function useDeleteShoppingListItem(listId: number) {
   const queryKey = ['shopping-list', listId] as const;
   return useMutation({
     mutationFn: (itemId: number) =>
-      deleteJson(`${API_BASE}/${listId}/items/${itemId}/`),
+      deleteJson(`${API_BASE}/${listId}/items/${itemId}/`, listId),
     onMutate: async (itemId: number) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<ShoppingListDetail>(queryKey);

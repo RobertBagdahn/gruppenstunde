@@ -7,6 +7,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
+import { getGuestCredentials } from '@/lib/shoppingGuest';
 
 export interface ShoppingListEvent {
   type: string;
@@ -84,7 +85,10 @@ export function useShoppingListWebSocket(
     // Determine WebSocket URL
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const url = `${protocol}//${host}/ws/shopping-lists/${listId}/`;
+    // Guests have no session cookie; their device secret identifies them to the socket.
+    const guest = getGuestCredentials(listId);
+    const query = guest ? `?guest=${encodeURIComponent(guest.guestToken)}` : '';
+    const url = `${protocol}//${host}/ws/shopping-lists/${listId}/${query}`;
 
     const ws = new WebSocket(url);
 

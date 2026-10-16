@@ -133,6 +133,14 @@ class ShoppingListItemOut(Schema):
     is_checked: bool
     checked_by_display_name: str | None = None
     checked_at: datetime | None = None
+    # Who put the entry on the list and when (null for entries generated from a recipe or plan).
+    added_by_display_name: str | None = None
+    created_at: datetime
+    # Who takes care of buying it ("Ich hole das"); `claimed_by_me` is resolved per viewer.
+    claimed_by_display_name: str | None = None
+    claimed_by_me: bool = False
+    # Resolved per viewer: guests may only remove entries they added themselves.
+    can_delete: bool = False
     sort_order: int
     note: str = ""
     ingredient_id: int | None = None
@@ -172,7 +180,33 @@ class ShoppingListItemOut(Schema):
     def resolve_checked_by_display_name(obj) -> str | None:
         if obj.checked_by:
             return public_display_name(obj.checked_by)
+        if obj.checked_by_guest:
+            return str(obj.checked_by_guest.name)
         return None
+
+    @staticmethod
+    def resolve_claimed_by_display_name(obj) -> str | None:
+        if obj.claimed_by:
+            return public_display_name(obj.claimed_by)
+        if obj.claimed_by_guest:
+            return str(obj.claimed_by_guest.name)
+        return None
+
+    @staticmethod
+    def resolve_claimed_by_me(obj) -> bool:
+        return bool(getattr(obj, "_claimed_by_me", False))
+
+    @staticmethod
+    def resolve_added_by_display_name(obj) -> str | None:
+        if obj.added_by:
+            return public_display_name(obj.added_by)
+        if obj.added_by_guest:
+            return str(obj.added_by_guest.name)
+        return None
+
+    @staticmethod
+    def resolve_can_delete(obj) -> bool:
+        return bool(getattr(obj, "_can_delete", False))
 
     @staticmethod
     def resolve_ingredient_slug(obj) -> str | None:
@@ -254,13 +288,13 @@ class ShoppingListItemOut(Schema):
 class ShoppingListItemCreateIn(Schema):
     """Input schema for adding an item to a shopping list."""
 
-    name: str
+    name: str = Field(min_length=1, max_length=255)
     quantity_g: float = Field(default=0, ge=0)
-    unit: str = "g"
+    unit: str = Field(default="g", max_length=20)
     retail_section_id: int | None = None
     ingredient_id: int | None = None
     sort_order: int = 0
-    note: str = ""
+    note: str = Field(default="", max_length=500)
     # Lets "Rückgängig" restore a deleted entry including its checked state.
     is_checked: bool = False
 
@@ -268,13 +302,15 @@ class ShoppingListItemCreateIn(Schema):
 class ShoppingListItemUpdateIn(Schema):
     """Input schema for updating a shopping list item (partial)."""
 
-    name: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
     quantity_g: float | None = Field(default=None, ge=0)
-    unit: str | None = None
+    unit: str | None = Field(default=None, max_length=20)
     retail_section_id: int | None = None
     is_checked: bool | None = None
     sort_order: int | None = None
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=500)
+    # True: "Ich hole das"; False: release it.
+    claimed: bool | None = None
 
 
 # --- List schemas ---
@@ -339,6 +375,14 @@ class ShoppingListOut(Schema):
         return int(getattr(obj, "collaborators_count", None) or obj.collaborators.count())
 
 
+class ShoppingListGuestOut(Schema):
+    """A person who joined through the invitation link (never exposes the guest token)."""
+
+    id: int
+    name: str
+    created_at: datetime
+
+
 class ShoppingListDetailOut(Schema):
     """Output schema for shopping list detail view with items and collaborators."""
 
@@ -352,6 +396,15 @@ class ShoppingListDetailOut(Schema):
     collaborators: list[ShoppingListCollaboratorOut] = []
     can_edit: bool = False
     is_owner: bool = False
+    # Admins and the owner: invitation link and the people who joined through it.
+    can_manage: bool = False
+    share_token: str | None = None
+    guests: list[ShoppingListGuestOut] = []
+    # Set for guests: who the viewer is on this list.
+    viewer_guest_id: int | None = None
+    viewer_display_name: str = ""
+    # Change marker; clients poll `/pulse/` and reload the list when it differs.
+    stamp: str = ""
     created_at: datetime
     updated_at: datetime
     # Only filled when the list is generated from a meal plan.
@@ -377,17 +430,66 @@ class ShoppingListDetailOut(Schema):
 
     @staticmethod
     def resolve_items(obj) -> list:
-        return list(
+        items = list(
             obj.items.select_related(
-                "retail_section", "checked_by__profile", "ingredient", "ingredient__retail_section"
+                "retail_section",
+                "checked_by__profile",
+                "checked_by_guest",
+                "added_by__profile",
+                "added_by_guest",
+                "claimed_by__profile",
+                "claimed_by_guest",
+                "ingredient",
+                "ingredient__retail_section",
             )
             .prefetch_related("sources", "ingredient__portions")
             .all()
         )
+        can_edit = getattr(obj, "_can_edit", False)
+        guest_id = getattr(obj, "_viewer_guest_id", None)
+        viewer = getattr(obj, "_viewer_actor", None)
+        for item in items:
+            item._claimed_by_me = bool(viewer and viewer.owns_claim(item))
+            # Generated entries are rebuilt from their source; guests remove only their own additions.
+            manual = not item.sources.all()
+            item._can_delete = can_edit and manual and (guest_id is None or item.added_by_guest_id == guest_id)
+        return items
 
     @staticmethod
     def resolve_collaborators(obj) -> list:
+        if getattr(obj, "_viewer_guest_id", None) is not None:
+            return []
         return list(obj.collaborators.select_related("user__profile").all())
+
+    @staticmethod
+    def resolve_can_manage(obj) -> bool:
+        return getattr(obj, "_can_manage", False)
+
+    @staticmethod
+    def resolve_share_token(obj) -> str | None:
+        if not getattr(obj, "_can_manage", False) or obj.share_token is None:
+            return None
+        return str(obj.share_token)
+
+    @staticmethod
+    def resolve_guests(obj) -> list:
+        if not getattr(obj, "_can_manage", False):
+            return []
+        return list(obj.guests.all())
+
+    @staticmethod
+    def resolve_viewer_guest_id(obj) -> int | None:
+        return getattr(obj, "_viewer_guest_id", None)
+
+    @staticmethod
+    def resolve_stamp(obj) -> str:
+        from shopping.services.pulse import list_stamp
+
+        return list_stamp(obj)
+
+    @staticmethod
+    def resolve_viewer_display_name(obj) -> str:
+        return getattr(obj, "_viewer_display_name", "")
 
     @staticmethod
     def resolve_can_edit(obj) -> bool:
@@ -401,13 +503,13 @@ class ShoppingListDetailOut(Schema):
 class ShoppingListCreateIn(Schema):
     """Input schema for creating a new shopping list."""
 
-    name: str
+    name: str = Field(min_length=1, max_length=255)
 
 
 class ShoppingListUpdateIn(Schema):
     """Input schema for updating a shopping list (partial)."""
 
-    name: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 # --- Collaborator input schemas ---
@@ -521,3 +623,46 @@ class ReweReportRequest(Schema):
 
     successful_item_ids: list[int] = []
     failed_item_ids: list[ReweReportFailedItem] = []
+
+
+# --- Sharing by link ---
+
+
+class ShoppingListShareOut(Schema):
+    """Invitation link state; `share_token` is null while sharing is off."""
+
+    share_token: str | None = None
+    guests: list[ShoppingListGuestOut] = []
+
+
+class SharedListPreviewOut(Schema):
+    """What a visitor sees before joining: no entries, only the list's identity and their own guest status."""
+
+    list_id: int
+    name: str
+    owner_display_name: str
+    items_count: int
+    checked_count: int
+    # Set when the request's guest token (or session) already belongs to this list.
+    already_member: bool = False
+    guest_name: str | None = None
+
+
+class SharedListJoinIn(Schema):
+    """Name a guest wants to appear under; ignored for logged-in users."""
+
+    name: str = Field(default="", max_length=40)
+
+
+class SharedListJoinOut(Schema):
+    list_id: int
+    display_name: str
+    # Secret the browser keeps for later requests; null when an account was added as member.
+    guest_token: str | None = None
+    guest_id: int | None = None
+
+
+class ShoppingListPulseOut(Schema):
+    """Cheap change marker the clients poll; the full list is fetched only when it changes."""
+
+    stamp: str
