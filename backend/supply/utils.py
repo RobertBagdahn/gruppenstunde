@@ -165,7 +165,8 @@ def get_shopping_portion(ingredient: Ingredient) -> Package | None:
     Returns the rank=1 (default) package for this ingredient.
     """
     try:
-        return ingredient.packages.filter(deleted_at__isnull=True, rank=1).first()
+        # Iterating `.all()` reuses a prefetch (list endpoints); a filter() would query per ingredient.
+        return next((pkg for pkg in ingredient.packages.all() if pkg.deleted_at is None and pkg.rank == 1), None)
     except Exception:
         return None
 

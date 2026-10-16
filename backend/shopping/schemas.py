@@ -233,7 +233,7 @@ class ShoppingListItemOut(Schema):
             return None
         from supply.services.shopping_service import compute_portion_options, start_unit_for
 
-        portions = [p for p in obj.ingredient.portions.order_by("rank", "name") if p.deleted_at is None]
+        portions = [p for p in ShoppingListItemOut._sorted_portions(obj) if p.deleted_at is None]
         best = None
         if portions and obj.quantity_g and obj.quantity_g > 0:
             best, _ = compute_portion_options(obj.quantity_g, portions)
@@ -243,7 +243,7 @@ class ShoppingListItemOut(Schema):
     def resolve_portion_options(obj) -> list[dict]:
         if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0:
             return []
-        portions = list(obj.ingredient.portions.order_by("rank", "name"))
+        portions = ShoppingListItemOut._sorted_portions(obj)
         if not portions:
             return []
         from supply.services.shopping_service import compute_portion_options
@@ -252,15 +252,23 @@ class ShoppingListItemOut(Schema):
         return options
 
     @staticmethod
+    def _sorted_portions(obj) -> list:
+        """Portions by rank and name, sorted in Python so a prefetch is reused (order_by would re-query per item)."""
+        return sorted(obj.ingredient.portions.all(), key=lambda p: (p.rank, p.name))
+
+    @staticmethod
     def _package_need(obj):
         if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0 or obj.unit != "g":
             return None, None
+        cached = getattr(obj, "_package_need_cache", None)
+        if cached is not None:
+            return cached
         from supply.utils import compute_package_need, get_shopping_portion
 
         package = get_shopping_portion(obj.ingredient)
-        if not package:
-            return None, None
-        return package, compute_package_need(obj.quantity_g, package.weight_g)
+        result = (package, compute_package_need(obj.quantity_g, package.weight_g)) if package else (None, None)
+        obj._package_need_cache = result
+        return result
 
     @staticmethod
     def resolve_package_options(obj) -> list[dict]:
@@ -442,7 +450,7 @@ class ShoppingListDetailOut(Schema):
                 "ingredient",
                 "ingredient__retail_section",
             )
-            .prefetch_related("sources", "ingredient__portions")
+            .prefetch_related("sources", "ingredient__portions", "ingredient__packages")
             .all()
         )
         can_edit = getattr(obj, "_can_edit", False)
