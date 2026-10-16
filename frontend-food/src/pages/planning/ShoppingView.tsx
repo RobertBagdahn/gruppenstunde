@@ -80,7 +80,7 @@ function ShoppingItemWithSources({
                 {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
               </span>
             )}
-            {formatItemPackageReserve(item) && (
+            {showReserve && formatItemPackageReserve(item) && (
               <span className="flex items-center justify-end gap-1 text-caption text-muted-foreground/70">
                 {formatItemPackageReserve(item)}
                 <HelpHint label="Was bedeutet Reserve?">{PACKAGE_RESERVE_HELP}</HelpHint>
