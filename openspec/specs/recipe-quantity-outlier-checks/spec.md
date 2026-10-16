@@ -1,7 +1,7 @@
 # recipe-quantity-outlier-checks Specification
 
 ## Purpose
-TBD - created by archiving change recipe-quantity-outlier-checks. Update Purpose after archive.
+Anforderungen an recipe quantity outlier checks: Originalmenge beim Teilen speichern; Ungeteilte Zeilen erkennen; Mengenstatistik pro Zutat.
 ## Requirements
 ### Requirement: Originalmenge beim Teilen speichern
 Beim Teilen eines Rezepts durch die Personenzahl der Quelle (`source_servings > 1`) in Import (`import_chefkoch_urls`, `import_cooklang`) und `normalize_recipe_servings` SHALL jede `RecipeItem` ihre ungeteilte Menge in `source_quantity` speichern. `source_quantity` MUST dieselbe Einheit wie `quantity` haben und für Rezepte ohne Teilung leer bleiben.

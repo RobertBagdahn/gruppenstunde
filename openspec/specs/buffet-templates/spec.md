@@ -1,7 +1,7 @@
 # buffet-templates Specification
 
 ## Purpose
-TBD - created by archiving change buffet-module. Update Purpose after archive.
+Anforderungen an buffet templates: Buffet-Vorlage als Datenmodell; Pflege nur durch Staff; Vorlagen lesen.
 ## Requirements
 ### Requirement: Buffet-Vorlage als Datenmodell
 Das System SHALL ein Modell `BuffetTemplate` bereitstellen mit `name`, `slug` (eindeutig), `description`, `meal_types` (Liste aus `MealTypeChoices`), `is_active`, `sort_order`. Zu jeder Vorlage SHALL es `BuffetTemplateRole`-Einträge geben mit `role` (Tag mit `group="buffet"`), `amount_per_person` (> 0), `unit` (`g` oder `ml`), `enabled_by_default`, `sort_order` sowie optionalen Standardauswahlen `default_ingredients` und `default_recipes`. Je Vorlage MUST jede Rolle höchstens einmal vorkommen.

@@ -1,7 +1,7 @@
 # food-progressive-disclosure Specification
 
 ## Purpose
-TBD - created by archiving change food-frontend-friendly-ux. Update Purpose after archive.
+Anforderungen an food progressive disclosure: Detailseiten zeigen zuerst eine Zusammenfassung; Reduzierte Zutatenzeilen im Rezept; Leere Werte werden ausgeblendet.
 ## Requirements
 ### Requirement: Detailseiten zeigen zuerst eine Zusammenfassung
 Die Detailseiten für Zutaten und Rezepte SHALL oben eine kompakte Zusammenfassung zeigen und alle weiteren Informationen in klappbaren Abschnitten (`CollapsibleSection`) darunter anordnen. Die Zusammenfassung einer Zutat MUST Name, Nutri-Score, Preis, Energie, Eiweiß, Fett, Kohlenhydrate und die Standard-Portion enthalten. Die Zusammenfassung eines Rezepts MUST Kosten pro Portion, Nutri-Score, Zeit und Schwierigkeit enthalten. Abschnitte SHALL standardmäßig eingeklappt sein, ausgenommen Zutaten und Zubereitung auf der Rezeptseite sowie Portionen auf der Zutatenseite. Der Auf-/Zu-Zustand MUST pro Abschnittstyp im `localStorage` gemerkt werden; ohne Speicher gilt der Standard.

@@ -1,7 +1,7 @@
 # seed-data-enrichment Specification
 
 ## Purpose
-TBD - created by archiving change enrich-seed-data. Update Purpose after archive.
+Anforderungen an seed data enrichment: Enrichment Management Command; Ingredient Name Concretization; Nutritional Value Enrichment.
 ## Requirements
 ### Requirement: Enrichment Management Command
 The system SHALL provide a Django management command `enrich_seeds` that imports all food fixture data into a temporary SQLite database, enriches it via Django ORM, and exports clean fixtures via `dumpdata`.
@@ -158,4 +158,3 @@ The system SHALL output a summary report with counts of all changes made during 
 #### Scenario: Report on idempotent re-run
 - **WHEN** enrich_seeds runs on already enriched data
 - **THEN** all counts except "skipped" are zero
-

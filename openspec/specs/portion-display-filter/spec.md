@@ -1,7 +1,12 @@
+# portion-display-filter Specification
+
+## Purpose
+Anforderungen an portion display filter: Filter redundant portions from natural display; Filter base portions from highPrioPortion display.
+
 ## Requirements
 
 ### Requirement: Filter redundant portions from natural display
-Portionen mit `weight_g <= 1` werden nicht in der "ca. X x"-Anzeige berücksichtigt, da sie redundant zur Gramm-Angabe sind.
+Portionen mit `weight_g <= 1` MUST NOT in der "ca. X x"-Anzeige berücksichtigt werden, da sie redundant zur Gramm-Angabe sind.
 
 #### Scenario: Zutat hat nur eine Gramm-Fallback-Portion (weight_g=1)
 - **WHEN** alle Portionen einer Zutat `weight_g <= 1` haben
@@ -16,7 +21,7 @@ Portionen mit `weight_g <= 1` werden nicht in der "ca. X x"-Anzeige berücksicht
 - **THEN** wird nur die Portion mit `weight_g > 1` angezeigt
 
 ### Requirement: Filter base portions from highPrioPortion display
-Die "≈ X Portionsname"-Subzeile in der Zutatenliste darf keine Portionen mit `weight_g <= 1` anzeigen, da diese nur die Basiseinheit (Gramm/ml) repräsentieren und redundant zur Hauptzeile wären.
+Die "≈ X Portionsname"-Subzeile in der Zutatenliste MUST NOT keine Portionen mit `weight_g <= 1` anzeigen, da diese nur die Basiseinheit (Gramm/ml) repräsentieren und redundant zur Hauptzeile wären.
 
 #### Scenario: Zutat hat nur Basis-Portion (weight_g=1, is_default=false)
 - **WHEN** die einzige non-default Portion `weight_g <= 1` hat

@@ -1,7 +1,7 @@
 # packing-list-wizard Specification
 
 ## Purpose
-Specification of packing-list-wizard.
+Anforderungen an packing list wizard: Wizard page at /packing-lists/new; Activity type selection (Phase 1); Detail selection (Phase 2).
 
 ## Requirements
 ### Requirement: Wizard page at /packing-lists/new
@@ -135,8 +135,6 @@ After successful packing list generation, the wizard SHALL redirect to the detai
 - **THEN** a success toast SHALL be shown: "Packliste erstellt"
 
 ---
-
-## Unified Catalog
 
 ### Requirement: Single Unified Catalog
 The system SHALL maintain a single item catalog (`UNIFIED_CATALOG`) in `backend/packinglist/services/suggestion_service.py` that serves as the sole source of truth for all packing list item data. The existing `CATEGORIES` dict in `seed_packing_lists.py` and `SUGGESTION_CATALOG` dict in `suggestion_service.py` SHALL be merged into this single catalog.

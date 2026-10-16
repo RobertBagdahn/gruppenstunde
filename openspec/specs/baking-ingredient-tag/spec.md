@@ -1,3 +1,10 @@
+# baking-ingredient-tag Specification
+
+## Purpose
+Anforderungen an baking ingredient tag: Content-Tag baking-ingredient.
+
+## Requirements
+
 ### Requirement: Content-Tag baking-ingredient
 
 Das System SHALL einen Content-Tag mit slug `baking-ingredient` bereitstellen. Zutaten mit diesem Tag SHALL bei der KI-Portions-Anreicherung als Backzutat behandelt werden und zusätzliche Backmengen-Portionsvorschläge erhalten.

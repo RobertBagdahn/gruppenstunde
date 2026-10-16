@@ -1,7 +1,7 @@
 # ingredient-plural-matching Specification
 
 ## Purpose
-Specification of ingredient-plural-matching.
+Anforderungen an ingredient plural matching: Term-Normalisierung via deutsches Stemming; Singular/Plural-robustes Zutaten-Matching; Singular/Plural-robuste Duplikat-/Dedup-Erkennung.
 
 ## Requirements
 ### Requirement: Term-Normalisierung via deutsches Stemming

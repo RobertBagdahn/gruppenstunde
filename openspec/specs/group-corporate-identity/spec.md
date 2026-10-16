@@ -1,7 +1,7 @@
 # group-corporate-identity Specification
 
 ## Purpose
-Specification of group-corporate-identity.
+Anforderungen an group corporate identity: Group Corporate Identity data model; CI CRUD API endpoints; CI management frontend page.
 
 ## Requirements
 ### Requirement: Group Corporate Identity data model

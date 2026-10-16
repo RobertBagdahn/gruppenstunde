@@ -1,7 +1,7 @@
 # account-management Specification
 
 ## Purpose
-TBD - created by archiving change social-login-open-access. Update Purpose after archive.
+Anforderungen an account management: Benutzermenü; Kontobereich „Konto & Anmeldung“; Onboarding nach dem ersten Login.
 ## Requirements
 ### Requirement: Benutzermenü
 

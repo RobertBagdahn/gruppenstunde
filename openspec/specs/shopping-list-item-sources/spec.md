@@ -1,11 +1,11 @@
 # shopping-list-item-sources Specification
 
 ## Purpose
-Specification of shopping-list-item-sources.
+Anforderungen an shopping list item sources: Source tracking for aggregated shopping list items.
 
 ## Requirements
 ### Requirement: Source tracking for aggregated shopping list items
-Jedes aggregierte Einkaufslisten-Item muss seine Herkunft (Rezept + Mahlzeit + Teilmenge) nachvollziehbar speichern und anzeigen können.
+Jedes aggregierte Einkaufslisten-Item MUST seine Herkunft (Rezept + Mahlzeit + Teilmenge) nachvollziehbar speichern und anzeigen können.
 
 #### Scenario: Transiente Einkaufsliste aus MealPlan generieren
 - **WHEN** eine Einkaufsliste für einen MealPlan generiert wird

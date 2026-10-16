@@ -1,7 +1,7 @@
 # meal-plan-schedule Specification
 
 ## Purpose
-TBD - created by archiving change meal-timeline-snack-merge. Update Purpose after archive.
+Anforderungen an meal plan schedule: Zeitplan-Tab mit chronologischer Timeline; Komprimierte Zwischenräume; Uhrzeit-Anzeige pro Meal.
 ## Requirements
 ### Requirement: Zeitplan-Tab mit chronologischer Timeline
 Die MealPlan-Detailseite SHALL einen Tab "Zeitplan" mit einer chronologischen Tagesübersicht bieten. Meals werden pro Tag nach `start_datetime` aufsteigend sortiert dargestellt.

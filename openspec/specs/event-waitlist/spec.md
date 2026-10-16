@@ -1,7 +1,7 @@
 # event-waitlist Specification
 
 ## Purpose
-Specification of event-waitlist.
+Anforderungen an event waitlist: WaitlistEntry model; Join waitlist endpoint; List waitlist entries endpoint.
 
 ## Requirements
 ### Requirement: WaitlistEntry model

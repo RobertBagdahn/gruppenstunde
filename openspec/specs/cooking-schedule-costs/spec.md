@@ -1,7 +1,7 @@
 # cooking-schedule-costs Specification
 
 ## Purpose
-Specification of cooking-schedule-costs.
+Anforderungen an cooking schedule costs: Kosten pro Rezept im Kochplan; Kosten pro Tag; Gesamtkosten im Kochplan.
 
 ## Requirements
 ### Requirement: Kosten pro Rezept im Kochplan

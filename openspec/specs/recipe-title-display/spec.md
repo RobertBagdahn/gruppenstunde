@@ -1,7 +1,7 @@
 # recipe-title-display Specification
 
 ## Purpose
-Specification of recipe-title-display.
+Anforderungen an recipe title display: Recipe titles display on up to two lines in card view; Recipe titles display on up to two lines in table view; Search dropdown titles remain single-line.
 
 ## Requirements
 ### Requirement: Recipe titles display on up to two lines in card view

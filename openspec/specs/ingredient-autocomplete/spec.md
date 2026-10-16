@@ -1,7 +1,7 @@
 # ingredient-autocomplete Specification
 
 ## Purpose
-Specification of ingredient-autocomplete.
+Anforderungen an ingredient autocomplete: Ghost-Text Autocomplete Component; Debounced API Calls; Dropdown Suggestions.
 
 ## Requirements
 ### Requirement: Ghost-Text Autocomplete Component

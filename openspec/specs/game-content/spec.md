@@ -1,7 +1,7 @@
 # game-content Specification
 
 ## Purpose
-Specification of game-content.
+Anforderungen an game content: Game Content Type; Game Subtypes; Game Material Assignment.
 
 ## Requirements
 ### Requirement: Game Content Type
@@ -54,7 +54,7 @@ The system SHALL provide CRUD API endpoints for Game under `/api/games/`.
 
 ### Requirement: GameCard Metadaten-Anzeige
 
-Die GameCard MUSS Content-Typ-spezifische Metadaten prominent anzeigen.
+Die GameCard MUST Content-Typ-spezifische Metadaten prominent anzeigen.
 
 #### Scenario: Metadaten auf GameCard
 - **WHEN** eine GameCard in der Listenansicht gerendert wird

@@ -1,7 +1,7 @@
 # group-session Specification
 
 ## Purpose
-Specification of group-session.
+Anforderungen an group session: GroupSession Content Type; GroupSession Subtypes; GroupSession Material Assignment.
 
 ## Requirements
 ### Requirement: GroupSession Content Type
@@ -67,7 +67,7 @@ The system SHALL provide CRUD API endpoints for GroupSession under `/api/session
 
 ### Requirement: SessionCard Metadaten-Anzeige
 
-Die SessionCard (Gruppenstunde) MUSS Content-Typ-spezifische Metadaten prominent anzeigen.
+Die SessionCard (Gruppenstunde) MUST Content-Typ-spezifische Metadaten prominent anzeigen.
 
 #### Scenario: Metadaten auf SessionCard
 - **WHEN** eine SessionCard in der Listenansicht gerendert wird

@@ -1,11 +1,11 @@
 # cost-overview-page Specification
 
 ## Purpose
-Specification of cost-overview-page.
+Anforderungen an cost overview page: Cost Calculation Overview Page; Preisverwaltungs-Hinweis; Suche und Preise-Button.
 
 ## Requirements
 ### Requirement: Cost Calculation Overview Page
-Eine eigenständige Seite unter `/cost-calculation` zeigt aggregierte Kosteninformationen über alle Rezepte und MealPlans.
+Eine eigenständige Seite unter `/cost-calculation` SHALL aggregierte Kosteninformationen über alle Rezepte und MealPlans zeigen.
 
 #### Scenario: Nutzer öffnet Kostenkalkulation
 - **WHEN** Nutzer navigiert zu `/cost-calculation`
@@ -32,14 +32,14 @@ Eine eigenständige Seite unter `/cost-calculation` zeigt aggregierte Kosteninfo
 - **THEN** Sektion zeigt "Keine Frühstücke gefunden"
 
 ### Requirement: Preisverwaltungs-Hinweis
-Ein Banner am Seitenende verweist auf die Zutatendatenbank zur Preisverwaltung.
+Ein Banner am Seitenende SHALL auf die Zutatendatenbank zur Preisverwaltung verweisen.
 
 #### Scenario: Hinweis wird angezeigt
 - **WHEN** Nutzer ist auf der Kostenkalkulations-Seite
 - **THEN** Banner zeigt "Preise verwalten — Zutatenpreise kannst du in der Zutatendatenbank hinterlegen." mit Link zu `/ingredients`
 
 ### Requirement: Suche und Preise-Button
-Header der Seite enthält ein Suchfeld und einen "Preise verwalten"-Button.
+Der Header der Seite SHALL ein Suchfeld und einen "Preise verwalten"-Button enthalten.
 
 #### Scenario: Rezeptsuche
 - **WHEN** Nutzer tippt in das Suchfeld
@@ -50,7 +50,7 @@ Header der Seite enthält ein Suchfeld und einen "Preise verwalten"-Button.
 - **THEN** Navigation zur Zutatendatenbank (`/ingredients`)
 
 ### Requirement: Navigation
-Kostenkalkulation ist über die Sidebar erreichbar.
+Die Kostenkalkulation SHALL über die Sidebar erreichbar sein.
 
 #### Scenario: Menüeintrag sichtbar
 - **WHEN** Nutzer ist eingeloggt

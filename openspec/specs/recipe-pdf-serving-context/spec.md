@@ -1,7 +1,7 @@
 # recipe-pdf-serving-context Specification
 
 ## Purpose
-TBD - created by archiving change fix-recipe-pdf-and-instructions. Update Purpose after archive.
+Anforderungen an recipe pdf serving context: PDF dialog selects target servings; Export scales without persisting.
 ## Requirements
 ### Requirement: PDF dialog selects target servings
 The Food frontend SHALL let the user select a target serving count from 1 through 100 before opening a recipe PDF.

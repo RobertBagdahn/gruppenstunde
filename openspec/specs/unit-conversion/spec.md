@@ -1,7 +1,7 @@
 # unit-conversion Specification
 
 ## Purpose
-Specification of unit-conversion.
+Anforderungen an unit conversion: UnitConversion Model; Unit Conversion API; Seed Data.
 
 ## Requirements
 ### Requirement: UnitConversion Model
@@ -31,7 +31,7 @@ The system SHALL provide GET /api/unit-conversions/?from_unit=&to_unit=&ingredie
 - **THEN** the system SHALL return HTTP 404
 
 ### Requirement: Seed Data
-Das System MUSS Seed-Daten für gängige deutsche Küchenumrechnungen enthalten (EL zu g, TL zu ml, Tasse zu ml, Prise zu g, etc.), die mit den korrigierten MeasuringUnit-Typen konsistent sind.
+Das System MUST Seed-Daten für gängige deutsche Küchenumrechnungen enthalten (EL zu g, TL zu ml, Tasse zu ml, Prise zu g, etc.), die mit den korrigierten MeasuringUnit-Typen konsistent sind.
 
 #### Scenario: Seed data available after migration
 - **WHEN** die Data-Migration angewendet wurde
@@ -39,6 +39,7 @@ Das System MUSS Seed-Daten für gängige deutsche Küchenumrechnungen enthalten 
 - **AND** die Umrechnungen SHALL mit den korrigierten MeasuringUnit-Typen (`unit="ml"` für EL/TL/Tasse) konsistent sein
 
 ### Requirement: formatQuantity darf nicht auf 0 runden
+`formatQuantity` MUST NOT format a value greater than 0 as "0 g" or "0 ml"; it SHALL show at least one decimal place instead.
 
 #### Scenario: Eingabewert > 0
 - **WHEN** `formatQuantity` mit einem Wert > 0 aufgerufen wird
@@ -46,7 +47,7 @@ Das System MUSS Seed-Daten für gängige deutsche Küchenumrechnungen enthalten 
 
 ### Requirement: Backend resolve_measuring_unit_name über Portion-Pfad
 
-Die Funktion `resolve_measuring_unit_name` löst den Einheitsnamen für ein RecipeItem auf. Der Pfad ist immer `RecipeItem.portion.measuring_unit.name`. RecipeItem hat kein direktes `measuring_unit`-Feld — die Einheit kommt ausschließlich über die Portion-Beziehung.
+Die Funktion `resolve_measuring_unit_name` löst den Einheitsnamen für ein RecipeItem auf. Der Pfad MUST immer `RecipeItem.portion.measuring_unit.name` sein. RecipeItem hat kein direktes `measuring_unit`-Feld — die Einheit kommt ausschließlich über die Portion-Beziehung.
 
 #### Scenario: RecipeItem mit Portion die MeasuringUnit hat
 - **WHEN** ein RecipeItem eine `portion` hat und diese Portion eine `measuring_unit` zugeordnet hat
@@ -56,12 +57,8 @@ Die Funktion `resolve_measuring_unit_name` löst den Einheitsnamen für ein Reci
 - **WHEN** ein RecipeItem eine `portion` hat aber diese Portion keine `measuring_unit` hat
 - **THEN** gibt `resolve_measuring_unit_name` NULL zurück
 
-### Requirement: Fehlende Küchenmaßeinheiten
-
-**Reason**: „Handvoll" und „Tropfen" wurden nie als MeasuringUnit angelegt und passen nicht in das bereinigte System (Handvoll ist eine Formbeschreibung, Tropfen ist extrem spezifisch mit vernachlässigbarem Nutzen).
-
 ### Requirement: Zutat-spezifische Umrechnungsfaktoren
-Das System MUSS zutat-spezifische UnitConversion-Einträge für mindestens 30 gängige Zutaten seeden, die abweichende Dichten bei Volumen-zu-Masse-Umrechnungen abbilden.
+Das System MUST zutat-spezifische UnitConversion-Einträge für mindestens 30 gängige Zutaten seeden, die abweichende Dichten bei Volumen-zu-Masse-Umrechnungen abbilden.
 
 #### Scenario: Tasse Reis vs. Tasse Mehl
 - **WHEN** "1 Tasse" für Reis umgerechnet wird
@@ -76,7 +73,7 @@ Das System MUSS zutat-spezifische UnitConversion-Einträge für mindestens 30 g�
 - **THEN** MUSS das Ergebnis ca. 12g sein (nicht 15g wie generisch)
 
 ### Requirement: API-Endpunkt für verfügbare Umrechnungen
-Das System MUSS einen GET-Endpunkt `/api/unit-conversions/available/` bereitstellen, der alle möglichen Ziel-Einheiten mit umgerechneten Mengen zurückgibt.
+Das System MUST einen GET-Endpunkt `/api/unit-conversions/available/` bereitstellen, der alle möglichen Ziel-Einheiten mit umgerechneten Mengen zurückgibt.
 
 #### Scenario: Abfrage mit Zutat und Quell-Einheit
 - **WHEN** ein Client `GET /api/unit-conversions/available/?ingredient_id=42&from_unit_id=1&quantity=200` aufruft

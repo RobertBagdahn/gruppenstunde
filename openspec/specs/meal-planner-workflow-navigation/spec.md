@@ -1,7 +1,7 @@
 # meal-planner-workflow-navigation Specification
 
 ## Purpose
-TBD - created by archiving change redesign-meal-planner-ux. Update Purpose after archive.
+Anforderungen an meal planner workflow navigation: 3-Pillar Main Navigation; View Switcher in Planning Tab; Sub-Navigation in Shopping and Cooking Tabs.
 ## Requirements
 ### Requirement: 3-Pillar Main Navigation
 The meal plan detail page SHALL provide exactly three primary navigation tabs: "Planen" (`/plan`), "Einkaufen" (`/shopping`), and "Kochen" (`/cooking`).

@@ -1,7 +1,7 @@
 # meal-item-unit-edit Specification
 
 ## Purpose
-TBD - created by archiving change unified-ingredient-amount-display. Update Purpose after archive.
+Anforderungen an meal item unit edit: Einheit und Portion einer Einzelzutat sind im Plan änderbar; Einheitenwechsel behält die Grammmenge; Plan-Zeile mit Einheitenauswahl.
 ## Requirements
 ### Requirement: Einheit und Portion einer Einzelzutat sind im Plan änderbar
 Das System SHALL `PATCH /{meal_plan_id}/meal-items/{item_id}/` um die Felder `portion_id` und `measuring_unit_id` erweitern. Die Felder gelten nur für Einträge mit `ingredient_id`. Die gewählte Portion MUSS eine aktive Portion der Zutat sein, eine Einheit MUSS für die Zutat definiert sein (Gramm und Milliliter immer). Sonst antwortet das System mit HTTP 422.

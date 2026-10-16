@@ -1,7 +1,7 @@
 # meal-item-note Specification
 
 ## Purpose
-TBD - created by archiving change unified-ingredient-amount-display. Update Purpose after archive.
+Anforderungen an meal item note: MealItem hat eine optionale Notiz; Notiz in der Plan-Zeile und im Dialog; Notiz im PDF-Export.
 ## Requirements
 ### Requirement: MealItem hat eine optionale Notiz
 Das System SHALL `MealItem.note` als optionalen Freitext (leer erlaubt, maximal 500 Zeichen) speichern. Pydantic-Schema (`MealItemOut`, `MealItemCreateIn`, `MealItemUpdateIn`) und Zod-Schema MÜSSEN das Feld führen.

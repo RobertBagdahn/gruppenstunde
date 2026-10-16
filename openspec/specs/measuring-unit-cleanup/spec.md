@@ -1,7 +1,7 @@
 # measuring-unit-cleanup Specification
 
 ## Purpose
-Specification of measuring-unit-cleanup.
+Anforderungen an measuring unit cleanup: Bereinigte MeasuringUnit-Referenzdaten; Duplikate werden zusammengeführt; Form-/Verpackungseinheiten werden entfernt.
 
 ## Requirements
 ### Requirement: Bereinigte MeasuringUnit-Referenzdaten

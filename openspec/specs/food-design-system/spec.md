@@ -1,7 +1,7 @@
 # food-design-system Specification
 
 ## Purpose
-TBD - created by archiving change food-frontend-facelift. Update Purpose after archive.
+Anforderungen an food design system: Zentrales Design-Token-System; Grün-basierte Leitfarbe im Light Mode; Lesbares Kontrast- und Border-System.
 ## Requirements
 ### Requirement: Zentrales Design-Token-System
 Das Food Frontend SHALL alle Farben, Schatten, Radien, Schriftgrößen und Schrift-Familien ausschließlich über zentrale Design-Token in `frontend-food/src/index.css` (CSS-Variablen) und `frontend-food/tailwind.config.ts` definieren. Vier semantische Status-Token MUST je als Tripel existieren: `--success`, `--warning`, `--danger`, `--info` jeweils mit `-soft` (Fläche) und `-border` (Rand) sowie `-foreground` (Text auf der Vollfarbe). Komponenten MUST diese Token über Tailwind-Utilities referenzieren (z. B. `bg-card`, `text-foreground`, `bg-warning-soft`, `text-warning`, `border-danger-border`) und SHALL NOT Tailwind-Palettenfarben (z. B. `emerald-500`, `amber-50`, `gray-100`) verwenden. `--chart-*` SHALL ausschließlich in Diagrammen verwendet werden. Die Nutri-Score-Token `--nutri-a` bis `--nutri-e` bleiben als Fachfarben bestehen und SHALL ausschließlich von `NutriScoreBadge` verwendet werden. Schriftgrößen MUST ausschließlich über die fünf Token `text-caption`, `text-body`, `text-emphasis`, `text-section`, `text-title` gesetzt werden; Tailwind-Standardgrößen (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl` …) SHALL NOT vorkommen. Die Token sind so strukturiert, dass ein späterer Dark Mode nur Werte unter `.dark` ergänzen muss; ein Dark Mode ist nicht Teil dieses Changes.

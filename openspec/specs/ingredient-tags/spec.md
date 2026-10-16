@@ -1,7 +1,7 @@
 # ingredient-tags Specification
 
 ## Purpose
-Specification of ingredient-tags.
+Anforderungen an ingredient tags: IngredientDetailOut SHALL include tags; Tag display on ingredient detail page; Add and remove tags on ingredient detail page.
 
 ## Requirements
 ### Requirement: IngredientDetailOut SHALL include tags

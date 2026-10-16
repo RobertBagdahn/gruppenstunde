@@ -1,7 +1,7 @@
 # recipe-search-dialog-stability Specification
 
 ## Purpose
-Specification of recipe-search-dialog-stability.
+Anforderungen an recipe search dialog stability: Stable result list during search transitions; Fixed dialog dimensions; Smooth sub-dialog transitions.
 
 ## Requirements
 ### Requirement: Stable result list during search transitions

@@ -1,7 +1,7 @@
 # supply-base Specification
 
 ## Purpose
-Specification of supply-base.
+Anforderungen an supply base: Abstract Supply Base Class; Material Model; Ingredient Model (standalone).
 
 ## Requirements
 ### Requirement: Abstract Supply Base Class

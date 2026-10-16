@@ -1,7 +1,7 @@
 # whatsapp-connection Specification
 
 ## Purpose
-Specification of whatsapp-connection.
+Anforderungen an whatsapp connection: Connect WhatsApp account via QR code; View WhatsApp connection status; Disconnect WhatsApp account.
 
 ## Requirements
 ### Requirement: Connect WhatsApp account via QR code

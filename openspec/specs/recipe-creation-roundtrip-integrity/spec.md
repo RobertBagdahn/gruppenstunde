@@ -2,9 +2,7 @@
 
 ## Purpose
 Ensure end-to-end data persistence, state isolation, and reload integrity across all recipe creation flows (manual, AI, URL import) and wizard steps.
-
 ## Requirements
-
 ### Requirement: Wizard step changes preserve active edits
 The recipe wizard SHALL persist all edits belonging to the active step before navigating forward. Navigation SHALL wait for the save operation to succeed, and a failed save SHALL keep the user on the current step with a German error message.
 
@@ -114,3 +112,12 @@ The Playwright suite SHALL cover the critical recipe creation round trips using 
 #### Scenario: Mobile recipe creation remains usable
 - **WHEN** the wizard is tested at a viewport width of 320px
 - **THEN** the creation methods, active editor, and navigation controls SHALL remain usable without horizontal overflow
+
+### Requirement: Portionless direct-gram RecipeItems remain safe
+RecipeItems with no Portion SHALL remain valid when quantity represents grams. Embedding generation and recipe response construction SHALL handle these rows without aborting the recipe operation or losing an available ingredient name.
+
+#### Scenario: Recipe contains a direct-gram item
+- **WHEN** a recipe contains a RecipeItem whose Portion is null
+- **THEN** embedding generation SHALL skip or safely represent that row without raising an exception
+- **THEN** the recipe operation SHALL continue for the remaining valid items
+- **THEN** the frontend SHALL show the persisted ingredient name when one is available

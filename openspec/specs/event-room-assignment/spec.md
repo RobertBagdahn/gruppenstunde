@@ -1,7 +1,7 @@
 # event-room-assignment Specification
 
 ## Purpose
-Specification of event-room-assignment.
+Anforderungen an event room assignment: RoomAssignment model; List rooms endpoint; Create room endpoint.
 
 ## Requirements
 ### Requirement: RoomAssignment model

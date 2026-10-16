@@ -1,5 +1,8 @@
 # Spec: Recipe Search Dialog
 
+## Purpose
+Anforderungen an recipe search dialog: Fallback-Banner zeigt ehrlichen Text; RecentlyUsedSection ist im Dialog klickbar; Schema verwendet `portions`.
+
 Anforderungen an den Rezept-Auswahl-Dialog (`RecipeSearchDialog`) im Food-Frontend.
 
 ## Requirements
@@ -88,3 +91,7 @@ Die Tag-Filter `nutritional_tag_ids` und `exclude_nutritional_tag_ids` im `searc
 
 ### Requirement: RecentlyUsed-Schema enthält `portions`
 `RecipeRecentlyUsedSchema` SHALL das Feld `portions` enthalten, konsistent mit dem `RecipeSearchResultSchema`.
+
+#### Scenario: Zuletzt verwendetes Rezept
+- **WHEN** die API zuletzt verwendete Rezepte zurückgibt
+- **THEN** enthält jeder Eintrag das Feld `portions`, wie im `RecipeSearchResultSchema`

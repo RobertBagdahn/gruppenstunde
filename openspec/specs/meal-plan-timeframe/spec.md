@@ -5,7 +5,7 @@ Ermöglicht das Festlegen von Start- und End-Datetime für einen MealPlan und da
 ## Requirements
 ### Requirement: MealPlan hat Start- und End-Datetime
 
-Ein MealPlan speichert `start_datetime` und `end_datetime` als optionale DateTimeFields.
+Ein MealPlan SHALL `start_datetime` und `end_datetime` als optionale DateTimeFields speichern.
 
 #### Scenario: Neuer MealPlan mit Zeitraum erstellen
 - **WHEN** ein MealPlan mit `start_datetime` und `end_datetime` erstellt wird
@@ -24,7 +24,7 @@ Ein MealPlan speichert `start_datetime` und `end_datetime` als optionale DateTim
 - **THEN** werden alle Default-Meals generiert (Frühstück, Mittag, Abendessen, Snack)
 
 ### Requirement: Tag davor einfügen
-Ein Button "Tag davor" erweitert den Plan um einen Tag am Anfang.
+Ein Button "Tag davor" SHALL den Plan um einen Tag am Anfang erweitern.
 
 #### Scenario: Tag davor einfügen
 - **WHEN** der User "Tag davor" klickt
@@ -35,7 +35,7 @@ Ein Button "Tag davor" erweitert den Plan um einen Tag am Anfang.
 ---
 
 ### Requirement: Tag danach einfügen
-Ein Button "Tag danach" erweitert den Plan um einen Tag am Ende.
+Ein Button "Tag danach" SHALL den Plan um einen Tag am Ende erweitern.
 
 #### Scenario: Tag danach einfügen
 - **WHEN** der User "Tag danach" klickt
@@ -46,7 +46,7 @@ Ein Button "Tag danach" erweitert den Plan um einen Tag am Ende.
 ---
 
 ### Requirement: Start/Ende im Frontend editierbar
-Der User kann Start- und End-Datetime im Settings-Panel anpassen.
+Der User SHALL Start- und End-Datetime im Settings-Panel anpassen können.
 
 #### Scenario: Datetime ändern
 - **WHEN** der User `start_datetime` oder `end_datetime` im Settings-Panel ändert und speichert
@@ -55,7 +55,7 @@ Der User kann Start- und End-Datetime im Settings-Panel anpassen.
 ---
 
 ### Requirement: Migration bestehender Daten
-Bestehende MealPlans bekommen Start/Ende aus ihren vorhandenen Meals.
+Bestehende MealPlans SHALL Start und Ende aus ihren vorhandenen Meals erhalten.
 
 #### Scenario: Bestehender Plan ohne Zeitraum
 - **WHEN** ein MealPlan Meals hat aber kein `start_datetime`/`end_datetime`

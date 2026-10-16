@@ -1,7 +1,7 @@
 # meal-plan-soll-ist-band Specification
 
 ## Purpose
-TBD - created by archiving change meal-plan-soll-ist-band. Update Purpose after archive.
+Anforderungen an meal plan soll ist band: Soll-Band fields in suggestions API; Relative progress bar component in UI; Budget evaluation integration.
 ## Requirements
 ### Requirement: Soll-Band fields in suggestions API
 The suggestions API SHALL include `min_green`, `max_green`, and `target_mid` fields in the `SuggestionOut` schema. These fields MUST be populated for rule evaluations when the rule has green thresholds defined. For event-scope rules (`scope=meal_event`), only the `current_value` SHALL be normalized by dividing by the number of days in the meal plan (excluding `nutri_class`). The threshold values (`min_green`, `max_green`, `target_mid`) SHALL remain as their original per-day values and MUST NOT be divided by `num_days`.

@@ -1,7 +1,7 @@
 # meal-planner-optimistic-undo Specification
 
 ## Purpose
-TBD - created by archiving change redesign-meal-planner-ux. Update Purpose after archive.
+Anforderungen an meal planner optimistic undo: Optimistic Item Removal with Toast Undo; Confirmation Dialog for Destructive Mass Actions.
 ## Requirements
 ### Requirement: Optimistic Item Removal with Toast Undo
 Removing an individual ingredient or recipe from a meal slot SHALL remove the item immediately from the UI without a blocking confirmation modal and display an undo toast for 6 seconds.

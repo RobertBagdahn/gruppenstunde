@@ -1,11 +1,11 @@
 # recipe-ai-ingredient-extraction Specification
 
 ## Purpose
-Specification of recipe-ai-ingredient-extraction.
+Anforderungen an recipe ai ingredient extraction: Refurbish liefert Zutaten-Vorschläge für Rezepte; Zutaten im Wizard bearbeitbar; Zutaten beim Speichern als RecipeItems anlegen.
 
 ## Requirements
 ### Requirement: Refurbish liefert Zutaten-Vorschläge für Rezepte
-Der AI-Refurbish-Endpoint liefert bei `content_type="recipe"` zusätzlich zu den Standard-Feldern eine Liste vorgeschlagener Zutaten mit Name, Menge, Einheit und optionaler DB-Referenz.
+Der AI-Refurbish-Endpoint SHALL bei `content_type="recipe"` zusätzlich zu den Standard-Feldern eine Liste vorgeschlagener Zutaten mit Name, Menge, Einheit und optionaler DB-Referenz.
 
 #### Scenario: Rezept-Refurbish mit Zutaten
 - **WHEN** User sendet Freitext mit `content_type="recipe"` an `/api/content/ai/refurbish/`
@@ -22,7 +22,7 @@ Der AI-Refurbish-Endpoint liefert bei `content_type="recipe"` zusätzlich zu den
 ---
 
 ### Requirement: Zutaten im Wizard bearbeitbar
-In Schritt 2 des Rezept-Erstellungs-Wizards werden vorgeschlagene Zutaten in einer bearbeitbaren Liste angezeigt.
+In Schritt 2 des Rezept-Erstellungs-Wizards SHALL das System vorgeschlagene Zutaten in einer bearbeitbaren Liste anzeigen.
 
 #### Scenario: Zutaten werden angezeigt
 - **WHEN** AI-Refurbish `suggested_ingredients` zurückgibt
@@ -43,7 +43,7 @@ In Schritt 2 des Rezept-Erstellungs-Wizards werden vorgeschlagene Zutaten in ein
 ---
 
 ### Requirement: Zutaten beim Speichern als RecipeItems anlegen
-Beim Speichern des Rezepts werden alle bearbeiteten Zutaten mit gültiger `ingredient_id` als `RecipeItem`s angelegt.
+Beim Speichern des Rezepts SHALL das System alle bearbeiteten Zutaten mit gültiger `ingredient_id` als `RecipeItem`s anlegen.
 
 #### Scenario: Zutaten mit DB-Match werden gespeichert
 - **WHEN** Rezept wird gespeichert und Zutat hat `ingredient_id != null`

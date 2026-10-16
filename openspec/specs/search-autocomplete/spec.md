@@ -1,7 +1,7 @@
 # search-autocomplete Specification
 
 ## Purpose
-Specification of search-autocomplete.
+Anforderungen an search autocomplete: Recipe Search Dialog with Autocomplete.
 
 ## Requirements
 ### Requirement: Recipe Search Dialog with Autocomplete

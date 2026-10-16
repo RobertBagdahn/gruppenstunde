@@ -1,5 +1,9 @@
-## MODIFIED Requirements
+# energy-unit-display Specification
 
+## Purpose
+Anforderungen an energy unit display: Einheitliche kcal-Anzeige von Energie; Energie-Regeln in kcal; Energie-Auswertung konsistent in kcal.
+
+## Requirements
 ### Requirement: Einheitliche kcal-Anzeige von Energie
 
 Das System SHALL Energie in der gesamten Nutzeroberfläche und Datenbank ausschließlich in Kilokalorien (kcal) speichern und anzeigen. Es gibt keine kJ-Speicherung und keine Konvertierungsfunktionen mehr. Alle Energie-Felder heißen `*_kcal`.

@@ -1,3 +1,10 @@
+# Content Search
+
+## Purpose
+
+Spezifikation für die globale Command Palette (Cmd+K / Ctrl+K) der Inspi-Plattform. Ermöglicht schnelle Suche und Navigation über die gesamte Anwendung.
+
+## Requirements
 ### Requirement: Unified search across all content types
 The search service SHALL search across content types (GroupSession, Blog, Game, Recipe, Event) but SHALL NOT include Tags in search results. The search SHALL use the same hybrid approach (fulltext + pgvector + filters) but SHALL NOT query the Tag table for search results. Tags SHALL remain available only through the autocomplete endpoint.
 
@@ -26,14 +33,6 @@ The frontend search page SHALL display filter tabs only for content types that a
 - **WHEN** the search page is loaded
 - **THEN** the tab bar SHALL display tabs for: Alle, Gruppenstunden, Wissensbeiträge, Spiele, Rezepte, Events
 - **THEN** the tab bar SHALL NOT display a "Tags" tab
-
-### Requirement: Idea-only search endpoint
-**Reason**: Replaced by unified search across all content types
-**Migration**: `/api/ideas/search/` is replaced by `/api/search/`
-
-### Requirement: Idea-only autocomplete
-**Reason**: Replaced by unified autocomplete
-**Migration**: `/api/ideas/autocomplete/` is replaced by `/api/search/autocomplete/`
 
 ### Requirement: Command palette as search entry point
 
@@ -69,12 +68,7 @@ The search logging subsystem SHALL also log queries from the recipe list endpoin
 - **WHEN** any search endpoint logs a query
 - **THEN** a structured JSON log line SHALL be written to stdout with fields `event`, `query`, `results_count`, `user_id`, `timestamp`, `source`
 
-
 ---
-
-# Content Search
-
-## Requirements
 
 ### Requirement: Unified Global Search
 The system SHALL provide a unified search endpoint that searches across all content types (GroupSession, Blog, Game, Recipe, Event). The search SHALL use hybrid matching: PostgreSQL full-text search (pg_trgm) for text relevance and pgvector cosine similarity for semantic matching. The endpoint SHALL accept an optional `scope` query parameter with values `all` (default) or `mine` that restricts results to content related to the authenticated user. Event results SHALL always exclude items with `is_template=True`.
@@ -182,35 +176,6 @@ The system SHALL provide a typeahead autocomplete endpoint that returns suggesti
 - **THEN** each suggestion SHALL include title, content_type, and slug
 - **THEN** suggestions SHALL be grouped by content type with type labels
 
-## Planned Features
-
-### Planned: Ingredient standalone food in recipe search
-Ingredients with a future `is_standalone_food=True` field SHALL appear in recipe search results as a special category "Einzelzutat". This feature requires adding the `is_standalone_food` BooleanField to the Ingredient model first.
-
-#### Scenario: Raw edible ingredient in search
-- **WHEN** a user searches for recipes and an Ingredient with is_standalone_food=True matches
-- **THEN** the ingredient SHALL appear in results with a "Einzelzutat" badge
-- **THEN** clicking the result SHALL navigate to the ingredient detail page
-
-
----
-
-# Command Palette
-
-# command-palette Specification
-
-## Purpose
-
-Spezifikation für die globale Command Palette (Cmd+K / Ctrl+K) der Inspi-Plattform. Ermöglicht schnelle Suche und Navigation über die gesamte Anwendung.
-
-## Context
-
-- **Frontend**: React 18, TypeScript (strict), shadcn/ui Command (cmdk-based)
-- **API**: Nutzt bestehenden `/api/content/search/autocomplete/` Endpunkt
-- **Querschnittsthema**: Global verfügbar über alle Seiten
-
-## Requirements
-
 ### Requirement: Command palette overlay
 
 The frontend SHALL provide a command palette overlay that allows users to search content and navigate pages via keyboard shortcut.
@@ -268,7 +233,25 @@ The frontend SHALL provide a command palette overlay that allows users to search
 - **THEN** pressing `Cmd+K`/`Ctrl+K` SHALL NOT open the command palette
 - **THEN** the browser's default behavior SHALL be preserved
 
-## Betroffene Dateien
+## Planned Features
+
+### Planned: Ingredient standalone food in recipe search
+Ingredients with a future `is_standalone_food=True` field SHALL appear in recipe search results as a special category "Einzelzutat". This feature requires adding the `is_standalone_food` BooleanField to the Ingredient model first.
+
+#### Scenario: Raw edible ingredient in search
+- **WHEN** a user searches for recipes and an Ingredient with is_standalone_food=True matches
+- **THEN** the ingredient SHALL appear in results with a "Einzelzutat" badge
+- **THEN** clicking the result SHALL navigate to the ingredient detail page
+
+---
+
+## Context (command-palette Specification)
+
+- **Frontend**: React 18, TypeScript (strict), shadcn/ui Command (cmdk-based)
+- **API**: Nutzt bestehenden `/api/content/search/autocomplete/` Endpunkt
+- **Querschnittsthema**: Global verfügbar über alle Seiten
+
+## Betroffene Dateien (command-palette Specification)
 
 | Datei | Relevanz |
 |-------|----------|

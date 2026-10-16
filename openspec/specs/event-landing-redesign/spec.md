@@ -1,5 +1,9 @@
-## Requirements
+# event-landing-redesign Specification
 
+## Purpose
+Anforderungen an event landing redesign: Authenticated user dashboard layout; Quick-action cards; Meine Events section with event cards.
+
+## Requirements
 ### Requirement: Authenticated user dashboard layout
 For authenticated users, the EventsPage SHALL display a dashboard-style layout with quick-action cards, event sections, recent activity, and statistics. The page SHALL NOT show the marketing landing page content.
 
@@ -181,8 +185,6 @@ The backend SHALL provide a cacheable, unauthenticated endpoint `GET /api/events
 #### Scenario: No public events
 - **WHEN** the system has no public, non-template events at all
 - **THEN** `GET /api/events/public-landing/` SHALL return an empty list with HTTP 200
-
-## Landing Page
 
 ### Requirement: Enhanced events landing page
 The events landing page at `/events` SHALL showcase all event management features with visual sections, feature descriptions, and clear calls-to-action. All UI texts MUST use "Aktionen" instead of "Veranstaltungen".

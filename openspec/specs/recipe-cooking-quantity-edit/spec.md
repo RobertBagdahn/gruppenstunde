@@ -1,7 +1,7 @@
 # recipe-cooking-quantity-edit Specification
 
 ## Purpose
-Specification of recipe-cooking-quantity-edit.
+Anforderungen an recipe cooking quantity edit: Auffindbarer Einstieg zur Bearbeitung in Kochmengen; Personenzahl im Editor wählbar; Normierung auf 1 Portion beim Speichern.
 
 ## Requirements
 ### Requirement: Auffindbarer Einstieg zur Bearbeitung in Kochmengen

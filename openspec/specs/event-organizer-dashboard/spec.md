@@ -1,5 +1,9 @@
-## MODIFIED Requirements
+# event-organizer-dashboard Specification
 
+## Purpose
+Anforderungen an event organizer dashboard: Event detail page with tab navigation; Teilnehmende tab with admin toggle; Einladung & Gäste tab consolidated.
+
+## Requirements
 ### Requirement: Event detail page with tab navigation
 The system SHALL provide a unified event detail page at `/events/app/:slug` with role-based tab navigation. Manager tabs SHALL be consolidated from 7 admin tabs to 5 admin tabs.
 

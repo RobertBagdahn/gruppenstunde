@@ -1,6 +1,13 @@
+# inspi-data-import Specification
+
+## Purpose
+Anforderungen an inspi data import: Import Management Command; Master-Daten Import; Zutaten-Import.
+
+## Requirements
+
 ### Requirement: Import Management Command
 
-Das System MUSS ein Management Command `import_inspi_data` bereitstellen, das Daten aus dem Inspi-Projekt importiert.
+Das System MUST ein Management Command `import_inspi_data` bereitstellen, das Daten aus dem Inspi-Projekt importiert.
 
 #### Scenario: Command ausführen mit Default-Pfad
 - **WHEN** `uv run python manage.py import_inspi_data` ausgeführt wird
@@ -26,7 +33,7 @@ Das System MUSS ein Management Command `import_inspi_data` bereitstellen, das Da
 
 ### Requirement: Master-Daten Import
 
-Das Command MUSS die Inspi-Master-Daten in die entsprechenden gruppenstunde-Modelle importieren.
+Das Command MUST die Inspi-Master-Daten in die entsprechenden gruppenstunde-Modelle importieren.
 
 #### Scenario: MeasuringUnits importieren
 - **WHEN** die Datei `food/0_init_data.json` gelesen wird
@@ -111,7 +118,7 @@ The command MUST import Inspi recipes with their RecipeItems. Das Command MUSS I
 
 ### Requirement: Activity-Import
 
-Das Command MUSS Inspi-Activities als GroupSessions oder Games importieren.
+Das Command MUST Inspi-Activities als GroupSessions oder Games importieren.
 
 #### Scenario: Activities nach Typ mappen
 - **WHEN** eine Activity den `activity_type_id=1` (Spiel) hat
@@ -139,7 +146,7 @@ Das Command MUSS Inspi-Activities als GroupSessions oder Games importieren.
 
 ### Requirement: Material-Import
 
-Das Command MUSS Inspi-Materialien und deren Zuordnungen zu Activities importieren.
+Das Command MUST Inspi-Materialien und deren Zuordnungen zu Activities importieren.
 
 #### Scenario: MaterialNames importieren
 - **WHEN** die Datei `activity/test-data/1_material_name.json` gelesen wird
@@ -153,7 +160,7 @@ Das Command MUSS Inspi-Materialien und deren Zuordnungen zu Activities importier
 
 ### Requirement: HTML zu Markdown Konvertierung
 
-Alle importierten Textfelder MÜSSEN Markdown verwenden, nicht HTML.
+Alle importierten Textfelder MUST Markdown verwenden, nicht HTML.
 
 #### Scenario: HTML-Tags konvertieren
 - **WHEN** ein Textfeld HTML enthält (z.B. `<p>`, `<br>`, `<b>`, `<i>`, `<ul>`, `<li>`, `<h1>`-`<h6>`)
@@ -165,7 +172,7 @@ Alle importierten Textfelder MÜSSEN Markdown verwenden, nicht HTML.
 
 ### Requirement: Import-Fortschritt und Logging
 
-Das Command MUSS den Fortschritt des Imports transparent anzeigen.
+Das Command MUST den Fortschritt des Imports transparent anzeigen.
 
 #### Scenario: Fortschrittsanzeige
 - **WHEN** das Command läuft

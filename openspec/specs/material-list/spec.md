@@ -1,7 +1,7 @@
 # material-list Specification
 
 ## Purpose
-TBD - created by archiving change recipe-materials-consumables. Update Purpose after archive.
+Anforderungen an material list: Materialliste erzeugen; Zusammenfassen; Ausgabe.
 ## Requirements
 ### Requirement: Materialliste erzeugen
 Das System SHALL eine nicht gespeicherte Materialliste aus einem Rezept (mit gewählten Portionen), einem Essens-/Kochplan oder einer bestehenden Einkaufsliste berechnen. Die Liste enthält Geräte und Verbrauchsmaterial in getrennten Gruppen.

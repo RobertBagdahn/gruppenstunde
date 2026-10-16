@@ -1,11 +1,11 @@
 # recipe-quantity-repair Specification
 
 ## Purpose
-Specification of recipe-quantity-repair.
+Anforderungen an recipe quantity repair: Management-Command zur Portion-/Mengen-Bereinigung; Dedupe doppelter rank=1-Portionen; AI-Plausibilitätsprüfung für Rezeptmengen.
 
 ## Requirements
 ### Requirement: Management-Command zur Portion-/Mengen-Bereinigung
-Das System MUSS einen Management-Command bereitstellen, der bestehende Inkonsistenzen zwischen Portionen und RecipeItems in fester Reihenfolge bereinigt: (1) Dedupe doppelter `rank=1`-Portionen, (2) Rebind von RecipeItems auf gelöschte Portionen, (3) AI-gestützte Plausibilitätsprüfung aller Rezeptmengen, (4) vollständige Cache-Neuberechnung betroffener Rezepte.
+Das System MUST einen Management-Command bereitstellen, der bestehende Inkonsistenzen zwischen Portionen und RecipeItems in fester Reihenfolge bereinigt: (1) Dedupe doppelter `rank=1`-Portionen, (2) Rebind von RecipeItems auf gelöschte Portionen, (3) AI-gestützte Plausibilitätsprüfung aller Rezeptmengen, (4) vollständige Cache-Neuberechnung betroffener Rezepte.
 
 #### Scenario: Vollständiger Reparatur-Lauf
 - **WHEN** der Command ohne Einschränkungen ausgeführt wird
@@ -19,7 +19,7 @@ Das System MUSS einen Management-Command bereitstellen, der bestehende Inkonsist
 - **THEN** DARF die AI-Plausibilitätsprüfung (Schritt 3) erst nach Abschluss von Dedupe (Schritt 1) und Rebind (Schritt 2) beginnen
 
 ### Requirement: Dedupe doppelter rank=1-Portionen
-Für jede Zutat mit mehr als einer aktiven `rank=1`-Portion MUSS das System automatisch genau eine Portion als `rank=1` behalten: bevorzugt diejenige, auf die bereits mindestens ein `RecipeItem` zeigt; andernfalls diejenige mit dem plausibelsten `weight_g` (basierend auf Zutat-Kategorie-Heuristik). Alle anderen Kandidaten MÜSSEN auf einen freien, nicht mit `rank=1` kollidierenden Rang zurückgestuft werden.
+Für jede Zutat mit mehr als einer aktiven `rank=1`-Portion MUST das System automatisch genau eine Portion als `rank=1` behalten: bevorzugt diejenige, auf die bereits mindestens ein `RecipeItem` zeigt; andernfalls diejenige mit dem plausibelsten `weight_g` (basierend auf Zutat-Kategorie-Heuristik). Alle anderen Kandidaten MUST auf einen freien, nicht mit `rank=1` kollidierenden Rang zurückgestuft werden.
 
 #### Scenario: Referenzierte Portion gewinnt
 - **WHEN** eine Zutat zwei aktive `rank=1`-Portionen hat und mindestens ein RecipeItem auf eine davon zeigt
@@ -31,7 +31,7 @@ Für jede Zutat mit mehr als einer aktiven `rank=1`-Portion MUSS das System auto
 - **THEN** MUSS die Portion mit dem plausibelsten `weight_g` `rank=1` behalten
 
 ### Requirement: AI-Plausibilitätsprüfung für Rezeptmengen
-Das System MUSS eine Funktion bereitstellen, die für jedes Rezept die Gesamtmenge (Gramm) pro Portion mittels Gemini auf Plausibilität prüft und bei unrealistischen Werten (z. B. mehrere Kilogramm oder wenige Gramm pro Person für ein Hauptgericht) automatisch neue, realistische Mengen für alle betroffenen `RecipeItem`s vorschlägt und speichert — ohne manuelle Freigabe.
+Das System MUST eine Funktion bereitstellen, die für jedes Rezept die Gesamtmenge (Gramm) pro Portion mittels Gemini auf Plausibilität prüft und bei unrealistischen Werten (z. B. mehrere Kilogramm oder wenige Gramm pro Person für ein Hauptgericht) automatisch neue, realistische Mengen für alle betroffenen `RecipeItem`s vorschlägt und speichert — ohne manuelle Freigabe.
 
 #### Scenario: Unplausibles Rezept wird korrigiert
 - **WHEN** ein Rezept mit `portions=1` ein Gesamtgewicht von mehreren Kilogramm aufweist
@@ -43,7 +43,7 @@ Das System MUSS eine Funktion bereitstellen, die für jedes Rezept die Gesamtmen
 - **THEN** DÜRFEN dessen `RecipeItem`-Mengen nicht verändert werden
 
 ### Requirement: Vollständige Cache-Neuberechnung nach Reparatur
-Nach jeder automatisierten Mengen- oder Portion-Änderung durch den Reparatur-Command MUSS für das betroffene Rezept eine vollständige Neuberechnung aller Cache-Felder (kcal, Preis, Nährwerte, Nutri-Score, Gesamtgewicht) erfolgen.
+Nach jeder automatisierten Mengen- oder Portion-Änderung durch den Reparatur-Command MUST für das betroffene Rezept eine vollständige Neuberechnung aller Cache-Felder (kcal, Preis, Nährwerte, Nutri-Score, Gesamtgewicht) erfolgen.
 
 #### Scenario: Cache wird nach Mengenänderung aktualisiert
 - **WHEN** die AI-Plausibilitätsprüfung die Mengen eines Rezepts ändert

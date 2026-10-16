@@ -1,3 +1,8 @@
+# title-image-editor Specification
+
+## Purpose
+Anforderungen an title image editor: TitleImageEditor component on content detail pages; Image upload via file picker; AI image generation with preview selection.
+
 ## Requirements
 
 ### Requirement: TitleImageEditor component on content detail pages

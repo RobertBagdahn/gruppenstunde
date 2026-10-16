@@ -1,3 +1,8 @@
+# meal-planner-recipe-search Specification
+
+## Purpose
+Anforderungen an meal planner recipe search: Recipe search results display; Extended search response schema; Traffic light badge for recipe reliability.
+
 ## Requirements
 
 Recipe portion storage is defined by `recipe-portion-normalization`; this spec owns only the

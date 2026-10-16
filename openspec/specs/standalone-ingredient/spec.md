@@ -1,3 +1,10 @@
+# standalone-ingredient Specification
+
+## Purpose
+Anforderungen an standalone ingredient: Ingredient standalone flag; Standalone ingredients searchable by nutritional tags; Roh verzehrbare Zutaten direkt als MealItem.
+
+## Requirements
+
 ### Requirement: Ingredient standalone flag
 The system SHALL allow marking an Ingredient as standalone food via `is_standalone_food` boolean field (default: False).
 
@@ -75,4 +82,9 @@ Das System SHALL das Signal `create_dummy_recipe_for_standalone_food` nicht mehr
 - **AND** der Command ist idempotent (wiederholter Aufruf erzeugt keine Duplikate)
 
 ### Requirement: standalone_type entfernt
-Das Feld `standalone_type` auf `Ingredient` ist entfallen. Es MUSS per `makemigrations supply` aus dem Datenbankschema entfernt werden. Pydantic-Schemas (`supply/schemas/ingredients.py`) und Zod-Schemas im Frontend sind entsprechend zu bereinigen.
+Das Feld `standalone_type` auf `Ingredient` ist entfallen. Es MUST per `makemigrations supply` aus dem Datenbankschema entfernt werden. Pydantic-Schemas (`supply/schemas/ingredients.py`) und Zod-Schemas im Frontend sind entsprechend zu bereinigen.
+
+#### Scenario: Schema ohne standalone_type
+- **WHEN** die Zutaten-API ein Ingredient zurückgibt
+- **THEN** enthält die Antwort kein Feld `standalone_type`
+- **AND** die Datenbanktabelle hat keine Spalte `standalone_type`

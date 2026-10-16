@@ -20,13 +20,13 @@ Das System SHALL sicherstellen, dass nach `rebalanceShares` die Summe aller `sha
 5. Resultat = floor_vals (mit +1 für die Gewinner)
 ```
 
-#### Szenario: 3 gleichwertige Items, remaining=100
+#### Scenario: 3 gleichwertige Items, remaining=100
 
 - **GIVEN** 3 unlocked Items mit jeweils `sharePercent=33.33`
 - **WHEN** `rebalanceShares` aufgerufen wird
 - **THEN** ergibt sich [34, 33, 33] (oder [33, 34, 33] etc.) — Summe exakt 100
 
-#### Szenario: Einfaches Rebalance
+#### Scenario: Einfaches Rebalance
 
 - **GIVEN** `changedIndex=0, newValue=60`, Items [60, 20, 20] (letzten zwei unlocked)
 - **THEN** locked+changed = 60, remaining = 40 → unlocked: [20, 20] → [20, 20] → Summe 100 ✅
@@ -35,13 +35,13 @@ Das System SHALL sicherstellen, dass nach `rebalanceShares` die Summe aller `sha
 
 Das System SHALL im Breakfast-Wizard Cockpit-Schritt einen sichtbaren Hinweis anzeigen, dass warme Gerichte und Gemüse NICHT in der Kalorienanzeige enthalten sind.
 
-#### Szenario: Hinweis sichtbar wenn Extras vorhanden
+#### Scenario: Hinweis sichtbar wenn Extras vorhanden
 
 - **GIVEN** der Nutzer hat im StepExtras mindestens ein warmes Gericht oder Gemüse hinzugefügt
 - **WHEN** StepCockpit angezeigt wird
 - **THEN** soll ein Info-Text erscheinen: "Warme Gerichte und Gemüse sind nicht eingerechnet."
 
-#### Szenario: Hinweis auch ohne Extras
+#### Scenario: Hinweis auch ohne Extras
 
 - **GIVEN** keine Extras vorhanden
 - **WHEN** StepCockpit angezeigt wird

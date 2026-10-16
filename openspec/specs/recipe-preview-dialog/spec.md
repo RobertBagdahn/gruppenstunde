@@ -1,7 +1,7 @@
 # recipe-preview-dialog Specification
 
 ## Purpose
-Specification of recipe-preview-dialog.
+Anforderungen an recipe preview dialog: Recipe preview dialog; Ingredients preview in search response.
 
 ## Requirements
 ### Requirement: Recipe preview dialog

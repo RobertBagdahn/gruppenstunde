@@ -1,7 +1,7 @@
 # food-feedback-toasts Specification
 
 ## Purpose
-TBD - created by archiving change food-frontend-friendly-ux. Update Purpose after archive.
+Anforderungen an food feedback toasts: Einheitliche Toast-Sprache; Wann ein Toast erscheint; Rückgängig statt Nachfrage.
 ## Requirements
 ### Requirement: Einheitliche Toast-Sprache
 Alle Toasts im Food-Frontend SHALL über den zentralen Helfer `notify` (`lib/notify.ts`) erzeugt werden. Erfolgs-Texte MUST dem Muster „<Objekt> <Partizip>“ folgen (z. B. „Zutat gespeichert“, „Rezept gelöscht“, „Essensplan angelegt“), ohne Emoji, ohne Häkchen-Zeichen und ohne Schlusspunkt. Fehler-Texte MUST dem Muster „<Objekt> konnte nicht <Verb> werden“ als Titel folgen, die Ursache steht in der Beschreibung. Direkte Aufrufe von `toast` aus `sonner` außerhalb von `lib/notify.ts` SHALL NOT vorkommen; ein Test MUST das prüfen.

@@ -1,7 +1,7 @@
 # meal-plan-cost-dashboard Specification
 
 ## Purpose
-Specification of meal-plan-cost-dashboard.
+Anforderungen an meal plan cost dashboard: Kosten-Aggregation API; Kosten-Dashboard UI; Display recipe costs in meal plan.
 
 ## Requirements
 ### Requirement: Kosten-Aggregation API

@@ -1,7 +1,7 @@
 # blog-content Specification
 
 ## Purpose
-Specification of blog-content.
+Anforderungen an blog content: Blog Content Type; Blog Subtypes; Blog Table of Contents.
 
 ## Requirements
 ### Requirement: Blog Content Type
@@ -63,7 +63,7 @@ The system SHALL provide CRUD API endpoints for Blog under `/api/blogs/`.
 
 ### Requirement: BlogCard Metadaten-Anzeige
 
-Die BlogCard MUSS Lesezeit und Summary prominent anzeigen.
+Die BlogCard MUST Lesezeit und Summary prominent anzeigen.
 
 #### Scenario: Lesezeit auf BlogCard
 - **WHEN** eine BlogCard gerendert wird

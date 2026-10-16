@@ -1,5 +1,9 @@
-## MODIFIED Requirements
+# event-management Specification
 
+## Purpose
+Anforderungen an event management: Event model extended with color, icon, and template fields; Event slug is user-editable; Event creation accepts group and invitation data.
+
+## Requirements
 ### Requirement: Event model extended with color, icon, and template fields
 The Event model SHALL include `color` (CharField(20), default="blue"), `icon` (CharField(30), default="tent"), and `is_template` (BooleanField, default=False) fields. The `color` field SHALL accept only values from the predefined palette: slate, red, orange, amber, yellow, lime, green, emerald, teal, cyan, blue, violet, purple, pink, rose. The `icon` field SHALL accept only values from the predefined Lucide icon set.
 
@@ -236,8 +240,6 @@ The `GET /api/events/` list endpoint SHALL exclude template events by default by
 - **THEN** the queryset SHALL filter `is_template=False`
 - **THEN** template events SHALL only be accessible via `GET /api/events/templates/`
 
-## Guest Registration
-
 ### Requirement: Guest registration confirmation email
 The system SHALL send the guest registration confirmation email as an HTML email using the CI-branded registration confirmation template, consistent with the regular registration flow. The `GuestRegistrationService` SHALL use `MailService.send_registration_confirmation()` which now renders HTML with CI.
 
@@ -248,8 +250,6 @@ The system SHALL send the guest registration confirmation email as an HTML email
 #### Scenario: Guest registration without group CI
 - **WHEN** a guest registers for an event without group CI
 - **THEN** the confirmation email SHALL use default Inspi styling
-
-## Event List Redesign
 
 ### Requirement: Compact event card design
 The event list page SHALL display events in compact, information-dense cards.
@@ -345,8 +345,6 @@ The event card component in the frontend SHALL render at most one status badge p
 - **AND** `is_invited = false`
 - **THEN** the card SHALL NOT show any status badge (only the phase badge remains)
 
-## Invitation Status
-
 ### Requirement: Invitation status list API
 The system SHALL provide an API endpoint to list all invited users with their response status.
 
@@ -404,8 +402,6 @@ The event detail API SHALL include invitation status counts.
 - **THEN** the response SHALL include `invitation_counts`: `{ total, accepted, pending }`
 - **WHEN** the requesting user is a member (not manager)
 - **THEN** `invitation_counts` SHALL NOT be included in the response
-
-## Checklist
 
 ### Requirement: Publish readiness checklist API
 A `GET /api/events/{slug}/checklist/` endpoint SHALL return the current checklist state for the event.
@@ -469,8 +465,6 @@ The event overview tab SHALL display a checklist Card component showing the read
 #### Scenario: Checklist not shown to non-managers
 - **WHEN** a non-manager views the event overview tab
 - **THEN** the checklist card SHALL NOT be displayed
-
-## Statistics
 
 ### Requirement: Event statistics endpoint
 The system SHALL provide a statistics endpoint returning aggregated KPIs for an event.
@@ -536,8 +530,6 @@ The frontend SHALL display statistics as visual cards and charts.
 - **THEN** a bar chart SHALL show age distribution
 - **THEN** a line chart SHALL show registration timeline
 - **THEN** a list SHALL show nutritional requirements with counts
-
-## Export
 
 ### Requirement: Export configuration
 The system SHALL allow managers to configure which columns to include in an export and which format to use.
@@ -606,8 +598,6 @@ The frontend SHALL provide an export dialog with column selection, format choice
 - **THEN** a format selector (Excel/CSV/PDF) SHALL be shown
 - **THEN** optional filter dropdowns (Bezahlt, Buchungsoption, Label) SHALL be available
 - **THEN** a "Herunterladen" button SHALL trigger the download
-
-## Timeline
 
 ### Requirement: Timeline Entry Model
 The system SHALL store a `TimelineEntry` for every significant action related to an event's participants. Each entry SHALL contain: event (FK), participant (FK, nullable), user (FK, nullable — the actor), action_type (CharField with choices), description (TextField), metadata (JSONField), created_at (auto timestamp).
@@ -679,8 +669,6 @@ The frontend SHALL display the timeline as a vertical chronological list with ac
 - **THEN** the system SHALL show a chronological list with date grouping
 - **THEN** each entry SHALL show an icon (based on action_type), description, actor name, and timestamp
 - **THEN** entries SHALL be loadable via "Mehr laden" button (paginated)
-
-## Labels
 
 ### Requirement: Participant Label model
 The system SHALL store labels per event as a `ParticipantLabel` model with: event (FK), name (CharField, max 50), color (CharField, max 7 — hex color code e.g. "#FF5733"), created_at (auto timestamp). Participants SHALL have a M2M relation to ParticipantLabel.
@@ -758,8 +746,6 @@ The frontend SHALL display labels as colored badges on participants and provide 
 #### Scenario: Label management in settings
 - **WHEN** the manager views the Einstellungen tab
 - **THEN** a label management section SHALL allow creating, editing (name + color), and deleting labels
-
-## QR Code
 
 ### Requirement: Client-side QR code generation
 QR codes for event registration links SHALL be generated client-side using the `qrcode.react` library.
@@ -841,8 +827,6 @@ The QR code feature SHALL handle edge cases gracefully.
 - **THEN** the date field SHALL display "Datum noch nicht festgelegt"
 - **THEN** the QR code SHALL still be rendered normally
 
-## Custom Fields
-
 ### Requirement: Custom Field definition model
 The system SHALL store custom field definitions per event as a `CustomField` model with: event (FK), label (CharField — the question text), field_type (CharField choices: text, select, checkbox, date, number), options (JSONField — list of strings for select fields, null otherwise), is_required (BooleanField), sort_order (IntegerField), created_at (auto timestamp).
 
@@ -923,8 +907,6 @@ Custom field values SHALL be available as export columns.
 - **WHEN** POST `/api/events/{slug}/export/` with columns including a custom field id
 - **THEN** the export SHALL include a column with the custom field label as header and participant values as rows
 
-## Registration Lifecycle
-
 ### Requirement: Soft-delete for registrations
 The system SHALL support soft-deletion of registrations with a reason, preserving the data for audit purposes.
 
@@ -1003,8 +985,6 @@ The system SHALL send a confirmation email after every successful registration.
 - **WHEN** a participant is registered without an email address
 - **THEN** no confirmation email SHALL be sent
 - **THEN** the registration SHALL still succeed
-
-## Meal Plan Link
 
 ### Requirement: MealPlan foreign key on Event model
 The Event model SHALL have an optional foreign key linking to a meal plan.
@@ -1090,8 +1070,6 @@ The Overview tab SHALL display a summary card when a meal plan is linked.
 #### Scenario: No meal plan card when unlinked
 - **WHEN** a manager views the Overview tab and no meal plan is linked
 - **THEN** the "Essensplan" card SHALL NOT be displayed
-
-## Calendar View
 
 ### Requirement: Calendar view toggle on event landing page
 The event landing page SHALL support a calendar view as an alternative to the list view.
@@ -1193,8 +1171,6 @@ The calendar SHALL adapt to small screen sizes.
 - **WHEN** the calendar is displayed on a touch device
 - **THEN** event dots/bars SHALL have a minimum touch target size of 44×44px
 - **THEN** navigation buttons SHALL have a minimum touch target size of 44×44px
-
-## Member View
 
 ### Requirement: Member tab structure consolidated
 The member tab navigation SHALL be consolidated from 5 tabs (Übersicht, Anmeldung, Teilnehmende, Einladung, Packliste) to 4 tabs by merging registration into the overview tab.

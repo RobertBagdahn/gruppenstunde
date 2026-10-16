@@ -1,7 +1,7 @@
 # open-access Specification
 
 ## Purpose
-TBD - created by archiving change social-login-open-access. Update Purpose after archive.
+Anforderungen an open access: Anonymer Lesezugriff auf alle öffentlichen Inhalte; Schreibende Endpunkte verlangen Anmeldung; Ausprobieren ohne Speichern.
 ## Requirements
 ### Requirement: Anonymer Lesezugriff auf alle öffentlichen Inhalte
 

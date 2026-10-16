@@ -1,7 +1,7 @@
 # ingredient-status Specification
 
 ## Purpose
-TBD - created by archiving change ingredient-status-visibility-unification. Update Purpose after archive.
+Anforderungen an ingredient status: Erlaubte Zutat-Status; Verifizieren nur durch Staff; Verifizierte Nutzer-Zutaten werden öffentlich.
 ## Requirements
 ### Requirement: Erlaubte Zutat-Status
 Eine Zutat MUST genau einen der Status `draft` oder `verified` haben. Die Datenbank SHALL andere Werte per CheckConstraint ablehnen. Pydantic-Ein- und -Ausgabeschemas MUST den Status als `Literal["draft", "verified"]` typisieren, das Zod-Schema als `z.enum(['draft', 'verified'])`.

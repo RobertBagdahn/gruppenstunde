@@ -1,3 +1,10 @@
+# norm-portion-simulator Specification
+
+## Purpose
+Anforderungen an norm portion simulator: Norm person single calculation API; Norm person curves API for graph data; Norm portion simulator page.
+
+## Requirements
+
 ### Requirement: Norm person single calculation API
 The system SHALL provide a REST endpoint `GET /api/norm-person/calculate` that calculates BMR, TDEE, and norm factor for a single person based on age, gender, and physical activity level (PAL).
 

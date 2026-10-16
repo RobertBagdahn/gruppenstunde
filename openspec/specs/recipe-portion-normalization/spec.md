@@ -1,7 +1,8 @@
 # recipe-portion-normalization Specification
 
 ## Purpose
-All recipes store quantities per one portion.
+All recipes store quantities per one portion. Umfasst: All recipes MUST have servings=1; DGE-Referenz dynamisch (MODIFIED).
+
 ## Requirements
 ### Requirement: All recipes MUST have servings=1
 Das System SHALL alle Rezeptmengen pro Person speichern. `Recipe.portions` MUST immer `1` sein, und jede `RecipeItem.quantity` (auch optionale Zutaten und Austausch-Alternativen) MUST die Menge für genau eine Person sein. Die Rezept-UI SHALL kein editierbares Portionen-Feld anzeigen und höchstens `portions: 1` senden. Die API MUST `portions != 1` beim Anlegen und Bearbeiten mit 422 und der Meldung „Rezepte werden immer für 1 Person gespeichert. Bitte gib die Mengen pro Person an.“ ablehnen, statt den Wert still zu verwerfen. Weder API noch Model DÜRFEN `portions` eines bestehenden Rezepts still auf `1` setzen, weil das gespeicherte Gesamtmengen als Pro-Person-Mengen umdeuten würde. Importe, die die Personenzahl der Quelle kennen, MUST die Mengen durch diese Zahl teilen und sie als `source_servings` speichern. Im Django-Admin MUST `portions` schreibgeschützt sein. Altdaten mit `portions > 1` werden ausschließlich über den Command `normalize_recipe_servings` normalisiert.

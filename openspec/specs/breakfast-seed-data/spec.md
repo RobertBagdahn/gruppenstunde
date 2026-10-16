@@ -1,5 +1,8 @@
 # Spec: breakfast-seed-data
 
+## Purpose
+Anforderungen an breakfast seed data: Frühstückszutaten in seed_all vorhanden; Neue Zutaten haben vollständige Pflichtfelder; Seed-Command ist idempotent.
+
 ## Requirements
 
 ### Requirement: Frühstückszutaten in seed_all vorhanden

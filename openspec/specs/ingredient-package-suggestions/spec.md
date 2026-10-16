@@ -1,7 +1,7 @@
 # ingredient-package-suggestions Specification
 
 ## Purpose
-TBD - created by archiving change meal-plan-integrity-and-number-formatting. Update Purpose after archive.
+Anforderungen an ingredient package suggestions: KI-Vorschläge für Packungen und Flüssigkeitsdaten; Freigabe der Vorschläge im Cockpit.
 ## Requirements
 ### Requirement: KI-Vorschläge für Packungen und Flüssigkeitsdaten
 Das System SHALL für genutzte Zutaten (in mindestens einem nicht archivierten Rezept oder Essensplan verwendet, nicht gelöscht) ohne Standardpackung einen Batch-KI-Lauf anbieten, der je Zutat vorschlägt:

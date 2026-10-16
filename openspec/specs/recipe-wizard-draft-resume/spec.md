@@ -1,7 +1,7 @@
 # recipe-wizard-draft-resume Specification
 
 ## Purpose
-TBD - created by archiving change recipe-wizard-step-model. Update Purpose after archive.
+Anforderungen an recipe wizard draft resume: Schritte werden über IDs adressiert; Genau ein Anlegepunkt für das Rezept; Entwurf und Schritt in der URL.
 ## Requirements
 ### Requirement: Schritte werden über IDs adressiert
 Der Rezept-Wizard SHALL seine Schritte über feste IDs adressieren: `input`, `basis`, `review`, `ingredients`, `materials`, `preparation`, `preview`. Der Schritt `review` SHALL nur sichtbar sein, wenn die Analyse mindestens eine Zutatenzeile geliefert hat; alle anderen Schritte sind immer sichtbar. Die Fortschrittsanzeige SHALL nur sichtbare Schritte zeigen.

@@ -1,7 +1,7 @@
 # meal-planner-omnibar-search Specification
 
 ## Purpose
-TBD - created by archiving change redesign-meal-planner-ux. Update Purpose after archive.
+Anforderungen an meal planner omnibar search: Central Omnibar Search Modal; Unified Search with Filter Pills; Live Preview and Direct Portion Adding.
 ## Requirements
 ### Requirement: Central Omnibar Search Modal
 The system SHALL provide a unified Omnibar dialog (`MealOmnibarDialog`) accessible via keyboard shortcut (Cmd/Ctrl+K) or the "+ Gericht hinzufügen" button on any meal slot. A meal plan page SHALL render at most one Omnibar dialog instance. The keyboard shortcut SHALL open the dialog for the most recently active meal (last opened, expanded or clicked slot) and otherwise for the first meal of the first day. The dialog header SHALL name the target meal, e.g. „Hinzufügen zu: Abendessen · Fr., 11.12.“. Opening the dialog SHALL reset the query and the filter pill to `Alle`.

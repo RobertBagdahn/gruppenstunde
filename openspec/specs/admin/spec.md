@@ -1,7 +1,7 @@
 # admin Specification
 
 ## Purpose
-Specification of admin.
+Anforderungen an admin: Embedding Admin View; Approval Queue Admin View; EmbeddingFeedback Admin View.
 
 ## Requirements
 ### Requirement: Embedding Admin View

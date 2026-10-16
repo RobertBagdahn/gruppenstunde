@@ -1,7 +1,7 @@
 # meal-planner-actionable-alerts Specification
 
 ## Purpose
-TBD - created by archiving change redesign-meal-planner-ux. Update Purpose after archive.
+Anforderungen an meal planner actionable alerts: Header Plan-Check Button; Actionable Alerts Flyout; Plan-Check meldet Integritäts- und Plausibilitätsprobleme.
 ## Requirements
 ### Requirement: Header Plan-Check Button
 The meal plan header SHALL provide a `[ 🔔 Plan-Check (X) ]` trigger button displaying the current count of unresolved planning warnings or gaps.

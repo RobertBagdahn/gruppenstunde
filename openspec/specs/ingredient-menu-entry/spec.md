@@ -1,3 +1,8 @@
+# ingredient-menu-entry Specification
+
+## Purpose
+Anforderungen an ingredient menu entry: Ingredients menu entry in navigation dropdown; TOOL_INGREDIENTS constant.
+
 ## Requirements
 
 ### Requirement: Ingredients menu entry in navigation dropdown

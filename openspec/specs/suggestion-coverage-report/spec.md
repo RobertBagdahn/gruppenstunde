@@ -1,7 +1,7 @@
 # suggestion-coverage-report Specification
 
 ## Purpose
-TBD - created by archiving change meal-suggestion-panel. Update Purpose after archive.
+Anforderungen an suggestion coverage report: Coverage report; Minimum coverage test.
 ## Requirements
 ### Requirement: Coverage report
 Ein Management-Command `report_suggestion_coverage` SHALL für jede Kombination aus Meal-Typ × Richtung × Einzelfilter die Trefferzahl berechnen, Kombinationen mit weniger als 4 Treffern als Lücke markieren und einen Seed-Backlog als Markdown oder JSON ausgeben.

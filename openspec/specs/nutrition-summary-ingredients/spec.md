@@ -20,20 +20,20 @@ nutrient = ingredient.<field> * scale
 
 `effective_portions` = `meal.effective_portions` (= `override_portions or norm_portions`).
 
-#### Szenario: Nutrition Summary mit Direktzutat (g-Einheit)
+#### Scenario: Nutrition Summary mit Direktzutat (g-Einheit)
 
 - **GIVEN** ein Plan mit 10 Portionen und einer Mahlzeit ohne Override
 - **AND** ein `MealItem` mit `ingredient` (energy_kcal=265/100g), `quantity=3`, `measuring_unit="g"`, `factor=1.0`
 - **WHEN** `GET /api/meal-plans/{id}/nutrition-summary/` aufgerufen wird
 - **THEN** soll `energy_kcal` um `3 * (265/100) * 10 = 79.5` steigen (total, nicht per-portion)
 
-#### Szenario: Nutrition Summary mit Direktzutat (Portions-Einheit)
+#### Scenario: Nutrition Summary mit Direktzutat (Portions-Einheit)
 
 - **GIVEN** ein `MealItem` mit `ingredient` (energy_kcal=540/100g), `quantity=0.5`, Portion `weight_g=20g`, `factor=1.0`, `effective_portions=10`
 - **WHEN** `GET /api/meal-plans/{id}/nutrition-summary/` aufgerufen wird
 - **THEN** soll `energy_kcal` um `(0.5 * 20) * (540/100) * 1.0 * 10 = 540.0` steigen
 
-#### Szenario: Per-Portion-Werte für Ingredient-MealItems
+#### Scenario: Per-Portion-Werte für Ingredient-MealItems
 
 - **GIVEN** oben beschriebenes Szenario mit `effective_portions=10`
 - **THEN** soll `per_portion_energy_kcal` um `540.0 / 10 = 54.0` steigen
@@ -42,9 +42,20 @@ nutrient = ingredient.<field> * scale
 
 Das System SHALL bei Ingredient-MealItems `meal.effective_portions` verwenden (nicht `meal_plan.norm_portions`), konsistent mit `resolve_ingredient_energy_kcal` in `meal_item_helpers.py`.
 
+#### Scenario: Override-Portionen der Mahlzeit
+- **GIVEN** ein Plan mit `norm_portions=10` und eine Mahlzeit mit `override_portions=4`
+- **AND** ein Ingredient-MealItem in dieser Mahlzeit
+- **WHEN** die Nährwert-Zusammenfassung berechnet wird
+- **THEN** wird das MealItem mit 4 Portionen gewichtet, nicht mit 10
+
 ### Requirement: Alle 7 Nährstofffelder
 
 Das System SHALL alle 7 Felder (`energy_kcal`, `protein_g`, `fat_g`, `carbohydrate_g`, `sugar_g`, `fibre_g`, `salt_g`) für Ingredient-MealItems berechnen, analog zu den Rezept-Items.
+
+#### Scenario: Alle Felder einer Direktzutat
+- **GIVEN** ein Ingredient-MealItem, dessen Zutat Werte für alle 7 Nährstofffelder hat
+- **WHEN** die Nährwert-Zusammenfassung berechnet wird
+- **THEN** tragen `energy_kcal`, `protein_g`, `fat_g`, `carbohydrate_g`, `sugar_g`, `fibre_g` und `salt_g` jeweils den Anteil dieses MealItems
 
 ## Implementation Notes
 

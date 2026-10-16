@@ -1,6 +1,11 @@
 # e2e-smoke-tests
 
+## Purpose
+Anforderungen an e2e smoke tests: Smoke test orchestration via Makefile; Automatic database setup; Server lifecycle management.
+
 Playwright-basierte Browser-Smoke-Tests mit Screenshot-Erstellung und Server-Log-Prüfung, ausgeführt über `make smoke-test`.
+
+## Requirements
 
 ### Requirement: Smoke test orchestration via Makefile
 The system SHALL provide a `make smoke-test` target that executes the full smoke test suite. The target SHALL delegate to a shell script at `e2e/smoke-test.sh` and exit with the script's exit code.

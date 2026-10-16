@@ -5,7 +5,7 @@ Rückmeldungen zum Food-Frontend vermischen bestätigte Fehler, bereits vorhande
 ## What Changes
 
 - Die Omnibar-Begrenzung auf fünf Treffer je Gruppe in „Alle“ bleibt beabsichtigt; „Alle anzeigen“ führt in die jeweilige vollständige Ergebnisgruppe. Keine Änderung am Suchverhalten ohne reproduzierten Fehler.
-- Die Suche im Buffet-Builder gilt als vorhandenes Verhalten, nicht als fehlende Funktion. Peters konkreter Plan-/Rollenfall wird in `peter-food-feedback-exploration` geprüft; ein Bug wird nur bei reproduzierbarem Fehlverhalten angelegt.
+- Die Suche im Buffet-Builder gilt als vorhandenes Verhalten, nicht als fehlende Funktion. Peters konkreter Plan-/Rollenfall wird in `docs/explorations/peter-food-feedback` geprüft; ein Bug wird nur bei reproduzierbarem Fehlverhalten angelegt.
 - Zutaten-Notizen und ungefähre Brötchen-Stückzahlen werden als Wünsche behandelt, nicht als bestätigte Bugs.
 - Vor einer Umsetzung von Notizen werden Geltungsbereich (Zutat, Rezept oder beides) und Anzeigeorte fachlich geklärt.
 - Brötchen-Stückzahlen dürfen nur geschätzt werden, wenn passende Portionsgewichte bestätigt sind. Ohne bestätigte Gewichte wird keine Stückzahl erfunden oder als verlässlich dargestellt.

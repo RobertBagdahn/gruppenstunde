@@ -1,7 +1,7 @@
 # buffet-piece-estimate Specification
 
 ## Purpose
-TBD - created by archiving change peter-food-feedback-fixes. Update Purpose after archive.
+Anforderungen an buffet piece estimate: Stückzahl für Buffet-Zutaten mit bestätigtem Einzelgewicht schätzen.
 ## Requirements
 ### Requirement: Stückzahl für Buffet-Zutaten mit bestätigtem Einzelgewicht schätzen
 

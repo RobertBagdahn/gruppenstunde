@@ -1,7 +1,7 @@
 # meal-plan-ui-polish Specification
 
 ## Purpose
-TBD - created by archiving change meal-plan-ui-polish. Update Purpose after archive.
+Anforderungen an meal plan ui polish: Human-Readable PAL Level Labels; PAL Level Selector; Table View Daily Totals ("Tagessummen-Zeile").
 ## Requirements
 ### Requirement: Human-Readable PAL Level Labels
 The system SHALL map Physical Activity Level (PAL) numeric ranges to descriptive German labels and display them to the user.

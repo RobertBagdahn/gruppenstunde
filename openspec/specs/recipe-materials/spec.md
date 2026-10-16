@@ -1,7 +1,7 @@
 # recipe-materials Specification
 
 ## Purpose
-TBD - created by archiving change add-recipe-materials. Update Purpose after archive.
+Anforderungen an recipe materials: Recipe materials are separate from ingredients and equipment; Recipe material CRUD API; AI material suggestions require confirmation.
 ## Requirements
 ### Requirement: Recipe materials are separate from ingredients and equipment
 Recipes SHALL expose a structured material list independent of RecipeItems. Devices and consumables SHALL both be `Material` entries; the separate Equipment relation SHALL not exist. Each link MUST carry a numeric `amount` greater than 0 and a mode `per_portion` or `total`.

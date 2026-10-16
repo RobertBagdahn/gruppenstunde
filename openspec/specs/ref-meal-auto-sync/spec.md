@@ -1,7 +1,7 @@
 # ref-meal-auto-sync Specification
 
 ## Purpose
-Specification of ref-meal-auto-sync.
+Anforderungen an ref meal auto sync: Auto-Sync verlinkter Mahlzeiten beim Speichern eines RefMeals; Bestätigung vor destruktivem Auto-Sync; Anzahl verlinkter Mahlzeiten abrufbar.
 
 ## Requirements
 ### Requirement: Auto-Sync verlinkter Mahlzeiten beim Speichern eines RefMeals

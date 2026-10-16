@@ -1,3 +1,10 @@
+# recipe-step-editing Specification
+
+## Purpose
+Anforderungen an recipe step editing: Sofortige Erfassung von Änderungen im Schritt-Editor; Zuverlässiges Speichern beim Schrittwechsel im Wizard.
+
+## Requirements
+
 ### Requirement: Sofortige Erfassung von Änderungen im Schritt-Editor
 
 Der Schritt-Editor SHALL Textänderungen an Zubereitungsschritten ohne Verzögerung an den Zustand/Store übertragen. Die Änderungserkennung (`hasChanges`) MUST sofort aktiv sein, sobald der Nutzer Text im Eingabefeld ändert.

@@ -1,7 +1,7 @@
 # meal-suggestion-assistant Specification
 
 ## Purpose
-TBD - created by archiving change meal-suggestion-panel. Update Purpose after archive.
+Anforderungen an meal suggestion assistant: Five-question assistant; Context questions replace slots; Filter chips.
 ## Requirements
 ### Requirement: Five-question assistant
 Das System SHALL einen Assistenten mit genau 5 Fragen je Meal-Typ anbieten. Jede Frage SHALL 2–4 Optionen plus „Egal“ haben; die UI SHALL Zurück und Fortschritt („2 von 5“) zeigen. Die letzte Frage SHALL ein optionaler Freitext-Wunsch sein.

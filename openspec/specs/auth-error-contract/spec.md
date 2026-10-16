@@ -1,7 +1,7 @@
 # auth-error-contract Specification
 
 ## Purpose
-TBD - created by archiving change social-login-open-access. Update Purpose after archive.
+Anforderungen an auth error contract: Einheitliches Fehlerformat mit Code; Unterscheidung von 401 und 403; Zentrale Fehlerbehandlung im Frontend.
 ## Requirements
 ### Requirement: Einheitliches Fehlerformat mit Code
 

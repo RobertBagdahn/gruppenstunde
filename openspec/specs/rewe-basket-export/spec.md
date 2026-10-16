@@ -1,7 +1,7 @@
 # rewe-basket-export Specification
 
 ## Purpose
-Specification of rewe-basket-export.
+Anforderungen an rewe basket export: Export-Token Erzeugung; Artikel-Export via Token; Export-Status pro Artikel.
 
 ## Requirements
 ### Requirement: Export-Token Erzeugung

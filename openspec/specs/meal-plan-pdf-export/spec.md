@@ -1,7 +1,7 @@
 # meal-plan-pdf-export Specification
 
 ## Purpose
-Specification of meal-plan-pdf-export.
+Anforderungen an meal plan pdf export: Deckblatt mit Logo und Metadaten; Personenliste mit Allergien und Besonderheiten; Tag-pro-Seite Layout mit Running Headers.
 
 ## Requirements
 ### Requirement: Deckblatt mit Logo und Metadaten

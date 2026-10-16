@@ -1,7 +1,7 @@
 # suggestion-trait-derivation Specification
 
 ## Purpose
-TBD - created by archiving change meal-suggestion-panel. Update Purpose after archive.
+Anforderungen an suggestion trait derivation: Derived traits; Unknown handling; Standalone food backfill.
 ## Requirements
 ### Requirement: Derived traits
 Das System SHALL für Rezepte und Zutaten die Merkmale süß/herzhaft (Zuckeranteil je 100 g), Vorbereitung, kinderfreundlich, Kochquelle und frisch/haltbar aus vorhandenen Feldern ableiten und fehlende Merkmale als Tags ergänzen. `child_score` mit Platzhalterwert `1` SHALL nicht als Kinderfreundlichkeits-Signal gelten.

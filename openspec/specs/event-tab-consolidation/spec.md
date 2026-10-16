@@ -1,7 +1,7 @@
 # event-tab-consolidation Specification
 
 ## Purpose
-Specification of event-tab-consolidation.
+Anforderungen an event tab consolidation: Consolidated tab structure from 12 to 7 tabs; Übersicht tab combines overview and registration info; Teilnehmende tab with role toggle.
 
 ## Requirements
 ### Requirement: Consolidated tab structure from 12 to 7 tabs

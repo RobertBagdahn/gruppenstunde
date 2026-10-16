@@ -1,7 +1,7 @@
 # number-formatting Specification
 
 ## Purpose
-TBD - created by archiving change meal-plan-integrity-and-number-formatting. Update Purpose after archive.
+Anforderungen an number formatting: Zentrales Formatierungsmodul; Pluralisierung; Keine lokalen Zahlenformatierungen.
 ## Requirements
 ### Requirement: Zentrales Formatierungsmodul
 Das Food-Frontend MUST alle angezeigten Zahlen, Beträge, Gewichte und Zähler über `frontend-food/src/lib/format.ts` formatieren. Das Modul SHALL `Intl.NumberFormat('de-DE')` verwenden und mindestens bereitstellen: `formatNumber(value, {maxDecimals})`, `formatEuro(value)`, `formatWeight(grams)`, `formatExactWeight(grams)`, `formatCount(count)`, `plural(count, singular, pluralForm)`. Ganzzahlen MUST ohne Nachkommastellen erscheinen („15“ statt „15.0“).

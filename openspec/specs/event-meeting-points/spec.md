@@ -1,3 +1,8 @@
+# event-meeting-points Specification
+
+## Purpose
+Anforderungen an event meeting points: MeetingPoint model with user and group ownership; MeetingPoint update restricted to creator and group admin; MeetingPoint visibility restricted to owner and group members.
+
 ## Requirements
 
 ### Requirement: MeetingPoint model with user and group ownership

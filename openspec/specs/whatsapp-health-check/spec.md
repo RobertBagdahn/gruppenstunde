@@ -1,7 +1,7 @@
 # whatsapp-health-check Specification
 
 ## Purpose
-Specification of whatsapp-health-check.
+Anforderungen an whatsapp health check: Send test message to own number; Active connection health check; Reconnect WhatsApp session.
 
 ## Requirements
 ### Requirement: Send test message to own number

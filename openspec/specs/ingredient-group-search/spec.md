@@ -1,7 +1,7 @@
 # ingredient-group-search Specification
 
 ## Purpose
-Specification of ingredient-group-search.
+Anforderungen an ingredient group search: IngredientGroup Model; IngredientGroups CRUD API; Ingredient search via groups.
 
 ## Requirements
 ### Requirement: IngredientGroup Model

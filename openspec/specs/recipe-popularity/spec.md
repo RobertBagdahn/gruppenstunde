@@ -1,7 +1,7 @@
 # recipe-popularity Specification
 
 ## Purpose
-Specification of recipe-popularity.
+Anforderungen an recipe popularity: Recipe usage count tracking; Popular recipes API endpoint; Popular recipe response schema.
 
 ## Requirements
 ### Requirement: Recipe usage count tracking

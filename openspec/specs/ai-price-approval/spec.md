@@ -1,7 +1,7 @@
 # ai-price-approval Specification
 
 ## Purpose
-TBD - created by archiving change add-ai-price-approval. Update Purpose after archive.
+Anforderungen an ai price approval: AI proposes missing ingredient prices; User approves global price; Proposal authorization.
 ## Requirements
 ### Requirement: AI proposes missing ingredient prices
 The system SHALL generate a structured price proposal in EUR per kilogram for ingredients with missing prices. Data-quality batch evaluation SHALL reuse or create the same pending `IngredientPriceProposal` records as the ingredient detail workflow.

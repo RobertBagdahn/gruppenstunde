@@ -1,7 +1,7 @@
 # meal-item-overrides Specification
 
 ## Purpose
-Specification of meal-item-overrides.
+Anforderungen an meal item overrides: MealItemOverride Model; Meal Item Overrides API; Shopping List Respects Overrides.
 
 ## Requirements
 ### Requirement: MealItemOverride Model

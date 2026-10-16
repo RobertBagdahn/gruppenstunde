@@ -3,8 +3,7 @@
 ## Purpose
 Defines embedding generation for Ingredients on save, pgvector storage, and embedding-based duplicate detection.
 
-## MODIFIED Requirements
-
+## Requirements
 ### Requirement: Ingredient has pgvector embedding field
 Das Ingredient-Modell SHALL ein `embedding` Feld vom Typ `VectorField` haben, dessen Dimension durch das aktuell konfigurierte Embedding-Modell bestimmt wird (experimentell validiert, siehe Design-Dokument). Zusätzlich SHALL ein `embedding_updated_at` DateTimeField und ein `embedding_text_hash` CharField (SHA-256-Hash des zuletzt eingebetteten Texts) existieren.
 
@@ -36,11 +35,6 @@ Das Ingredient-Modell SHALL ein `embedding` Feld vom Typ `VectorField` haben, de
 - **THEN** SHALL der Text ausschließlich enthalten: `name`, `description` (falls vorhanden, gekürzt auf 2000 Zeichen), und die Warengruppe (`retail_section.name`, falls vorhanden)
 - **THEN** SHALL KEINE Nährwerte, Scores, Preis, Lagerungs-, Saison- oder Tag-Informationen im Text enthalten sein
 - **THEN** SHALL der Text KEIN rohes JSON sein, sondern strukturierte natürliche Sprache (z.B. "Zutat: Schweinebauch. Frisches Bauchfleisch vom Schwein. Abteilung: Fleisch & Wurst.")
-
-### Requirement: Ingredient search vector
-**Reason**: Das `search_vector`-Feld wurde nie befüllt (kein GIN-Index, keine Volltextsuche nutzt es), da `Ingredient` das generische `Content`-Pattern nie geerbt hat, aus dem das Feld ursprünglich übernommen wurde. Es ist totes Gewicht in Modell und Datenbank.
-
-**Migration**: Django-Migration entfernt das `search_vector`-Feld von `Ingredient`. Vor der Migration wird verifiziert, dass keine Query/Index/API im Repository das Feld referenziert. Bestehende Zutaten-Suche (Fuzzy-Match via `pg_trgm`, siehe `ingredient-fuzzy-match`) ist von der Entfernung nicht betroffen, da sie das Feld nie genutzt hat.
 
 ### Requirement: Embedding-basierte Zutaten-Duplikatsuche
 Das System SHALL eine API bereitstellen, die ähnliche Zutaten basierend auf einer kalibrierten %-Ähnlichkeit der Embeddings findet.

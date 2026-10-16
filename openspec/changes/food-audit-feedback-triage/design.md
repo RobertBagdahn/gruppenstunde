@@ -25,7 +25,7 @@ Die bestehende Omnibar-Spezifikation (`openspec/specs/meal-planner-omnibar-searc
 
 ### Buffet-Builder – Peters Fall
 
-Verschoben nach `peter-food-feedback-exploration` (Tasks 2.3, 2.3a, 3.2). Die folgenden Vorgaben gelten dort weiter.
+Verschoben nach `docs/explorations/peter-food-feedback` (Tasks 2.3, 2.3a, 3.2). Die folgenden Vorgaben gelten dort weiter.
 
 Vor Ausführung zu ergänzen: Plan beziehungsweise reproduzierbarer Testdatensatz, ausführende Benutzerrolle/Berechtigung, Mahlzeit, Buffet-Vorlage und -Rolle, Suchbegriff, erwartetes Ergebnis.
 

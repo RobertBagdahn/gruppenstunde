@@ -5,7 +5,7 @@
 > statt `MealItemSplit`. Siehe `openspec/changes/variant-items/`.
 
 ## Purpose
-Specification of recipe-optional-items.
+Anforderungen an recipe optional items: Rezeptautor kann Zutaten als optional markieren; Optionale Zutaten in der Rezeptansicht anzeigen; Default-Verhalten ohne Variante.
 
 ## Requirements
 ### Requirement: Rezeptautor kann Zutaten als optional markieren
@@ -59,7 +59,7 @@ Wenn ein MealItem keine Varianten-Einträge für eine optionale Zutat in `active
 
 ### Requirement: Delete-Protection über active_recipe_item_ids
 
-Die Delete-Protection für optionale Zutaten wurde von `MealItemSplit`-FK (PROTECT) auf `MealItem.active_recipe_item_ids`-JSON-Contains-Query umgestellt.
+Die Delete-Protection für optionale Zutaten SHALL über eine JSON-Contains-Query auf `MealItem.active_recipe_item_ids` erfolgen (statt über den früheren `MealItemSplit`-FK mit PROTECT).
 
 #### Scenario: Optional-Flag-Entfernung mit aktiven Varianten über active_recipe_item_ids blockiert
 

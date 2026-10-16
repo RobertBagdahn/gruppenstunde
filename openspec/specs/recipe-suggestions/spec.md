@@ -1,9 +1,14 @@
+# recipe-suggestions Specification
+
+## Purpose
+Anforderungen an recipe suggestions: Rezept-Vorschläge beim Öffnen des Suchfelds; Suche ab erstem Buchstaben; Sortierung nach Verwendungshäufigkeit.
+
 ## Requirements
 
 <!-- Modified from recipe-search-enhancement -->
 
 ### Requirement: Rezept-Vorschläge beim Öffnen des Suchfelds
-Das System MUSS beim Öffnen des Rezept-Suchfelds sofort bis zu 10 Rezept-Vorschläge anzeigen, sortiert nach globaler Verwendungshäufigkeit in Essensplänen, bei Gleichstand nach Preis (günstiger zuerst).
+Das System MUST beim Öffnen des Rezept-Suchfelds sofort bis zu 10 Rezept-Vorschläge anzeigen, sortiert nach globaler Verwendungshäufigkeit in Essensplänen, bei Gleichstand nach Preis (günstiger zuerst).
 
 #### Scenario: Suchfeld öffnen ohne Eingabe
 - **WHEN** User den "+"-Button bei einer Mahlzeit klickt
@@ -14,7 +19,7 @@ Das System MUSS beim Öffnen des Rezept-Suchfelds sofort bis zu 10 Rezept-Vorsch
 - **THEN** werden primär Rezepte angezeigt die häufig in Frühstücks-Mahlzeiten (inkl. dessert) verwendet werden, aufgefüllt mit global häufigen Rezepten falls weniger als 10 typspezifische existieren
 
 ### Requirement: Suche ab erstem Buchstaben
-Das System MUSS Suchergebnisse ab dem ersten eingegebenen Buchstaben liefern, mit 200ms Debounce.
+Das System MUST Suchergebnisse ab dem ersten eingegebenen Buchstaben liefern, mit 200ms Debounce.
 
 #### Scenario: Ein Buchstabe eingegeben
 - **WHEN** User einen einzelnen Buchstaben "P" eingibt und 200ms vergehen
@@ -25,7 +30,7 @@ Das System MUSS Suchergebnisse ab dem ersten eingegebenen Buchstaben liefern, mi
 - **THEN** wird nur ein API-Request nach 200ms Pause gesendet (Debounce)
 
 ### Requirement: Sortierung nach Verwendungshäufigkeit
-Alle Rezept-Vorschläge und Suchergebnisse MÜSSEN nach globaler Verwendungshäufigkeit in Essensplänen sortiert sein (häufigste zuerst), bei Gleichstand nach Preis (günstiger zuerst, NULLS LAST).
+Alle Rezept-Vorschläge und Suchergebnisse MUST nach globaler Verwendungshäufigkeit in Essensplänen sortiert sein (häufigste zuerst), bei Gleichstand nach Preis (günstiger zuerst, NULLS LAST).
 
 #### Scenario: Sortierung der Vorschläge
 - **WHEN** Vorschläge angezeigt werden (mit oder ohne Suchtext)
@@ -36,7 +41,7 @@ Alle Rezept-Vorschläge und Suchergebnisse MÜSSEN nach globaler Verwendungshäu
 - **THEN** wird die Anzahl der Verwendungen als Badge angezeigt (z.B. "12x")
 
 ### Requirement: API-Endpunkt für Vorschläge
-Das System MUSS einen API-Endpunkt bereitstellen der Rezept-Vorschläge nach Häufigkeit liefert. Vorschläge MÜSSEN recipe_badge, price_per_serving und recipe_type enthalten.
+Das System MUST einen API-Endpunkt bereitstellen der Rezept-Vorschläge nach Häufigkeit liefert. Vorschläge MUST recipe_badge, price_per_serving und recipe_type enthalten.
 
 #### Scenario: Request ohne Suchtext
 - **WHEN** `GET /api/meal-plans/recipes/suggestions/?meal_type=breakfast&limit=10` aufgerufen wird
@@ -49,14 +54,14 @@ Das System MUSS einen API-Endpunkt bereitstellen der Rezept-Vorschläge nach Hä
 <!-- Added from recipe-search-enhancement -->
 
 ### Requirement: Fallback auf alle Rezepttypen bei leeren Vorschlägen
-Wenn kategoriespezifische Vorschläge weniger als `limit` Ergebnisse liefern, MUSS der Endpoint mit Ergebnissen aus allen recipe_types auffüllen (ohne Duplikate). Der Response MUSS `fallback_applied: true` enthalten.
+Wenn kategoriespezifische Vorschläge weniger als `limit` Ergebnisse liefern, MUST der Endpoint mit Ergebnissen aus allen recipe_types auffüllen (ohne Duplikate). Der Response MUST `fallback_applied: true` enthalten.
 
 #### Scenario: Keine Frühstücks-Vorschläge
 - **WHEN** keine Rezepte vom Typ breakfast+dessert existieren
 - **THEN** werden Rezepte aus allen recipe_types zurückgegeben mit fallback_applied: true
 
 ### Requirement: Harter Diät-Filter für Vorschläge
-Der Vorschlags-Endpoint MUSS den Query-Parameter `require_nutritional_tags` unterstützen. Wenn `true`, werden nur Rezepte zurückgegeben die ALLE in `nutritional_tag_ids` spezifizierten Tags haben (AND).
+Der Vorschlags-Endpoint MUST den Query-Parameter `require_nutritional_tags` unterstützen. Wenn `true`, werden nur Rezepte zurückgegeben die ALLE in `nutritional_tag_ids` spezifizierten Tags haben (AND).
 
 #### Scenario: Vegan-Filter aktiv
 - **WHEN** `require_nutritional_tags=true&nutritional_tag_ids=1` (vegan)
@@ -67,7 +72,7 @@ Der Vorschlags-Endpoint MUSS den Query-Parameter `require_nutritional_tags` unte
 - **THEN** werden nur Rezepte zurückgegeben die BEIDE Tags haben
 
 ### Requirement: Zufalls-Vorschlag
-Der Vorschlags-Endpoint MUSS den Query-Parameter `random=true` unterstützen. Bei `random=true` wird EIN zufälliges Rezept aus den Top-20 Ergebnissen (nach Ranking + Filter) zurückgegeben.
+Der Vorschlags-Endpoint MUST den Query-Parameter `random=true` unterstützen. Bei `random=true` wird EIN zufälliges Rezept aus den Top-20 Ergebnissen (nach Ranking + Filter) zurückgegeben.
 
 #### Scenario: Zufalls-Vorschlag
 - **WHEN** `GET /api/meal-plans/recipes/suggestions/?meal_type=lunch&random=true&limit=1`
@@ -78,7 +83,7 @@ Der Vorschlags-Endpoint MUSS den Query-Parameter `random=true` unterstützen. Be
 - **THEN** wird ein zufälliges veganes Rezept aus den Top-20 zurückgegeben
 
 ### Requirement: Erweiterte Vorschlags-Felder für Inline-Suche
-Jeder Vorschlag MUSS recipe_badge ("verified"|"community"|"draft"), price_per_serving (nullable), und recipe_type enthalten, damit die Inline-Suche die gleichen Informationen wie der Dialog anzeigen kann.
+Jeder Vorschlag MUST recipe_badge ("verified"|"community"|"draft"), price_per_serving (nullable), und recipe_type enthalten, damit die Inline-Suche die gleichen Informationen wie der Dialog anzeigen kann.
 
 #### Scenario: Vorschlag mit Ampel
 - **WHEN** ein Rezept in der Vorschlagsliste erscheint

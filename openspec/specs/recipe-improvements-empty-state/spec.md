@@ -1,3 +1,10 @@
+# recipe-improvements-empty-state Specification
+
+## Purpose
+Anforderungen an recipe improvements empty state: Backend klassifiziert leere Verbesserungslisten; Frontend zeigt erklärenden Leer-Zustand.
+
+## Requirements
+
 ### Requirement: Backend klassifiziert leere Verbesserungslisten
 
 Der `GET /api/recipes/{id}/improvements/`-Endpunkt SHALL stets ein `is_applicable`-Flag und ein befülltes `message`-Feld zurückgeben, wenn `items` leer ist. Der Grund für die leere Liste MUSS im `message`-Feld auf Deutsch erläutert werden.

@@ -3,7 +3,7 @@
 Grundlegende Such- und Anzeigefunktionalität der Rezeptsuche unter `/recipes`.
 
 ## Purpose
-Specification of recipe-search.
+Anforderungen an recipe search: Default origin is verified; Default sort by usage count; Draft recipes in "Meine Rezepte".
 
 ## Requirements
 ### Requirement: Default origin is verified

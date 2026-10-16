@@ -1,7 +1,7 @@
 # food-homepage Specification
 
 ## Purpose
-Specification of food-homepage.
+Anforderungen an food homepage: Food Dashboard API endpoint; Homepage displays module statistics; Homepage displays module feature cards.
 
 ## Requirements
 ### Requirement: Food Dashboard API endpoint

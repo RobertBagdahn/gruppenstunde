@@ -1,7 +1,7 @@
 # material-directory Specification
 
 ## Purpose
-TBD - created by archiving change recipe-materials-consumables. Update Purpose after archive.
+Anforderungen an material directory: Einheitliches Material-Verzeichnis; Materialfelder; Anlegen und Pflegen.
 ## Requirements
 ### Requirement: Einheitliches Material-Verzeichnis
 Das System SHALL Geräte und Verbrauchsmaterial ausschließlich als `Material` führen; `is_consumable` MUST Verbrauchsmaterial (Pappteller) von Geräten (Backofen) unterscheiden. Ein separates `Equipment`-Modell SHALL nicht existieren.

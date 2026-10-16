@@ -1,7 +1,7 @@
 # meal-suggestion-panel Specification
 
 ## Purpose
-TBD - created by archiving change meal-suggestion-panel. Update Purpose after archive.
+Anforderungen an meal suggestion panel: Suggestion panel with 16 cards; Directions per meal type; Recipes and single ingredients.
 ## Requirements
 ### Requirement: Suggestion panel with 16 cards
 Der Button „Was passt hier?“ SHALL ein Vorschlags-Panel öffnen, das bis zu 16 bildlose Karten in 4 Richtungen mit je bis zu 4 Karten zeigt. Jede Karte SHALL Name, Typ-Chip (Rezept/Zutat), Grund und Preis pro Person enthalten.

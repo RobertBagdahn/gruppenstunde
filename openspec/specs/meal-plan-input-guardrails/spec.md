@@ -1,7 +1,7 @@
 # meal-plan-input-guardrails Specification
 
 ## Purpose
-TBD - created by archiving change meal-plan-input-guardrails. Update Purpose after archive.
+Anforderungen an meal plan input guardrails: Plan-Einstellungen haben feste Wertebereiche; Mahlzeiten haben begrenzte Portionen und Tagesanteile; Mengen und Portionsgewichte sind begrenzt.
 ## Requirements
 ### Requirement: Plan-Einstellungen haben feste Wertebereiche
 Das System SHALL beim Anlegen, Ändern und Duplizieren eines Essensplans folgende Wertebereiche durchsetzen (Vorschlagswerte, vom Owner freizugeben): `reserve_factor` von 1,0 bis 2,0, `activity_factor` von 1,0 bis 2,5, jeder Wert in `day_part_factors` von 0 bis 1, Summe aller `day_part_factors` höchstens 1,5, `norm_portions` größer 0 bis 1000. Werte außerhalb MUST mit HTTP 422, einer deutschen Meldung mit dem erlaubten Bereich und `fields` abgelehnt werden; es wird nichts gespeichert. Bei PATCH SHALL nur die gesendeten Felder geprüft werden.

@@ -1,7 +1,7 @@
 # recipe-folders Specification
 
 ## Purpose
-Specification of recipe-folders.
+Anforderungen an recipe folders: RecipeFolder Model; Recipe Folder Assignment; Recipe Folders CRUD API.
 
 ## Requirements
 ### Requirement: RecipeFolder Model

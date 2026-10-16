@@ -1,7 +1,7 @@
 # event-parent-access Specification
 
 ## Purpose
-Specification of event-parent-access.
+Anforderungen an event parent access: ParentAccessToken model; Parent view page route; Parent view API endpoint.
 
 ## Requirements
 ### Requirement: ParentAccessToken model

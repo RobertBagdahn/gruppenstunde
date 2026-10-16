@@ -1,7 +1,7 @@
 # content-collaborator Specification
 
 ## Purpose
-Specification of content-collaborator.
+Anforderungen an content collaborator: ContentCollaborator Model; Collaborator role permissions; Collaborator visibility is irrelevant for verified content.
 
 ## Requirements
 ### Requirement: ContentCollaborator Model

@@ -1,7 +1,7 @@
 # recipe-rules-display Specification
 
 ## Purpose
-TBD - created by archiving change recipe-rules-box. Update Purpose after archive.
+Anforderungen an recipe rules display: Backend liefert alle Rezeptregeln mit Status; Werte werden pro Portion bereitgestellt; Nutri-Class wird als Buchstabe dargestellt.
 ## Requirements
 ### Requirement: Backend liefert alle Rezeptregeln mit Status
 

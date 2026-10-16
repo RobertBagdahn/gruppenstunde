@@ -1,7 +1,7 @@
 # nutrition-unit-badges Specification
 
 ## Purpose
-Specification of nutrition-unit-badges.
+Anforderungen an nutrition unit badges: Nutrition base badges on recipe detail page; Verbesserungsvorschläge mit Badge; Recipe Rules mit Badge.
 
 ## Requirements
 ### Requirement: Nutrition base badges on recipe detail page

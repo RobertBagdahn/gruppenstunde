@@ -1,11 +1,11 @@
 # kitchen-unit-display Specification
 
 ## Purpose
-Specification of kitchen-unit-display.
+Anforderungen an kitchen unit display: Einheiten-Umschalter pro Zutat im Rezept; Batch-Laden der verfügbaren Umrechnungen.
 
 ## Requirements
 ### Requirement: Einheiten-Umschalter pro Zutat im Rezept
-Das System MUSS auf der Rezept-Detailseite pro Zutat einen Umschalter anbieten, der die Menge in alternativen Küchenmaßeinheiten anzeigt.
+Das System MUST auf der Rezept-Detailseite pro Zutat einen Umschalter anbieten, der die Menge in alternativen Küchenmaßeinheiten anzeigt.
 
 #### Scenario: Zutat mit verfügbaren Umrechnungen
 - **WHEN** eine Zutat eine konvertierbare Einheit hat (g oder ml) und Umrechnungen verfügbar sind
@@ -28,7 +28,7 @@ Das System MUSS auf der Rezept-Detailseite pro Zutat einen Umschalter anbieten, 
 - **THEN** SOLL ein visueller Hinweis "(ca.)" angezeigt werden
 
 ### Requirement: Batch-Laden der verfügbaren Umrechnungen
-Das System MUSS alle verfügbaren Umrechnungen für alle Zutaten eines Rezepts in einem einzigen API-Call laden können.
+Das System MUST alle verfügbaren Umrechnungen für alle Zutaten eines Rezepts in einem einzigen API-Call laden können.
 
 #### Scenario: Rezept-Detailseite wird geladen
 - **WHEN** die Rezept-Detailseite geöffnet wird

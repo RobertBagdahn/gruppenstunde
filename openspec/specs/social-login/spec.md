@@ -1,7 +1,7 @@
 # social-login Specification
 
 ## Purpose
-TBD - created by archiving change social-login-open-access. Update Purpose after archive.
+Anforderungen an social login: Ausschließlich Social Login; Login-Flow mit sicherem Rücksprung; Automatische Kontoanlage und -verknüpfung.
 ## Requirements
 ### Requirement: Ausschließlich Social Login
 

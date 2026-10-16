@@ -1,7 +1,7 @@
 # meal-plan-contiguity Specification
 
 ## Purpose
-Specification of meal-plan-contiguity.
+Anforderungen an meal plan contiguity: Contiguous date range validation; Auto-extend range on add-day; Edge-only day deletion.
 
 ## Requirements
 ### Requirement: Contiguous date range validation

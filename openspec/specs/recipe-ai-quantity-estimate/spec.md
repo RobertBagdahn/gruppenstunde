@@ -1,8 +1,7 @@
 # recipe-ai-quantity-estimate Specification
 
 ## Purpose
-Specification of recipe-ai-quantity-estimate.
-
+Anforderungen an recipe ai quantity estimate: AI quantity estimate endpoint; Estimate uses live rank=1 portion, never a deleted or stale portion; Frontend applies estimate with portion and quantity atomically.
 ## Requirements
 ### Requirement: AI quantity estimate endpoint
 The system SHALL provide an API endpoint `POST /api/recipes/{recipe_id}/estimate-quantities/` that uses Gemini Flash to estimate realistic gram-amounts per person for all existing `RecipeItem`s of a recipe.
@@ -75,3 +74,29 @@ When a `RecipeItem` is updated as part of applying an AI quantity estimate, the 
 #### Scenario: Sub-gram floating-point variation passes the check
 - **WHEN** the resulting gram amount differs from the AI estimate by less than 2g (e.g. expected 1.0g, result 0.99g due to floating-point scaling)
 - **THEN** the update SHALL be persisted normally as this is within the minimum tolerance floor
+
+### Requirement: Passende eigene Portion wird eins zu eins übernommen
+Entspricht die importierte Einheit dem Namen oder der Messeinheit einer aktiven Portion der Zutat mit vertrauenswürdigem Gewicht, SHALL die vorgeschlagene Portionszahl der importierten Menge entsprechen (geteilt durch die Portionsmenge), ohne Umweg über Gramm. Eine leere Einheit oder „Stück“ mit Stückportion MUST die Menge unverändert als Portionszahl liefern. Die Review-Zeile MUST genau die Portion als gewählte Portion übernehmen, zu der die Portionszahl berechnet wurde, auch wenn sie nicht Rang 1 hat.
+
+#### Scenario: 2 EL Olivenöl
+- **WHEN** „2 EL Olivenöl“ importiert wird und `Olivenöl` eine Portion „Esslöffel“ hat
+- **THEN** beträgt die vorgeschlagene Portionszahl 2
+- **AND** nicht 1,84
+
+#### Scenario: 1 Zwiebel
+- **WHEN** „1 Zwiebel“ importiert wird und `Zwiebel` eine Portion „mittelgroße Zwiebel“ hat
+- **THEN** beträgt die vorgeschlagene Portionszahl 1
+- **AND** nicht 1,25
+
+#### Scenario: Einheit ohne passende Portion
+- **WHEN** die Einheit zu keiner Portion der Zutat passt (z. B. `g`, `Dose`)
+- **THEN** bleibt die bisherige Umrechnung über Gramm erhalten
+
+#### Scenario: Portion ohne vertrauenswürdiges Gewicht
+- **WHEN** die passende Portion kein vertrauenswürdiges Gewicht hat
+- **THEN** wird der Direktabgleich übersprungen und der bisherige Weg genutzt
+
+#### Scenario: Passende Portion liegt nicht auf Rang 1
+- **WHEN** „2 EL Olivenöl“ importiert wird und `Olivenöl` die Portionen „Flasche“ (Rang 1) und „Esslöffel“ (Rang 2) hat
+- **THEN** wählt die Review-Zeile die Portion „Esslöffel“ mit Portionszahl 2
+- **AND** nicht 2 × „Flasche“

@@ -1,3 +1,8 @@
+# meal-plan-list-tabs Specification
+
+## Purpose
+Anforderungen an meal plan list tabs: Drei-Tab-Ansicht in der Essensplan-Liste; Referenzplan-Markierung durch Admin.
+
 ## Requirements
 
 ### Requirement: Drei-Tab-Ansicht in der Essensplan-Liste

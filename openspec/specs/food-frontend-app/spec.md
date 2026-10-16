@@ -1,7 +1,7 @@
 # food-frontend-app Specification
 
 ## Purpose
-Specification of food-frontend-app.
+Anforderungen an food frontend app: Food app runs as independent Vite application; Food app contains all food-domain pages; Food app has own navigation layout.
 
 ## Requirements
 ### Requirement: Food app runs as independent Vite application

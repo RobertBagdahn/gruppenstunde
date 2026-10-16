@@ -1,5 +1,9 @@
 # infrastructure Specification
 
+## Purpose
+Anforderungen an infrastructure: Ziel-Architektur; Same-Origin API-Routing; Cookie-SameSite für Same-Origin.
+
+## Requirements
 ### Requirement: Ziel-Architektur
 
 Das System SHALL folgende Cloud-Architektur verwenden.
@@ -22,10 +26,6 @@ Das System SHALL folgende Cloud-Architektur verwenden.
 - `inspi-backend`: west3 → **west1**
 - `inspi-db`: west3 → **west1**
 
-## Purpose
-Specification of infrastructure.
-
-## Requirements
 ### Requirement: Same-Origin API-Routing
 
 Frontend-API-Calls SHALL über den nginx-Proxy der eigenen Cloud-Run-Service laufen, nicht direkt per Cross-Origin-Request zum Backend.

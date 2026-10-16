@@ -1,7 +1,7 @@
 # cooking-schedule-nutrition Specification
 
 ## Purpose
-Specification of cooking-schedule-nutrition.
+Anforderungen an cooking schedule nutrition: Nährwerte pro Mahlzeit im Kochplan; Nährwert-Anzeige im Frontend.
 
 ## Requirements
 ### Requirement: Nährwerte pro Mahlzeit im Kochplan

@@ -1,7 +1,7 @@
 # ingredient-url-import Specification
 
 ## Purpose
-Specification of ingredient-url-import.
+Anforderungen an ingredient url import: URL-Import-Endpoint für Zutaten; URL-Import-Modus im Ingredient-Stepper; Frontend-Hook für URL-Import von Zutaten.
 
 ## Requirements
 ### Requirement: URL-Import-Endpoint für Zutaten
@@ -29,7 +29,7 @@ Das System SHALL einen POST-Endpoint unter `/api/ingredients/import-from-url/` b
 ---
 
 ### Requirement: URL-Import-Modus im Ingredient-Stepper
-Der URL-Import-Modus erscheint als dritte Karte in Step 0 des `ContentStepper` auf der `/ingredients/new`-Page, analog zum URL-Import bei Rezepten. Ein Modal mit URL-Eingabe öffnet sich, ruft den Endpoint auf und springt bei Erfolg direkt zu Step 1 mit vorausgefüllten Feldern.
+Der URL-Import-Modus SHALL als dritte Karte erscheinen, und zwar in Step 0 des `ContentStepper` auf der `/ingredients/new`-Page, analog zum URL-Import bei Rezepten. Ein Modal mit URL-Eingabe öffnet sich, ruft den Endpoint auf und springt bei Erfolg direkt zu Step 1 mit vorausgefüllten Feldern.
 
 #### Scenario: User selects "Mit Link" in Step 0
 - **WHEN** a user clicks the "Mit Link" card in Step 0

@@ -1,7 +1,7 @@
 # ingredient-fuzzy-match Specification
 
 ## Purpose
-Specification of ingredient-fuzzy-match.
+Anforderungen an ingredient fuzzy match: Ingredient Fuzzy Match API; Frontend Unknown Ingredient Dialog.
 
 ## Requirements
 ### Requirement: Ingredient Fuzzy Match API

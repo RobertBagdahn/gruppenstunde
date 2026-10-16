@@ -1,7 +1,7 @@
 # food-loading-states Specification
 
 ## Purpose
-TBD - created by archiving change food-frontend-friendly-ux. Update Purpose after archive.
+Anforderungen an food loading states: Inhaltsförmige Skeletons; Abschnitte laden unabhängig und erscheinen nacheinander; Öffentliche Listen warten nicht auf die Anmeldung.
 ## Requirements
 ### Requirement: Inhaltsförmige Skeletons
 Jede Seite und jeder eigenständig ladende Abschnitt im Food-Frontend SHALL während des ersten Ladens ein Skeleton zeigen, das die Form des späteren Inhalts nachbildet (Kopf, Karten, Tabellenzeilen, Formularfelder). Skeletons MUST aus der gemeinsamen Komponente `Skeleton` (`components/ui/skeleton.tsx`) und deren Varianten aufgebaut sein. Ganzseitige Spinner und reine Ladetexte („Laden...“, „Lade …“, „Wird geladen …“) SHALL NOT als Ladezustand eines Inhaltsbereichs verwendet werden. Ein Spinner ist nur innerhalb eines Buttons während einer laufenden Aktion erlaubt.

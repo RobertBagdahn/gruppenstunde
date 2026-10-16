@@ -1,3 +1,10 @@
+# ingredient-portion-ai-apply Specification
+
+## Purpose
+Anforderungen an ingredient portion ai apply: Atomarer Endpoint zum Übernehmen von KI-Portionsvorschlägen.
+
+## Requirements
+
 ### Requirement: Atomarer Endpoint zum Übernehmen von KI-Portionsvorschlägen
 
 Das System SHALL einen POST-Endpoint `/api/ingredients/{slug}/portions/ai-apply/` bereitstellen, der ausgewählte KI-Portionsvorschläge (inkl. `measuring_unit_name`, aufgelöst zu `measuring_unit_id`) in einer einzigen Datenbank-Transaktion anlegt. Der Endpoint SHALL einen optionalen Parameter `replace_all: bool` (Standard: `false`) akzeptieren.

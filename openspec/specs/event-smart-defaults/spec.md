@@ -1,5 +1,9 @@
 # event-smart-defaults Specification
 
+## Purpose
+Anforderungen an event smart defaults: Default event name with auto-incrementing number; Default dates calculated client-side; Default registration deadline from start date.
+
+## Requirements
 ### Requirement: Default event name with auto-incrementing number
 The event creation form SHALL pre-fill the event name with "Mein Lager" followed by an auto-incrementing number based on the user's existing events. The number SHALL be determined via an API call.
 
@@ -69,10 +73,6 @@ The event creation form SHALL automatically set the registration deadline to the
 - **THEN** the system SHALL NOT overwrite the user's choice on subsequent start date changes
 - **THEN** the auto-fill SHALL only apply when the deadline has not been manually edited
 
-## Purpose
-Specification of event-smart-defaults.
-
-## Requirements
 ### Requirement: Auto-fill end date from start date
 The event creation form SHALL automatically set the end date when a start date is selected.
 
@@ -129,8 +129,6 @@ All smart defaults SHALL be calculated on the client-side without requiring serv
 - **WHEN** the event creation form is initialized
 - **THEN** only one API call SHALL be made: `GET /api/events/?created-by=me`
 - **THEN** this call SHALL be used to determine the next "Mein Lager" number
-
-## Auto Free Booking Option
 
 ### Requirement: Automatic system booking option creation
 The system SHALL automatically create a system BookingOption with price 0 EUR for every event. The system BookingOption SHALL have the name "Kostenlos (Organisator)" and SHALL be marked with `is_system=True`.

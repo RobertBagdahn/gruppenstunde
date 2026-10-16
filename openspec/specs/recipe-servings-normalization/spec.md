@@ -1,7 +1,7 @@
 # recipe-servings-normalization Specification
 
 ## Purpose
-TBD - created by archiving change recipe-wizard-step-model. Update Purpose after archive.
+Anforderungen an recipe servings normalization: Normierung pro Portion im Backend; Original-Personenzahl wird gespeichert.
 ## Requirements
 ### Requirement: Normierung pro Portion im Backend
 `POST /api/recipes/` SHALL ein Feld `input_servings` (Ganzzahl 1–100) annehmen. Werden `recipe_items` oder `ingredient_review_rows` übergeben, MUST `input_servings` gesetzt sein, sonst antwortet das System mit 422. Das Backend MUST jede übergebene Menge durch `input_servings` teilen und das Rezept mit `portions=1` speichern. Clients MUST Mengen als Gesamtmengen für `input_servings` Personen senden.

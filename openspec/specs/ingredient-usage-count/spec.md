@@ -1,7 +1,7 @@
 # ingredient-usage-count Specification
 
 ## Purpose
-Specification of ingredient-usage-count.
+Anforderungen an ingredient usage count: Ingredient usage_count field; Backfill ingredient usage_count; Ingredient usage_count exposed in API.
 
 ## Requirements
 ### Requirement: Ingredient usage_count field

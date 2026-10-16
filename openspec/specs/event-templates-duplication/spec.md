@@ -1,7 +1,7 @@
 # event-templates-duplication Specification
 
 ## Purpose
-Specification of event-templates-duplication.
+Anforderungen an event templates duplication: Event template flag; Template list endpoint; Template section in event list UI.
 
 ## Requirements
 ### Requirement: Event template flag

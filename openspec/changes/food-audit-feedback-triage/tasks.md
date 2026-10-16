@@ -14,7 +14,7 @@
 
 - [x] 3.1 Omnibar mit mehr als fünf Treffern pro Gruppe prüfen: maximal fünf pro Gruppe in „Alle“ und „Alle anzeigen“ öffnet die vollständige Kategorie (vom Nutzer als vorhanden und getestet bestätigt; automatisierter Regressionstest ist ebenfalls vorhanden).
 
-Peters Plan-/Rollenfall im Buffet-Builder (früher 2.4 und 3.2–3.4) wird seit 2026-10-11 ausschließlich in `peter-food-feedback-exploration` (Tasks 2.3, 2.3a und 3.2) geführt.
+Peters Plan-/Rollenfall im Buffet-Builder (früher 2.4 und 3.2–3.4) wird seit 2026-10-11 ausschließlich in `docs/explorations/peter-food-feedback` (Tasks 2.3, 2.3a und 3.2) geführt.
 
 ## 4. Umsetzung nach Klärung
 

@@ -1,7 +1,7 @@
 # event-messaging Specification
 
 ## Purpose
-Specification of event-messaging.
+Anforderungen an event messaging: Send messages via channel selection; Preview message recipients before sending; Confirm each message individually.
 
 ## Requirements
 ### Requirement: Send messages via channel selection
@@ -141,8 +141,6 @@ The system SHALL support an optional `phone_number` field in the guest registrat
 #### Scenario: Guest phone number stored on participant
 - **WHEN** a guest submits a registration with a phone number
 - **THEN** the system SHALL store the phone number directly on the created `Participant` record
-
-## Mail
 
 ### Requirement: Send manual email to participants
 The system SHALL send manual emails from event organizers as HTML emails using the CI-branded email template instead of plain text. The `MailService.send_mail()` method SHALL resolve the event's group CI, render the `event_mail.html` template with CI data and placeholder-resolved content, and send both HTML and plain-text versions via `django.core.mail.send_mail(html_message=...)`. The placeholder resolution logic SHALL be extracted into a shared utility function used by both E-Mail and WhatsApp channels.

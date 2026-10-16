@@ -1,7 +1,7 @@
 # ref-meal Specification
 
 ## Purpose
-Specification of ref-meal.
+Anforderungen an ref meal: RefMeal erstellen; Meals mit RefMeal verknüpfen; RefMeal synchronisieren.
 
 ## Requirements
 ### Requirement: RefMeal erstellen

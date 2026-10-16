@@ -1,7 +1,7 @@
 # ingredient-packages Specification
 
 ## Purpose
-Specification of ingredient-packages.
+Anforderungen an ingredient packages: Package list on ingredient detail.
 
 ## Requirements
 ### Requirement: Package list on ingredient detail

@@ -1,7 +1,7 @@
 # meal-plan-drinks Specification
 
 ## Purpose
-Specification of meal-plan-drinks.
+Anforderungen an meal plan drinks: Drinks excluded from calorie day balance; Drinks included in cost and shopping list; Drinks appear in both views.
 
 ## Requirements
 ### Requirement: Drinks excluded from calorie day balance

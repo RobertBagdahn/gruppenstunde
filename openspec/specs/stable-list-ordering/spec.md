@@ -1,7 +1,7 @@
 # stable-list-ordering Specification
 
 ## Purpose
-TBD - created by archiving change food-audit-bugfixes. Update Purpose after archive.
+Anforderungen an stable list ordering: Eindeutige Reihenfolge paginierter Food-Listen; Reproduzierbarer Zufall; Serverseitiges Sortieren und Filtern der Einkaufslisten.
 ## Requirements
 ### Requirement: Eindeutige Reihenfolge paginierter Food-Listen
 Jeder paginierte Listen-Endpunkt des Food-Bereichs (`GET /api/recipes/`, `GET /api/shopping-lists/`, `GET /api/meal-plans/`, `GET /api/ingredients/`) MUST seine Ergebnisse vollständig und eindeutig sortieren. Jede Sortierung MUST mit dem Primärschlüssel als letztem Sortierkriterium enden. Beim Durchblättern aller Seiten mit `page=1..total_pages` und gleichem `page_size` MUST jeder Eintrag genau einmal erscheinen.

@@ -1,5 +1,8 @@
 # content-link-permissions Specification
 
+## Purpose
+Anforderungen an content link permissions: Content link creation requires read access to both ends.
+
 ## Requirements
 
 ### Requirement: Content link creation requires read access to both ends

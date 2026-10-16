@@ -1,7 +1,7 @@
 # event-attendance Specification
 
 ## Purpose
-Specification of event-attendance.
+Anforderungen an event attendance: AttendanceRecord model; Check-in endpoint; Check-out endpoint.
 
 ## Requirements
 ### Requirement: AttendanceRecord model

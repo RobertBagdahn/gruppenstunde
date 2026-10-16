@@ -1,7 +1,7 @@
 # shopping-list-source-freshness Specification
 
 ## Purpose
-TBD - created by archiving change shopping-list-source-freshness. Update Purpose after archive.
+Anforderungen an shopping list source freshness: Planbasierte Einkaufslisten sind Snapshots; Plan-Änderungen aktualisieren den Änderungszeitpunkt des Plans; Einkaufslisten liefern den Aktualitätsstatus ihres Quellplans.
 ## Requirements
 ### Requirement: Planbasierte Einkaufslisten sind Snapshots
 Eine aus einem Essensplan erzeugte Einkaufsliste SHALL ein unveränderlicher Snapshot der Planmengen zum Erstellzeitpunkt sein. Änderungen am Essensplan MUST NOT Einträge, abgehakte Positionen, manuelle Ergänzungen oder Quellenzuordnungen der Liste verändern.

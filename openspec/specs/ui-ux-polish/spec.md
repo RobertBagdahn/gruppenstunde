@@ -1,11 +1,11 @@
 # ui-ux-polish Specification
 
 ## Purpose
-Specification of ui-ux-polish.
+Anforderungen an ui ux polish: Konsistente Karten-Hover-Effekte; Breadcrumb-Navigation auf Unterseiten; Sticky Header mit Scroll-Shadow.
 
 ## Requirements
 ### Requirement: Konsistente Karten-Hover-Effekte
-Alle klickbaren Karten im System MÜSSEN einheitliche Hover-Effekte verwenden: `hover:-translate-y-1 transition-all duration-200 hover:shadow-md`.
+Alle klickbaren Karten im System MUST einheitliche Hover-Effekte verwenden: `hover:-translate-y-1 transition-all duration-200 hover:shadow-md`.
 
 #### Scenario: Karte mit Hover-Effekt
 - **WHEN** ein Nutzer mit der Maus über eine klickbare Karte fährt
@@ -13,7 +13,7 @@ Alle klickbaren Karten im System MÜSSEN einheitliche Hover-Effekte verwenden: `
 - **THEN** MUSS ein erhöhter Schatten sichtbar sein
 
 ### Requirement: Breadcrumb-Navigation auf Unterseiten
-Alle Unterseiten (Detail-Seiten, Erstellen-Seiten, Einstellungen) MÜSSEN eine Breadcrumb-Navigation anzeigen.
+Alle Unterseiten (Detail-Seiten, Erstellen-Seiten, Einstellungen) MUST eine Breadcrumb-Navigation anzeigen.
 
 #### Scenario: Detail-Seite mit Breadcrumbs
 - **WHEN** ein Nutzer eine Detail-Seite wie `/sessions/:slug` besucht
@@ -25,7 +25,7 @@ Alle Unterseiten (Detail-Seiten, Erstellen-Seiten, Einstellungen) MÜSSEN eine B
 - **THEN** MUSS eine Breadcrumb-Zeile angezeigt werden (z.B. "Start > Erstellen > Gruppenstunde")
 
 ### Requirement: Sticky Header mit Scroll-Shadow
-Der Desktop-Header MUSS sticky sein und beim Scrollen einen subtilen Schatten anzeigen.
+Der Desktop-Header MUST sticky sein und beim Scrollen einen subtilen Schatten anzeigen.
 
 #### Scenario: Header wird sticky beim Scrollen
 - **WHEN** ein Nutzer die Seite nach unten scrollt
@@ -37,7 +37,7 @@ Der Desktop-Header MUSS sticky sein und beim Scrollen einen subtilen Schatten an
 - **THEN** DARF der Header keinen Schatten haben
 
 ### Requirement: Aktive Route-Hervorhebung
-Die aktive Route MUSS in allen Navigations-Varianten (Desktop-Nav, Mobile-Bottom-Nav, Hamburger-Menü) konsistent visuell hervorgehoben werden.
+Die aktive Route MUST in allen Navigations-Varianten (Desktop-Nav, Mobile-Bottom-Nav, Hamburger-Menü) konsistent visuell hervorgehoben werden.
 
 #### Scenario: Desktop-Nav aktive Route
 - **WHEN** ein Nutzer auf `/events` ist
@@ -48,7 +48,7 @@ Die aktive Route MUSS in allen Navigations-Varianten (Desktop-Nav, Mobile-Bottom
 - **THEN** MUSS das "Aktionen"-Icon in der Bottom-Nav farbig hervorgehoben sein
 
 ### Requirement: Einheitliche Seitenüberschriften
-Alle Hauptseiten MÜSSEN ein konsistentes Header-Pattern verwenden: Material-Symbol-Icon + Titel + optionaler Untertitel.
+Alle Hauptseiten MUST ein konsistentes Header-Pattern verwenden: Material-Symbol-Icon + Titel + optionaler Untertitel.
 
 #### Scenario: Seite mit einheitlichem Header
 - **WHEN** ein Nutzer eine Hauptseite (z.B. Sessions, Events, Rezepte) besucht
@@ -56,7 +56,7 @@ Alle Hauptseiten MÜSSEN ein konsistentes Header-Pattern verwenden: Material-Sym
 - **THEN** MUSS der Titel als `h1` gerendert werden
 
 ### Requirement: Footer-Links aktualisiert
-Der Desktop-Footer MUSS alle verfügbaren Module und Tools korrekt verlinken, inklusive "Aktionen".
+Der Desktop-Footer MUST alle verfügbaren Module und Tools korrekt verlinken, inklusive "Aktionen".
 
 #### Scenario: Footer enthält alle Module
 - **WHEN** ein Nutzer den Footer sieht
@@ -65,14 +65,14 @@ Der Desktop-Footer MUSS alle verfügbaren Module und Tools korrekt verlinken, in
 - **THEN** MÜSSEN Links zu allen Planungs-Tools vorhanden sein
 
 ### Requirement: Konsistente Zurück-Navigation
-Detail- und Erstellen-Seiten MÜSSEN einen "Zurück"-Link/Button im Seitenkopf anbieten.
+Detail- und Erstellen-Seiten MUST einen "Zurück"-Link/Button im Seitenkopf anbieten.
 
 #### Scenario: Detail-Seite mit Zurück-Button
 - **WHEN** ein Nutzer eine Detail-Seite besucht
 - **THEN** MUSS ein Zurück-Link vorhanden sein, der zur übergeordneten Listenansicht navigiert
 
 ### Requirement: Einheitliche Loading-States
-Alle Seiten mit API-Daten MÜSSEN Skeleton-Loading-States verwenden statt Spinner.
+Alle Seiten mit API-Daten MUST Skeleton-Loading-States verwenden statt Spinner.
 
 #### Scenario: Seite lädt Daten
 - **WHEN** eine Seite API-Daten lädt
@@ -80,14 +80,14 @@ Alle Seiten mit API-Daten MÜSSEN Skeleton-Loading-States verwenden statt Spinne
 - **THEN** DARF kein rotierender Spinner als alleiniger Loading-Indikator verwendet werden
 
 ### Requirement: Einheitliche Empty-States
-Alle Listen-Seiten MÜSSEN einen konsistenten leeren Zustand anzeigen, wenn keine Daten vorhanden sind.
+Alle Listen-Seiten MUST einen konsistenten leeren Zustand anzeigen, wenn keine Daten vorhanden sind.
 
 #### Scenario: Leere Liste
 - **WHEN** eine Listenansicht keine Ergebnisse hat
 - **THEN** MUSS ein zentrierter Empty-State mit Icon, Titel und Call-to-Action angezeigt werden
 
 ### Requirement: Mobile Hamburger-Menü Aktionen prominent
-Im Mobile-Hamburger-Menü MUSS "Aktionen" als erster Eintrag in der Tools-Section erscheinen.
+Im Mobile-Hamburger-Menü MUST "Aktionen" als erster Eintrag in der Tools-Section erscheinen.
 
 #### Scenario: Hamburger-Menü Tools-Reihenfolge
 - **WHEN** ein Nutzer das Mobile-Hamburger-Menü öffnet
@@ -123,7 +123,7 @@ The application SHALL reset the scroll position to the top of the page when the 
 # UI Navigation Restructure
 
 ### Requirement: Veranstaltungen wird zu Aktionen umbenannt
-Das System MUSS alle UI-Texte, die "Veranstaltungen" oder "Veranstaltung" enthalten, durch "Aktionen" bzw. "Aktion" ersetzen. Code-Identifier (Variablen, Routen, API-Pfade) bleiben unverändert auf Englisch ("event").
+Das System MUST alle UI-Texte, die "Veranstaltungen" oder "Veranstaltung" enthalten, durch "Aktionen" bzw. "Aktion" ersetzen. Code-Identifier (Variablen, Routen, API-Pfade) bleiben unverändert auf Englisch ("event").
 
 #### Scenario: TOOL_EVENTS Label in toolColors.ts
 - **WHEN** die TOOL_EVENTS-Konfiguration geladen wird
@@ -138,7 +138,7 @@ Das System MUSS alle UI-Texte, die "Veranstaltungen" oder "Veranstaltung" enthal
 - **THEN** MÜSSEN alle Überschriften und Beschreibungen "Aktionen" statt "Veranstaltungen" verwenden
 
 ### Requirement: Admin-Link im Profil-Dropdown
-Der Admin-Link MUSS aus der Hauptnavigation (Desktop `<nav>` und Mobile Header-Icons) entfernt und ins Profil-Dropdown verschoben werden. Nur Staff-Nutzer sehen den Eintrag.
+Der Admin-Link MUST aus der Hauptnavigation (Desktop `<nav>` und Mobile Header-Icons) entfernt und ins Profil-Dropdown verschoben werden. Nur Staff-Nutzer sehen den Eintrag.
 
 #### Scenario: Desktop-Header zeigt keinen Admin-Link
 - **WHEN** ein Staff-Nutzer den Desktop-Header betrachtet
@@ -158,7 +158,7 @@ Der Admin-Link MUSS aus der Hauptnavigation (Desktop `<nav>` und Mobile Header-I
 - **THEN** DARF kein Admin-Eintrag sichtbar sein
 
 ### Requirement: Aktionen als Top-Level-Link im Desktop-Header
-Das System MUSS "Aktionen" als eigenständigen NavLink im Desktop-Header anzeigen, positioniert zwischen "Suchen" und dem "Inhalte"-Dropdown.
+Das System MUST "Aktionen" als eigenständigen NavLink im Desktop-Header anzeigen, positioniert zwischen "Suchen" und dem "Inhalte"-Dropdown.
 
 #### Scenario: Desktop-Navigation enthält Aktionen-Link
 - **WHEN** ein Nutzer den Desktop-Header sieht
@@ -170,7 +170,7 @@ Das System MUSS "Aktionen" als eigenständigen NavLink im Desktop-Header anzeige
 - **THEN** MUSS der "Aktionen"-NavLink als aktiv hervorgehoben sein
 
 ### Requirement: Aktionen auf dem Erstellen-Hub
-Die CreateHubPage MUSS eine Option "Aktion erstellen" enthalten, die auf `/events/app/new` verlinkt.
+Die CreateHubPage MUST eine Option "Aktion erstellen" enthalten, die auf `/events/app/new` verlinkt.
 
 #### Scenario: Erstellen-Hub zeigt Aktionen-Option
 - **WHEN** ein Nutzer die `/create`-Seite besucht
@@ -178,7 +178,7 @@ Die CreateHubPage MUSS eine Option "Aktion erstellen" enthalten, die auf `/event
 - **THEN** MUSS die Beschreibung den Zweck der Aktionserstellung erklären
 
 ### Requirement: Mobile Bottom-Nav Aktionen-Label
-Die Mobile-Bottom-Navigation MUSS das Label des vierten Items von "Tools" zu "Aktionen" ändern.
+Die Mobile-Bottom-Navigation MUST das Label des vierten Items von "Tools" zu "Aktionen" ändern.
 
 #### Scenario: Mobile Bottom-Nav zeigt Aktionen
 - **WHEN** ein Nutzer die Mobile-Bottom-Navigation sieht

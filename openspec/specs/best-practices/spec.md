@@ -4,14 +4,7 @@
 
 Querschnittsspezifikation für UI-Patterns, Code-Konventionen, Formular-Handling, State Management, Bildverarbeitung, Accessibility und Testing-Standards der Inspi-Plattform. Definiert verbindliche Regeln für konsistente Implementierung über alle Module hinweg.
 
-## Context
-
-- **Backend**: Django Ninja, Pydantic v2, Python 3.13
-- **Frontend**: React 18, TypeScript (strict), TanStack Query v5, Zustand v5, shadcn/ui
-- **Querschnittsthema**: Gilt für alle Spec-Domänen
-
 ## Requirements
-
 ### Requirement: Formular-Handling
 
 Alle Formulare MUST react-hook-form mit Zod-Resolver verwenden.
@@ -94,6 +87,10 @@ Das Frontend MUST leere Zustaende mit der shared `<EmptyState>` Komponente anzei
 ### Requirement: Pagination
 
 Alle Listen MUST Pagination mit "Mehr laden"-Pattern verwenden.
+
+#### Scenario: Weitere Einträge laden
+- **WHEN** eine Liste mehr Einträge hat als die erste Seite zeigt
+- **THEN** zeigt die Liste einen „Mehr laden“-Button, der die nächste Seite anhängt
 
 ### Requirement: Container width standard
 
@@ -383,6 +380,59 @@ Alle Datums- und Zeitangaben MUST konsistent behandelt werden.
 - AND deutsche Locale wird verwendet: `format(date, 'dd. MMMM yyyy', { locale: de })`
 - AND relative Zeitangaben wo sinnvoll: "vor 2 Stunden", "gestern"
 
+### Requirement: Konsistente Umlaut-Verwendung
+
+Alle deutschen Texte in der Codebase MUST korrekte Umlaute verwenden.
+
+#### Scenario: UI-Labels und Fehlermeldungen
+- **WHEN** ein deutscher Text in einem UI-Label, Button, Tooltip oder einer Fehlermeldung angezeigt wird
+- **THEN** MUSS er korrekte Umlaute verwenden: ä (nicht ae), ö (nicht oe), ü (nicht ue), ß (nicht ss, wo grammatikalisch korrekt)
+
+#### Scenario: Seed-Daten
+- **WHEN** deutsche Texte in Seed-Daten (Rezeptnamen, Zutatennamen, Beschreibungen) verwendet werden
+- **THEN** MÜSSEN sie korrekte Umlaute verwenden
+
+#### Scenario: Backend-Strings
+- **WHEN** deutsche Texte in Python-Strings (Fehlermeldungen, Labels, Descriptions) verwendet werden
+- **THEN** MÜSSEN sie korrekte Umlaute verwenden
+- **THEN** DÜRFEN englische Variablennamen, Funktionsnamen und Kommentare NICHT geändert werden
+
+---
+
+### Requirement: All frontend config files MUST use TypeScript
+
+The frontend project SHALL NOT contain any `.js` source or config files. All configuration files (Vite, PostCSS, etc.) MUST use `.ts` extensions with proper type annotations.
+
+#### Scenario: No .js files in frontend root
+- **WHEN** listing files in `frontend/` (excluding `node_modules/`, `dist/`)
+- **THEN** no files with `.js` extension SHALL exist
+
+#### Scenario: PostCSS config is TypeScript
+- **WHEN** Vite resolves the PostCSS configuration
+- **THEN** it MUST load `postcss.config.ts` (not a `.js` variant)
+
+#### Scenario: Vite config is TypeScript only
+- **WHEN** Vite resolves its configuration file
+- **THEN** it MUST load `vite.config.ts` with no duplicate `.js` or `.d.ts` variants present
+
+### Requirement: Build and dev server MUST work after conversion
+
+The frontend build pipeline SHALL continue to function correctly after removing `.js` config files.
+
+#### Scenario: Development server starts successfully
+- **WHEN** running `npm run dev` in the frontend directory
+- **THEN** Vite dev server MUST start without config resolution errors
+
+#### Scenario: Production build completes successfully
+- **WHEN** running `npm run build` in the frontend directory
+- **THEN** the build MUST complete without errors related to config resolution
+
+## Context
+
+- **Backend**: Django Ninja, Pydantic v2, Python 3.13
+- **Frontend**: React 18, TypeScript (strict), TanStack Query v5, Zustand v5, shadcn/ui
+- **Querschnittsthema**: Gilt für alle Spec-Domänen
+
 ## Betroffene Dateien
 
 ### Frontend (übergreifend)
@@ -412,59 +462,4 @@ Alle Datums- und Zeitangaben MUST konsistent behandelt werden.
 - **Lighthouse CI**: Automatische Performance- und Accessibility-Checks in Cloud Build
 - **Bundle-Analyse**: Automatische Bundle-Size-Checks bei PRs
 
-
 ---
-
-# Umlaut Correction
-
-### Requirement: Konsistente Umlaut-Verwendung
-
-Alle deutschen Texte in der Codebase MÜSSEN korrekte Umlaute verwenden.
-
-#### Scenario: UI-Labels und Fehlermeldungen
-- **WHEN** ein deutscher Text in einem UI-Label, Button, Tooltip oder einer Fehlermeldung angezeigt wird
-- **THEN** MUSS er korrekte Umlaute verwenden: ä (nicht ae), ö (nicht oe), ü (nicht ue), ß (nicht ss, wo grammatikalisch korrekt)
-
-#### Scenario: Seed-Daten
-- **WHEN** deutsche Texte in Seed-Daten (Rezeptnamen, Zutatennamen, Beschreibungen) verwendet werden
-- **THEN** MÜSSEN sie korrekte Umlaute verwenden
-
-#### Scenario: Backend-Strings
-- **WHEN** deutsche Texte in Python-Strings (Fehlermeldungen, Labels, Descriptions) verwendet werden
-- **THEN** MÜSSEN sie korrekte Umlaute verwenden
-- **THEN** DÜRFEN englische Variablennamen, Funktionsnamen und Kommentare NICHT geändert werden
-
-
----
-
-# TypeScript Config
-
-## Requirements
-
-### Requirement: All frontend config files MUST use TypeScript
-
-The frontend project SHALL NOT contain any `.js` source or config files. All configuration files (Vite, PostCSS, etc.) MUST use `.ts` extensions with proper type annotations.
-
-#### Scenario: No .js files in frontend root
-- **WHEN** listing files in `frontend/` (excluding `node_modules/`, `dist/`)
-- **THEN** no files with `.js` extension SHALL exist
-
-#### Scenario: PostCSS config is TypeScript
-- **WHEN** Vite resolves the PostCSS configuration
-- **THEN** it MUST load `postcss.config.ts` (not a `.js` variant)
-
-#### Scenario: Vite config is TypeScript only
-- **WHEN** Vite resolves its configuration file
-- **THEN** it MUST load `vite.config.ts` with no duplicate `.js` or `.d.ts` variants present
-
-### Requirement: Build and dev server MUST work after conversion
-
-The frontend build pipeline SHALL continue to function correctly after removing `.js` config files.
-
-#### Scenario: Development server starts successfully
-- **WHEN** running `npm run dev` in the frontend directory
-- **THEN** Vite dev server MUST start without config resolution errors
-
-#### Scenario: Production build completes successfully
-- **WHEN** running `npm run build` in the frontend directory
-- **THEN** the build MUST complete without errors related to config resolution

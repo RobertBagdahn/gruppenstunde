@@ -1,7 +1,7 @@
 # portion-reorder-fix Specification
 
 ## Purpose
-Specification of portion-reorder-fix.
+Anforderungen an portion reorder fix: Drag-&-Drop-Sortierung schließt die g-Portion aus.
 
 ## Requirements
 ### Requirement: Drag-&-Drop-Sortierung schließt die g-Portion aus

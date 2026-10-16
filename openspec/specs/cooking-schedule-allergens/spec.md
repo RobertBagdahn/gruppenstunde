@@ -1,7 +1,7 @@
 # cooking-schedule-allergens Specification
 
 ## Purpose
-Specification of cooking-schedule-allergens.
+Anforderungen an cooking schedule allergens: Allergen/NutritionalTag-Informationen im Kochplan; Allergen-Scan-Integration im Frontend.
 
 ## Requirements
 ### Requirement: Allergen/NutritionalTag-Informationen im Kochplan

@@ -1,3 +1,8 @@
+# recipe-thumbnail Specification
+
+## Purpose
+Anforderungen an recipe thumbnail: Shared RecipeThumbnail component; RecipeThumbnail size variants; RecipeThumbnail aspect ratio variants.
+
 ## Requirements
 
 ### Requirement: Shared RecipeThumbnail component

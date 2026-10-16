@@ -1,7 +1,7 @@
 # recipe-instruction-presentation Specification
 
 ## Purpose
-TBD - created by archiving change fix-recipe-pdf-and-instructions. Update Purpose after archive.
+Anforderungen an recipe instruction presentation: Description and structured steps are separate sections; Structured step fallback.
 ## Requirements
 ### Requirement: Description and structured steps are separate sections
 Recipe detail, edit and PDF views SHALL label free Markdown content as `Beschreibung` and structured instructions as `Zubereitungsschritte`.

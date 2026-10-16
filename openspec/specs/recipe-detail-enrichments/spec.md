@@ -1,7 +1,7 @@
 # recipe-detail-enrichments Specification
 
 ## Purpose
-Specification of recipe-detail-enrichments.
+Anforderungen an recipe detail enrichments: Nährwert-Tabelle mit pro-Portion-, Gesamt- und DGE-Spalten; Allergen-Ampel; Verlinkte Kosten-Aufschlüsselung.
 
 ## Requirements
 ### Requirement: Nährwert-Tabelle mit pro-Portion-, Gesamt- und DGE-Spalten

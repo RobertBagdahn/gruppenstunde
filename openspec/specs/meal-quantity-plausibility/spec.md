@@ -1,7 +1,7 @@
 # meal-quantity-plausibility Specification
 
 ## Purpose
-TBD - created by archiving change buffet-module. Update Purpose after archive.
+Anforderungen an meal quantity plausibility: Keine automatische Portionsanlage beim Speichern von Mahlzeit-Einträgen; Plausibilitätswarnung pro Person; Warnungen an Mahlzeit, Buffet und Einkaufsliste.
 ## Requirements
 ### Requirement: Keine automatische Portionsanlage beim Speichern von Mahlzeit-Einträgen
 Die Endpunkte zum Speichern von Mahlzeit-Einträgen (`POST /api/meal-plans/{plan_id}/meals/{meal_id}/wizard-items/`, `.../meals/wizard-items/bulk/`) MUST NOT Portionen anlegen. Wird eine Zutat mit einer Einheit gespeichert, die weder Gramm noch Milliliter ist und für die die Zutat keine aktive Portion besitzt, MUST das System mit 422 und der Meldung „Einheit {Einheit} ist für {Zutat} nicht definiert.“ antworten.

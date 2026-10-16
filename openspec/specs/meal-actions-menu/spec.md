@@ -1,7 +1,7 @@
 # meal-actions-menu Specification
 
 ## Purpose
-Specification of meal-actions-menu.
+Anforderungen an meal actions menu: Shared meal actions menu; Edit portions override via menu; Edit note via menu.
 
 ## Requirements
 ### Requirement: Shared meal actions menu

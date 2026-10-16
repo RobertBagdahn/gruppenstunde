@@ -1,7 +1,7 @@
 # ai-portion-weight-estimation Specification
 
 ## Purpose
-TBD - created by archiving change improve-ai-portion-weight-suggestions. Update Purpose after archive.
+Anforderungen an ai portion weight estimation: AI SHALL provide weighted practical portion suggestions; New package suggestions SHALL be internally consistent; Incomplete AI output SHALL receive one bounded repair attempt.
 ## Requirements
 ### Requirement: AI SHALL provide weighted practical portion suggestions
 The portions magic-wand preview SHALL request and return at least one practical new portion with a positive `proposed_weight_g` for an ordinary ingredient when the current data does not already provide that portion. Piece-based ingredients SHALL receive a piece-oriented suggestion such as `Stück` whenever the ingredient context supports it.

@@ -1,5 +1,9 @@
-## MODIFIED Requirements
+# registration-pdf Specification
 
+## Purpose
+Anforderungen an registration pdf: PDF generation with reportlab.
+
+## Requirements
 ### Requirement: PDF generation with reportlab
 The system SHALL generate a PDF file using reportlab Platypus with the following block structure in order: Header (title + logo), Greeting, Details (key-value list), Additional Info, Packlist, Signup Note, Form Fields, Consent Text, Signature Line.
 

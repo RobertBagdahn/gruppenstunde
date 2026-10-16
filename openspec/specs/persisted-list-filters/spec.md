@@ -1,7 +1,7 @@
 # persisted-list-filters Specification
 
 ## Purpose
-TBD - created by archiving change persisted-list-filters. Update Purpose after archive.
+Anforderungen an persisted list filters: URL ist führende Quelle für Listenzustand; Wiederherstellung aus dem Browser-Speicher; Seitenzahl wird nicht gespeichert.
 ## Requirements
 ### Requirement: URL ist führende Quelle für Listenzustand
 Listenseiten SHALL Filter, Sortierung, Suchtext, Ansichtsmodus und Seitenzahl als URL-Query-Parameter abbilden. Enthält die URL beim Öffnen mindestens einen Parameter, der zum Listenzustand gehört, MUST ausschließlich die URL den Zustand bestimmen.

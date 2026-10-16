@@ -23,4 +23,4 @@
 ## 5. Abschluss
 
 - [x] 5.1 Regressionstest mit den drei Produktivtest-Zeilen über `preview_recipe_ingredients`
-- [ ] 5.2 `uv run pytest backend/recipe`, Frontend-Typecheck, Lint und Tests; Chefkoch-Import manuell erneut prüfen
+- [x] 5.2 `uv run pytest backend/recipe`, Frontend-Typecheck, Lint und Tests; Chefkoch-Import manuell erneut prüfen (ersetzt durch den Chefkoch-Benchmark aus `import-ingredient-matching-overhaul`)

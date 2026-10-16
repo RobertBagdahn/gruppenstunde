@@ -1,7 +1,7 @@
 # buffet-roles Specification
 
 ## Purpose
-TBD - created by archiving change buffet-module. Update Purpose after archive.
+Anforderungen an buffet roles: Buffet-Rollen als Tags; Rollen gelten für Zutaten und Rezepte; Rollen-Pflege nur durch Staff.
 ## Requirements
 ### Requirement: Buffet-Rollen als Tags
 Das System SHALL die folgenden 19 Rollen-Tags mit `group="buffet"` und dem Eltern-Tag `buffet` („Buffet“) bereitstellen. Bestehende Slugs bleiben unverändert; zusätzliche Rollen werden per Datenmigration idempotent über den Slug angelegt. Die deutschen Namen SHALL echte Umlaute enthalten, wo sprachlich erforderlich. Jede neue Rolle SHALL ein gültiges Icon aus der bestehenden Icon-Menge verwenden.

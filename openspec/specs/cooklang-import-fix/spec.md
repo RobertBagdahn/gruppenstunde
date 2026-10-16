@@ -1,12 +1,12 @@
 # cooklang-import-fix Specification
 
 ## Purpose
-Specification of cooklang-import-fix.
+Anforderungen an cooklang import fix: Korrekte Unit-Zuordnung; Pro-Person-Menge; Robuster Ingredient-Parser.
 
 ## Requirements
 ### Requirement: Korrekte Unit-Zuordnung
 
-Der Import muss Cooklang-Unit-Strings (`g`, `ml`, `EL`, `TL`, `kg`, `l`) korrekt auf die existierenden `MeasuringUnit`-Einträge in der Datenbank mappen.
+Der Import MUST Cooklang-Unit-Strings (`g`, `ml`, `EL`, `TL`, `kg`, `l`) korrekt auf die existierenden `MeasuringUnit`-Einträge in der Datenbank mappen.
 
 #### Scenario: Standard-Gewichtseinheit
 - **WHEN** ein Cooklang-Ingredient `@Mehl{500%g}` geparst wird
@@ -39,7 +39,7 @@ Importierte RecipeItems SHALL use the normalized quantity for one portion. There
 
 ### Requirement: Robuster Ingredient-Parser
 
-Der Cooklang-Parser darf Fließtext nicht fälschlich als Zutat interpretieren.
+Der Cooklang-Parser MUST NOT Fließtext fälschlich als Zutat interpretieren.
 
 #### Scenario: Numerischer Prefix im @-Match
 - **WHEN** ein Cooklang-Text `@85-90g teilen...{...}` vorkommt
@@ -53,7 +53,7 @@ Der Cooklang-Parser darf Fließtext nicht fälschlich als Zutat interpretieren.
 
 ### Requirement: Force-Reimport
 
-Ein `--force` Flag erlaubt das Löschen und Neuimportieren von Cooklang-Rezepten.
+Ein `--force`-Flag SHALL das Löschen und Neuimportieren von Cooklang-Rezepten erlauben.
 
 #### Scenario: Force-Flag aktiv
 - **WHEN** `--force` gesetzt ist

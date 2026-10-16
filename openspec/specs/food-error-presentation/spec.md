@@ -1,7 +1,7 @@
 # food-error-presentation Specification
 
 ## Purpose
-TBD - created by archiving change food-frontend-friendly-ux. Update Purpose after archive.
+Anforderungen an food error presentation: Alle Fehlertexte sind deutsch und verständlich; Fehler am richtigen Ort; Fehlergrenzen pro Route und Abschnitt.
 ## Requirements
 ### Requirement: Alle Fehlertexte sind deutsch und verständlich
 `apiFetch` und `parseApiResponse` in `lib/api.ts` SHALL Netzwerkfehler (`TypeError` von `fetch`) in einen `ApiError` mit Status 0 und Text „Keine Verbindung zum Server. Bitte prüfe deine Internetverbindung.“ übersetzen und Schema-Fehler (`ZodError`) in einen `ApiError` mit Text „Die Antwort des Servers konnte nicht gelesen werden.“. Englische Systemtexte („Failed to fetch“, Zod-Meldungen, „Internal Server Error“) MUST NOT in UI-Texten erscheinen. Schema-Fehler MUST zusätzlich mit URL und Zod-Pfad über `console.error` protokolliert werden (nicht `console.log`). 422-Validierungsfehler des Backends (`detail: [{ loc, msg }]`) MUST als „Feld: deutscher Text“ formatiert werden, nie als „[object Object]“.

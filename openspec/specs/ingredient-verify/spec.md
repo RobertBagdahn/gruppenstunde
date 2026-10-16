@@ -1,7 +1,8 @@
 # ingredient-verify Specification
 
 ## Purpose
-Siehe Anforderungen.
+Siehe Anforderungen. Umfasst: Verified badge on ingredient detail page; Staff can verify an ingredient.
+
 ## Requirements
 ### Requirement: Verified badge on ingredient detail page
 Die Zutatendetailseite SHALL ein "Inspi Verified"-Badge anzeigen, wenn die Zutat den Status "verified" hat.

@@ -1,7 +1,7 @@
 # recipe-ingredient-sort Specification
 
 ## Purpose
-Specification of recipe-ingredient-sort.
+Anforderungen an recipe ingredient sort: Zutaten im Edit-Mode nach Gewicht sortieren.
 
 ## Requirements
 ### Requirement: Zutaten im Edit-Mode nach Gewicht sortieren

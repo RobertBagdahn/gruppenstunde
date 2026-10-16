@@ -1,7 +1,7 @@
 # portion-superseded-versions Specification
 
 ## Purpose
-TBD - created by archiving change portion-superseded-versions. Update Purpose after archive.
+Anforderungen an portion superseded versions: Gewichtsänderung an referenzierter Portion löst sie ab; Abgelöste Portionen sind unsichtbar, aber gültig; Eindeutigkeit nur unter aktiven Portionen.
 ## Requirements
 ### Requirement: Gewichtsänderung an referenzierter Portion löst sie ab
 Ändert ein Nutzer mit Bearbeitungsrecht an der Zutat (gemäß `food-access-policy`: verifizierte Zutaten nur Staff, Entwürfe Owner/Creator/Editor-Collaborators/Staff) über `PATCH /api/ingredients/{slug}/portions/{portion_id}/` das resultierende `weight_g` einer Portion, die von mindestens einem `RecipeItem` referenziert wird, SHALL das System eine neue Portion mit den angeforderten Werten anlegen und die alte Portion als abgelöst markieren (`superseded_by` = neue Portion, `superseded_at` = jetzt). Die neue Portion MUST denselben Namen (ohne Suffix) und denselben Rang wie die alte erhalten, sofern im Request nichts anderes angegeben ist. Die Ablöse-Regel gilt für jeden Nutzer mit diesem Bearbeitungsrecht gleichermaßen; das Bearbeitungsrecht selbst definiert ausschließlich `food-access-policy`.

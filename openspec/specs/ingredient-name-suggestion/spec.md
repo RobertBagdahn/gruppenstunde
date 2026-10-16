@@ -1,7 +1,7 @@
 # ingredient-name-suggestion Specification
 
 ## Purpose
-Specification of ingredient-name-suggestion.
+Anforderungen an ingredient name suggestion: AI suggests improved ingredient name; Name suggestion displayed in AI dialog; User can apply name suggestion.
 
 ## Requirements
 ### Requirement: AI suggests improved ingredient name

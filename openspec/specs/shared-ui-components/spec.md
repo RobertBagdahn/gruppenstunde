@@ -4,14 +4,9 @@
 
 Spezifikation für wiederverwendbare Frontend-Komponenten, die über alle Seiten konsistent eingesetzt werden. Definiert Pagination, Hero-Sections, Empty States, Filter/Sort-Dropdowns, Container-Breiten, Skeleton-Loader, Bild-Performance und Smart Form Defaults.
 
-## Context
-
-- **Frontend**: React 18, TypeScript (strict), Tailwind CSS, shadcn/ui
-- **Icons**: Google Material Symbols (nicht Lucide)
-- **Querschnittsthema**: Gilt für alle Listenseiten und Formulare
+Einheitliche Darstellungsregeln für Inspi-Maskottchen-Bilder im Frontend.
 
 ## Requirements
-
 ### Requirement: Shared Pagination component
 
 The frontend SHALL provide a shared `<Pagination>` component at `components/shared/Pagination.tsx` that all list pages MUST use for page navigation. The component SHALL support numbered page buttons with prev/next arrows.
@@ -200,30 +195,6 @@ SessionListPage and GameListPage SHALL have sort dropdowns matching RecipeListPa
 - **THEN** a sort dropdown SHALL be displayed with the same options as SessionListPage
 - **THEN** the sort selection SHALL update the URL parameter `sort`
 
-## Betroffene Dateien
-
-| Datei | Relevanz |
-|-------|----------|
-| `frontend/src/components/shared/Pagination.tsx` | Shared Pagination component |
-| `frontend/src/components/shared/ListPageHero.tsx` | Shared hero section component |
-| `frontend/src/components/shared/EmptyState.tsx` | Shared empty state component |
-| `frontend/src/components/shared/FilterSelect.tsx` | Shared filter dropdown component |
-| `frontend/src/components/shared/SortSelect.tsx` | Shared sort dropdown component |
-| `frontend/src/lib/persistedDefaults.ts` | LocalStorage persistence for sort/filter |
-| `frontend/src/pages/sessions/SessionListPage.tsx` | Pagination, Hero, Filter, Sort, Container |
-| `frontend/src/pages/games/GameListPage.tsx` | Pagination, Hero, Filter, Sort, Container |
-| `frontend/src/pages/blogs/BlogListPage.tsx` | Pagination, Hero, Filter, Sort, Container |
-| `frontend/src/pages/recipes/RecipeListPage.tsx` | Pagination, Hero, Container |
-| `frontend/src/pages/SearchPage.tsx` | Pagination, Hero, EmptyState, Container |
-| `frontend/src/pages/AboutPage.tsx` | Image lazy loading (37 images) |
-
-
----
-
-# Square Images
-
-## Requirements
-
 ### Requirement: Square aspect ratio on card preview images
 
 All content card preview images (ContentCard, RecipeCard, search result cards, trending cards, similar content cards) SHALL use a 1:1 square aspect ratio with `object-cover` fitting.
@@ -296,18 +267,11 @@ A reusable `ContentImage` component SHALL exist to render all content images wit
 - **WHEN** `ContentImage` is rendered with a `size` prop (e.g., "sm", "md", "lg", "full")
 - **THEN** it SHALL apply the appropriate width class while maintaining `aspect-square`
 
-
 ---
-
-# Inspi Icon Standards
-
-# Inspi Icon Standards
-
-Einheitliche Darstellungsregeln für Inspi-Maskottchen-Bilder im Frontend.
 
 ### Requirement: Inspi-Bilder MÜSSEN ohne Verzerrung dargestellt werden
 
-Alle Inspi-Maskottchen-Bilder (`<img>`-Elemente mit Inspi-Quelldateien) MÜSSEN ihr natürliches Aspekt-Ratio beibehalten. Es DARF NICHT vorkommen, dass sowohl Breite als auch Höhe fest gesetzt werden ohne `object-contain` oder `object-cover`.
+Alle Inspi-Maskottchen-Bilder (`<img>`-Elemente mit Inspi-Quelldateien) MUST ihr natürliches Aspekt-Ratio beibehalten. Es MUST NOT vorkommen, dass sowohl Breite als auch Höhe fest gesetzt werden ohne `object-contain` oder `object-cover`.
 
 #### Scenario: Footer-Icon wird nicht verzerrt
 
@@ -321,7 +285,7 @@ Alle Inspi-Maskottchen-Bilder (`<img>`-Elemente mit Inspi-Quelldateien) MÜSSEN 
 
 ### Requirement: Inspi-Illustrationen in Cards MÜSSEN vollständig sichtbar sein
 
-Card-Fallback-Bilder (wenn kein User-Upload vorhanden) MÜSSEN `object-contain` statt `object-cover` verwenden, damit die Inspi-Figur vollständig sichtbar ist und nicht abgeschnitten wird. Der Container MUSS einen dezenten Hintergrund haben, damit der leere Raum um die Figur nicht störend wirkt.
+Card-Fallback-Bilder (wenn kein User-Upload vorhanden) MUST `object-contain` statt `object-cover` verwenden, damit die Inspi-Figur vollständig sichtbar ist und nicht abgeschnitten wird. Der Container MUST einen dezenten Hintergrund haben, damit der leere Raum um die Figur nicht störend wirkt.
 
 #### Scenario: RecipeCard-Fallback zeigt vollständiges Inspi
 
@@ -345,7 +309,7 @@ Card-Fallback-Bilder (wenn kein User-Upload vorhanden) MÜSSEN `object-contain` 
 
 ### Requirement: Keine Inspi-Bilder am linken oder rechten Rand
 
-Dekorative Inspi-Bilder DÜRFEN NICHT mit negativer Positionierung (`-left-*`, `-right-*`) über den Container-Rand hinausragen. Dekorative Rand-Inspi-Bilder MÜSSEN entfernt werden.
+Dekorative Inspi-Bilder MUST NOT mit negativer Positionierung (`-left-*`, `-right-*`) über den Container-Rand hinausragen. Dekorative Rand-Inspi-Bilder MUST entfernt werden.
 
 #### Scenario: HomePage-Hero hat keine Rand-Dekorationen
 
@@ -359,7 +323,7 @@ Dekorative Inspi-Bilder DÜRFEN NICHT mit negativer Positionierung (`-left-*`, `
 
 ### Requirement: Einheitliche Hero-Maskottchen-Größen
 
-Hero-Maskottchen-Bilder auf verschiedenen Seiten MÜSSEN einheitliche Größen-Patterns verwenden. Standard-Seiten (Impressum, Datenschutz, ToolLanding) verwenden `w-36 md:w-48 h-auto`. Hauptseiten (Home, About) verwenden `w-48 md:w-64 h-auto`.
+Hero-Maskottchen-Bilder auf verschiedenen Seiten MUST einheitliche Größen-Patterns verwenden. Standard-Seiten (Impressum, Datenschutz, ToolLanding) verwenden `w-36 md:w-48 h-auto`. Hauptseiten (Home, About) verwenden `w-48 md:w-64 h-auto`.
 
 #### Scenario: ImpressumPage-Hero hat konsistente Größe
 
@@ -383,7 +347,7 @@ Hero-Maskottchen-Bilder auf verschiedenen Seiten MÜSSEN einheitliche Größen-P
 
 ### Requirement: SearchPage-Icon MUSS aspekt-ratio-sicher sein
 
-Das Inspi-Icon in der SearchPage-Hero-Sektion MUSS `w-auto` explizit setzen, um Verzerrung durch CSS-Resets zu verhindern.
+Das Inspi-Icon in der SearchPage-Hero-Sektion MUST `w-auto` explizit setzen, um Verzerrung durch CSS-Resets zu verhindern.
 
 #### Scenario: SearchPage-Hero-Icon ist nicht verzerrt
 
@@ -392,7 +356,7 @@ Das Inspi-Icon in der SearchPage-Hero-Sektion MUSS `w-auto` explizit setzen, um 
 
 ### Requirement: Dateinamen MÜSSEN konsistent lowercase sein
 
-Alle Inspi-Bilddateien im `frontend/public/images/`-Verzeichnis MÜSSEN mit dem Prefix `inspi_` (lowercase) beginnen. Keine Großbuchstaben in Dateinamen.
+Alle Inspi-Bilddateien im `frontend/public/images/`-Verzeichnis MUST mit dem Prefix `inspi_` (lowercase) beginnen. Keine Großbuchstaben in Dateinamen.
 
 #### Scenario: Inspi_filter.png wird zu inspi_filter.png
 
@@ -401,31 +365,14 @@ Alle Inspi-Bilddateien im `frontend/public/images/`-Verzeichnis MÜSSEN mit dem 
 
 ### Requirement: Keine doppelten Einträge in der Inspi-Gallery
 
-Die AboutPage-Inspi-Gallery DARF KEINE doppelten Bildquellen enthalten.
+Die AboutPage-Inspi-Gallery MUST NOT doppelte Bildquellen enthalten.
 
 #### Scenario: Gallery hat einzigartige Einträge
 
 - **WHEN** ein Nutzer die AboutPage lädt und zur Inspi-Gallery scrollt
 - **THEN** MUSS jedes Bild in der Gallery genau einmal erscheinen (kein Duplikat von `inspi_front_kopfhoerer.webp`)
 
-
 ---
-
-# Data Visualizations
-
-# data-visualizations Specification
-
-## Purpose
-
-Spezifikation für Recharts-basierte Datenvisualisierungen auf verschiedenen Seiten der Inspi-Plattform. Definiert Ernährungs-Tortendiagramm, Content-Statistik-Balkendiagramm und Nährstoff-Balance-Diagramm.
-
-## Context
-
-- **Frontend**: React 18, TypeScript (strict), Recharts v3
-- **Lazy Loading**: Alle Chart-Komponenten werden via `React.lazy()` geladen
-- **Querschnittsthema**: Charts werden in spezifische Seiten integriert
-
-## Requirements
 
 ### Requirement: Nutrition pie chart on RecipeDetailPage
 
@@ -485,8 +432,6 @@ All Recharts components SHALL be lazy-loaded to minimize initial bundle impact.
 
 ---
 
-# EntityLink as Canonical Link Mechanism
-
 ### Requirement: EntityLink is the canonical cross-entity link mechanism
 The `<EntityLink>` component (see `entity-link` capability) SHALL be the canonical way to render links to content entities across the frontend. Direct usage of `<Link>` or `<a>` to an entity detail route is discouraged outside of the component itself.
 
@@ -501,21 +446,7 @@ The NewTab policy (list context → new tab, detail context → same tab) SHALL 
 - **WHEN** a reviewer checks `frontend/AGENTS.md`
 - **THEN** a section "Entity-Links & NewTab-Policy" SHALL describe: the component, the URL resolution table, the context wrapper, and the "list opens new tab / detail stays same tab" rule
 
-
 ---
-
-## Betroffene Dateien
-
-| Datei | Relevanz |
-|-------|----------|
-| `frontend/src/components/charts/NutritionPieChart.tsx` | Macro-nutrient pie chart |
-| `frontend/src/components/charts/ContentStatsBarChart.tsx` | Content type bar chart |
-| `frontend/src/components/charts/NutrientBalanceChart.tsx` | Nutrient balance stacked bar chart |
-| `frontend/src/pages/recipes/RecipeDetailPage.tsx` | NutritionPieChart integration |
-| `frontend/src/pages/AdminPage.tsx` | ContentStatsBarChart integration |
-| `frontend/src/pages/planning/MealEventDetailPage.tsx` | NutrientBalanceChart integration |
-
-## Navigation
 
 ### Requirement: Primary navigation single-location policy for tool entries
 
@@ -542,3 +473,49 @@ This policy SHALL be documented in `frontend/AGENTS.md` so future tool additions
 #### Scenario: Policy applies to all tools, not only Events
 - **WHEN** a new tool entry is added to the frontend navigation
 - **THEN** the contributor MUST place it either as a top-level primary-nav entry OR inside the Tools dropdown/section, never both
+
+## Context
+
+- **Frontend**: React 18, TypeScript (strict), Tailwind CSS, shadcn/ui
+- **Icons**: Google Material Symbols (nicht Lucide)
+- **Querschnittsthema**: Gilt für alle Listenseiten und Formulare
+
+## Betroffene Dateien
+
+| Datei | Relevanz |
+|-------|----------|
+| `frontend/src/components/shared/Pagination.tsx` | Shared Pagination component |
+| `frontend/src/components/shared/ListPageHero.tsx` | Shared hero section component |
+| `frontend/src/components/shared/EmptyState.tsx` | Shared empty state component |
+| `frontend/src/components/shared/FilterSelect.tsx` | Shared filter dropdown component |
+| `frontend/src/components/shared/SortSelect.tsx` | Shared sort dropdown component |
+| `frontend/src/lib/persistedDefaults.ts` | LocalStorage persistence for sort/filter |
+| `frontend/src/pages/sessions/SessionListPage.tsx` | Pagination, Hero, Filter, Sort, Container |
+| `frontend/src/pages/games/GameListPage.tsx` | Pagination, Hero, Filter, Sort, Container |
+| `frontend/src/pages/blogs/BlogListPage.tsx` | Pagination, Hero, Filter, Sort, Container |
+| `frontend/src/pages/recipes/RecipeListPage.tsx` | Pagination, Hero, Container |
+| `frontend/src/pages/SearchPage.tsx` | Pagination, Hero, EmptyState, Container |
+| `frontend/src/pages/AboutPage.tsx` | Image lazy loading (37 images) |
+
+---
+
+## Purpose (data-visualizations Specification)
+
+Spezifikation für Recharts-basierte Datenvisualisierungen auf verschiedenen Seiten der Inspi-Plattform. Definiert Ernährungs-Tortendiagramm, Content-Statistik-Balkendiagramm und Nährstoff-Balance-Diagramm.
+
+## Context (data-visualizations Specification)
+
+- **Frontend**: React 18, TypeScript (strict), Recharts v3
+- **Lazy Loading**: Alle Chart-Komponenten werden via `React.lazy()` geladen
+- **Querschnittsthema**: Charts werden in spezifische Seiten integriert
+
+## Betroffene Dateien (EntityLink as Canonical Link Mechanism)
+
+| Datei | Relevanz |
+|-------|----------|
+| `frontend/src/components/charts/NutritionPieChart.tsx` | Macro-nutrient pie chart |
+| `frontend/src/components/charts/ContentStatsBarChart.tsx` | Content type bar chart |
+| `frontend/src/components/charts/NutrientBalanceChart.tsx` | Nutrient balance stacked bar chart |
+| `frontend/src/pages/recipes/RecipeDetailPage.tsx` | NutritionPieChart integration |
+| `frontend/src/pages/AdminPage.tsx` | ContentStatsBarChart integration |
+| `frontend/src/pages/planning/MealEventDetailPage.tsx` | NutrientBalanceChart integration |

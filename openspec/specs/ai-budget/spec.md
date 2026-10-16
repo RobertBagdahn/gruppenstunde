@@ -1,7 +1,7 @@
 # ai-budget Specification
 
 ## Purpose
-TBD - created by archiving change social-login-open-access. Update Purpose after archive.
+Anforderungen an ai budget: KI-Stufen; Euro-Budgets mit Reservierung; Fairness-Limit für Besucher ohne Klar-IP.
 ## Requirements
 ### Requirement: KI-Stufen
 

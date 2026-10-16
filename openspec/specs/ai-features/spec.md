@@ -1,5 +1,9 @@
 # ai-features Specification
 
+## Purpose
+Anforderungen an ai features: AI text improvement for all content types; AI tag suggestions for all content types; AI refurbish for all content types.
+
+## Requirements
 ### Requirement: AI text improvement for all content types
 The AI text improvement service SHALL work with all content types (GroupSession, Blog, Game, Recipe), not just Ideas. The service SHALL accept a content_type parameter to provide type-appropriate improvements.
 
@@ -56,10 +60,6 @@ The AI service SHALL suggest Materials and Ingredients based on content descript
 - **THEN** the AI SHALL return a list of suggested Ingredients with quantities per NormPerson
 - **THEN** the AI SHALL also suggest relevant kitchen Materials
 
-## Purpose
-Specification of ai-features.
-
-## Requirements
 ### Requirement: Batch AI price evaluation for ingredients
 The AI service SHALL support batch evaluation of ingredient prices via Gemini. Given a list of ingredient IDs, it SHALL suggest realistic `price_per_kg` values based on the ingredient's name, retail section, nutritional profile, and market context.
 

@@ -1,3 +1,10 @@
+# recipe-import-field-completion Specification
+
+## Purpose
+Anforderungen an recipe import field completion: Gemini befüllt Rezept-Metafelder beim URL-Import; Chefkoch-Zeiten haben Vorrang vor Gemini-Schätzung; Frontend übernimmt Meta-Felder in Formular.
+
+## Requirements
+
 ### Requirement: Gemini befüllt Rezept-Metafelder beim URL-Import
 
 Der Enhanced-Import SHALL beim Gemini-Call zusätzlich zu den Zutaten folgende Rezept-Metafelder extrahieren und im Response zurückgeben: `summary`, `recipe_type`, `difficulty`, `execution_time`, `preparation_time`, `costs_rating`, `scout_level_ids`, `tag_ids`.

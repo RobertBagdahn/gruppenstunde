@@ -1,12 +1,12 @@
 # weekend-meal-plan-seeds Specification
 
 ## Purpose
-Specification of weekend-meal-plan-seeds.
+Anforderungen an weekend meal plan seeds: Neue Zutaten für Wochenend-Rezepte; 5 neue Rezepte; 10 Wochenend-MealPlans.
 
 ## Requirements
 ### Requirement: Neue Zutaten für Wochenend-Rezepte
 
-Das System muss 3 zusätzliche Zutaten im Seed bereitstellen: Paprikapulver, Kreuzkümmel, Chilipulver.
+Das System MUST 3 zusätzliche Zutaten im Seed bereitstellen: Paprikapulver, Kreuzkümmel, Chilipulver.
 
 #### Scenario: Seed erzeugt neue Gewürze
 - **WHEN** `seed_all` ausgeführt wird
@@ -14,7 +14,7 @@ Das System muss 3 zusätzliche Zutaten im Seed bereitstellen: Paprikapulver, Kre
 
 ### Requirement: 5 neue Rezepte
 
-Das System muss 5 neue Rezepte im Seed bereitstellen: Gulasch, Chili con Carne, Porridge, Brotzeit, Grillwürstchen.
+Das System MUST 5 neue Rezepte im Seed bereitstellen: Gulasch, Chili con Carne, Porridge, Brotzeit, Grillwürstchen.
 
 #### Scenario: Seed erzeugt neue Rezepte mit RecipeItems
 - **WHEN** `seed_all --only recipes` ausgeführt wird
@@ -22,7 +22,7 @@ Das System muss 5 neue Rezepte im Seed bereitstellen: Gulasch, Chili con Carne, 
 
 ### Requirement: 10 Wochenend-MealPlans
 
-Das System muss 10 MealPlans für typische Pfadfinder-Wochenenden erzeugen (Fr Abend → So Mittag).
+Das System MUST 10 MealPlans für typische Pfadfinder-Wochenenden erzeugen (Fr Abend → So Mittag).
 
 #### Scenario: MealPlans mit korrekter Zeitstruktur
 - **WHEN** `seed_all --only planner` ausgeführt wird
@@ -42,7 +42,7 @@ Das System muss 10 MealPlans für typische Pfadfinder-Wochenenden erzeugen (Fr A
 
 ### Requirement: Prod-Deployment
 
-Die Seeds müssen auf der Produktions-Datenbank via cloud-sql-proxy ausführbar sein.
+Die Seeds MUST auf der Produktions-Datenbank via cloud-sql-proxy ausführbar sein.
 
 #### Scenario: Seed auf Prod
 - **WHEN** cloud-sql-proxy läuft und DATABASE_URL auf localhost zeigt

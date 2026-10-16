@@ -1,7 +1,7 @@
 # event-program-editor Specification
 
 ## Purpose
-Specification of event-program-editor.
+Anforderungen an event program editor: Timeline-style program view per day; Inline slot creation; Slot editing.
 
 ## Requirements
 ### Requirement: Timeline-style program view per day
@@ -118,8 +118,6 @@ The program SHALL be viewable in a print-friendly layout.
 - **THEN** each day SHALL be displayed as a section header with the date
 - **THEN** each slot SHALL show: time range (start_time – end_time), title, linked content name (if any), and notes
 - **THEN** drag handles, edit buttons, and navigation controls SHALL be hidden
-
-## Day Plan
 
 ### Requirement: EventDaySlot Model
 The system SHALL provide an `EventDaySlot` model in the event app for time-based scheduling within events. Fields: event (FK to Event), date (DateField), start_time (TimeField), end_time (TimeField), title (CharField, blank), notes (TextField, blank), content_type (FK to ContentType, nullable), object_id (PositiveIntegerField, nullable), sort_order (PositiveIntegerField).

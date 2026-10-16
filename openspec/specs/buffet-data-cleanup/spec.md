@@ -1,7 +1,7 @@
 # buffet-data-cleanup Specification
 
 ## Purpose
-TBD - created by archiving change buffet-module. Update Purpose after archive.
+Anforderungen an buffet data cleanup: Freigegebene Zuordnungstabelle als einzige Quelle; Dubletten über zentrale Merge-Services; Alte Frühstücks-Tags entfernen.
 ## Requirements
 ### Requirement: Freigegebene Zuordnungstabelle als einzige Quelle
 Die Datenmigration SHALL ausschließlich die für den jeweiligen Lauf geprüfte Zuordnungstabelle anwenden. Die Tabelle MUST im Code als deklarative Datenstruktur (`supply/data/buffet_role_mapping.py`) vorliegen, mit Aktionen `keep` (Rolle beibehalten), `add` (bestehende Rolle hinzufügen), `merge_into` (Dublette überführen), `untag` (Rolle entfernen, Datensatz bleibt) und `create` (fehlende, fachlich geprüfte Zutat oder Rezept anlegen). `create` MUST einen Item-Typ und die jeweils nötigen Pflichtdaten enthalten; Ingredient-Erstellungen umfassen insbesondere Name, erwarteten Namen, Rolle, Nährwerte, Retail-Section und Portionen. AI-Vorschläge allein erfüllen keine Freigabe- oder Verifizierungsvoraussetzung. Bestehende Einträge MUST über ID und erwarteten Namen adressiert sein; weicht der Name ab, MUST der Eintrag übersprungen und gemeldet werden. Noch nicht existierende `create`-Einträge MUST über Item-Typ, erwarteten Namen und vorgeschlagenen Slug identifiziert werden; vor dem Anlegen MUST geprüft werden, dass kein aktiver Eintrag mit gleichem normalisierten Namen oder Slug existiert. `retail_section`, `is_standalone_food` und Rezepttyp dürfen Kandidaten zur manuellen Auswahl liefern, aber die Migration MUST keine Rollen automatisch allein aus diesen Merkmalen ableiten. Ähnlichkeitsberichte MUST Vorschläge sein; Merge-Ziel und vollständiges Mapping bedürfen menschlicher Prüfung.

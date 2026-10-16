@@ -1,7 +1,7 @@
 # event-wizard-overhaul Specification
 
 ## Purpose
-Specification of event-wizard-overhaul.
+Anforderungen an event wizard overhaul: 8-step wizard structure; Stepper navigation with progress indicator; Context help text per step.
 
 ## Requirements
 ### Requirement: 8-step wizard structure
@@ -207,8 +207,6 @@ The wizard SHALL be designed mobile-first with a minimum supported width of 320p
 #### Scenario: Wizard on desktop (1024px+)
 - **WHEN** the wizard is displayed on a desktop screen
 - **THEN** the stepper SHALL show all 8 step names in a horizontal bar, and form fields SHALL use a wider layout with side-by-side fields where appropriate
-
-## Wizard Stepper
 
 ### Requirement: Wizard stepper icon visibility
 The event creation wizard stepper SHALL display clearly visible step icons at all viewport sizes.

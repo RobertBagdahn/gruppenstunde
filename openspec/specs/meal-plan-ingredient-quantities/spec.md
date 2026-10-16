@@ -1,7 +1,7 @@
 # meal-plan-ingredient-quantities Specification
 
 ## Purpose
-TBD - created by archiving change meal-plan-ingredient-quantities. Update Purpose after archive.
+Anforderungen an meal plan ingredient quantities: Mengenübersicht je Essensplan; Einzelne Rezept-Zutat in einer Mahlzeit anpassen; Planweite Anpassung einer Zutat.
 ## Requirements
 ### Requirement: Mengenübersicht je Essensplan
 Das System SHALL unter `GET /api/meal-plans/{id}/ingredient-quantities/` alle Zutaten eines Essensplans mit Netto-Gesamtmenge, Gesamtmenge mit Reserve, Anzeigeeinheit und den einzelnen Beiträgen je Mahlzeit-Eintrag liefern. Die Mengen MUST aus derselben Berechnung stammen wie die Einkaufsliste des Plans (effektive Portionen, Faktor, Reserve, Overrides, Ausschlüsse, Varianten). Jeder Beitrag MUST Mahlzeit, Rezept, Menge pro Person (effektiv und original) mit Einheit, Faktor, effektive Portionen, Netto-Gramm sowie `editable` und einen deutschen `not_editable_reason` enthalten. Die Antwort ist ein planbezogenes Aggregat und wird nicht paginiert.

@@ -1,7 +1,7 @@
 # responsive-meal-time-fields Specification
 
 ## Purpose
-Specification of responsive-meal-time-fields.
+Anforderungen an responsive meal time fields: Responsive meal-time layout.
 
 ## Requirements
 ### Requirement: Responsive meal-time layout

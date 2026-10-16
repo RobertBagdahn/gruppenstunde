@@ -1,7 +1,7 @@
 # event-location-detail Specification
 
 ## Purpose
-Specification of event-location-detail.
+Anforderungen an event location detail: Latitude and longitude fields on EventLocation and MeetingPoint; EventLocation update and delete authorization; Location detail view with OpenStreetMap map.
 
 ## Requirements
 ### Requirement: Latitude and longitude fields on EventLocation and MeetingPoint

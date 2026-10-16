@@ -1,7 +1,7 @@
 # event-participant-import Specification
 
 ## Purpose
-Specification of event-participant-import.
+Anforderungen an event participant import: Import API endpoint; Import preview endpoint; Row-level validation.
 
 ## Requirements
 ### Requirement: Import API endpoint

@@ -1,5 +1,9 @@
 # recipe-detail-reorganized Specification
 
+## Purpose
+Anforderungen an recipe detail reorganized: Bild abschnittsbasiert anzeigen; Kompakte Meta-Inline-Header-Zeile; Neue Sektions-Reihenfolge.
+
+## Requirements
 ### Requirement: Bild abschnittsbasiert anzeigen
 Das Titelbild SHALL nur gerendert werden, wenn `recipe.image_url` einen Wert hat. Wenn kein Bild vorhanden ist, SHALL statt eines großen Fallback-Bildes ein kleiner, dezenter Icon-Placeholder (niedrige Höhe, Rezepttyp-Icon auf dezentem Hintergrund) angezeigt werden. Für Nutzer mit Bearbeitungsrecht SHALL ein Button zum Bild-Hinzufügen erscheinen.
 
@@ -66,10 +70,6 @@ Die vier Analyse-Sektionen (Preis, Inhaltsstoffe, Gesundheit, Gewicht) SHALL in 
 - **WHEN** ein Nutzer auf einen anderen Analyse-Tab klickt
 - **THEN** wird der entsprechende Inhalt angezeigt, andere Tabs ausgeblendet
 
-## Purpose
-Specification of recipe-detail-reorganized.
-
-## Requirements
 ### Requirement: Reichhaltige Metadaten-Seitenleiste
 Die Desktop-Seitenleiste SHALL eine reichhaltige Metadaten-Karte enthalten mit: Rezepttyp-Badge (oben), Gesamtkosten, Nutri-Score, Status (Entwurf/Veröffentlicht/Verifiziert), Autor (mit Link zum Profil), Kategorie/Rezepttyp (verlinkt), Kochzeit, Vorbereitung, Schwierigkeit, Altersgruppe, Aufrufe, Likes, Datenqualität-Score sowie Erstellt-/Aktualisiert-Datum. Der Rezepttyp-Badge SHALL nur in der Seitenleiste erscheinen (nicht im Header).
 

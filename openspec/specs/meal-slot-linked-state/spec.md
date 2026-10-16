@@ -1,11 +1,11 @@
 # meal-slot-linked-state Specification
 
 ## Purpose
-Specification of meal-slot-linked-state.
+Anforderungen an meal slot linked state: Verknüpfte Meals sind read-only; Visueller Hinweis auf Referenz-Herkunft; Link-Icon zeigt korrekten Zustand.
 
 ## Requirements
 ### Requirement: Verknüpfte Meals sind read-only
-Wenn eine Mahlzeit mit einer Referenz-Mahlzeit verknüpft ist (`is_synced = true`), darf der User die Items nicht bearbeiten.
+Wenn eine Mahlzeit mit einer Referenz-Mahlzeit verknüpft ist (`is_synced = true`), MUST NOT der User die Items bearbeiten können.
 
 #### Scenario: Verknüpftes Meal zeigt keine Editier-Controls
 - **WHEN** `meal.is_synced === true`
@@ -16,7 +16,7 @@ Wenn eine Mahlzeit mit einer Referenz-Mahlzeit verknüpft ist (`is_synced = true
 - **THEN** Alle Editier-Controls werden normal angezeigt
 
 ### Requirement: Visueller Hinweis auf Referenz-Herkunft
-Verknüpfte Meals zeigen klar an, dass ihre Inhalte aus einer Referenz-Mahlzeit stammen.
+Verknüpfte Meals SHALL klar anzeigen, dass ihre Inhalte aus einer Referenz-Mahlzeit stammen.
 
 #### Scenario: Label "Referenz-Mahlzeit" wird angezeigt
 - **WHEN** `meal.is_synced === true` und Items vorhanden
@@ -27,7 +27,7 @@ Verknüpfte Meals zeigen klar an, dass ihre Inhalte aus einer Referenz-Mahlzeit 
 - **THEN** Alle Meal-Items werden in `text-muted-foreground` dargestellt
 
 ### Requirement: Link-Icon zeigt korrekten Zustand
-Das Link-Icon kommuniziert die mögliche Aktion (nicht den aktuellen Zustand).
+Das Link-Icon SHALL die mögliche Aktion kommunizieren (nicht den aktuellen Zustand).
 
 #### Scenario: Verknüpft zeigt Entkoppeln-Icon
 - **WHEN** `meal.is_synced === true`
@@ -38,7 +38,7 @@ Das Link-Icon kommuniziert die mögliche Aktion (nicht den aktuellen Zustand).
 - **THEN** Icon ist `link` in grauer Farbe mit Tooltip "Mit RefMeal verknüpfen"
 
 ### Requirement: Emoji-Indikator wird entfernt
-Das redundante 🔗 Emoji neben dem Mahlzeit-Titel wird entfernt.
+Das redundante 🔗-Emoji neben dem Mahlzeit-Titel MUST NOT mehr angezeigt werden.
 
 #### Scenario: Kein Emoji im Header
 - **WHEN** `meal.is_synced === true`

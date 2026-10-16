@@ -1,7 +1,7 @@
 # event-budget Specification
 
 ## Purpose
-Specification of event-budget.
+Anforderungen an event budget: BudgetItem model; Budget summary API endpoint; BudgetItem CRUD endpoints.
 
 ## Requirements
 ### Requirement: BudgetItem model
@@ -121,8 +121,6 @@ A detailed budget page or section SHALL allow managers to view and manage all bu
 - **WHEN** a manager views the detailed budget page
 - **THEN** a summary section SHALL show `expected_income` (labeled "Erwartete Einnahmen") alongside `total_income` (labeled "Tatsächliche Einnahmen")
 - **THEN** if `total_income` < `expected_income`, a note "Offene Zahlungen vorhanden" SHALL be displayed
-
-## Payment
 
 ### Requirement: Payment Model
 The system SHALL store payments as a `Payment` model with: participant (FK to Participant), amount (DecimalField, max_digits=7, decimal_places=2), method (CharField choices: bar, paypal, ueberweisung, sonstige), received_at (DateTimeField), location (CharField, blank — where the money was received), note (TextField, blank), created_by (FK to User), created_at (auto timestamp).

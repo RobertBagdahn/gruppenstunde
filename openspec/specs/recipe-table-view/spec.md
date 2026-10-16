@@ -3,7 +3,7 @@
 Tabellenansicht als Alternative zum Kachel-Grid in der Rezeptsuche mit localStorage-Persistenz.
 
 ## Purpose
-Specification of recipe-table-view.
+Anforderungen an recipe table view: View toggle between grid and table; Table columns for recipe search; Empty table state.
 
 ## Requirements
 ### Requirement: View toggle between grid and table

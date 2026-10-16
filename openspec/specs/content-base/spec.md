@@ -1,7 +1,7 @@
 # content-base Specification
 
 ## Purpose
-Specification of content-base.
+Anforderungen an content base: Abstract Content Base Class; Soft Delete for all Content; Content Type Registry.
 
 ## Requirements
 ### Requirement: Abstract Content Base Class
@@ -98,7 +98,7 @@ The system SHALL provide a base Zod schema (`ContentBaseSchema`) in the frontend
 
 ### Requirement: Content-Grid-Layout
 
-Das Content-Grid-Layout MUSS 5 Kacheln pro Zeile auf Desktop-Bildschirmen anzeigen.
+Das Content-Grid-Layout MUST 5 Kacheln pro Zeile auf Desktop-Bildschirmen anzeigen.
 
 #### Scenario: Desktop-Ansicht (xl, >= 1280px)
 - **WHEN** die Content-Listenansicht auf einem Bildschirm >= 1280px Breite gerendert wird
@@ -122,7 +122,7 @@ Das Content-Grid-Layout MUSS 5 Kacheln pro Zeile auf Desktop-Bildschirmen anzeig
 
 ### Requirement: Content-Card Tag-Anzeige
 
-Alle Content-Cards MÜSSEN mehr Tags anzeigen als aktuell.
+Alle Content-Cards MUST mehr Tags anzeigen als aktuell.
 
 #### Scenario: Tags auf der Card
 - **WHEN** eine Content-Card gerendert wird
@@ -131,7 +131,7 @@ Alle Content-Cards MÜSSEN mehr Tags anzeigen als aktuell.
 
 ### Requirement: Content-Card Summary
 
-Content-Cards MÜSSEN eine kurze Zusammenfassung anzeigen wenn verfügbar.
+Content-Cards MUST eine kurze Zusammenfassung anzeigen wenn verfügbar.
 
 #### Scenario: Summary auf der Card
 - **WHEN** eine Content-Card gerendert wird und der Content ein `summary`-Feld hat
@@ -139,7 +139,7 @@ Content-Cards MÜSSEN eine kurze Zusammenfassung anzeigen wenn verfügbar.
 
 ### Requirement: Autor-Position auf Detailseiten
 
-Der Autor-Bereich MUSS auf allen Content-Detailseiten am unteren Ende positioniert sein.
+Der Autor-Bereich MUST auf allen Content-Detailseiten am unteren Ende positioniert sein.
 
 #### Scenario: Autor unten auf Detailseite
 - **WHEN** eine Content-Detailseite gerendert wird
@@ -621,19 +621,3 @@ The system SHALL provide a single `ContentView` model for bot-free view tracking
 - **WHEN** a ContentView already exists for the same content object and session_key within the last 24 hours
 - **THEN** no new ContentView SHALL be created
 - **THEN** the `view_count` SHALL NOT be incremented
-
-### Requirement: Comment Model (content app)
-**Reason**: Replaced by generic ContentComment
-**Migration**: Existing data migrated to ContentComment
-
-### Requirement: Emotion Model (content app)
-**Reason**: Replaced by generic ContentEmotion
-**Migration**: Existing data migrated to ContentEmotion
-
-### Requirement: RecipeComment Model
-**Reason**: Replaced by generic ContentComment
-**Migration**: Existing data migrated to ContentComment
-
-### Requirement: RecipeEmotion Model
-**Reason**: Replaced by generic ContentEmotion
-**Migration**: Existing data migrated to ContentEmotion

@@ -1,7 +1,7 @@
 # recipe-type-stats Specification
 
 ## Purpose
-Specification of recipe-type-stats.
+Anforderungen an recipe type stats: RecipeTypeStats-Aggregat mit Histogramm-Buckets; Cache-Invalidierung der Typ-Statistiken; Öffentlicher Benchmark-Endpunkt.
 
 ## Requirements
 ### Requirement: RecipeTypeStats-Aggregat mit Histogramm-Buckets

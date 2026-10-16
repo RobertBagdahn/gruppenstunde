@@ -1,8 +1,12 @@
-## MODIFIED Requirements
+# portion-ranking Specification
 
+## Purpose
+Anforderungen an portion ranking: Portionen-Reihenfolge per Drag & Drop ändern; Primäre Anzeigeauswahl nach rank=1; Verständliche Gewichtsanzeige.
+
+## Requirements
 ### Requirement: Portionen-Reihenfolge per Drag & Drop ändern
 
-Das System MUSS dem Nutzer Drag & Drop ermöglichen, mit dem die Sortierreihenfolge der Portionen geändert werden kann. Die System-Portion „g" ist davon ausgenommen und immer ans Ende fixiert. ▲/▼-Buttons werden nicht mehr verwendet.
+Das System MUST dem Nutzer Drag & Drop ermöglichen, mit dem die Sortierreihenfolge der Portionen geändert werden kann. Die System-Portion „g" ist davon ausgenommen und immer ans Ende fixiert. ▲/▼-Buttons werden nicht mehr verwendet.
 
 #### Scenario: Portion per Drag & Drop verschieben
 
@@ -49,7 +53,7 @@ Gramm-Portionen (Einheit `g`, `Gramm`, `kg`, `Kilogramm`, `ml`, `Milliliter`, `l
 
 ### Requirement: Verständliche Gewichtsanzeige
 
-Das System MUSS das berechnete Gewicht einer Portion klar und verständlich anzeigen.
+Das System MUST das berechnete Gewicht einer Portion klar und verständlich anzeigen.
 
 #### Scenario: Portion mit berechnetem Gewicht
 
@@ -65,7 +69,7 @@ Das System MUSS das berechnete Gewicht einer Portion klar und verständlich anze
 
 ### Requirement: Standard-Badge für Normalportion
 
-Das System MUSS die Portion mit rank=1 in der Portionsliste der Zutaten-Detailseite deutlich als „Standard" kennzeichnen.
+Das System MUST die Portion mit rank=1 in der Portionsliste der Zutaten-Detailseite deutlich als „Standard" kennzeichnen.
 
 #### Scenario: rank=1 Portion wird angezeigt
 
@@ -77,17 +81,3 @@ Das System MUSS die Portion mit rank=1 in der Portionsliste der Zutaten-Detailse
 
 - **WHEN** keine Portion mit rank=1 existiert (technischer Fehlerfall)
 - **THEN** wird kein „Standard"-Badge angezeigt
-
-## REMOVED Requirements
-
-### Requirement: Portionen-Reihenfolge per Buttons ändern
-
-**Reason**: Ersetzt durch Drag & Drop (siehe neues Requirement oben). ▲/▼-Buttons sind auf Touch-Geräten fehleranfälliger und visuell aufwändiger als Drag & Drop.
-
-**Migration**: Der `POST /{slug}/portions/{id}/move/?direction=up|down` Endpoint wird durch `POST /{slug}/portions/reorder/` ersetzt. Bestehende Clients müssen auf den neuen Endpoint migriert werden.
-
-### Requirement: Klares Quantity-Label im Edit-Modus
-
-**Reason**: Dieses Requirement wird in `ingredient-portion-redesign/spec.md` (neue Capability) zusammengeführt. Kein eigenständiges Requirement mehr nötig.
-
-**Migration**: Keine — rein kosmetisch, kein Breaking Change im Backend.

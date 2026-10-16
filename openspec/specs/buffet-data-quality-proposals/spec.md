@@ -1,7 +1,7 @@
 # buffet-data-quality-proposals Specification
 
 ## Purpose
-TBD - created by archiving change buffet-free-selection. Update Purpose after archive.
+Anforderungen an buffet data quality proposals: Staff können Buffet-Katalogvorschläge erstellen und pflegen; Alle plausiblen Mapping- und Dublettenkandidaten sind prüfbar; Mapping-Test ist schreibfrei und verwendet dieselbe Prüfung wie der Apply-Command.
 ## Requirements
 ### Requirement: Staff können Buffet-Katalogvorschläge erstellen und pflegen
 Das Datenqualitätssystem SHALL Staff eine Vorschlagsmaske für Buffet-Katalogdaten bereitstellen. Staff SHALL Vorschläge für bestehende Zutaten/Rezepte (Rollen hinzufügen oder entfernen) und Dubletten (Quelle → Ziel) erstellen, bearbeiten und verwerfen können. Zusätzlich SHALL die Maske neue Zutaten und Rezepte sowohl manuell als auch mit KI-Unterstützung als Vorschläge erfassen können. KI-Ergebnisse SHALL editierbare Vorschläge bleiben und DÜRFEN vor einer expliziten Staff-Freigabe keine Ingredient-, Recipe-, Tag- oder Status-Daten verändern. Die Maske SHALL KI-/manuelle Herkunft und den prüfenden Staff-Nutzer nachvollziehbar machen. Vorschläge SHALL persistent und auditierbar sein; Listen SHALL `page=1`, `page_size=20` und das bestehende paginierte Response-Format unterstützen.

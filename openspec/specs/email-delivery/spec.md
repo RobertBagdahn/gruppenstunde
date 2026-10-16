@@ -1,7 +1,7 @@
 # email-delivery Specification
 
 ## Purpose
-Specification of email-delivery.
+Anforderungen an email delivery: SMTP-Based Email Dispatch.
 
 ## Requirements
 ### Requirement: SMTP-Based Email Dispatch

@@ -1,3 +1,8 @@
+# recipe-preview-layout Specification
+
+## Purpose
+Anforderungen an recipe preview layout: Recipe preview shows sectioned layout; Ingredients displayed as vertical list; KPIs displayed in grid layout.
+
 ## Requirements
 
 ### Requirement: Recipe preview shows sectioned layout

@@ -1,7 +1,7 @@
 # meal-card-compact-accordion Specification
 
 ## Purpose
-TBD - created by archiving change redesign-meal-planner-ux. Update Purpose after archive.
+Anforderungen an meal card compact accordion: Compact Meal Card Default State; Inline Accordion Expansion; Cleartext Servings Input.
 ## Requirements
 ### Requirement: Compact Meal Card Default State
 A filled meal card in DayPlanView SHALL display in its collapsed state: meal title, start time, target servings count, cost per person, total cost, and up to four ingredient summary tags.

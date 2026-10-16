@@ -1,12 +1,12 @@
 # recipe-portion-scaling-edit Specification
 
 ## Purpose
-Specification of recipe-portion-scaling-edit.
+Anforderungen an recipe portion scaling edit: Proportional scaling on display portion change; Visual feedback after scaling; Improved ingredient row layout.
 
 ## Requirements
 ### Requirement: Proportional scaling on display portion change
 
-When the user changes the displayed portion count in the recipe detail view or InlineIngredientEditor, all ingredient quantities are scaled proportionally. The database always stores per-1-person quantities (servings=1). Scaling is for display purposes and does not change stored values unless explicitly saving in edit mode.
+When the user changes the displayed portion count in the recipe detail view or InlineIngredientEditor, all ingredient quantities SHALL be scaled proportionally. The database always stores per-1-person quantities (servings=1). Scaling is for display purposes and does not change stored values unless explicitly saving in edit mode.
 
 #### Scenario: User views recipe for 4 persons
 
@@ -24,6 +24,7 @@ When the user changes the displayed portion count in the recipe detail view or I
 - **THEN** Quantities are rounded according to quantity-display-formatting rules (< 2 → 0.1, 2-10 → 1, etc.)
 
 ### Requirement: Visual feedback after scaling
+After the servings value changes and quantities are recalculated, all quantity inputs SHALL be marked as dirty and briefly highlighted.
 
 #### Scenario: Quantities change after scaling
 
@@ -31,6 +32,7 @@ When the user changes the displayed portion count in the recipe detail view or I
 - **THEN** All quantity inputs are marked as dirty and a brief visual highlight indicates the change
 
 ### Requirement: Improved ingredient row layout
+In edit mode, the unit label of an ingredient row SHALL be wide enough to show common units (Gramm, Stück, Teelöffel, Esslöffel) without truncation.
 
 #### Scenario: Unit label display
 

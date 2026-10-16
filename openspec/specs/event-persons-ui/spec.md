@@ -1,7 +1,7 @@
 # event-persons-ui Specification
 
 ## Purpose
-Specification of event-persons-ui.
+Anforderungen an event persons ui: Persons list page route; Persons list with pagination; Search persons by name.
 
 ## Requirements
 ### Requirement: Persons list page route

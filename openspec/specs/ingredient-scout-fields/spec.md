@@ -1,7 +1,7 @@
 # ingredient-scout-fields Specification
 
 ## Purpose
-Specification of ingredient-scout-fields.
+Anforderungen an ingredient scout fields: Ingredient has storage_type field; Ingredient has cooking_factor field; Ingredient has camp_suitable field.
 
 ## Requirements
 ### Requirement: Ingredient has storage_type field

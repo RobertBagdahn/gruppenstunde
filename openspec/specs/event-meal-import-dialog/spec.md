@@ -1,7 +1,7 @@
 # event-meal-import-dialog Specification
 
 ## Purpose
-Specification of event-meal-import-dialog.
+Anforderungen an event meal import dialog: Copy meal source selection dialog.
 
 ## Requirements
 ### Requirement: Copy meal source selection dialog

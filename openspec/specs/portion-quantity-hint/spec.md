@@ -1,7 +1,7 @@
 # portion-quantity-hint Specification
 
 ## Purpose
-TBD - created by archiving change show-portion-quantities. Update Purpose after archive.
+Anforderungen an portion quantity hint: Abgeleiteter Portionshinweis neben Gramm-Mengen; Wahl der primären Portion nach rank; Sekundärer Portionshinweis bei mehreren sinnvollen Portionsarten.
 ## Requirements
 ### Requirement: Abgeleiteter Portionshinweis neben Gramm-Mengen
 

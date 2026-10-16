@@ -1,7 +1,7 @@
 # ingredient-search Specification
 
 ## Purpose
-Specification of ingredient-search.
+Anforderungen an ingredient search: Sortierung im Ingredient-List-Endpoint; Filter nach Nutritional-Tag im Ingredient-List-Endpoint; quality_score im Ingredient-List-Schema (Frontend).
 
 ## Requirements
 ### Requirement: Sortierung im Ingredient-List-Endpoint

@@ -1,7 +1,7 @@
 # meal-integrity Specification
 
 ## Purpose
-TBD - created by archiving change meal-plan-integrity-and-number-formatting. Update Purpose after archive.
+Anforderungen an meal integrity: Referenzmahlzeiten haben kein Datum; Eindeutige reguläre Mahlzeit je Tag und Typ; Mahlzeiten liegen im Planzeitraum.
 ## Requirements
 ### Requirement: Referenzmahlzeiten haben kein Datum
 Eine Mahlzeit mit `is_reference=True` MUST `start_datetime=NULL` und `end_datetime=NULL` haben. Die Datenbank SHALL dies per CheckConstraint erzwingen. Eine Datenmigration MUST vorher Datum und Uhrzeit bestehender Referenzmahlzeiten auf `NULL` setzen.

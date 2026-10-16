@@ -1,12 +1,12 @@
 # fine-grained-quantity-rounding Specification
 
 ## Purpose
-Specification of fine-grained-quantity-rounding.
+Anforderungen an fine grained quantity rounding: Feinere Rundung für kleine Mengen; Keine Rundung auf Null; Dezimalanzeige für kleine Werte.
 
 ## Requirements
 ### Requirement: Feinere Rundung für kleine Mengen
 
-Die `smartRound()`-Funktion muss Mengen unter 10 feiner runden, damit kleine Zutatenmengen korrekt angezeigt werden. Die Grenzen sind konsistent mit `quantity-display-formatting`.
+Die `smartRound()`-Funktion MUST Mengen unter 10 feiner runden, damit kleine Zutatenmengen korrekt angezeigt werden. Die Grenzen sind konsistent mit `quantity-display-formatting`.
 
 #### Scenario: Menge unter 2
 - **WHEN** der Eingabewert zwischen 0 (exklusiv) und 2 liegt
@@ -22,7 +22,7 @@ Die `smartRound()`-Funktion muss Mengen unter 10 feiner runden, damit kleine Zut
 
 ### Requirement: Keine Rundung auf Null
 
-Positive Eingabewerte dürfen nie auf 0 gerundet werden.
+Positive Eingabewerte MUST NOT auf 0 gerundet werden.
 
 #### Scenario: Sehr kleine Menge
 - **WHEN** der Eingabewert > 0 aber < 0,05 ist
@@ -30,7 +30,7 @@ Positive Eingabewerte dürfen nie auf 0 gerundet werden.
 
 ### Requirement: Dezimalanzeige für kleine Werte
 
-`formatNumber()` muss für Werte < 1 eine Nachkommastelle anzeigen.
+`formatNumber()` MUST für Werte < 1 eine Nachkommastelle anzeigen.
 
 #### Scenario: Wert mit Dezimalstelle
 - **WHEN** der anzuzeigende Wert 0,3 ist

@@ -1,11 +1,11 @@
 # kitchen-reminder Specification
 
 ## Purpose
-Specification of kitchen-reminder.
+Anforderungen an kitchen reminder: Küchenbedarf-Erinnerungen anzeigen; Vorschlag einreichen; Admin-Verwaltung.
 
 ## Requirements
 ### Requirement: Küchenbedarf-Erinnerungen anzeigen
-Alle veröffentlichten Küchenbedarf-Artikel werden am Ende jeder Einkaufsliste gruppiert nach Kategorie angezeigt. Zusätzlich sieht ein eingeloggter User seine eigenen unveröffentlichten Vorschläge.
+Alle veröffentlichten Küchenbedarf-Artikel SHALL am Ende jeder Einkaufsliste gruppiert nach Kategorie angezeigt werden. Zusätzlich sieht ein eingeloggter User seine eigenen unveröffentlichten Vorschläge.
 
 #### Scenario: Einkaufsliste öffnen
 - **WHEN** ein User eine Einkaufsliste im Detail öffnet
@@ -16,7 +16,7 @@ Alle veröffentlichten Küchenbedarf-Artikel werden am Ende jeder Einkaufsliste 
 - **THEN** erscheint dieser Vorschlag zusätzlich in der Liste (markiert als "Dein Vorschlag")
 
 ### Requirement: Vorschlag einreichen
-Jeder eingeloggte User kann eigene Küchenbedarf-Artikel vorschlagen.
+Jeder eingeloggte User SHALL eigene Küchenbedarf-Artikel vorschlagen können.
 
 #### Scenario: Vorschlag erstellen
 - **WHEN** ein User einen Artikelnamen eingibt und absendet
@@ -28,7 +28,7 @@ Jeder eingeloggte User kann eigene Küchenbedarf-Artikel vorschlagen.
 - **THEN** wird keine Kategorie zugewiesen (null) — der Admin ordnet sie später zu
 
 ### Requirement: Admin-Verwaltung
-Kategorien und Artikel sind über das Django Admin Interface verwaltbar.
+Kategorien und Artikel SHALL über das Django-Admin-Interface verwaltbar sein.
 
 #### Scenario: Vorschlag veröffentlichen
 - **WHEN** ein Admin einen Vorschlag sichtet und `is_published=True` setzt
@@ -39,7 +39,7 @@ Kategorien und Artikel sind über das Django Admin Interface verwaltbar.
 - **THEN** wird die Gruppierung in der Frontend-Anzeige entsprechend aktualisiert
 
 ### Requirement: Initiale Daten
-Das System wird mit 20 vordefinierten Artikeln in 5 Kategorien ausgeliefert.
+Das System SHALL mit 20 vordefinierten Artikeln in 5 Kategorien ausgeliefert werden.
 
 #### Scenario: Nach Migration
 - **WHEN** die Data-Migration ausgeführt wurde

@@ -1,7 +1,7 @@
 # recipe-multi-source-import Specification
 
 ## Purpose
-TBD - created by archiving change review-ai-recipe-ingredients. Update Purpose after archive.
+Anforderungen an recipe multi source import: Combined import sources; Per-row provenance; Conflict review.
 ## Requirements
 ### Requirement: Combined import sources
 The recipe import SHALL accept multiple URL and pasted-text sources and SHALL analyze them together as one import attempt. The UI SHALL allow adding another source after an extraction failure.

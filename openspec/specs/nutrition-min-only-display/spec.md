@@ -1,7 +1,7 @@
 # nutrition-min-only-display Specification
 
 ## Purpose
-Specification of nutrition-min-only-display.
+Anforderungen an nutrition min only display: Darstellung reiner Untergrenzen-Nährstoffe als Mindest-Schwelle; Keine veralteten Maximum-Schwellen für reine Untergrenzen-Nährstoffe.
 
 ## Requirements
 ### Requirement: Darstellung reiner Untergrenzen-Nährstoffe als Mindest-Schwelle

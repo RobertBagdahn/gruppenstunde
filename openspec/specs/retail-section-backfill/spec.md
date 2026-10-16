@@ -1,7 +1,7 @@
 # retail-section-backfill Specification
 
 ## Purpose
-Specification of retail-section-backfill.
+Anforderungen an retail section backfill: Backfill von Supermarktabteilungen für Bestandszutaten; Vollständige Keyword-Stammdaten für gängige Zutaten.
 
 ## Requirements
 ### Requirement: Backfill von Supermarktabteilungen für Bestandszutaten

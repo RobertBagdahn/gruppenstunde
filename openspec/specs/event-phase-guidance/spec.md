@@ -1,7 +1,7 @@
 # event-phase-guidance Specification
 
 ## Purpose
-Specification of event-phase-guidance.
+Anforderungen an event phase guidance: Contextual phase explanation with action instructions; Draft phase guidance; Pre-registration phase guidance.
 
 ## Requirements
 ### Requirement: Contextual phase explanation with action instructions
@@ -130,8 +130,6 @@ The phase guidance Alert component SHALL be responsive. On mobile (< 640px), the
 - **WHEN** the overview tab is viewed on a desktop screen (>= 1024px)
 - **THEN** the Alert SHALL display the status text and action instruction in a compact layout with inline action links
 
-## Phase Timeline
-
 ### Requirement: Event phase calculation
 The system SHALL calculate the current event phase based on existing date fields (`created_at`, `registration_start`, `registration_deadline`, `start_date`, `end_date`).
 
@@ -207,8 +205,6 @@ Each phase SHALL have a German display label for the UI.
   - `pre_event` → "Vor dem Event"
   - `running` → "Event läuft"
   - `completed` → "Abgeschlossen"
-
-## Manual Phase
 
 ### Requirement: EventPhaseChoices in choices.py
 A new `EventPhaseChoices` TextChoices class SHALL be created in `backend/event/choices.py` to define all valid event phases.

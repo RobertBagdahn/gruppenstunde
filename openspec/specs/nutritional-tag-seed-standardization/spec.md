@@ -6,7 +6,7 @@ Definiert die standardisierten NutritionalTag-Seed-Daten mit konsistenter name/n
 ## Requirements
 ### Requirement: name enthält immer das menschliche Merkmal
 
-Der `name` eines NutritionalTag-Eintrags MUSS das menschliche Ernährungsmerkmal beschreiben (z.B. "Vegan", "Eiallergie", "Laktoseunverträglichkeit"). `name_opposite` MUSS den konkreten problematischen Inhaltsstoff beschreiben (z.B. "Tierische Produkte", "Ei und Eierzeugnisse", "Laktose").
+Der `name` eines NutritionalTag-Eintrags MUST das menschliche Ernährungsmerkmal beschreiben (z.B. "Vegan", "Eiallergie", "Laktoseunverträglichkeit"). `name_opposite` MUST den konkreten problematischen Inhaltsstoff beschreiben (z.B. "Tierische Produkte", "Ei und Eierzeugnisse", "Laktose").
 
 #### Scenario: Vegan-Tag
 - **WHEN** der Vegan-NutritionalTag abgefragt wird
@@ -30,7 +30,7 @@ Der `name` eines NutritionalTag-Eintrags MUSS das menschliche Ernährungsmerkmal
 
 ### Requirement: Zwei Namensschemata — medizinisch und Präferenz
 
-Alle NutritionalTag-Einträge MÜSSEN einem von zwei Namensschemata folgen:
+Alle NutritionalTag-Einträge MUST einem von zwei Namensschemata folgen:
 
 - **Medizinisch**: Endung auf `-allergie` oder `-unverträglichkeit`, betrifft Immunsystem oder Stoffwechsel, `is_dangerous` entsprechend gesetzt
 - **Präferenz**: Endung auf `-frei`, betrifft freiwilligen Verzicht, `is_dangerous=false`
@@ -47,7 +47,7 @@ Ausnahmen: "Vegan" und "Vegetarisch" als etablierte Begriffe.
 
 ### Requirement: EU-Allergene sind als is_dangerous markiert
 
-Alle 14 EU-deklarationspflichtigen Allergene, die im Seed abgebildet sind, MÜSSEN `is_dangerous=true` haben.
+Alle 14 EU-deklarationspflichtigen Allergene, die im Seed abgebildet sind, MUST `is_dangerous=true` haben.
 
 #### Scenario: EU-Allergene im Seed
 - **WHEN** alle NutritionalTags mit `is_dangerous=true` abgefragt werden
@@ -55,7 +55,7 @@ Alle 14 EU-deklarationspflichtigen Allergene, die im Seed abgebildet sind, MÜSS
 
 ### Requirement: description erklärt das menschliche Merkmal
 
-Die `description` eines NutritionalTag MUSS das menschliche Merkmal (`name`) erklären, nicht den Gegenname.
+Die `description` eines NutritionalTag MUST das menschliche Merkmal (`name`) erklären, nicht den Gegenname.
 
 #### Scenario: Beschreibung für Vegan
 - **WHEN** der Vegan-NutritionalTag abgefragt wird
@@ -67,7 +67,7 @@ Die `description` eines NutritionalTag MUSS das menschliche Merkmal (`name`) erk
 
 ### Requirement: Vollständige Seed-Liste mit 30 Einträgen
 
-Der Seed MUSS exakt 30 NutritionalTag-Einträge mit den definierten Rängen, Namen und Gegenbezeichnungen enthalten.
+Der Seed MUST exakt 30 NutritionalTag-Einträge mit den definierten Rängen, Namen und Gegenbezeichnungen enthalten.
 
 #### Scenario: Alle 30 Einträge vorhanden
 - **WHEN** der Seed importiert wird

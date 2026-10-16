@@ -1,5 +1,9 @@
-## MODIFIED Requirements
+# packing-list Specification
 
+## Purpose
+Anforderungen an packing list: PackingList visibility field; Packing list clone respects visibility; Packing list text export respects visibility.
+
+## Requirements
 ### Requirement: PackingList visibility field
 Each PackingList SHALL have a `visibility` field with values `private` or `link_only` (default: `link_only`). The visibility field SHALL control read access to the packing list. Additionally, PackingList SHALL store optional context fields from the wizard.
 
@@ -92,8 +96,6 @@ When adding items to a packing list, the system SHALL provide a search that quer
 
 ---
 
-## Do-Not-Bring Items
-
 ### Requirement: "Nicht mitbringen" flag on PackingItem
 The system SHALL support marking individual packing items as "do not bring" items. A `PackingItem` with `is_do_not_bring=True` represents something participants SHALL NOT bring to the event.
 
@@ -129,8 +131,6 @@ The system SHALL support marking individual packing items as "do not bring" item
 - **THEN** the cloned list SHALL preserve the `is_do_not_bring` flag on all items
 
 ---
-
-## Item Detail View
 
 ### Requirement: Clickable items with detail view
 Each PackingItem in the list SHALL be clickable, opening a detail view (Sheet/slide-over panel) with extended information about the item.
@@ -170,8 +170,6 @@ Each PackingItem in the list SHALL be clickable, opening a detail view (Sheet/sl
 - **THEN** the packing list SHALL remain in its current scroll position
 
 ---
-
-## Autocomplete
 
 ### Requirement: Autocomplete dropdown in item input
 The system SHALL display an autocomplete dropdown when the user types in the "Gegenstand hinzufügen" input field within a packing list category.
@@ -231,8 +229,6 @@ The system SHALL provide a `GET /api/packing-lists/catalog/` endpoint returning 
 - **THEN** this endpoint SHALL NOT require authentication (catalog data is not sensitive)
 
 ---
-
-## Sharing
 
 ### Requirement: Packing list visibility control
 Each PackingList SHALL have a `visibility` field controlling who can view the list. The system SHALL support `private` and `link_only` visibility modes.

@@ -1,3 +1,10 @@
+# food-approval-queue Specification
+
+## Purpose
+Anforderungen an food approval queue: Admin can review pending recipes.
+
+## Requirements
+
 ### Requirement: Admin can review pending recipes
 The Food-Frontend admin area SHALL provide an "Freigaben" tab where staff users can review, approve, or reject pending recipes.
 
