@@ -42,6 +42,13 @@ export function formatCount(value: number): string {
   return rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',');
 }
 
+/** Count for reading: whole numbers from 10 up, one decimal from 1 up, else two ("39,59" → "40", "2,35" → "2,4"). */
+export function formatDisplayCount(value: number): string {
+  if (value >= 10) return String(Math.round(value));
+  if (value >= 1) return formatCount(Math.round(value * 10) / 10);
+  return formatCount(value);
+}
+
 /** Portions named after a fixed weight ("100g Äpfel") make bad counts: 49,71 × 100 g. Show plain weight instead. */
 export function isWeightPortion(item: Pick<StoredAmount, 'unit_kind' | 'unit_label' | 'quantity_g'>): boolean {
   return (
@@ -55,7 +62,7 @@ export function isWeightPortion(item: Pick<StoredAmount, 'unit_kind' | 'unit_lab
 export function formatAmount(parts: AmountParts): string {
   const gramsText = `${parts.gramsApprox ? '≈ ' : ''}${formatWeight(parts.grams)}`;
   if (parts.kind === 'grams') return gramsText;
-  const countText = `${parts.countApprox ? '≈ ' : ''}${formatCount(parts.count)} ${parts.label}`.trim();
+  const countText = `${parts.countApprox ? '≈ ' : ''}${formatDisplayCount(parts.count)} ${parts.label}`.trim();
   if (parts.missing) return `${countText} (Gewicht fehlt)`;
   return `${countText} (${gramsText})`;
 }

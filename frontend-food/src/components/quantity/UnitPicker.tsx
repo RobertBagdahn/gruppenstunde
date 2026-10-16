@@ -54,9 +54,9 @@ export default function UnitPicker({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
-        className="inline-flex items-center gap-0.5 max-w-[8rem] px-1.5 py-0.5 text-caption text-muted-foreground border border-input rounded-lg bg-background hover:bg-muted transition-colors"
+        className="inline-flex items-center gap-0.5 max-w-full px-1.5 py-0.5 text-caption text-muted-foreground border border-input rounded-lg bg-background hover:bg-muted transition-colors"
       >
-        <span className="truncate">{triggerLabel}</span>
+        <span className="text-left">{triggerLabel}</span>
         <ChevronDown size={12} className={cn('shrink-0 transition-transform', isOpen && 'rotate-180')} />
       </button>
 
