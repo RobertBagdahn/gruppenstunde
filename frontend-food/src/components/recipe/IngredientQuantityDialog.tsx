@@ -9,7 +9,7 @@ import {
 import PortionPicker, { type PickerStandardMeasure } from './PortionPicker';
 import { standardMeasureLabel } from '@/lib/quantityUnits';
 import type { Portion } from '@/schemas/supply';
-import { formatExactWeight, formatWeight } from '@/lib/format';
+import { formatExactWeight } from '@/lib/format';
 import { formatDecimalInput, parseDecimalInput } from '@/lib/decimalInput';
 import { QUANTITY_COUNT_MAX } from '@/lib/mealPlanBounds';
 
@@ -182,7 +182,7 @@ export default function IngredientQuantityDialog({
           {totalWeightG && unitWeightG && (
             <p className="text-caption text-muted-foreground">
               {validQuantity} × {selectedMeasure ? `${standardMeasureLabel(selectedMeasure.key)} (${formatExactWeight(unitWeightG)})` : formatExactWeight(unitWeightG)}
-              {' '}= {selectedMeasure?.is_approx ? '≈ ' : ''}{formatWeight(totalWeightG)}
+              {' '}= {selectedMeasure?.is_approx ? '≈ ' : ''}{formatExactWeight(totalWeightG)}
             </p>
           )}
 
