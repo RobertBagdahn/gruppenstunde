@@ -1,57 +1,36 @@
-## 1. Abstimmung und Messung
+## 1. Retry bei Überlast
 
-- [ ] 1.1 Referenzliste vermessen: Eintragszahl von Liste 13, Bytes je Feld und Eintrag (`sources`, `portion_options`, `package_options`, `start_unit`), Kompression am Frontend-Nginx und Backend; Ergebnis und Budget (Startwert 4 KB je Eintrag) in `design.md` festhalten
-- [ ] 1.2 Prüfen, ob `stable-backend-capacity` nach `main` gemerged ist; Branch rebasen, Konflikte in `shoppingLists.ts`, `ShoppingListDetailPage.tsx`, `ShoppingListDetailOut` lösen
-- [ ] 1.3 Query-Count-Test `backend/shopping/tests/test_detail_queries.py` (Commit `3ceaa07d`, nur auf `claude/prod-error-1d4d51`) nach `main` holen oder mit Aufgabe 1.1 aus `stable-backend-capacity` zusammenführen, damit der Test nur einmal existiert
+- [x] 1.1 Tests zuerst: Retry-Regel in `main.tsx` wiederholt 429 ohne `code` und 503 bis 3-mal mit 1/2/4 s plus Zufall und beachtet `Retry-After`, wiederholt 401/403/404/409/422 und 429 mit `code` (KI-Limits) nicht
+- [x] 1.2 `ApiError` um `retryAfterHeaderSeconds` aus dem Header `Retry-After` ergänzen
+- [x] 1.3 `main.tsx`: Retry-Regel mit Backoff umsetzen (`lib/queryRetry.ts`)
 
-## 2. Backend: inkrementeller Abgleich
+## 2. Überlast-Toleranz im Frontend
 
-- [ ] 2.1 Tests zuerst (`backend/shopping/tests/test_sync.py`): Pulse liefert `items_count` und `items_latest`; `changes` liefert nur Einträge ab `since` (inklusive gleichem Zeitstempel); konstante Abfragezahl bei 5 und 50 Einträgen; Zugriff für Mitglied, Gast, fremden Gast (404), anonym (401)
-- [ ] 2.2 `services/pulse.py`: `items_count` und `items_latest` in derselben Aggregatabfrage wie der Stempel berechnen
-- [ ] 2.3 `schemas.py`: `ShoppingListPulseOut` erweitern, `ShoppingListChangesOut` anlegen (`stamp`, `items_count`, `items_latest`, `items`)
-- [ ] 2.4 `api.py`: `GET /{id}/changes/` mit `since` (ISO, ungültig → 422), Prefetch wie in `ShoppingListDetailOut`, Zugriffsregeln wie Detail
+- [x] 2.1 Tests zuerst: Pulse-Takt verdoppelt sich bei aufeinanderfolgenden 429/5xx bis 60 s und kehrt nach Erfolg zurück
+- [x] 2.2 `useShoppingListSync`: Fehlerzähler und Takt (`pulseIntervalMs` um die Fehlerzahl erweitern)
+- [x] 2.3 Mutationen: `PATCH` mit explizitem `is_checked` oder `claimed` wiederholt automatisch, `POST` nicht; Test gegen doppelte Einträge
+- [x] 2.4 Hinweisband „Gerade sind viele gleichzeitig dabei. Wir versuchen es gleich nochmal.“ in Einkaufsmodus (`ShoppingBoardView`) und Planungsmodus; Liste bleibt sichtbar, Fehlerseite nur ohne geladene Daten; UI-Test (Einkaufsmodus; die Planungsansicht nutzt dieselbe Komponente `OverloadNotice` ohne eigenen Seitentest)
+- [x] 2.5 `useShoppingListWebSocket`: nur mit `VITE_SHOPPING_WEBSOCKET === 'true'` verbinden, Standard aus; `.env.example` und Test ergänzen
+- [x] 2.6 Handshakes zu `/ws/` in den Logs von `inspi-frontend-food` geprüft: 196 Versuche, alle 200 (SPA-Fallback), keiner im Backend; in `design.md` vermerkt
+- [x] 2.7 Board-Modus bleibt vollständig: Der Detail-Dialog (Augen-Knopf, `GET …/items/{id}/`) zeigt alle Portionen, Mengen je Herkunft mit Rezept-Link, Packungsbedarf, Reserve und natürliche Einheit mit denselben Formatierern wie die volle Zeile; Tests in `ShoppingBoardView.test.tsx`
+- [ ] 2.8 Board-Lücken aus PR #32 schließen: Anzeige, wer gerade abhakt (`recentChecker`), und Rückgängig nach dem Löschen im Board
 
-## 3. Frontend: inkrementeller Abgleich
+## 3. Lastprobe
 
-- [ ] 3.1 Zod: `ShoppingListPulseSchema` um `items_count` und `items_latest` erweitern, `ShoppingListChangesSchema` neu; synchron zu Pydantic
-- [ ] 3.2 Tests zuerst (`shoppingListSync.test.ts`): Zusammenführen nach `id`, Sortierung nach `sort_order`, Rückfall auf Vollabruf bei abweichender Eintragszahl, bei Mitgliederwechsel, bei Listenname/Quellenstatus; Vollabruf bei Tab-Rückkehr und nach 5 Minuten
-- [ ] 3.3 `useShoppingListSync`: bei Abweichung nur der Einträge `changes` aufrufen, Cache zusammenführen, Stempel des Caches setzen; sonst Vollabruf
-- [ ] 3.4 Eigene Änderungen lösen weiterhin keinen zusätzlichen Abruf aus (bestehendes Verhalten durch Test absichern)
+- [x] 3.1 `scripts/loadtest/shopping_group.py`: Parameter `--devices`, `--pulse-interval`, `--check-interval`, `--duration`, `--base-url`, `--confirm-production`; Gäste über Einladungslink anlegen, Pulse, Abhaken, Exit-Code bei verletzter Schwelle
+- [x] 3.2 Lokalen Stack dokumentieren (`scripts/loadtest/README.md`) und Fixture über `seed_loadtest_shopping_list`
+- [x] 3.3 Unit-Tests der Auswertung (Perzentile, Schwellen, Abbruch ohne `--confirm-production`)
+- [x] 3.4 Einkaufsmodus abbilden: `--mode board` (Standard; Pulse, dann `GET …/board/`) und `--mode detail` (volle Liste); Label `sync_board`, Schwelle `--p95-sync` gilt für das Board
+- [ ] 3.5 Probe im Board- und im Detail-Modus laufen lassen; beide Ergebnisse in den Pull Request schreiben
 
-## 4. Frontend: Überlast-Toleranz und WebSocket-Schalter
+## 4. Deploy-Preflight
 
-- [x] 4.1 Tests zuerst: Retry-Regel in `main.tsx` wiederholt 429/503 bis 3-mal mit 1/2/4 s plus Zufall und beachtet `Retry-After`, wiederholt 401/403/404/409/422 nicht
-- [x] 4.2 `ApiError` um `retryAfterSeconds` aus dem Header `Retry-After` ergänzen (heute nur aus dem JSON-Body)
-- [x] 4.3 `main.tsx`: Retry-Regel mit Backoff umsetzen
-- [ ] 4.4 Mutationen: `PATCH` mit explizitem `is_checked` oder `claimed` wiederholt automatisch, `POST` nicht („Nochmal versuchen“-Aktion statt Wiederholung); Test gegen doppelte Einträge
-- [ ] 4.5 Pulse: Takt bei 429/5xx verdoppeln bis 60 s, nach Erfolg zurücksetzen (`pulseIntervalMs` um einen Fehlerzähler erweitern, Test)
-- [ ] 4.6 Hinweisband „Gerade sind viele gleichzeitig dabei. Wir versuchen es gleich nochmal.“ in `ShoppingListDetailPage.tsx`, Liste bleibt sichtbar; Fehlerseite nur ohne geladene Liste; UI-Test inklusive 320 px Breite
-- [ ] 4.7 `useShoppingListWebSocket`: nur mit `VITE_SHOPPING_WEBSOCKET === 'true'` verbinden, Standard aus; `.env.example` und Test ergänzen
-- [ ] 4.8 Prüfen, ob Handshakes zu `/ws/` am Frontend-Nginx scheitern (Cloud-Run-Logs `inspi-frontend-food`), Ergebnis in `design.md` vermerken
+- [x] 4.1 `.claude/skills/deploy/SKILL.md`: Schritt „Phase 0“ vor jedem manuellen Deploy, Bestätigung bei jedem Befund
+- [x] 4.2 `.claude/skills/deploy/preflight.sh` (laufende CI, Abweichung von `origin/main`, junge Revisionen, vier Scaling-Dateien), ausprobiert mit Befund, sauberem Zustand, jungen Revisionen und Scaling-Änderung
 
-## 5. Schlanke Listenantwort
+## 5. Verifikation und Rollout
 
-- [ ] 5.1 Test zuerst: Fixture-Liste mit 50 Einträgen (Rezept- und Essensplan-Quellen, Portionen, Packungen) bleibt unter dem Budget aus 1.1 (Startwert 200 KB JSON); Test für `GET …/items/{item_id}/options/` (Mitglied, Gast, fremder Gast, anonym)
-- [ ] 5.2 Kompression am Frontend-Nginx aktivieren, falls 1.1 sie als fehlend zeigt (`gzip on`, JSON, `gzip_min_length 1k`); Test oder Prüfschritt mit `curl -H 'Accept-Encoding: gzip'`
-- [ ] 5.3 Backend: `GET /api/shopping-lists/{id}/items/{item_id}/options/` anlegen; `portion_options` und `package_options` aus `ShoppingListItemOut` entfernen; Pydantic und Zod gemeinsam ändern
-- [ ] 5.4 Frontend: Mengen-Dialog lädt Optionen beim Öffnen (TanStack-Query-Hook, Ladezustand), gleiche Vorauswahl wie zuvor; bestehende Dialog-Tests anpassen
-- [ ] 5.5 Falls das Budget damit nicht erreicht ist: `sources` auf angezeigte Felder kürzen und beim Aufklappen laden; Budget in `design.md` nachtragen
-
-## 6. Lastprobe
-
-- [x] 6.1 `scripts/loadtest/shopping_group.py`: Parameter `--devices`, `--pulse-interval`, `--check-interval`, `--duration`, `--base-url`, `--confirm-production`; Gäste über Einladungslink anlegen, Pulse, `changes`, Vollabruf, Abhaken; Ausgabe je Endpunkt, Exit-Code bei verletzter Schwelle
-- [x] 6.2 Lokalen Stack dokumentieren (`scripts/loadtest/README.md`): Gunicorn mit 2 Workern (Slots wie am 16.10.), Wegwerf-Postgres, Fixture-Liste mit 50 Einträgen über `seed_loadtest_shopping_list`
-- [x] 6.3 Unit-Tests der Auswertung (Perzentile, Schwellen, Abbruch ohne `--confirm-production`)
-- [ ] 6.4 Probe gegen den Stand vor diesem Change (nur Vollabruf) und danach laufen lassen; beide Ergebnisse in den Pull Request schreiben (Stand vorher gemessen: 90 s, 6 Geräte, 0 × 429, p95 Vollabruf 0,66 s lokal; Stand danach offen, hängt an Abschnitt 2–3)
-
-## 7. Deploy-Preflight
-
-- [x] 7.1 `.claude/skills/deploy/SKILL.md`: Schritt „Preflight“ vor jedem manuellen Deploy (laufende CI, Abweichung von `origin/main`, Revisionen der letzten 15 Minuten, vier Dateien bei Scaling-Änderungen), Bestätigung bei jedem Befund
-- [x] 7.2 Preflight-Befehle als Skript `.claude/skills/deploy/preflight.sh` ablegen und im Skill referenzieren; mit Befund, sauberem Zustand, jungen Revisionen und Scaling-Änderung ausprobiert
-
-## 8. Verifikation und Rollout
-
-- [ ] 8.1 `uv run pytest backend/shopping` und `uv run ruff check`/`ruff format --check`; Frontend: `npm run lint`, `npm run typecheck`, `npm test` in `frontend-food`
-- [ ] 8.2 `openspec validate shopping-list-load-resilience`
-- [ ] 8.3 Über `main` mergen, CI-Deploy abwarten (Backend zuerst, dann Frontend); Cloud-Run-Logs prüfen: keine 429, Pulse-Antworten mit `items_count`, `changes`-Aufrufe sichtbar, Listen-Vollabrufe pro Änderung gesunken
-- [ ] 8.4 Beim nächsten Gruppeneinkauf Anteil der Vollabrufe an den Listen-Requests auswerten und mit 21 % (16.10.) vergleichen
+- [ ] 5.1 `uv run pytest backend/shopping`, `ruff check`/`ruff format --check`; in `frontend-food`: `npm run lint`, `npx tsc --noEmit`, `npx vitest run`
+- [ ] 5.2 `openspec validate shopping-list-load-resilience`
+- [ ] 5.3 Über `main` mergen, CI-Deploy abwarten; Cloud-Run-Logs prüfen: keine 429
+- [ ] 5.4 Beim nächsten Gruppeneinkauf Anteil der 429 und p95 des Board-Aufrufs aus den Cloud-Run-Logs auswerten und mit 21 % (16.10.) vergleichen
