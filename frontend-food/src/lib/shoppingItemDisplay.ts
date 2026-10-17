@@ -29,6 +29,15 @@ interface PackageOptionLike {
   volume_ml?: number | null;
 }
 
+/** The fields of a list entry that the amount label is built from. */
+export interface QuantityItemLike {
+  quantity: number;
+  quantity_g: number;
+  unit: string;
+  start_unit: StartUnitLike | null;
+  package_options: PackageOptionLike[];
+}
+
 /**
  * Amount in the start unit with its grams: "44,5 mittelgroße Zwiebel (3,6 kg)", "24 Stück (1,4 kg)".
  * Counts of 10 and more are rounded to whole pieces (shoppers buy whole pieces).
@@ -160,6 +169,20 @@ export function formatShoppingQuantity(
   const secondary = packageOption ? formatPackageNeed(packageOption) : '';
   if (!secondary) return amount;
   return amount ? `${amount} · ${secondary}` : secondary;
+}
+
+/**
+ * Amount of a list entry as the entry row shows it. The screen row and the export share this,
+ * so both name the same amount and package need.
+ */
+export function formatItemQuantityLabel(item: QuantityItemLike): string {
+  return formatShoppingQuantity(
+    item.quantity || item.quantity_g,
+    item.unit,
+    item.start_unit,
+    item.package_options[0],
+    item.quantity_g,
+  );
 }
 
 /** "14:32 Uhr" for today, "12.10., 14:32 Uhr" for earlier days; empty for a missing or invalid timestamp. */

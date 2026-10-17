@@ -17,9 +17,9 @@ import { HelpHint } from "@/components/ui/help-hint";
 import {
   PACKAGE_RESERVE_HELP,
   formatItemPackageReserve,
+  formatItemQuantityLabel,
   formatPackageNeed,
   formatPortionOption,
-  formatShoppingQuantity,
   formatWhen,
 } from "@/lib/shoppingItemDisplay";
 
@@ -104,14 +104,7 @@ export default function ShoppingListItemRow({
     setShowChecker(false);
   }, [recentChecker]);
 
-  // `quantity` is in the display unit (ml for beverages/liquids); fall back to grams.
-  const quantityLabel = formatShoppingQuantity(
-    item.quantity || item.quantity_g,
-    item.unit,
-    item.start_unit,
-    item.package_options[0],
-    item.quantity_g,
-  );
+  const quantityLabel = formatItemQuantityLabel(item);
   // Start unit with its grams, switchable for viewing and enterable in any unit.
   const unitItem = toQuantityUnitItem(item);
   const packageNeed = item.package_options[0]
