@@ -1,7 +1,7 @@
 """Group-shopping load probe for the shared shopping list.
 
 Simulates N phones on one list: each polls the pulse every few seconds, syncs when the change marker moves
-(incremental `changes` endpoint when the backend offers it, otherwise the full list), and one phone checks an item
+(shopping mode: the compact `board`; `--mode detail`: the full list), and one phone checks an item
 off every few seconds. Prints requests, status codes and p50/p95/max per endpoint; exits 1 when a threshold fails.
 
 Run against a local, production-like stack (see README.md):
@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 import httpx
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
-SYNC_LABEL = "sync_changes"
+SYNC_LABEL = "sync_board"
 FULL_LABEL = "detail_full"
 
 
@@ -92,7 +92,6 @@ class Device:
         self.list_id = 0
         self.headers: dict[str, str] = {}
         self.stamp = ""
-        self.items_latest: str | None = None
         self.items: dict[int, dict] = {}
         self.toggled: dict[int, bool] = {}
 
@@ -123,7 +122,11 @@ class Device:
         return await self.full_reload()
 
     async def full_reload(self) -> bool:
-        response = await self.call(FULL_LABEL, "GET", f"/api/shopping-lists/{self.list_id}/")
+        """Load the whole state: the board in shopping mode, the full detail otherwise."""
+        if self.args.mode == "board":
+            response = await self.call(SYNC_LABEL, "GET", f"/api/shopping-lists/{self.list_id}/board/")
+        else:
+            response = await self.call(FULL_LABEL, "GET", f"/api/shopping-lists/{self.list_id}/")
         if response is None or response.status_code != 200:
             return False
         body = response.json()
@@ -131,36 +134,13 @@ class Device:
         self.items = {item["id"]: item for item in body["items"]}
         return True
 
-    async def sync(self, pulse: dict) -> None:
-        """Incremental when the backend reports `items_latest` and only entries moved, else the full list."""
-        if self.args.full_only or "items_latest" not in pulse or self.items_latest is None:
-            await self.full_reload()
-            self.items_latest = pulse.get("items_latest")
-            return
-        response = await self.call(
-            SYNC_LABEL, "GET", f"/api/shopping-lists/{self.list_id}/changes/", params={"since": self.items_latest}
-        )
-        if response is None or response.status_code != 200:
-            await self.full_reload()
-            return
-        body = response.json()
-        for item in body["items"]:
-            self.items[item["id"]] = item
-        self.stamp = body["stamp"]
-        self.items_latest = body["items_latest"]
-        if len(self.items) != body["items_count"]:
-            await self.full_reload()
-
     async def poll(self) -> None:
         await asyncio.sleep(random.uniform(0, self.args.pulse_interval))
         while not self.stop.is_set():
             response = await self.call("pulse", "GET", f"/api/shopping-lists/{self.list_id}/pulse/")
             if response is not None and response.status_code == 200:
-                pulse = response.json()
-                if self.items_latest is None:
-                    self.items_latest = pulse.get("items_latest")
-                if pulse["stamp"] != self.stamp:
-                    await self.sync(pulse)
+                if response.json()["stamp"] != self.stamp:
+                    await self.full_reload()
             await self.sleep(self.args.pulse_interval)
 
     async def check_off(self) -> None:
@@ -219,8 +199,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--pulse-interval", type=float, default=5.0, help="seconds between pulse requests")
     parser.add_argument("--check-interval", type=float, default=10.0, help="seconds between check-offs (device 1)")
     parser.add_argument("--duration", type=float, default=600.0, help="seconds")
-    parser.add_argument("--full-only", action="store_true", help="always reload the full list (baseline)")
-    parser.add_argument("--p95-sync", type=float, default=1.0, help="limit for p95 of sync_changes, seconds")
+    parser.add_argument(
+        "--mode", choices=("board", "detail"), default="board", help="what a device reloads on change (default: board)"
+    )
+    parser.add_argument("--p95-sync", type=float, default=1.0, help="limit for p95 of sync_board, seconds")
     parser.add_argument("--p95-full", type=float, default=3.0, help="limit for p95 of detail_full, seconds")
     parser.add_argument("--confirm-production", action="store_true", help="allow a non-local --base-url")
     args = parser.parse_args(argv)

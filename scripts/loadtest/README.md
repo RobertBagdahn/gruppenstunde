@@ -1,8 +1,8 @@
 # Lastprobe Gruppeneinkauf
 
-`shopping_group.py` simuliert mehrere Handys auf einer geteilten Einkaufsliste (Spec: `food-runtime-capacity`, „Lastprobe vor Kapazitätsänderungen“). Jedes Gerät tritt über den Einladungslink bei, fragt den Pulse ab und gleicht bei geänderter Marke ab (über `changes`, sobald das Backend den Endpunkt anbietet, sonst über die ganze Liste). Gerät 1 hakt in festem Takt Einträge ab und stellt sie am Ende wieder her.
+`shopping_group.py` simuliert mehrere Handys auf einer geteilten Einkaufsliste (Spec: `food-runtime-capacity`, „Lastprobe vor Kapazitätsänderungen“). Jedes Gerät tritt über den Einladungslink bei, fragt den Pulse ab und lädt bei geänderter Marke das kompakte Board (Einkaufsmodus, Standard `--mode board`) oder die ganze Liste (`--mode detail`). Gerät 1 hakt in festem Takt Einträge ab und stellt sie am Ende wieder her.
 
-Standard: 6 Geräte, Pulse alle 5 s, 1 Abhaken je 10 s, 10 Minuten. Bestanden bei 0 × HTTP 429, p95 von `sync_changes` unter 1 s und p95 von `detail_full` unter 3 s (eine Schwelle gilt nur, wenn der Endpunkt benutzt wurde). Exit-Code 0 bzw. 1.
+Standard: 6 Geräte, Pulse alle 5 s, 1 Abhaken je 10 s, 10 Minuten. Bestanden bei 0 × HTTP 429, p95 von `sync_board` unter 1 s und p95 von `detail_full` unter 3 s (eine Schwelle gilt nur, wenn der Endpunkt benutzt wurde). Exit-Code 0 bzw. 1.
 
 ## Lokaler, produktionsnaher Stack
 

@@ -27,7 +27,7 @@ def test_percentile_uses_nearest_rank():
 
 
 def test_passes_without_429_and_within_limits():
-    samples = _samples(sync_changes=[(200, 0.2)] * 20, detail_full=[(200, 2.5)] * 5)
+    samples = _samples(sync_board=[(200, 0.2)] * 20, detail_full=[(200, 2.5)] * 5)
     assert probe.evaluate(samples, p95_sync=1.0, p95_full=3.0) == []
 
 
@@ -38,9 +38,9 @@ def test_any_429_fails_even_on_other_endpoints():
 
 
 def test_names_each_violated_latency_limit():
-    samples = _samples(sync_changes=[(200, 1.5)] * 10, detail_full=[(200, 4.0)] * 10)
+    samples = _samples(sync_board=[(200, 1.5)] * 10, detail_full=[(200, 4.0)] * 10)
     failures = probe.evaluate(samples, p95_sync=1.0, p95_full=3.0)
-    assert any("sync_changes" in failure for failure in failures)
+    assert any("sync_board" in failure for failure in failures)
     assert any("detail_full" in failure for failure in failures)
 
 
@@ -76,3 +76,8 @@ def test_production_url_requires_confirmation(capsys):
     assert "--confirm-production" in capsys.readouterr().err
     args = probe.parse_args(["--invite-token", "t", "--base-url", "https://essensplan.app", "--confirm-production"])
     assert args.devices == 6 and args.pulse_interval == 5.0 and args.check_interval == 10.0 and args.duration == 600.0
+
+
+def test_mode_defaults_to_board_and_accepts_detail():
+    assert probe.parse_args(["--invite-token", "t"]).mode == "board"
+    assert probe.parse_args(["--invite-token", "t", "--mode", "detail"]).mode == "detail"
