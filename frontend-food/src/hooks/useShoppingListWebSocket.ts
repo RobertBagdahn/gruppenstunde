@@ -6,7 +6,12 @@
  */
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { ShoppingListItem } from '@/schemas/shoppingList';
+import type { ShoppingListBoard, ShoppingListItem } from '@/schemas/shoppingList';
+
+export interface OptimisticCheckSnapshot {
+  detail: unknown;
+  board: unknown;
+}
 import { getGuestCredentials } from '@/lib/shoppingGuest';
 
 export interface ShoppingListEvent {
@@ -163,9 +168,22 @@ export function useOptimisticCheckItem(listId: number) {
   const queryClient = useQueryClient();
 
   const optimisticCheck = useCallback(
-    (itemId: number, isChecked: boolean) => {
+    (itemId: number, isChecked: boolean): OptimisticCheckSnapshot => {
       // Snapshot current data for rollback
       const previousData = queryClient.getQueryData(['shopping-list', listId]);
+      const previousBoard = queryClient.getQueryData(['shopping-list-board', listId]);
+      queryClient.setQueryData(
+        ['shopping-list-board', listId],
+        (old: ShoppingListBoard | undefined) => {
+          if (!old) return old;
+          const items = old.items.map((item) =>
+            item.id === itemId
+              ? { ...item, is_checked: isChecked, checked_by_name: isChecked ? (item.checked_by_name ?? null) : null }
+              : item,
+          );
+          return { ...old, items, checked: items.filter((item) => item.is_checked).length };
+        },
+      );
 
       // Optimistically update the cache
       queryClient.setQueryData(
@@ -191,14 +209,15 @@ export function useOptimisticCheckItem(listId: number) {
         },
       );
 
-      return previousData;
+      return { detail: previousData, board: previousBoard };
     },
     [queryClient, listId],
   );
 
   const rollback = useCallback(
-    (previousData: unknown) => {
-      queryClient.setQueryData(['shopping-list', listId], previousData);
+    (snapshot: OptimisticCheckSnapshot) => {
+      queryClient.setQueryData(['shopping-list', listId], snapshot.detail);
+      queryClient.setQueryData(['shopping-list-board', listId], snapshot.board);
     },
     [queryClient, listId],
   );

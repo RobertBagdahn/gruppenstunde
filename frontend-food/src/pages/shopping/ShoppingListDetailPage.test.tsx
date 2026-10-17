@@ -4,7 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
-import { ShoppingListDetailSchema, type ShoppingListDetail } from '@/schemas/shoppingList';
+import {
+  ShoppingListBoardSchema,
+  ShoppingListDetailSchema,
+  type ShoppingListBoard,
+  type ShoppingListDetail,
+} from '@/schemas/shoppingList';
 import ShoppingListDetailPage from './ShoppingListDetailPage';
 
 const deleteItem = vi.fn();
@@ -14,6 +19,7 @@ const createFromMealPlan = vi.fn();
 
 let currentUser: { id: number; display_name: string } | null = { id: 5, display_name: 'Eule' };
 let listQuery: { data?: ShoppingListDetail; isLoading: boolean; error: Error | null };
+let boardQuery: { data?: ShoppingListBoard; isLoading: boolean; error: Error | null; refetch: () => void };
 
 function detail(): ShoppingListDetail {
   return ShoppingListDetailSchema.parse({
@@ -44,6 +50,7 @@ vi.mock('@/api/shoppingLists', () => ({
   useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
   useShoppingListSync: vi.fn(),
   useShoppingListWarnings: () => ({ data: [] }),
+  useShoppingListBoard: () => boardQuery,
   useEnableSharing: () => ({ mutate: vi.fn(), isPending: false }),
   useDisableSharing: () => ({ mutate: vi.fn(), isPending: false }),
   useRemoveGuest: () => ({ mutate: vi.fn(), isPending: false }),
@@ -74,6 +81,7 @@ describe('ShoppingListDetailPage', () => {
   beforeEach(() => {
     currentUser = { id: 5, display_name: 'Eule' };
     listQuery = { data: detail(), isLoading: false, error: null };
+    boardQuery = { data: undefined, isLoading: false, error: null, refetch: vi.fn() };
     deleteItem.mockReset();
     addItem.mockReset();
     notifySuccess.mockReset();
@@ -222,6 +230,20 @@ describe('ShoppingListDetailPage', () => {
         data: ShoppingListDetailSchema.parse({ ...detail(), can_manage: true, share_token: 'abc' }),
         isLoading: false,
         error: null,
+      };
+      boardQuery = {
+        data: ShoppingListBoardSchema.parse({
+          id: 1,
+          name: 'Wocheneinkauf',
+          stamp: 'x',
+          can_edit: true,
+          total: 1,
+          checked: 0,
+          items: [{ id: 1, name: 'Klebeband' }],
+        }),
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
       };
       renderPage();
       expect(screen.getByTestId('shopping-share-section')).toBeInTheDocument();

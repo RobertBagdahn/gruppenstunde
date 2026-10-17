@@ -9,6 +9,7 @@ import HeroBand from '@/components/shared/HeroBand';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
 import {
   useShoppingList,
+  useShoppingListBoard,
   useShoppingListWarnings,
   useUpdateShoppingListItem,
   useAddShoppingListItem,
@@ -22,6 +23,7 @@ import { useCurrentUser } from '@/api/auth';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import ShoppingListItemRow from '@/components/shopping/ShoppingListItemRow';
+import ShoppingBoardView from '@/components/shopping/ShoppingBoardView';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import SourceFreshnessNotice from '@/components/shopping/SourceFreshnessNotice';
 import ShareLinkManager from '@/components/shopping/ShareLinkManager';
@@ -47,6 +49,22 @@ import { PageSkeleton } from '@/components/ui/skeleton';
 export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
   const listId = parseInt(id ?? '0', 10);
+  // Shopping mode: only the entries, in big tap targets (remembered per device).
+  const [shopMode, setShopModeState] = useState(() => {
+    try {
+      return window.localStorage.getItem('inspi.shopping.shopMode') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setShopMode = (on: boolean) => {
+    setShopModeState(on);
+    try {
+      window.localStorage.setItem('inspi.shopping.shopMode', on ? '1' : '0');
+    } catch {
+      // Not remembered in private mode.
+    }
+  };
   const navigate = useNavigate();
   const location = useLocation();
   const navigationState = location.state as { mealPlanId?: number } | null;
@@ -54,7 +72,14 @@ export default function ShoppingListDetailPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   // A device that joined through an invitation link has no account but a guest identity.
   const guestCredentials = getGuestCredentials(listId);
-  const { data: list, isLoading, error, refetch } = useShoppingList(listId);
+  // Shopping mode runs on the compact board only; the full list is not loaded there.
+  const { data: list, isLoading, error, refetch } = useShoppingList(listId, !shopMode);
+  const {
+    data: board,
+    isLoading: boardLoading,
+    error: boardError,
+    refetch: refetchBoard,
+  } = useShoppingListBoard(listId, shopMode);
   const updateItem = useUpdateShoppingListItem(listId);
   const addItem = useAddShoppingListItem(listId);
   const deleteItem = useDeleteShoppingListItem(listId);
@@ -95,7 +120,7 @@ export default function ShoppingListDetailPage() {
     onEvent: handleWsEvent,
   });
   // Production serves no WebSocket: a polled change marker keeps the list current (slower while the socket is up).
-  useShoppingListSync(listId, list?.stamp, isConnected);
+  useShoppingListSync(listId, shopMode ? board?.stamp : list?.stamp, isConnected);
 
   // Add item form state
   const [allSourcesOpen, setAllSourcesOpen] = useState(false);
@@ -105,24 +130,8 @@ export default function ShoppingListDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  // Shopping mode: only the entries, in big tap targets (remembered per device).
-  const [shopMode, setShopModeState] = useState(() => {
-    try {
-      return window.localStorage.getItem('inspi.shopping.shopMode') === '1';
-    } catch {
-      return false;
-    }
-  });
   // Plausibility warnings come from their own endpoint and are not needed in shopping mode.
   const { data: warnings = [] } = useShoppingListWarnings(listId, !shopMode);
-  const setShopMode = (on: boolean) => {
-    setShopModeState(on);
-    try {
-      window.localStorage.setItem('inspi.shopping.shopMode', on ? '1' : '0');
-    } catch {
-      // Not remembered in private mode.
-    }
-  };
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   // The guest's stored secret stopped working (link renewed or guest removed): tell them once, then forget it.
@@ -154,6 +163,51 @@ export default function ShoppingListDetailPage() {
       <UnauthGate
         title="Einkaufsliste"
         description="Melde dich an, um diese Einkaufsliste zu sehen."
+      />
+    );
+  }
+
+  const handleCheck = (itemId: number, isChecked: boolean) => {
+    const previousData = optimisticCheck(itemId, isChecked);
+
+    updateItem.mutate(
+      { itemId, is_checked: isChecked },
+      {
+        onSuccess: () => {
+          sendEvent(isChecked ? 'item.checked' : 'item.unchecked', {
+            item_id: itemId,
+          });
+        },
+        onError: (err) => {
+          rollback(previousData);
+          notify.error('Eintrag konnte nicht abgehakt werden', { error: err });
+        },
+      },
+    );
+  };
+
+  // Shopping mode: the compact board, no full list needed.
+  if (shopMode) {
+    const handleBoardClaim = (itemId: number, claimed: boolean) =>
+      updateItem.mutate(
+        { itemId, claimed },
+        { onError: (err) => notify.error('Zuständigkeit konnte nicht geändert werden', { error: err }) },
+      );
+    const handleBoardDelete = (itemId: number) =>
+      deleteItem.mutate(itemId, {
+        onSuccess: () => sendEvent('item.removed', { item_id: itemId }),
+        onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
+      });
+    return (
+      <ShoppingBoardView
+        board={board}
+        isLoading={boardLoading}
+        error={boardError}
+        onRetry={() => void refetchBoard()}
+        onExit={() => setShopMode(false)}
+        onCheck={handleCheck}
+        onClaim={handleBoardClaim}
+        onDelete={handleBoardDelete}
       />
     );
   }
@@ -191,25 +245,6 @@ export default function ShoppingListDetailPage() {
   const groupedItems = groupBySection(items);
   const checkedCount = items.filter((i) => i.is_checked).length;
   const totalCount = items.length;
-
-  const handleCheck = (itemId: number, isChecked: boolean) => {
-    const previousData = optimisticCheck(itemId, isChecked);
-
-    updateItem.mutate(
-      { itemId, is_checked: isChecked },
-      {
-        onSuccess: () => {
-          sendEvent(isChecked ? 'item.checked' : 'item.unchecked', {
-            item_id: itemId,
-          });
-        },
-        onError: (err) => {
-          rollback(previousData);
-          notify.error('Eintrag konnte nicht abgehakt werden', { error: err });
-        },
-      },
-    );
-  };
 
   const handleAddItem = () => {
     if (!newItemName.trim()) return;

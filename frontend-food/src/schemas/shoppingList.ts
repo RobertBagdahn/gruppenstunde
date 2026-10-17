@@ -226,6 +226,7 @@ export const ShoppingListBoardSchema = z.object({
 });
 
 export type ShoppingListBoard = z.output<typeof ShoppingListBoardSchema>;
+export type ShoppingBoardItem = z.output<typeof ShoppingBoardItemSchema>;
 
 // --- Pagination ---
 

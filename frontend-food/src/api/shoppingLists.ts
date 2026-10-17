@@ -16,6 +16,7 @@ import {
   ShoppingListSchema,
   ShoppingListDetailSchema,
   ShoppingListBoardSchema,
+  type ShoppingListBoard,
   ShoppingListWarningsSchema,
   ShoppingListItemSchema,
   ShoppingListCollaboratorSchema,
@@ -107,19 +108,19 @@ export function useShoppingListWarnings(id: number, enabled = true) {
 }
 
 /** Compact board of a list: the screen's minimal payload, cached per list state on the server. */
-export function useShoppingListBoard(id: number) {
+export function useShoppingListBoard(id: number, enabled = true) {
   return useQuery({
     queryKey: ['shopping-list-board', id] as const,
     queryFn: () => fetchJson(`${API_BASE}/${id}/board/`, ShoppingListBoardSchema, id),
-    enabled: id > 0,
+    enabled: enabled && id > 0,
   });
 }
 
-export function useShoppingList(id: number) {
+export function useShoppingList(id: number, enabled = true) {
   return useQuery({
     queryKey: ['shopping-list', id] as const,
     queryFn: () => fetchJson(`${API_BASE}/${id}/`, ShoppingListDetailSchema, id),
-    enabled: id > 0,
+    enabled: enabled && id > 0,
   });
 }
 
@@ -173,6 +174,7 @@ export function useShoppingListSync(listId: number, loadedStamp: string | undefi
   useEffect(() => {
     if (data && loadedStamp && data.stamp !== loadedStamp) {
       void queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
+      void queryClient.invalidateQueries({ queryKey: ['shopping-list-board', listId] });
     }
   }, [data, loadedStamp, listId, queryClient]);
 }
@@ -279,6 +281,7 @@ export function useAddShoppingListItem(listId: number) {
     }) => postJson(`${API_BASE}/${listId}/items/`, payload, ShoppingListItemSchema, listId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
+      queryClient.invalidateQueries({ queryKey: ['shopping-list-board', listId] });
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
     },
   });
@@ -308,34 +311,47 @@ export function useUpdateShoppingListItem(listId: number) {
         old ? { ...old, items: old.items.map((i) => (i.id === item.id ? { ...i, ...item } : i)) } : old,
       );
       queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
+      queryClient.invalidateQueries({ queryKey: ['shopping-list-board', listId] });
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
     },
   });
 }
 
-/** Removes the entry from the cached list right away and puts it back if the DELETE fails. */
+/** Removes the entry from the cached list and board right away and puts it back if the DELETE fails. */
 export function useDeleteShoppingListItem(listId: number) {
   const queryClient = useQueryClient();
   const queryKey = ['shopping-list', listId] as const;
+  const boardKey = ['shopping-list-board', listId] as const;
   return useMutation({
     mutationFn: (itemId: number) =>
       deleteJson(`${API_BASE}/${listId}/items/${itemId}/`, listId),
     onMutate: async (itemId: number) => {
-      await queryClient.cancelQueries({ queryKey });
+      await Promise.all([queryClient.cancelQueries({ queryKey }), queryClient.cancelQueries({ queryKey: boardKey })]);
       const previous = queryClient.getQueryData<ShoppingListDetail>(queryKey);
+      const previousBoard = queryClient.getQueryData<ShoppingListBoard>(boardKey);
       if (previous) {
         queryClient.setQueryData<ShoppingListDetail>(queryKey, {
           ...previous,
           items: previous.items.filter((item) => item.id !== itemId),
         });
       }
-      return { previous };
+      if (previousBoard) {
+        queryClient.setQueryData<ShoppingListBoard>(boardKey, {
+          ...previousBoard,
+          items: previousBoard.items.filter((item) => item.id !== itemId),
+          total: previousBoard.total - 1,
+          checked: previousBoard.items.filter((item) => item.id !== itemId && item.is_checked).length,
+        });
+      }
+      return { previous, previousBoard };
     },
     onError: (_error, _itemId, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+      if (context?.previousBoard) queryClient.setQueryData(boardKey, context.previousBoard);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: boardKey });
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
     },
   });
