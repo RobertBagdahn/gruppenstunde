@@ -5,6 +5,8 @@ vi.mock('@/api/shoppingLists', () => ({
     data: {
       id: 7,
       name: 'Milch',
+      ingredient_id: 3,
+      ingredient_slug: 'milch',
       quantity_g: 500,
       quantity: 500,
       unit: 'g',
@@ -21,7 +23,10 @@ vi.mock('@/api/shoppingLists', () => ({
         { count: 2, name: 'Becher', weight_g: 250, is_default: true },
         { count: 4, name: 'Tasse', weight_g: 125, is_default: false },
       ],
-      start_unit: null,
+      start_unit: {
+        key: 'portion:Flasche', kind: 'portion', label: 'Flasche', grams_per_unit: 100,
+        is_approx: false, has_weight: true, portion_id: 11, measuring_unit_id: null, standard_measure_key: null,
+      },
       package_surplus_g: null,
       claimed_by_me: false,
     },
@@ -31,6 +36,7 @@ vi.mock('@/api/shoppingLists', () => ({
   }),
 }));
 import { fireEvent, render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiError } from '@/lib/api';
 import ShoppingBoardView, { formatBoardQuantity, groupBoardItems } from './ShoppingBoardView';
@@ -74,6 +80,7 @@ const handlers = () => ({
   onCheck: vi.fn(),
   onClaim: vi.fn(),
   onDelete: vi.fn(),
+  onUpdateQuantity: vi.fn(),
 });
 
 describe('formatBoardQuantity', () => {
@@ -256,5 +263,53 @@ describe('ShoppingBoardView overload', () => {
     render(<ShoppingBoardView board={undefined} isLoading={false} error={overload()} {...handlers()} />);
 
     expect(screen.queryByText('Wocheneinkauf')).not.toBeInTheDocument();
+  });
+});
+
+describe('ShoppingBoardView partial quantity', () => {
+  it('opens the quantity dialog with a focused field and saves the new grams', () => {
+    const h = handlers();
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter>
+          <ShoppingBoardView
+            board={board([item({ id: 7, name: 'Milch', retail_section_name: 'Kühlregal' })])}
+            isLoading={false}
+            error={null}
+            {...h}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menge von „Milch“ ändern' }));
+    const input = screen.getByLabelText('Menge');
+    expect(input).toHaveFocus();
+    fireEvent.change(input, { target: { value: '2' } });
+    fireEvent.blur(input);
+
+    expect(h.onUpdateQuantity).toHaveBeenCalledWith(7, 200);
+  });
+
+  it('offers no quantity change for checked entries or without edit permission', () => {
+    const { unmount } = render(
+      <ShoppingBoardView
+        board={board([item({ id: 1, name: 'Brot', is_checked: true })])}
+        isLoading={false}
+        error={null}
+        {...handlers()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /Menge von/ })).toBeNull();
+    unmount();
+    render(
+      <ShoppingBoardView
+        board={board([item({ id: 1, name: 'Brot' })], { can_edit: false })}
+        isLoading={false}
+        error={null}
+        {...handlers()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /Menge von/ })).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Eye, Trash2 } from 'lucide-react';
+import { Check, Eye, Scale, Trash2 } from 'lucide-react';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import type { ShoppingBoardItem, ShoppingListBoard } from '@/schemas/shoppingList';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { isOverloadError } from '@/lib/queryRetry';
 import OverloadNotice from './OverloadNotice';
 import { formatBoardQuantity } from './boardQuantity';
+import { BoardQuantityDialog } from './ItemQuantityDialog';
 import ShoppingItemDetailDialog from './ShoppingItemDetailDialog';
 
 export { formatBoardQuantity };
@@ -46,6 +47,8 @@ interface ShoppingBoardViewProps {
   onCheck: (itemId: number, isChecked: boolean) => void;
   onClaim: (itemId: number, claimed: boolean) => void;
   onDelete: (itemId: number) => void;
+  /** Saves a new amount in grams (e.g. after buying only a part). */
+  onUpdateQuantity: (itemId: number, quantityG: number) => void;
 }
 
 /** Shopping mode: big tap targets, only what is needed in the shop. Works on the compact board only. */
@@ -59,8 +62,10 @@ export default function ShoppingBoardView({
   onCheck,
   onClaim,
   onDelete,
+  onUpdateQuantity,
 }: ShoppingBoardViewProps) {
   const [detailId, setDetailId] = useState<number | null>(null);
+  const [quantityId, setQuantityId] = useState<number | null>(null);
   if (isLoading) {
     return <PageSkeleton label="Einkaufsmodus wird geladen" />;
   }
@@ -113,11 +118,20 @@ export default function ShoppingBoardView({
                 onClaim={onClaim}
                 onDelete={onDelete}
                 onShowDetails={setDetailId}
+                onChangeQuantity={setQuantityId}
               />
             ))}
           </ul>
         </section>
       ))}
+      {quantityId !== null && (
+        <BoardQuantityDialog
+          listId={board.id}
+          itemId={quantityId}
+          onSave={(quantityG) => onUpdateQuantity(quantityId, quantityG)}
+          onClose={() => setQuantityId(null)}
+        />
+      )}
       {detailId !== null && (
         <ShoppingItemDetailDialog listId={board.id} itemId={detailId} onClose={() => setDetailId(null)} />
       )}
@@ -132,9 +146,10 @@ interface BoardRowProps {
   onClaim: (itemId: number, claimed: boolean) => void;
   onDelete: (itemId: number) => void;
   onShowDetails: (itemId: number) => void;
+  onChangeQuantity: (itemId: number) => void;
 }
 
-function BoardRow({ item, canEdit, onCheck, onClaim, onDelete, onShowDetails }: BoardRowProps) {
+function BoardRow({ item, canEdit, onCheck, onClaim, onDelete, onShowDetails, onChangeQuantity }: BoardRowProps) {
   const quantity = formatBoardQuantity(item.quantity, item.unit);
   const claimText = item.claimed_by_me
     ? 'Du holst das'
@@ -192,6 +207,17 @@ function BoardRow({ item, canEdit, onCheck, onClaim, onDelete, onShowDetails }: 
           className="shrink-0 px-2.5 py-1.5 text-caption font-semibold rounded-lg bg-primary-soft text-primary"
         >
           Ich hole das
+        </button>
+      )}
+      {canEdit && !item.is_checked && !item.is_material && (
+        <button
+          type="button"
+          onClick={() => onChangeQuantity(item.id)}
+          aria-label={`Menge von „${item.name}“ ändern`}
+          className="shrink-0 inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary-soft px-2.5 text-caption font-semibold text-primary"
+        >
+          <Scale className="w-4 h-4" strokeWidth={2} />
+          Menge
         </button>
       )}
       <button

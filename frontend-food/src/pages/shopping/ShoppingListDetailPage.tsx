@@ -251,6 +251,12 @@ export default function ShoppingListDetailPage() {
         onCheck={handleCheck}
         onClaim={handleBoardClaim}
         onDelete={(itemId) => void handleBoardDelete(itemId)}
+        onUpdateQuantity={(itemId, quantityG) =>
+          updateItem.mutate(
+            { itemId, quantity_g: quantityG },
+            { onError: (err) => notify.error('Menge konnte nicht geändert werden', { error: err }) },
+          )
+        }
       />
     );
   }

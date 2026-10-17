@@ -6,13 +6,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { ShoppingListItem } from "@/schemas/shoppingList";
-import { Check, ChevronRight, ChevronDown, Pencil, Trash2 } from "lucide-react";
-import {
-  QuantityUnitInput,
-  QuantityUnitLabel,
-  type QuantityUnitItem,
-} from "@/components/quantity/QuantityUnit";
+import { Check, ChevronRight, ChevronDown, Scale, Trash2 } from "lucide-react";
+import { QuantityUnitLabel } from "@/components/quantity/QuantityUnit";
 import { formatEuro, formatWeight } from "@/lib/format";
+import { ItemQuantityDialog, toQuantityUnitItem } from "./ItemQuantityDialog";
 import { HelpHint } from "@/components/ui/help-hint";
 import {
   PACKAGE_RESERVE_HELP,
@@ -39,32 +36,6 @@ interface ShoppingListItemRowProps {
   onClaim?: (itemId: number, claimed: boolean) => void;
   /** Shopping mode: big tap targets, only what is needed in the store. */
   shopMode?: boolean;
-}
-
-/** The stored gram amount expressed in the item's start unit, or null when no usable unit is known. */
-function toQuantityUnitItem(item: ShoppingListItem): QuantityUnitItem | null {
-  const unit = item.start_unit;
-  if (
-    !item.ingredient_id ||
-    !unit ||
-    !unit.grams_per_unit ||
-    unit.grams_per_unit <= 0 ||
-    item.quantity_g <= 0
-  ) {
-    return null;
-  }
-  return {
-    ingredient_id: item.ingredient_id,
-    ingredient_slug: item.ingredient_slug ?? undefined,
-    quantity: item.quantity_g / unit.grams_per_unit,
-    quantity_g: item.quantity_g,
-    unit_kind: unit.kind,
-    unit_label: unit.label,
-    is_weight_approx: unit.is_approx,
-    portion_id: unit.portion_id,
-    standard_measure_key: unit.standard_measure_key,
-    measuring_unit_id: unit.measuring_unit_id,
-  };
 }
 
 export default function ShoppingListItemRow({
@@ -191,7 +162,6 @@ export default function ShoppingListItemRow({
             {unitItem &&
               canEdit &&
               onUpdateQuantity &&
-              !editingQuantity &&
               !item.is_checked && (
                 <button
                   type="button"
@@ -200,16 +170,16 @@ export default function ShoppingListItemRow({
                     setEditingQuantity(true);
                   }}
                   aria-label={`Menge von „${item.name}“ ändern`}
-                  title="Menge ändern"
-                  className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+                  className="ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primary-soft px-3 text-caption font-semibold text-primary hover:bg-primary-soft/70"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Scale className="h-4 w-4" />
+                  Menge ändern
                 </button>
               )}
           </div>
-          {!editingQuantity && (unitItem || quantityLabel) && (
+          {(unitItem || quantityLabel) && (
             <div className="mt-1 flex">
-              {unitItem && !editingQuantity ? (
+              {unitItem ? (
                 <span
                   className="inline-flex flex-wrap items-center gap-x-1.5 text-caption font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40"
                   onClick={(event) => event.stopPropagation()}
@@ -218,35 +188,12 @@ export default function ShoppingListItemRow({
                   {packageNeed && <span>· {packageNeed}</span>}
                 </span>
               ) : (
-                !editingQuantity &&
                 quantityLabel && (
                   <span className="text-caption font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
                     {quantityLabel}
                   </span>
                 )
               )}
-            </div>
-          )}
-          {editingQuantity && unitItem && (
-            <div
-              className="mt-1 flex flex-wrap items-center gap-2"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <QuantityUnitInput
-                item={unitItem}
-                onCommit={({ grams }) => {
-                  if (grams != null && grams > 0)
-                    onUpdateQuantity?.(item.id, Math.round(grams * 100) / 100);
-                  setEditingQuantity(false);
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setEditingQuantity(false)}
-                className="text-caption font-semibold text-muted-foreground hover:underline"
-              >
-                Abbrechen
-              </button>
             </div>
           )}
           {reserveLabel && (
@@ -434,6 +381,14 @@ export default function ShoppingListItemRow({
             </div>
           ))}
         </div>
+      )}
+      {editingQuantity && unitItem && onUpdateQuantity && (
+        <ItemQuantityDialog
+          itemName={item.name}
+          unitItem={unitItem}
+          onSave={(quantityG) => onUpdateQuantity(item.id, quantityG)}
+          onClose={() => setEditingQuantity(false)}
+        />
       )}
     </div>
   );

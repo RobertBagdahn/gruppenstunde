@@ -87,6 +87,7 @@ describe('ShoppingListItemRow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Menge von „Brötchen“ ändern' }));
     const input = screen.getByLabelText('Menge');
+    expect(input).toHaveFocus();
     fireEvent.change(input, { target: { value: '30' } });
     fireEvent.blur(input);
 
