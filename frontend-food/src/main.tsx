@@ -8,8 +8,8 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthOverlays from './components/auth/AuthOverlays';
 import GlobalFetchingBar from './components/shared/GlobalFetchingBar';
-import { ApiError } from './lib/api';
 import { handleGlobalApiError } from './lib/apiErrorHandler';
+import { queryRetryDelay, shouldRetryQuery } from './lib/queryRetry';
 import './lib/queryMeta';
 import { AI_QUOTA_QUERY_KEY } from './api/ai';
 import './index.css';
@@ -36,9 +36,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      // Client errors (404, 403 …) will not change on a retry; only transient failures are retried once.
-      retry: (failureCount, error) =>
-        !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failureCount < 1,
+      // Overload (429), server and network failures are retried with backoff; other client errors are not.
+      retry: shouldRetryQuery,
+      retryDelay: queryRetryDelay,
     },
   },
 });
