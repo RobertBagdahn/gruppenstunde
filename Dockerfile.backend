@@ -4,7 +4,7 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     GUNICORN_WORKERS=1 \
-    GUNICORN_THREADS=1
+    GUNICORN_THREADS=4
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -15,11 +15,14 @@ RUN apt-get update && \
 WORKDIR /app
 
 COPY backend/pyproject.toml ./
+# Pre-compiled bytecode (dependencies and app) shortens the cold start.
 RUN pip install --no-cache-dir uv && \
-    uv pip install --system --no-cache ".[dev]" || \
-    uv pip install --system --no-cache .
+    uv pip install --system --no-cache --compile-bytecode ".[dev]" || \
+    uv pip install --system --no-cache --compile-bytecode .
 
 COPY backend/ ./
+
+RUN python -m compileall -q /app
 
 RUN python -c 'from weasyprint import HTML; pdf = HTML(string="<p>PDF runtime smoke test</p>").write_pdf(); assert pdf.startswith(b"%PDF-")'
 
@@ -27,4 +30,4 @@ RUN python manage.py collectstatic --noinput 2>/dev/null || true
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "exec gunicorn inspi.wsgi:application --bind 0.0.0.0:8000 --workers \"$GUNICORN_WORKERS\" --threads \"$GUNICORN_THREADS\" --timeout 300"]
+CMD ["sh", "-c", "exec gunicorn inspi.wsgi:application --preload --bind 0.0.0.0:8000 --workers \"$GUNICORN_WORKERS\" --threads \"$GUNICORN_THREADS\" --timeout 300"]

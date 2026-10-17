@@ -155,15 +155,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: production
-    # Backend runtime limits (reliable-pdf-exports: one isolated request per
-    # instance). Keep identical to Dockerfile.backend, terraform/variables.tf
-    # and the Makefile; backend/core/tests/test_runtime_limits.py enforces it.
+    # Backend runtime limits (stable-backend-capacity: 4 threads per instance,
+    # PDF renders serialized by a semaphore). Keep identical to
+    # Dockerfile.backend, terraform/variables.tf and the Makefile;
+    # backend/core/tests/test_runtime_limits.py enforces it.
     env:
-      BACKEND_MAX_INSTANCES: "2"
-      BACKEND_CONCURRENCY: "1"
+      BACKEND_MAX_INSTANCES: "3"
+      BACKEND_CONCURRENCY: "4"
       BACKEND_MEMORY: 1Gi
       GUNICORN_WORKERS: "1"
-      GUNICORN_THREADS: "1"
+      GUNICORN_THREADS: "4"
     steps:
       - uses: actions/checkout@v5
 
@@ -269,6 +270,7 @@ jobs:
             --memory "$BACKEND_MEMORY" \
             --concurrency "$BACKEND_CONCURRENCY" \
             --max-instances "$BACKEND_MAX_INSTANCES" \
+            --set-cloudsql-instances "$PROJECT_ID:$REGION:$SQL_INSTANCE" \
             --update-env-vars "BACKEND_MAX_INSTANCES=$BACKEND_MAX_INSTANCES,BACKEND_CONCURRENCY=$BACKEND_CONCURRENCY,GUNICORN_WORKERS=$GUNICORN_WORKERS,GUNICORN_THREADS=$GUNICORN_THREADS"
           gcloud run services update-traffic "$BACKEND_SERVICE" \
             --region "$REGION" --to-latest

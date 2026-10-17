@@ -34,10 +34,10 @@ class Command(BaseCommand):
         database_config = settings.DATABASES["default"]
         connection_max_age = int(database_config.get("CONN_MAX_AGE", 0))
         maximum_application_connections = calculate_max_application_connections(
-            max_instances=_positive_setting("BACKEND_MAX_INSTANCES", 2),
-            request_concurrency=_positive_setting("BACKEND_CONCURRENCY", 1),
+            max_instances=_positive_setting("BACKEND_MAX_INSTANCES", 3),
+            request_concurrency=_positive_setting("BACKEND_CONCURRENCY", 4),
             gunicorn_workers=_positive_setting("GUNICORN_WORKERS", 1),
-            gunicorn_threads=_positive_setting("GUNICORN_THREADS", 1),
+            gunicorn_threads=_positive_setting("GUNICORN_THREADS", 4),
             background_workers_per_process=_positive_setting("BACKGROUND_WORKERS_PER_PROCESS", 1, allow_zero=True),
             connection_max_age_seconds=connection_max_age,
         )
