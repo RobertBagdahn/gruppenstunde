@@ -108,6 +108,11 @@ export function useShoppingListWarnings(id: number, enabled = true) {
   });
 }
 
+/** One entry in full, e.g. to restore it after a delete from the compact board. */
+export function fetchShoppingListItem(listId: number, itemId: number) {
+  return fetchJson(`${API_BASE}/${listId}/items/${itemId}/`, ShoppingListItemSchema, listId);
+}
+
 /** Full detail of one entry, loaded only when its details are opened. */
 export function useShoppingListItem(listId: number, itemId: number | null) {
   return useQuery({

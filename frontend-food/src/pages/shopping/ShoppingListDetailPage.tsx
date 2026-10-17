@@ -18,6 +18,7 @@ import {
   useUpdateShoppingList,
   useCreateFromMealPlan,
   useShoppingListSync,
+  fetchShoppingListItem,
 } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
@@ -188,6 +189,38 @@ export default function ShoppingListDetailPage() {
     );
   };
 
+  const handleDeleteItem = (item: ShoppingListItem) => {
+    deleteItem.mutate(item.id, {
+      onSuccess: () => {
+        sendEvent('item.removed', { item_id: item.id });
+        notify.success(`„${item.name}“ gelöscht`, {
+          duration: UNDO_DURATION_MS,
+          action: {
+            label: 'Rückgängig',
+            onClick: () =>
+              addItem.mutate(
+                {
+                  name: item.name,
+                  quantity_g: item.quantity_g,
+                  unit: item.unit,
+                  note: item.note,
+                  retail_section_id: item.retail_section_id ?? null,
+                  ingredient_id: item.ingredient_id ?? null,
+                  sort_order: item.sort_order,
+                  is_checked: item.is_checked,
+                },
+                {
+                  onSuccess: () => sendEvent('item.added', { name: item.name }),
+                  onError: (err) => notify.error('Eintrag konnte nicht wiederhergestellt werden', { error: err }),
+                },
+              ),
+          },
+        });
+      },
+      onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
+    });
+  };
+
   // Shopping mode: the compact board, no full list needed.
   if (shopMode) {
     const handleBoardClaim = (itemId: number, claimed: boolean) =>
@@ -195,11 +228,18 @@ export default function ShoppingListDetailPage() {
         { itemId, claimed },
         { onError: (err) => notify.error('Zuständigkeit konnte nicht geändert werden', { error: err }) },
       );
-    const handleBoardDelete = (itemId: number) =>
+    // The board lacks grams and ingredient; fetch the full entry first so "Rückgängig" can restore it.
+    const handleBoardDelete = async (itemId: number) => {
+      const full = await fetchShoppingListItem(listId, itemId).catch(() => null);
+      if (full) {
+        handleDeleteItem(full);
+        return;
+      }
       deleteItem.mutate(itemId, {
         onSuccess: () => sendEvent('item.removed', { item_id: itemId }),
         onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
       });
+    };
     return (
       <ShoppingBoardView
         board={board}
@@ -210,7 +250,7 @@ export default function ShoppingListDetailPage() {
         onExit={() => setShopMode(false)}
         onCheck={handleCheck}
         onClaim={handleBoardClaim}
-        onDelete={handleBoardDelete}
+        onDelete={(itemId) => void handleBoardDelete(itemId)}
       />
     );
   }
@@ -263,38 +303,6 @@ export default function ShoppingListDetailPage() {
         onError: (err) => notify.error('Eintrag konnte nicht hinzugefügt werden', { error: err }),
       },
     );
-  };
-
-  const handleDeleteItem = (item: ShoppingListItem) => {
-    deleteItem.mutate(item.id, {
-      onSuccess: () => {
-        sendEvent('item.removed', { item_id: item.id });
-        notify.success(`„${item.name}“ gelöscht`, {
-          duration: UNDO_DURATION_MS,
-          action: {
-            label: 'Rückgängig',
-            onClick: () =>
-              addItem.mutate(
-                {
-                  name: item.name,
-                  quantity_g: item.quantity_g,
-                  unit: item.unit,
-                  note: item.note,
-                  retail_section_id: item.retail_section_id ?? null,
-                  ingredient_id: item.ingredient_id ?? null,
-                  sort_order: item.sort_order,
-                  is_checked: item.is_checked,
-                },
-                {
-                  onSuccess: () => sendEvent('item.added', { name: item.name }),
-                  onError: (err) => notify.error('Eintrag konnte nicht wiederhergestellt werden', { error: err }),
-                },
-              ),
-          },
-        });
-      },
-      onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
-    });
   };
 
   const handleSaveName = () => {
