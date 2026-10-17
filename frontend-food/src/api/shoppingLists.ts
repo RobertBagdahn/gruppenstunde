@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { guestHeaders } from '@/lib/shoppingGuest';
+import { isOverloadError, withOverloadRetry } from '@/lib/queryRetry';
 import {
   PaginatedShoppingListsSchema,
   SharedListJoinSchema,
@@ -140,11 +141,22 @@ const PULSE_INTERVAL_CONNECTED_MS = 20000;
 /** After this long without any change the poll slows down; any change, focus or own action speeds it up again. */
 export const PULSE_IDLE_AFTER_MS = 2 * 60 * 1000;
 const PULSE_INTERVAL_IDLE_MS = 15000;
+const PULSE_INTERVAL_MAX_MS = 60000;
 
 /** Poll interval: fast while people are active, slow when nothing has happened for a while. */
-export function pulseIntervalMs(idleMs: number, socketConnected: boolean): number {
-  if (socketConnected) return PULSE_INTERVAL_CONNECTED_MS;
-  return idleMs >= PULSE_IDLE_AFTER_MS ? PULSE_INTERVAL_IDLE_MS : PULSE_INTERVAL_MS;
+export function pulseIntervalMs(idleMs: number, socketConnected: boolean, failures = 0): number {
+  const base = socketConnected
+    ? PULSE_INTERVAL_CONNECTED_MS
+    : idleMs >= PULSE_IDLE_AFTER_MS
+      ? PULSE_INTERVAL_IDLE_MS
+      : PULSE_INTERVAL_MS;
+  // Backend struggling: every consecutive failure doubles the wait (up to a minute) instead of adding load.
+  return Math.min(base * 2 ** failures, PULSE_INTERVAL_MAX_MS);
+}
+
+/** Overload or outage; 401/404 mean lost access and are handled elsewhere. */
+function isPulseFailure(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 429 || error.status >= 500 || error.code === 'network');
 }
 
 /**
@@ -155,11 +167,21 @@ export function pulseIntervalMs(idleMs: number, socketConnected: boolean): numbe
 export function useShoppingListSync(listId: number, loadedStamp: string | undefined, socketConnected: boolean) {
   const queryClient = useQueryClient();
   const lastActivity = useRef(Date.now());
+  const failures = useRef(0);
   const { data, error } = useQuery({
     queryKey: ['shopping-list-pulse', listId] as const,
-    queryFn: () => fetchJson(`${API_BASE}/${listId}/pulse/`, ShoppingListPulseSchema, listId),
+    queryFn: async () => {
+      try {
+        const pulse = await fetchJson(`${API_BASE}/${listId}/pulse/`, ShoppingListPulseSchema, listId);
+        failures.current = 0;
+        return pulse;
+      } catch (cause) {
+        failures.current = isPulseFailure(cause) ? failures.current + 1 : 0;
+        throw cause;
+      }
+    },
     enabled: listId > 0 && !!loadedStamp,
-    refetchInterval: () => pulseIntervalMs(Date.now() - lastActivity.current, socketConnected),
+    refetchInterval: () => pulseIntervalMs(Date.now() - lastActivity.current, socketConnected, failures.current),
     refetchOnWindowFocus: 'always',
     staleTime: 0,
     retry: false,
@@ -187,6 +209,7 @@ export function useShoppingListSync(listId: number, loadedStamp: string | undefi
       void queryClient.invalidateQueries({ queryKey: ['shopping-list-item', listId] });
     }
   }, [data, loadedStamp, listId, queryClient]);
+  return { pulseOverloaded: isOverloadError(error) };
 }
 
 // --- Invitation link (join without an account) ---
@@ -314,7 +337,13 @@ export function useUpdateShoppingListItem(listId: number) {
       note?: string;
       /** true: "Ich hole das"; false: release. */
       claimed?: boolean;
-    }) => patchJson(`${API_BASE}/${listId}/items/${itemId}/`, payload, ShoppingListItemSchema, listId),
+    }) => {
+      const send = () => patchJson(`${API_BASE}/${listId}/items/${itemId}/`, payload, ShoppingListItemSchema, listId);
+      // Setting a check or a claim to an explicit value gives the same result when repeated.
+      return typeof payload.is_checked === 'boolean' || typeof payload.claimed === 'boolean'
+        ? withOverloadRetry(send)
+        : send();
+    },
     onSuccess: (item) => {
       void queryClient.invalidateQueries({ queryKey: ['shopping-list-item', listId] });
       // The server's answer is the truth (e.g. the first person to check stays the checker).

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError, parseApiResponse } from './api';
-import { isOverloadError, retryDelayMs, shouldRetryQuery } from './queryRetry';
+import { isOverloadError, retryDelayMs, shouldRetryQuery, withOverloadRetry } from './queryRetry';
 
 const cloudRun429 = () => new ApiError(429, '', {});
 
@@ -50,5 +50,42 @@ describe('retryDelayMs', () => {
   it('keeps the default backoff for non-overload errors', () => {
     expect(retryDelayMs(0, new ApiError(500, '', {}))).toBe(1000);
     expect(retryDelayMs(1, new ApiError(500, '', {}))).toBe(2000);
+  });
+});
+
+describe('withOverloadRetry', () => {
+  const noWait = () => Promise.resolve();
+
+  it('repeats after overload and returns the first success', async () => {
+    let calls = 0;
+    const result = await withOverloadRetry(async () => {
+      calls += 1;
+      if (calls < 3) throw cloudRun429();
+      return 'ok';
+    }, noWait);
+    expect(result).toBe('ok');
+    expect(calls).toBe(3);
+  });
+
+  it('gives up after 3 repetitions and rethrows the overload error', async () => {
+    let calls = 0;
+    await expect(
+      withOverloadRetry(async () => {
+        calls += 1;
+        throw cloudRun429();
+      }, noWait),
+    ).rejects.toMatchObject({ status: 429 });
+    expect(calls).toBe(4);
+  });
+
+  it('does not repeat other errors', async () => {
+    let calls = 0;
+    await expect(
+      withOverloadRetry(async () => {
+        calls += 1;
+        throw new ApiError(409, '', { detail: 'bereits übernommen' });
+      }, noWait),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(calls).toBe(1);
   });
 });

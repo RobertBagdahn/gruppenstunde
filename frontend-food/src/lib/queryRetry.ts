@@ -27,3 +27,21 @@ export function retryDelayMs(failureCount: number, error: unknown, random: () =>
   if (error.retryAfterHeaderSeconds !== undefined) return Math.min(error.retryAfterHeaderSeconds * 1000, MAX_DELAY_MS);
   return Math.min(BASE_DELAY_MS * 2 ** failureCount, MAX_DELAY_MS) + Math.floor(random() * JITTER_MS);
 }
+
+/**
+ * Runs an idempotent request and repeats it on overload (same rule as queries).
+ * Never wrap a request that can create something twice (POST).
+ */
+export async function withOverloadRetry<T>(
+  request: () => Promise<T>,
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+): Promise<T> {
+  for (let failures = 0; ; failures += 1) {
+    try {
+      return await request();
+    } catch (error) {
+      if (!isOverloadError(error) || failures >= MAX_OVERLOAD_RETRIES) throw error;
+      await wait(retryDelayMs(failures, error));
+    }
+  }
+}

@@ -39,6 +39,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { ApiError } from '@/lib/api';
+import { isOverloadError } from '@/lib/queryRetry';
+import OverloadNotice from '@/components/shopping/OverloadNotice';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { clearGuestCredentials, getGuestCredentials } from '@/lib/shoppingGuest';
@@ -120,7 +122,7 @@ export default function ShoppingListDetailPage() {
     onEvent: handleWsEvent,
   });
   // Production serves no WebSocket: a polled change marker keeps the list current (slower while the socket is up).
-  useShoppingListSync(listId, shopMode ? board?.stamp : list?.stamp, isConnected);
+  const { pulseOverloaded } = useShoppingListSync(listId, shopMode ? board?.stamp : list?.stamp, isConnected);
 
   // Add item form state
   const [allSourcesOpen, setAllSourcesOpen] = useState(false);
@@ -203,6 +205,7 @@ export default function ShoppingListDetailPage() {
         board={board}
         isLoading={boardLoading}
         error={boardError}
+        overloaded={pulseOverloaded}
         onRetry={() => void refetchBoard()}
         onExit={() => setShopMode(false)}
         onCheck={handleCheck}
@@ -218,7 +221,8 @@ export default function ShoppingListDetailPage() {
     );
   }
 
-  if (error || !list) {
+  // Overload with a list on screen keeps the list and shows a notice; any other error replaces it.
+  if ((error && !isOverloadError(error)) || !list) {
     const isNotFound = error instanceof ApiError && error.status === 404;
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -309,6 +313,11 @@ export default function ShoppingListDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 font-sans">
+      {(pulseOverloaded || isOverloadError(error)) && (
+        <div className="mb-4">
+          <OverloadNotice />
+        </div>
+      )}
       <ConfirmDialog
         open={showDeleteConfirm}
         onConfirm={() => {

@@ -48,7 +48,7 @@ vi.mock('@/api/shoppingLists', () => ({
   useDeleteShoppingList: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateShoppingList: () => ({ mutate: vi.fn() }),
   useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
-  useShoppingListSync: vi.fn(),
+  useShoppingListSync: vi.fn(() => ({ pulseOverloaded: false })),
   useShoppingListWarnings: () => ({ data: [] }),
   useShoppingListBoard: () => boardQuery,
   useEnableSharing: () => ({ mutate: vi.fn(), isPending: false }),

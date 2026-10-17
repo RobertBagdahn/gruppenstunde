@@ -4,6 +4,8 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import type { ShoppingBoardItem, ShoppingListBoard } from '@/schemas/shoppingList';
 import { cn } from '@/lib/utils';
+import { isOverloadError } from '@/lib/queryRetry';
+import OverloadNotice from './OverloadNotice';
 import { formatBoardQuantity } from './boardQuantity';
 import ShoppingItemDetailDialog from './ShoppingItemDetailDialog';
 
@@ -37,6 +39,8 @@ interface ShoppingBoardViewProps {
   board: ShoppingListBoard | undefined;
   isLoading: boolean;
   error: Error | null | undefined;
+  /** The backend is turning requests away (pulse or reload); the board keeps its last state. */
+  overloaded?: boolean;
   onRetry: () => void;
   onExit: () => void;
   onCheck: (itemId: number, isChecked: boolean) => void;
@@ -49,6 +53,7 @@ export default function ShoppingBoardView({
   board,
   isLoading,
   error,
+  overloaded = false,
   onRetry,
   onExit,
   onCheck,
@@ -60,7 +65,8 @@ export default function ShoppingBoardView({
     return <PageSkeleton label="Einkaufsmodus wird geladen" />;
   }
 
-  if (error || !board) {
+  // Overload with data on screen keeps the board and shows a notice; any other error replaces it.
+  if ((error && !isOverloadError(error)) || !board) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <ErrorDisplay error={error} onRetry={onRetry} onBack={onExit} backLabel="Zurück zur Liste" />
@@ -72,6 +78,7 @@ export default function ShoppingBoardView({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      {(overloaded || isOverloadError(error)) && <OverloadNotice />}
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-section font-bold break-words">{board.name}</h1>
