@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This specification defines the shopping list data model, API schemas, permissions, and frontend behavior for collaborative shopping lists.
+This specification defines the shopping list data model, API schemas, permissions, and frontend behavior for collaborative shopping lists. Sharing by invitation link, guests without an account, attribution, claiming, polling and shopping mode are specified in `shopping-list-sharing`; guests are the only exception to the 401/404 rules for anonymous visitors.
 ## Requirements
 ### Requirement: Aktive Gewichtsauflösung
 
