@@ -439,7 +439,7 @@ resource "google_monitoring_alert_policy" "database_connection_pressure" {
 
   documentation {
     mime_type = "text/markdown"
-    content   = "Backend request concurrency is budgeted for 4 application DB sessions (2 instances x (1 request + 1 background worker)). Inspect Cloud Run revisions and run `manage.py check_database_capacity` before increasing scaling limits."
+    content   = "Backend request concurrency is budgeted for 15 application DB sessions (3 instances x (4 request threads + 1 background worker)) on db-g1-small (max_connections 50). Inspect Cloud Run revisions and run `manage.py check_database_capacity` before increasing scaling limits."
   }
 
   depends_on = [google_project_service.apis["monitoring.googleapis.com"]]

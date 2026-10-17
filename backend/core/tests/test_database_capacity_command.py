@@ -24,19 +24,19 @@ def _mock_postgres_connection(
 
 def test_capacity_command_reports_a_safe_application_budget() -> None:
     output = StringIO()
-    connection = _mock_postgres_connection(25, 3, 0, 6)
+    connection = _mock_postgres_connection(50, 3, 0, 6)  # db-g1-small
 
     with patch("core.management.commands.check_database_capacity.connection", connection):
         call_command("check_database_capacity", stdout=output)
 
     report = output.getvalue()
-    assert "application_budget=14" in report
-    assert "configured_application_max=4" in report
+    assert "application_budget=39" in report
+    assert "configured_application_max=15" in report
     assert "Database connection budget is safe." in report
 
 
 def test_capacity_command_fails_when_the_configured_budget_exceeds_postgres() -> None:
-    connection = _mock_postgres_connection(14, 3, 0, 6)
+    connection = _mock_postgres_connection(25, 3, 0, 6)  # db-f1-micro: too small for 3 x (4 + 1)
 
     with patch("core.management.commands.check_database_capacity.connection", connection):
         with pytest.raises(CommandError, match="exceeds the available database connection budget"):

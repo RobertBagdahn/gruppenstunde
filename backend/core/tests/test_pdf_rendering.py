@@ -38,3 +38,37 @@ def test_render_html_to_pdf_returns_logged_german_error_on_failure(monkeypatch: 
 
     assert error.value.status_code == 500
     assert error.value.message == "PDF-Generierung fehlgeschlagen"
+
+
+def test_concurrent_renders_do_not_overlap(monkeypatch: pytest.MonkeyPatch) -> None:
+    import threading
+    import time
+
+    state = {"active": 0, "peak": 0}
+    guard = threading.Lock()
+
+    class SlowHtml:
+        def __init__(self, *, string: str, base_url: str) -> None:
+            pass
+
+        def write_pdf(self, *, optimize_images: bool, jpeg_quality: int) -> bytes:
+            with guard:
+                state["active"] += 1
+                state["peak"] = max(state["peak"], state["active"])
+            time.sleep(0.05)
+            with guard:
+                state["active"] -= 1
+            return b"%PDF-"
+
+    monkeypatch.setattr("core.services.pdf_rendering.HTML", SlowHtml)
+
+    threads = [
+        threading.Thread(target=render_html_to_pdf, args=("<p>x</p>",), kwargs={"export_type": "test"})
+        for _ in range(4)
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert state["peak"] == 1
