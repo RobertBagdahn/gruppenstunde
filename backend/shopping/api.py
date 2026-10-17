@@ -723,6 +723,18 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     return item
 
 
+@shopping_router.get("/{shopping_list_id}/items/{item_id}/", response=ShoppingListItemOut)
+def get_item(request, shopping_list_id: int, item_id: int):
+    """Full detail of one entry (sources, prices, package options); loaded on demand from the board."""
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    actor = resolve_actor(request, shopping_list)
+    item = get_object_or_404(ShoppingListItem, id=item_id, shopping_list=shopping_list)
+    item._claimed_by_me = actor.owns_claim(item)
+    item._can_delete = _item_can_delete(item, actor)
+    return item
+
+
 @shopping_router.patch("/{shopping_list_id}/items/{item_id}/", response=ShoppingListItemOut)
 def update_item(
     request,

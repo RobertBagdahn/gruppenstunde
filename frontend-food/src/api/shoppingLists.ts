@@ -107,6 +107,15 @@ export function useShoppingListWarnings(id: number, enabled = true) {
   });
 }
 
+/** Full detail of one entry, loaded only when its details are opened. */
+export function useShoppingListItem(listId: number, itemId: number | null) {
+  return useQuery({
+    queryKey: ['shopping-list-item', listId, itemId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${listId}/items/${itemId}/`, ShoppingListItemSchema, listId),
+    enabled: itemId !== null && listId > 0,
+  });
+}
+
 /** Compact board of a list: the screen's minimal payload, cached per list state on the server. */
 export function useShoppingListBoard(id: number, enabled = true) {
   return useQuery({
@@ -175,6 +184,7 @@ export function useShoppingListSync(listId: number, loadedStamp: string | undefi
     if (data && loadedStamp && data.stamp !== loadedStamp) {
       void queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
       void queryClient.invalidateQueries({ queryKey: ['shopping-list-board', listId] });
+      void queryClient.invalidateQueries({ queryKey: ['shopping-list-item', listId] });
     }
   }, [data, loadedStamp, listId, queryClient]);
 }
@@ -306,6 +316,7 @@ export function useUpdateShoppingListItem(listId: number) {
       claimed?: boolean;
     }) => patchJson(`${API_BASE}/${listId}/items/${itemId}/`, payload, ShoppingListItemSchema, listId),
     onSuccess: (item) => {
+      void queryClient.invalidateQueries({ queryKey: ['shopping-list-item', listId] });
       // The server's answer is the truth (e.g. the first person to check stays the checker).
       queryClient.setQueryData<ShoppingListDetail>(['shopping-list', listId], (old) =>
         old ? { ...old, items: old.items.map((i) => (i.id === item.id ? { ...i, ...item } : i)) } : old,

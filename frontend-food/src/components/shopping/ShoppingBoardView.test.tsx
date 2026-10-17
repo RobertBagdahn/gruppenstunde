@@ -1,4 +1,27 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@/api/shoppingLists', () => ({
+  useShoppingListItem: () => ({
+    data: {
+      id: 7,
+      name: 'Milch',
+      quantity_g: 500,
+      quantity: 500,
+      unit: 'g',
+      retail_section_name: 'Kühlregal',
+      is_checked: false,
+      sort_order: 0,
+      note: 'laktosefrei',
+      sources: [{ recipe_name: 'Porridge', meal_label: 'Frühstück', quantity_g: 500 }],
+      package_options: [{ count: 2, package_name: 'Flasche', weight_g: 1000 }],
+      portion_options: [],
+      claimed_by_me: false,
+    },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}));
 import { fireEvent, render, screen } from '@testing-library/react';
 import ShoppingBoardView, { formatBoardQuantity, groupBoardItems } from './ShoppingBoardView';
 import type { ShoppingBoardItem, ShoppingListBoard } from '@/schemas/shoppingList';
@@ -125,5 +148,25 @@ describe('ShoppingBoardView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Einkaufsmodus beenden' }));
     expect(h.onExit).toHaveBeenCalled();
+  });
+});
+
+describe('ShoppingBoardView details', () => {
+  it('opens the omitted details of an entry from its eye button', () => {
+    render(
+      <ShoppingBoardView
+        board={board([item({ id: 7, name: 'Milch', retail_section_name: 'Kühlregal' })])}
+        isLoading={false}
+        error={null}
+        {...handlers()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details zu Milch' }));
+
+    expect(screen.getByText('Herkunft')).toBeInTheDocument();
+    expect(screen.getByText('Porridge · Frühstück')).toBeInTheDocument();
+    expect(screen.getByText('2 × Flasche (1000 g)')).toBeInTheDocument();
+    expect(screen.getByText('laktosefrei')).toBeInTheDocument();
   });
 });

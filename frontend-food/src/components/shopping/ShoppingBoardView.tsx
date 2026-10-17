@@ -1,19 +1,16 @@
-import { Check, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Eye, Trash2 } from 'lucide-react';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import type { ShoppingBoardItem, ShoppingListBoard } from '@/schemas/shoppingList';
 import { cn } from '@/lib/utils';
+import { formatBoardQuantity } from './boardQuantity';
+import ShoppingItemDetailDialog from './ShoppingItemDetailDialog';
+
+export { formatBoardQuantity };
 
 const OTHER_SECTION = 'Sonstiges';
 const MATERIAL_SECTION = 'Material';
-
-export function formatBoardQuantity(quantity: number, unit: string): string {
-  if (!quantity) return '';
-  if (unit === 'g' && quantity >= 1000) {
-    return `${(quantity / 1000).toLocaleString('de-DE', { maximumFractionDigits: 2 })} kg`;
-  }
-  return `${quantity.toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${unit}`.trim();
-}
 
 /**
  * Groups entries by section in the server's order of first appearance; open entries
@@ -58,6 +55,7 @@ export default function ShoppingBoardView({
   onClaim,
   onDelete,
 }: ShoppingBoardViewProps) {
+  const [detailId, setDetailId] = useState<number | null>(null);
   if (isLoading) {
     return <PageSkeleton label="Einkaufsmodus wird geladen" />;
   }
@@ -107,11 +105,15 @@ export default function ShoppingBoardView({
                 onCheck={onCheck}
                 onClaim={onClaim}
                 onDelete={onDelete}
+                onShowDetails={setDetailId}
               />
             ))}
           </ul>
         </section>
       ))}
+      {detailId !== null && (
+        <ShoppingItemDetailDialog listId={board.id} itemId={detailId} onClose={() => setDetailId(null)} />
+      )}
     </div>
   );
 }
@@ -122,9 +124,10 @@ interface BoardRowProps {
   onCheck: (itemId: number, isChecked: boolean) => void;
   onClaim: (itemId: number, claimed: boolean) => void;
   onDelete: (itemId: number) => void;
+  onShowDetails: (itemId: number) => void;
 }
 
-function BoardRow({ item, canEdit, onCheck, onClaim, onDelete }: BoardRowProps) {
+function BoardRow({ item, canEdit, onCheck, onClaim, onDelete, onShowDetails }: BoardRowProps) {
   const quantity = formatBoardQuantity(item.quantity, item.unit);
   const claimText = item.claimed_by_me
     ? 'Du holst das'
@@ -184,6 +187,14 @@ function BoardRow({ item, canEdit, onCheck, onClaim, onDelete }: BoardRowProps) 
           Ich hole das
         </button>
       )}
+      <button
+        type="button"
+        onClick={() => onShowDetails(item.id)}
+        aria-label={`Details zu ${item.name}`}
+        className="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary-soft"
+      >
+        <Eye className="w-5 h-5" strokeWidth={2} />
+      </button>
       {canEdit && item.can_delete && (
         <button
           type="button"

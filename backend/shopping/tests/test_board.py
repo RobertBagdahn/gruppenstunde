@@ -147,3 +147,23 @@ def test_anonymous_without_access_is_rejected(shopping_list):
     response = Client().get(f"{BASE}/{shopping_list.id}/board/")
 
     assert response.status_code in (401, 403)
+
+
+def test_item_detail_returns_full_entry_with_viewer_rights(owner_client, shopping_list):
+    item = ShoppingListItem.objects.create(shopping_list=shopping_list, name="Reis", note="Basmati")
+
+    body = owner_client.get(f"{BASE}/{shopping_list.id}/items/{item.id}/").json()
+
+    assert body["id"] == item.id
+    assert body["note"] == "Basmati"
+    assert body["can_delete"] is True
+    assert "sources" in body and "package_options" in body
+
+
+def test_item_detail_rejects_items_of_other_lists(owner_client, owner, shopping_list):
+    other = ShoppingList.objects.create(name="Anderes", owner=owner)
+    foreign = ShoppingListItem.objects.create(shopping_list=other, name="Salz")
+
+    response = owner_client.get(f"{BASE}/{shopping_list.id}/items/{foreign.id}/")
+
+    assert response.status_code == 404
