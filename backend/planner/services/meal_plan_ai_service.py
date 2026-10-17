@@ -9,7 +9,6 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from google.genai import types as genai_types
 from pydantic import BaseModel, Field, ValidationError
 
 from content.choices import ContentStatus
@@ -550,6 +549,8 @@ class MealPlanAiService:
         )
         if prompt_context:
             system_prompt = f"{system_prompt}\n{prompt_context}\n"
+
+        from google.genai import types as genai_types  # lazy: keeps the SDK out of app startup
 
         response, interaction_id = gemini_call(
             user=user,
