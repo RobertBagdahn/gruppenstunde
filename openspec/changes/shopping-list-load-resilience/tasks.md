@@ -13,7 +13,7 @@
 - [x] 2.5 `useShoppingListWebSocket`: nur mit `VITE_SHOPPING_WEBSOCKET === 'true'` verbinden, Standard aus; `.env.example` und Test ergänzen
 - [x] 2.6 Handshakes zu `/ws/` in den Logs von `inspi-frontend-food` geprüft: 196 Versuche, alle 200 (SPA-Fallback), keiner im Backend; in `design.md` vermerkt
 - [x] 2.7 Board-Modus bleibt vollständig: Der Detail-Dialog (Augen-Knopf, `GET …/items/{id}/`) zeigt alle Portionen, Mengen je Herkunft mit Rezept-Link, Packungsbedarf, Reserve und natürliche Einheit mit denselben Formatierern wie die volle Zeile; Tests in `ShoppingBoardView.test.tsx`
-- [ ] 2.8 Board-Lücken aus PR #32 schließen: Anzeige, wer gerade abhakt (`recentChecker`), und Rückgängig nach dem Löschen im Board
+- [x] 2.8 Board-Lücken aus PR #32 schließen: „Wer hakt gerade ab“ kam nur über WebSocket-Ereignisse (`recentChecker`, ohne Socket nie gesetzt); das Board zeigt den Abhaker dauerhaft als „abgehakt von …“. Rückgängig nach dem Löschen im Board umgesetzt (voller Eintrag wird vor dem Löschen geholt), mit zwei Seitentests
 
 ## 3. Lastprobe
 
@@ -21,7 +21,7 @@
 - [x] 3.2 Lokalen Stack dokumentieren (`scripts/loadtest/README.md`) und Fixture über `seed_loadtest_shopping_list`
 - [x] 3.3 Unit-Tests der Auswertung (Perzentile, Schwellen, Abbruch ohne `--confirm-production`)
 - [x] 3.4 Einkaufsmodus abbilden: `--mode board` (Standard; Pulse, dann `GET …/board/`) und `--mode detail` (volle Liste); Label `sync_board`, Schwelle `--p95-sync` gilt für das Board
-- [ ] 3.5 Probe im Board- und im Detail-Modus laufen lassen; beide Ergebnisse in den Pull Request schreiben
+- [x] 3.5 Probe im Board- und im Detail-Modus laufen lassen; Ergebnisse in `scripts/loadtest/README.md` und im Pull Request (schwere Fixture: Detail p95 9,40 s fehlgeschlagen, Board p95 0,15 s bestanden)
 
 ## 4. Deploy-Preflight
 
@@ -30,7 +30,7 @@
 
 ## 5. Verifikation und Rollout
 
-- [ ] 5.1 `uv run pytest backend/shopping`, `ruff check`/`ruff format --check`; in `frontend-food`: `npm run lint`, `npx tsc --noEmit`, `npx vitest run`
-- [ ] 5.2 `openspec validate shopping-list-load-resilience`
+- [x] 5.1 `uv run pytest backend/shopping`, `ruff check`/`ruff format --check`; in `frontend-food`: `npm run lint`, `npx tsc --noEmit`, `npx vitest run`
+- [x] 5.2 `openspec validate shopping-list-load-resilience`
 - [ ] 5.3 Über `main` mergen, CI-Deploy abwarten; Cloud-Run-Logs prüfen: keine 429
 - [ ] 5.4 Beim nächsten Gruppeneinkauf Anteil der 429 und p95 des Board-Aufrufs aus den Cloud-Run-Logs auswerten und mit 21 % (16.10.) vergleichen
