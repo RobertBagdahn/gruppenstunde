@@ -46,4 +46,10 @@ describe('parseApiResponse', () => {
     const response = new Response(JSON.stringify({ ok: true }), { status: 200 });
     await expect(parseApiResponse<{ ok: boolean }>(response)).resolves.toEqual({ ok: true });
   });
+
+  it('reads the Retry-After header as whole seconds and ignores the HTTP-date form', async () => {
+    const withHeader = (value: string) => parseApiResponse(new Response('', { status: 429, headers: { 'Retry-After': value } }));
+    await expect(withHeader('5')).rejects.toMatchObject({ retryAfterHeaderSeconds: 5 });
+    await expect(withHeader('Wed, 21 Oct 2026 07:28:00 GMT')).rejects.toMatchObject({ retryAfterHeaderSeconds: undefined });
+  });
 });

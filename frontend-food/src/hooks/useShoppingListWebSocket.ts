@@ -35,6 +35,9 @@ interface UseShoppingListWebSocketReturn {
   sendEvent: (type: string, data: Record<string, unknown>) => void;
 }
 
+/** Production serves no WebSocket (gunicorn/WSGI); only a build with an ASGI backend switches the socket on. */
+const WEBSOCKET_ENABLED = import.meta.env.VITE_SHOPPING_WEBSOCKET === 'true';
+
 const RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
@@ -85,7 +88,7 @@ export function useShoppingListWebSocket(
   handleMessageRef.current = handleMessage;
 
   const connect = useCallback(() => {
-    if (!listId || listId <= 0) return;
+    if (!WEBSOCKET_ENABLED || !listId || listId <= 0) return;
 
     // Determine WebSocket URL
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';

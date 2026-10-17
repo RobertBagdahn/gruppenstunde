@@ -16,6 +16,7 @@ const deleteItem = vi.fn();
 const addItem = vi.fn();
 const notifySuccess = vi.fn();
 const createFromMealPlan = vi.fn();
+const fetchItem = vi.fn();
 
 let currentUser: { id: number; display_name: string } | null = { id: 5, display_name: 'Eule' };
 let listQuery: { data?: ShoppingListDetail; isLoading: boolean; error: Error | null };
@@ -48,9 +49,10 @@ vi.mock('@/api/shoppingLists', () => ({
   useDeleteShoppingList: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateShoppingList: () => ({ mutate: vi.fn() }),
   useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
-  useShoppingListSync: vi.fn(),
+  useShoppingListSync: vi.fn(() => ({ pulseOverloaded: false })),
   useShoppingListWarnings: () => ({ data: [] }),
   useShoppingListBoard: () => boardQuery,
+  fetchShoppingListItem: (...args: unknown[]) => fetchItem(...args),
   useEnableSharing: () => ({ mutate: vi.fn(), isPending: false }),
   useDisableSharing: () => ({ mutate: vi.fn(), isPending: false }),
   useRemoveGuest: () => ({ mutate: vi.fn(), isPending: false }),
@@ -86,6 +88,7 @@ describe('ShoppingListDetailPage', () => {
     addItem.mockReset();
     notifySuccess.mockReset();
     createFromMealPlan.mockReset();
+    fetchItem.mockReset();
   });
 
   it('asks anonymous visitors to log in instead of showing a raw error', () => {
@@ -254,6 +257,77 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.queryByRole('button', { name: 'Einkaufsliste löschen' })).not.toBeInTheDocument();
       expect(screen.getByText('Klebeband')).toBeInTheDocument();
       expect(window.localStorage.getItem('inspi.shopping.shopMode')).toBe('1');
+      window.localStorage.clear();
+    });
+
+    it('restores an entry deleted from the board with its grams and ingredient', async () => {
+      const user = userEvent.setup();
+      boardQuery = {
+        data: ShoppingListBoardSchema.parse({
+          id: 3,
+          name: 'Wocheneinkauf',
+          stamp: 'x',
+          can_edit: true,
+          total: 1,
+          checked: 0,
+          items: [{ id: 1, name: 'Klebeband', can_delete: true }],
+        }),
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      };
+      fetchItem.mockResolvedValue({
+        id: 1,
+        name: 'Klebeband',
+        quantity_g: 250,
+        unit: 'g',
+        note: 'stark',
+        retail_section_id: 4,
+        ingredient_id: 77,
+        sort_order: 2,
+        is_checked: false,
+      });
+      deleteItem.mockImplementation((_id: number, options: { onSuccess: () => void }) => options.onSuccess());
+      window.localStorage.setItem('inspi.shopping.shopMode', '1');
+      renderPage();
+
+      await user.click(screen.getByRole('button', { name: 'Klebeband löschen' }));
+
+      await vi.waitFor(() => expect(notifySuccess).toHaveBeenCalled());
+      expect(fetchItem).toHaveBeenCalledWith(3, 1);
+      const [, toastOptions] = notifySuccess.mock.calls[0] as [string, { action: { onClick: () => void } }];
+      toastOptions.action.onClick();
+      expect(addItem).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Klebeband', quantity_g: 250, ingredient_id: 77, retail_section_id: 4, sort_order: 2 }),
+        expect.anything(),
+      );
+      window.localStorage.clear();
+    });
+
+    it('still deletes when the full entry cannot be fetched, without an undo', async () => {
+      const user = userEvent.setup();
+      boardQuery = {
+        data: ShoppingListBoardSchema.parse({
+          id: 3,
+          name: 'Wocheneinkauf',
+          stamp: 'x',
+          can_edit: true,
+          total: 1,
+          checked: 0,
+          items: [{ id: 1, name: 'Klebeband', can_delete: true }],
+        }),
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      };
+      fetchItem.mockRejectedValue(new Error('offline'));
+      window.localStorage.setItem('inspi.shopping.shopMode', '1');
+      renderPage();
+
+      await user.click(screen.getByRole('button', { name: 'Klebeband löschen' }));
+
+      await vi.waitFor(() => expect(deleteItem).toHaveBeenCalledWith(1, expect.anything()));
+      expect(notifySuccess).not.toHaveBeenCalled();
       window.localStorage.clear();
     });
   });

@@ -8,7 +8,7 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthOverlays from './components/auth/AuthOverlays';
 import GlobalFetchingBar from './components/shared/GlobalFetchingBar';
-import { ApiError } from './lib/api';
+import { retryDelayMs, shouldRetryQuery } from './lib/queryRetry';
 import { handleGlobalApiError } from './lib/apiErrorHandler';
 import './lib/queryMeta';
 import { AI_QUOTA_QUERY_KEY } from './api/ai';
@@ -36,9 +36,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      // Client errors (404, 403 …) will not change on a retry; only transient failures are retried once.
-      retry: (failureCount, error) =>
-        !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failureCount < 1,
+      // Overload (429 without code, 503) is retried with backoff; other client errors (404, 403 …) never;
+      // other transient failures once (shopping-list-sharing: Überlast-tolerante Abfragen).
+      retry: shouldRetryQuery,
+      retryDelay: retryDelayMs,
     },
   },
 });

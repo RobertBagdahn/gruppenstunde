@@ -12,9 +12,17 @@ vi.mock('@/api/shoppingLists', () => ({
       is_checked: false,
       sort_order: 0,
       note: 'laktosefrei',
-      sources: [{ recipe_name: 'Porridge', meal_label: 'Frühstück', quantity_g: 500 }],
+      sources: [
+        { recipe_name: 'Porridge', recipe_slug: 'porridge', meal_label: 'Frühstück', quantity_g: 300 },
+        { recipe_name: 'Pudding', recipe_slug: '', meal_label: 'Nachtisch', quantity_g: 200 },
+      ],
       package_options: [{ count: 2, package_name: 'Flasche', weight_g: 1000 }],
-      portion_options: [],
+      portion_options: [
+        { count: 2, name: 'Becher', weight_g: 250, is_default: true },
+        { count: 4, name: 'Tasse', weight_g: 125, is_default: false },
+      ],
+      start_unit: null,
+      package_surplus_g: null,
       claimed_by_me: false,
     },
     isLoading: false,
@@ -23,6 +31,8 @@ vi.mock('@/api/shoppingLists', () => ({
   }),
 }));
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { ApiError } from '@/lib/api';
 import ShoppingBoardView, { formatBoardQuantity, groupBoardItems } from './ShoppingBoardView';
 import type { ShoppingBoardItem, ShoppingListBoard } from '@/schemas/shoppingList';
 
@@ -154,19 +164,97 @@ describe('ShoppingBoardView', () => {
 describe('ShoppingBoardView details', () => {
   it('opens the omitted details of an entry from its eye button', () => {
     render(
-      <ShoppingBoardView
-        board={board([item({ id: 7, name: 'Milch', retail_section_name: 'Kühlregal' })])}
-        isLoading={false}
-        error={null}
-        {...handlers()}
-      />,
+      <MemoryRouter>
+        <ShoppingBoardView
+          board={board([item({ id: 7, name: 'Milch', retail_section_name: 'Kühlregal' })])}
+          isLoading={false}
+          error={null}
+          {...handlers()}
+        />
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Details zu Milch' }));
 
-    expect(screen.getByText('Herkunft')).toBeInTheDocument();
-    expect(screen.getByText('Porridge · Frühstück')).toBeInTheDocument();
-    expect(screen.getByText('2 × Flasche (1000 g)')).toBeInTheDocument();
+    expect(screen.getAllByText('Herkunft')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Porridge' })).toHaveAttribute('href', '/recipes/porridge');
+    expect(screen.getByRole('dialog').textContent).toContain('Pudding (Nachtisch)');
+    expect(screen.getByRole('dialog').textContent).toContain('2 × 1-kg-Flasche');
     expect(screen.getByText('laktosefrei')).toBeInTheDocument();
+  });
+
+  it('lists every portion option, not only the default one, and the amount per source', () => {
+    render(
+      <MemoryRouter>
+        <ShoppingBoardView
+          board={board([item({ id: 7, name: 'Milch' })])}
+          isLoading={false}
+          error={null}
+          {...handlers()}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details zu Milch' }));
+
+    expect(screen.getAllByText('Portion')).toHaveLength(2);
+    expect(screen.getByText(/Becher.*\(Standard\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Tasse/)).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.textContent).toContain('Porridge (Frühstück) · 300 g');
+    expect(dialog.textContent).toContain('Pudding (Nachtisch) · 200 g');
+  });
+});
+
+
+describe('ShoppingBoardView overload', () => {
+  const overload = () => new ApiError(429, '', {});
+
+  it('keeps the board and shows a notice when a reload is turned away', () => {
+    render(
+      <ShoppingBoardView
+        board={board([item({ id: 1, name: 'Käse' })])}
+        isLoading={false}
+        error={overload()}
+        {...handlers()}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Gerade sind viele gleichzeitig dabei. Wir versuchen es gleich nochmal.');
+    expect(screen.getByText('Käse')).toBeInTheDocument();
+  });
+
+  it('shows the notice when only the poll is turned away', () => {
+    render(
+      <ShoppingBoardView
+        board={board([item({ id: 1, name: 'Käse' })])}
+        isLoading={false}
+        error={null}
+        overloaded
+        {...handlers()}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  it('still replaces the board by the error page for other errors (e.g. lost access)', () => {
+    render(
+      <ShoppingBoardView
+        board={board([item({ id: 1, name: 'Käse' })])}
+        isLoading={false}
+        error={new ApiError(404, '', { detail: 'Nicht gefunden' })}
+        {...handlers()}
+      />,
+    );
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByText('Käse')).not.toBeInTheDocument();
+  });
+
+  it('shows the error page when nothing was loaded yet, even on overload', () => {
+    render(<ShoppingBoardView board={undefined} isLoading={false} error={overload()} {...handlers()} />);
+
+    expect(screen.queryByText('Wocheneinkauf')).not.toBeInTheDocument();
   });
 });

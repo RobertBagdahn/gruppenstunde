@@ -18,6 +18,7 @@ import {
   useUpdateShoppingList,
   useCreateFromMealPlan,
   useShoppingListSync,
+  fetchShoppingListItem,
 } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
@@ -39,6 +40,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { ApiError } from '@/lib/api';
+import { isOverloadError } from '@/lib/queryRetry';
+import OverloadNotice from '@/components/shopping/OverloadNotice';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { clearGuestCredentials, getGuestCredentials } from '@/lib/shoppingGuest';
@@ -120,7 +123,7 @@ export default function ShoppingListDetailPage() {
     onEvent: handleWsEvent,
   });
   // Production serves no WebSocket: a polled change marker keeps the list current (slower while the socket is up).
-  useShoppingListSync(listId, shopMode ? board?.stamp : list?.stamp, isConnected);
+  const { pulseOverloaded } = useShoppingListSync(listId, shopMode ? board?.stamp : list?.stamp, isConnected);
 
   // Add item form state
   const [allSourcesOpen, setAllSourcesOpen] = useState(false);
@@ -186,6 +189,38 @@ export default function ShoppingListDetailPage() {
     );
   };
 
+  const handleDeleteItem = (item: ShoppingListItem) => {
+    deleteItem.mutate(item.id, {
+      onSuccess: () => {
+        sendEvent('item.removed', { item_id: item.id });
+        notify.success(`„${item.name}“ gelöscht`, {
+          duration: UNDO_DURATION_MS,
+          action: {
+            label: 'Rückgängig',
+            onClick: () =>
+              addItem.mutate(
+                {
+                  name: item.name,
+                  quantity_g: item.quantity_g,
+                  unit: item.unit,
+                  note: item.note,
+                  retail_section_id: item.retail_section_id ?? null,
+                  ingredient_id: item.ingredient_id ?? null,
+                  sort_order: item.sort_order,
+                  is_checked: item.is_checked,
+                },
+                {
+                  onSuccess: () => sendEvent('item.added', { name: item.name }),
+                  onError: (err) => notify.error('Eintrag konnte nicht wiederhergestellt werden', { error: err }),
+                },
+              ),
+          },
+        });
+      },
+      onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
+    });
+  };
+
   // Shopping mode: the compact board, no full list needed.
   if (shopMode) {
     const handleBoardClaim = (itemId: number, claimed: boolean) =>
@@ -193,21 +228,29 @@ export default function ShoppingListDetailPage() {
         { itemId, claimed },
         { onError: (err) => notify.error('Zuständigkeit konnte nicht geändert werden', { error: err }) },
       );
-    const handleBoardDelete = (itemId: number) =>
+    // The board lacks grams and ingredient; fetch the full entry first so "Rückgängig" can restore it.
+    const handleBoardDelete = async (itemId: number) => {
+      const full = await fetchShoppingListItem(listId, itemId).catch(() => null);
+      if (full) {
+        handleDeleteItem(full);
+        return;
+      }
       deleteItem.mutate(itemId, {
         onSuccess: () => sendEvent('item.removed', { item_id: itemId }),
         onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
       });
+    };
     return (
       <ShoppingBoardView
         board={board}
         isLoading={boardLoading}
         error={boardError}
+        overloaded={pulseOverloaded}
         onRetry={() => void refetchBoard()}
         onExit={() => setShopMode(false)}
         onCheck={handleCheck}
         onClaim={handleBoardClaim}
-        onDelete={handleBoardDelete}
+        onDelete={(itemId) => void handleBoardDelete(itemId)}
       />
     );
   }
@@ -218,7 +261,8 @@ export default function ShoppingListDetailPage() {
     );
   }
 
-  if (error || !list) {
+  // Overload with a list on screen keeps the list and shows a notice; any other error replaces it.
+  if ((error && !isOverloadError(error)) || !list) {
     const isNotFound = error instanceof ApiError && error.status === 404;
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -261,38 +305,6 @@ export default function ShoppingListDetailPage() {
     );
   };
 
-  const handleDeleteItem = (item: ShoppingListItem) => {
-    deleteItem.mutate(item.id, {
-      onSuccess: () => {
-        sendEvent('item.removed', { item_id: item.id });
-        notify.success(`„${item.name}“ gelöscht`, {
-          duration: UNDO_DURATION_MS,
-          action: {
-            label: 'Rückgängig',
-            onClick: () =>
-              addItem.mutate(
-                {
-                  name: item.name,
-                  quantity_g: item.quantity_g,
-                  unit: item.unit,
-                  note: item.note,
-                  retail_section_id: item.retail_section_id ?? null,
-                  ingredient_id: item.ingredient_id ?? null,
-                  sort_order: item.sort_order,
-                  is_checked: item.is_checked,
-                },
-                {
-                  onSuccess: () => sendEvent('item.added', { name: item.name }),
-                  onError: (err) => notify.error('Eintrag konnte nicht wiederhergestellt werden', { error: err }),
-                },
-              ),
-          },
-        });
-      },
-      onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
-    });
-  };
-
   const handleSaveName = () => {
     if (!editName.trim()) return;
     updateList.mutate(
@@ -309,6 +321,11 @@ export default function ShoppingListDetailPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 font-sans">
+      {(pulseOverloaded || isOverloadError(error)) && (
+        <div className="mb-4">
+          <OverloadNotice />
+        </div>
+      )}
       <ConfirmDialog
         open={showDeleteConfirm}
         onConfirm={() => {

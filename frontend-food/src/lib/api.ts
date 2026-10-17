@@ -16,6 +16,8 @@ export class ApiError extends Error {
   readonly code?: string;
   readonly details: unknown;
   readonly retryAfterSeconds?: number;
+  /** Seconds from the `Retry-After` response header (integer form only), when present. */
+  readonly retryAfterHeaderSeconds?: number;
   /** Field names the backend flagged (e.g. nutrition validation), when present. */
   readonly fields: string[];
   /** German message per field of a 422 validation error, when present. */
@@ -24,7 +26,7 @@ export class ApiError extends Error {
   readonly existing?: { id: number; slug: string; name: string };
   readonly requestId?: string;
 
-  constructor(status: number, _statusText: string, body: ApiErrorBody = {}, requestId?: string) {
+  constructor(status: number, _statusText: string, body: ApiErrorBody = {}, requestId?: string, retryAfterHeader?: string | null) {
     const bodyRequestId = typeof body.request_id === 'string' ? body.request_id : undefined;
     const resolvedRequestId = bodyRequestId ?? requestId;
     const supportReference = resolvedRequestId ? ` Referenz: ${resolvedRequestId}` : '';
@@ -38,6 +40,7 @@ export class ApiError extends Error {
     this.code = typeof code === 'string' ? code : undefined;
     this.details = body.errors;
     this.retryAfterSeconds = typeof body.retry_after_seconds === 'number' ? body.retry_after_seconds : undefined;
+    this.retryAfterHeaderSeconds = parseRetryAfterHeader(retryAfterHeader);
     this.fields = Array.isArray(body.fields)
       ? body.fields.filter((field): field is string => typeof field === 'string')
       : validationFields(body.detail);
@@ -48,6 +51,12 @@ export class ApiError extends Error {
     }
     this.requestId = resolvedRequestId;
   }
+}
+
+/** `Retry-After` as whole seconds; the HTTP-date form is ignored. */
+function parseRetryAfterHeader(value: string | null | undefined): number | undefined {
+  if (!value || !/^\d+$/.test(value.trim())) return undefined;
+  return Number(value.trim());
 }
 
 /** German texts for the most common Pydantic validation messages. */
@@ -190,6 +199,7 @@ export async function parseApiResponse<T>(response: Response, schema?: { parse(d
       response.statusText,
       body && typeof body === 'object' ? body as ApiErrorBody : {},
       response.headers.get('X-Request-ID') ?? undefined,
+      response.headers.get('Retry-After'),
     );
   }
   if (!schema) return body as T;
