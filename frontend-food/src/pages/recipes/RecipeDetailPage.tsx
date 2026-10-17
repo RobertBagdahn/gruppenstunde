@@ -317,7 +317,7 @@ export default function RecipeDetailPage() {
       dge_reference: nutritionBreakdown.dge_reference ?? {},
       items: itemsWithPct,
     };
-  }, [nutritionBreakdown, isDirty, modifiedItems, modifiedPortions]);
+  }, [nutritionBreakdown, isDirty, modifiedItems]);
   const topIngredientsByWeight = nb
     ? [...nb.items].sort((a, b) => b.weight_g - a.weight_g)
     : [];
