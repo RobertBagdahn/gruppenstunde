@@ -3,7 +3,8 @@
  * checkboxes, progress bar, collaborator management, and real-time updates.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { flushSync } from 'react-dom';
+import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import HeroBand from '@/components/shared/HeroBand';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
@@ -31,6 +32,11 @@ import ShareLinkManager from '@/components/shopping/ShareLinkManager';
 import CollaboratorManager from '@/components/shopping/CollaboratorManager';
 import KitchenReminderSection from '@/components/shopping/KitchenReminderSection';
 import ReweExportButton from '@/components/shopping/ReweExportButton';
+import ShoppingListExportMenu from '@/components/shopping/ShoppingListExportMenu';
+import ShoppingListPrintView from '@/components/shopping/ShoppingListPrintView';
+import { buildShoppingListExport } from '@/lib/shoppingListExport';
+import { filterShoppingItems } from '@/lib/shoppingListSearch';
+import { groupBySection } from '@/lib/shoppingListSections';
 import {
   useShoppingListWebSocket,
   useOptimisticCheckItem,
@@ -45,7 +51,7 @@ import OverloadNotice from '@/components/shopping/OverloadNotice';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { clearGuestCredentials, getGuestCredentials } from '@/lib/shoppingGuest';
-import { Trash2, Plus, Users, Share2, UserRound, ShoppingBasket, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Plus, Users, Share2, UserRound, ShoppingBasket, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList, ChevronsDownUp, ChevronsUpDown, Search, X } from 'lucide-react';
 import { formatEuro } from '@/lib/format';
 import { PageSkeleton } from '@/components/ui/skeleton';
 
@@ -72,7 +78,22 @@ export default function ShoppingListDetailPage() {
   const location = useLocation();
   const navigationState = location.state as { mealPlanId?: number } | null;
 
-  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { data: user, isLoading: userLoading, error: userError, refetch: refetchUser } = useCurrentUser();
+  // The search term lives in the URL so it survives reloads and app switches.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') ?? '';
+  const trimmedQuery = query.trim();
+  const setQuery = (value: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value === '') next.delete('q');
+        else next.set('q', value);
+        return next;
+      },
+      { replace: true },
+    );
+  };
   // A device that joined through an invitation link has no account but a guest identity.
   const guestCredentials = getGuestCredentials(listId);
   // Shopping mode runs on the compact board only; the full list is not loaded there.
@@ -133,6 +154,8 @@ export default function ShoppingListDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  // The print sheet exists only while printing, so the screen never shows its text twice.
+  const [printing, setPrinting] = useState(false);
   // Plausibility warnings come from their own endpoint and are not needed in shopping mode.
   const { data: warnings = [] } = useShoppingListWarnings(listId, !shopMode);
   const [editingName, setEditingName] = useState(false);
@@ -155,6 +178,21 @@ export default function ShoppingListDetailPage() {
           description="Der Einladungslink wurde erneuert oder du wurdest entfernt. Frag nach einem neuen Link."
           onBack={() => navigate('/shopping-lists')}
           backLabel="Zu meinen Einkaufslisten"
+        />
+      </div>
+    );
+  }
+
+  // A session check that failed for a transient reason is not a logout: say so and offer a retry.
+  const sessionCheckFailed = !!userError && !(userError instanceof ApiError && userError.status === 401);
+  if (!userLoading && !user && !guestCredentials && sessionCheckFailed) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <ErrorDisplay
+          error={userError}
+          title="Anmeldung gerade nicht prüfbar"
+          description="Der Server ist gerade ausgelastet. Das heißt nicht, dass du abgemeldet bist. Bitte versuche es gleich noch einmal."
+          onRetry={() => refetchUser()}
         />
       </div>
     );
@@ -185,6 +223,18 @@ export default function ShoppingListDetailPage() {
           rollback(previousData);
           notify.error('Eintrag konnte nicht abgehakt werden', { error: err });
         },
+      },
+    );
+  };
+
+  // The search term stays in place, so the new entry shows up as the only match.
+  const handleAddFromSearch = () => {
+    if (!trimmedQuery) return;
+    addItem.mutate(
+      { name: trimmedQuery },
+      {
+        onSuccess: () => sendEvent('item.added', { name: trimmedQuery }),
+        onError: (err) => notify.error('Eintrag konnte nicht hinzugefügt werden', { error: err }),
       },
     );
   };
@@ -221,6 +271,47 @@ export default function ShoppingListDetailPage() {
     });
   };
 
+  // The search field, shared by the list and the shopping board.
+  const renderSearch = (large: boolean, matches: number) => (
+    <div className="mb-6" role="search">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setQuery('');
+          }}
+          placeholder="Auf der Liste suchen …"
+          aria-label="Auf der Liste suchen"
+          enterKeyHint="search"
+          data-testid="shopping-search-input"
+          className={cn(
+            'w-full rounded-xl border border-border bg-card pl-10 pr-10 text-emphasis font-semibold text-foreground shadow-soft placeholder:font-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all',
+            large ? 'h-12' : 'h-11',
+          )}
+        />
+        {query !== '' && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label="Suche leeren"
+            data-testid="shopping-search-clear"
+            className="press absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+      {trimmedQuery !== '' && (
+        <p className="mt-2 text-caption text-muted-foreground" aria-live="polite" data-testid="shopping-search-count">
+          {matches} Treffer
+        </p>
+      )}
+    </div>
+  );
+
   // Shopping mode: the compact board, no full list needed.
   if (shopMode) {
     const handleBoardClaim = (itemId: number, claimed: boolean) =>
@@ -240,9 +331,15 @@ export default function ShoppingListDetailPage() {
         onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
       });
     };
+    // The search narrows the board's entries; the field sits above the board.
+    const visibleBoard = board && trimmedQuery !== '' ? { ...board, items: filterShoppingItems(board.items, query) } : board;
     return (
+      <div>
+        {(board?.items.length ?? 0) > 0 && (
+          <div className="max-w-2xl mx-auto px-4 pt-4">{renderSearch(true, visibleBoard?.items.length ?? 0)}</div>
+        )}
       <ShoppingBoardView
-        board={board}
+        board={visibleBoard}
         isLoading={boardLoading}
         error={boardError}
         overloaded={pulseOverloaded}
@@ -258,6 +355,7 @@ export default function ShoppingListDetailPage() {
           )
         }
       />
+      </div>
     );
   }
 
@@ -292,7 +390,9 @@ export default function ShoppingListDetailPage() {
   const collabs = list.collaborators ?? [];
   const isAdmin = isOwner || collabs.some((collab) => collab.user_id === user?.id && collab.role === 'admin');
   const canRename = isOwner || isAdmin;
-  const groupedItems = groupBySection(items);
+  // Progress counts the whole list; the search only narrows what is shown.
+  const visibleItems = filterShoppingItems(items, query);
+  const groupedItems = groupBySection(visibleItems);
   const checkedCount = items.filter((i) => i.is_checked).length;
   const totalCount = items.length;
 
@@ -325,8 +425,17 @@ export default function ShoppingListDetailPage() {
     );
   };
 
+  const printList = () => {
+    // flushSync puts the sheet into the DOM before the print snapshot is taken; it is removed right after.
+    flushSync(() => setPrinting(true));
+    window.print();
+    setPrinting(false);
+  };
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 font-sans">
+    <>
+    {/* The screen view steps aside while printing; ShoppingListPrintView is the only sheet that prints. */}
+    <div className="max-w-2xl mx-auto px-4 py-8 font-sans print:hidden">
       {(pulseOverloaded || isOverloadError(error)) && (
         <div className="mb-4">
           <OverloadNotice />
@@ -358,7 +467,8 @@ export default function ShoppingListDetailPage() {
       <BackButton to="/shopping-lists" tone="hero" className="mb-5" />
       <div className="flex items-center gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-4">
+          {/* Narrow screens: the action buttons move below the title instead of squeezing it. */}
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
             {editingName ? (
               <div className="flex items-center gap-2 flex-1">
                 <input
@@ -384,7 +494,8 @@ export default function ShoppingListDetailPage() {
             ) : (
               <h1
                 className={cn(
-                  'font-display text-display font-extrabold text-hero-foreground [overflow-wrap:anywhere]',
+                  // break-words only breaks a word that cannot fit a line at all, so the title keeps its min-width and can wrap the buttons away.
+                  'font-display text-display font-extrabold text-hero-foreground break-words',
                   canRename && 'cursor-pointer decoration-hero-muted/60 underline-offset-8 hover:underline',
                 )}
                 onClick={() => {
@@ -421,6 +532,7 @@ export default function ShoppingListDetailPage() {
               >
                 <ShoppingBasket className="w-4 h-4" />
               </button>
+              {!shopMode && <ShoppingListExportMenu listName={list.name} items={items} onPrint={printList} />}
               {list.can_manage && !shopMode && (
                 <button
                   type="button"
@@ -502,6 +614,9 @@ export default function ShoppingListDetailPage() {
       {/* Progress */}
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
 
+      {/* Search: filters the entries in place, checked ones included */}
+      {totalCount > 0 && renderSearch(false, visibleItems.length)}
+
       {/* Recipe sources of all entries at once */}
       {!shopMode && items.some((item) => item.sources && item.sources.length > 0) && (
         <div className="mb-6 flex justify-end">
@@ -552,6 +667,24 @@ export default function ShoppingListDetailPage() {
           <p className="text-muted-foreground text-body font-semibold">
             Diese Liste ist noch leer. Füge Einträge hinzu.
           </p>
+        </div>
+      ) : visibleItems.length === 0 ? (
+        <div className="text-center py-10 px-4 bg-card rounded-xl shadow-card" data-testid="shopping-search-empty">
+          <p className="text-muted-foreground text-body font-semibold">
+            Nichts gefunden für „{trimmedQuery}“
+          </p>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={handleAddFromSearch}
+              disabled={addItem.isPending}
+              data-testid="shopping-search-add"
+              className="press mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-body font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4 stroke-[3px]" />
+              „{trimmedQuery}“ hinzufügen
+            </button>
+          )}
         </div>
       ) : (
         <div className="stagger space-y-6">
@@ -685,45 +818,7 @@ export default function ShoppingListDetailPage() {
       </section>
       )}
     </div>
+    {printing && <ShoppingListPrintView data={buildShoppingListExport(list.name, items, new Date())} />}
+    </>
   );
-}
-
-// --- Helpers ---
-
-/** Heading of entries without retail section (free text); listed after all retail sections. */
-const OTHER_SECTION = 'Sonstiges';
-
-/** Heading of consumable materials (paper plates, skewers ...); always listed last. */
-export const MATERIAL_SECTION = 'Verbrauchsmaterial';
-
-function sectionOf(item: ShoppingListItem): string {
-  return item.is_material ? MATERIAL_SECTION : item.retail_section_name || OTHER_SECTION;
-}
-
-export function groupBySection(
-  items: ShoppingListItem[],
-): Record<string, ShoppingListItem[]> {
-  const groups: Record<string, ShoppingListItem[]> = {};
-
-  // Preserve the server's retail-section order and sort only within sections.
-  const sorted = [...items].sort((a, b) => {
-    if (sectionOf(a) !== sectionOf(b)) return 0;
-    if (a.is_checked !== b.is_checked) return a.is_checked ? 1 : -1;
-    return a.sort_order - b.sort_order;
-  });
-
-  for (const item of sorted) {
-    const section = sectionOf(item);
-    if (!groups[section]) groups[section] = [];
-    groups[section].push(item);
-  }
-
-  // Free-text entries have no section and would otherwise come first, headless;
-  // consumable materials form the final block.
-  const { [OTHER_SECTION]: other, [MATERIAL_SECTION]: materials, ...sections } = groups;
-  return {
-    ...sections,
-    ...(other ? { [OTHER_SECTION]: other } : {}),
-    ...(materials ? { [MATERIAL_SECTION]: materials } : {}),
-  };
 }

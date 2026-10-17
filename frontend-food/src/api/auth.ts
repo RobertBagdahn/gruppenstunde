@@ -3,6 +3,7 @@
  * Sessions are HTTP-only Django cookies; login happens via OAuth redirect (see lib/socialLogin).
  */
 import { API_BASE_URL, fetchWithCsrf, parseApiResponse } from '@/lib/api';
+import { retryDelayMs, shouldRetryQuery } from '@/lib/queryRetry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AuthProvidersSchema,
@@ -34,7 +35,9 @@ export function useCurrentUser() {
       return session.user;
     },
     staleTime: 10 * 60 * 1000,
-    retry: false,
+    // An overloaded server (429) is not "logged out": retry before the session counts as unknown.
+    retry: shouldRetryQuery,
+    retryDelay: retryDelayMs,
     // One session request per page load; login/logout update the cache explicitly.
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

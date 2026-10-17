@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
-import { groupBySection } from './ShoppingListDetailPage';
+import { groupBySection } from '@/lib/shoppingListSections';
 
 function item(id: number, name: string, section: string, extra: Partial<ShoppingListItem> = {}): ShoppingListItem {
   return {

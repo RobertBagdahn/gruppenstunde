@@ -238,6 +238,11 @@
     line-height: 1.4;
   }
 
+  /* The app shell paints the sage page background on screen; paper stays white. */
+  .bg-background {
+    background-color: white !important;
+  }
+
   /* A4 page margins */
   @page {
     margin: 2cm;

@@ -69,8 +69,13 @@ async function fulfillJson(route: Route, body: unknown, status = 200): Promise<v
 }
 
 async function installCommonRoutes(page: Page): Promise<void> {
-  await page.route('**/api/auth/me/**', (route) => fulfillJson(route, user));
+  // The session endpoint answers `{ is_authenticated, user }`; a bare user looks like a broken response.
+  await page.route('**/api/auth/me/**', (route) => fulfillJson(route, { is_authenticated: true, user: { ...user, display_name: 'Food Test', needs_onboarding: false, providers: [], email: user.email } }));
   await page.route('**/api/tags/**', (route) => fulfillJson(route, []));
+  await page.route('**/api/ai/quota/**', (route) => fulfillJson(route, {
+    tier: 'user', limit_eur: 10, used_eur: 0, remaining_eur: 10, used_percent: 0,
+    resets_at: '2026-11-01T00:00:00Z', anonymous_features: [], visitor_remaining_percent: null,
+  }));
   await page.route('**/api/scout-levels/**', (route) => fulfillJson(route, []));
   await page.route('**/api/admin/equipment/**', (route) => fulfillJson(route, []));
 }
@@ -148,19 +153,24 @@ test.describe('Food data integrity release flows', () => {
     await page.goto('/admin/data-quality/ingredients?tab=price');
     await expect(page.getByText('Salz')).toBeVisible();
     await page.getByRole('button', { name: /0-Werte mit KI schätzen/ }).click();
-    await expect(page.getByText('2.50 €/kg')).toBeVisible();
+    // German number format: 2.50 is shown as "2,5 €/kg".
+    await expect(page.getByText('2,5 €/kg').first()).toBeVisible();
     await page.getByRole('button', { name: 'Alle übernehmen' }).click();
     await expect(page.getByText('Übernommen', { exact: true })).toBeVisible();
   });
 
   test('supports material CRUD, reorder and rejecting an AI suggestion without persistence', async ({ page }) => {
     await installCommonRoutes(page);
+    // Shape of RecipeMaterialSchema: amounts are numbers, consumables carry a quantity mode.
     let materials = [
-      { id: 1, material_id: 10, material_name: 'Backpapier', material_slug: 'backpapier',
-        material_category: 'Verbrauch', quantity: '1 Bogen', sort_order: 0 },
-      { id: 2, material_id: 11, material_name: 'Alufolie', material_slug: 'alufolie',
-        material_category: 'Hilfsmittel', quantity: '2 Stück', sort_order: 1 },
+      { id: 1, material_id: 10, material_name: 'Backpapier', material_slug: 'backpapier', material_category: 'kitchen',
+        is_consumable: true, amount: 1, quantity_mode: 'total', price_per_piece: null, sort_order: 0 },
+      { id: 2, material_id: 11, material_name: 'Alufolie', material_slug: 'alufolie', material_category: 'kitchen',
+        is_consumable: true, amount: 2, quantity_mode: 'total', price_per_piece: null, sort_order: 1 },
     ];
+    const patchBodies: unknown[] = [];
+    const reorderBodies: unknown[] = [];
+    const deletedIds: number[] = [];
     let applyCalls = 0;
     await page.route('**/api/recipes/7/**', async (route) => {
       const url = route.request().url();
@@ -173,22 +183,28 @@ test.describe('Food data integrity release flows', () => {
         await fulfillJson(route, created, 201); return;
       }
       if (url.includes('/materials/1/') && route.request().method() === 'PATCH') {
-        const body = route.request().postDataJSON() as { quantity: string };
-        materials = materials.map((item) => item.id === 1 ? { ...item, quantity: body.quantity } : item);
+        const body = route.request().postDataJSON() as { amount?: number };
+        patchBodies.push(body);
+        materials = materials.map((item) => item.id === 1 && body.amount !== undefined ? { ...item, amount: body.amount } : item);
         await fulfillJson(route, materials[0]); return;
       }
       if (url.includes('/materials/2/') && route.request().method() === 'DELETE') {
+        deletedIds.push(2);
         materials = materials.filter((item) => item.id !== 2);
         await route.fulfill({ status: 204 }); return;
       }
       if (url.endsWith('/materials/reorder/') && route.request().method() === 'POST') {
         const body = route.request().postDataJSON() as { item_ids: number[] };
+        reorderBodies.push(body);
         materials = body.item_ids.map((id, index) => ({ ...materials.find((item) => item.id === id)!, sort_order: index }));
         await fulfillJson(route, materials); return;
       }
       if (url.endsWith('/ai-suggest-materials/') && route.request().method() === 'POST') {
-        await fulfillJson(route, { items: [{ material_id: 10, suggested_name: 'Backpapier', quantity: '2 Bögen', matched_name: 'Backpapier', is_new: false },
-          { material_id: null, suggested_name: 'Holzspieß', quantity: '4 Stück', matched_name: null, is_new: true }], ai_interaction_id: null }); return;
+        // Only matched materials can be applied; the unknown "Holzspieß" is shown with a hint.
+        await fulfillJson(route, { items: [
+          { material_id: 10, suggested_name: 'Backpapier', is_consumable: true, amount: 2, quantity_mode: 'total', matched_name: 'Backpapier', is_new: false },
+          { material_id: null, suggested_name: 'Holzspieß', is_consumable: true, amount: 4, quantity_mode: 'total', matched_name: null, is_new: true },
+        ], ai_interaction_id: null }); return;
       }
       if (url.endsWith('/ai-apply-materials/') && route.request().method() === 'POST') { applyCalls += 1; await fulfillJson(route, materials); return; }
       if (url.includes('/supplies/materials/search/') || url.includes('/materials/search')) {
@@ -206,10 +222,14 @@ test.describe('Food data integrity release flows', () => {
     await page.getByRole('button', { name: 'Abbrechen' }).click();
     await expect(page.getByText('Holzspieß')).not.toBeVisible();
     expect(applyCalls).toBe(0);
-    await page.getByLabel('Menge für Backpapier').fill('2 Bögen');
+    await page.getByLabel('Menge für Backpapier').fill('3');
     await page.getByLabel('Menge für Backpapier').blur();
+    await expect.poll(() => patchBodies).toEqual([{ amount: 3 }]);
     await page.getByRole('button', { name: 'Nach unten verschieben' }).first().click();
+    await expect.poll(() => reorderBodies).toEqual([{ item_ids: [2, 1] }]);
     await page.getByRole('button', { name: 'Alufolie entfernen' }).click();
+    await expect.poll(() => deletedIds).toEqual([2]);
+    await expect(page.getByText('Alufolie')).toHaveCount(0);
     await expect(page.getByText('Backpapier')).toBeVisible();
   });
 

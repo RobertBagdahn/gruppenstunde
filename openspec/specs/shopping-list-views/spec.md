@@ -21,15 +21,40 @@ The system SHALL support three view modes on GET /api/shopping-lists/{id}/items/
 - **THEN** the system SHALL group items by their source recipe and return items nested under each recipe
 
 ### Requirement: Print View
-The frontend SHALL provide a print-optimized view for shopping lists using CSS @media print rules.
+Das Food-Frontend SHALL für Einkaufslisten eine druckoptimierte Ansicht bereitstellen. Sie wird über „Liste exportieren“ → „Drucken oder als PDF speichern“ geöffnet und nutzt den Druckdialog des Browsers, der auch „Als PDF speichern“ anbietet. Die Druckansicht MUST die Inhalte aus der Anforderung „Inhalt des Exports“ (`shopping-list-export`) zeigen:
+- Listenname, Stand, Zähler;
+- nur offene Einträge, gruppiert nach Abteilungen mit Überschriften;
+- je Eintrag ein leeres Kästchen zum Abhaken auf Papier, Name, Menge mit Packungsbedarf und gegebenenfalls Zuständigkeit.
+
+Navigation, Kopfband, Buttons, Hinweise, Fortschrittsbalken, Mitglieder-, Teilen-, REWE- und Küchenbedarfsbereiche MUST im Druck fehlen. Das Layout MUST auf A4 zweispaltig sein und schwarz auf weiß ohne Schatten oder Hintergrundflächen gedruckt werden. Eine Abteilung MUST nach Möglichkeit nicht über Spalten- oder Seitenumbrüche zerrissen werden. Am Ende MUST ein Abschnitt „Zusätzlich“ mit fünf leeren Zeilen für handschriftliche Ergänzungen stehen. Die Bildschirmansicht MUST durch das Drucken unverändert bleiben.
 
 #### Scenario: Print button triggers print
-- **WHEN** a user clicks the print button on a shopping list
-- **THEN** the browser SHALL open the print dialog with a clean layout containing checkboxes, category headers, and no navigation elements
+- **WHEN** ein Nutzer „Liste exportieren“ → „Drucken oder als PDF speichern“ wählt
+- **THEN** öffnet der Browser den Druckdialog mit der Druckansicht ohne Navigations- und Bedienelemente
 
 #### Scenario: Print layout structure
-- **WHEN** the print view is rendered
-- **THEN** it SHALL display items grouped by category/retail_section with checkbox inputs and clean typography
+- **WHEN** die Druckansicht gedruckt wird
+- **THEN** stehen die offenen Einträge nach Abteilungen gruppiert mit Kästchen, Name und Menge in zwei Spalten auf A4
+- **AND** am Ende steht „Zusätzlich“ mit fünf leeren Zeilen
+
+#### Scenario: Abgehakte Einträge fehlen im Druck
+- **GIVEN** „Milch“ ist abgehakt und „Brot“ offen
+- **WHEN** der Nutzer druckt
+- **THEN** enthält der Ausdruck „Brot“, aber nicht „Milch“
+
+#### Scenario: Druckblatt nur beim Drucken
+- **WHEN** der Nutzer druckt
+- **THEN** enthält die Seite das Druckblatt nur während des Druckvorgangs
+- **AND** nach dem Druckdialog zeigt die Seite wieder nur die Bildschirmansicht, ohne doppelten Text
+
+#### Scenario: Papier ohne Hintergrund
+- **WHEN** die Druckansicht gedruckt wird
+- **THEN** erscheinen Seitenhintergrund, Schatten und Kopfband nicht auf dem Papier
+
+#### Scenario: Gast druckt
+- **GIVEN** ein Gast mit gültigem Gast-Token
+- **WHEN** er „Drucken oder als PDF speichern“ wählt
+- **THEN** öffnet sich derselbe Druckdialog mit derselben Druckansicht
 
 ### Requirement: Fallback-Anzeige bei fehlender Grammzahl
 
@@ -77,3 +102,11 @@ The Food E2E suite SHALL verify persistent ShoppingList creation, item addition/
 #### Scenario: Export provenance is preserved
 - **WHEN** a Recipe or MealPlan is exported to a persistent ShoppingList
 - **THEN** quantities, source type, and recipe/meal provenance SHALL be visible after reload
+
+### Requirement: Titel im Kopfband bricht nicht mitten im Wort
+Der Seitentitel im Kopfband der Einkaufslisten-Detailseite SHALL ganze Wörter zusammenhalten. Bei schmalen Bildschirmen MUST er die Aktionsbuttons in eine eigene Zeile schieben, statt sie neben dem Titel zu quetschen. Ein Wort MUST nur dann umbrechen, wenn es in keine Zeile passt.
+
+#### Scenario: Titel auf 320 px
+- **GIVEN** eine Einkaufsliste mit dem Namen „Lagereinkauf“ wird auf 320 px Breite angezeigt
+- **THEN** steht „Lagereinkauf“ ungeteilt in einer Zeile
+- **AND** die Aktionsbuttons stehen darunter

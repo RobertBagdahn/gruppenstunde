@@ -31,7 +31,7 @@ Das Food-Frontend MUST TypeScript-, ESLint- und Vitest-Prüfungen ohne bekannte 
 - **THEN** bestehen alle Prüfungen ohne bekannte Fehler
 
 ### Requirement: Food API 5xx errors are safe, typed, and visible
-Food API responses for server errors SHALL preserve the HTTP status and return a stable error code, a safe user-facing message, and a request correlation ID. Responses MUST NOT expose stack traces, SQL details, credentials, or other internal diagnostics. The Food frontend SHALL preserve status, code, and correlation ID in its typed API error and show a clear German error state or toast. It SHALL offer a retry for retryable reads and explicit user-controlled retry for mutations; it MUST NOT automatically replay a mutation after an ambiguous server failure.
+Food API responses for server errors SHALL preserve the HTTP status and return a stable error code, a safe user-facing message, and a request correlation ID. Responses MUST NOT expose stack traces, SQL details, credentials, or other internal diagnostics. The Food frontend SHALL preserve status, code, and correlation ID in its typed API error and show a clear German error state or toast. Overload SHALL be retried automatically for reads: HTTP 429 without an error code (Cloud Run has no capacity) and HTTP 503, up to three times with backoff of about 1 s, 2 s and 4 s plus up to 500 ms jitter, honouring a server `Retry-After` hint of at most 30 seconds. A 429 that carries an error code (for example an AI limit) and all other client errors (4xx) MUST NOT be retried. Other transient failures (HTTP 5xx and network errors) are retried once. The frontend SHALL offer an explicit retry for reads that still fail. Mutations MUST NOT be retried automatically; the frontend MUST NOT automatically replay a mutation after an ambiguous server failure.
 
 #### Scenario: Food API returns HTTP 500
 - **WHEN** a Food endpoint returns HTTP 500 with the standard error contract
@@ -49,3 +49,12 @@ Food API responses for server errors SHALL preserve the HTTP status and return a
 - **THEN** the frontend SHALL retry that read and replace the error state with the response state
 - **WHEN** a mutation fails with an ambiguous HTTP 5xx
 - **THEN** the frontend SHALL keep the user's inputs and require an explicit retry action without automatically submitting a duplicate mutation
+
+#### Scenario: Overload is retried before an error is shown
+- **WHEN** a Food read answers HTTP 429 with `Retry-After: 2`
+- **THEN** the frontend SHALL wait about two seconds and retry, at most three times in total
+- **AND** the error state SHALL only appear if the last retry fails
+
+#### Scenario: Client error is not retried
+- **WHEN** a Food read answers HTTP 404
+- **THEN** the frontend SHALL NOT retry it and SHALL show the error immediately
