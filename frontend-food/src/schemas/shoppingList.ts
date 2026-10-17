@@ -185,12 +185,47 @@ export const ShoppingListDetailSchema = z.object({
   stamp: z.string().default(''),
   created_at: z.string(),
   updated_at: z.string(),
-  warnings: z.array(QuantityWarningSchema).default([]),
   source_status: ShoppingListSourceStatusSchema.nullable().default(null),
   source_updated_at: z.string().nullable().default(null),
 });
 
 export type ShoppingListDetail = z.output<typeof ShoppingListDetailSchema>;
+
+// --- Warnings (meal-plan lists only, loaded separately) ---
+
+export const ShoppingListWarningsSchema = z.array(QuantityWarningSchema);
+
+// --- Board (compact view for the shopping screen) ---
+
+export const ShoppingBoardItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  quantity: z.number().default(0),
+  unit: z.string().default('g'),
+  retail_section_id: z.number().nullable().default(null),
+  retail_section_name: z.string().default(''),
+  is_material: z.boolean().default(false),
+  is_checked: z.boolean().default(false),
+  checked_by_name: z.string().nullable().default(null),
+  claimed_by_name: z.string().nullable().default(null),
+  claimed_by_me: z.boolean().default(false),
+  can_delete: z.boolean().default(false),
+  sort_order: z.number().default(0),
+  note: z.string().default(''),
+});
+
+export const ShoppingListBoardSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  stamp: z.string(),
+  can_edit: z.boolean().default(false),
+  viewer_display_name: z.string().default(''),
+  total: z.number().default(0),
+  checked: z.number().default(0),
+  items: z.array(ShoppingBoardItemSchema).default([]),
+});
+
+export type ShoppingListBoard = z.output<typeof ShoppingListBoardSchema>;
 
 // --- Pagination ---
 

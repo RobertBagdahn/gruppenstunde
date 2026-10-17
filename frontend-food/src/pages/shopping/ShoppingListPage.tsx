@@ -157,7 +157,7 @@ export default function ShoppingListPage() {
       {
         onSuccess: (created) => {
           notify.success('Neue Einkaufsliste erstellt');
-          navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId: source.source_id } });
+          navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId: source.source_id } });
         },
         onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
         onSettled: () => setCreatingFromListId(null),

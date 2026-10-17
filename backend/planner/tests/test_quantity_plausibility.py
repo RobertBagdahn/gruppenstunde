@@ -154,7 +154,8 @@ class TestShoppingListWarnings:
 
         resp = auth_client.post(f"/api/shopping-lists/from-meal-plan/{meal_plan.id}/")
         assert resp.status_code == 200
-        assert len(resp.json()["warnings"]) == 1
+        warnings = auth_client.get(f"/api/shopping-lists/{resp.json()['id']}/warnings/")
+        assert len(warnings.json()) == 1
 
     def test_shopping_list_no_warnings_when_plausible(self, auth_client, gram_unit):
         meal_plan = make_meal_plan(created_by=auth_client._user)
@@ -164,7 +165,8 @@ class TestShoppingListWarnings:
 
         resp = auth_client.post(f"/api/shopping-lists/from-meal-plan/{meal_plan.id}/")
         assert resp.status_code == 200
-        assert resp.json()["warnings"] == []
+        warnings = auth_client.get(f"/api/shopping-lists/{resp.json()['id']}/warnings/")
+        assert warnings.json() == []
 
 
 @pytest.mark.django_db

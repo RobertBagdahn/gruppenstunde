@@ -7,9 +7,9 @@ import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import HeroBand from '@/components/shared/HeroBand';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
-import type { QuantityWarning } from '@/schemas/buffet';
 import {
   useShoppingList,
+  useShoppingListWarnings,
   useUpdateShoppingListItem,
   useAddShoppingListItem,
   useDeleteShoppingListItem,
@@ -49,15 +49,12 @@ export default function ShoppingListDetailPage() {
   const listId = parseInt(id ?? '0', 10);
   const navigate = useNavigate();
   const location = useLocation();
-  const navigationState = location.state as { warnings?: QuantityWarning[]; mealPlanId?: number } | null;
+  const navigationState = location.state as { mealPlanId?: number } | null;
 
   const { data: user, isLoading: userLoading } = useCurrentUser();
   // A device that joined through an invitation link has no account but a guest identity.
   const guestCredentials = getGuestCredentials(listId);
   const { data: list, isLoading, error, refetch } = useShoppingList(listId);
-  // The generation endpoint reports plausibility warnings only in its own response;
-  // they are carried here via navigation state right after "Einkaufsliste erstellen".
-  const warnings = navigationState?.warnings ?? list?.warnings ?? [];
   const updateItem = useUpdateShoppingListItem(listId);
   const addItem = useAddShoppingListItem(listId);
   const deleteItem = useDeleteShoppingListItem(listId);
@@ -116,6 +113,8 @@ export default function ShoppingListDetailPage() {
       return false;
     }
   });
+  // Plausibility warnings come from their own endpoint and are not needed in shopping mode.
+  const { data: warnings = [] } = useShoppingListWarnings(listId, !shopMode);
   const setShopMode = (on: boolean) => {
     setShopModeState(on);
     try {
@@ -427,7 +426,7 @@ export default function ShoppingListDetailPage() {
           {
             onSuccess: (created) => {
               notify.success('Neue Einkaufsliste erstellt');
-              navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId: list.source_id } });
+              navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId: list.source_id } });
             },
             onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
           },

@@ -15,6 +15,8 @@ import {
   ShoppingListShareSchema,
   ShoppingListSchema,
   ShoppingListDetailSchema,
+  ShoppingListBoardSchema,
+  ShoppingListWarningsSchema,
   ShoppingListItemSchema,
   ShoppingListCollaboratorSchema,
   type ShoppingListDetail,
@@ -91,6 +93,25 @@ export function useShoppingLists(
       if (sourceId !== undefined) params.set('source_id', String(sourceId));
       return fetchJson(`${API_BASE}/?${params.toString()}`, PaginatedShoppingListsSchema);
     },
+  });
+}
+
+/** Quantity plausibility warnings of a meal-plan list; fetched only where they are shown. */
+export function useShoppingListWarnings(id: number, enabled = true) {
+  return useQuery({
+    queryKey: ['shopping-list-warnings', id] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${id}/warnings/`, ShoppingListWarningsSchema, id),
+    enabled: enabled && id > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Compact board of a list: the screen's minimal payload, cached per list state on the server. */
+export function useShoppingListBoard(id: number) {
+  return useQuery({
+    queryKey: ['shopping-list-board', id] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${id}/board/`, ShoppingListBoardSchema, id),
+    enabled: id > 0,
   });
 }
 
