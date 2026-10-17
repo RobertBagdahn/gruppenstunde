@@ -20,9 +20,9 @@
 
 ## 4. Frontend: Überlast-Toleranz und WebSocket-Schalter
 
-- [ ] 4.1 Tests zuerst: Retry-Regel in `main.tsx` wiederholt 429/503 bis 3-mal mit 1/2/4 s plus Zufall und beachtet `Retry-After`, wiederholt 401/403/404/409/422 nicht
-- [ ] 4.2 `ApiError` um `retryAfterSeconds` aus dem Header `Retry-After` ergänzen (heute nur aus dem JSON-Body)
-- [ ] 4.3 `main.tsx`: Retry-Regel mit Backoff umsetzen
+- [x] 4.1 Tests zuerst: Retry-Regel in `main.tsx` wiederholt 429/503 bis 3-mal mit 1/2/4 s plus Zufall und beachtet `Retry-After`, wiederholt 401/403/404/409/422 nicht
+- [x] 4.2 `ApiError` um `retryAfterSeconds` aus dem Header `Retry-After` ergänzen (heute nur aus dem JSON-Body)
+- [x] 4.3 `main.tsx`: Retry-Regel mit Backoff umsetzen
 - [ ] 4.4 Mutationen: `PATCH` mit explizitem `is_checked` oder `claimed` wiederholt automatisch, `POST` nicht („Nochmal versuchen“-Aktion statt Wiederholung); Test gegen doppelte Einträge
 - [ ] 4.5 Pulse: Takt bei 429/5xx verdoppeln bis 60 s, nach Erfolg zurücksetzen (`pulseIntervalMs` um einen Fehlerzähler erweitern, Test)
 - [ ] 4.6 Hinweisband „Gerade sind viele gleichzeitig dabei. Wir versuchen es gleich nochmal.“ in `ShoppingListDetailPage.tsx`, Liste bleibt sichtbar; Fehlerseite nur ohne geladene Liste; UI-Test inklusive 320 px Breite
@@ -39,15 +39,15 @@
 
 ## 6. Lastprobe
 
-- [ ] 6.1 `scripts/loadtest/shopping_group.py`: Parameter `--devices`, `--pulse-interval`, `--check-interval`, `--duration`, `--base-url`, `--confirm-production`; Gäste über Einladungslink anlegen, Pulse, `changes`, Vollabruf, Abhaken; Ausgabe je Endpunkt, Exit-Code bei verletzter Schwelle
-- [ ] 6.2 Lokalen Stack dokumentieren (`scripts/loadtest/README.md`): Container aus `Dockerfile.backend` mit Limits aus `deploy.yml`, Postgres, Fixture-Liste mit 50 Einträgen
-- [ ] 6.3 Unit-Tests der Auswertung (Perzentile, Schwellen, Abbruch ohne `--confirm-production`)
-- [ ] 6.4 Probe gegen den Stand vor diesem Change (nur Vollabruf) und danach laufen lassen; beide Ergebnisse in den Pull Request schreiben
+- [x] 6.1 `scripts/loadtest/shopping_group.py`: Parameter `--devices`, `--pulse-interval`, `--check-interval`, `--duration`, `--base-url`, `--confirm-production`; Gäste über Einladungslink anlegen, Pulse, `changes`, Vollabruf, Abhaken; Ausgabe je Endpunkt, Exit-Code bei verletzter Schwelle
+- [x] 6.2 Lokalen Stack dokumentieren (`scripts/loadtest/README.md`): Gunicorn mit 2 Workern (Slots wie am 16.10.), Wegwerf-Postgres, Fixture-Liste mit 50 Einträgen über `seed_loadtest_shopping_list`
+- [x] 6.3 Unit-Tests der Auswertung (Perzentile, Schwellen, Abbruch ohne `--confirm-production`)
+- [ ] 6.4 Probe gegen den Stand vor diesem Change (nur Vollabruf) und danach laufen lassen; beide Ergebnisse in den Pull Request schreiben (Stand vorher gemessen: 90 s, 6 Geräte, 0 × 429, p95 Vollabruf 0,66 s lokal; Stand danach offen, hängt an Abschnitt 2–3)
 
 ## 7. Deploy-Preflight
 
-- [ ] 7.1 `.claude/skills/deploy/SKILL.md`: Schritt „Preflight“ vor jedem manuellen Deploy (laufende CI, Abweichung von `origin/main`, Revisionen der letzten 15 Minuten, vier Dateien bei Scaling-Änderungen), Bestätigung bei jedem Befund
-- [ ] 7.2 Preflight-Befehle als kurzes Skript unter `.claude/skills/deploy/` ablegen und im Skill referenzieren; mit einem laufenden und einem leeren Zustand ausprobieren
+- [x] 7.1 `.claude/skills/deploy/SKILL.md`: Schritt „Preflight“ vor jedem manuellen Deploy (laufende CI, Abweichung von `origin/main`, Revisionen der letzten 15 Minuten, vier Dateien bei Scaling-Änderungen), Bestätigung bei jedem Befund
+- [x] 7.2 Preflight-Befehle als Skript `.claude/skills/deploy/preflight.sh` ablegen und im Skill referenzieren; mit Befund, sauberem Zustand, jungen Revisionen und Scaling-Änderung ausprobiert
 
 ## 8. Verifikation und Rollout
 

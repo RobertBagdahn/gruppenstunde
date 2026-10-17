@@ -130,6 +130,21 @@ The backend needs `GOOGLE_CLOUD_PROJECT=inspi-441320` as an env var on Cloud Run
 
 Execute these phases **sequentially**. After each phase, show the result and ask the user whether to continue.
 
+### Phase 0: Preflight (always, before anything else)
+
+Manual deploys collide with the CI deploy from `main` and with deploys from other sessions. On 2026-10-16 manual hotfixes (concurrency 8, shorter polling) were overwritten by CI within 10 minutes while two sessions deployed in parallel. Run the read-only preflight first:
+
+```bash
+.claude/skills/deploy/preflight.sh                 # add --scaling if concurrency, instances or Gunicorn values change
+.claude/skills/deploy/preflight.sh --ref <rev>     # revision that will be deployed (default HEAD)
+```
+
+It checks (1) running or queued `deploy.yml` runs, (2) whether the revision differs from `origin/main`, (3) Cloud Run revisions of the last 15 minutes with creator and age (the same account can mean another session, so every recent revision is reported), and (4) whether scaling files changed separately: `.github/workflows/deploy.yml`, `Dockerfile.backend`, `terraform` and `Makefile` must change together (`backend/core/tests/test_runtime_limits.py` enforces it).
+
+- Exit 0 (no findings): continue with Phase 1.
+- Exit 10 (findings): show every `FINDING` line, name the safe path ("fix to `main`, CI deploys") and **ask for explicit confirmation**. Never deploy without it.
+- Exit 2 (a check could not run): show the `ERROR` lines and ask what to do.
+
 ### Phase 1: Pre-Flight Checks
 
 Run each check and report status. If any check fails, ask what to do.
@@ -422,6 +437,7 @@ Deployment Complete:
 - **NEVER** delete or overwrite data
 - **NEVER** drop databases or run destructive migrations
 - **NEVER** proceed without user confirmation at each major step
+- **NEVER** deploy manually after preflight findings without explicit confirmation (Phase 0)
 - **NEVER** use local podman/docker build on ARM Mac — always Cloud Build
 - **ALWAYS** show command output before asking to continue
 - **ALWAYS** use `--set-secrets` for DB_PASSWORD (never plain env var)
