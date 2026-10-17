@@ -163,7 +163,7 @@ export function useOptimisticCheckItem(listId: number) {
   const queryClient = useQueryClient();
 
   const optimisticCheck = useCallback(
-    (itemId: number, isChecked: boolean, displayName: string) => {
+    (itemId: number, isChecked: boolean) => {
       // Snapshot current data for rollback
       const previousData = queryClient.getQueryData(['shopping-list', listId]);
 
@@ -181,8 +181,9 @@ export function useOptimisticCheckItem(listId: number) {
                   ? {
                       ...item,
                       is_checked: isChecked,
-                      checked_by_display_name: isChecked ? displayName : null,
-                      checked_at: isChecked ? new Date().toISOString() : null,
+                      // The checker's name comes from the server: if someone else was first, they stay.
+                      checked_by_display_name: isChecked ? (item.checked_by_display_name ?? null) : null,
+                      checked_at: isChecked ? (item.checked_at ?? new Date().toISOString()) : null,
                     }
                   : item,
             ),

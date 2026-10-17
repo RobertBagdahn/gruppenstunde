@@ -194,7 +194,7 @@ export default function ShoppingListDetailPage() {
   const totalCount = items.length;
 
   const handleCheck = (itemId: number, isChecked: boolean) => {
-    const previousData = optimisticCheck(itemId, isChecked, viewerName);
+    const previousData = optimisticCheck(itemId, isChecked);
 
     updateItem.mutate(
       { itemId, is_checked: isChecked },

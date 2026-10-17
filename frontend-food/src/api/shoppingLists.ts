@@ -4,7 +4,7 @@
  */
 import { API_BASE_URL, ApiError, fetchWithCsrf, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { guestHeaders } from '@/lib/shoppingGuest';
 import {
@@ -106,6 +106,16 @@ const PULSE_INTERVAL_MS = 5000;
 /** With a live socket the marker is only a safety net (e.g. for revoked access, which a socket cannot report). */
 const PULSE_INTERVAL_CONNECTED_MS = 20000;
 
+/** After this long without any change the poll slows down; any change, focus or own action speeds it up again. */
+export const PULSE_IDLE_AFTER_MS = 2 * 60 * 1000;
+const PULSE_INTERVAL_IDLE_MS = 15000;
+
+/** Poll interval: fast while people are active, slow when nothing has happened for a while. */
+export function pulseIntervalMs(idleMs: number, socketConnected: boolean): number {
+  if (socketConnected) return PULSE_INTERVAL_CONNECTED_MS;
+  return idleMs >= PULSE_IDLE_AFTER_MS ? PULSE_INTERVAL_IDLE_MS : PULSE_INTERVAL_MS;
+}
+
 /**
  * Keeps a list current without WebSockets (production serves none): polls a tiny change marker
  * and reloads the list only when it differs from the one the loaded list carries.
@@ -113,15 +123,27 @@ const PULSE_INTERVAL_CONNECTED_MS = 20000;
  */
 export function useShoppingListSync(listId: number, loadedStamp: string | undefined, socketConnected: boolean) {
   const queryClient = useQueryClient();
+  const lastActivity = useRef(Date.now());
   const { data, error } = useQuery({
     queryKey: ['shopping-list-pulse', listId] as const,
     queryFn: () => fetchJson(`${API_BASE}/${listId}/pulse/`, ShoppingListPulseSchema, listId),
     enabled: listId > 0 && !!loadedStamp,
-    refetchInterval: socketConnected ? PULSE_INTERVAL_CONNECTED_MS : PULSE_INTERVAL_MS,
+    refetchInterval: () => pulseIntervalMs(Date.now() - lastActivity.current, socketConnected),
     refetchOnWindowFocus: 'always',
     staleTime: 0,
     retry: false,
   });
+  // Any change (ours or someone else's) and returning to the tab count as activity.
+  useEffect(() => {
+    lastActivity.current = Date.now();
+  }, [loadedStamp]);
+  useEffect(() => {
+    const wake = () => {
+      if (document.visibilityState === 'visible') lastActivity.current = Date.now();
+    };
+    document.addEventListener('visibilitychange', wake);
+    return () => document.removeEventListener('visibilitychange', wake);
+  }, []);
   // Access ended (link renewed, guest removed, list deleted): let the list itself report it.
   const accessLost = error instanceof ApiError && (error.status === 404 || error.status === 401);
   useEffect(() => {
@@ -259,7 +281,11 @@ export function useUpdateShoppingListItem(listId: number) {
       /** true: "Ich hole das"; false: release. */
       claimed?: boolean;
     }) => patchJson(`${API_BASE}/${listId}/items/${itemId}/`, payload, ShoppingListItemSchema, listId),
-    onSuccess: () => {
+    onSuccess: (item) => {
+      // The server's answer is the truth (e.g. the first person to check stays the checker).
+      queryClient.setQueryData<ShoppingListDetail>(['shopping-list', listId], (old) =>
+        old ? { ...old, items: old.items.map((i) => (i.id === item.id ? { ...i, ...item } : i)) } : old,
+      );
       queryClient.invalidateQueries({ queryKey: ['shopping-list', listId] });
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
     },

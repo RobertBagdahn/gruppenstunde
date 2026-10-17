@@ -90,7 +90,7 @@ Gäste SHALL über den Header `X-Guest-Token` identifiziert werden; ihr Zugriff 
 - **THEN** wird sie bei gültigem Token angenommen, bei fehlendem, ungültigem oder widerrufenem Token mit Code 4403 geschlossen
 
 ### Requirement: Herkunft von Einträgen und Häkchen
-Jeder Eintrag SHALL festhalten und anzeigen, wer ihn angelegt (`added_by_display_name`, `created_at`) und wer ihn abgehakt hat (`checked_by_display_name`, `checked_at`), sowohl für Konten als auch für Gäste. Die Anzeige MUST Namen und Uhrzeit zeigen („Hinzugefügt von Anna · 14:32 Uhr · Abgehakt von Ben · 14:35 Uhr“; für frühere Tage mit Datum). Namen SHALL über den öffentlichen Anzeigenamen gebildet werden und MUST NIE eine E-Mail-Adresse enthalten. Aus Rezept oder Essensplan erzeugte Einträge ohne Bearbeiter zeigen keine Herkunft. Haken zwei Personen gleichzeitig denselben Eintrag ab, MUST die erste Person als Abhakerin erhalten bleiben; das Entfernen des Hakens löscht Abhaker und Zeitpunkt. Ein `is_checked: null` MUST den Zustand nicht ändern.
+Jeder Eintrag SHALL festhalten und anzeigen, wer ihn angelegt (`added_by_display_name`, `created_at`) und wer ihn abgehakt hat (`checked_by_display_name`, `checked_at`), sowohl für Konten als auch für Gäste. Die Anzeige MUST Namen und Uhrzeit zeigen („Hinzugefügt von Anna · 14:32 Uhr · Abgehakt von Ben · 14:35 Uhr“; für frühere Tage mit Datum). Namen SHALL über den öffentlichen Anzeigenamen gebildet werden und MUST NIE eine E-Mail-Adresse enthalten. Aus Rezept oder Essensplan erzeugte Einträge ohne Bearbeiter zeigen keine Herkunft. Haken zwei Personen gleichzeitig denselben Eintrag ab, MUST die erste Person als Abhakerin erhalten bleiben; das Entfernen des Hakens löscht Abhaker und Zeitpunkt. Ein `is_checked: null` MUST den Zustand nicht ändern. Die Oberfläche MUST beim Abhaken den Namen des Abhakers erst aus der Serverantwort anzeigen, nicht den eigenen vorab, damit bei „erste Person bleibt“ kein falscher Name aufblitzt.
 
 #### Scenario: Wer und wann
 - **GIVEN** Anna trägt „Milch“ um 08:24 ein und Ben hakt sie um 08:31 ab
@@ -124,7 +124,7 @@ Jeder Eintrag SHALL von genau einer Person übernommen werden können, damit nie
 - **THEN** antwortet die API mit 403; der Besitzer darf sie lösen
 
 ### Requirement: Aktualisierung ohne WebSocket
-Die Liste SHALL sich ohne WebSocket aktuell halten, weil Produktion (gunicorn/WSGI) keinen WebSocket-Endpunkt bereitstellt. `GET /api/shopping-lists/{id}/pulse/` MUST einen Änderungsstempel (`stamp`) liefern, der sich bei jeder Änderung an Einträgen, Häkchen, Mitgliedern, Gästen oder der Liste ändert und mit nur einer Aggregatabfrage berechnet wird; dasselbe Feld `stamp` MUST in der Detailantwort stehen. Die Detailseite SHALL den Stempel alle 5 Sekunden abrufen (bei offenem WebSocket alle 20 Sekunden, in Hintergrund-Tabs pausiert, beim Zurückkehren sofort) und die Liste nur neu laden, wenn der Stempel abweicht. Antwortet der Abgleich mit 404 oder 401, MUST die Liste neu geladen werden, damit der Zugangsverlust sichtbar wird. Der Abruf MUST für Mitglieder und Gäste gelten.
+Die Liste SHALL sich ohne WebSocket aktuell halten, weil Produktion (gunicorn/WSGI) keinen WebSocket-Endpunkt bereitstellt. `GET /api/shopping-lists/{id}/pulse/` MUST einen Änderungsstempel (`stamp`) liefern, der sich bei jeder Änderung an Einträgen, Häkchen, Mitgliedern, Gästen oder der Liste ändert und mit nur einer Aggregatabfrage berechnet wird; dasselbe Feld `stamp` MUST in der Detailantwort stehen. Die Detailseite SHALL den Stempel alle 5 Sekunden abrufen; ändert sich 2 Minuten lang nichts, MUST der Takt auf 15 Sekunden sinken und bei jeder Änderung (auch der eigenen) oder beim Zurückkehren in den Tab wieder auf 5 Sekunden steigen. Bei offenem WebSocket gelten 20 Sekunden, Hintergrund-Tabs pausieren, beim Zurückkehren erfolgt sofort ein Abgleich und die Liste nur neu laden, wenn der Stempel abweicht. Antwortet der Abgleich mit 404 oder 401, MUST die Liste neu geladen werden, damit der Zugangsverlust sichtbar wird. Der Abruf MUST für Mitglieder und Gäste gelten.
 
 #### Scenario: Änderung eines anderen
 - **GIVEN** Peter hat die Liste offen und kein WebSocket
@@ -134,6 +134,11 @@ Die Liste SHALL sich ohne WebSocket aktuell halten, weil Produktion (gunicorn/WS
 #### Scenario: Keine Änderung
 - **WHEN** sich nichts ändert
 - **THEN** wird nur der Stempel abgerufen, nicht die ganze Liste
+
+#### Scenario: Ruhige Liste
+- **WHEN** 2 Minuten lang nichts geändert wurde
+- **THEN** fragt die Seite nur noch alle 15 Sekunden ab
+- **AND** nach der nächsten Änderung oder beim Zurückkehren in den Tab wieder alle 5 Sekunden
 
 #### Scenario: Eigene Änderung
 - **WHEN** der Nutzer selbst einen Eintrag ändert
