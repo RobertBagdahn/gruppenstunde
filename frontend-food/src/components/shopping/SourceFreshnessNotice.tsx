@@ -19,7 +19,7 @@ export default function SourceFreshnessNotice({ status, onCreateNew, pending = f
       role="status"
       data-testid="source-freshness-notice"
       className={cn(
-        'flex flex-col gap-2 rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-body text-warning sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2 text-caption text-warning sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
     >
@@ -34,7 +34,7 @@ export default function SourceFreshnessNotice({ status, onCreateNew, pending = f
           type="button"
           onClick={onCreateNew}
           disabled={pending}
-          className="press inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-card px-3 py-2 text-body font-semibold text-foreground shadow-soft hover:bg-muted disabled:opacity-50"
+          className="press inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-card px-3 py-1.5 text-caption font-semibold text-foreground shadow-soft hover:bg-muted disabled:opacity-50"
         >
           <RefreshCw className={cn('h-4 w-4', pending && 'animate-spin')} aria-hidden="true" />
           Neue Liste erstellen

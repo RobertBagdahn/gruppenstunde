@@ -69,3 +69,9 @@
 
 - [x] 8.1 Mengenpille: Ist der Portionsname eine Volumen-/Masseneinheit, zeigt sie „(≈ 1.020 g)“ statt „à 980 ml“ (`formatPortionReference`).
 - [x] 8.2 Management-Command `report_volume_portion_density` (nur Report) für Volumen-Portionen mit abweichender Dichte; Korrekturen nur nach OK im Prod-Rollout.
+
+## 9. Teilmenge einkaufen
+
+- [x] 9.1 Listenansicht: Schaltfläche „Menge ändern“ (Waage-Symbol) statt Stift, Dialog mit fokussiertem Mengenfeld und Teilmengen-Hinweis (`ShoppingListItemRow`)
+- [x] 9.2 Board-Ansicht (`ShoppingBoardView`): Schaltfläche „Menge“ und derselbe Dialog (`ItemQuantityDialog`); das Board bleibt kompakt, der Eintrag mit Einheit wird erst beim Öffnen des Dialogs nachgeladen (`BoardQuantityDialog`)
+- [x] 9.3 Tests: Dialog fokussiert das Feld, Teilmenge im Board speichert `quantity_g`, keine Schaltfläche bei abgehakt oder ohne Bearbeitungsrecht

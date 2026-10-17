@@ -103,6 +103,33 @@ async function installShoppingMock(page: Page, options: MockOptions = {}): Promi
   await page.route(`**/api/shopping-lists/${LIST_ID}/pulse/`, (route) =>
     fulfillJson(route, { stamp: state.stamp }),
   );
+  // Shopping mode loads the compact board, built from the same state as the list.
+  await page.route(`**/api/shopping-lists/${LIST_ID}/board/`, (route) =>
+    fulfillJson(route, {
+      id: LIST_ID,
+      name: 'Lagereinkauf',
+      stamp: state.stamp,
+      can_edit: canEdit,
+      viewer_display_name: 'Food Test',
+      total: state.items.length,
+      checked: state.items.filter((item) => item.is_checked).length,
+      items: state.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: 0,
+        unit: 'g',
+        retail_section_name: item.retail_section_name,
+        is_material: false,
+        is_checked: item.is_checked,
+        checked_by_name: item.is_checked ? 'Food Test' : null,
+        claimed_by_name: null,
+        claimed_by_me: false,
+        can_delete: true,
+        sort_order: item.sort_order,
+        note: '',
+      })),
+    }),
+  );
   await page.route(`**/api/shopping-lists/${LIST_ID}/items/**`, async (route) => {
     const request = route.request();
     if (request.method() === 'POST') {
@@ -270,9 +297,7 @@ test.describe('shopping list search', () => {
     await expect(search).toHaveClass(/h-12/);
     expect(await overflowPx()).toBeLessThanOrEqual(0);
     // The field and the checkbox animate (transition-all); wait for the settled size instead of the first frame.
-    const checkboxLocator = page
-      .getByTestId('shopping-item-1')
-      .getByRole('button', { name: 'Als erledigt markieren' });
+    const checkboxLocator = page.getByRole('checkbox', { name: 'Möhren als erledigt markieren' });
     await expect.poll(async () => (await search.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(48);
     await expect.poll(async () => (await checkboxLocator.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(56);
     await expect.poll(async () => (await checkboxLocator.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(56);

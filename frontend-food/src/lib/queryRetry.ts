@@ -1,26 +1,47 @@
-import { ApiError } from '@/lib/api';
+import { ApiError } from './api';
 
-/** Retries after the first attempt; enough to ride out a short overload without making it worse. */
-export const MAX_QUERY_RETRIES = 2;
+/** Retries of a read request that the backend turned away because it had no free capacity. */
+export const MAX_OVERLOAD_RETRIES = 3;
+const BASE_DELAY_MS = 1000;
+const MAX_DELAY_MS = 30_000;
+const JITTER_MS = 500;
 
 /**
- * Overload (429) and server or network failures are transient and may succeed on a retry.
- * Other client errors (400, 403, 404 …) would fail the same way again.
+ * Cloud Run answers 429 ("no available instance") without a JSON body, so the error has no `code`;
+ * every 429 the backend raises itself (AI limits, rate limits) carries one and must not be retried.
  */
-export function isTransientError(error: unknown): boolean {
-  if (error instanceof ApiError) return error.status === 429 || error.status >= 500;
-  // fetch() rejects with a TypeError when the network is unreachable.
-  return error instanceof TypeError;
+export function isOverloadError(error: unknown): error is ApiError {
+  return error instanceof ApiError && (error.status === 503 || (error.status === 429 && !error.code));
 }
 
+/** TanStack Query `retry`: overload up to 3 times, other 4xx never, anything else once. */
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
-  return isTransientError(error) && failureCount < MAX_QUERY_RETRIES;
+  if (isOverloadError(error)) return failureCount < MAX_OVERLOAD_RETRIES;
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
+  return failureCount < 1;
 }
 
-/** Honours the server's Retry-After hint; otherwise backs off 1 s, 2 s, … up to 8 s. */
-export function queryRetryDelay(failureCount: number, error: unknown): number {
-  if (error instanceof ApiError && error.retryAfterSeconds !== undefined) {
-    return Math.min(error.retryAfterSeconds, 30) * 1000;
+/** TanStack Query `retryDelay`: 1 s, 2 s, 4 s plus up to 500 ms jitter; `Retry-After` wins (capped at 30 s). */
+export function retryDelayMs(failureCount: number, error: unknown, random: () => number = Math.random): number {
+  if (!isOverloadError(error)) return Math.min(BASE_DELAY_MS * 2 ** failureCount, MAX_DELAY_MS);
+  if (error.retryAfterHeaderSeconds !== undefined) return Math.min(error.retryAfterHeaderSeconds * 1000, MAX_DELAY_MS);
+  return Math.min(BASE_DELAY_MS * 2 ** failureCount, MAX_DELAY_MS) + Math.floor(random() * JITTER_MS);
+}
+
+/**
+ * Runs an idempotent request and repeats it on overload (same rule as queries).
+ * Never wrap a request that can create something twice (POST).
+ */
+export async function withOverloadRetry<T>(
+  request: () => Promise<T>,
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+): Promise<T> {
+  for (let failures = 0; ; failures += 1) {
+    try {
+      return await request();
+    } catch (error) {
+      if (!isOverloadError(error) || failures >= MAX_OVERLOAD_RETRIES) throw error;
+      await wait(retryDelayMs(failures, error));
+    }
   }
-  return Math.min(1000 * 2 ** failureCount, 8000);
 }

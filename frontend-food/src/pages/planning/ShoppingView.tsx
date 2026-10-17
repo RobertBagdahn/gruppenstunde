@@ -180,7 +180,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
     createFromMealPlan.mutate({ mealPlanId, includeConsumables }, {
       onSuccess: (created) => {
         notify.success('Einkaufsliste erstellt');
-        navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId } });
+        navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId } });
       },
       onError: (err) =>
         notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),

@@ -7,7 +7,6 @@ from ninja import Schema
 from pydantic import Field
 
 from core.services.user_directory import public_display_name
-from planner.schemas.buffet import QuantityWarningOut
 from supply.schemas.ingredients import UnitOptionOut
 
 # --- Collaborator schemas ---
@@ -415,8 +414,6 @@ class ShoppingListDetailOut(Schema):
     stamp: str = ""
     created_at: datetime
     updated_at: datetime
-    # Only filled when the list is generated from a meal plan.
-    warnings: list[QuantityWarningOut] = []
     source_status: Literal["current", "changed", "deleted"] | None = None
     source_updated_at: datetime | None = None
 
@@ -427,10 +424,6 @@ class ShoppingListDetailOut(Schema):
     @staticmethod
     def resolve_source_updated_at(obj) -> datetime | None:
         return _freshness_of(obj).updated_at
-
-    @staticmethod
-    def resolve_warnings(obj) -> list[dict]:
-        return [warning.as_dict() for warning in getattr(obj, "quantity_warnings", [])]
 
     @staticmethod
     def resolve_owner_display_name(obj) -> str:
@@ -450,7 +443,7 @@ class ShoppingListDetailOut(Schema):
                 "ingredient",
                 "ingredient__retail_section",
             )
-            .prefetch_related("sources", "ingredient__portions", "ingredient__packages")
+            .prefetch_related("sources", "ingredient__portions__measuring_unit", "ingredient__packages")
             .all()
         )
         can_edit = getattr(obj, "_can_edit", False)
@@ -506,6 +499,38 @@ class ShoppingListDetailOut(Schema):
     @staticmethod
     def resolve_is_owner(obj) -> bool:
         return getattr(obj, "_is_owner", False)
+
+
+class BoardItemOut(Schema):
+    """One entry on the shopping board: only what the screen shows and acts on."""
+
+    id: int
+    name: str
+    quantity: float = 0.0
+    unit: str = "g"
+    retail_section_id: int | None = None
+    retail_section_name: str = ""
+    is_material: bool = False
+    is_checked: bool = False
+    checked_by_name: str | None = None
+    claimed_by_name: str | None = None
+    claimed_by_me: bool = False
+    can_delete: bool = False
+    sort_order: int = 0
+    note: str = ""
+
+
+class ShoppingListBoardOut(Schema):
+    """Compact board of a shopping list; `stamp` is the same change marker that `/pulse/` reports."""
+
+    id: int
+    name: str
+    stamp: str
+    can_edit: bool = False
+    viewer_display_name: str = ""
+    total: int = 0
+    checked: int = 0
+    items: list[BoardItemOut] = []
 
 
 class ShoppingListCreateIn(Schema):

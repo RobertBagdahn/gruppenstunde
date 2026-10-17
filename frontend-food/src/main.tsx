@@ -8,8 +8,8 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import AuthOverlays from './components/auth/AuthOverlays';
 import GlobalFetchingBar from './components/shared/GlobalFetchingBar';
+import { retryDelayMs, shouldRetryQuery } from './lib/queryRetry';
 import { handleGlobalApiError } from './lib/apiErrorHandler';
-import { queryRetryDelay, shouldRetryQuery } from './lib/queryRetry';
 import './lib/queryMeta';
 import { AI_QUOTA_QUERY_KEY } from './api/ai';
 import './index.css';
@@ -36,9 +36,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      // Overload (429), server and network failures are retried with backoff; other client errors are not.
+      // Overload (429 without code, 503) is retried with backoff; other client errors (404, 403 …) never;
+      // other transient failures once (shopping-list-sharing: Überlast-tolerante Abfragen).
       retry: shouldRetryQuery,
-      retryDelay: queryRetryDelay,
+      retryDelay: retryDelayMs,
     },
   },
 });

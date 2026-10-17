@@ -15,4 +15,17 @@ describe('pulseIntervalMs', () => {
     expect(pulseIntervalMs(0, true)).toBe(20000);
     expect(pulseIntervalMs(PULSE_IDLE_AFTER_MS * 5, true)).toBe(20000);
   });
+
+  it('doubles the wait with every consecutive failure up to one minute', () => {
+    expect([1, 2, 3, 4, 5].map((failures) => pulseIntervalMs(0, false, failures))).toEqual([10000, 20000, 40000, 60000, 60000]);
+  });
+
+  it('also backs off from the slow idle interval', () => {
+    expect(pulseIntervalMs(PULSE_IDLE_AFTER_MS, false, 1)).toBe(30000);
+    expect(pulseIntervalMs(PULSE_IDLE_AFTER_MS, false, 3)).toBe(60000);
+  });
+
+  it('returns to the normal interval without failures', () => {
+    expect(pulseIntervalMs(0, false, 0)).toBe(5000);
+  });
 });

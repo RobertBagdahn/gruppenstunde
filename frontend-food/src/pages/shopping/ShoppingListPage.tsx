@@ -50,13 +50,10 @@ function ShoppingListCard({
       : Edit3;
 
   return (
-    <div className="relative">
+    <div className="group relative rounded-xl border border-border bg-card shadow-soft transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5">
       <Link
         to={`/shopping-lists/${list.id}`}
-        className={cn(
-          'group block rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all',
-          list.can_delete && 'pr-14',
-        )}
+        className={cn('block rounded-xl p-5', list.can_delete && 'pr-14')}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -95,7 +92,7 @@ function ShoppingListCard({
       <SourceFreshnessNotice
         status={list.source_status}
         pending={creatingNew}
-        className="mt-2"
+        className="mx-5 mb-5 -mt-1"
         onCreateNew={list.source_id ? () => onCreateNew(list) : undefined}
       />
       {list.can_delete && (
@@ -157,7 +154,7 @@ export default function ShoppingListPage() {
       {
         onSuccess: (created) => {
           notify.success('Neue Einkaufsliste erstellt');
-          navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId: source.source_id } });
+          navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId: source.source_id } });
         },
         onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
         onSettled: () => setCreatingFromListId(null),

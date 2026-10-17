@@ -8,9 +8,10 @@ import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'reac
 import { BackButton } from '@/components/shared/BackButton';
 import HeroBand from '@/components/shared/HeroBand';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
-import type { QuantityWarning } from '@/schemas/buffet';
 import {
   useShoppingList,
+  useShoppingListBoard,
+  useShoppingListWarnings,
   useUpdateShoppingListItem,
   useAddShoppingListItem,
   useDeleteShoppingListItem,
@@ -18,11 +19,13 @@ import {
   useUpdateShoppingList,
   useCreateFromMealPlan,
   useShoppingListSync,
+  fetchShoppingListItem,
 } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import ShoppingListItemRow from '@/components/shopping/ShoppingListItemRow';
+import ShoppingBoardView from '@/components/shopping/ShoppingBoardView';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import SourceFreshnessNotice from '@/components/shopping/SourceFreshnessNotice';
 import ShareLinkManager from '@/components/shopping/ShareLinkManager';
@@ -32,6 +35,8 @@ import ReweExportButton from '@/components/shopping/ReweExportButton';
 import ShoppingListExportMenu from '@/components/shopping/ShoppingListExportMenu';
 import ShoppingListPrintView from '@/components/shopping/ShoppingListPrintView';
 import { buildShoppingListExport } from '@/lib/shoppingListExport';
+import { filterShoppingItems } from '@/lib/shoppingListSearch';
+import { groupBySection } from '@/lib/shoppingListSections';
 import {
   useShoppingListWebSocket,
   useOptimisticCheckItem,
@@ -41,11 +46,11 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import UnauthGate from '@/components/shared/UnauthGate';
 import { ApiError } from '@/lib/api';
+import { isOverloadError } from '@/lib/queryRetry';
+import OverloadNotice from '@/components/shopping/OverloadNotice';
 import { notify, UNDO_DURATION_MS } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { clearGuestCredentials, getGuestCredentials } from '@/lib/shoppingGuest';
-import { filterShoppingItems } from '@/lib/shoppingListSearch';
-import { groupBySection } from '@/lib/shoppingListSections';
 import { Trash2, Plus, Users, Share2, UserRound, ShoppingBasket, ChevronDown, Store, ShoppingBag, ShoppingCart, ClipboardList, ChevronsDownUp, ChevronsUpDown, Search, X } from 'lucide-react';
 import { formatEuro } from '@/lib/format';
 import { PageSkeleton } from '@/components/ui/skeleton';
@@ -53,14 +58,31 @@ import { PageSkeleton } from '@/components/ui/skeleton';
 export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
   const listId = parseInt(id ?? '0', 10);
+  // Shopping mode: only the entries, in big tap targets (remembered per device).
+  const [shopMode, setShopModeState] = useState(() => {
+    try {
+      return window.localStorage.getItem('inspi.shopping.shopMode') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setShopMode = (on: boolean) => {
+    setShopModeState(on);
+    try {
+      window.localStorage.setItem('inspi.shopping.shopMode', on ? '1' : '0');
+    } catch {
+      // Not remembered in private mode.
+    }
+  };
   const navigate = useNavigate();
   const location = useLocation();
-  const navigationState = location.state as { warnings?: QuantityWarning[]; mealPlanId?: number } | null;
+  const navigationState = location.state as { mealPlanId?: number } | null;
 
   const { data: user, isLoading: userLoading, error: userError, refetch: refetchUser } = useCurrentUser();
   // The search term lives in the URL so it survives reloads and app switches.
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') ?? '';
+  const trimmedQuery = query.trim();
   const setQuery = (value: string) => {
     setSearchParams(
       (prev) => {
@@ -74,10 +96,14 @@ export default function ShoppingListDetailPage() {
   };
   // A device that joined through an invitation link has no account but a guest identity.
   const guestCredentials = getGuestCredentials(listId);
-  const { data: list, isLoading, error, refetch } = useShoppingList(listId);
-  // The generation endpoint reports plausibility warnings only in its own response;
-  // they are carried here via navigation state right after "Einkaufsliste erstellen".
-  const warnings = navigationState?.warnings ?? list?.warnings ?? [];
+  // Shopping mode runs on the compact board only; the full list is not loaded there.
+  const { data: list, isLoading, error, refetch } = useShoppingList(listId, !shopMode);
+  const {
+    data: board,
+    isLoading: boardLoading,
+    error: boardError,
+    refetch: refetchBoard,
+  } = useShoppingListBoard(listId, shopMode);
   const updateItem = useUpdateShoppingListItem(listId);
   const addItem = useAddShoppingListItem(listId);
   const deleteItem = useDeleteShoppingListItem(listId);
@@ -118,7 +144,7 @@ export default function ShoppingListDetailPage() {
     onEvent: handleWsEvent,
   });
   // Production serves no WebSocket: a polled change marker keeps the list current (slower while the socket is up).
-  useShoppingListSync(listId, list?.stamp, isConnected);
+  const { pulseOverloaded } = useShoppingListSync(listId, shopMode ? board?.stamp : list?.stamp, isConnected);
 
   // Add item form state
   const [allSourcesOpen, setAllSourcesOpen] = useState(false);
@@ -127,25 +153,11 @@ export default function ShoppingListDetailPage() {
   const [newItemName, setNewItemName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   // The print sheet exists only while printing, so the screen never shows its text twice.
   const [printing, setPrinting] = useState(false);
-  const [showShare, setShowShare] = useState(false);
-  // Shopping mode: only the entries, in big tap targets (remembered per device).
-  const [shopMode, setShopModeState] = useState(() => {
-    try {
-      return window.localStorage.getItem('inspi.shopping.shopMode') === '1';
-    } catch {
-      return false;
-    }
-  });
-  const setShopMode = (on: boolean) => {
-    setShopModeState(on);
-    try {
-      window.localStorage.setItem('inspi.shopping.shopMode', on ? '1' : '0');
-    } catch {
-      // Not remembered in private mode.
-    }
-  };
+  // Plausibility warnings come from their own endpoint and are not needed in shopping mode.
+  const { data: warnings = [] } = useShoppingListWarnings(listId, !shopMode);
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   // The guest's stored secret stopped working (link renewed or guest removed): tell them once, then forget it.
@@ -196,43 +208,6 @@ export default function ShoppingListDetailPage() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <PageSkeleton label="Einkaufsliste wird geladen" />
-    );
-  }
-
-  if (error || !list) {
-    const isNotFound = error instanceof ApiError && error.status === 404;
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <ErrorDisplay
-          error={error}
-          title={isNotFound ? 'Einkaufsliste nicht gefunden' : undefined}
-          onRetry={() => refetch()}
-          onBack={() => navigate('/shopping-lists')}
-          backLabel="Zurück"
-        />
-      </div>
-    );
-  }
-
-  const isGuest = list.viewer_guest_id !== null;
-  const isOwner = !isGuest && (list.is_owner ?? (user?.id === list.owner_id));
-  const canEdit = list.can_edit ?? false;
-
-  // Group items by retail section
-  const items = list.items ?? [];
-  const collabs = list.collaborators ?? [];
-  const isAdmin = isOwner || collabs.some((collab) => collab.user_id === user?.id && collab.role === 'admin');
-  const canRename = isOwner || isAdmin;
-  // Progress counts the whole list; the search only narrows what is shown.
-  const visibleItems = filterShoppingItems(items, query);
-  const groupedItems = groupBySection(visibleItems);
-  const checkedCount = items.filter((i) => i.is_checked).length;
-  const totalCount = items.length;
-  const trimmedQuery = query.trim();
-
   const handleCheck = (itemId: number, isChecked: boolean) => {
     const previousData = optimisticCheck(itemId, isChecked);
 
@@ -248,21 +223,6 @@ export default function ShoppingListDetailPage() {
           rollback(previousData);
           notify.error('Eintrag konnte nicht abgehakt werden', { error: err });
         },
-      },
-    );
-  };
-
-  const handleAddItem = () => {
-    if (!newItemName.trim()) return;
-    addItem.mutate(
-      { name: newItemName.trim() },
-      {
-        onSuccess: () => {
-          setNewItemName('');
-          setShowAddItem(false);
-          sendEvent('item.added', { name: newItemName.trim() });
-        },
-        onError: (err) => notify.error('Eintrag konnte nicht hinzugefügt werden', { error: err }),
       },
     );
   };
@@ -311,6 +271,146 @@ export default function ShoppingListDetailPage() {
     });
   };
 
+  // The search field, shared by the list and the shopping board.
+  const renderSearch = (large: boolean, matches: number) => (
+    <div className="mb-6" role="search">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setQuery('');
+          }}
+          placeholder="Auf der Liste suchen …"
+          aria-label="Auf der Liste suchen"
+          enterKeyHint="search"
+          data-testid="shopping-search-input"
+          className={cn(
+            'w-full rounded-xl border border-border bg-card pl-10 pr-10 text-emphasis font-semibold text-foreground shadow-soft placeholder:font-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all',
+            large ? 'h-12' : 'h-11',
+          )}
+        />
+        {query !== '' && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label="Suche leeren"
+            data-testid="shopping-search-clear"
+            className="press absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+      {trimmedQuery !== '' && (
+        <p className="mt-2 text-caption text-muted-foreground" aria-live="polite" data-testid="shopping-search-count">
+          {matches} Treffer
+        </p>
+      )}
+    </div>
+  );
+
+  // Shopping mode: the compact board, no full list needed.
+  if (shopMode) {
+    const handleBoardClaim = (itemId: number, claimed: boolean) =>
+      updateItem.mutate(
+        { itemId, claimed },
+        { onError: (err) => notify.error('Zuständigkeit konnte nicht geändert werden', { error: err }) },
+      );
+    // The board lacks grams and ingredient; fetch the full entry first so "Rückgängig" can restore it.
+    const handleBoardDelete = async (itemId: number) => {
+      const full = await fetchShoppingListItem(listId, itemId).catch(() => null);
+      if (full) {
+        handleDeleteItem(full);
+        return;
+      }
+      deleteItem.mutate(itemId, {
+        onSuccess: () => sendEvent('item.removed', { item_id: itemId }),
+        onError: (err) => notify.error('Eintrag konnte nicht gelöscht werden', { error: err }),
+      });
+    };
+    // The search narrows the board's entries; the field sits above the board.
+    const visibleBoard = board && trimmedQuery !== '' ? { ...board, items: filterShoppingItems(board.items, query) } : board;
+    return (
+      <div>
+        {(board?.items.length ?? 0) > 0 && (
+          <div className="max-w-2xl mx-auto px-4 pt-4">{renderSearch(true, visibleBoard?.items.length ?? 0)}</div>
+        )}
+      <ShoppingBoardView
+        board={visibleBoard}
+        isLoading={boardLoading}
+        error={boardError}
+        overloaded={pulseOverloaded}
+        onRetry={() => void refetchBoard()}
+        onExit={() => setShopMode(false)}
+        onCheck={handleCheck}
+        onClaim={handleBoardClaim}
+        onDelete={(itemId) => void handleBoardDelete(itemId)}
+        onUpdateQuantity={(itemId, quantityG) =>
+          updateItem.mutate(
+            { itemId, quantity_g: quantityG },
+            { onError: (err) => notify.error('Menge konnte nicht geändert werden', { error: err }) },
+          )
+        }
+      />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <PageSkeleton label="Einkaufsliste wird geladen" />
+    );
+  }
+
+  // Overload with a list on screen keeps the list and shows a notice; any other error replaces it.
+  if ((error && !isOverloadError(error)) || !list) {
+    const isNotFound = error instanceof ApiError && error.status === 404;
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <ErrorDisplay
+          error={error}
+          title={isNotFound ? 'Einkaufsliste nicht gefunden' : undefined}
+          onRetry={() => refetch()}
+          onBack={() => navigate('/shopping-lists')}
+          backLabel="Zurück"
+        />
+      </div>
+    );
+  }
+
+  const isGuest = list.viewer_guest_id !== null;
+  const isOwner = !isGuest && (list.is_owner ?? (user?.id === list.owner_id));
+  const canEdit = list.can_edit ?? false;
+
+  // Group items by retail section
+  const items = list.items ?? [];
+  const collabs = list.collaborators ?? [];
+  const isAdmin = isOwner || collabs.some((collab) => collab.user_id === user?.id && collab.role === 'admin');
+  const canRename = isOwner || isAdmin;
+  // Progress counts the whole list; the search only narrows what is shown.
+  const visibleItems = filterShoppingItems(items, query);
+  const groupedItems = groupBySection(visibleItems);
+  const checkedCount = items.filter((i) => i.is_checked).length;
+  const totalCount = items.length;
+
+  const handleAddItem = () => {
+    if (!newItemName.trim()) return;
+    addItem.mutate(
+      { name: newItemName.trim() },
+      {
+        onSuccess: () => {
+          setNewItemName('');
+          setShowAddItem(false);
+          sendEvent('item.added', { name: newItemName.trim() });
+        },
+        onError: (err) => notify.error('Eintrag konnte nicht hinzugefügt werden', { error: err }),
+      },
+    );
+  };
+
   const handleSaveName = () => {
     if (!editName.trim()) return;
     updateList.mutate(
@@ -336,6 +436,11 @@ export default function ShoppingListDetailPage() {
     <>
     {/* The screen view steps aside while printing; ShoppingListPrintView is the only sheet that prints. */}
     <div className="max-w-2xl mx-auto px-4 py-8 font-sans print:hidden">
+      {(pulseOverloaded || isOverloadError(error)) && (
+        <div className="mb-4">
+          <OverloadNotice />
+        </div>
+      )}
       <ConfirmDialog
         open={showDeleteConfirm}
         onConfirm={() => {
@@ -427,6 +532,7 @@ export default function ShoppingListDetailPage() {
               >
                 <ShoppingBasket className="w-4 h-4" />
               </button>
+              {!shopMode && <ShoppingListExportMenu listName={list.name} items={items} onPrint={printList} />}
               {list.can_manage && !shopMode && (
                 <button
                   type="button"
@@ -439,7 +545,6 @@ export default function ShoppingListDetailPage() {
                   <Share2 className="w-4 h-4" />
                 </button>
               )}
-              {!shopMode && <ShoppingListExportMenu listName={list.name} items={items} onPrint={printList} />}
               {isOwner && !shopMode && (
                 <button
                   type="button"
@@ -491,7 +596,7 @@ export default function ShoppingListDetailPage() {
           {
             onSuccess: (created) => {
               notify.success('Neue Einkaufsliste erstellt');
-              navigate(`/shopping-lists/${created.id}`, { state: { warnings: created.warnings, mealPlanId: list.source_id } });
+              navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId: list.source_id } });
             },
             onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
           },
@@ -510,46 +615,7 @@ export default function ShoppingListDetailPage() {
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
 
       {/* Search: filters the entries in place, checked ones included */}
-      {totalCount > 0 && (
-        <div className="mb-6" role="search">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setQuery('');
-              }}
-              placeholder="Auf der Liste suchen …"
-              aria-label="Auf der Liste suchen"
-              enterKeyHint="search"
-              data-testid="shopping-search-input"
-              // 16 px in both modes: iOS Safari zooms into any input with smaller text.
-              className={cn(
-                'w-full rounded-xl border border-border bg-card pl-10 pr-10 text-emphasis font-semibold text-foreground shadow-soft placeholder:font-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all',
-                shopMode ? 'h-12' : 'h-11',
-              )}
-            />
-            {query !== '' && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Suche leeren"
-                data-testid="shopping-search-clear"
-                className="press absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          {trimmedQuery !== '' && (
-            <p className="mt-2 text-caption text-muted-foreground" aria-live="polite" data-testid="shopping-search-count">
-              {visibleItems.length} Treffer
-            </p>
-          )}
-        </div>
-      )}
+      {totalCount > 0 && renderSearch(false, visibleItems.length)}
 
       {/* Recipe sources of all entries at once */}
       {!shopMode && items.some((item) => item.sources && item.sources.length > 0) && (

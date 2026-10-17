@@ -1,4 +1,3 @@
-import type { ShoppingListItem } from '@/schemas/shoppingList';
 
 /**
  * Folds text for matching: case, umlauts/accents and "ß" must not hide an entry.
@@ -14,7 +13,7 @@ export function normalizeSearchText(text: string): string {
 }
 
 /** Keeps entries whose name contains the query; checked entries stay searchable. */
-export function filterShoppingItems(items: ShoppingListItem[], query: string): ShoppingListItem[] {
+export function filterShoppingItems<T extends { name: string }>(items: T[], query: string): T[] {
   const needle = normalizeSearchText(query);
   if (needle === '') return items;
   return items.filter((item) => normalizeSearchText(item.name).includes(needle));

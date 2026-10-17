@@ -16,6 +16,7 @@ from ninja.errors import HttpError
 from content.api.helpers import paginate_queryset
 from core.permissions import require_login
 from core.services.user_directory import USER_SEARCH_MAX_PAGE_SIZE, public_display_name, search_user_directory
+from planner.schemas.buffet import QuantityWarningOut
 from supply.models import Portion
 from supply.schemas import MaterialListResultOut
 
@@ -47,6 +48,7 @@ from .schemas import (
     SharedListJoinIn,
     SharedListJoinOut,
     SharedListPreviewOut,
+    ShoppingListBoardOut,
     ShoppingListCollaboratorOut,
     ShoppingListCreateIn,
     ShoppingListDetailOut,
@@ -66,6 +68,7 @@ from .services.access import (
     require_login_unless_guest,
     resolve_actor,
 )
+from .services.board import build_board
 from .services.material_items import add_consumable_items
 from .services.pulse import list_stamp
 
@@ -448,8 +451,25 @@ def get_shopping_list(request, shopping_list_id: int):
 
     # Permissions depend on the viewer, so they are attached as attributes.
     _attach_actor(shopping_list, actor)
-    shopping_list.quantity_warnings = _quantity_warnings(shopping_list)
     return shopping_list
+
+
+@shopping_router.get("/{shopping_list_id}/board/", response=ShoppingListBoardOut)
+def get_shopping_list_board(request, shopping_list_id: int):
+    """Compact board for the shopping screen: entries and per-viewer rights, served from a per-state cache."""
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    actor = resolve_actor(request, shopping_list)
+    return build_board(shopping_list, actor)
+
+
+@shopping_router.get("/{shopping_list_id}/warnings/", response=list[QuantityWarningOut])
+def get_shopping_list_warnings(request, shopping_list_id: int):
+    """Plausibility warnings of the source meal plan; loaded separately so the list detail stays fast."""
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    resolve_actor(request, shopping_list)
+    return [warning.as_dict() for warning in _quantity_warnings(shopping_list)]
 
 
 @shopping_router.get("/{shopping_list_id}/pulse/", response=ShoppingListPulseOut)
@@ -699,6 +719,18 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
         retail_section=retail_section,
         **data,
     )
+    item._can_delete = _item_can_delete(item, actor)
+    return item
+
+
+@shopping_router.get("/{shopping_list_id}/items/{item_id}/", response=ShoppingListItemOut)
+def get_item(request, shopping_list_id: int, item_id: int):
+    """Full detail of one entry (sources, prices, package options); loaded on demand from the board."""
+    require_login_unless_guest(request, READ_LOGIN_ACTION)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    actor = resolve_actor(request, shopping_list)
+    item = get_object_or_404(ShoppingListItem, id=item_id, shopping_list=shopping_list)
+    item._claimed_by_me = actor.owns_claim(item)
     item._can_delete = _item_can_delete(item, actor)
     return item
 
@@ -1122,9 +1154,6 @@ def create_from_meal_plan(request, meal_plan_id: int, include_consumables: bool 
             )
 
     _attach_actor(shopping_list, Actor(role="owner", user=request.user))
-    from planner.services.quantity_plausibility import check_meals
-
-    shopping_list.quantity_warnings = check_meals(meal_plan.meals.filter(is_reference=False))
     return shopping_list
 
 
