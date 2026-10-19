@@ -38,6 +38,9 @@ from recipe.api.dashboard import router as dashboard_router
 from recipe.api.rules import router as rules_router
 from session.api import router as session_router
 from shopping.api import kitchen_reminder_router, shopping_router
+from shopping.api_trips import event_router as shopping_event_router
+from shopping.api_trips import rule_router as shopping_rule_router
+from shopping.api_trips import store_router
 from supply.api import (
     breakfast_catalog_router,
     buffet_catalog_router,
@@ -90,6 +93,9 @@ api.add_router("/whatsapp/", whatsapp_router)
 api.add_router("/message-templates/", template_router)
 api.add_router("/packing-lists/", packing_list_router)
 api.add_router("/shopping-lists/", shopping_router)
+api.add_router("/shopping-stores/", store_router)
+api.add_router("/shopping-events/", shopping_event_router)
+api.add_router("/shopping-rules/", shopping_rule_router)
 api.add_router("/kitchen-reminders/", kitchen_reminder_router)
 api.add_router("/ingredients/", ingredient_router)
 # Price proposal routes live under the same prefix as ingredient routes.

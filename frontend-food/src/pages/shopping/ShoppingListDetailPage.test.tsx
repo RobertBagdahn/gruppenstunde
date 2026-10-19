@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +16,9 @@ import ShoppingListDetailPage from './ShoppingListDetailPage';
 const deleteItem = vi.fn();
 const addItem = vi.fn();
 const notifySuccess = vi.fn();
-const createFromMealPlan = vi.fn();
+const materialize = vi.fn();
+const applyDiff = vi.fn();
+let diffData = { rows: [] as unknown[], has_changes: false, plan_synced_at: null as string | null };
 const fetchItem = vi.fn();
 const notifyError = vi.fn();
 const refetchSession = vi.fn();
@@ -52,7 +54,6 @@ vi.mock('@/api/shoppingLists', () => ({
   useDeleteShoppingListItem: () => ({ mutate: deleteItem }),
   useDeleteShoppingList: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateShoppingList: () => ({ mutate: vi.fn() }),
-  useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
   useShoppingListSync: vi.fn(() => ({ pulseOverloaded: false })),
   useShoppingListWarnings: () => ({ data: [] }),
   useShoppingListBoard: () => boardQuery,
@@ -60,6 +61,11 @@ vi.mock('@/api/shoppingLists', () => ({
   useEnableSharing: () => ({ mutate: vi.fn(), isPending: false }),
   useDisableSharing: () => ({ mutate: vi.fn(), isPending: false }),
   useRemoveGuest: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+vi.mock('@/api/shoppingTrips', () => ({
+  useMaterializeTrip: () => ({ mutate: materialize, isPending: false }),
+  usePlanDiff: () => ({ data: diffData, isPending: false, isError: false, error: null }),
+  useApplyPlanDiff: () => ({ mutate: applyDiff, isPending: false, isError: false, error: null }),
 }));
 vi.mock('@/hooks/useShoppingListWebSocket', () => ({
   useShoppingListWebSocket: () => ({ isConnected: false, sendEvent: vi.fn() }),
@@ -94,7 +100,9 @@ describe('ShoppingListDetailPage', () => {
     deleteItem.mockReset();
     addItem.mockReset();
     notifySuccess.mockReset();
-    createFromMealPlan.mockReset();
+    materialize.mockReset();
+    applyDiff.mockReset();
+    diffData = { rows: [], has_changes: false, plan_synced_at: null };
     fetchItem.mockReset();
     notifyError.mockReset();
     refetchSession.mockReset();
@@ -145,31 +153,63 @@ describe('ShoppingListDetailPage', () => {
         source_id: 41,
         source_status: status,
       });
+    const tripList = (status: 'current' | 'changed' | 'deleted' | null, overrides: Record<string, unknown> = {}) =>
+      ShoppingListDetailSchema.parse({
+        ...detail(),
+        source_type: 'event_trip',
+        event_id: 1,
+        event_slug: 'sommerlager',
+        event_name: 'Sommerlager',
+        store_id: 2,
+        store_name: 'Metro',
+        scheduled_at: '2026-10-17T07:00:00Z',
+        materialized_at: '2026-10-17T08:00:00Z',
+        trip_status: 'created',
+        can_plan: true,
+        source_status: status,
+        ...overrides,
+      });
 
-    it('shows the hint with "Neue Liste erstellen" and opens the new list', async () => {
-      const user = userEvent.setup();
+    it('shows only the hint for old plan lists, without a difference', () => {
       listQuery = { data: planList('changed'), isLoading: false, error: null };
-      createFromMealPlan.mockImplementation((_vars: unknown, options: { onSuccess: (created: { id: number; warnings: unknown[] }) => void }) =>
-        options.onSuccess({ id: 99, warnings: [] }),
-      );
-      render(
-        <MemoryRouter initialEntries={['/shopping-lists/3']}>
-          <Routes>
-            <Route path="/shopping-lists/:id" element={<ShoppingListDetailPage />} />
-            <Route path="/shopping-lists/99" element={<p>Neue Liste geöffnet</p>} />
-          </Routes>
-        </MemoryRouter>,
-      );
+      renderPage();
 
       expect(screen.getByText('Essensplan wurde seit Erstellung geändert')).toBeInTheDocument();
-      await user.click(screen.getByRole('button', { name: 'Neue Liste erstellen' }));
+      expect(screen.queryByRole('button', { name: 'Änderungen ansehen' })).not.toBeInTheDocument();
+    });
 
-      expect(createFromMealPlan).toHaveBeenCalledWith({ mealPlanId: 41 }, expect.anything());
-      expect(await screen.findByText('Neue Liste geöffnet')).toBeInTheDocument();
+    it('shows the difference of an event trip and takes it over', async () => {
+      const user = userEvent.setup();
+      listQuery = { data: tripList('changed'), isLoading: false, error: null };
+      diffData = {
+        rows: [{ kind: 'changed', subject_kind: 'ingredient', subject_id: 7, name: 'Nudeln', unit: 'g', snapshot_open: 0, snapshot_checked: 2000, current: 3000 }],
+        has_changes: true,
+        plan_synced_at: null,
+      };
+      renderPage();
+
+      await user.click(screen.getByRole('button', { name: 'Änderungen ansehen' }));
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText('+1 kg Nudeln – bereits gekauft: 2 kg')).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole('button', { name: 'Änderungen übernehmen' }));
+      expect(applyDiff).toHaveBeenCalledWith(3, expect.anything());
+    });
+
+    it('lets co-shoppers see the difference but not take it over', async () => {
+      const user = userEvent.setup();
+      listQuery = { data: tripList('changed', { can_plan: false, can_edit: true }), isLoading: false, error: null };
+      renderPage();
+
+      await user.click(screen.getByRole('button', { name: 'Änderungen ansehen' }));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText('Keine Änderungen.')).toBeInTheDocument();
+      expect(within(dialog).queryByRole('button', { name: 'Änderungen übernehmen' })).not.toBeInTheDocument();
     });
 
     it('shows no hint for a current list or without status', () => {
-      listQuery = { data: planList('current'), isLoading: false, error: null };
+      listQuery = { data: tripList('current'), isLoading: false, error: null };
       const { unmount } = renderPage();
       expect(screen.queryByTestId('source-freshness-notice')).not.toBeInTheDocument();
       unmount();
@@ -179,12 +219,83 @@ describe('ShoppingListDetailPage', () => {
       expect(screen.queryByTestId('source-freshness-notice')).not.toBeInTheDocument();
     });
 
-    it('says the plan was deleted without offering an action', () => {
+    it('says the event or plan was deleted without offering an action', () => {
+      listQuery = { data: tripList('deleted', { event_id: null, event_slug: null }), isLoading: false, error: null };
+      const { unmount } = renderPage();
+      expect(screen.getByText('Das Event wurde gelöscht.')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Änderungen ansehen' })).not.toBeInTheDocument();
+      unmount();
+
       listQuery = { data: planList('deleted'), isLoading: false, error: null };
       renderPage();
-
       expect(screen.getByText('Der Essensplan wurde gelöscht.')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Neue Liste erstellen' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('event trips', () => {
+    const trip = (overrides: Record<string, unknown> = {}) =>
+      ShoppingListDetailSchema.parse({
+        ...detail(),
+        source_type: 'event_trip',
+        event_id: 1,
+        event_slug: 'sommerlager',
+        event_name: 'Sommerlager',
+        store_id: 2,
+        store_name: 'Metro',
+        scheduled_at: '2026-10-17T07:00:00Z',
+        can_plan: true,
+        items: [],
+        ...overrides,
+      });
+
+    it('shows shop, time and a link to the trip planning', () => {
+      listQuery = { data: trip({ trip_status: 'created', materialized_at: '2026-10-17T08:00:00Z', items: [{ id: 1, name: 'Mehl', quantity_g: 500, is_checked: false, sort_order: 0 }] }), isLoading: false, error: null };
+      renderPage();
+
+      expect(screen.getByTestId('shopping-trip-info')).toHaveTextContent('Metro · Sa 17.10.');
+      expect(screen.getByRole('link', { name: 'Einkäufe planen' })).toHaveAttribute('href', '/shopping-lists/events/sommerlager?trip=3');
+      expect(screen.getByTestId('shopping-shop-mode-toggle')).toBeInTheDocument();
+    });
+
+    it('shows the preview of a planned trip with "Liste erstellen" but no checkboxes or shopping mode', async () => {
+      const user = userEvent.setup();
+      listQuery = {
+        data: trip({
+          trip_status: 'planned',
+          preview: { list_id: 3, name: 'Metro', status: 'planned', rows: [{ kind: 'ingredient', subject_id: 4, name: 'Kartoffeln', quantity: 5000, unit: 'g', total_quantity_g: 5000 }] },
+        }),
+        isLoading: false,
+        error: null,
+      };
+      renderPage();
+
+      expect(screen.getByText('Vorschau – wird mit „Liste erstellen“ festgehalten')).toBeInTheDocument();
+      expect(screen.getByText('Kartoffeln')).toBeInTheDocument();
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('shopping-shop-mode-toggle')).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Liste erstellen' }));
+      expect(materialize).toHaveBeenCalledWith(3, expect.anything());
+    });
+
+    it('hides "Liste erstellen" without planning rights', () => {
+      listQuery = { data: trip({ trip_status: 'planned', can_plan: false, preview: null }), isLoading: false, error: null };
+      renderPage();
+
+      expect(screen.getByText('Vorschau – wird mit „Liste erstellen“ festgehalten')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Liste erstellen' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Einkäufe planen' })).not.toBeInTheDocument();
+    });
+
+    it('keeps manually added entries visible in the preview', () => {
+      listQuery = {
+        data: trip({ trip_status: 'planned', items: [{ id: 9, name: 'Grillkohle', quantity_g: 0, is_checked: false, sort_order: 0 }] }),
+        isLoading: false,
+        error: null,
+      };
+      renderPage();
+
+      expect(screen.getByText('Grillkohle')).toBeInTheDocument();
     });
   });
 

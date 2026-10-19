@@ -2,7 +2,8 @@
 
 Simulates N phones on one list: each polls the pulse every few seconds, syncs when the change marker moves
 (shopping mode: the compact `board`; `--mode detail`: the full list), and one phone checks an item
-off every few seconds. Prints requests, status codes and p50/p95/max per endpoint; exits 1 when a threshold fails.
+off every few seconds. With `--event-slug`, a team member (dev login, local only) also polls the event's shopping plan
+(`GET /api/shopping-events/{slug}/plan/`): the first calls compute it per worker, the later ones must come from the cache. Prints requests, status codes and p50/p95/max per endpoint; exits 1 when a threshold fails.
 
 Run against a local, production-like stack (see README.md):
 
@@ -26,6 +27,10 @@ import httpx
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 SYNC_LABEL = "sync_board"
 FULL_LABEL = "detail_full"
+PLAN_FIRST_LABEL = "plan_first"
+PLAN_CACHED_LABEL = "plan_cached"
+# The cache lives per worker process: the first calls warm every worker and are reported separately.
+PLAN_WARMUP_CALLS = 6
 
 
 @dataclass
@@ -51,12 +56,12 @@ def percentile(values: list[float], fraction: float) -> float:
     return ordered[min(len(ordered), max(1, math.ceil(fraction * len(ordered)))) - 1]
 
 
-def evaluate(samples: Samples, p95_sync: float, p95_full: float) -> list[str]:
+def evaluate(samples: Samples, p95_sync: float, p95_full: float, p95_plan: float = 0.3) -> list[str]:
     """Violated thresholds; a latency threshold only applies when the endpoint was used."""
     failures: list[str] = []
     if (rejected := samples.count_429()) > 0:
         failures.append(f"{rejected} responses with HTTP 429 (limit 0)")
-    for label, limit in ((SYNC_LABEL, p95_sync), (FULL_LABEL, p95_full)):
+    for label, limit in ((SYNC_LABEL, p95_sync), (FULL_LABEL, p95_full), (PLAN_CACHED_LABEL, p95_plan)):
         values = samples.latencies.get(label)
         if values and (value := percentile(values, 0.95)) > limit:
             failures.append(f"p95 of {label} is {value:.2f} s (limit {limit:.2f} s)")
@@ -174,6 +179,43 @@ class Device:
             pass
 
 
+class Planner:
+    """A team member watching the event's shopping plan; the first call fills the cache, later ones hit it."""
+
+    def __init__(self, args: argparse.Namespace, samples: Samples, stop: asyncio.Event) -> None:
+        self.args = args
+        self.samples = samples
+        self.stop = stop
+        self.client = httpx.AsyncClient(base_url=args.base_url, timeout=90.0)
+
+    async def login(self) -> bool:
+        """Dev login exists on local stacks only; it is what keeps this probe away from production accounts."""
+        csrf = (await self.client.get("/api/auth/csrf/")).json()["csrfToken"]
+        response = await self.client.post(
+            "/api/auth/dev-login/",
+            json={"email": self.args.planner_email},
+            headers={"X-CSRFToken": csrf, "Referer": self.args.base_url + "/"},
+        )
+        return response.status_code == 200
+
+    async def poll(self) -> None:
+        calls = 0
+        while not self.stop.is_set():
+            started = time.perf_counter()
+            try:
+                response = await self.client.get(f"/api/shopping-events/{self.args.event_slug}/plan/")
+                status = response.status_code
+            except httpx.HTTPError:
+                status = 0
+            warming = calls < PLAN_WARMUP_CALLS
+            self.samples.add(PLAN_FIRST_LABEL if warming else PLAN_CACHED_LABEL, status, time.perf_counter() - started)
+            calls += 1
+            try:
+                await asyncio.wait_for(self.stop.wait(), timeout=0.2 if warming else self.args.pulse_interval)
+            except TimeoutError:
+                pass
+
+
 async def run(args: argparse.Namespace) -> Samples:
     samples = Samples()
     stop = asyncio.Event()
@@ -183,11 +225,18 @@ async def run(args: argparse.Namespace) -> Samples:
         raise SystemExit(f"{joined.count(False)} of {args.devices} devices could not join the list (token valid?)")
     tasks = [asyncio.create_task(device.poll()) for device in devices]
     tasks.append(asyncio.create_task(devices[0].check_off()))
+    planner = Planner(args, samples, stop) if args.event_slug else None
+    if planner is not None:
+        if not await planner.login():
+            raise SystemExit("planner could not log in (dev login only works on a local stack; check --planner-email)")
+        tasks.append(asyncio.create_task(planner.poll()))
     await asyncio.sleep(args.duration)
     stop.set()
     await asyncio.gather(*tasks)
     await devices[0].restore()
     await asyncio.gather(*(device.client.aclose() for device in devices))
+    if planner is not None:
+        await planner.client.aclose()
     return samples
 
 
@@ -204,6 +253,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--p95-sync", type=float, default=1.0, help="limit for p95 of sync_board, seconds")
     parser.add_argument("--p95-full", type=float, default=3.0, help="limit for p95 of detail_full, seconds")
+    parser.add_argument("--event-slug", help="also poll the shopping plan of this event (seed: --event-meals)")
+    parser.add_argument(
+        "--planner-email", default="loadtest-owner@example.invalid", help="team member for --event-slug"
+    )
+    parser.add_argument("--p95-plan", type=float, default=0.3, help="limit for p95 of plan_cached, seconds")
     parser.add_argument("--confirm-production", action="store_true", help="allow a non-local --base-url")
     args = parser.parse_args(argv)
     if is_production_url(args.base_url) and not args.confirm_production:
@@ -220,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     samples = asyncio.run(run(args))
     print(format_report(samples))
-    failures = evaluate(samples, args.p95_sync, args.p95_full)
+    failures = evaluate(samples, args.p95_sync, args.p95_full, args.p95_plan)
     for failure in failures:
         print(f"FAIL: {failure}")
     print("PASSED" if not failures else "FAILED")

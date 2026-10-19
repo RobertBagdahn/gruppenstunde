@@ -1,12 +1,9 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { describe, expect, it, vi } from 'vitest';
 import ShoppingView from './ShoppingView';
-
-const createFromMealPlan = vi.fn();
-let existingLists: Array<{ id: number; name: string; source_status: 'current' | 'changed' | 'deleted' | null }> = [];
 
 vi.mock('@/api/auth', () => ({ useCurrentUser: () => ({ data: { id: 5 } }) }));
 vi.mock('@/api/mealPlans', () => ({
@@ -30,59 +27,65 @@ vi.mock('@/api/mealPlans', () => ({
   }),
   useIngredientScan: () => ({ data: { violations: [] } }),
 }));
-vi.mock('@/api/shoppingLists', () => ({
-  useCreateFromMealPlan: () => ({ mutate: createFromMealPlan, isPending: false }),
-  useShoppingLists: () => ({ data: { items: existingLists } }),
+vi.mock('@/components/planning/LinkEventDialog', () => ({
+  default: ({ open, onLinked }: { open: boolean; onLinked: (slug: string) => void }) =>
+    open ? (
+      <div role="dialog">
+        Event verknüpfen
+        <button type="button" onClick={() => onLinked('herbstfahrt')}>
+          Verknüpfen
+        </button>
+      </div>
+    ) : null,
 }));
-vi.mock('@/lib/notify', () => ({ notify: { success: vi.fn(), error: vi.fn() } }));
 
-function renderView() {
+const plan = { name: 'Herbstfahrt', start_datetime: null, end_datetime: null };
+
+function renderView(props: { eventSlug?: string } = {}) {
   return render(
-    <MemoryRouter>
-      <ShoppingView mealPlanId={41} />
+    <MemoryRouter initialEntries={['/plan']}>
+      <Routes>
+        <Route path="/plan" element={<ShoppingView mealPlanId={41} plan={plan} {...props} />} />
+        <Route path="/shopping-lists/events/:slug" element={<p>Einkäufe planen Seite</p>} />
+      </Routes>
     </MemoryRouter>,
   );
 }
 
-describe('ShoppingView creating a list', () => {
-  beforeEach(() => {
-    createFromMealPlan.mockReset();
-    existingLists = [];
+describe('ShoppingView', () => {
+  it('still shows the total demand of the plan', () => {
+    renderView({ eventSlug: 'sommerlager' });
+
+    expect(screen.getByText('Mehl')).toBeInTheDocument();
   });
 
-  it('creates directly when no current list exists', async () => {
-    existingLists = [{ id: 1, name: 'Alte Liste', source_status: 'changed' }];
+  it('no longer creates a list directly', () => {
+    renderView({ eventSlug: 'sommerlager' });
+
+    expect(screen.queryByRole('button', { name: 'Einkaufsliste erstellen' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('plan-shopping-consumables')).not.toBeInTheDocument();
+  });
+
+  it('links to the trip planning of the event', async () => {
+    const user = userEvent.setup();
+    renderView({ eventSlug: 'sommerlager' });
+
+    const link = screen.getByRole('link', { name: 'Einkäufe planen' });
+    expect(link).toHaveAttribute('href', '/shopping-lists/events/sommerlager');
+    await user.click(link);
+    expect(await screen.findByText('Einkäufe planen Seite')).toBeInTheDocument();
+  });
+
+  it('asks for an event when the plan has none and opens the planning after linking', async () => {
     const user = userEvent.setup();
     renderView();
 
-    expect(screen.getByTestId('plan-existing-lists')).toHaveTextContent('Plan geändert');
-    await user.click(screen.getByRole('button', { name: 'Einkaufsliste erstellen' }));
+    expect(screen.getByText('Für Einkäufe braucht der Plan ein Event.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Einkäufe planen' })).not.toBeInTheDocument();
 
-    expect(createFromMealPlan).toHaveBeenCalledTimes(1);
-  });
+    await user.click(screen.getByRole('button', { name: 'Event verknüpfen' }));
+    await user.click(await screen.findByRole('button', { name: 'Verknüpfen' }));
 
-  it('asks before creating another list while a current one exists', async () => {
-    existingLists = [{ id: 1, name: 'Aktuelle Liste', source_status: 'current' }];
-    const user = userEvent.setup();
-    renderView();
-
-    await user.click(screen.getByRole('button', { name: 'Einkaufsliste erstellen' }));
-
-    expect(screen.getByText('Für diesen Plan gibt es bereits eine aktuelle Einkaufsliste. Trotzdem eine neue erstellen?')).toBeInTheDocument();
-    expect(createFromMealPlan).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole('button', { name: 'Neue Liste erstellen' }));
-    expect(createFromMealPlan).toHaveBeenCalledTimes(1);
-  });
-
-  it('creates nothing when the question is cancelled', async () => {
-    existingLists = [{ id: 1, name: 'Aktuelle Liste', source_status: 'current' }];
-    const user = userEvent.setup();
-    renderView();
-
-    await user.click(screen.getByRole('button', { name: 'Einkaufsliste erstellen' }));
-    await user.click(screen.getByRole('button', { name: 'Abbrechen' }));
-
-    expect(createFromMealPlan).not.toHaveBeenCalled();
+    expect(await screen.findByText('Einkäufe planen Seite')).toBeInTheDocument();
   });
 });

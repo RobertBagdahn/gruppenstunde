@@ -15,6 +15,7 @@ from planner.services.plan_touch import touch_meal_plan
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
 from shopping.models import ShoppingList
+from shopping.tests.trip_helpers import create_legacy_plan_list
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 User = get_user_model()
@@ -54,7 +55,7 @@ def plan_with_list(owner, client):
     recipe = make_recipe(title="Brot Freshness")
     make_recipe_item(recipe=recipe, portion=portion, quantity=1)
     item = make_meal_item(meal=meal, recipe=recipe)
-    created = client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/")
+    created = client.get(f"/api/shopping-lists/{create_legacy_plan_list(owner, plan).id}/")
     assert created.status_code == 200, created.content
     return {
         "plan": plan,
@@ -233,7 +234,7 @@ class TestTouchedPaths:
 class TestListEndpoint:
     def test_list_has_status_and_filters(self, client, owner, plan_with_list):
         other_plan = make_meal_plan(created_by=owner)
-        other = client.post(f"/api/shopping-lists/from-meal-plan/{other_plan.id}/").json()
+        other = {"id": create_legacy_plan_list(owner, other_plan).id}
         client.post("/api/shopping-lists/", data=json.dumps({"name": "Manuell"}), content_type="application/json")
         plan_with_list["item"].factor = 5
         plan_with_list["item"].save()
@@ -253,7 +254,7 @@ class TestListEndpoint:
         def build(count: int) -> None:
             for index in range(count):
                 plan = make_meal_plan(created_by=owner, name=f"Plan {count}-{index}")
-                client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/")
+                create_legacy_plan_list(owner, plan)
 
         build(1)
         with CaptureQueriesContext(connection) as small:

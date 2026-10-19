@@ -2,6 +2,13 @@ import { useState } from 'react';
 import type { MealItemUpdateHandler } from '@/components/planning/MealItemAmountEditor';
 import { Plus, Trash2 } from 'lucide-react';
 import { useReorderMeals } from '@/api/mealPlans';
+import { useCreateTrip, useTripPlan, useUpdateTrip } from '@/api/shoppingTrips';
+import DayTripMarker from '@/components/planning/DayTripMarker';
+import LinkEventDialog, { type LinkEventPlan } from '@/components/planning/LinkEventDialog';
+import TripFormDialog, { type TripFormValues } from '@/components/shopping/trips/TripFormDialog';
+import { mergeDayEntries, tripsOfDay } from '@/lib/dayEntries';
+import type { PlannedTrip } from '@/schemas/shoppingTrip';
+import { useNavigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import { MealSlot } from './MealSlot';
 import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getCoverageBadge, effectivePortions } from '@/schemas/mealPlan';
@@ -38,6 +45,7 @@ export function DayPlanView({
   onCopyFromPlan,
   nutritionalTagIds,
   nutritionalTagNames,
+  tripPlanning,
 }: {
   mealPlanId: number;
   refMeals?: RefMeal[];
@@ -73,6 +81,8 @@ export function DayPlanView({
   onCopyFromPlan: (mealId: number) => void;
   nutritionalTagIds?: number[];
   nutritionalTagNames?: string[];
+  /** Shopping trips of the plan's event; `eventSlug` is empty while the plan has no event. */
+  tripPlanning?: { eventSlug: string; plan: Omit<LinkEventPlan, 'id'> };
 }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -81,9 +91,44 @@ export function DayPlanView({
 
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
   const reorderMutation = useReorderMeals(mealPlanId);
+  const navigate = useNavigate();
+  const eventSlug = tripPlanning?.eventSlug ?? '';
+  const tripPlan = useTripPlan(eventSlug, eventSlug !== '');
+  const createTrip = useCreateTrip(eventSlug);
+  const updateTrip = useUpdateTrip(eventSlug);
+  const [tripDialog, setTripDialog] = useState<{ mode: 'create'; date: string } | { mode: 'edit'; trip: PlannedTrip } | null>(null);
+  const [linkEventOpen, setLinkEventOpen] = useState(false);
+  const canPlanTrips = tripPlan.data?.can_manage ?? false;
+
+  const saveTrip = (values: TripFormValues) => {
+    if (tripDialog?.mode === 'edit') {
+      updateTrip.mutate({ listId: tripDialog.trip.list_id, ...values }, { onSuccess: () => setTripDialog(null) });
+    } else {
+      createTrip.mutate(values, { onSuccess: () => setTripDialog(null) });
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {tripPlanning && !eventSlug && canEdit && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card px-4 py-3 shadow-card" data-testid="day-trips-no-event">
+          <p className="text-body text-muted-foreground">Event verknüpfen, um Einkäufe zu planen</p>
+          <button
+            type="button"
+            onClick={() => setLinkEventOpen(true)}
+            className="press rounded-lg bg-primary-soft px-3 py-1.5 text-body font-semibold text-primary hover:bg-primary-soft-border/70"
+          >
+            Event verknüpfen
+          </button>
+          <LinkEventDialog
+            open={linkEventOpen}
+            onOpenChange={setLinkEventOpen}
+            plan={{ id: mealPlanId, ...tripPlanning.plan }}
+            onLinked={(slug) => navigate(`/shopping-lists/events/${slug}`)}
+          />
+        </div>
+      )}
+
       {/* RefMeal Links */}
       <RefMealChips mealPlanId={mealPlanId} refMeals={refMeals} canEdit={canEdit} />
 
@@ -178,15 +223,24 @@ export function DayPlanView({
 
               {/* Meals */}
               <div className="divide-y">
-                {group.meals.map((meal) => (
+                {mergeDayEntries(group.meals, tripsOfDay(tripPlan.data?.trips ?? [], group.date)).map((entry) =>
+                  entry.type === 'trip' ? (
+                    <DayTripMarker
+                      key={`trip-${entry.trip.list_id}`}
+                      trip={entry.trip}
+                      eventSlug={eventSlug}
+                      canChangeTime={canPlanTrips}
+                      onChangeTime={(trip) => setTripDialog({ mode: 'edit', trip })}
+                    />
+                  ) : (
                   <div
-                    key={meal.id}
-                    id={`meal-${meal.id}`}
-                    data-date-meal-type={`meal-${group.date}-${meal.meal_type}`}
+                    key={entry.meal.id}
+                    id={`meal-${entry.meal.id}`}
+                    data-date-meal-type={`meal-${group.date}-${entry.meal.meal_type}`}
                     className="scroll-mt-24 transition-all"
-                    draggable={canEdit && !meal.is_synced}
+                    draggable={canEdit && !entry.meal.is_synced}
                     onDragStart={(e) => {
-                      e.dataTransfer.setData('application/json', JSON.stringify({ mealId: meal.id }));
+                      e.dataTransfer.setData('application/json', JSON.stringify({ mealId: entry.meal.id }));
                       e.dataTransfer.effectAllowed = 'move';
                     }}
                     onDragOver={(e) => {
@@ -205,9 +259,9 @@ export function DayPlanView({
                         const raw = e.dataTransfer.getData('application/json');
                         if (!raw) return;
                         const data = JSON.parse(raw);
-                        if (data.mealId && data.mealId !== meal.id) {
+                        if (data.mealId && data.mealId !== entry.meal.id) {
                           reorderMutation.mutate(
-                            { source_meal_id: data.mealId, target_meal_id: meal.id, mode: 'swap' },
+                            { source_meal_id: data.mealId, target_meal_id: entry.meal.id, mode: 'swap' },
                             {
                               onSuccess: () => notify.success('Mahlzeiten erfolgreich getauscht'),
                               onError: (err) => notify.error('Mahlzeiten konnten nicht getauscht werden', { error: err }),
@@ -219,9 +273,9 @@ export function DayPlanView({
                       }
                     }}
                   >
-                    <span id={`meal-${group.date}-${meal.meal_type}`} className="sr-only pointer-events-none" />
+                    <span id={`meal-${group.date}-${entry.meal.meal_type}`} className="sr-only pointer-events-none" />
                     <MealSlot
-                      meal={meal}
+                      meal={entry.meal}
                       canEdit={canEdit}
                       normPortions={normPortions}
                       budgetPerPersonPerDay={budgetPerPersonPerDay}
@@ -240,8 +294,23 @@ export function DayPlanView({
                       nutritionalTagNames={nutritionalTagNames}
                     />
                   </div>
-                ))}
+                  ),
+                )}
               </div>
+
+
+              {canPlanTrips && (
+                <div className="border-t bg-muted/20 px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setTripDialog({ mode: 'create', date: group.date })}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-body font-medium text-primary hover:bg-primary/10"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Einkauf einfügen
+                  </button>
+                </div>
+              )}
 
               {/* Add Meal */}
               {canEdit && (
@@ -293,6 +362,27 @@ export function DayPlanView({
             Tag danach
           </button>
         </div>
+      )}
+
+      {tripPlanning && eventSlug && (
+        <TripFormDialog
+          open={tripDialog !== null}
+          onOpenChange={(open) => !open && setTripDialog(null)}
+          eventSlug={eventSlug}
+          defaultDate={tripDialog?.mode === 'create' ? tripDialog.date : undefined}
+          initial={
+            tripDialog?.mode === 'edit'
+              ? {
+                  store: tripDialog.trip.store_id !== null ? { id: tripDialog.trip.store_id, name: tripDialog.trip.store_name } : null,
+                  scheduledAt: tripDialog.trip.scheduled_at,
+                  name: tripDialog.trip.name,
+                }
+              : undefined
+          }
+          pending={createTrip.isPending || updateTrip.isPending}
+          error={tripDialog?.mode === 'edit' ? updateTrip.error : createTrip.error}
+          onSubmit={saveTrip}
+        />
       )}
 
       {/* Recipe Search Dialog — immer gemountet, Sichtbarkeit per open-Prop */}

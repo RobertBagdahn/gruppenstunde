@@ -1,10 +1,11 @@
 /**
  * Zod schemas for the Shopping List feature.
- * MUST stay in sync with backend/shopping/schemas.py
+ * MUST stay in sync with backend/shopping/schemas/lists.py
  */
 import { z } from 'zod';
 import { UnitOptionSchema } from './quantityUnits';
 import { QuantityWarningSchema } from './buffet';
+import { PlannedTripSchema, TripStatusSchema } from './shoppingTrip';
 
 // --- Collaborator ---
 
@@ -117,6 +118,16 @@ export const ShoppingListSchema = z.object({
   can_delete: z.boolean(),
   source_status: ShoppingListSourceStatusSchema.nullable().default(null),
   source_updated_at: z.string().nullable().default(null),
+  /** Event trip fields; all null for free and recipe lists. */
+  event_id: z.number().nullable().default(null),
+  event_slug: z.string().nullable().default(null),
+  event_name: z.string().nullable().default(null),
+  store_id: z.number().nullable().default(null),
+  store_name: z.string().nullable().default(null),
+  scheduled_at: z.string().nullable().default(null),
+  materialized_at: z.string().nullable().default(null),
+  plan_synced_at: z.string().nullable().default(null),
+  trip_status: TripStatusSchema.nullable().default(null),
 });
 
 export type ShoppingList = z.output<typeof ShoppingListSchema>;
@@ -187,6 +198,22 @@ export const ShoppingListDetailSchema = z.object({
   updated_at: z.string(),
   source_status: ShoppingListSourceStatusSchema.nullable().default(null),
   source_updated_at: z.string().nullable().default(null),
+  items_count: z.number().default(0),
+  checked_count: z.number().default(0),
+  /** Event team: may create the list from the plan and take over plan changes. */
+  can_plan: z.boolean().default(false),
+  /** Live preview of a planned trip (no entries exist yet). */
+  preview: PlannedTripSchema.nullable().default(null),
+  /** Event trip fields; all null for free and recipe lists. */
+  event_id: z.number().nullable().default(null),
+  event_slug: z.string().nullable().default(null),
+  event_name: z.string().nullable().default(null),
+  store_id: z.number().nullable().default(null),
+  store_name: z.string().nullable().default(null),
+  scheduled_at: z.string().nullable().default(null),
+  materialized_at: z.string().nullable().default(null),
+  plan_synced_at: z.string().nullable().default(null),
+  trip_status: TripStatusSchema.nullable().default(null),
 });
 
 export type ShoppingListDetail = z.output<typeof ShoppingListDetailSchema>;
@@ -246,6 +273,7 @@ export const SOURCE_TYPE_LABELS: Record<string, string> = {
   manual: 'Manuell',
   recipe: 'Rezept',
   meal_event: 'Essensplan',
+  event_trip: 'Event-Einkauf',
 };
 
 export const COLLABORATOR_ROLE_LABELS: Record<string, string> = {

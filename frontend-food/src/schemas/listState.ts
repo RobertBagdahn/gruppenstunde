@@ -88,6 +88,8 @@ export const ShoppingListStateSchema = lenient({
   sort: z.enum(SHOPPING_SORT_VALUES),
   mine: z.enum(['1']),
   page: z.coerce.number().int().min(1),
+  /** Also list past events in the event selection (`include_past=true`). */
+  include_past: z.enum(['true']),
 });
 
 export const IngredientStatsStateSchema = lenient({

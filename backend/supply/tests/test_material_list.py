@@ -11,6 +11,7 @@ from django.test import Client
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.models import Recipe
 from recipe.tests import make_recipe
+from shopping.tests.trip_helpers import recipe_body
 from supply.models import ContentMaterialItem, Material
 from supply.services.material_aggregation import aggregate_materials, scaled_amount
 
@@ -151,11 +152,11 @@ class TestShoppingListConsumables:
         _link(recipe, pot, 1)
         return recipe
 
-    def test_from_recipe_includes_consumables_by_default(self, client, plate, pot):
+    def test_from_recipe_includes_consumables_by_default(self, client, user, plate, pot):
         recipe = self._recipe(plate, pot)
         res = client.post(
             f"/api/shopping-lists/from-recipe/{recipe.id}/",
-            data=json.dumps({"portions": 8}),
+            data=recipe_body(user, portions=8),
             content_type="application/json",
         )
         assert res.status_code == 200, res.content
@@ -165,28 +166,28 @@ class TestShoppingListConsumables:
         ]
         assert items[0]["sources"][0]["recipe_id"] == recipe.id
 
-    def test_from_recipe_opt_out(self, client, plate, pot):
+    def test_from_recipe_opt_out(self, client, user, plate, pot):
         recipe = self._recipe(plate, pot)
         res = client.post(
             f"/api/shopping-lists/from-recipe/{recipe.id}/",
-            data=json.dumps({"portions": 8, "include_consumables": False}),
+            data=recipe_body(user, portions=8, include_consumables=False),
             content_type="application/json",
         )
         assert res.json()["items"] == []
 
-    def test_from_meal_plan_default_and_opt_out(self, client, user, plate, pot):
+    def test_event_trip_includes_consumables(self, client, user, plate, pot):
+        from shopping.tests.trip_helpers import materialize_detail
+
         plan = make_meal_plan(created_by=user, norm_portions=10)
         make_meal_item(meal=make_meal(meal_plan=plan), recipe=self._recipe(plate, pot))
-        default = client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/").json()
-        assert [i["name"] for i in default["items"] if i["is_material"]] == ["Pappteller"]
-        opted_out = client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/?include_consumables=false").json()
-        assert not [i for i in opted_out["items"] if i["is_material"]]
+        detail = materialize_detail(client, user, plan)
+        assert [i["name"] for i in detail["items"] if i["is_material"]] == ["Pappteller"]
 
-    def test_list_material_list_uses_source(self, client, plate, pot):
+    def test_list_material_list_uses_source(self, client, user, plate, pot):
         recipe = self._recipe(plate, pot)
         created = client.post(
             f"/api/shopping-lists/from-recipe/{recipe.id}/",
-            data=json.dumps({"portions": 6}),
+            data=recipe_body(user, portions=6),
             content_type="application/json",
         ).json()
         data = client.get(f"/api/shopping-lists/{created['id']}/material-list/").json()
@@ -231,3 +232,23 @@ class TestRecipeCostAndFilter:
         ids_without = {r["id"] for r in client.get(f"/api/recipes/?exclude_material_slug={pot.slug}").json()["items"]}
         assert with_pot.id in ids_with and without.id not in ids_with
         assert without.id in ids_without and with_pot.id not in ids_without
+
+
+@pytest.mark.django_db
+def test_entries_by_meal_sum_equals_plan_entries(plate):
+    from supply.services.material_aggregation import meal_plan_material_entries, meal_plan_material_entries_by_meal
+
+    plan = make_meal_plan(norm_portions=10)
+    recipe = make_recipe(title="Nudeln")
+    _link(recipe, plate, amount=1, mode="per_portion")
+    for meal_type in ("lunch", "dinner"):
+        make_meal_item(meal=make_meal(meal_plan=plan, meal_type=meal_type), recipe=recipe)
+
+    by_meal = meal_plan_material_entries_by_meal(plan)
+    grouped_pairs = [pair for pairs in by_meal.values() for pair in pairs]
+    flat_pairs = meal_plan_material_entries(plan)
+
+    assert len(by_meal) == 2
+    assert sorted((r.pk, s) for r, s in grouped_pairs) == sorted((r.pk, s) for r, s in flat_pairs)
+    summed = sum(req.amount for pairs in by_meal.values() for req in aggregate_materials(pairs).consumables)
+    assert summed == aggregate_materials(flat_pairs).consumables[0].amount

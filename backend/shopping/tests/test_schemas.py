@@ -232,3 +232,61 @@ class TestResolvePackagesAndLiquids:
         flour = make_ingredient(name="Mehl")
         out = ShoppingListItemOut.from_orm(self._item(shopping_list, flour, 1500))
         assert (out.quantity, out.unit) == (1500, "g")
+
+
+@pytest.mark.django_db
+class TestTripFields:
+    """Event trip fields on the list schemas (openspec `event-shopping-trips`)."""
+
+    def _trip(self, user, **kwargs):
+        from django.utils import timezone
+
+        from event.tests import make_event
+        from shopping.models import Store
+
+        event = make_event(name="Sommerlager", created_by=user)
+        store = Store.objects.create(owner=user, name="Metro")
+        return ShoppingList.objects.create(
+            name="Metro · Fr 17.10. 09:00",
+            owner=user,
+            event=event,
+            store=store,
+            scheduled_at=timezone.now(),
+            source_type=SourceType.EVENT_TRIP,
+            **kwargs,
+        )
+
+    def test_planned_trip_is_described_by_list_schema(self, user):
+        from shopping.schemas import ShoppingListOut
+
+        out = ShoppingListOut.from_orm(self._trip(user))
+
+        assert out.trip_status == "planned"
+        assert out.event_name == "Sommerlager"
+        assert out.event_slug == "sommerlager"
+        assert out.store_name == "Metro"
+        assert out.source_status is None
+
+    def test_created_trip_reports_status_and_counts_in_detail(self, user):
+        from django.utils import timezone
+
+        from shopping.schemas import ShoppingListDetailOut
+
+        trip = self._trip(user, materialized_at=timezone.now())
+        ShoppingListItem.objects.create(shopping_list=trip, name="Milch", is_checked=True)
+        ShoppingListItem.objects.create(shopping_list=trip, name="Brot")
+        trip._can_manage = True
+
+        out = ShoppingListDetailOut.from_orm(trip)
+
+        assert out.trip_status == "created"
+        assert (out.items_count, out.checked_count) == (2, 1)
+        assert out.can_plan is True
+        assert out.preview is None
+
+    def test_manual_list_has_no_trip_fields(self, shopping_list):
+        from shopping.schemas import ShoppingListOut
+
+        out = ShoppingListOut.from_orm(shopping_list)
+
+        assert (out.trip_status, out.event_id, out.store_id, out.scheduled_at) == (None, None, None, None)

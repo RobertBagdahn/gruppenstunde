@@ -13,6 +13,7 @@ from supply.models.ingredient import IngredientStatusChoices
 
 OWNER_USERNAME = "loadtest-owner"
 LIST_NAME = "Lasttest Gruppeneinkauf"
+EVENT_NAME = "Lasttest Event"
 
 
 class Command(BaseCommand):
@@ -22,6 +23,12 @@ class Command(BaseCommand):
         parser.add_argument("--items", type=int, default=50, help="Number of entries (default: 50)")
         parser.add_argument(
             "--sources-per-item", type=int, default=3, help="Recipe/meal sources per entry (default: 3)"
+        )
+        parser.add_argument(
+            "--event-meals",
+            type=int,
+            default=0,
+            help="Also create an event with a meal plan of N meals and three trips (for the plan endpoint probe)",
         )
         parser.add_argument("--force", action="store_true", help="Allow running with DEBUG off (never on production)")
 
@@ -67,3 +74,65 @@ class Command(BaseCommand):
         shopping_list.save(update_fields=["share_token", "updated_at"])
         self.stdout.write(f"list_id={shopping_list.id}")
         self.stdout.write(f"invite_token={shopping_list.share_token}")
+        if options["event_meals"] > 0:
+            event = self._seed_event(owner, options["event_meals"], min(count, 30))
+            self.stdout.write(f"event_slug={event.slug}")
+            self.stdout.write(f"planner_email={owner.email}")
+
+    def _seed_event(self, owner, meals: int, ingredient_count: int):
+        """Event with one plan of `meals` meals (each with the first ingredients) and three trips."""
+        import datetime as dt
+        from decimal import Decimal
+
+        from event.models import Event, EventMealPlanRelation
+        from planner.models import Meal, MealItem, MealPlan
+        from shopping.models import SourceType, Store
+        from supply.models import MeasuringUnit
+
+        Event.objects.filter(created_by=owner, name=EVENT_NAME).delete()
+        MealPlan.objects.filter(created_by=owner, name=EVENT_NAME).delete()
+        start = dt.datetime(2026, 10, 23, 0, 0, tzinfo=dt.UTC)
+        days = (meals + 2) // 3
+        end = start + dt.timedelta(days=days)
+        event = Event.objects.create(name=EVENT_NAME, created_by=owner, start_date=start, end_date=end, is_public=False)
+        event.responsible_persons.add(owner)
+        plan = MealPlan.objects.create(
+            name=EVENT_NAME,
+            created_by=owner,
+            owner=owner,
+            norm_portions=40,
+            reserve_factor=1.1,
+            start_datetime=start,
+            end_datetime=end,
+        )
+        EventMealPlanRelation.objects.create(event=event, meal_plan=plan)
+        gram, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
+        ingredients = list(
+            Ingredient.objects.filter(slug__startswith="lasttest-zutat-").order_by("slug")[:ingredient_count]
+        )
+        slots = (("breakfast", 8), ("lunch", 12), ("dinner", 18))
+        for index in range(meals):
+            day, (meal_type, hour) = divmod(index, 3)[0], slots[index % 3]
+            begins = start + dt.timedelta(days=day, hours=hour)
+            meal = Meal.objects.create(
+                meal_plan=plan,
+                meal_type=meal_type,
+                start_datetime=begins,
+                end_datetime=begins + dt.timedelta(hours=1),
+                day_part_factor=0.3,
+            )
+            MealItem.objects.bulk_create(
+                MealItem(meal=meal, ingredient=ingredient, quantity=Decimal(50), measuring_unit=gram, factor=1.0)
+                for ingredient in ingredients
+            )
+        for number, offset_hours in enumerate((-12, 24 * (days // 2), 24 * days - 12), start=1):
+            store, _ = Store.objects.get_or_create(owner=owner, name=f"Lasttest Laden {number}")
+            ShoppingList.objects.create(
+                name=f"Lasttest Einkauf {number}",
+                owner=owner,
+                event=event,
+                store=store,
+                scheduled_at=start + dt.timedelta(hours=offset_hours),
+                source_type=SourceType.EVENT_TRIP,
+            )
+        return event
