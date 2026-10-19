@@ -7,6 +7,7 @@ gemini_image_call(). Direct genai.Client usage is not permitted elsewhere.
 
 import json
 import logging
+import threading
 import time
 import uuid
 from decimal import Decimal
@@ -85,6 +86,8 @@ class GeminiUpstreamRateLimitError(ApiError):
 # Internal client management
 # ---------------------------------------------------------------------------
 
+# Gunicorn runs several request threads per process: guard the lazy client creation.
+_client_lock = threading.Lock()
 _client = None
 _image_client = None
 
@@ -93,22 +96,24 @@ def _get_client():
     """Lazy-init the text generation client."""
     global _client
     if _client is None:
-        try:
-            from google import genai
+        with _client_lock:
+            if _client is None:
+                try:
+                    from google import genai
 
-            project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-            location = getattr(settings, "VERTEX_AI_LOCATION", "global")
+                    project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
+                    location = getattr(settings, "VERTEX_AI_LOCATION", "global")
 
-            if project:
-                _client = genai.Client(
-                    vertexai=True,
-                    project=project,
-                    location=location,
-                )
-            else:
-                logger.warning("GOOGLE_CLOUD_PROJECT not set - AI features disabled")
-        except ImportError:
-            logger.warning("google-genai not installed - AI features disabled")
+                    if project:
+                        _client = genai.Client(
+                            vertexai=True,
+                            project=project,
+                            location=location,
+                        )
+                    else:
+                        logger.warning("GOOGLE_CLOUD_PROJECT not set - AI features disabled")
+                except ImportError:
+                    logger.warning("google-genai not installed - AI features disabled")
     return _client
 
 
@@ -116,21 +121,23 @@ def _get_image_client():
     """Lazy-init the image generation client (uses 'global' location)."""
     global _image_client
     if _image_client is None:
-        try:
-            from google import genai
+        with _client_lock:
+            if _image_client is None:
+                try:
+                    from google import genai
 
-            project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
+                    project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
 
-            if project:
-                _image_client = genai.Client(
-                    vertexai=True,
-                    project=project,
-                    location="global",
-                )
-            else:
-                logger.warning("GOOGLE_CLOUD_PROJECT not set - AI features disabled")
-        except ImportError:
-            logger.warning("google-genai not installed - AI features disabled")
+                    if project:
+                        _image_client = genai.Client(
+                            vertexai=True,
+                            project=project,
+                            location="global",
+                        )
+                    else:
+                        logger.warning("GOOGLE_CLOUD_PROJECT not set - AI features disabled")
+                except ImportError:
+                    logger.warning("google-genai not installed - AI features disabled")
     return _image_client
 
 

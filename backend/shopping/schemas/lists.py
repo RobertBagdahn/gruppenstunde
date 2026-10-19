@@ -3,10 +3,12 @@
 from datetime import datetime
 from typing import Literal
 
+from django.db.models import Prefetch
 from ninja import Schema
 from pydantic import Field
 
 from core.services.user_directory import public_display_name
+from shopping.models import ShoppingListItemSource
 from supply.schemas.ingredients import UnitOptionOut
 
 from .trips import PlannedTripOut
@@ -497,7 +499,11 @@ class ShoppingListDetailOut(Schema):
                 "ingredient",
                 "ingredient__retail_section",
             )
-            .prefetch_related("sources", "ingredient__portions__measuring_unit", "ingredient__packages")
+            .prefetch_related(
+                Prefetch("sources", queryset=ShoppingListItemSource.objects.select_related("ingredient")),
+                "ingredient__portions__measuring_unit",
+                "ingredient__packages",
+            )
             .all()
         )
         can_edit = getattr(obj, "_can_edit", False)

@@ -20,6 +20,7 @@ const materialize = vi.fn();
 const applyDiff = vi.fn();
 let diffData = { rows: [] as unknown[], has_changes: false, plan_synced_at: null as string | null };
 const fetchItem = vi.fn();
+const useWarnings = vi.fn((..._args: unknown[]) => ({ data: [] as unknown[] }));
 const notifyError = vi.fn();
 const refetchSession = vi.fn();
 
@@ -55,7 +56,7 @@ vi.mock('@/api/shoppingLists', () => ({
   useDeleteShoppingList: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateShoppingList: () => ({ mutate: vi.fn() }),
   useShoppingListSync: vi.fn(() => ({ pulseOverloaded: false })),
-  useShoppingListWarnings: () => ({ data: [] }),
+  useShoppingListWarnings: (...args: unknown[]) => useWarnings(...args),
   useShoppingListBoard: () => boardQuery,
   fetchShoppingListItem: (...args: unknown[]) => fetchItem(...args),
   useEnableSharing: () => ({ mutate: vi.fn(), isPending: false }),
@@ -104,6 +105,8 @@ describe('ShoppingListDetailPage', () => {
     applyDiff.mockReset();
     diffData = { rows: [], has_changes: false, plan_synced_at: null };
     fetchItem.mockReset();
+    useWarnings.mockReset();
+    useWarnings.mockReturnValue({ data: [] });
     notifyError.mockReset();
     refetchSession.mockReset();
     sessionError = null;
@@ -344,6 +347,39 @@ describe('ShoppingListDetailPage', () => {
     it('keeps the share section hidden for members who cannot manage', () => {
       renderPage();
       expect(screen.queryByTestId('shopping-share-section')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('quantity warnings', () => {
+    it('loads them through their own hook and shows the banner', () => {
+      useWarnings.mockReturnValue({
+        data: [
+          {
+            meal_item_id: 1,
+            meal_id: 2,
+            ingredient_name: 'Brötchen',
+            per_person_value: 800,
+            per_person_unit: 'Stück',
+            total_value: 8000,
+            total_unit: 'Stück',
+            message: 'Brötchen: 800 Stück pro Person – bitte Menge und Einheit prüfen.',
+          },
+        ],
+      });
+
+      renderPage();
+
+      expect(screen.getByText(/Brötchen: 800 Stück pro Person/)).toBeInTheDocument();
+      expect(useWarnings).toHaveBeenLastCalledWith(expect.any(Number), true);
+    });
+
+    it('does not request them in shopping mode', () => {
+      window.localStorage.setItem('inspi.shopping.shopMode', '1');
+
+      renderPage();
+
+      expect(useWarnings).toHaveBeenLastCalledWith(expect.any(Number), false);
+      window.localStorage.clear();
     });
   });
 

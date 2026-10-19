@@ -39,7 +39,7 @@ variable "domain" {
 variable "backend_max_instances" {
   description = "Maximum backend instances, bounded by the Cloud SQL connection budget"
   type        = number
-  default     = 2
+  default     = 3
 
   validation {
     condition     = var.backend_max_instances >= 1
@@ -48,9 +48,9 @@ variable "backend_max_instances" {
 }
 
 variable "backend_concurrency" {
-  description = "Maximum simultaneous requests per backend instance; 1 isolates memory-heavy PDF renders"
+  description = "Maximum simultaneous requests per backend instance; PDF renders are serialized in-process by a semaphore"
   type        = number
-  default     = 1
+  default     = 4
 
   validation {
     condition     = var.backend_concurrency >= 1 && var.backend_concurrency <= 80
@@ -72,7 +72,7 @@ variable "backend_gunicorn_workers" {
 variable "backend_gunicorn_threads" {
   description = "Gunicorn threads per worker process"
   type        = number
-  default     = 1
+  default     = 4
 
   validation {
     condition     = var.backend_gunicorn_threads >= 1

@@ -18,13 +18,13 @@ from core.services.database_capacity import calculate_max_application_connection
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-# reliable-pdf-exports: one Gunicorn worker and one request per instance, >= 1 GiB.
+# stable-backend-capacity: 4 threads and 4 requests per instance (PDF renders serialized by a semaphore), >= 1 GiB.
 EXPECTED_RUNTIME_LIMITS = {
-    "BACKEND_MAX_INSTANCES": "2",
-    "BACKEND_CONCURRENCY": "1",
+    "BACKEND_MAX_INSTANCES": "3",
+    "BACKEND_CONCURRENCY": "4",
     "BACKEND_MEMORY": "1Gi",
     "GUNICORN_WORKERS": "1",
-    "GUNICORN_THREADS": "1",
+    "GUNICORN_THREADS": "4",
 }
 
 TERRAFORM_VARIABLE_NAMES = {
@@ -94,3 +94,17 @@ def test_capacity_check_defaults_match_the_runtime_limits(monkeypatch: pytest.Mo
         connection_max_age_seconds=0,
     )
     assert f"configured_application_max={expected_maximum}" in output.getvalue()
+
+
+def test_backend_image_preloads_the_app_and_ships_compiled_bytecode() -> None:
+    dockerfile = _read_repo_file("Dockerfile.backend")
+
+    assert "--preload" in dockerfile
+    assert "--compile-bytecode" in dockerfile
+    assert "compileall" in dockerfile
+
+
+def test_deploy_workflow_mounts_only_the_current_cloud_sql_instance() -> None:
+    workflow = _read_repo_file(".github/workflows/deploy.yml")
+
+    assert '--set-cloudsql-instances "$PROJECT_ID:$REGION:$SQL_INSTANCE"' in workflow
