@@ -231,7 +231,7 @@ class TestCheckMealsQueryCount:
         def counts(meal_count: int, start: int) -> tuple[int, int]:
             plan = make_meal_plan(created_by=auth_client._user, norm_portions=8)
             self._populate(plan, gram_unit, meal_count, start=start)
-            list_id = auth_client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/").json()["id"]
+            list_id = create_plan_trip(auth_client, auth_client._user, plan).id
             result = []
             for path in ("", "warnings/"):
                 with CaptureQueriesContext(connection) as ctx:
