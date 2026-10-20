@@ -84,6 +84,7 @@ class TestShoppingListOrdering:
 class TestLiquidDisplayFromGrams:
     def test_generated_list_shows_same_millilitres_as_the_plan(self, client: Client):
         from planner.tests import make_meal, make_meal_plan
+        from shopping.tests.trip_helpers import materialize_detail
         from supply.tests import make_ingredient, make_portion
 
         user = baker.make(User)
@@ -94,9 +95,7 @@ class TestLiquidDisplayFromGrams:
         portion = make_portion(honey, name="Löffel", quantity=1.0, weight_g=14.0, rank=1, weight_status="confirmed")
         baker.make("planner.MealItem", meal=meal, ingredient=honey, portion=portion, quantity=1)
 
-        created = client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/")
-        assert created.status_code == 200, created.content
-        detail = client.get(f"/api/shopping-lists/{created.json()['id']}/").json()
+        detail = materialize_detail(client, user, plan)
         item = next(i for i in detail["items"] if i["name"] == "Blütenhonig")
 
         # 14 g × 10 persons = 140 g, honey density 1.4 g/ml => 100 ml

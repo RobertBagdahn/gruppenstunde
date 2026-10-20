@@ -6,6 +6,7 @@ from django.test import Client
 
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
+from shopping.tests.trip_helpers import materialize_detail
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
@@ -42,9 +43,7 @@ def test_saved_list_matches_plan_shopping_tab():
     client = Client()
     client.force_login(user)
     tab = client.get(f"/api/meal-plans/{plan.id}/shopping-list/").json()
-    created = client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/")
-    assert created.status_code == 200, created.content
-    saved = created.json()["items"]
+    saved = materialize_detail(client, user, plan)["items"]
 
     tab_item = next(row for row in tab if row["ingredient_name"] == "Kartoffeln QA")
     saved_item = next(row for row in saved if row["name"] == "Kartoffeln QA")
@@ -71,6 +70,6 @@ def test_list_can_be_created_when_a_portion_weight_is_unknown():
 
     client = Client()
     client.force_login(user)
-    created = client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/")
+    detail = materialize_detail(client, user, plan)
 
-    assert created.status_code == 200, created.content
+    assert detail["items"]

@@ -49,6 +49,22 @@ def test_unused_endpoint_has_no_threshold():
     assert probe.evaluate(samples, p95_sync=0.001, p95_full=3.0) == []
 
 
+def test_cached_plan_calls_have_their_own_limit_and_the_first_call_does_not_count():
+    slow_first = _samples(plan_first=[(200, 5.0)], plan_cached=[(200, 0.05)] * 20)
+    assert probe.evaluate(slow_first, p95_sync=1.0, p95_full=3.0, p95_plan=0.3) == []
+
+    slow_cache = _samples(plan_first=[(200, 1.0)], plan_cached=[(200, 0.5)] * 20)
+    failures = probe.evaluate(slow_cache, p95_sync=1.0, p95_full=3.0, p95_plan=0.3)
+    assert len(failures) == 1 and "plan_cached" in failures[0]
+
+
+def test_planner_flags_are_optional_and_default_to_the_spec_limit():
+    args = probe.parse_args(["--invite-token", "abc"])
+    assert args.event_slug is None and args.p95_plan == 0.3
+    args = probe.parse_args(["--invite-token", "abc", "--event-slug", "lager"])
+    assert args.event_slug == "lager"
+
+
 def test_report_lists_statuses():
     report = probe.format_report(_samples(pulse=[(200, 0.1), (200, 0.2), (429, 0.0)]))
     assert "pulse" in report

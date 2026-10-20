@@ -8,6 +8,7 @@ from planner.models import MealItem
 from planner.services.quantity_plausibility import MAX_GRAMS_PER_PERSON, MAX_PIECES_PER_PERSON, check, check_item
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
+from shopping.tests.trip_helpers import create_plan_trip
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
@@ -152,9 +153,8 @@ class TestShoppingListWarnings:
         make_portion(ingredient=ingredient, name="Stück", measuring_unit=piece_unit, weight_g=50, rank=1)
         MealItem.objects.create(meal=meal, ingredient=ingredient, quantity=800, measuring_unit=piece_unit, factor=1.0)
 
-        resp = auth_client.post(f"/api/shopping-lists/from-meal-plan/{meal_plan.id}/")
-        assert resp.status_code == 200
-        warnings = auth_client.get(f"/api/shopping-lists/{resp.json()['id']}/warnings/")
+        trip = create_plan_trip(auth_client, auth_client._user, meal_plan)
+        warnings = auth_client.get(f"/api/shopping-lists/{trip.id}/warnings/")
         assert len(warnings.json()) == 1
 
     def test_shopping_list_no_warnings_when_plausible(self, auth_client, gram_unit):
@@ -163,9 +163,8 @@ class TestShoppingListWarnings:
         ingredient = make_ingredient(name="Kartoffeln")
         MealItem.objects.create(meal=meal, ingredient=ingredient, quantity=400, measuring_unit=gram_unit, factor=1.0)
 
-        resp = auth_client.post(f"/api/shopping-lists/from-meal-plan/{meal_plan.id}/")
-        assert resp.status_code == 200
-        warnings = auth_client.get(f"/api/shopping-lists/{resp.json()['id']}/warnings/")
+        trip = create_plan_trip(auth_client, auth_client._user, meal_plan)
+        warnings = auth_client.get(f"/api/shopping-lists/{trip.id}/warnings/")
         assert warnings.json() == []
 
 
@@ -232,7 +231,7 @@ class TestCheckMealsQueryCount:
         def counts(meal_count: int, start: int) -> tuple[int, int]:
             plan = make_meal_plan(created_by=auth_client._user, norm_portions=8)
             self._populate(plan, gram_unit, meal_count, start=start)
-            list_id = auth_client.post(f"/api/shopping-lists/from-meal-plan/{plan.id}/").json()["id"]
+            list_id = create_plan_trip(auth_client, auth_client._user, plan).id
             result = []
             for path in ("", "warnings/"):
                 with CaptureQueriesContext(connection) as ctx:

@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
 from supply.models.ingredient import Ingredient
@@ -12,12 +13,41 @@ class SourceType(models.TextChoices):
     MANUAL = "manual", _("Manuell")
     RECIPE = "recipe", _("Rezept")
     MEAL_EVENT = "meal_event", _("Essensplan")
+    EVENT_TRIP = "event_trip", _("Event-Einkauf")
 
 
 class CollaboratorRole(models.TextChoices):
     VIEWER = "viewer", _("Betrachter")
     EDITOR = "editor", _("Bearbeiter")
     ADMIN = "admin", _("Administrator")
+
+
+class Store(models.Model):
+    """Shop a person buys at; names are unique per owner, ignoring case."""
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="shopping_stores",
+        verbose_name=_("Besitzer"),
+    )
+    name = models.CharField(max_length=80, verbose_name=_("Name"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Laden")
+        verbose_name_plural = _("Läden")
+        ordering = ["name", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                models.F("owner"),
+                Lower("name"),
+                name="shopping_store_owner_name_ci_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class ShoppingList(models.Model):
@@ -59,6 +89,40 @@ class ShoppingList(models.Model):
         verbose_name=_("Einladungs-Token"),
         help_text=_("Wer den Link kennt, kann ohne Konto mitarbeiten; leer = Teilen aus"),
     )
+    event = models.ForeignKey(
+        "event.Event",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shopping_trips",
+        verbose_name=_("Event"),
+        help_text=_("Event, zu dem dieser Einkauf gehört"),
+    )
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="shopping_lists",
+        verbose_name=_("Laden"),
+    )
+    scheduled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name=_("Einkaufszeitpunkt"),
+    )
+    materialized_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Liste erstellt am"),
+    )
+    plan_synced_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Mit Plan abgeglichen am"),
+        help_text=_("Zeitpunkt von „Liste erstellen“ oder „Änderungen übernehmen“"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -72,9 +136,96 @@ class ShoppingList(models.Model):
         verbose_name = _("Einkaufsliste")
         verbose_name_plural = _("Einkaufslisten")
         ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["event", "scheduled_at", "id"], name="shopping_list_event_trip_idx"),
+        ]
+
+    @property
+    def trip_status(self) -> str | None:
+        """Derived so there is no second status field that could drift."""
+        if self.materialized_at is not None:
+            return "created"
+        if self.event_id is not None:
+            return "planned"
+        return None
 
     def __str__(self) -> str:
         return self.name
+
+
+class ShoppingAllocationRule(models.Model):
+    """Manual override that sends (part of) an ingredient or material to a given trip."""
+
+    event = models.ForeignKey(
+        "event.Event",
+        on_delete=models.CASCADE,
+        related_name="shopping_allocation_rules",
+        verbose_name=_("Event"),
+    )
+    target = models.ForeignKey(
+        ShoppingList,
+        on_delete=models.CASCADE,
+        related_name="allocation_rules",
+        verbose_name=_("Ziel-Einkauf"),
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="shopping_allocation_rules",
+        verbose_name=_("Zutat"),
+    )
+    material = models.ForeignKey(
+        "supply.Material",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="shopping_allocation_rules",
+        verbose_name=_("Material"),
+    )
+    meal = models.ForeignKey(
+        "planner.Meal",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="shopping_allocation_rules",
+        verbose_name=_("Mahlzeit"),
+        help_text=_("Leer = alle Mahlzeiten"),
+    )
+    quantity = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Menge"),
+        help_text=_("Gramm bzw. Stück; leer = die gesamte Menge"),
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shopping_allocation_rules",
+        verbose_name=_("Erstellt von"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Zuordnungsregel")
+        verbose_name_plural = _("Zuordnungsregeln")
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(ingredient__isnull=False, material__isnull=True)
+                    | models.Q(ingredient__isnull=True, material__isnull=False)
+                ),
+                name="shopping_rule_exactly_one_subject",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Regel {self.pk} → {self.target_id}"
 
 
 class ShoppingListGuest(models.Model):

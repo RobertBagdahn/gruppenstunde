@@ -49,3 +49,19 @@ def test_refuses_without_force_when_debug_is_off(settings):
     settings.DEBUG = False
     with pytest.raises(CommandError, match="DEBUG off"):
         _run("--items", "3")
+
+
+@pytest.mark.django_db
+def test_event_option_builds_a_planable_event():
+    from event.models import Event
+    from shopping.models import SourceType
+    from shopping.services.trips.plan import build_shopping_plan
+
+    result = _run("--items", "6", "--event-meals", "7", "--force")
+
+    event = Event.objects.get(slug=result["event_slug"])
+    assert result["planner_email"] == event.created_by.email
+    assert ShoppingList.objects.filter(event=event, source_type=SourceType.EVENT_TRIP).count() == 3
+    plan = build_shopping_plan(event)
+    assert len(plan.trips) == 3
+    assert sum(len(trip.rows) for trip in plan.trips) > 0

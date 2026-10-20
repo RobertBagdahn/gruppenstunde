@@ -59,6 +59,8 @@ from .schemas import (
     ShoppingListPulseOut,
     ShoppingListShareOut,
     ShoppingListUpdateIn,
+    TripDiffOut,
+    TripDiffRowOut,
 )
 from .services.access import (
     MAX_GUESTS_PER_LIST,
@@ -69,7 +71,6 @@ from .services.access import (
     resolve_actor,
 )
 from .services.board import build_board
-from .services.material_items import add_consumable_items
 from .services.pulse import list_stamp
 
 shopping_router = Router(tags=["shopping-lists"])
@@ -90,15 +91,13 @@ def _get_user_role(shopping_list: ShoppingList, user) -> str | None:
     or None if the user has no access. Staff has full admin/owner access
     unless a specific collaborator role is set.
     """
+    from .services.access import event_team_role, stronger_role
+
     if shopping_list.owner_id == user.id:
         return "owner"
-    try:
-        collab = ShoppingListCollaborator.objects.get(shopping_list=shopping_list, user=user)
-        return collab.role
-    except ShoppingListCollaborator.DoesNotExist:
-        if getattr(user, "is_staff", False):
-            return "owner"
-        return None
+    collab = ShoppingListCollaborator.objects.filter(shopping_list=shopping_list, user=user).first()
+    own = collab.role if collab is not None else ("owner" if getattr(user, "is_staff", False) else None)
+    return stronger_role(own, event_team_role(shopping_list, user))
 
 
 def _require_access(shopping_list: ShoppingList, user) -> str:
@@ -127,9 +126,11 @@ def _require_admin(shopping_list: ShoppingList, user) -> str:
 
 def _require_owner(shopping_list: ShoppingList, user) -> None:
     """Require owner access; users without any access get 404 like every other path."""
-    _require_access(shopping_list, user)
+    role = _require_access(shopping_list, user)
     if shopping_list.owner_id != user.id and not getattr(user, "is_staff", False):
-        raise HttpError(403, "Nur der Besitzer kann die Liste löschen")
+        # The event team runs the trips of its event, so it may delete them like the owner
+        if not (shopping_list.event_id and role == CollaboratorRole.ADMIN):
+            raise HttpError(403, "Nur der Besitzer kann die Liste löschen")
 
 
 def _attach_actor(shopping_list: ShoppingList, actor: Actor) -> None:
@@ -141,6 +142,19 @@ def _attach_actor(shopping_list: ShoppingList, actor: Actor) -> None:
     shopping_list._viewer_display_name = actor.display_name
     shopping_list._request_user = actor.user
     shopping_list._viewer_actor = actor
+
+
+def _attach_preview(shopping_list: ShoppingList) -> None:
+    """Planned trips have no entries yet; show the live allocation from the (cached) event plan instead."""
+    if shopping_list.event_id is None or shopping_list.materialized_at is not None:
+        return
+    from .api_trips import planned_trip_out
+    from .services.trips.plan import build_shopping_plan
+
+    plan = build_shopping_plan(shopping_list.event)
+    trip = next((t for t in plan.trips if t.list_id == shopping_list.id), None)
+    if trip is not None:
+        shopping_list._preview = planned_trip_out(trip, {})
 
 
 def _item_can_delete(item: ShoppingListItem, actor: Actor) -> bool:
@@ -181,10 +195,15 @@ def list_shopping_lists(
     q: str = "",
     sort: Literal["newest", "oldest", "name_asc"] = "newest",
     mine: bool = False,
-    source_type: Literal["manual", "recipe", "meal_event"] | None = None,
+    source_type: Literal["manual", "recipe", "meal_event", "event_trip"] | None = None,
     source_id: int | None = None,
+    without_event: bool = False,
+    invited_trips: bool = False,
 ):
     """List shopping lists the user owns or collaborates on.
+
+    ``without_event`` leaves out event trips (free and recipe lists only); ``invited_trips`` returns only
+    trips of events whose shopping plan the user may not see, i.e. lists they were invited to.
 
     ``sort`` orders the whole result (not just one page) and ``mine`` limits it to
     lists owned by the user. Every order ends in ``id`` so paging never skips or
@@ -193,7 +212,7 @@ def list_shopping_lists(
     require_login(request, READ_LOGIN_ACTION)
     qs = (
         ShoppingList.objects.filter(Q(owner=request.user) | Q(collaborators__user=request.user))
-        .select_related("owner__profile")
+        .select_related("owner__profile", "event", "store")
         .annotate(
             items_count=Count("items", distinct=True),
             checked_count=Count("items", filter=Q(items__is_checked=True), distinct=True),
@@ -209,6 +228,14 @@ def list_shopping_lists(
         qs = qs.filter(source_type=source_type)
     if source_id is not None:
         qs = qs.filter(source_id=source_id)
+    if without_event:
+        # Trips of deleted events lose their event link but still belong to the trip section
+        qs = qs.filter(event__isnull=True).exclude(source_type=SourceType.EVENT_TRIP)
+    if invited_trips:
+        from .services.trips.events import shopping_events
+
+        team_event_ids = shopping_events(request.user, include_past=True).values("id")
+        qs = qs.filter(event__isnull=False).exclude(event_id__in=team_event_ids)
     ordering = {
         "newest": ("-updated_at", "-id"),
         "oldest": ("updated_at", "id"),
@@ -446,11 +473,12 @@ def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
 def get_shopping_list(request, shopping_list_id: int):
     """Get shopping list detail with items and collaborators."""
     require_login_unless_guest(request, READ_LOGIN_ACTION)
-    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    shopping_list = get_object_or_404(ShoppingList.objects.select_related("event", "store"), id=shopping_list_id)
     actor = resolve_actor(request, shopping_list)
 
     # Permissions depend on the viewer, so they are attached as attributes.
     _attach_actor(shopping_list, actor)
+    _attach_preview(shopping_list)
     return shopping_list
 
 
@@ -483,12 +511,19 @@ def get_shopping_list_pulse(request, shopping_list_id: int):
 
 
 def _quantity_warnings(shopping_list: ShoppingList) -> list:
-    """Plausibility warnings of the source meal plan (empty for other sources)."""
-    if shopping_list.source_type != SourceType.MEAL_EVENT or not shopping_list.source_id:
-        return []
+    """Plausibility warnings of the source meal plan(s): all plans of the event for trips, the plan for old lists."""
     from planner.models import MealPlan
     from planner.services.quantity_plausibility import check_meals
 
+    if shopping_list.event_id is not None:
+        from .services.trips.demand import event_meal_plans
+
+        warnings: list = []
+        for plan in event_meal_plans(shopping_list.event):
+            warnings.extend(check_meals(plan.meals.filter(is_reference=False)))
+        return warnings
+    if shopping_list.source_type != SourceType.MEAL_EVENT or not shopping_list.source_id:
+        return []
     meal_plan = MealPlan.objects.filter(id=shopping_list.source_id).first()
     if meal_plan is None:
         return []
@@ -497,20 +532,92 @@ def _quantity_warnings(shopping_list: ShoppingList) -> list:
 
 @shopping_router.patch("/{shopping_list_id}/", response=ShoppingListOut)
 def update_shopping_list(request, shopping_list_id: int, payload: ShoppingListUpdateIn):
-    """Update shopping list name (owner/admin only)."""
+    """Update name, shop and time of a list (owner/admin/event team only)."""
     require_login(request)
-    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    shopping_list = get_object_or_404(ShoppingList.objects.select_related("event", "store"), id=shopping_list_id)
     _require_admin(shopping_list, request.user)
 
-    # An explicit null must not clear the (required) name.
+    # An explicit null must not clear a required field.
     data = {key: value for key, value in payload.dict(exclude_unset=True).items() if value is not None}
     if "name" in data:
         data["name"] = data["name"].strip()
         if not data["name"]:
             raise HttpError(422, "Bitte gib einen Namen für die Liste ein.")
+
+    from .services.stores import selectable_stores
+    from .services.trips.trips import as_aware, trip_name
+
+    old_auto_name = (
+        trip_name(shopping_list.store.name, shopping_list.scheduled_at)
+        if shopping_list.store_id and shopping_list.scheduled_at
+        else None
+    )
+    if "store_id" in data:
+        store = selectable_stores(request.user, event=shopping_list.event).filter(id=data.pop("store_id")).first()
+        if store is None:
+            raise HttpError(422, "Laden nicht gefunden")
+        shopping_list.store = store
+    if "scheduled_at" in data:
+        shopping_list.scheduled_at = as_aware(data.pop("scheduled_at"))
+    if (
+        "name" not in data
+        and old_auto_name is not None
+        and shopping_list.name == old_auto_name
+        and shopping_list.store_id
+        and shopping_list.scheduled_at
+    ):
+        # The name was generated from shop and time, so it follows them
+        data["name"] = trip_name(shopping_list.store.name, shopping_list.scheduled_at)
     for field, value in data.items():
         setattr(shopping_list, field, value)
     shopping_list.save()
+    return shopping_list
+
+
+@shopping_router.post("/{shopping_list_id}/materialize/", response=ShoppingListDetailOut)
+def materialize_shopping_list(request, shopping_list_id: int):
+    """“Liste erstellen”: freeze the demand allocated to a planned trip as entries."""
+    require_login(request)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    _require_admin(shopping_list, request.user)
+
+    from .services.trips.materialize import materialize
+
+    materialize(shopping_list.id)
+    shopping_list = get_object_or_404(ShoppingList.objects.select_related("event", "store"), id=shopping_list_id)
+    _attach_actor(shopping_list, resolve_actor(request, shopping_list))
+    return shopping_list
+
+
+@shopping_router.get("/{shopping_list_id}/plan-diff/", response=TripDiffOut)
+def get_plan_diff(request, shopping_list_id: int):
+    """Entries that differ between a created trip and the current plan."""
+    require_login(request, READ_LOGIN_ACTION)
+    shopping_list = get_object_or_404(ShoppingList.objects.select_related("event"), id=shopping_list_id)
+    _require_access(shopping_list, request.user)
+
+    from .services.trips.diff import plan_diff
+
+    rows = plan_diff(shopping_list)
+    return TripDiffOut(
+        rows=[TripDiffRowOut(**vars(row)) for row in rows],
+        has_changes=bool(rows),
+        plan_synced_at=shopping_list.plan_synced_at,
+    )
+
+
+@shopping_router.post("/{shopping_list_id}/plan-diff/apply/", response=ShoppingListDetailOut)
+def apply_plan_diff_endpoint(request, shopping_list_id: int):
+    """Take over plan changes into the open, generated entries of a created trip."""
+    require_login(request)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    _require_admin(shopping_list, request.user)
+
+    from .services.trips.diff import apply_plan_diff
+
+    apply_plan_diff(shopping_list.id)
+    shopping_list = get_object_or_404(ShoppingList.objects.select_related("event", "store"), id=shopping_list_id)
+    _attach_actor(shopping_list, resolve_actor(request, shopping_list))
     return shopping_list
 
 
@@ -986,174 +1093,46 @@ def create_rewe_export_token(request, shopping_list_id: int):
 # ---------------------------------------------------------------------------
 
 
+NO_TARGET_MESSAGE = "Bitte wähle einen Laden und einen Zeitpunkt oder eine bestehende Liste."
+
+
 @shopping_router.post("/from-recipe/{recipe_id}/", response=ShoppingListDetailOut)
 def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
-    """Create a shopping list from a recipe's ingredients."""
+    """Buy a recipe: on a new list (shop and time) or added to an existing list."""
     require_login(request)
 
     from content.services.food_access import get_visible_recipe_or_404
-    from planner.services.calculation_context import resolve_active_recipe_items
-    from recipe.services.recipe_item_helpers import get_recipe_item_ingredient
+
+    from .services.recipe_items import add_recipe_to_list
+    from .services.stores import selectable_stores
+    from .services.trips.trips import create_trip
 
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
-    portions = payload.portions
-    active_items = {item.recipe_item.id: item for item in resolve_active_recipe_items(recipe)}
 
-    with transaction.atomic():
-        shopping_list = ShoppingList.objects.create(
-            name=f"Einkaufsliste: {recipe.title}",
-            owner=request.user,
-            source_type=SourceType.RECIPE,
-            source_id=recipe.id,
-            source_portions=portions,
-        )
+    if payload.shopping_list_id is not None:
+        target = get_object_or_404(ShoppingList.objects.select_related("event", "store"), id=payload.shopping_list_id)
+        _require_edit(target, request.user)
+        if target.event_id is not None and target.materialized_at is not None:
+            raise HttpError(409, "Rezepte kommen bei Events über den Essensplan")
+        with transaction.atomic():
+            add_recipe_to_list(target, recipe, payload.portions, payload.include_consumables)
+            target.save(update_fields=["updated_at"])
+        shopping_list = target
+    elif payload.store_id is not None and payload.scheduled_at is not None:
+        store = selectable_stores(request.user).filter(id=payload.store_id).first()
+        if store is None:
+            raise HttpError(422, "Laden nicht gefunden")
+        with transaction.atomic():
+            shopping_list = create_trip(owner=request.user, event=None, store=store, scheduled_at=payload.scheduled_at)
+            shopping_list.source_type = SourceType.RECIPE
+            shopping_list.source_id = recipe.id
+            shopping_list.source_portions = payload.portions
+            shopping_list.save(update_fields=["source_type", "source_id", "source_portions"])
+            add_recipe_to_list(shopping_list, recipe, payload.portions, payload.include_consumables)
+    else:
+        raise HttpError(422, NO_TARGET_MESSAGE)
 
-        recipe_items = recipe.recipe_items.select_related(
-            "portion__ingredient__retail_section",
-            "portion__measuring_unit",
-            "ingredient__retail_section",
-        )
-
-        sort_idx = 0
-        for ri in recipe_items:
-            # Inactive exchange alternatives and soft-deleted portions are not bought.
-            active_item = active_items.get(ri.id)
-            if not active_item:
-                continue
-
-            ing = get_recipe_item_ingredient(ri)
-            # Recipe quantities are stored per person.
-            weight_g = (active_item.weight_g or 0) * portions
-            portion_unit = ri.portion.measuring_unit.name if ri.portion and ri.portion.measuring_unit else ""
-            if ing is None:
-                # Unlinked direct-gram items keep their grams; unlinked portions have no weight basis.
-                item = ShoppingListItem.objects.create(
-                    shopping_list=shopping_list,
-                    name=ri.note or "Unbekannte Zutat",
-                    quantity_g=weight_g,
-                    unit="g" if active_item.weight_g is not None else portion_unit,
-                    note=""
-                    if active_item.weight_g is not None
-                    else f"Menge: {active_item.quantity:g}; Gewicht unbekannt",
-                    sort_order=sort_idx,
-                )
-            else:
-                note = ""
-                if active_item.weight_g is None:
-                    note = f"Menge: {active_item.quantity:g} {portion_unit}".rstrip() + "; Gewicht unbekannt"
-
-                item = ShoppingListItem.objects.create(
-                    shopping_list=shopping_list,
-                    ingredient=ing,
-                    name=ing.name,
-                    quantity_g=weight_g,
-                    unit="g" if active_item.weight_g is not None else portion_unit,
-                    note=note,
-                    retail_section=ing.retail_section,
-                    sort_order=sort_idx,
-                )
-
-            # Every generated entry keeps its recipe source so it is never treated as a manual entry.
-            ShoppingListItemSource.objects.create(
-                shopping_list_item=item,
-                recipe=recipe,
-                ingredient=ing,
-                quantity_g=weight_g,
-                recipe_name=recipe.title,
-                recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
-                meal_label="",
-            )
-            sort_idx += 1
-
-        if payload.include_consumables:
-            from supply.services.material_aggregation import aggregate_materials
-
-            add_consumable_items(shopping_list, aggregate_materials([(recipe, portions)]), sort_idx)
-
-    _attach_actor(shopping_list, Actor(role="owner", user=request.user))
-    return shopping_list
-
-
-@shopping_router.post("/from-meal-plan/{meal_plan_id}/", response=ShoppingListDetailOut)
-def create_from_meal_plan(request, meal_plan_id: int, include_consumables: bool = True):
-    """Create a persistent shopping list from a MealPlan."""
-    require_login(request)
-
-    from planner.models import MealPlan
-
-    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    from planner.api.meal_plan import _require_access
-
-    _require_access(meal_plan, request.user)
-
-    from supply.services.shopping_service import generate_shopping_list
-
-    transient_items = generate_shopping_list(meal_plan)
-
-    from recipe.models import Recipe as RecipeModel
-    from supply.models.ingredient import Ingredient
-
-    with transaction.atomic():
-        shopping_list = ShoppingList.objects.create(
-            name=f"Einkaufsliste: {meal_plan.name}",
-            owner=request.user,
-            source_type=SourceType.MEAL_EVENT,
-            source_id=meal_plan.id,
-        )
-
-        for sort_idx, ti in enumerate(transient_items):
-            # Try to resolve ingredient and its retail section
-            ingredient = None
-            retail_section = None
-            try:
-                ingredient = Ingredient.objects.get(id=ti.ingredient_id)
-                retail_section = ingredient.retail_section
-            except Ingredient.DoesNotExist:
-                pass
-
-            item = ShoppingListItem.objects.create(
-                shopping_list=shopping_list,
-                ingredient=ingredient,
-                name=ti.ingredient_name,
-                quantity_g=ti.total_quantity_g,
-                # quantity_g is grams; the display unit is derived from it on read.
-                unit="g",
-                note=ti.display_text if not ti.total_quantity_g and ti.display_text else "",
-                retail_section=retail_section,
-                sort_order=sort_idx,
-            )
-
-            # Persist sources
-            if ti.sources:
-                for source in ti.sources:
-                    recipe_obj = RecipeModel.objects.filter(id=source.recipe_id).first() if source.recipe_id else None
-                    meal_obj = meal_plan.meals.filter(id=source.meal_id).first() if source.meal_id else None
-                    ingredient_obj = (
-                        Ingredient.objects.filter(id=source.ingredient_id).first()
-                        if source.ingredient_id
-                        else ingredient
-                    )
-                    ShoppingListItemSource.objects.create(
-                        shopping_list_item=item,
-                        recipe=recipe_obj,
-                        meal=meal_obj,
-                        ingredient=ingredient_obj,
-                        quantity_g=source.quantity_g,
-                        recipe_name=source.recipe_name,
-                        recipe_slug=source.recipe_slug,
-                        meal_label=source.meal_label,
-                    )
-
-        if include_consumables:
-            from supply.services.material_aggregation import aggregate_materials, meal_plan_material_entries
-
-            add_consumable_items(
-                shopping_list,
-                aggregate_materials(meal_plan_material_entries(meal_plan)),
-                len(transient_items),
-            )
-
-    _attach_actor(shopping_list, Actor(role="owner", user=request.user))
+    _attach_actor(shopping_list, resolve_actor(request, shopping_list))
     return shopping_list
 
 
