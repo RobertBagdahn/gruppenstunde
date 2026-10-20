@@ -1,0 +1,1466 @@
+[
+  {
+    "path": "business",
+    "title": "Geschäftsmodell DeineGartenwelt",
+    "description": "Überblick, wie DeineGartenwelt Saatgut verkauft, einkauft und lagert – das fachliche Fundament für Prognose und Bestellplanung.",
+    "kind": "folder",
+    "status": "draft",
+    "children": [
+      {
+        "path": "business/artikelbeziehungen.md",
+        "title": "Artikelbeziehungen",
+        "description": "Wie Sets, Bundles, Varianten-Listings, Produktlayouts und Bio-Sorten miteinander und mit dem Basisartikel zusammenhängen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/einkauf-eigenmarke.md",
+        "title": "Einkauf Eigenmarke",
+        "description": "Regeln der Großbestellung der Eigenmarke: 60k-Stufen, 5.000er-Raster, Rundung, Zieltermin, Lieferzeit und der Abgleich mit Daniels Excel-Planung.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/einkauf-fremdmarke.md",
+        "title": "Einkauf Fremdmarke",
+        "description": "Was über den kurzfristigen Einkauf von Fremdmarken bekannt ist und was für Bestellvorschläge noch fehlt.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/index.md",
+        "title": "Geschäftsmodell DeineGartenwelt",
+        "description": "Überblick, wie DeineGartenwelt Saatgut verkauft, einkauft und lagert – das fachliche Fundament für Prognose und Bestellplanung.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/lager-bestand-mhd.md",
+        "title": "Lager, Bestand und MHD",
+        "description": "Puffer-Regel, Bestandsbegriffe, Haltbarkeit und warum der Bestand die Grundlage für Ausverkaufserkennung und Ampel ist.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/saisonalitaet-und-wachstum.md",
+        "title": "Saisonalität und Wachstum",
+        "description": "Saisonverlauf des Saatgutgeschäfts und die von Daniel genannten Wachstumstreiber 2019–2026 mit bereinigten Absatzzahlen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/unternehmen-und-sortiment.md",
+        "title": "Unternehmen und Sortiment",
+        "description": "Marken, Kategorien, Sonderartikel und Scope-Grenzen des Sortiments von DeineGartenwelt.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/vertriebskanaele-und-amazon.md",
+        "title": "Vertriebskanäle und Amazon",
+        "description": "Welche Kanäle es gibt, warum Amazon dominiert und welche Amazon-Mechaniken die Nachfrage prägen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "business/zielkonflikt-ausverkauf-ueberbestand.md",
+        "title": "Zielkonflikt Ausverkauf vs. Überbestand",
+        "description": "Warum jede Bestellmenge eine Risikoabwägung zwischen entgangenen Verkäufen und Entsorgung ist und wie das Tool sie sichtbar macht.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "data",
+    "title": "Daten",
+    "description": "Woher die Daten kommen, wie jede Zeile identifiziert und eingeordnet wird, wie die Pipeline jederzeit neu aufgebaut wird und welche Auffälligkeiten gefunden wurden.",
+    "kind": "folder",
+    "status": "draft",
+    "children": [
+      {
+        "path": "data/anomalieerkennung.md",
+        "title": "Daten-Anomalieerkennung",
+        "description": "Katalog der automatischen Prüfungen, die auffällige Daten finden, mit Schweregrad, Folge und den Funden aus dem Datenscan vom 10.10.2026.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/befund-bestand-danach.md",
+        "title": "Befund: Bestand danach ist kein Saldo",
+        "description": "Die Spalte Bestand danach im Warenbewegungs-Export ist kein laufender Saldo der Buchungen, sondern vermutlich der verfügbare Bestand nach Reservierungen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/befund-kalenderwochen-2026.md",
+        "title": "Befund: v1 beschriftet die Wochen 2026 eine Woche zu spät",
+        "description": "In der v1-Datenbank liegt week_start aller Wochen ab 2026 sieben Tage nach dem ISO-Montag; die Reihe hat eine Lücke zum Jahreswechsel und die Prognose beginnt eine Woche zu spät.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/befund-sammelbuchungen-vor-2023.md",
+        "title": "Befund: Sammelbuchungen vor 2023",
+        "description": "2019–2022 enthält die Buchungsart Versandprozess WMS technische Sammelbuchungen, die v1 als Verkauf gezählt hat – 2021 und 2022 rund die Hälfte des Absatzes.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/datenklassifikation-und-herkunft.md",
+        "title": "Datenklassifikation und Herkunft",
+        "description": "Wie jede Datenzeile eindeutig identifiziert, mit Herkunft versehen und einer Nachfrageklasse zugeordnet wird – und wie Daniel unklare Fälle entscheidet.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/datenpipeline-und-neuaufbau.md",
+        "title": "Datenpipeline und Neuaufbau",
+        "description": "Stammsystem-Prinzip und nukebare Pipeline: Flower-Demand lässt sich jederzeit vollständig aus den echten Daten neu aufbauen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/datenquellen-und-erp.md",
+        "title": "Datenquellen und ERP",
+        "description": "Welche Systeme und Exporte Daten liefern, was davon Stammsystem ist und wie Daten zu Flower-Demand kommen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/index.md",
+        "title": "Daten",
+        "description": "Woher die Daten kommen, wie jede Zeile identifiziert und eingeordnet wird, wie die Pipeline jederzeit neu aufgebaut wird und welche Auffälligkeiten gefunden wurden.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/stammdaten-sets-bundles.md",
+        "title": "Stammdaten, Sets und Bundles",
+        "description": "Welche Artikelfelder es gibt, woher sie kommen und wie Sets und Bundles technisch auf Basisartikel aufgelöst werden.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "data/warenbewegungen-buchungsarten.md",
+        "title": "Warenbewegungen und Buchungsarten",
+        "description": "Alle 15 Buchungsarten im Warenbewegungs-Export mit Mengen, Zeitraum, vermuteter Bedeutung und Behandlung in v1 und v2.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "forecasting",
+    "title": "Prognose",
+    "description": "Methodik der Bedarfsprognose von Flower-Demand: Nachfrage statt Absatz, Modelle, Quantile, Bewertung, Erklärbarkeit und Nachsteuern.",
+    "kind": "folder",
+    "status": "draft",
+    "children": [
+      {
+        "path": "forecasting/erklaerbarkeit.md",
+        "title": "Erklärbarkeit",
+        "description": "Wie Flower-Demand jede Prognose und Bestellmenge so erklärt, dass Daniel ihr vertrauen oder begründet widersprechen kann.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "forecasting/index.md",
+        "title": "Prognose",
+        "description": "Methodik der Bedarfsprognose von Flower-Demand: Nachfrage statt Absatz, Modelle, Quantile, Bewertung, Erklärbarkeit und Nachsteuern.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "forecasting/kennzahlen-und-bewertung.md",
+        "title": "Kennzahlen und Bewertung",
+        "description": "Wie Prognosen und Bestellentscheidungen bewertet werden: Fehlermaße, Intervallgüte, entscheidungsorientierte Backtests und Ampel-Reichweite.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "forecasting/modellstrategie.md",
+        "title": "Modellstrategie",
+        "description": "Welche Prognosemodelle Flower-Demand nutzt, was Version 1 gelernt hat und wie Hierarchie, Treiber, Kaltstart und Fremdmarken behandelt werden.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "forecasting/nachfrage-vs-absatz.md",
+        "title": "Nachfrage statt Absatz",
+        "description": "Warum Flower-Demand die Nachfrage und nicht den Absatz prognostiziert und wie Ausverkauf, Sets, Bundles und Sammelbuchungen dabei behandelt werden.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "forecasting/nachsteuern-in-der-saison.md",
+        "title": "Nachsteuern in der Saison",
+        "description": "Wie Flower-Demand während der Saison mit aktuellen Verkäufen hochrechnet und meldet, wenn Artikel besser oder schlechter laufen als geplant (Variante 3).",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "forecasting/probabilistische-bestellentscheidung.md",
+        "title": "Probabilistische Bestellentscheidung",
+        "description": "Wie aus Prognose-Quantilen, Kosten, Raster und Budget eine Bestellmenge für Eigenmarke und ein Bestellpunkt für Fremdmarken entsteht.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "graph",
+    "title": "graph",
+    "description": "",
+    "kind": "folder",
+    "status": null,
+    "children": []
+  },
+  {
+    "path": "open-questions",
+    "title": "Offene Fragen",
+    "description": "Alle 106 ungeklärten Punkte zu Flower-Demand an einem Ort – was nicht beantwortet ist, wird hier festgehalten statt erfunden.",
+    "kind": "folder",
+    "status": "stable",
+    "children": [
+      {
+        "path": "open-questions/fragenrunde-2.md",
+        "title": "Fragenrunde 2 – 20 Vertiefungsfragen",
+        "description": "Vertiefende Fragen an Daniel zu Sales, Bestand, Lieferanten, Kosten und Ads (Oktober 2026).",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/fragenrunde-3.md",
+        "title": "Fragenrunde 3 – 20 Fragen aus dem Graph-Audit",
+        "description": "Fragen aus den Lücken im Wissensgraphen (Oktober 2026).",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/index.md",
+        "title": "Offene Fragen",
+        "description": "Alle 106 ungeklärten Punkte zu Flower-Demand an einem Ort – was nicht beantwortet ist, wird hier festgehalten statt erfunden.",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-001-erfolg-messen.md",
+        "title": "Q-001: Woran messen wir Erfolg?",
+        "description": "Woran messen wir in zwölf Monaten, ob Flower-Demand erfolgreich ist – weniger Ausverkaufswochen, weniger Entsorgung, weniger Planungszeit oder etwas anderes?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-002-prioritaet-bereiche.md",
+        "title": "Q-002: Welcher Bereich zuerst?",
+        "description": "Was ist dir als Erstes am wichtigsten: Live-Ampel, Jahresplanung Eigenmarke oder Bestellvorschläge Fremdmarke?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-003-naechste-grossbestellung.md",
+        "title": "Q-003: Wann ist die nächste Großbestellung?",
+        "description": "Wann steht die nächste Großbestellung der Eigenmarke an, und bis wann muss das Tool dafür einsatzbereit sein?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-004-kosten-ausverkauf.md",
+        "title": "Q-004: Was kostet eine Ausverkaufswoche?",
+        "description": "Was kostet dich eine Ausverkaufswoche eines Top-Artikels in der Hauptsaison – entgangener Deckungsbeitrag plus Ranking-Schaden – grob in Euro oder als Faktor gegenüber einer überzähligen Tüte?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-005-kosten-ueberbestand.md",
+        "title": "Q-005: Was kostet Überbestand?",
+        "description": "Was kostet eine Tüte, die entsorgt werden muss (Einkaufspreis, Lagerplatz, Entsorgung), und wie viel wurde in den letzten Jahren entsorgt?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-006-budget-grenze.md",
+        "title": "Q-006: Gibt es ein festes Budget?",
+        "description": "Gibt es für die Großbestellung ein festes Budget (in Euro oder Tüten), und wer legt es fest?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-007-deckungsbeitrag.md",
+        "title": "Q-007: Deckungsbeitrag pro Tüte",
+        "description": "Wie hoch ist der Deckungsbeitrag pro Tüte nach Kanal (Amazon-Gebühren gegenüber eigenem Shop)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-008-nutzerkreis.md",
+        "title": "Q-008: Wer nutzt das Tool?",
+        "description": "Wer soll das Tool nutzen (Daniel, Elena, weitere Personen), und wer darf Bestellungen freigeben?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-009-excel-prozess.md",
+        "title": "Q-009: Wie sieht die heutige Excel-Planung aus?",
+        "description": "Wie läuft eure Bedarfsplanung heute Schritt für Schritt in Excel, welche Regeln stecken in der Datei, und kannst du die Datei teilen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-010-entscheidungsrhythmus.md",
+        "title": "Q-010: In welchem Rhythmus wird entschieden?",
+        "description": "In welchem Rhythmus triffst du Einkaufsentscheidungen – täglich, wöchentlich, saisonal – getrennt für Eigenmarke und Fremdmarke?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-011-cockpit-bestehend.md",
+        "title": "Q-011: Was kann das bestehende Cockpit?",
+        "description": "Was zeigt euer bestehendes Artikel-Cockpit (Variante 2 ohne Prognose), und sollen wir es ersetzen, ergänzen oder nur verlinken?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-012-neue-sorten.md",
+        "title": "Q-012: Wie kommen neue Sorten ins Sortiment?",
+        "description": "Wie viele neue Eigenmarken-Sorten kommen pro Jahr dazu, und wie entscheidest du, welche?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-013-auslistung.md",
+        "title": "Q-013: Wann wird ein Artikel ausgelistet?",
+        "description": "Nach welchen Regeln wird ein Artikel ausgelistet oder nicht mehr nachbestellt?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-014-sonderartikel-planung.md",
+        "title": "Q-014: Wie werden Sonderartikel geplant?",
+        "description": "Wie werden Sonderartikel (Adventskalender, Weihnachtsbaum-Samen, Glücksklee) geplant und bestellt, und sollen sie ins Tool?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-015-seedhero-ende.md",
+        "title": "Q-015: Bis wann läuft Seedhero aus?",
+        "description": "Bis wann soll Seedhero abverkauft sein, und soll das Tool Restbestände überwachen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-016-preisaktionen.md",
+        "title": "Q-016: Gibt es Preisaktionen und Deals?",
+        "description": "Gibt es Preisaktionen, Rabatte oder Amazon-Deals (z. B. Prime Day), und wo sind sie dokumentiert?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-017-ads-steuerung.md",
+        "title": "Q-017: Wie hängen Ads und Prognose zusammen?",
+        "description": "Welche Ads-Entscheidungen willst du künftig datenbasiert treffen, und sollen Werbeausgaben in die Prognose einfließen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-018-neue-kanaele.md",
+        "title": "Q-018: Kommen neue Kanäle dazu?",
+        "description": "Ist Bauhaus oder ein anderer neuer Kanal geplant, und welches Volumen erwartest du?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-019-b2b-grosskunden.md",
+        "title": "Q-019: Gibt es B2B- oder Großkunden?",
+        "description": "Gibt es Großkunden oder B2B-Lieferungen (z. B. an OBI oder Hornbach als Händler, Firmenkunden), die in den Daten als große Sammelbuchungen auftauchen?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-020-idealer-montag.md",
+        "title": "Q-020: Wie sieht dein idealer Montag aus?",
+        "description": "Wenn alles fertig ist: Wie sieht dein idealer Montagmorgen mit dem Tool aus – was schaust du an, was entscheidest du, was passiert automatisch?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-021-erp-name.md",
+        "title": "Q-021: Welches ERP ist im Einsatz?",
+        "description": "Welches ERP setzt ihr seit der Migration ein (Name, Version, Cloud oder On-Premises)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-022-altes-erp-jtl.md",
+        "title": "Q-022: War das alte ERP JTL-Wawi?",
+        "description": "War das alte ERP JTL-Wawi mit JTL-WMS? Die Buchungsarten („JTL-Ameise Import“, „Packtisch+“, „EazyShipping“) deuten darauf hin.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-023-altdaten-umfang.md",
+        "title": "Q-023: Welche Altdaten gibt es?",
+        "description": "Welche Altdaten kannst du aus dem alten ERP exportieren (Warenbewegungen, Auftragspositionen, Einkaufsbestellungen, Wareneingänge, Lagerbestände) und ab welchem Jahr?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-024-sammelbuchungen-versand.md",
+        "title": "Q-024: Was sind große Versandbuchungen 2020–2022?",
+        "description": "Was steckt hinter den großen Mengen pro Buchung in „Versandprozess WMS“ 2020–2022 (bis 21.931 Tüten in einer Zeile)?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-025-streckenlager.md",
+        "title": "Q-025: Was bedeutet Ausbuchen aus Streckenlager?",
+        "description": "Was bedeutet „Ausbuchen aus Streckenlager“ (2019–2024, im Schnitt 2.000–2.800 Tüten pro Buchung)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-026-fba-bestand.md",
+        "title": "Q-026: Wurde Amazon FBA genutzt?",
+        "description": "Was bedeuten die Buchungen „FBA Bestandsänderung“ bis 2022, und hat DeineGartenwelt Amazon FBA genutzt? Wenn ja: Liegen die FBA-Verkäufe als Daten vor?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-027-packtisch-versand.md",
+        "title": "Q-027: Warum Versand über Packtisch+?",
+        "description": "Warum lief 2019–2020 ein Teil des Versands über „Warenausgang – Versand mit Packtisch+“ statt „Versandprozess WMS“, und ist das ebenfalls Endkunden-Verkauf?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-028-produktion-buchungen.md",
+        "title": "Q-028: Was bedeuten Produktionsbuchungen?",
+        "description": "Was bedeuten „Entnahme Produktion“ und „Einlagerung Produktion“ seit August 2025 – konfektioniert ihr selbst (Sets, Bundles)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-029-korrekturbuchungen.md",
+        "title": "Q-029: Wie zählen Korrekturbuchungen?",
+        "description": "Wie sollen Korrekturbuchungen, Inventurdifferenzen sowie Minus- und Plusbuchungen behandelt werden?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-030-retouren.md",
+        "title": "Q-030: Wie zählen Retouren?",
+        "description": "Sollen Retouren die Nachfrage mindern, und gehen retournierte Tüten zurück in den Verkauf?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-031-lagerorte.md",
+        "title": "Q-031: Welche Lagerorte gibt es?",
+        "description": "Gibt es mehrere Lagerorte (eigenes Lager, Amazon-Lager, Dienstleister), und welcher Bestand gilt als verfügbar?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-032-auftragspositionen.md",
+        "title": "Q-032: Gibt es Auftragspositionen?",
+        "description": "Kannst du Auftragspositionen ohne Kundendaten liefern – mit Artikelnummer inkl. Bundles, Kanal und Datum, historisch und laufend per API?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-033-sets-physisch.md",
+        "title": "Q-033: Sind Sets vorkonfektioniert?",
+        "description": "Sind Sets vorkonfektioniert mit eigenem Bestand, oder werden sie beim Versand aus Einzeltüten gepackt?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-034-set-historie.md",
+        "title": "Q-034: Ändern sich Set-Zusammensetzungen?",
+        "description": "Hat sich die Zusammensetzung von Sets über die Zeit geändert, und gibt es dazu eine Historie?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-035-kanal-artikelebene.md",
+        "title": "Q-035: Kanalaufteilung pro Artikel?",
+        "description": "Kannst du die Kanalaufteilung pro Artikel und Woche liefern, aus dem neuen ERP auch für die Vergangenheit?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-036-puffer-historie.md",
+        "title": "Q-036: Seit wann gilt der Puffer von 30?",
+        "description": "Seit wann gilt der Puffer von 30 Tüten, gilt er für alle Kanäle inklusive Shop, und gilt er auch für Fremdmarken?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-037-ausverkauf-historie.md",
+        "title": "Q-037: Welche Artikel waren wann ausverkauft?",
+        "description": "Gibt es eine Liste oder Erinnerung, welche Artikel in den Hauptsaisons 2023–2026 ausverkauft waren?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-038-stammdaten-felder.md",
+        "title": "Q-038: Welche Stammdaten pflegt das neue ERP?",
+        "description": "Welche Stammdaten sind im neuen ERP gepflegt: Lieferant, Einkaufspreis, Verpackungseinheit, Status, Kategorie, MHD je Charge?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-039-artikelnummern-migration.md",
+        "title": "Q-039: Sind Artikelnummern migriert?",
+        "description": "Sind die Artikelnummern bei der ERP-Migration gleich geblieben, oder gibt es ein Mapping alt → neu?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-040-layout-artikelnummer.md",
+        "title": "Q-040: Neues Layout, neue Artikelnummer?",
+        "description": "Bekommt ein Artikel mit neuem Produktlayout eine neue Artikelnummer, oder bleibt sie gleich?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-041-api-aktualitaet.md",
+        "title": "Q-041: Wie aktuell sind API-Daten?",
+        "description": "Wie aktuell können Daten per ERP-API abgerufen werden (Echtzeit, stündlich, täglich), und gibt es Rate-Limits?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-042-gemeinsame-datenbasis.md",
+        "title": "Q-042: Gemeinsame Datenbasis für Ads?",
+        "description": "Welche Datenbasis planst du für Ads, und sollen wir dieselbe PostgreSQL-Datenbank als gemeinsame, saubere Datenbasis nutzen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-043-hersteller-eigenmarke.md",
+        "title": "Q-043: Wer stellt die Eigenmarke her?",
+        "description": "Wer ist Hersteller bzw. Abfüller der Eigenmarke, und gibt es mehrere?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-044-60k-stufe.md",
+        "title": "Q-044: Was bedeutet die 60k-Stufe genau?",
+        "description": "Was genau bedeutet die 60k-Stufe – Mindestvolumen pro Bestellung, Preisstaffel oder Produktionslos? Muss eine Bestellung exakt ein Vielfaches von 60.000 sein?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-045-raster-mindestmenge.md",
+        "title": "Q-045: Gilt das 5.000er-Raster überall?",
+        "description": "Gelten Bestellraster 5.000 und Mindestmenge 5.000 für alle Sorten, auch bei Nachbestellungen?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-046-nachbestellung.md",
+        "title": "Q-046: Wie funktionieren Nachbestellungen?",
+        "description": "Wie funktionieren unterjährige Nachbestellungen der Eigenmarke (Menge, Preis, Lieferzeit)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-047-lieferzeit-zuverlaessigkeit.md",
+        "title": "Q-047: Wie zuverlässig sind zwölf Wochen?",
+        "description": "Wie zuverlässig ist die Lieferzeit von zwölf Wochen, und gibt es saisonale Engpässe beim Hersteller?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-048-bestellzeitpunkte.md",
+        "title": "Q-048: Wann im Jahr wird bestellt?",
+        "description": "Zu welchen Zeitpunkten im Jahr bestellst du die Eigenmarke, und warum (z. B. Bestellung Ende Mai 2026 mit Horizont KW 39/2027)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-049-zieltermin-regel.md",
+        "title": "Q-049: Wie wählst du den Zieltermin?",
+        "description": "Nach welcher Regel wählst du den Zieltermin „Bestand soll reichen bis“ (z. B. Ende der nächsten Hauptsaison plus Sicherheit)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-050-rundungsregel.md",
+        "title": "Q-050: Bestätigst du die Rundungsregel?",
+        "description": "Bestätigst du: Aufrunden auf den nächsten 5.000er-Schritt nur, wenn der angebrochene Schritt mindestens X % gefüllt ist (20.207 → 20.000)? Welcher Standardwert für X?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-051-reserve-servicegrad.md",
+        "title": "Q-051: Reserve-Prozent oder Servicegrad?",
+        "description": "Möchtest du weiter einen Reserve-Prozentsatz einstellen, oder lieber einen Servicegrad wie „90 % Sicherheit, bis zum Zieltermin nicht auszuverkaufen“?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-052-grenzartikel.md",
+        "title": "Q-052: Wie mit Artikeln auf der Kippe umgehen?",
+        "description": "Wie gehst du mit Artikeln „auf der Kippe“ um, deren Bedarf knapp unter oder über der Mindestmenge liegt?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-053-mhd-chargen.md",
+        "title": "Q-053: Wie wird das MHD gepflegt?",
+        "description": "Sind MHD-Daten pro Charge im ERP gepflegt, und was passiert, wenn ein MHD naht?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-054-ek-preise.md",
+        "title": "Q-054: Wie hoch sind die Einkaufspreise?",
+        "description": "Wie hoch sind die Einkaufspreise pro Tüte, und gibt es Mengenstaffeln?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-055-zulauf.md",
+        "title": "Q-055: Wird Zulauf im ERP erfasst?",
+        "description": "Werden offene Bestellungen beim Hersteller im ERP erfasst, mit erwartetem Liefertermin?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-056-freigabe-ablauf.md",
+        "title": "Q-056: Wie läuft eine Bestellung ab?",
+        "description": "Welche Schritte hat eine Bestellung vom Vorschlag bis zum Versand an den Hersteller (Prüfung, Freigabe, Format)?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-057-fall-dgw042.md",
+        "title": "Q-057: Was war bei DGW042 los?",
+        "description": "Für DGW042 lag der Netto-Bedarf in v1 bei über 7.000 Tüten, deine Schätzung bei 2.000. Wie hat sich DGW042 seit Mai verkauft, und was wusstest du, was das Modell nicht wusste?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-058-layout-bestand.md",
+        "title": "Q-058: Alter und neuer Layout-Bestand?",
+        "description": "Müssen Tüten mit altem und neuem Layout getrennt gesehen werden, etwa weil das alte Layout zuerst abverkauft werden soll?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-059-fremd-lieferanten.md",
+        "title": "Q-059: Welche Fremdmarken-Lieferanten gibt es?",
+        "description": "Welche Lieferanten gibt es für Fremdmarken, und wie viele Artikel hat jeder?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-060-fremd-konditionen.md",
+        "title": "Q-060: Welche Konditionen gelten je Lieferant?",
+        "description": "Welche Konditionen gelten je Fremdmarken-Lieferant: Lieferzeit, Mindestabnahme pro Artikel, Mindestbestellwert, Frachtfrei-Grenze, Bestelltage?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-061-fremd-rhythmus.md",
+        "title": "Q-061: Wie wird heute Fremdmarke bestellt?",
+        "description": "Wie oft bestellst du heute Fremdmarken, und wie entstehen die Mengen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-062-fremd-vororder.md",
+        "title": "Q-062: Gibt es Vororders vor der Saison?",
+        "description": "Werden Fremdmarken vor der Saison auf Vorrat gekauft, etwa mit Vororder-Rabatt, oder nur laufend nachbestellt?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-063-fremd-lieferfaehigkeit.md",
+        "title": "Q-063: Sind Fremdmarken immer lieferbar?",
+        "description": "Wie oft können Fremdmarken-Lieferanten in der Hauptsaison nicht liefern?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-064-fremd-scope.md",
+        "title": "Q-064: Welche Fremdmarken sind im Scope?",
+        "description": "Gehören alle Fremdmarken inklusive Anzucht & Zubehör in den Scope, oder zunächst nur Saatgut?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-065-fremd-verpackungseinheit.md",
+        "title": "Q-065: Gibt es Verpackungseinheiten?",
+        "description": "Gibt es Verpackungseinheiten je Fremdmarken-Artikel (z. B. 10er-Karton)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-066-fremd-bestellweg.md",
+        "title": "Q-066: Wie gehen Fremdmarken-Bestellungen raus?",
+        "description": "Wie werden Fremdmarken-Bestellungen übermittelt – ERP-Bestellung per E-Mail, EDI oder Lieferantenportal?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-067-externe-faktoren.md",
+        "title": "Q-067: Welche externen Faktoren meintest du?",
+        "description": "Welche externen Faktoren meintest du am 17.05.2026 („Dazu kommen noch externe Faktoren, wi…“) – Wetter, Feiertage, Wettbewerb, Amazon-Algorithmus?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-068-ranking-aufbau.md",
+        "title": "Q-068: Wie lange dauert der Ranking-Aufbau?",
+        "description": "Wie lange braucht ein neuer Artikel typischerweise, um bei Amazon sein Ranking aufzubauen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-069-ranking-nach-ausverkauf.md",
+        "title": "Q-069: Wie schnell erholt sich das Ranking?",
+        "description": "Wie lange dauert es, bis sich das Amazon-Ranking nach einem Ausverkauf erholt?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-070-varianten-listing-daten.md",
+        "title": "Q-070: Wann wurde auf Varianten umgestellt?",
+        "description": "Wann genau wurde 2023 auf Varianten-Listings umgestellt, und welche Artikel gehören zu welchem Listing?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-071-layout-zeitplan.md",
+        "title": "Q-071: Welche Artikel haben wann das neue Layout?",
+        "description": "Welche Artikel haben wann das neue Produktlayout bekommen, und hat sich der Absatz dadurch erkennbar verändert?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-072-bundle-effekt.md",
+        "title": "Q-072: Verdrängen Bundles Einzeltüten?",
+        "description": "Verdrängen 3er- und 5er-Packs Einzeltüten-Verkäufe, oder bringen sie zusätzliche Nachfrage?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-073-nebensaison-treiber.md",
+        "title": "Q-073: Was treibt die Nebensaison?",
+        "description": "Was treibt den Absatz in der Nebensaison – Herbstaussaat, Wintergemüse, Geschenke, Ads, Aktionen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-074-wetter-saisonstart.md",
+        "title": "Q-074: Verschiebt das Wetter den Saisonstart?",
+        "description": "Verschiebt das Wetter den Saisonstart (z. B. kalter März), und gibt es Erfahrungswerte?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-075-ereignisliste.md",
+        "title": "Q-075: Gibt es eine Liste besonderer Ereignisse?",
+        "description": "Kannst du besondere Ereignisse mit Datum auflisten – Aktionen, gesperrte Listings, Lieferengpässe, Preisänderungen, neue Kanäle?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-076-prognosehorizont.md",
+        "title": "Q-076: Welche Horizonte brauchst du?",
+        "description": "Welche Prognosehorizonte brauchst du – Eigenmarke bis 2,5 Jahre, Fremdmarke vier bis acht Wochen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-077-unsicherheit-darstellung.md",
+        "title": "Q-077: Wie soll Unsicherheit aussehen?",
+        "description": "Wie möchtest du Unsicherheit sehen: als Bandbreite (von–bis), als Wahrscheinlichkeit („70 % Risiko auszuverkaufen“) oder als Szenarien (vorsichtig, erwartet, optimistisch)?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-078-prognose-korrektur.md",
+        "title": "Q-078: Willst du Prognosen korrigieren?",
+        "description": "Möchtest du Prognosen selbst korrigieren (z. B. „+20 % wegen neuem Listing“), und wie lange soll eine Korrektur gelten?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-079-erklaer-tiefe.md",
+        "title": "Q-079: Welche Erklärung brauchst du?",
+        "description": "Welche Erklärung brauchst du, um einer Zahl zu vertrauen: Vorjahresvergleich, Trend, Saison, Ereignisse oder Modelldetails?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-080-ampel-schwellen.md",
+        "title": "Q-080: Passen die Ampel-Schwellen?",
+        "description": "Passen die Ampel-Schwellen aus v1 (Rot unter 13 Wochen Reichweite, Gelb 13–25, Grün, Blau über 100 Wochen), oder sollen sie je Marke unterschiedlich sein?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-081-nachsteuern-schwelle.md",
+        "title": "Q-081: Ab wann soll nachgesteuert werden?",
+        "description": "Ab welcher Abweichung („Artikel läuft X % besser als prognostiziert“) möchtest du einen Hinweis bekommen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-082-benachrichtigung.md",
+        "title": "Q-082: Wie willst du benachrichtigt werden?",
+        "description": "Wie willst du benachrichtigt werden: Startseite reicht, E-Mail, Teams oder Signal?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-083-rechenrhythmus.md",
+        "title": "Q-083: Wie oft soll neu gerechnet werden?",
+        "description": "Wie oft soll die Prognose neu gerechnet werden, und darf sie sich zwischen zwei Bestellentscheidungen ändern?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-084-excel-vergleich.md",
+        "title": "Q-084: Soll die Excel-Methode mitlaufen?",
+        "description": "Soll die alte Excel-Methode (Absatz der letzten zwölf Monate) dauerhaft als Vergleich im Tool mitlaufen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-085-erp-api-doku.md",
+        "title": "Q-085: Gibt es API-Doku und Testzugang?",
+        "description": "Gibt es eine API-Dokumentation und einen Testzugang (Sandbox) für das neue ERP?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-086-erp-mcp.md",
+        "title": "Q-086: Was kann der MCP-Server des ERP?",
+        "description": "Was kann der MCP-Server des ERP (deine Nachricht vom 09.10. ist abgeschnitten) – nur lesen oder auch schreiben, und wer betreibt ihn?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-087-erp-objekt.md",
+        "title": "Q-087: Was soll im ERP angelegt werden?",
+        "description": "Was soll das Tool im ERP anlegen: einen Bestellvorschlag, einen Bestellentwurf oder eine fertige Bestellung?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-088-erp-rechte.md",
+        "title": "Q-088: Welche Rechte bekommt das Tool?",
+        "description": "Welche Rechte bekommt das Tool im ERP – ein eigener API-Benutzer mit eingeschränkten Rechten?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-089-erp-rueckkanal.md",
+        "title": "Q-089: Sollen ERP-Änderungen zurückfließen?",
+        "description": "Sollen Änderungen an einer Bestellung im ERP (Menge, Termin, Storno) ins Tool zurückfließen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-090-vm-ressourcen.md",
+        "title": "Q-090: Welche Ressourcen hat die VM?",
+        "description": "Wie viele CPU-Kerne, wie viel RAM und Speicher hat die Ubuntu-VM, und welche Container laufen dort bereits?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-091-varianten-3-und-4-vollstaendig.md",
+        "title": "Q-091: Sind Variante 3 und 4 richtig verstanden?",
+        "description": "Sind Variante 3 (kurzfristiges Nachsteuern, Live-Monitoring) und Variante 4 (Jahresplanung) so gemeint, wie im Wiki beschrieben? Der Originaltext ist abgeschnitten.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-092-netzwerkzugriff.md",
+        "title": "Q-092: Wie wird auf das Tool zugegriffen?",
+        "description": "Wie greift ihr auf interne Tools zu – nur im Büronetz, per VPN oder über einen Reverse Proxy mit HTTPS?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-093-git-hosting.md",
+        "title": "Q-093: Wo liegt der Code?",
+        "description": "Wo soll der Code liegen (GitHub, GitLab, Azure DevOps), und wem gehört das Repository?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-094-backups.md",
+        "title": "Q-094: Wie werden Backups gemacht?",
+        "description": "Gibt es eine Backup-Lösung für die VM, und wo sollen Datenbank-Backups liegen?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-095-codex-erfahrung.md",
+        "title": "Q-095: Wie viel Erfahrung mit Codex, Git, Docker?",
+        "description": "Wie viel Erfahrung hast du mit Codex, Git und Docker, und was soll die Übergabe abdecken?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-096-zusammenarbeit-nach-uebergabe.md",
+        "title": "Q-096: Wie arbeiten wir nach der Übergabe?",
+        "description": "Wie wollen wir nach der Übergabe zusammenarbeiten – du entwickelst selbst und Robert reviewt, oder feste Supportzeiten?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-097-llm-im-tool.md",
+        "title": "Q-097: Soll das Tool selbst ein LLM nutzen?",
+        "description": "Soll das Tool selbst ein LLM nutzen (z. B. Fragen in natürlicher Sprache, Erklärtexte), und welcher Anbieter ist erlaubt?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-098-datenschutz-auftraege.md",
+        "title": "Q-098: Enthalten Auftragsdaten Kundendaten?",
+        "description": "Dürfen Auftragsdaten Kundendaten enthalten, oder müssen sie vor dem Import entfernt werden?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-099-sprache-ui.md",
+        "title": "Q-099: Reicht eine deutsche Oberfläche?",
+        "description": "Reicht eine deutsche Oberfläche, oder arbeiten Personen mit, die Englisch brauchen?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-100-updates-deployment.md",
+        "title": "Q-100: Wer spielt Updates ein?",
+        "description": "Wer spielt Updates ein, und darf es automatische Updates geben (z. B. nachts per CI)?",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-101-bestand-danach-semantik.md",
+        "title": "Q-101: Was bedeutet „Bestand danach“?",
+        "description": "Was bedeutet die Spalte „Bestand danach“ in den Warenbewegungen? Bei Versänden bleibt sie in 61 % der Fälle gleich und steigt teils ohne Wareneingang (z. B. 71 → 72). Ist das der verfügbare Bestand nach Reservierungen?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-102-doppelte-buchungen.md",
+        "title": "Q-102: Sind identische Buchungen echt?",
+        "description": "Sind die 15.346 Gruppen identischer Buchungen (gleicher Artikel, gleicher Zeitpunkt auf die Millisekunde, gleiche Menge und Buchungsart) echte Mehrfachversände oder Duplikate im Export?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-103-unbekannte-artikelnummern.md",
+        "title": "Q-103: Was sind Artikelnummern ohne Stammdaten?",
+        "description": "Was sind die 29 DGW-Artikelnummern ohne Stammdaten, z. B. DGW00E-VP (seit 2023) und DGW-QB11 (2019)?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-104-negativer-bestand.md",
+        "title": "Q-104: Warum gibt es negativen Bestand?",
+        "description": "Warum gibt es negative Bestände – 2020 in 1.015 Buchungen, 2024 in 107 Buchungen bis −2.950 Tüten?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-105-wochenbeschriftung-2026.md",
+        "title": "Q-105: Wie sind Wochen in Daniels Datenbasis beschriftet?",
+        "description": "v1 beschriftet alle Wochen ab 2026 eine Woche zu spät; gilt das auch für die PostgreSQL-Datenbasis und Vario?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "open-questions/q-106-anomalie-methode-absatz.md",
+        "title": "Q-106: Wie sollen Absatz-Ausreißer erkannt werden?",
+        "description": "Die v1-Verfahren finden auf den echten Daten entweder nichts (IQR) oder rund 1.459 Treffer (gleitender z-Wert); welche Methode soll die Fall-Inbox füttern?",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "plan",
+    "title": "Plan für Version 2",
+    "description": "Ausführlicher Plan für den Neubau von Flower-Demand: Architektur, Datenmodell, Backend, Frontend, Spec-Driven Development, Roadmap, Risiken und Workshop.",
+    "kind": "folder",
+    "status": "draft",
+    "children": [
+      {
+        "path": "plan/ansichten-entscheidungen.md",
+        "title": "Ansichten von Version 2 – Entscheidungen",
+        "description": "Robert und Daniel: welche Ansichten das Tool braucht (Start, Liste, Artikel, Kanäle, Sets, Güte, Monitoring).",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "plan/backend.md",
+        "title": "Backend",
+        "description": "Aufbau des FastAPI-Backends: Pakete, Pipeline-Runner, Jobs, Entscheidungs-Journal, ERP-Adapter, API-Konventionen und Tests.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/datenmodell.md",
+        "title": "Datenmodell",
+        "description": "PostgreSQL-Schemas je Pipeline-Schicht und die wichtigsten Tabellen von Flower-Demand Version 2.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/frontend.md",
+        "title": "Frontend",
+        "description": "Seiten, Routen, Komponenten und Design-System des React/TypeScript-Frontends, übernommen aus dem Food-Frontend und angepasst an Flower-Demand.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/index.md",
+        "title": "Plan für Version 2",
+        "description": "Ausführlicher Plan für den Neubau von Flower-Demand: Architektur, Datenmodell, Backend, Frontend, Spec-Driven Development, Roadmap, Risiken und Workshop.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/risiken.md",
+        "title": "Risiken",
+        "description": "Die wichtigsten Risiken des Neubaus von Flower-Demand mit Wahrscheinlichkeit, Auswirkung und Gegenmaßnahmen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/roadmap.md",
+        "title": "Roadmap",
+        "description": "Phasen des Neubaus von Flower-Demand mit Ergebnissen, Abnahmekriterien und Abhängigkeiten von offenen Fragen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/spec-driven-development.md",
+        "title": "Spec-Driven Development",
+        "description": "Wie Flower-Demand mit OpenSpec, AGENTS.md, LLM-Wiki, Skills und einer festen Prüfkette entwickelt wird, damit Daniel es mit Codex weiterbauen kann.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/workshop-2026-11-04.md",
+        "title": "Workshop 04.11.2026",
+        "description": "Agenda für den Workshop mit Daniel am 04.11.2026, die 15 wichtigsten Fragen und die Liste, was Daniel vorbereiten kann.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/workshop-kostenmodell.md",
+        "title": "Workshop: Zahlen für die Kostenabwägung",
+        "description": "Arbeitsblatt für den Workshop: Kosten von Fehlbestand und Überbestand beziffern.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "plan/zielarchitektur.md",
+        "title": "Zielarchitektur",
+        "description": "Container, Komponenten, Technologie-Stack und Datenfluss von Flower-Demand Version 2 auf Daniels interner VM.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "requirements",
+    "title": "Anforderungen",
+    "description": "Alle fachlichen und nichtfunktionalen Anforderungen an Flower-Demand Version 2 mit ID, Priorität, Quelle und Status.",
+    "kind": "folder",
+    "status": "draft",
+    "children": [
+      {
+        "path": "requirements/fa-bestellplanung-eigenmarke.md",
+        "title": "Anforderungen Bestellplanung Eigenmarke",
+        "description": "Fachliche Anforderungen an den Bestellplaner für die Großbestellung der Eigenmarke: Zieltermin, Raster, Rundung, Risiko, Budget, Szenarien und Freigabe.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/fa-bestellplanung-fremdmarke.md",
+        "title": "Anforderungen Bestellplanung Fremdmarke",
+        "description": "Fachliche Anforderungen an kurzfristige Bestellvorschläge für Fremdmarken je Lieferant mit Bestellpunkt-Logik und ERP-Übergabe.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/fa-daten.md",
+        "title": "Anforderungen Daten",
+        "description": "Fachliche Anforderungen an Import, Herkunft, Klassifikation, Fall-Inbox, nukebaren Neuaufbau und Anomalieerkennung.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/fa-erp-integration.md",
+        "title": "Anforderungen ERP-Integration",
+        "description": "Fachliche Anforderungen an das Lesen aus dem neuen ERP, das Anlegen von Bestellentwürfen und die Nutzung von API und MCP-Server.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/fa-monitoring-ampel.md",
+        "title": "Anforderungen Monitoring und Ampel",
+        "description": "Fachliche Anforderungen an die Live-Ampel, Reichweite, Ausverkaufsrisiko, Nachsteuer-Signale und Wochenüberblick.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/fa-oberflaeche-und-analyse.md",
+        "title": "Anforderungen Oberfläche und Analyse",
+        "description": "Fachliche Anforderungen an Seiten, Artikelanalyse, Prognosegüte, Darstellung und Bedienung der Weboberfläche.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/fa-prognose.md",
+        "title": "Anforderungen Prognose",
+        "description": "Fachliche Anforderungen an die Bedarfsprognose: Zielgröße, Horizonte, Quantile, Modelle, Backtests, Erklärung und Korrekturen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/index.md",
+        "title": "Anforderungen",
+        "description": "Alle fachlichen und nichtfunktionalen Anforderungen an Flower-Demand Version 2 mit ID, Priorität, Quelle und Status.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/nfa.md",
+        "title": "Nichtfunktionale Anforderungen",
+        "description": "Anforderungen an Betrieb, Sicherheit, Datenschutz, Leistung, Qualität und agentische Wartbarkeit von Flower-Demand Version 2.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "requirements/vision-ziele-rollen.md",
+        "title": "Vision, Ziele und Rollen",
+        "description": "Zielbild von Flower-Demand Version 2, messbare Ziele, Nutzerrollen und die wichtigsten Nutzungsszenarien.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "sources",
+    "title": "Quellen",
+    "description": "Alle Quellen des Wikis mit Abrufdatum und Geltungsgrenze, dazu Arbeitsentscheidungen und dokumentierte Widersprüche.",
+    "kind": "folder",
+    "status": "stable",
+    "children": [
+      {
+        "path": "sources/arbeitsentscheidungen.md",
+        "title": "Arbeitsentscheidungen",
+        "description": "Architektur- und Arbeitsentscheidungen (ADRs) für Flower-Demand Version 2 mit Kontext, Entscheidung, Alternativen und Folgen.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "sources/chat-daniel.md",
+        "title": "Quelle: Chat mit Daniel",
+        "description": "Signal-Gruppenchat zwischen Robert, Daniel und Elena von Mai bis Oktober 2026 – die wichtigste fachliche Quelle.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "sources/daniel-followup.md",
+        "title": "Quelle: Folgeantworten von Daniel (Oktober 2026)",
+        "description": "Daniels Antworten auf die Folgefragen vom 10.10.2026: Datenbasis, Bestellregeln, Strategie, Geschäftsregeln.",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "sources/export-stammdaten.md",
+        "title": "Quelle: Export Stammdaten",
+        "description": "Excel-Datei mit Artikeldaten und Set-Zuordnung der Eigenmarke, geliefert am 17.05.2026.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "sources/export-warenbewegungen.md",
+        "title": "Quelle: Export Warenbewegungen",
+        "description": "CSV-Export aller Lagerbewegungen der Eigenmarke aus dem alten ERP, Februar 2019 bis Mai 2026, ausgewertet im Datenscan vom 10.10.2026.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "sources/food-frontend.md",
+        "title": "Quelle: Food-Frontend",
+        "description": "Das React/TypeScript-Frontend aus dem Projekt gruppenstunde als Vorlage für Layout, Design-System und Agent-Regeln von Flower-Demand.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "sources/index.md",
+        "title": "Quellen",
+        "description": "Alle Quellen des Wikis mit Abrufdatum und Geltungsgrenze, dazu Arbeitsentscheidungen und dokumentierte Widersprüche.",
+        "kind": "page",
+        "status": "stable",
+        "children": []
+      },
+      {
+        "path": "sources/knowledge-scout.md",
+        "title": "Quelle: Knowledge-Scout",
+        "description": "Das Projekt knowledge-scout als Vorlage für LLM-Wiki, Open Knowledge Format, Wiki-Skills, Linter und Agent-Regeln.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "sources/v1-datenbank-und-specs.md",
+        "title": "Quelle: v1-Datenbank und Specs",
+        "description": "Code, DuckDB-Sicherung, Projektdokumente und 102 OpenSpec-Specs des Streamlit-Prototyps aus Mai 2026.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "sources/website-research.md",
+        "title": "Quelle: Öffentlicher Shop deinegartenwelt.de",
+        "description": "Öffentlich sichtbarer Shop-Kontext (Kategorien, Sets, Versand, Adventskalender), abgerufen am 10.10.2026.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "sources/widersprueche.md",
+        "title": "Widersprüche",
+        "description": "Stellen, an denen Quellen sich widersprechen – nicht geglättet, sondern mit beiden Ständen und der zugehörigen offenen Frage.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "system-v1",
+    "title": "Altsystem Version 1",
+    "description": "Was der Streamlit-Prototyp von Mai 2026 konnte, wie er aufgebaut war und wie er in Version 2 weiterlebt.",
+    "kind": "folder",
+    "status": "historical",
+    "children": [
+      {
+        "path": "system-v1/index.md",
+        "title": "Altsystem Version 1",
+        "description": "Was der Streamlit-Prototyp von Mai 2026 konnte, wie er aufgebaut war und wie er in Version 2 weiterlebt.",
+        "kind": "page",
+        "status": "historical",
+        "children": []
+      },
+      {
+        "path": "system-v1/learnings.md",
+        "title": "Learnings aus Version 1",
+        "description": "Was der Prototyp fachlich, methodisch und technisch gelehrt hat und welche Folgen das für Version 2 hat.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      },
+      {
+        "path": "system-v1/uebernahme-matrix.md",
+        "title": "Übernahme-Matrix der v1-Specs",
+        "description": "Für alle 102 OpenSpec-Specs von Version 1 gruppiert: übernehmen, ändern oder verwerfen – mit Ziel-Anforderung in Version 2.",
+        "kind": "page",
+        "status": "draft",
+        "children": []
+      }
+    ]
+  },
+  {
+    "path": "glossary.md",
+    "title": "Glossar Flower-Demand",
+    "description": "Fachbegriffe aus Geschäft, Daten und Prognose von DeineGartenwelt mit Definition und Synonymen.",
+    "kind": "page",
+    "status": "draft",
+    "children": []
+  },
+  {
+    "path": "index.md",
+    "title": "Flower-Demand – LLM-Wiki",
+    "description": "Einstieg in das fachliche und technische Wissen zu Bedarfsprognose und Bestellplanung für DeineGartenwelt.",
+    "kind": "page",
+    "status": "draft",
+    "children": []
+  },
+  {
+    "path": "wiki-konventionen.md",
+    "title": "Wiki-Konventionen",
+    "description": "Regeln für Aufbau, Pflege und Nutzung dieses LLM-Wikis nach dem Open Knowledge Format (OKF v0.1).",
+    "kind": "page",
+    "status": "stable",
+    "children": []
+  }
+]

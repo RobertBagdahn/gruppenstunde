@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "set_sku": "SET001",
+      "title": "Artikel SET001",
+      "components": 1,
+      "units_bound_52_weeks": 9866.0
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "page_size": 20,
+  "total_pages": 1
+}

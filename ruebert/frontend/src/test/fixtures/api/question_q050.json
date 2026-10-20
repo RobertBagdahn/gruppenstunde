@@ -1,0 +1,7 @@
+{
+  "question_id": "Q-050",
+  "title": "Q-050: Bestätigst du die Rundungsregel?",
+  "description": "Bestätigst du: Aufrunden auf den nächsten 5.000er-Schritt nur, wenn der angebrochene Schritt mindestens X % gefüllt ist (20.207 → 20.000)? Welcher Standardwert für X?",
+  "status": "draft",
+  "priority": "A"
+}

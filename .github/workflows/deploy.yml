@@ -12,6 +12,10 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # Rübert has its own pipeline (deploy-ruebert.yml); keep it out of the Gruppenstunde deploy.
+    paths-ignore:
+      - 'ruebert/**'
+      - '.github/workflows/deploy-ruebert.yml'
   workflow_dispatch:
 
 concurrency:

@@ -1,0 +1,272 @@
+{
+  "target_year": 2027,
+  "target_week": 39,
+  "tranche": 60000,
+  "tranche_options": [
+    60000,
+    120000
+  ],
+  "total": 60000,
+  "suggested_total": 60000,
+  "unresolved": 0,
+  "rows": [
+    {
+      "sku": "DGW001",
+      "title": "Artikel DGW001",
+      "stock": 250.0,
+      "net_demand": 6980.0,
+      "suggested_quantity": 45000,
+      "quantity": 45000,
+      "deviation": 0,
+      "tranche_adjustment": 40000,
+      "adjustment_reason": "+40.000 durch Tranche (höchster Grenznutzen)",
+      "warnings": [
+        "Bestand reicht nicht bis zum Wareneingang nach 12 Wochen Lieferzeit (BEM-06)."
+      ],
+      "derivation": {
+        "steps": [
+          {
+            "key": "demand",
+            "label": "Prognose bis KW 39/2027",
+            "delta": 7200.0,
+            "value": 7200.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "min_stock",
+            "label": "Mindestbestand",
+            "delta": 30.0,
+            "value": 7230.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "stock",
+            "label": "Bestand zum Stichtag",
+            "delta": -250.0,
+            "value": 6980.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "net",
+            "label": "Netto-Bedarf",
+            "delta": 0.0,
+            "value": 6980.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "rounding",
+            "label": "Rundung auf den angebrochenen 5.000er-Schritt",
+            "delta": -1980.0,
+            "value": 5000.0,
+            "note": "Schwelle 80%",
+            "question_id": "Q-050"
+          },
+          {
+            "key": "tranche",
+            "label": "Anpassung an die Tranche",
+            "delta": 40000.0,
+            "value": 45000.0,
+            "note": "+40.000 durch Tranche (höchster Grenznutzen)",
+            "question_id": null
+          }
+        ],
+        "result": 45000.0
+      },
+      "changed_by": null
+    },
+    {
+      "sku": "DGW002",
+      "title": "Artikel DGW002",
+      "stock": 1600.0,
+      "net_demand": 5630.0,
+      "suggested_quantity": 10000,
+      "quantity": 10000,
+      "deviation": 0,
+      "tranche_adjustment": 5000,
+      "adjustment_reason": "+5.000 durch Tranche (höchster Grenznutzen)",
+      "warnings": [],
+      "derivation": {
+        "steps": [
+          {
+            "key": "demand",
+            "label": "Prognose bis KW 39/2027",
+            "delta": 7200.0,
+            "value": 7200.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "min_stock",
+            "label": "Mindestbestand",
+            "delta": 30.0,
+            "value": 7230.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "stock",
+            "label": "Bestand zum Stichtag",
+            "delta": -1600.0,
+            "value": 5630.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "net",
+            "label": "Netto-Bedarf",
+            "delta": 0.0,
+            "value": 5630.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "rounding",
+            "label": "Rundung auf den angebrochenen 5.000er-Schritt",
+            "delta": -630.0,
+            "value": 5000.0,
+            "note": "Schwelle 80%",
+            "question_id": "Q-050"
+          },
+          {
+            "key": "tranche",
+            "label": "Anpassung an die Tranche",
+            "delta": 5000.0,
+            "value": 10000.0,
+            "note": "+5.000 durch Tranche (höchster Grenznutzen)",
+            "question_id": null
+          }
+        ],
+        "result": 10000.0
+      },
+      "changed_by": null
+    },
+    {
+      "sku": "DGW003",
+      "title": "Artikel DGW003",
+      "stock": 1000000.0,
+      "net_demand": 0.0,
+      "suggested_quantity": 0,
+      "quantity": 0,
+      "deviation": 0,
+      "tranche_adjustment": 0,
+      "adjustment_reason": null,
+      "warnings": [],
+      "derivation": {
+        "steps": [
+          {
+            "key": "demand",
+            "label": "Prognose bis KW 39/2027",
+            "delta": 7200.0,
+            "value": 7200.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "min_stock",
+            "label": "Mindestbestand",
+            "delta": 30.0,
+            "value": 7230.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "stock",
+            "label": "Bestand zum Stichtag",
+            "delta": -1000000.0,
+            "value": -992770.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "net",
+            "label": "Netto-Bedarf",
+            "delta": 992770.0,
+            "value": 0.0,
+            "note": "nicht unter 0",
+            "question_id": null
+          },
+          {
+            "key": "rounding",
+            "label": "Rundung auf den angebrochenen 5.000er-Schritt",
+            "delta": 0.0,
+            "value": 0.0,
+            "note": "Schwelle 80%",
+            "question_id": "Q-050"
+          }
+        ],
+        "result": 0.0
+      },
+      "changed_by": null
+    },
+    {
+      "sku": "DGW004",
+      "title": "Artikel DGW004",
+      "stock": 3030.0,
+      "net_demand": 4200.0,
+      "suggested_quantity": 5000,
+      "quantity": 5000,
+      "deviation": 0,
+      "tranche_adjustment": 0,
+      "adjustment_reason": null,
+      "warnings": [],
+      "derivation": {
+        "steps": [
+          {
+            "key": "demand",
+            "label": "Prognose bis KW 39/2027",
+            "delta": 7200.0,
+            "value": 7200.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "min_stock",
+            "label": "Mindestbestand",
+            "delta": 30.0,
+            "value": 7230.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "stock",
+            "label": "Bestand zum Stichtag",
+            "delta": -3030.0,
+            "value": 4200.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "net",
+            "label": "Netto-Bedarf",
+            "delta": 0.0,
+            "value": 4200.0,
+            "note": "",
+            "question_id": null
+          },
+          {
+            "key": "rounding",
+            "label": "Rundung auf den angebrochenen 5.000er-Schritt",
+            "delta": 800.0,
+            "value": 5000.0,
+            "note": "Schwelle 80%",
+            "question_id": "Q-050"
+          }
+        ],
+        "result": 5000.0
+      },
+      "changed_by": null
+    }
+  ],
+  "special": [
+    {
+      "sku": "DGW158",
+      "title": "Artikel DGW158",
+      "stock": 10.0
+    }
+  ],
+  "approval": null
+}

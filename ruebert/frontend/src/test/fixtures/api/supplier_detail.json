@@ -1,0 +1,60 @@
+{
+  "supplier_id": "BSP-L1",
+  "name": "Beispiel-Lieferant Anzucht",
+  "article_count": 2,
+  "value_eur": 42.0,
+  "minimum_eur": 100.0,
+  "status": "wartet – bündeln",
+  "is_sample": true,
+  "banner": "Beispieldaten: Lieferanten, Artikel, Einkaufspreise und Mengen sind frei erfunden.",
+  "articles": [
+    {
+      "sku": "BSP-1001",
+      "title": "Anzuchterde 10 l",
+      "stock": 18,
+      "forecast_4_weeks": 20.6,
+      "packaging_unit": 6,
+      "proposed_units": 1,
+      "purchase_price_eur": 2.4,
+      "value_eur": 14.4
+    },
+    {
+      "sku": "BSP-1003",
+      "title": "Mini-Gewächshaus 38 cm",
+      "stock": 3,
+      "forecast_4_weeks": 4.3,
+      "packaging_unit": 4,
+      "proposed_units": 1,
+      "purchase_price_eur": 6.9,
+      "value_eur": 27.6
+    }
+  ],
+  "gap_eur": 58.0,
+  "top_up": [
+    {
+      "sku": "BSP-1002",
+      "title": "Anzuchttöpfe 8 cm (20 Stück)",
+      "extra_units": 1,
+      "adds_eur": 13.2
+    },
+    {
+      "sku": "BSP-1001",
+      "title": "Anzuchterde 10 l",
+      "extra_units": 1,
+      "adds_eur": 14.4
+    },
+    {
+      "sku": "BSP-1004",
+      "title": "Pflanzstecker Holz (50 Stück)",
+      "extra_units": 1,
+      "adds_eur": 18.0
+    },
+    {
+      "sku": "BSP-1003",
+      "title": "Mini-Gewächshaus 38 cm",
+      "extra_units": 1,
+      "adds_eur": 27.6
+    }
+  ],
+  "decision": null
+}

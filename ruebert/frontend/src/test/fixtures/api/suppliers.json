@@ -1,0 +1,38 @@
+[
+  {
+    "supplier_id": "BSP-L1",
+    "name": "Beispiel-Lieferant Anzucht",
+    "article_count": 2,
+    "value_eur": 42.0,
+    "minimum_eur": 100.0,
+    "status": "wartet – bündeln",
+    "is_sample": true
+  },
+  {
+    "supplier_id": "BSP-L2",
+    "name": "Beispiel-Lieferant Saatgut Nord",
+    "article_count": 1,
+    "value_eur": 22.0,
+    "minimum_eur": 100.0,
+    "status": "wartet – bündeln",
+    "is_sample": true
+  },
+  {
+    "supplier_id": "BSP-L3",
+    "name": "Beispiel-Lieferant Gartenwerkzeug",
+    "article_count": 0,
+    "value_eur": 0.0,
+    "minimum_eur": 100.0,
+    "status": "wartet – bündeln",
+    "is_sample": true
+  },
+  {
+    "supplier_id": "BSP-L4",
+    "name": "Beispiel-Lieferant Dünger",
+    "article_count": 0,
+    "value_eur": 0.0,
+    "minimum_eur": 100.0,
+    "status": "wartet – bündeln",
+    "is_sample": true
+  }
+]

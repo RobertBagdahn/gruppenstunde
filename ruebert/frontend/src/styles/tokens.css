@@ -1,0 +1,89 @@
+/*
+ * Rübert design tokens – layout D ("Triage Nacht").
+ * HSL channels without hsl() so Tailwind can apply opacity: hsl(var(--panel) / 0.5).
+ * Source of truth for colours; see frontend/Design.md. Never hard-code colours in components.
+ * Fonts are self-hosted via @fontsource (src/index.css) because Rübert runs in the internal network.
+ */
+
+:root {
+  /* Surfaces */
+  --background: 217 39% 6%;        /* #0a0f17 */
+  --shell: 218 38% 8%;             /* #0d131d sidebar, topbar, KPI strip */
+  --panel: 221 39% 11%;            /* #111827 cards, tables, inputs */
+  --sunken: 218 42% 7%;            /* #0b111b list column in triage pages */
+  --row-hover: 218 39% 10%;        /* #0f1622 */
+  --row-active: 216 36% 14%;       /* #16202f */
+
+  /* Lines */
+  --border: 215 28% 17%;           /* #1f2937 */
+  --border-row: 220 33% 14%;       /* #182030 */
+  --border-strong: 217 19% 27%;    /* #374151 */
+
+  /* Text */
+  --foreground: 220 13% 91%;       /* #e5e7eb */
+  --foreground-strong: 210 20% 98%;/* #f9fafb */
+  --foreground-2: 213 27% 84%;     /* #cbd5e1 */
+  --muted-foreground: 218 11% 65%; /* #9ca3af */
+  --link: 212 96% 78%;             /* #93c5fd */
+
+  /* Accent (primary action, active navigation, Rübert's recommendation) */
+  --accent: 142 69% 58%;           /* #4ade80 */
+  --accent-foreground: 140 69% 8%; /* #06210f */
+  --accent-soft: 150 32% 9%;       /* #0f1d16 */
+  --accent-border: 144 39% 30%;    /* #2f6b47 */
+  --accent-text: 142 77% 73%;      /* #86efac */
+
+  /* Status */
+  --warning-soft: 42 56% 7%;       /* #1c1608 */
+  --warning-border: 36 77% 20%;    /* #5b3b0c */
+  --warning-text: 46 97% 65%;      /* #fcd34d */
+  --danger-text: 0 94% 82%;        /* #fca5a5 */
+
+  /* Traffic light – only TrafficLightBadge, status dots and charts */
+  --traffic-red: 0 91% 71%;        /* #f87171 */
+  --traffic-yellow: 43 96% 56%;    /* #fbbf24 */
+  --traffic-green: 142 69% 58%;    /* #4ade80 */
+  --traffic-blue: 213 94% 68%;     /* #60a5fa */
+
+  /* Charts */
+  --chart-band: 147 33% 17%;       /* #1d3a2a P10–P90 */
+  --chart-oos: 354 35% 17%;        /* #3a1c1f sold out without order */
+  --chart-grid: 218 32% 15%;       /* #1a2333 */
+
+  /* shadcn/ui aliases */
+  --card: var(--panel);
+  --card-foreground: var(--foreground);
+  --popover: var(--panel);
+  --popover-foreground: var(--foreground);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-foreground);
+  --secondary: var(--row-active);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--panel);
+  --input: var(--border);
+  --ring: var(--accent);
+  --destructive: var(--traffic-red);
+  --destructive-foreground: var(--background);
+
+  /* Type and shape */
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --sidebar-width: 240px;
+  --topbar-height: 52px;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+}

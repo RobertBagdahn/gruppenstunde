@@ -1,0 +1,41 @@
+{
+  "reference_date": "2026-05-18",
+  "iso_week": 21,
+  "stages": [
+    {
+      "key": "source",
+      "label": "Altdaten",
+      "finished_at": "2026-05-15T09:00:00Z",
+      "status": "ok"
+    },
+    {
+      "key": "import",
+      "label": "Neuaufbau",
+      "finished_at": "2026-10-20T05:39:30+00:00",
+      "status": "ok"
+    },
+    {
+      "key": "forecast",
+      "label": "Forecast #25",
+      "finished_at": "2026-05-21T07:44:00Z",
+      "status": "ok"
+    },
+    {
+      "key": "traffic_light",
+      "label": "Ampel",
+      "finished_at": "2026-10-20T05:39:30+00:00",
+      "status": "ok"
+    }
+  ],
+  "badges": {
+    "openDecisions": 2,
+    "activeProducts": 5,
+    "openSupplierProposals": 4,
+    "openCases": 0,
+    "openStockouts": 0
+  },
+  "user": {
+    "name": "Demo-Nutzer",
+    "role": "Prototyp"
+  }
+}

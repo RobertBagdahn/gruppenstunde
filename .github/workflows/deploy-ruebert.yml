@@ -1,0 +1,135 @@
+# Rübert demo: test, build the container, deploy to Cloud Run behind IAP.
+# Only runs for changes below ruebert/. Auth via Workload Identity Federation (no keys).
+# Infrastructure lives in ruebert/terraform and is applied by hand (see ruebert/docs/DEPLOY.md).
+
+name: Deploy Rübert
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ruebert/**'
+      - '.github/workflows/deploy-ruebert.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ruebert
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: inspi-441320
+  REGION: europe-west1
+  SERVICE: ruebert
+  DEPLOYER_SA: ruebert-deployer@inspi-441320.iam.gserviceaccount.com
+  IMAGE: europe-west1-docker.pkg.dev/inspi-441320/ruebert/ruebert
+  DATA_BUCKET: gs://inspi-441320-ruebert-data
+  UV_VERSION: "0.9.18"
+  NODE_VERSION: "20"
+
+jobs:
+  backend-checks:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ruebert/backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: ruebert/backend/uv.lock
+      - run: uv sync --frozen
+      # Same ruff config and version as the repository's pre-commit hooks.
+      - run: uvx ruff@0.15.6 check --config ../../backend/pyproject.toml .
+      - run: uvx ruff@0.15.6 format --check --config ../../backend/pyproject.toml .
+      - run: uv run pyright ruebert
+      - run: uv run pytest -q
+
+  frontend-checks:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ruebert/frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ruebert/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+
+  deploy:
+    name: Build and deploy
+    needs: [backend-checks, frontend-checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          install_components: beta
+
+      # The v1 database is not in git. It is copied into the build context for this run only.
+      - name: Fetch v1 database
+        run: |
+          mkdir -p ruebert/data
+          gcloud storage cp "${DATA_BUCKET}/seed_demand.duckdb" ruebert/data/seed_demand.duckdb
+
+      - name: Build image
+        run: |
+          gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+          docker build -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" ruebert
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"
+
+      - name: Deploy revision
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE:$GITHUB_SHA" \
+            --region "$REGION" \
+            --project "$PROJECT_ID" \
+            --platform managed
+
+      - name: Require Google sign-in (IAP)
+        run: |
+          gcloud beta run services update "$SERVICE" \
+            --iap --region "$REGION" --project "$PROJECT_ID" --quiet
+
+      - name: Grant access to the listed Google accounts
+        run: |
+          while IFS= read -r line; do
+            email="$(echo "$line" | sed 's/#.*//' | xargs)"
+            [ -z "$email" ] && continue
+            gcloud beta iap web add-iam-policy-binding \
+              --resource-type=cloud-run --service="$SERVICE" --region="$REGION" \
+              --project="$PROJECT_ID" \
+              --member="user:${email}" --role=roles/iap.httpsResourceAccessor --quiet >/dev/null
+            echo "granted: ${email}"
+          done < ruebert/access/viewers.txt
+
+      - name: Smoke test
+        run: |
+          url="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format='value(status.url)')"
+          code="$(curl -s -o /dev/null -w '%{http_code}' "$url/api/health" || true)"
+          echo "unauthenticated $url/api/health -> $code (expected 302 or 401 behind IAP)"
+          case "$code" in 302|401|403) exit 0 ;; *) exit 1 ;; esac

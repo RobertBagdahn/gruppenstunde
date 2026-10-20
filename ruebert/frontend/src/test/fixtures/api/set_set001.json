@@ -1,0 +1,14 @@
+{
+  "set_sku": "SET001",
+  "title": "Artikel SET001",
+  "components": 1,
+  "units_bound_52_weeks": 9866.0,
+  "components_detail": [
+    {
+      "sku": "DGW001",
+      "title": "Artikel DGW001",
+      "quantity": 2,
+      "share_from_set": 0.0
+    }
+  ]
+}

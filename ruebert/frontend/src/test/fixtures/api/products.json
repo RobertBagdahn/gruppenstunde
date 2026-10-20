@@ -1,0 +1,63 @@
+{
+  "items": [
+    {
+      "sku": "DGW001",
+      "title": "Artikel DGW001",
+      "brand": "Deine Gartenwelt",
+      "category": "Kräutersamen",
+      "turnover_class": 5,
+      "stock": 250.0,
+      "colour": "red",
+      "stockout_label": "KW 23/2026",
+      "is_special": false
+    },
+    {
+      "sku": "DGW002",
+      "title": "Artikel DGW002",
+      "brand": "Deine Gartenwelt",
+      "category": "Kräutersamen",
+      "turnover_class": 5,
+      "stock": 1600.0,
+      "colour": "yellow",
+      "stockout_label": "KW 36/2026",
+      "is_special": false
+    },
+    {
+      "sku": "DGW003",
+      "title": "Artikel DGW003",
+      "brand": "Deine Gartenwelt",
+      "category": "Kräutersamen",
+      "turnover_class": 5,
+      "stock": 1000000.0,
+      "colour": "blue",
+      "stockout_label": "reicht über den Horizont",
+      "is_special": false
+    },
+    {
+      "sku": "DGW004",
+      "title": "Artikel DGW004",
+      "brand": "Deine Gartenwelt",
+      "category": "Kräutersamen",
+      "turnover_class": 5,
+      "stock": 3030.0,
+      "colour": "green",
+      "stockout_label": "KW 51/2026",
+      "is_special": false
+    },
+    {
+      "sku": "DGW158",
+      "title": "Artikel DGW158",
+      "brand": "Deine Gartenwelt",
+      "category": "Kräutersamen",
+      "turnover_class": 5,
+      "stock": 10.0,
+      "colour": "red",
+      "stockout_label": "KW 21/2026",
+      "is_special": true
+    }
+  ],
+  "total": 5,
+  "page": 1,
+  "page_size": 50,
+  "total_pages": 1
+}

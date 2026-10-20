@@ -1,0 +1,51 @@
+# BEISPIELDATEN – nicht echt. Grundlage für Fremdmarke, Kanalanteile und Beispielereignisse im Prototyp,
+# bis Daniels Datenbasis (Lieferanten, EK, Kanäle, Ereignisse) angebunden ist. Jeder daraus erzeugte
+# Datensatz trägt is_sample = true und wird in der Oberfläche als „Beispieldaten“ markiert.
+# Erzeugung: ruebert/data/samples.py, deterministisch über `seed`.
+
+seed: 20260518
+
+suppliers:
+  - id: BSP-L1
+    name: Beispiel-Lieferant Anzucht
+    lead_time_weeks: 2
+    min_order_value_eur: 100
+    articles:
+      - {sku: BSP-1001, title: "Anzuchterde 10 l", category: Anzucht, purchase_price_eur: 2.40, packaging_unit: 6, stock: 18, weekly_demand: 9}
+      - {sku: BSP-1002, title: "Anzuchttöpfe 8 cm (20 Stück)", category: Anzucht, purchase_price_eur: 1.10, packaging_unit: 12, stock: 40, weekly_demand: 6}
+      - {sku: BSP-1003, title: "Mini-Gewächshaus 38 cm", category: Anzucht, purchase_price_eur: 6.90, packaging_unit: 4, stock: 3, weekly_demand: 2}
+      - {sku: BSP-1004, title: "Pflanzstecker Holz (50 Stück)", category: Zubehör, purchase_price_eur: 1.80, packaging_unit: 10, stock: 55, weekly_demand: 4}
+  - id: BSP-L2
+    name: Beispiel-Lieferant Saatgut Nord
+    lead_time_weeks: 4
+    min_order_value_eur: 100
+    articles:
+      - {sku: BSP-2001, title: "Bio-Tomate Ochsenherz (Fremdmarke)", category: Gemüsesamen, purchase_price_eur: 0.95, packaging_unit: 25, stock: 120, weekly_demand: 14}
+      - {sku: BSP-2002, title: "Bio-Zucchini Black Beauty (Fremdmarke)", category: Gemüsesamen, purchase_price_eur: 0.95, packaging_unit: 25, stock: 30, weekly_demand: 11}
+      - {sku: BSP-2003, title: "Wildblumen Bienenweide 50 g (Fremdmarke)", category: Blumensamen, purchase_price_eur: 2.20, packaging_unit: 10, stock: 8, weekly_demand: 7}
+  - id: BSP-L3
+    name: Beispiel-Lieferant Gartenwerkzeug
+    lead_time_weeks: 3
+    min_order_value_eur: 100
+    articles:
+      - {sku: BSP-3001, title: "Handschaufel Edelstahl", category: Zubehör, purchase_price_eur: 4.50, packaging_unit: 5, stock: 11, weekly_demand: 1.5}
+      - {sku: BSP-3002, title: "Sprühflasche 1 l", category: Zubehör, purchase_price_eur: 1.60, packaging_unit: 12, stock: 22, weekly_demand: 1}
+  - id: BSP-L4
+    name: Beispiel-Lieferant Dünger
+    lead_time_weeks: 6
+    min_order_value_eur: 100
+    articles:
+      - {sku: BSP-4001, title: "Bio-Tomatendünger 1 l", category: Zubehör, purchase_price_eur: 3.10, packaging_unit: 6, stock: 26, weekly_demand: 3}
+      - {sku: BSP-4002, title: "Hornspäne 2,5 kg", category: Zubehör, purchase_price_eur: 5.40, packaging_unit: 4, stock: 9, weekly_demand: 1}
+
+# Channels as in the wiki (business/vertriebskanaele-und-amazon): Amazon 80–90 %, the rest split.
+channels:
+  base_shares: {Amazon: 0.85, Shop: 0.07, eBay: 0.03, Kaufland: 0.02, OBI: 0.015, Hornbach: 0.015}
+  jitter: 0.2   # relative variation per article before normalising
+
+events:
+  - {id: BSP-E1, date: 2025-03-03, kind: Aktion, title: "Frühjahrsaktion 10 % auf Kräuter", sku: DGW004}
+  - {id: BSP-E2, date: 2025-04-14, kind: Listing-Problem, title: "Amazon-Listing zeitweise inaktiv", sku: DGW003}
+  - {id: BSP-E3, date: 2025-09-01, kind: Layout, title: "Neues Tütenlayout ausgeliefert", sku: null}
+  - {id: BSP-E4, date: 2026-02-02, kind: Lieferengpass, title: "Wareneingang zwei Wochen verspätet", sku: DGW005}
+  - {id: BSP-E5, date: 2026-03-16, kind: Bundle, title: "3er-Bundle Basilikum neu gelistet", sku: DGW004}

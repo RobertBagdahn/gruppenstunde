@@ -1,0 +1,1371 @@
+{
+  "schema_version": "1.0",
+  "graph_name": "Rübert / DeineGartenwelt demand-planning knowledge graph",
+  "last_updated": "2026-10-10",
+  "evidence_policy": "Each edge includes provenance and evidence status. Public website facts describe the public shop only; internal business rules come from Daniel's messages. Dynamic storefront counts must not be treated as ERP master-data counts.",
+  "sources": [
+    {
+      "id": "src:project",
+      "type": "repository_document",
+      "title": "Project.md",
+      "url": "../../Project.md"
+    },
+    {
+      "id": "src:signal-chat",
+      "type": "stakeholder_chat",
+      "title": "Seed-Demand Signal chat (redacted)",
+      "url": "../input/2026-10-10-signal-export-seed-demand.md"
+    },
+    {
+      "id": "src:daniel-followup",
+      "type": "stakeholder-decision-note",
+      "title": "Daniel follow-up: Vario data, order rules and scope",
+      "url": "../sources/daniel-followup.md"
+    },
+    {
+      "id": "src:open-questions",
+      "type": "stakeholder-workshop-questions",
+      "title": "Open operational and strategy questions for Daniel",
+      "url": "../open-questions/index.md"
+    },
+    {
+      "id": "src:round-2-questions",
+      "type": "stakeholder-workshop-questions",
+      "title": "20 detailed strategic/data questions for Daniel",
+      "url": "../open-questions/fragenrunde-2.md"
+    },
+    {
+      "id": "src:round-3-questions",
+      "type": "stakeholder-workshop-questions",
+      "title": "Twenty follow-up order and demand questions",
+      "url": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "id": "src:view-design-decisions",
+      "type": "product-design-decisions",
+      "title": "Rübert view design decisions",
+      "url": "../plan/ansichten-entscheidungen.md"
+    },
+    {
+      "id": "src:shop-home",
+      "type": "public-web-page",
+      "title": "Deine Gartenwelt online shop",
+      "url": "https://deinegartenwelt.de/",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-sets",
+      "type": "public-web-page",
+      "title": "Saatgut-Sets collection",
+      "url": "https://deinegartenwelt.de/collections/saatgut-sets",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-veg",
+      "type": "public-web-page",
+      "title": "Gemüsesamen collection",
+      "url": "https://deinegartenwelt.de/collections/gemusesamen",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-flowers",
+      "type": "public-web-page",
+      "title": "Blumensamen collection",
+      "url": "https://deinegartenwelt.de/collections/blumensamen",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-herbs",
+      "type": "public-web-page",
+      "title": "Kräutersamen collection",
+      "url": "https://deinegartenwelt.de/collections/krautersamen",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-propagation",
+      "type": "public-web-page",
+      "title": "Anzucht & Zubehör collection",
+      "url": "https://deinegartenwelt.de/collections/anzucht-zubehor",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-shipping",
+      "type": "public-web-page",
+      "title": "Shipping policy",
+      "url": "https://deinegartenwelt.de/policies/shipping-policy",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-advent-calendar",
+      "type": "public-product-page",
+      "title": "Saatgut-Adventskalender",
+      "url": "https://deinegartenwelt.de/products/saatgut-adventskalender-saatgut-adventskalender",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:shop-durr",
+      "type": "public-brand-collection",
+      "title": "Dürr Samen collection at DeineGartenwelt",
+      "url": "https://deinegartenwelt.de/collections/hersteller-durr-samen",
+      "retrieved": "2026-10-10"
+    },
+    {
+      "id": "src:workshop-cost-model",
+      "type": "workshop-worksheet",
+      "title": "Cost model numbers to fill in workshop",
+      "url": "../plan/workshop-kostenmodell.md"
+    }
+  ],
+  "entities": [
+    {
+      "id": "org:dgw",
+      "type": "Organization",
+      "name": "DeineGartenwelt",
+      "aliases": [
+        "Deine Gartenwelt",
+        "DGW"
+      ]
+    },
+    {
+      "id": "tool:ruebert",
+      "type": "DemandPlanningTool",
+      "name": "Rübert",
+      "name_origin": "Word blend proposed by Elena and Daniel: Robert + Rübe"
+    },
+    {
+      "id": "person:daniel",
+      "type": "Person",
+      "name": "Daniel",
+      "role": "Management / purchasing; business decision-maker"
+    },
+    {
+      "id": "person:elena",
+      "type": "Person",
+      "name": "Elena",
+      "role": "Stakeholder; co-proposed tool name Rübert"
+    },
+    {
+      "id": "system:vario",
+      "type": "ERP",
+      "name": "Vario"
+    },
+    {
+      "id": "time:2026-09-01",
+      "type": "TimeBoundary",
+      "date": "2026-09-01",
+      "status": "confirmed by Daniel: 01.09. means 1 September 2026"
+    },
+    {
+      "id": "db:curated-postgres",
+      "type": "DataStore",
+      "name": "Curated sales PostgreSQL database",
+      "status": "Available; updated from Vario",
+      "coverage": "last two years plus current year, per Daniel",
+      "grain": "sales by product and channel",
+      "business_use": "seasonal advertising data basis",
+      "access_for_ruebert": "offered; read-only method/schema not yet provided"
+    },
+    {
+      "id": "db:legacy-sales",
+      "type": "DataStore",
+      "name": "Legacy ERP historical sales",
+      "status": "not migrated to Vario; migration uncertain",
+      "known_coverage": "May chat mentioned approximately eight years; current PostgreSQL source is confirmed for last two years plus current year"
+    },
+    {
+      "id": "concept:business-objective",
+      "type": "BusinessObjective",
+      "name": "Rübert primary optimization objective",
+      "status": "direction selected; relative costs not quantified",
+      "direction": "prioritize availability / avoid stockout; also avoid overstock",
+      "candidate_dimensions": [
+        "direct SKU lost sales",
+        "sales availability",
+        "combination sales",
+        "possible ranking loss",
+        "overstock/capital"
+      ]
+    },
+    {
+      "id": "policy:set-demand",
+      "type": "DemandAllocationPolicy",
+      "name": "Allocate set demand to component SKUs",
+      "rule": "use confirmed bill of materials to add component demand",
+      "status": "confirmed by Daniel; BOM source/version validity to verify"
+    },
+    {
+      "id": "policy:bundle-demand",
+      "type": "DemandAllocationPolicy",
+      "name": "Bundle demand consumes base SKU quantity",
+      "rule": "3-pack/5-pack order is represented as 3/5 units of base item in legacy movement data",
+      "status": "confirmed by Daniel"
+    },
+    {
+      "id": "policy:stock-source",
+      "type": "InventorySourcePolicy",
+      "name": "Use stock value from external system",
+      "source": "external system; exact field definition unknown until data review",
+      "status": "confirmed at source choice, semantics pending"
+    },
+    {
+      "id": "policy:cannibalization-deferred",
+      "type": "ScopeDecision",
+      "name": "Cannibalization analysis",
+      "status": "deferred to later phase"
+    },
+    {
+      "id": "policy:ads-deferred",
+      "type": "ScopeDecision",
+      "name": "Advertising KPI/optimization",
+      "status": "deferred to later phase"
+    },
+    {
+      "id": "concept:stockout-cost",
+      "type": "CostComponent",
+      "name": "Cost of stockout",
+      "selected_baseline": "lost direct sales of the affected SKU (Daniel answer 2A)",
+      "other_previously_named_components": [
+        "lost combination/cross-sales",
+        "possible marketplace ranking loss"
+      ],
+      "status": "earlier 2A conflict resolved by 6C",
+      "selected": "direct lost sales + lost combination sales + ranking loss, included once estimable (answer 6C)",
+      "quantification": "to be worked out in workshop (see cost-model.md)"
+    },
+    {
+      "id": "concept:direct-lost-sales",
+      "type": "CostSubcomponent",
+      "name": "Direct lost sales on affected SKU",
+      "status": "Daniel selected as baseline measurable stockout cost"
+    },
+    {
+      "id": "concept:overstock-cost",
+      "type": "CostComponent",
+      "name": "Cost of overstock",
+      "components": [
+        "capital tied up",
+        "storage",
+        "MHD expiry disposal",
+        "short remaining shelf life hurts customer acceptance"
+      ],
+      "quantification": "to be worked out in workshop (see cost-model.md)"
+    },
+    {
+      "id": "policy:uncertainty-warning",
+      "type": "DecisionPolicy",
+      "name": "Decision-relevant uncertainty warning",
+      "rule": "highlight uncertainty only when it materially changes the decision or risk"
+    },
+    {
+      "id": "policy:decision-conflicts",
+      "type": "DecisionPolicy",
+      "name": "Conflicting signals",
+      "rule": "show the conflict and offer multiple actions/options"
+    },
+    {
+      "id": "policy:learning",
+      "type": "LearningPolicy",
+      "name": "Learn from decisions and outcomes",
+      "inputs": [
+        "explicit user corrections",
+        "realized orders",
+        "realized sales"
+      ],
+      "requirement": "make learned changes transparent"
+    },
+    {
+      "id": "policy:initial-rollout",
+      "type": "ProductRolloutPolicy",
+      "name": "Staged rollout",
+      "phase_1": "stabilize order planning",
+      "later": [
+        "assortment decisions",
+        "seasonal advertising"
+      ]
+    },
+    {
+      "id": "policy:sku-planning",
+      "type": "PlanningPolicy",
+      "name": "Primary planning grain",
+      "value": "SKU/article",
+      "future_context": "channel-level sales available for analysis"
+    },
+    {
+      "id": "policy:portfolio-segmentation",
+      "type": "ForecastPolicy",
+      "name": "Segment products by lifecycle/sales class",
+      "segments": [
+        "top sellers",
+        "new products",
+        "niche products"
+      ],
+      "status": "requested; precise rules open"
+    },
+    {
+      "id": "ux:monday-overview",
+      "type": "UserWorkflow",
+      "name": "Monday morning overview",
+      "initial_view": "brief overview of urgent items and changes",
+      "decision_support": "show exceptions first"
+    },
+    {
+      "id": "view:home",
+      "type": "ApplicationView",
+      "name": "Startseite / Steuerungszentrale",
+      "phase_1": [
+        "data freshness",
+        "last forecast run"
+      ],
+      "later": [
+        "management summary of risks/opportunities"
+      ]
+    },
+    {
+      "id": "view:order-list",
+      "type": "ApplicationView",
+      "name": "Full sortable/filterable item list",
+      "filters": [
+        "own vs foreign brand",
+        "urgency",
+        "category",
+        "supplier"
+      ],
+      "rule": "prioritize urgent items but keep full assortment accessible"
+    },
+    {
+      "id": "view:item-detail",
+      "type": "ApplicationView",
+      "name": "SKU detail",
+      "focus": "demand sources: direct sales, set/bundle components, channel drilldown"
+    },
+    {
+      "id": "view:forecast-quality",
+      "type": "ApplicationView",
+      "name": "Forecast quality",
+      "sections": [
+        "backtest accuracy",
+        "uncertainty of current future forecast"
+      ],
+      "rule": "keep retrospective accuracy distinct from forecast uncertainty"
+    },
+    {
+      "id": "view:data-technical-monitoring",
+      "type": "ApplicationView",
+      "name": "Data and technical monitoring",
+      "layers": [
+        "plain-language start-page alert",
+        "data/forecast run status page",
+        "technical logs separated"
+      ]
+    },
+    {
+      "id": "policy:anomaly-review",
+      "type": "DataGovernancePolicy",
+      "name": "Human review of sales anomalies",
+      "rule": "flag anomalies; Daniel decides whether to keep/exclude; no automatic business exclusion"
+    },
+    {
+      "id": "view:bundle-components",
+      "type": "ApplicationView",
+      "name": "Set/bundle component demand",
+      "focus": "show components consumed by sets and bundles"
+    },
+    {
+      "id": "concept:cannibalization",
+      "type": "CommercialRelationship",
+      "name": "Potential product/channel cannibalization",
+      "status": "hypothesis to validate",
+      "candidate_relationships": [
+        "own vs foreign brand",
+        "single SKU vs sets/bundles",
+        "sales channels",
+        "variants/substitutes"
+      ]
+    },
+    {
+      "id": "ads:seasonal",
+      "type": "AdvertisingProgram",
+      "name": "Seasonal advertising",
+      "status": "existing business use case",
+      "measurement_fields": "availability/coverage in PostgreSQL not yet confirmed"
+    },
+    {
+      "id": "channel:amazon",
+      "type": "SalesChannel",
+      "name": "Amazon"
+    },
+    {
+      "id": "channel:shopify",
+      "type": "SalesChannel",
+      "name": "Shopify / own web shop"
+    },
+    {
+      "id": "channel:ebay",
+      "type": "SalesChannel",
+      "name": "eBay"
+    },
+    {
+      "id": "channel:kaufland",
+      "type": "SalesChannel",
+      "name": "Kaufland"
+    },
+    {
+      "id": "channel:obi",
+      "type": "SalesChannel",
+      "name": "OBI"
+    },
+    {
+      "id": "channel:hornbach",
+      "type": "SalesChannel",
+      "name": "Hornbach"
+    },
+    {
+      "id": "channel:bauhaus",
+      "type": "SalesChannel",
+      "name": "Bauhaus",
+      "status": "planned/subject to current channel setup"
+    },
+    {
+      "id": "brand:own",
+      "type": "BrandClass",
+      "name": "DeineGartenwelt own brand"
+    },
+    {
+      "id": "brand:foreign",
+      "type": "BrandClass",
+      "name": "Third-party brands"
+    },
+    {
+      "id": "brand:seedhero",
+      "type": "Brand",
+      "name": "Seedhero",
+      "status": "End-of-life / sell-through; exclude from initial forecast unless scope changes"
+    },
+    {
+      "id": "supplier:durr",
+      "type": "SupplierBrand",
+      "name": "Dürr Samen"
+    },
+    {
+      "id": "supplier:kiepenkerl",
+      "type": "SupplierBrand",
+      "name": "Kiepenkerl",
+      "source_status": "named in project documentation; current ERP supplier ID not yet mapped"
+    },
+    {
+      "id": "supplier:sperli",
+      "type": "SupplierBrand",
+      "name": "SPERLI",
+      "source_status": "named in project documentation; current ERP supplier ID not yet mapped"
+    },
+    {
+      "id": "supplier:quedlinburger",
+      "type": "SupplierBrand",
+      "name": "Quedlinburger",
+      "source_status": "named in project documentation; current ERP supplier ID not yet mapped"
+    },
+    {
+      "id": "supplier:pabst",
+      "type": "SupplierBrand",
+      "name": "Pabst Keimkraft",
+      "source_status": "named in project documentation; current ERP supplier ID not yet mapped"
+    },
+    {
+      "id": "supplier:romberg",
+      "type": "SupplierBrand",
+      "name": "Romberg",
+      "source_status": "named in project documentation; current ERP supplier ID not yet mapped"
+    },
+    {
+      "id": "supplier:gruene-fee",
+      "type": "SupplierBrand",
+      "name": "Grüne Fee",
+      "source_status": "named in project documentation; current ERP supplier ID not yet mapped"
+    },
+    {
+      "id": "category:vegetable-seeds",
+      "type": "ProductCategory",
+      "name": "Gemüsesamen"
+    },
+    {
+      "id": "category:flower-seeds",
+      "type": "ProductCategory",
+      "name": "Blumensamen"
+    },
+    {
+      "id": "category:herb-seeds",
+      "type": "ProductCategory",
+      "name": "Kräutersamen"
+    },
+    {
+      "id": "category:fruit-seeds",
+      "type": "ProductCategory",
+      "name": "Obstsamen"
+    },
+    {
+      "id": "category:grass-and-lawns",
+      "type": "ProductCategory",
+      "name": "Rasen & Gräser"
+    },
+    {
+      "id": "category:green-manure",
+      "type": "ProductCategory",
+      "name": "Gründüngung"
+    },
+    {
+      "id": "category:propagation-accessories",
+      "type": "ProductCategory",
+      "name": "Anzucht & Zubehör"
+    },
+    {
+      "id": "category:seed-sets",
+      "type": "ProductCategory",
+      "name": "Saatgut-Sets"
+    },
+    {
+      "id": "category:seed-bundles",
+      "type": "ProductCategory",
+      "name": "3er-/5er-Bundles"
+    },
+    {
+      "id": "product:dgwadv",
+      "type": "SeasonalProduct",
+      "sku": "DGWADV",
+      "name": "Saatgut-Adventskalender",
+      "planning_class": "independent special-product plan"
+    },
+    {
+      "id": "product:dgwadv2",
+      "type": "SeasonalProduct",
+      "sku": "DGWADV2",
+      "name": "Saatgut-Adventskalender (new version)",
+      "planning_class": "independent special-product plan"
+    },
+    {
+      "id": "product:dgw158",
+      "type": "SeasonalProduct",
+      "sku": "DGW158",
+      "name": "Glücksklee",
+      "planning_class": "independent special-product plan"
+    },
+    {
+      "id": "product:dgw128",
+      "type": "SeasonalProduct",
+      "sku": "DGW128",
+      "name": "Weihnachtsbaum-Samen",
+      "aliases": [
+        "Nordmanntanne"
+      ],
+      "planning_class": "regular own-brand order; seasonal demand"
+    },
+    {
+      "id": "product:dgw-gc2",
+      "type": "ExcludedProduct",
+      "sku": "DGW-GC2",
+      "name": "Geschenkkarte/Sonderartikel",
+      "status": "excluded from initial forecast unless scope changes"
+    },
+    {
+      "id": "class:base-sku",
+      "type": "ProductClass",
+      "name": "Individual/base SKU consumed by bundles"
+    },
+    {
+      "id": "grain:sku-channel-week",
+      "type": "DataGrain",
+      "name": "Sales by SKU and sales channel over time",
+      "status": "reported present in curated PostgreSQL; table/period keys to validate"
+    },
+    {
+      "id": "metric:sales-value-definition",
+      "type": "MetricDefinition",
+      "name": "Sales quantity/revenue semantic",
+      "status": "decided by Daniel",
+      "definition": "ordered quantity; returns/cancellations negligible",
+      "promotions": "counted as normal demand"
+    },
+    {
+      "id": "data:inventory-snapshots",
+      "type": "DataAsset",
+      "name": "Inventory snapshots and inbound purchase orders",
+      "status": "availability/completeness not verified"
+    },
+    {
+      "id": "data:ad-campaign-metrics",
+      "type": "DataAsset",
+      "name": "Campaign and advertising performance metrics",
+      "status": "unknown whether spend, impressions, clicks, conversions and campaign dates are in PostgreSQL"
+    },
+    {
+      "id": "metric:forecast-horizon",
+      "type": "PlanningParameter",
+      "name": "Forecast horizon",
+      "value": 104,
+      "unit": "weeks"
+    },
+    {
+      "id": "policy:own-brand-order",
+      "type": "OrderingPolicy",
+      "name": "Own-brand annual order",
+      "step_units": 60000,
+      "minimum_per_variety": 5000,
+      "lead_time_weeks": 12,
+      "tranche_is_fixed_total": true,
+      "tranche_units": 60000
+    },
+    {
+      "id": "policy:foreign-brand-order",
+      "type": "OrderingPolicy",
+      "name": "Foreign-brand order",
+      "minimum_interval_source": "Vario article master",
+      "supplier_minimum_order_value_eur": 100,
+      "lead_time_source": "supplier/ERP data; verify field in feed",
+      "minimum_order_basis": "net purchase price (EK)",
+      "below_minimum_rule": "wait and bundle until 100 EUR reached",
+      "display": "supplier overview with drill-down to article"
+    },
+    {
+      "id": "policy:own-stock-buffer",
+      "type": "InventoryPolicy",
+      "name": "Own-brand available stock buffer",
+      "minimum_remaining_units": 30,
+      "extra_default_percentage_reserve": 0
+    },
+    {
+      "id": "policy:sales-rounding",
+      "type": "OrderingPolicy",
+      "name": "Round own-brand quantity by remainder in 5,000 step",
+      "step_units": 5000,
+      "default_threshold": 0.75
+    },
+    {
+      "id": "policy:customer-shipping",
+      "type": "FulfillmentPolicy",
+      "name": "Public domestic shipping offer",
+      "customer_shipping_cost_eur": 3.99,
+      "free_shipping_threshold_eur": 30,
+      "typical_delivery_days": "2-5",
+      "note": "Customer fulfillment SLA, not supplier procurement lead time"
+    },
+    {
+      "id": "product:public-catalog",
+      "type": "PublicCatalogSnapshot",
+      "name": "Current storefront catalog snapshot",
+      "homepage_claimed_products": ">1600",
+      "collection_counts": {
+        "Gemüsesamen": 822,
+        "Blumensamen": 477,
+        "Kräutersamen": 225,
+        "Anzucht & Zubehör": 25,
+        "Saatgut-Sets": 20
+      },
+      "note": "Dynamic storefront counts, not ERP SKU counts; counts may overlap or include third-party brands"
+    },
+    {
+      "id": "policy:new-items",
+      "type": "ForecastPolicy",
+      "name": "New items without history",
+      "rule": "no automatic forecast; Daniel plans manually"
+    },
+    {
+      "id": "policy:discontinued-items",
+      "type": "OrderingPolicy",
+      "name": "Discontinued items",
+      "rule": "no reorder after discontinuation decision"
+    },
+    {
+      "id": "policy:manual-quantity-edit",
+      "type": "UIPolicy",
+      "name": "Manual order quantity edit",
+      "rule": "show new quantity and deviation from proposal only"
+    },
+    {
+      "id": "policy:no-hard-guardrails",
+      "type": "DecisionPolicy",
+      "name": "No hard budget/quantity limits",
+      "rule": "Daniel reviews every order"
+    },
+    {
+      "id": "metric:success",
+      "type": "SuccessMetric",
+      "name": "Success after 6-12 months",
+      "kpis": [
+        "fewer stockouts/lost sales",
+        "less overstock/capital tied up",
+        "less planning time"
+      ],
+      "baselines": "to be measured before start"
+    }
+  ],
+  "relationships": [
+    {
+      "subject": "org:dgw",
+      "predicate": "operates",
+      "object": "tool:ruebert",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "person:elena",
+      "predicate": "co_proposed_name",
+      "object": "tool:ruebert",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "person:daniel",
+      "predicate": "co_proposed_name",
+      "object": "tool:ruebert",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "system:vario",
+      "predicate": "updates",
+      "object": "db:curated-postgres",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "has_grain",
+      "object": "grain:sku-channel-week",
+      "source": "src:daniel-followup",
+      "status": "sales are by product and channel; exact date/time grain awaits schema review"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "defines_metric",
+      "object": "metric:sales-value-definition",
+      "source": "src:round-2-questions",
+      "status": "definition pending source review"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "may_contain",
+      "object": "data:inventory-snapshots",
+      "source": "src:round-2-questions",
+      "status": "unverified"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "may_contain",
+      "object": "data:ad-campaign-metrics",
+      "source": "src:round-2-questions",
+      "status": "unverified"
+    },
+    {
+      "subject": "system:vario",
+      "predicate": "contains_new_sales_from",
+      "object": "time:2026-09-01",
+      "source": "src:daniel-followup",
+      "status": "confirmed by Daniel: 1 September 2026"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "supports",
+      "object": "ads:seasonal",
+      "source": "src:daniel-followup",
+      "status": "confirmed as intended basis for seasonal ads"
+    },
+    {
+      "subject": "db:legacy-sales",
+      "predicate": "may_overlap_with",
+      "object": "db:curated-postgres",
+      "source": "src:daniel-followup",
+      "status": "coverage/date boundaries and older history availability require reconciliation"
+    },
+    {
+      "subject": "concept:business-objective",
+      "predicate": "prioritizes",
+      "object": "concept:stockout-cost",
+      "source": "src:daniel-followup",
+      "status": "Daniel chooses availability/stockout avoidance as primary direction; relative cost versus overstock still needs quantification"
+    },
+    {
+      "subject": "concept:stockout-cost",
+      "predicate": "uses_baseline",
+      "object": "concept:direct-lost-sales",
+      "source": "src:daniel-followup",
+      "status": "direct lost SKU sales selected in follow-up; earlier combo/ranking effects need clarification"
+    },
+    {
+      "subject": "product:public-catalog",
+      "predicate": "not_source_of_truth_for",
+      "object": "policy:stock-source",
+      "source": "src:open-questions",
+      "status": "use the external-system inventory value, not public catalog data"
+    },
+    {
+      "subject": "policy:set-demand",
+      "predicate": "allocates_demand_to",
+      "object": "class:base-sku",
+      "source": "src:daniel-followup",
+      "status": "confirmed by answer 7A; component lists/version dates remain to verify"
+    },
+    {
+      "subject": "policy:bundle-demand",
+      "predicate": "reduces_stock_of",
+      "object": "class:base-sku",
+      "source": "src:daniel-followup",
+      "status": "confirmed by answer 8A"
+    },
+    {
+      "subject": "concept:cannibalization",
+      "predicate": "deferred_under",
+      "object": "policy:cannibalization-deferred",
+      "source": "src:daniel-followup",
+      "status": "Daniel says later"
+    },
+    {
+      "subject": "ads:seasonal",
+      "predicate": "optimization_deferred_under",
+      "object": "policy:ads-deferred",
+      "source": "src:daniel-followup",
+      "status": "Daniel says Ads KPI/optimization later"
+    },
+    {
+      "subject": "concept:business-objective",
+      "predicate": "balances_against",
+      "object": "concept:overstock-cost",
+      "source": "src:daniel-followup",
+      "status": "avoid overstock; relative cost versus stockout still needs quantification"
+    },
+    {
+      "subject": "concept:stockout-cost",
+      "predicate": "may_include",
+      "object": "channel:amazon",
+      "source": "src:daniel-followup",
+      "status": "ranking loss mentioned earlier; whether included in v1 cost function needs clarification"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "should_surface",
+      "object": "ux:monday-overview",
+      "source": "src:daniel-followup",
+      "status": "short overview of urgent items and changes"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "starts_at",
+      "object": "view:home",
+      "source": "src:view-design-decisions",
+      "status": "v1: data freshness and last forecast; executive insights later"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "offers",
+      "object": "view:order-list",
+      "source": "src:view-design-decisions",
+      "status": "full assortment searchable/filterable; urgent items prioritized"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "drills_down_to",
+      "object": "view:item-detail",
+      "source": "src:view-design-decisions",
+      "status": "SKU first; demand-source decomposition and channel drilldown"
+    },
+    {
+      "subject": "view:item-detail",
+      "predicate": "links_to",
+      "object": "view:bundle-components",
+      "source": "src:view-design-decisions",
+      "status": "show component demand for sets/bundles"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "separates",
+      "object": "view:forecast-quality",
+      "source": "src:view-design-decisions",
+      "status": "historical backtest vs future forecast uncertainty"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "monitors_with",
+      "object": "view:data-technical-monitoring",
+      "source": "src:view-design-decisions",
+      "status": "progressive detail: start alert, status page, technical logs"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "handles_anomalies_under",
+      "object": "policy:anomaly-review",
+      "source": "src:view-design-decisions",
+      "status": "manual human decision"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "plans_at_grain",
+      "object": "policy:sku-planning",
+      "source": "src:daniel-followup",
+      "status": "confirmed primary grain is article/SKU"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "segments_forecasts_by",
+      "object": "policy:portfolio-segmentation",
+      "source": "src:daniel-followup",
+      "status": "use distinct rules for top sellers, new and niche items"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "uses",
+      "object": "policy:uncertainty-warning",
+      "source": "src:daniel-followup",
+      "status": "warn only when uncertainty materially affects decision/risk"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "handles_conflicts_with",
+      "object": "policy:decision-conflicts",
+      "source": "src:daniel-followup",
+      "status": "show conflict and multiple options"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "learns_under",
+      "object": "policy:learning",
+      "source": "src:daniel-followup",
+      "status": "learn from corrections and observed outcomes, transparently"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "rolls_out_under",
+      "object": "policy:initial-rollout",
+      "source": "src:daniel-followup",
+      "status": "order planning first; assortment and seasonal ads later"
+    },
+    {
+      "subject": "concept:cannibalization",
+      "predicate": "to_be_validated_by",
+      "object": "person:daniel",
+      "source": "src:open-questions",
+      "status": "AI may identify candidates; correlation is not proof"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "contains_sales_by",
+      "object": "channel:amazon",
+      "source": "src:daniel-followup",
+      "status": "confirmed; all channel IDs subject to schema validation"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "contains_sales_by",
+      "object": "channel:shopify",
+      "source": "src:daniel-followup",
+      "status": "confirmed; all channel IDs subject to schema validation"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "contains_sales_by",
+      "object": "channel:ebay",
+      "source": "src:daniel-followup",
+      "status": "confirmed; all channel IDs subject to schema validation"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "contains_sales_by",
+      "object": "channel:kaufland",
+      "source": "src:daniel-followup",
+      "status": "confirmed; all channel IDs subject to schema validation"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "contains_sales_by",
+      "object": "channel:obi",
+      "source": "src:daniel-followup",
+      "status": "confirmed; all channel IDs subject to schema validation"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "contains_sales_by",
+      "object": "channel:hornbach",
+      "source": "src:daniel-followup",
+      "status": "confirmed; all channel IDs subject to schema validation"
+    },
+    {
+      "subject": "db:curated-postgres",
+      "predicate": "contains_sales_by",
+      "object": "channel:bauhaus",
+      "source": "src:daniel-followup",
+      "status": "verify presence in current data"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:vegetable-seeds",
+      "source": "src:shop-veg",
+      "status": "observed on public shop"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:flower-seeds",
+      "source": "src:shop-flowers",
+      "status": "observed on public shop"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:herb-seeds",
+      "source": "src:shop-herbs",
+      "status": "observed on public shop"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:propagation-accessories",
+      "source": "src:shop-propagation",
+      "status": "observed on public shop"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:seed-sets",
+      "source": "src:shop-sets",
+      "status": "observed on public shop"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:fruit-seeds",
+      "source": "src:project",
+      "status": "project-documented; verify active ERP products"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:grass-and-lawns",
+      "source": "src:project",
+      "status": "project-documented; verify active ERP products"
+    },
+    {
+      "subject": "org:dgw",
+      "predicate": "sells",
+      "object": "category:green-manure",
+      "source": "src:project",
+      "status": "project-documented; verify active ERP products"
+    },
+    {
+      "subject": "category:propagation-accessories",
+      "predicate": "classified_as",
+      "object": "brand:foreign",
+      "source": "src:daniel-followup",
+      "status": "confirmed: Anzucht & Zubehör is third-party brand"
+    },
+    {
+      "subject": "supplier:kiepenkerl",
+      "predicate": "is_a",
+      "object": "brand:foreign",
+      "source": "src:project",
+      "status": "brand/supplier distinction in Vario still to map"
+    },
+    {
+      "subject": "supplier:sperli",
+      "predicate": "is_a",
+      "object": "brand:foreign",
+      "source": "src:project",
+      "status": "brand/supplier distinction in Vario still to map"
+    },
+    {
+      "subject": "supplier:quedlinburger",
+      "predicate": "is_a",
+      "object": "brand:foreign",
+      "source": "src:project",
+      "status": "brand/supplier distinction in Vario still to map"
+    },
+    {
+      "subject": "supplier:durr",
+      "predicate": "is_a",
+      "object": "brand:foreign",
+      "source": "src:project",
+      "status": "brand/supplier distinction in Vario still to map"
+    },
+    {
+      "subject": "supplier:pabst",
+      "predicate": "is_a",
+      "object": "brand:foreign",
+      "source": "src:project",
+      "status": "brand/supplier distinction in Vario still to map"
+    },
+    {
+      "subject": "supplier:romberg",
+      "predicate": "is_a",
+      "object": "brand:foreign",
+      "source": "src:project",
+      "status": "brand/supplier distinction in Vario still to map"
+    },
+    {
+      "subject": "supplier:gruene-fee",
+      "predicate": "is_a",
+      "object": "brand:foreign",
+      "source": "src:project",
+      "status": "brand/supplier distinction in Vario still to map"
+    },
+    {
+      "subject": "category:seed-sets",
+      "predicate": "combines",
+      "object": "category:vegetable-seeds",
+      "source": "src:shop-sets",
+      "status": "public descriptions; exact BOM must come from ERP/master data"
+    },
+    {
+      "subject": "category:seed-sets",
+      "predicate": "combines",
+      "object": "category:flower-seeds",
+      "source": "src:shop-sets",
+      "status": "public descriptions; exact BOM must come from ERP/master data"
+    },
+    {
+      "subject": "category:seed-sets",
+      "predicate": "combines",
+      "object": "category:herb-seeds",
+      "source": "src:shop-sets",
+      "status": "public descriptions; exact BOM must come from ERP/master data"
+    },
+    {
+      "subject": "category:seed-bundles",
+      "predicate": "consumes_components_by_quantity",
+      "object": "class:base-sku",
+      "source": "src:daniel-followup",
+      "status": "business fact; bundle orders represented as base SKU quantity 3 or 5 in old movement data, across almost all articles"
+    },
+    {
+      "subject": "product:dgwadv",
+      "predicate": "has_components_in_category",
+      "object": "category:flower-seeds",
+      "source": "src:shop-advent-calendar",
+      "status": "8 of 24 varieties; exact component SKUs need current BOM"
+    },
+    {
+      "subject": "product:dgwadv",
+      "predicate": "has_components_in_category",
+      "object": "category:herb-seeds",
+      "source": "src:shop-advent-calendar",
+      "status": "6 of 24 varieties; exact component SKUs need current BOM"
+    },
+    {
+      "subject": "product:dgwadv",
+      "predicate": "has_components_in_category",
+      "object": "category:vegetable-seeds",
+      "source": "src:shop-advent-calendar",
+      "status": "10 of 24 varieties; exact component SKUs need current BOM"
+    },
+    {
+      "subject": "product:dgwadv",
+      "predicate": "planned_independently_from",
+      "object": "policy:own-brand-order",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "product:dgwadv2",
+      "predicate": "planned_independently_from",
+      "object": "policy:own-brand-order",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "product:dgw158",
+      "predicate": "planned_independently_from",
+      "object": "policy:own-brand-order",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "product:dgw128",
+      "predicate": "ordered_under",
+      "object": "policy:own-brand-order",
+      "source": "src:daniel-followup",
+      "status": "confirmed; seasonal demand"
+    },
+    {
+      "subject": "product:dgw-gc2",
+      "predicate": "excluded_from",
+      "object": "metric:forecast-horizon",
+      "source": "src:daniel-followup",
+      "status": "initial forecast scope exclusion"
+    },
+    {
+      "subject": "brand:foreign",
+      "predicate": "uses_order_policy",
+      "object": "policy:foreign-brand-order",
+      "source": "src:daniel-followup",
+      "status": "confirmed; intervals from article master and 100 EUR minimum per supplier"
+    },
+    {
+      "subject": "brand:own",
+      "predicate": "uses_order_policy",
+      "object": "policy:own-brand-order",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "brand:own",
+      "predicate": "uses_inventory_policy",
+      "object": "policy:own-stock-buffer",
+      "source": "src:daniel-followup",
+      "status": "confirmed"
+    },
+    {
+      "subject": "category:vegetable-seeds",
+      "predicate": "public_collection_count",
+      "object": "product:public-catalog",
+      "source": "src:shop-veg",
+      "status": "822 at retrieval time; dynamic storefront count"
+    },
+    {
+      "subject": "category:flower-seeds",
+      "predicate": "public_collection_count",
+      "object": "product:public-catalog",
+      "source": "src:shop-flowers",
+      "status": "477 at retrieval time; dynamic storefront count"
+    },
+    {
+      "subject": "category:herb-seeds",
+      "predicate": "public_collection_count",
+      "object": "product:public-catalog",
+      "source": "src:shop-herbs",
+      "status": "225 at retrieval time; dynamic storefront count"
+    },
+    {
+      "subject": "category:propagation-accessories",
+      "predicate": "public_collection_count",
+      "object": "product:public-catalog",
+      "source": "src:shop-propagation",
+      "status": "25 at retrieval time; dynamic storefront count"
+    },
+    {
+      "subject": "category:seed-sets",
+      "predicate": "public_collection_count",
+      "object": "product:public-catalog",
+      "source": "src:shop-sets",
+      "status": "20 at retrieval time; dynamic storefront count"
+    },
+    {
+      "subject": "policy:customer-shipping",
+      "predicate": "published_by",
+      "object": "org:dgw",
+      "source": "src:shop-shipping",
+      "status": "3.99 EUR; free at 30 EUR; customer delivery 2-5 days; not procurement lead time"
+    },
+    {
+      "subject": "supplier:durr",
+      "predicate": "sold_through",
+      "object": "org:dgw",
+      "source": "src:shop-durr",
+      "status": "public third-party brand collection"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "applies",
+      "object": "policy:new-items",
+      "source": "src:daniel-followup",
+      "status": "answer 9A"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "applies",
+      "object": "policy:discontinued-items",
+      "source": "src:daniel-followup",
+      "status": "answer 10A"
+    },
+    {
+      "subject": "view:order-list",
+      "predicate": "uses",
+      "object": "policy:manual-quantity-edit",
+      "source": "src:daniel-followup",
+      "status": "answer 3A"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "operates_under",
+      "object": "policy:no-hard-guardrails",
+      "source": "src:daniel-followup",
+      "status": "answer 12A"
+    },
+    {
+      "subject": "tool:ruebert",
+      "predicate": "measured_by",
+      "object": "metric:success",
+      "source": "src:daniel-followup",
+      "status": "answer 11C"
+    }
+  ],
+  "graph_audit": [
+    {
+      "issue": "SKU-level entities and historical relationships are not loaded",
+      "why_it_matters": "Cannot yet link SKU to supplier, brand, category, season, BOM, lifecycle, channel sales or substitutions reliably.",
+      "needed_source": "curated PostgreSQL/Vario schema and article master",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Sales fact semantics are incomplete",
+      "why_it_matters": "Unknown whether quantities are ordered, paid, shipped, net of refunds/cancellations, promo-adjusted or censored by unavailable stock.",
+      "needed_source": "sales fact definition, order lines, availability history",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Inventory and incoming purchase orders are not represented in this graph",
+      "why_it_matters": "A stock recommendation needs sellable on-hand, blocked/reserved stock and dated incoming supply, not only the latest observed stock.",
+      "needed_source": "inventory and purchase-order tables",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Set/BOM and bundle relationships are category-level, not SKU/version-level",
+      "why_it_matters": "Public descriptions cannot establish exact components, quantities or historical composition changes.",
+      "needed_source": "versioned ERP BOM and order-line data",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Cannibalization links are hypotheses only",
+      "why_it_matters": "Own/foreign products, substitutions, bundles and channel shifts are not proven causal relationships; co-movement alone can mislead.",
+      "needed_source": "confirmed product mapping, basket data, promotions and experiments",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Economic objective is directional but unquantified",
+      "why_it_matters": "Lost sales, cross-sales, ranking damage, capital, storage and write-off costs cannot yet be compared on a common scale.",
+      "needed_source": "SKU/channel contribution margin, ranking proxy, holding/write-off costs",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Ads entity lacks campaign-level data and attribution",
+      "why_it_matters": "A sales database built for ads does not prove the availability of cost, impression, click, conversion or causal lift metrics.",
+      "needed_source": "campaign/ad-spend data and attribution definitions",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Public catalog is not the canonical catalog",
+      "why_it_matters": "Storefront counts are dynamic and may include third-party products/overlapping collections; they are not SKU master data or assortment eligibility.",
+      "needed_source": "Vario item master and assortment-status history",
+      "question_file": "../open-questions/fragenrunde-3.md"
+    },
+    {
+      "issue": "Historical coverage boundary remains unresolved",
+      "why_it_matters": "The original chat mentioned roughly eight years, while the current curated PostgreSQL source is confirmed for two years plus current year and Vario starts 2026-09-01.",
+      "needed_source": "date coverage and migration audit",
+      "question_file": "../open-questions/index.md"
+    }
+  ],
+  "open_validation": [
+    "Daniel will inspect the curated PostgreSQL basis later; then confirm read-only access method, schema, refresh watermark and source-of-truth fields.",
+    "Reconcile the May-chat statement of roughly eight historical sales years with Daniel's current confirmed PostgreSQL coverage (last two years plus current year) and uncertain Vario migration.",
+    "Determine whether the PostgreSQL source contains ad spend, campaign dates, impressions, clicks, conversions, gross margin/cost and seasonality labels, or only sales.",
+    "Get read-only access and schema/sample of the curated PostgreSQL data before building a separate Vario connector.",
+    "Verify supplier lead-time, purchase interval, supplier ID, cost and order-minimum fields are all available in the data source.",
+    "Confirm current presence of OBI/Hornbach/Bauhaus and SKU/channel granularity against actual database tables.",
+    "Website counts and copy are public snapshots, not authoritative assortment, BOM, sales, margin or procurement records.",
+    "Clarify cannibalization/relationship links between own brand, foreign brands, seed sets, bundles and seasonal campaign items using sales data and campaign metadata.",
+    "Map actual Vario supplier IDs separately from public-facing brand names; a brand label is not necessarily the purchasing vendor.",
+    "Map product lifecycle states, assortment-active dates, seasonality flags and analog/reference-SKU links at SKU level.",
+    "Quantify or choose defensible proxies for lost direct sales, lost combination sales, possible ranking damage, and overstock costs so the stockout-vs-overstock objective can be operationalized. Scheduled for workshop: ../plan/workshop-kostenmodell.md.",
+    "Define operational criteria for top seller/new/niche segmentation and exact forecast rules per segment.",
+    "Define success metrics and guardrails for the first order-planning phase before expanding to assortment and seasonal ads.",
+    "Define the external-system stock field semantics (physical vs saleable/reserved/on-order stock).",
+    "Confirm set BOM versioning/source and ensure allocating set demand to components will not double count component sales.",
+    "Confirm how zero sales are distinguished from no stock/listing inactivity and how returns/cancellations/promotions affect the sales measure."
+  ]
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "cal:year_change:2026-01-01",
+    "date": "2026-01-01",
+    "kind": "Kalender",
+    "title": "Jahreswechsel",
+    "sku": null,
+    "source": "kalender",
+    "is_sample": false
+  },
+  {
+    "id": "BSP-E4",
+    "date": "2026-02-02",
+    "kind": "Lieferengpass",
+    "title": "Wareneingang zwei Wochen verspätet",
+    "sku": "DGW005",
+    "source": "beispiel",
+    "is_sample": true
+  },
+  {
+    "id": "BSP-E5",
+    "date": "2026-03-16",
+    "kind": "Bundle",
+    "title": "3er-Bundle Basilikum neu gelistet",
+    "sku": "DGW004",
+    "source": "beispiel",
+    "is_sample": true
+  },
+  {
+    "id": "cal:march_20:2026-03-20",
+    "date": "2026-03-20",
+    "kind": "Kalender",
+    "title": "20.03.",
+    "sku": null,
+    "source": "kalender",
+    "is_sample": false
+  },
+  {
+    "id": "cal:easter:2026-04-05",
+    "date": "2026-04-05",
+    "kind": "Kalender",
+    "title": "Ostern",
+    "sku": null,
+    "source": "kalender",
+    "is_sample": false
+  }
+]

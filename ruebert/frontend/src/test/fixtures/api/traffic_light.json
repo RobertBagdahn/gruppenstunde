@@ -1,0 +1,70 @@
+{
+  "counts": {
+    "red": 1,
+    "yellow": 1,
+    "green": 1,
+    "blue": 1
+  },
+  "queue": [
+    {
+      "sku": "DGW001",
+      "title": "Artikel DGW001",
+      "colour": "red",
+      "stock": 250.0,
+      "stockout_label": "KW 23/2026",
+      "recommendation": "Bis KW 11/2026 bestellen · ca. 45.000 Tüten",
+      "suggested_quantity": 45000,
+      "decision": null
+    },
+    {
+      "sku": "DGW002",
+      "title": "Artikel DGW002",
+      "colour": "yellow",
+      "stock": 1600.0,
+      "stockout_label": "KW 36/2026",
+      "recommendation": "Bis KW 24/2026 bestellen · ca. 10.000 Tüten",
+      "suggested_quantity": 10000,
+      "decision": null
+    }
+  ],
+  "special": [
+    {
+      "sku": "DGW158",
+      "title": "Artikel DGW158",
+      "colour": "red",
+      "stock": 10.0,
+      "stockout_label": "KW 21/2026",
+      "recommendation": "Bis KW 9/2026 bestellen",
+      "suggested_quantity": null,
+      "decision": null
+    }
+  ],
+  "decided": 0,
+  "explanation": [
+    {
+      "colour": "red",
+      "text": "Ausverkauf vor Ablauf der Lieferzeit (12 Wochen): bestellte Ware käme zu spät.",
+      "question_id": "Q-080"
+    },
+    {
+      "colour": "yellow",
+      "text": "Ausverkauf innerhalb des Planungsfensters (8 Wochen nach der Lieferzeit): jetzt planen.",
+      "question_id": "Q-080"
+    },
+    {
+      "colour": "green",
+      "text": "Bestand reicht über Lieferzeit und Planungsfenster hinaus.",
+      "question_id": null
+    },
+    {
+      "colour": "blue",
+      "text": "Bestand übersteigt die Prognose der nächsten 130 Wochen (30 Monate).",
+      "question_id": "Q-080"
+    },
+    {
+      "colour": "Bestellung bis",
+      "text": "Ausverkaufswoche minus 12 Wochen Lieferzeit, bezogen auf KW 21/2026.",
+      "question_id": null
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "source_path": "/var/folders/xv/k8tqxz0n4pgf59rm997l83480000gn/T/ruebert-world-cm194l6q/source.duckdb",
+  "source_last_booking": "2026-05-15T09:00:00",
+  "last_rebuild": "2026-10-20T05:39:30+00:00",
+  "checksum": "d7b39b81148bea25718ff8c47c92fb0cd5aceea9a5eb3a364cfc6d0b90fbdde8",
+  "source_sha256": "db12a1e369cc915ef44db0a250d9e00340ddefda0c70991f8a15918b8672f652",
+  "reference_date": "2026-05-18",
+  "real_date": "2026-10-20",
+  "time_machine": true,
+  "runs": [
+    {
+      "run_id": 25,
+      "started_at": "2026-05-21T07:41:00",
+      "finished_at": "2026-05-21T07:44:00",
+      "status": "success",
+      "sku_count": 2,
+      "model_counts": "{}",
+      "is_current": true
+    }
+  ],
+  "comparison": {
+    "reference_date": "2026-05-18",
+    "articles_compared": 5,
+    "stock_differences": [],
+    "v1_colour_counts": {
+      "red": 1,
+      "yellow": 1,
+      "green": 1,
+      "blue": 1
+    },
+    "colour_counts": {
+      "red": 1,
+      "yellow": 1,
+      "green": 1,
+      "blue": 1
+    },
+    "articles_without_forecast": []
+  },
+  "orphans": []
+}

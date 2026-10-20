@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars for local runs. Values here are not secrets.
+project_id = "inspi-441320"
+region     = "europe-west1"

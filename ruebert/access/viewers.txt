@@ -1,0 +1,4 @@
+# Google accounts that may open Rübert (one per line). The deploy workflow grants them IAP access.
+# Adding an address here is enough; the workflow adds the binding on the next deploy.
+# Removing a line does NOT revoke access automatically: remove the binding by hand (see ruebert/docs/DEPLOY.md).
+# Daniel and Elena: add their Google addresses once they are known.

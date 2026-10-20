@@ -1,0 +1,52 @@
+{
+  "models": [
+    {
+      "model": "LightGBM-LT",
+      "articles_evaluated": 5,
+      "articles_not_evaluated": 0,
+      "wape_mean": 0.37,
+      "bias_mean": 0.0,
+      "coverage_mean": 0.8
+    },
+    {
+      "model": "MSTL",
+      "articles_evaluated": 5,
+      "articles_not_evaluated": 0,
+      "wape_mean": 0.42000000000000004,
+      "bias_mean": 0.0,
+      "coverage_mean": 0.8
+    }
+  ],
+  "worst": [
+    {
+      "sku": "DGW001",
+      "title": "Artikel DGW001",
+      "model": "MSTL",
+      "wape": 0.42
+    },
+    {
+      "sku": "DGW002",
+      "title": "Artikel DGW002",
+      "model": "MSTL",
+      "wape": 0.42
+    },
+    {
+      "sku": "DGW003",
+      "title": "Artikel DGW003",
+      "model": "MSTL",
+      "wape": 0.42
+    },
+    {
+      "sku": "DGW004",
+      "title": "Artikel DGW004",
+      "model": "MSTL",
+      "wape": 0.42
+    },
+    {
+      "sku": "DGW158",
+      "title": "Artikel DGW158",
+      "model": "MSTL",
+      "wape": 0.42
+    }
+  ]
+}

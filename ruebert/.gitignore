@@ -1,0 +1,11 @@
+# Rübert demo: local and build-only artefacts (the Gruppenstunde root .gitignore covers caches and node_modules).
+backend/var/
+data/*.duckdb
+data/*.duckdb.*
+data/*.wal
+backend/.env
+frontend/.env.local
+journal/*.yaml
+
+# Raw source material (knowledge/input) stays in flower-demand only: the Gruppenstunde pre-commit hooks would change it.
+knowledge/input/
