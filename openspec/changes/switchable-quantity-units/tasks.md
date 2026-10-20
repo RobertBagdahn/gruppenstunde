@@ -61,7 +61,7 @@
 ## 7. Abschluss
 
 - [x] 7.1 `uv run pytest` (planner, recipe, supply, shopping), `uv run ruff check`, Frontend-Typecheck, Lint, Tests
-- [ ] 7.2 Dry-Run `normalize_meal_item_units` auf einer Prod-Kopie, Bericht prüfen, Okay einholen
+- [x] 7.2 Dry-Run `normalize_meal_item_units` auf einer Prod-Kopie (17.10.2026, 291 `MealItem`): 0 zugeordnet, 0 nicht zuordenbar, `--apply` auf Prod ist ein No-op. 8 Einträge ohne Einheit (alle `meal_id` 101, Frühstücks-Mengen in g/ml); sie verletzen keine CheckConstraint, rechnen aber als 0 g und müssen in der App korrigiert werden
 - [x] 7.3 `unified-buffet-wizard` ist archiviert; Phase 3 ist damit mergbar Phase 3 erst nach Archivierung von `unified-buffet-wizard` mergen
 - [ ] 7.4 Manuell mit Peters Fall: Brötchen in Stück, Frischkäse in EL, Salz in Prise, „Brot: 2 Stück/Person“, Einkaufsliste, PDF; 320 px
 
