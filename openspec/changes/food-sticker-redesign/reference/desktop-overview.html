@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Desktop – Rezeptübersicht</title>
+
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#0F6E7A}a:hover{color:#0A4F57}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 100vh; background: #FFFFFF; color: #1B1F1D; font-family: Figtree, system-ui, sans-serif">
+
+<header style="border-bottom: 1px solid #EEF0EE">
+<div style="max-width: 1240px; margin: 0 auto; padding: 14px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px">
+<a href="desktop-start.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1B1F1D">
+<img src="inspi-logo.png" width="38" height="38" alt="Inspi Food Logo" style="width: 38px; height: 38px; object-fit: contain; display: block">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Inspi <span style="color: #0F6E7A">Food</span></span>
+</a>
+<nav aria-label="Hauptnavigation" style="flex: 1 1 420px; display: flex; gap: 6px; overflow-x: auto">
+<a href="desktop-overview.html" aria-current="page" style="flex: none; height: 40px; padding: 0 14px; border-radius: 999px; background: #E3F3F5; color: #0A4F57; font-weight: 700; font-size: 16px; display: flex; align-items: center; text-decoration: none">Rezepte</a>
+<a href="desktop-plaene.html" style="flex: none; height: 40px; padding: 0 14px; border-radius: 999px; color: #5E6661; font-weight: 600; font-size: 16px; display: flex; align-items: center; text-decoration: none">Essenspläne</a>
+<a href="desktop-einkauf.html" style="flex: none; height: 40px; padding: 0 14px; border-radius: 999px; color: #5E6661; font-weight: 600; font-size: 16px; display: flex; align-items: center; text-decoration: none">Einkaufslisten</a>
+<a href="desktop-zutat.html" style="flex: none; height: 40px; padding: 0 14px; border-radius: 999px; color: #5E6661; font-weight: 600; font-size: 16px; display: flex; align-items: center; text-decoration: none">Zutaten</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 10px">
+<button aria-label="Profil öffnen" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid #D3D9D5; background: #FFFFFF; color: #1B1F1D; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+</div>
+</div>
+</header>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 28px 24px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 36px">
+
+<section style="display: flex; flex-wrap: wrap; gap: 28px; align-items: stretch">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 14px">
+<nav aria-label="Brotkrumen" style="font-size: 14px; color: #5E6661; display: flex; gap: 6px"><a href="#" style="text-decoration: none">Start</a><span aria-hidden="true">/</span><span aria-current="page">Rezepte</span></nav>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2.75rem; line-height: 1.02; letter-spacing: -0.025em">Rezepte für Gruppen <span style="position: relative; white-space: nowrap">&amp; Lager<svg width="100%" height="12" viewBox="0 0 120 10" fill="none" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; left: 0; bottom: -10px"><path d="M2 6c10-4 18 4 28 0s18-4 28 0 18 4 28 0 18-4 32 0" stroke="#DA3A1E" stroke-width="3" stroke-linecap="round"></path></svg></span></h1>
+<p style="margin: 6px 0 0; max-width: 560px; font-size: 18px; line-height: 1.55; color: #5E6661">Erprobte Gerichte für 10 bis 100 Leute – mit Mengen für jede Gruppengröße, Kosten pro Portion und Nutri-Score. Direkt in euren Essensplan übernehmen.</p>
+<form role="search" style="margin: 8px 0 0; display: flex; gap: 10px; max-width: 560px">
+<label style="flex: 1; display: flex; align-items: center; gap: 10px; height: 56px; padding: 0 16px; border-radius: 20px; border: 1.5px solid #858C87; box-sizing: border-box; color: #5E6661">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+<input type="search" aria-label="Rezepte durchsuchen" placeholder="Rezept oder Zutat suchen" style="flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-size: 16px; color: #1B1F1D">
+</label>
+<button style="height: 56px; padding: 0 22px; border-radius: 20px; border: 0; background: #1B1F1D; color: #FFFFFF; font: inherit; font-size: 16px; font-weight: 700">Suchen</button>
+</form>
+</div>
+<a href="desktop-detail.html" style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 12px 32px rgba(27,31,29,0.10); text-decoration: none; color: #1B1F1D">
+<span style="position: relative; height: 220px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"></path></svg><span style="position: absolute; top: 16px; left: 14px; transform: rotate(-5deg); background: #FFD84D; font-size: 14px; font-weight: 800; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 0 rgba(27,31,29,0.12)">Beliebt der Woche</span><span title="Nutri-Score A" style="position: absolute; top: 14px; right: 14px; flex: none; width: 32px; height: 32px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">A</span></span>
+<span style="padding: 18px 20px 20px; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap"><span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Chili sin Carne</span><span style="font-size: 14px; color: #5E6661">30–60 Min · einfach · vegan</span></span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">1,10 € <span style="font-family: Figtree, sans-serif; font-size: 14px; font-weight: 600; color: #5E6661">pro Portion</span></span></span>
+</a>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start">
+
+<aside aria-label="Filter" style="flex: 1 1 250px; max-width: 100%; display: flex; flex-direction: column; gap: 22px; padding: 20px; border-radius: 20px; border: 1.5px solid #EEF0EE; box-sizing: border-box">
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Filter</h2><a href="#" style="font-size: 14px; font-weight: 700; text-decoration: none">Zurücksetzen</a></div>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 4px">
+<legend style="padding: 0 0 8px; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Kategorie</legend>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #0F6E7A"><span style="width: 10px; height: 10px; border-radius: 999px; background: #F2B600"></span><span style="flex: 1">Frühstück</span><span style="font-size: 14px; color: #5E6661">41</span></label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #0F6E7A"><span style="width: 10px; height: 10px; border-radius: 999px; background: #DA3A1E"></span><span style="flex: 1; font-weight: 700">Warme Mahlzeit</span><span style="font-size: 14px; color: #5E6661">96</span></label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #0F6E7A"><span style="width: 10px; height: 10px; border-radius: 999px; background: #1E9A5F"></span><span style="flex: 1">Kalte Mahlzeit</span><span style="font-size: 14px; color: #5E6661">38</span></label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #0F6E7A"><span style="width: 10px; height: 10px; border-radius: 999px; background: #7C4DDB"></span><span style="flex: 1">Nachtisch</span><span style="font-size: 14px; color: #5E6661">27</span></label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #0F6E7A"><span style="width: 10px; height: 10px; border-radius: 999px; background: #2E6BD8"></span><span style="flex: 1">Snack</span><span style="font-size: 14px; color: #5E6661">46</span></label>
+</fieldset>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0 0 8px; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Zeit</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<button style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1.5px solid #D3D9D5; background: #FFFFFF; color: #1B1F1D; font: inherit; font-size: 14px; font-weight: 600">&lt; 30 Min</button>
+<button aria-pressed="true" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1.5px solid #1B1F1D; background: #1B1F1D; color: #FFFFFF; font: inherit; font-size: 14px; font-weight: 700">30–60 Min</button>
+<button style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1.5px solid #D3D9D5; background: #FFFFFF; color: #1B1F1D; font: inherit; font-size: 14px; font-weight: 600">&gt; 60 Min</button>
+</div>
+</fieldset>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0 0 8px; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Kosten pro Portion</legend>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px"><span>bis <strong>1,50 €</strong></span><input type="range" min="0" max="5" step="0.1" value="1.5" style="accent-color: #0F6E7A"></label>
+</fieldset>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0 0 8px; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Nutri-Score</legend>
+<div style="display: flex; gap: 6px">
+<button aria-pressed="true" title="Nutri-Score A" style="width: 40px; height: 40px; border-radius: 12px; border: 3px solid #1B1F1D; background: #038141; color: #FFFFFF; font: inherit; font-weight: 800">A</button>
+<button aria-pressed="true" title="Nutri-Score B" style="width: 40px; height: 40px; border-radius: 12px; border: 3px solid #1B1F1D; background: #85BB2F; color: #1B1F1D; font: inherit; font-weight: 800">B</button>
+<button title="Nutri-Score C" style="width: 40px; height: 40px; border-radius: 12px; border: 3px solid #FFFFFF; background: #FECB02; color: #1B1F1D; font: inherit; font-weight: 800">C</button>
+<button title="Nutri-Score D" style="width: 40px; height: 40px; border-radius: 12px; border: 3px solid #FFFFFF; background: #EE8100; color: #1B1F1D; font: inherit; font-weight: 800">D</button>
+<button title="Nutri-Score E" style="width: 40px; height: 40px; border-radius: 12px; border: 3px solid #FFFFFF; background: #E63E11; color: #FFFFFF; font: inherit; font-weight: 800">E</button>
+</div>
+</fieldset>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 4px">
+<legend style="padding: 0 0 8px; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Ernährung</legend>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #0F6E7A">vegetarisch</label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #0F6E7A">vegan</label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #0F6E7A">ohne Kochen</label>
+</fieldset>
+</aside>
+
+<section aria-label="Rezepte" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<p style="margin: 0 6px 0 0; font-size: 16px"><strong>112 Rezepte</strong></p>
+<button aria-label="Filter Warme Mahlzeit entfernen" style="height: 34px; padding: 0 8px 0 12px; border-radius: 999px; border: 0; background: #FFE6DE; color: #A8341B; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px">Warme Mahlzeit<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+<button aria-label="Filter vegetarisch entfernen" style="height: 34px; padding: 0 8px 0 12px; border-radius: 999px; border: 0; background: #E3F3F5; color: #0A4F57; font: inherit; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px">vegetarisch<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><a href="desktop-rezept-neu.html" style="height: 40px; padding: 0 14px; border-radius: 12px; background: #E3F3F5; color: #0A4F57; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Rezept anlegen</a><label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #5E6661">Sortieren<select style="height: 40px; padding: 0 10px; border-radius: 12px; border: 1px solid #858C87; background: #FFFFFF; font: inherit; font-size: 14px; font-weight: 600; color: #1B1F1D"><option>Beliebteste</option><option>Neueste</option><option>Günstigste</option></select></label></div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 20px">
+
+<a href="desktop-detail.html" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span title="Nutri-Score A" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">A</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Chili sin Carne</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">30–60 Min<strong style="color: #1B1F1D">1,10 €</strong></span></span></a>
+
+<a href="#" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span title="Nutri-Score A" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">A</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Linsen-Dal mit Reis</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">30–60 Min<strong style="color: #1B1F1D">0,95 €</strong></span></span></a>
+
+<a href="#" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span style="position: absolute; top: 12px; left: 10px; background: #FFFFFF; font-size: 12px; font-weight: 800; padding: 4px 8px; border-radius: 8px">Neu</span><span title="Nutri-Score A" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">A</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Ofengemüse mit Kartoffeln</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">60–90 Min<strong style="color: #1B1F1D">1,20 €</strong></span></span></a>
+
+<a href="#" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span title="Nutri-Score B" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #85BB2F; color: #1B1F1D; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">B</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Nudeln mit Tomatensoße</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">&lt; 30 Min<strong style="color: #1B1F1D">0,80 €</strong></span></span></a>
+
+<a href="#" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span title="Nutri-Score A" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">A</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Gemüsecurry mit Kichererbsen</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">30–60 Min<strong style="color: #1B1F1D">1,05 €</strong></span></span></a>
+
+<a href="#" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span title="Nutri-Score B" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #85BB2F; color: #1B1F1D; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">B</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Kartoffelsuppe</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">30–60 Min<strong style="color: #1B1F1D">0,75 €</strong></span></span></a>
+
+<a href="#" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span style="position: absolute; top: 12px; left: 10px; background: #1B1F1D; color: #FFFFFF; font-size: 12px; font-weight: 800; padding: 4px 8px; border-radius: 8px">Ein Topf</span><span title="Nutri-Score A" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">A</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Gemüse-Risotto</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">30–60 Min<strong style="color: #1B1F1D">1,15 €</strong></span></span></a>
+
+<a href="#" style="display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08); text-decoration: none; color: #1B1F1D"><span style="position: relative; height: 150px; background: #FFE6DE; color: #DA3A1E; display: flex; align-items: center; justify-content: center"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h20"></path><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path><path d="m4 8 16-4"></path></svg><span title="Nutri-Score C" style="position: absolute; top: 10px; right: 10px; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #FECB02; color: #1B1F1D; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">C</span></span><span style="padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15">Käsespätzle</h3><span style="display: flex; justify-content: space-between; font-size: 14px; color: #5E6661">30–60 Min<strong style="color: #1B1F1D">1,25 €</strong></span></span></a>
+</div>
+
+<nav aria-label="Seiten" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; padding-top: 12px">
+<span style="height: 44px; padding: 0 14px; border-radius: 12px; color: #858C87; font-weight: 600; display: flex; align-items: center">Zurück</span>
+<a href="#" aria-current="page" style="width: 44px; height: 44px; border-radius: 12px; background: #0F6E7A; color: #FFFFFF; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">1</a>
+<a href="#" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D3D9D5; color: #1B1F1D; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box">2</a>
+<a href="#" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D3D9D5; color: #1B1F1D; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box">3</a>
+<span aria-hidden="true" style="color: #5E6661">…</span>
+<a href="#" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid #D3D9D5; color: #1B1F1D; font-weight: 600; display: flex; align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box">14</a>
+<a href="#" style="height: 44px; padding: 0 16px; border-radius: 12px; background: #E3F3F5; color: #0A4F57; font-weight: 700; display: flex; align-items: center; gap: 4px; text-decoration: none">Weiter<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+</nav>
+</section>
+
+</div>
+</main>
+
+<footer style="border-top: 1px solid #EEF0EE">
+<div style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 40px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px 56px">
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Inspi <span style="color: #0F6E7A">Food</span></span><p style="margin: 0; font-size: 14px; line-height: 1.55; color: #5E6661; max-width: 320px">Rezepte und Essenspläne für Gruppenstunden, Fahrten und Lager.</p></div>
+<nav aria-label="Kategorien" style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 8px; font-size: 14px"><strong style="font-size: 14px; color: #5E6661; text-transform: uppercase; letter-spacing: 0.04em">Rezepte</strong><a href="#" style="text-decoration: none">Frühstück für Gruppen</a><a href="#" style="text-decoration: none">Warme Mahlzeiten</a><a href="#" style="text-decoration: none">Grillen-Rezepte</a><a href="#" style="text-decoration: none">Günstig unter 1 €</a></nav>
+<nav aria-label="Planen" style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 8px; font-size: 14px"><strong style="font-size: 14px; color: #5E6661; text-transform: uppercase; letter-spacing: 0.04em">Planen</strong><a href="#" style="text-decoration: none">Essensplan erstellen</a><a href="#" style="text-decoration: none">Mengenrechner</a><a href="#" style="text-decoration: none">Einkaufslisten</a></nav>
+<nav aria-label="Rechtliches" style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 8px; font-size: 14px"><strong style="font-size: 14px; color: #5E6661; text-transform: uppercase; letter-spacing: 0.04em">Inspi</strong><a href="#" style="text-decoration: none">Impressum</a><a href="#" style="text-decoration: none">Datenschutz</a></nav>
+</div>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

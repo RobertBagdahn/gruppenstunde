@@ -159,9 +159,9 @@ describe('SectionBoundary', () => {
 
 describe('PageHeader', () => {
   it('shows a skeleton badge while the count loads and the count afterwards', () => {
-    const { rerender } = render(<PageHeader title="Rezepte" icon="menu_book" area="recipes" countLoading />);
+    const { rerender } = render(<PageHeader title="Rezepte" countLoading />);
     expect(screen.queryByText(/Rezepte$/, { selector: 'span' })).toBeNull();
-    rerender(<PageHeader title="Rezepte" icon="menu_book" area="recipes" count={211} countLabel={{ one: 'Rezept', other: 'Rezepte' }} />);
+    rerender(<PageHeader title="Rezepte" count={211} countLabel={{ one: 'Rezept', other: 'Rezepte' }} />);
     expect(screen.getByText('211 Rezepte')).toBeTruthy();
   });
 });

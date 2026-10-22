@@ -1,4 +1,4 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
@@ -378,23 +378,21 @@ export default function IngredientEditPage() {
 
   return (
     <div className="pb-8">
-    <TitleBand
+    <DetailHeader
       title="Zutat bearbeiten"
       back={{ to: `/ingredients/${slug}`, label: 'Zurück zur Zutat' }}
-      aside={
+      actions={
         user?.is_staff && ingredient ? (
           <Button
             variant="outline"
             size="sm"
             onClick={() => setMergeDialogOpen(true)}
-            className="border-hero-muted/50 bg-transparent text-hero-foreground hover:bg-hero-soft hover:text-hero-foreground"
           >
-            <GitMerge className="h-4 w-4" />
+            <GitMerge />
             Zutat zusammenführen
           </Button>
         ) : null
       }
-      innerClassName="max-w-3xl"
     />
     <div className="max-w-3xl mx-auto px-4">
       <form onSubmit={handleSubmit} className="space-y-6">

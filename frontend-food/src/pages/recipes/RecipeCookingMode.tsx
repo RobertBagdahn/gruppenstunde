@@ -1,4 +1,6 @@
 import { useMemo, useEffect, useCallback, useState } from 'react';
+import FlowHeader from '@/components/shared/FlowHeader';
+import ActionBar from '@/components/shared/ActionBar';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import type { RecipeDetail } from '@/schemas/recipe';
@@ -24,10 +26,25 @@ interface CookingStep {
   stepIngredients?: RecipeStep['step_ingredients'];
 }
 
+/** True from 1024 px up; the title is rendered once per layout so the page has one H1. */
+function useIsDesktopLayout(): boolean {
+  const query = '(min-width: 1024px)';
+  const [isDesktop, setIsDesktop] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+    const media = window.matchMedia(query);
+    const update = () => setIsDesktop(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  return isDesktop;
+}
+
 export default function RecipeCookingMode({
   recipe,
   portionsMultiplier,
 }: RecipeCookingModeProps) {
+  const isDesktop = useIsDesktopLayout();
   const [searchParams, setSearchParams] = useSearchParams();
   const storageKey = `cooking_mode_ingredients_${recipe.id}`;
   // Same serving scale for the ingredient list and the step chips;
@@ -149,20 +166,22 @@ export default function RecipeCookingMode({
   }, [exit, goToStep, currentStep, steps.length]);
 
   return (
-    <div className="fixed inset-0 bg-background z-50 flex flex-col lg:flex-row">
-      {/* Exit button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={exit}
-        className="absolute top-3 right-3 z-10 animate-fade-in"
-        aria-label="Kochmodus verlassen"
-      >
-        <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
-      </Button>
+    <div className="fixed inset-0 z-50 flex flex-col bg-background pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0 lg:flex-row">
+      {/* Flow header on phones: close, the recipe as H1, progress (food-page-shell) */}
+      {!isDesktop && (
+        <div className="absolute inset-x-0 top-0 z-10">
+          <FlowHeader
+            title={recipe.title}
+            onClose={exit}
+            closeLabel="Kochmodus verlassen"
+            progress={`Schritt ${currentStep + 1} von ${steps.length}`}
+            progressValue={steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0}
+          />
+        </div>
+      )}
 
       {/* Ingredients panel (left on desktop, top on mobile) */}
-      <div className="lg:w-80 lg:border-r border-border overflow-y-auto p-4 lg:p-6 shrink-0 max-h-[40vh] lg:max-h-full">
+      <div className="mt-[7.5rem] lg:mt-0 lg:w-80 lg:border-r border-line overflow-y-auto p-4 lg:p-6 shrink-0 max-h-[36vh] lg:max-h-full">
         <h2 className="text-body font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Zutaten
         </h2>
@@ -203,13 +222,21 @@ export default function RecipeCookingMode({
 
       {/* Step content (right on desktop, bottom on mobile) */}
       <div className="flex-1 flex flex-col min-h-0">
-        {/* Step indicator */}
-        <div className="px-6 pt-4 pb-2 text-body text-muted-foreground font-medium">
-          Schritt {currentStep + 1} / {steps.length}
-        </div>
+        {/* Desktop: the header of the flow sits above the step */}
+        {isDesktop && (
+          <div className="flex px-6 pt-4 pb-2 lg:items-center lg:justify-between lg:gap-4">
+            <h1 className="min-w-0 truncate font-display text-section font-bold text-foreground">{recipe.title}</h1>
+            <span className="shrink-0 text-body font-semibold tabular-nums text-muted-foreground">
+              Schritt {currentStep + 1} von {steps.length}
+            </span>
+            <Button variant="ghost" size="icon" onClick={exit} aria-label="Kochmodus verlassen">
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
+        )}
 
         {/* Step content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4 md:px-6 lg:pt-0">
           {steps.length > 0 && step ? (
             <>
               {/* Step section tag (if structured) */}
@@ -243,27 +270,21 @@ export default function RecipeCookingMode({
           )}
         </div>
 
-        {/* Navigation buttons */}
-        <div className="flex items-center justify-between gap-4 p-4 border-t border-border">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => goToStep(currentStep - 1)}
-            disabled={currentStep <= 0}
-            className="font-semibold"
-          >
-            <ArrowLeft className="mr-2 w-4 h-4" />
-            Zurück
-          </Button>
-          <Button
-            size="lg"
-            onClick={() => goToStep(currentStep + 1)}
-            disabled={currentStep >= steps.length - 1}
-            className="bg-primary hover:bg-primary/90 text-white font-semibold"
-          >
-            Weiter
-            <ArrowRight className="ml-2 w-4 h-4" />
-          </Button>
+        <div className="px-4 pb-0 md:px-6 md:pb-4">
+          <ActionBar
+            secondary={
+              <Button variant="outline" size="lg" onClick={() => goToStep(currentStep - 1)} disabled={currentStep <= 0} className="h-11 font-semibold">
+                <ArrowLeft className="mr-2 h-4 w-4 md:block" />
+                Zurück
+              </Button>
+            }
+            primary={
+              <Button size="lg" onClick={() => goToStep(currentStep + 1)} disabled={currentStep >= steps.length - 1} className="h-11 font-semibold">
+                Weiter
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            }
+          />
         </div>
       </div>
     </div>

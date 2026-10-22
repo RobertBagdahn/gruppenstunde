@@ -1,5 +1,5 @@
 /**
- * Key-figure strip on the lower edge of the recipe hero band (Feldküche):
+ * Key-figure strip under the recipe header:
  * costs, cost per portion, Nutri-Score, energy and popularity at a glance.
  * Numbers nudge (`animate-pop`) when the portion count changes them.
  */
@@ -59,7 +59,7 @@ export default function RecipeKeyFigures({
     <section
       aria-label="Kennzahlen"
       className={cn(
-        'grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border shadow-float md:grid-cols-5',
+        'grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border shadow-card md:grid-cols-5',
         className,
       )}
     >

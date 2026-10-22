@@ -18,7 +18,7 @@ export function UnitViewToggle({ className }: { className?: string }) {
           aria-pressed={mode === value}
           onClick={() => setMode(value)}
           className={cn(
-            'px-2 py-1 rounded-lg transition-colors',
+            'min-h-11 md:min-h-0 px-2 py-1 rounded-lg transition-colors',
             mode === value ? 'bg-card text-foreground shadow-card font-medium' : 'text-muted-foreground hover:text-foreground',
           )}
         >

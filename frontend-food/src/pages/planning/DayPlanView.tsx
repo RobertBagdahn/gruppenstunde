@@ -210,7 +210,7 @@ export function DayPlanView({
                       className={`p-1.5 rounded-full transition-colors self-end sm:self-auto ${
                         isEdgeDay
                           ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer'
-                          : 'text-muted-foreground/30 cursor-not-allowed'
+                          : 'text-muted-foreground cursor-not-allowed'
                       }`}
                       title={deleteReason}
                       aria-label={deleteReason}

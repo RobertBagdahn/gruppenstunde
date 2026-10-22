@@ -309,7 +309,7 @@ export default function SuggestionsView({
                   {dayCoverage !== 1 && (
                     <span className={cn(
                       "text-caption font-bold px-1 rounded-lg",
-                      selectedDate === date ? "text-primary-foreground/80" : "text-muted-foreground/60"
+                      selectedDate === date ? "text-primary-foreground/80" : "text-muted-foreground"
                     )}>
                       {badge.label}
                     </span>

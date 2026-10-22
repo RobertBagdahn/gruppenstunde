@@ -46,11 +46,11 @@ export function FilterCheckbox({
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-body transition-colors hover:bg-primary-soft',
-        checked && 'font-medium text-primary',
+        'flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-body transition-colors hover:bg-primary-soft md:min-h-0 md:py-1.5',
+        checked && 'font-medium text-primary-dark',
       )}
     >
-      <input type="checkbox" checked={checked} onChange={onChange} className="rounded-lg border-muted-foreground accent-primary" />
+      <input type="checkbox" checked={checked} onChange={onChange} className="h-5 w-5 rounded-sm border-input accent-primary" />
       {icon && <Icon name={icon} size={16} />}
       {label}
     </label>
@@ -73,11 +73,11 @@ export function FilterRadio({
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-body transition-colors hover:bg-primary-soft',
-        checked && 'font-medium text-primary',
+        'flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-body transition-colors hover:bg-primary-soft md:min-h-0 md:py-1.5',
+        checked && 'font-medium text-primary-dark',
       )}
     >
-      <input type="radio" name={name} checked={checked} onChange={onChange} className="accent-primary" />
+      <input type="radio" name={name} checked={checked} onChange={onChange} className="h-5 w-5 accent-primary" />
       {icon && <Icon name={icon} size={16} />}
       {label}
     </label>
@@ -93,11 +93,11 @@ export function MoreFilters({ activeCount, children }: { activeCount: number; ch
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-body font-medium text-foreground hover:bg-muted"
+        className="flex min-h-11 w-full items-center justify-between rounded-lg px-2 py-2 text-body font-medium text-foreground hover:bg-muted"
       >
         <span>
           Weitere Filter
-          {activeCount > 0 && <span className="ml-1 text-primary">({activeCount})</span>}
+          {activeCount > 0 && <span className="ml-1 text-primary-dark">({activeCount})</span>}
         </span>
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden="true" />
       </button>
@@ -115,20 +115,20 @@ export function FilterSidebar({ activeCount, children }: { activeCount: number; 
         type="button"
         onClick={() => setMobileOpen((current) => !current)}
         aria-expanded={mobileOpen}
-        className="mb-2 flex w-full items-center justify-between gap-2 rounded-full bg-card px-4 py-2.5 text-body font-semibold shadow-card md:hidden"
+        className="mb-2 flex h-11 w-full items-center justify-between gap-2 rounded-full bg-card px-4 text-body font-semibold shadow-card md:hidden"
       >
         <span className="flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4 text-primary" aria-hidden="true" />
-          Filter
-          {activeCount > 0 && (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-caption text-primary-foreground">
-              {activeCount}
-            </span>
-          )}
+          {activeCount > 0 ? `Filter (${activeCount})` : 'Filter'}
         </span>
         <ChevronDown className={cn('h-4 w-4 transition-transform', mobileOpen && 'rotate-180')} aria-hidden="true" />
       </button>
-      <div className={cn('space-y-6 pb-4 md:block', mobileOpen ? 'block rounded-xl bg-card p-4 shadow-card md:bg-transparent md:p-0 md:shadow-none' : 'hidden')}>
+      <div
+        className={cn(
+          'space-y-6 pb-4 md:block md:rounded-xl md:border md:border-line md:bg-card md:p-4',
+          mobileOpen ? 'block rounded-xl border border-line bg-card p-4' : 'hidden',
+        )}
+      >
         {children}
       </div>
     </aside>
@@ -141,7 +141,7 @@ export function ActiveChip({ label, onRemove }: { label: string; onRemove: () =>
     <button
       type="button"
       onClick={onRemove}
-      className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-caption font-medium text-primary hover:bg-primary-soft-border/60 transition-colors"
+      className="inline-flex min-h-11 items-center gap-1 rounded-full bg-primary-soft px-3 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft-border/60 md:min-h-8 md:text-caption"
       aria-label={`Filter ${label} entfernen`}
     >
       {label}

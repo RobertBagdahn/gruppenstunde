@@ -39,6 +39,7 @@ export default function RecipeTableRow({ recipe, searchQuery, onDelete, onClone 
     >
       <RecipeThumbnail
         imageUrl={recipe.image_url}
+        recipeType={recipe.recipe_type}
         title={recipe.title}
         size="sm"
         imgClassName="rounded-lg"

@@ -17,11 +17,11 @@ export default function DayTripMarker({ trip, eventSlug, canChangeTime, onChange
   return (
     <div
       data-testid="day-trip-marker"
-      className="flex flex-wrap items-center justify-between gap-2 bg-area-shopping-soft px-5 py-2.5 text-body"
+      className="flex flex-wrap items-center justify-between gap-2 bg-primary-soft px-5 py-2.5 text-body"
     >
       <Link
         to={`/shopping-lists/events/${eventSlug}?trip=${trip.list_id}`}
-        className="inline-flex min-w-0 items-center gap-2 font-semibold text-area-shopping hover:underline"
+        className="inline-flex min-w-0 items-center gap-2 font-semibold text-primary-dark hover:underline"
       >
         <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className="min-w-0 truncate">

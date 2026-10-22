@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import EmptyBlock from '@/components/shared/EmptyBlock';
 import { useNavigate, Link } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import {
@@ -15,7 +16,7 @@ import {
   Lock,
   Globe,
 } from 'lucide-react';
-import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan } from '@/api/mealPlans';
+import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan, useMealPlanCosts } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
 import { getNextWeekend } from '@/lib/dateUtils';
 import { MEAL_PLAN_NAME_MAX_LENGTH, MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
@@ -92,7 +93,7 @@ export default function MealPlanListPage() {
   if (userLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <PageHeader title="Essenspläne" description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden." area="planner" icon="restaurant_menu" countLoading />
+        <PageHeader title="Essenspläne" description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden." countLoading />
         <SkeletonTableRows rows={4} columns={3} label="Essenspläne werden geladen" />
       </div>
     );
@@ -170,6 +171,8 @@ function MealPlanListPageInner() {
   const duplicateMutation = useDuplicateMealPlan();
 
   const weekend = useMemo(() => getNextWeekend(), []);
+  // Reference plans as starter templates for the empty state (food-page-states).
+  const templatesQuery = useMealPlans({ origin: 'template' }, { enabled: restored });
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('Neuer Essensplan');
   const [createStartDatetime, setCreateStartDatetime] = useState(weekend.friday);
@@ -192,6 +195,16 @@ function MealPlanListPageInner() {
   const visiblePlans = useMemo(() => mealPlans ?? [], [mealPlans]);
 
   const planSections = useMemo(() => groupPlansForList(visiblePlans, sort, now), [visiblePlans, sort, now]);
+  // Reiter "Anstehend" und "Vergangen" (meal-plan-list-dashboard): the sections of the time sort.
+  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
+  const sectionsByTab = useMemo(() => {
+    if (sort !== 'date_upcoming') return { upcoming: planSections, past: [] as typeof planSections, upcomingCount: visiblePlans.length, pastCount: 0 };
+    const past = planSections.filter((section) => section.key === 'past');
+    const upcoming = planSections.filter((section) => section.key !== 'past');
+    const count = (list: typeof planSections) => list.reduce((sum, section) => sum + section.months.reduce((n, m) => n + m.plans.length, 0), 0);
+    return { upcoming, past, upcomingCount: count(upcoming), pastCount: count(past) };
+  }, [planSections, sort, visiblePlans.length]);
+  const shownSections = sort !== 'date_upcoming' ? planSections : tab === 'past' ? sectionsByTab.past : sectionsByTab.upcoming;
 
   const totalCount = visiblePlans.length;
 
@@ -327,12 +340,17 @@ function MealPlanListPageInner() {
     const dateBlock = startDate ? new Date(startDate) : null;
     const tagNames = plan.nutritional_tag_names;
     const budgetPerDay = plan.budget_per_person_per_day;
+    // Cost per person and day from the existing cost endpoint, only for the visible card (2b.2).
+    const costs = useMealPlanCosts(plan.id);
+    const costPerDay =
+      costs.data && costs.data.missing_ingredients === 0 && days && days > 0 ? costs.data.cost_per_person / days : null;
+    const progress = plan.meals_count > 0 ? Math.round((plan.filled_meals_count / plan.meals_count) * 100) : 0;
 
     return (
       <DataCardRow
         clickable
         onClick={() => navigate(`/meal-plans/${plan.id}`)}
-        className={`group border-l-4 ${timing === 'past' ? 'border-l-border opacity-80' : 'border-l-primary'}`}
+        className={`group ${timing === 'past' ? 'opacity-80' : ''}`}
       >
         <div
           className="hidden md:flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 py-1.5 text-primary"
@@ -378,6 +396,17 @@ function MealPlanListPageInner() {
             </p>
           )}
 
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
+            <span className="font-semibold tabular-nums text-foreground">
+              {plan.filled_meals_count} von {plan.meals_count} Mahlzeiten
+            </span>
+            <span aria-hidden="true" className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+              <span className="block h-full bg-primary" style={{ width: `${progress}%` }} />
+            </span>
+            {costPerDay !== null && (
+              <span className="tabular-nums text-muted-foreground">{formatEuro(costPerDay)} pro Person/Tag</span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Calendar className="w-4 h-4" />
@@ -465,7 +494,7 @@ function MealPlanListPageInner() {
                   }}
                 >
                   <Copy className="w-4 h-4 mr-2" />
-                  Als Vorlage verwenden
+                  Als Vorlage nutzen
                 </DropdownMenuItem>
               )}
               {plan.can_delete && (
@@ -493,15 +522,13 @@ function MealPlanListPageInner() {
       <PageHeader
         title="Essenspläne"
         description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden."
-        area="planner"
-        icon="restaurant_menu"
         count={totalCount}
         countLoading={isLoading || !restored}
         countLabel={{ one: 'Plan', other: 'Pläne' }}
         actions={
           <Link
             to="/tools/norm-portion-simulator"
-            className="press inline-flex h-11 items-center gap-2 rounded-full bg-hero-soft px-4 text-body font-semibold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+            className="press inline-flex h-11 items-center gap-2 rounded-full bg-muted px-4 text-body font-semibold text-foreground transition-colors hover:bg-primary-soft hover:text-primary-dark"
           >
             <Calculator className="w-4 h-4" />
             Norm-Portion-Simulator
@@ -542,6 +569,30 @@ function MealPlanListPageInner() {
         {/* Results */}
         <div className="flex-1 min-w-0">
           <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
+          {sort === 'date_upcoming' && (
+            <div role="tablist" aria-label="Zeitraum" className="mb-4 inline-flex rounded-full bg-muted p-1">
+              {(
+                [
+                  { key: 'upcoming', label: 'Anstehend', count: sectionsByTab.upcomingCount },
+                  { key: 'past', label: 'Vergangen', count: sectionsByTab.pastCount },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === item.key}
+                  onClick={() => setTab(item.key)}
+                  className={`press flex h-11 items-center gap-2 rounded-full px-4 text-body font-semibold transition-colors ${
+                    tab === item.key ? 'bg-background text-primary-dark shadow-soft' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {item.label}
+                  <span className="text-caption tabular-nums">{item.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {/* Sort */}
           <div className="flex items-center justify-between mb-4">
             <div className="text-caption text-muted-foreground font-semibold">
@@ -550,9 +601,10 @@ function MealPlanListPageInner() {
             <div className="flex items-center gap-2 bg-card shadow-soft px-4 py-2 rounded-xl">
               <ArrowUpDown className="w-4 h-4 text-primary" />
               <select
+                aria-label="Sortierung"
                 value={sort}
                 onChange={(e) => patch({ sort: MealPlanListStateSchema.shape.sort.parse(e.target.value) })}
-                className="px-3.5 py-1.5 rounded-xl border border-border text-body bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
+                className="min-h-11 md:min-h-0 px-3.5 py-1.5 rounded-xl border border-border text-body bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
               >
                 {MEALPLAN_SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -566,9 +618,29 @@ function MealPlanListPageInner() {
           {isLoading || !restored ? (
             <CardTable>
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-primary/10 via-muted/50 to-primary/5 animate-pulse" />
+                <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
               ))}
             </CardTable>
+          ) : visiblePlans.length === 0 && activeCount === 0 ? (
+            <EmptyBlock
+              title="Noch kein Essensplan"
+              description="Tage, Mahlzeiten, Budget und Einkaufsliste – alles an einem Ort."
+              action={{ label: 'Ersten Essensplan erstellen', to: '/meal-plans/new' }}
+              templates={(templatesQuery.data ?? []).slice(0, 3).map((template) => ({
+                id: template.id,
+                title: template.name,
+                detail: `${template.meals_count} Mahlzeiten · ${formatNumber(template.norm_portions, { maxDecimals: 0 })} Portionen`,
+                onSelect: () => {
+                  setCreateName(`${template.name} (Kopie)`);
+                  setCreateStartDatetime(weekend.friday);
+                  setCreateEndDatetime(weekend.sunday);
+                  setCreatePortions(10);
+                  setCopyEnabled(true);
+                  setCopySourceId(template.id);
+                  setShowCreate(true);
+                },
+              }))}
+            />
           ) : visiblePlans.length === 0 ? (
             <EmptyState
               icon="restaurant_menu"
@@ -583,7 +655,7 @@ function MealPlanListPageInner() {
             />
           ) : (
             <div className="space-y-8">
-              {planSections.map((section) => (
+              {shownSections.map((section) => (
                 <section key={section.key} aria-label={section.title ?? undefined} className="space-y-6">
                   {section.title && (
                     <h2 className="font-display text-emphasis font-bold text-foreground">{section.title}</h2>

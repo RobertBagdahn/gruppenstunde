@@ -293,6 +293,8 @@ export const MealPlanSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   meals_count: z.number(),
+  /** Meals with at least one item (backend `filled_meals_count`, plan list). */
+  filled_meals_count: z.number().default(0),
   day_part_factors: z.record(z.string(), z.number()),
   meal_default_times: z.record(z.string(), z.array(z.string())),
   nutritional_tag_ids: z.array(z.number()).default([]),

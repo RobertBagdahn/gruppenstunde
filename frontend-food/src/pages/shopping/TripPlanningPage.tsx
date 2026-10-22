@@ -128,8 +128,6 @@ export default function TripPlanningPage() {
       <PageHeader
         title={data?.event_name ?? 'Einkäufe planen'}
         description="Einkäufe planen: Der Bedarf aller Essenspläne wird nach Datum auf die Einkäufe verteilt."
-        area="shopping"
-        icon="shopping_cart"
         countLoading={plan.isPending}
         count={data?.trips.length}
         countLabel={{ one: 'Einkauf', other: 'Einkäufe' }}

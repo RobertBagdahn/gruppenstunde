@@ -74,12 +74,12 @@ function ShoppingItemWithSources({
               item.total_quantity_g,
             )}
             {showReserve && (item.reserve_quantity_g || 0) > 0 && (
-              <span className="text-caption text-muted-foreground/70">
+              <span className="text-caption text-muted-foreground">
                 {' '}(inkl. Reserve {formatWeight(item.reserve_quantity_g || 0)})
               </span>
             )}
             {showReserve && formatItemPackageReserve(item) && (
-              <span className="flex items-center justify-end gap-1 text-caption text-muted-foreground/70">
+              <span className="flex items-center justify-end gap-1 text-caption text-muted-foreground">
                 {formatItemPackageReserve(item)}
                 <HelpHint label="Was bedeutet Reserve?">{PACKAGE_RESERVE_HELP}</HelpHint>
               </span>
@@ -115,13 +115,13 @@ function ShoppingItemWithSources({
             <div
               key={idx}
               className={`flex items-center gap-2 text-caption ${
-                opt.is_default ? 'text-muted-foreground font-semibold' : 'text-muted-foreground/60'
+                opt.is_default ? 'text-muted-foreground font-semibold' : 'text-muted-foreground'
               }`}
             >
-              <span className="text-muted-foreground/40">&#8226;</span>
+              <span className="text-muted-foreground">&#8226;</span>
               <span>{formatPortionOption(opt)}</span>
               {opt.is_default && (
-                <span className="text-caption text-muted-foreground/40 font-normal">(Standard)</span>
+                <span className="text-caption text-muted-foreground font-normal">(Standard)</span>
               )}
             </div>
           ))}
@@ -132,7 +132,7 @@ function ShoppingItemWithSources({
           {item.sources!.map((source, idx) => (
             <div key={idx} className="flex items-center justify-between text-caption text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground/60">&#8226;</span>
+                <span className="text-muted-foreground">&#8226;</span>
                 {source.recipe_slug ? (
                   <Link
                     to={`/recipes/${source.recipe_slug}`}
@@ -144,7 +144,7 @@ function ShoppingItemWithSources({
                   <span>{source.recipe_name}</span>
                 )}
                 {source.meal_label && (
-                  <span className="text-muted-foreground/60">({source.meal_label})</span>
+                  <span className="text-muted-foreground">({source.meal_label})</span>
                 )}
               </div>
               <span>{formatWeight(source.quantity_g || 0)}</span>

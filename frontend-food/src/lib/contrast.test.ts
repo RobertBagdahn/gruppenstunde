@@ -55,6 +55,12 @@ const TEXT_PAIRS: [string, string][] = [
   ['destructive-foreground', 'destructive'],
   ['primary', 'primary-soft'],
   ['accent-foreground', 'background'],
+  ['primary-dark', 'primary-soft'],
+  ['primary-dark', 'background'],
+  ['spice-foreground', 'background'],
+  ...(['breakfast', 'warm', 'cold', 'dessert', 'snack', 'recipe-part', 'drink'] as const).flatMap(
+    (name): [string, string][] => [[`category-${name}-foreground`, `category-${name}`]],
+  ),
   ...(['success', 'warning', 'danger', 'info'] as const).flatMap((status): [string, string][] => [
     [`${status}-foreground`, status],
     [status, 'background'],
@@ -85,16 +91,14 @@ describe('design token contrast (WCAG AA)', () => {
     expect(contrast('border', 'card')).toBeGreaterThanOrEqual(1.3);
   });
 
-  it('keeps --warning a light-enough amber instead of dark brown', () => {
-    expect(resolveHsl('warning')[2]).toBeGreaterThanOrEqual(0.3);
-    expect(resolveHsl('warning-soft')[2]).toBeGreaterThanOrEqual(0.9);
+  it('keeps the status border visible on its soft surface', () => {
+    expect(contrastRatio(resolveHsl('warning-border'), resolveHsl('warning-soft'))).toBeGreaterThanOrEqual(1.3);
+    expect(contrastRatio(resolveHsl('success-border'), resolveHsl('success-soft'))).toBeGreaterThanOrEqual(1.3);
   });
 
-  it('defines every area colour as tone + tint', () => {
-    for (const area of ['recipes', 'ingredients', 'planner', 'shopping']) {
-      expect(() => resolveHsl(`area-${area}`)).not.toThrow();
-      expect(resolveHsl(`area-${area}-soft`)[2]).toBeGreaterThanOrEqual(0.95);
-    }
+  it('no longer defines the removed band and area tokens (food-design-system)', () => {
+    const removed = [...tokens.keys()].filter((name) => name.startsWith('hero') || name.startsWith('area-'));
+    expect(removed).toEqual([]);
   });
 
   it('keeps the shadcn --destructive alias on --danger', () => {

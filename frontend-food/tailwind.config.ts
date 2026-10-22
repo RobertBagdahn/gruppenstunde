@@ -15,29 +15,29 @@ export default {
         "2xl": "1400px",
       },
     },
-    // Five text sizes plus two display sizes (Feldküche); Tailwind's default scale is replaced.
+    // Eight sizes (design D5, food-design-system): sizes that change with the viewport use clamp().
     fontSize: {
       caption: ["12px", { lineHeight: "16px" }],
       body: ["14px", { lineHeight: "20px" }],
       emphasis: ["16px", { lineHeight: "24px" }],
-      section: ["20px", { lineHeight: "28px", letterSpacing: "-0.01em" }],
-      title: ["28px", { lineHeight: "34px", letterSpacing: "-0.02em" }],
-      // Key figures (costs, kcal, portions) in stat tiles.
+      section: ["clamp(1.125rem, 1.0rem + 0.5vw, 1.25rem)", { lineHeight: "28px", letterSpacing: "-0.01em" }],
+      heading: ["clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem)", { lineHeight: "30px", letterSpacing: "-0.015em" }],
+      title: ["clamp(2rem, 1.5rem + 1.5vw, 2.75rem)", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
+      display: ["clamp(2rem, 1.2rem + 3vw, 3.5rem)", { lineHeight: "1", letterSpacing: "-0.035em" }],
       metric: ["32px", { lineHeight: "36px", letterSpacing: "-0.02em" }],
-      // Page titles inside the hero band only.
-      display: ["clamp(2.25rem, 1.5rem + 3vw, 4rem)", { lineHeight: "1", letterSpacing: "-0.035em" }],
     },
-    // Exactly three radii: 10 px controls, 16 px cards/dialogs, full for pills.
+    // Four radii: 8 small elements, 12 controls, 20 cards and dialogs, full for pills.
     borderRadius: {
       none: "0",
-      lg: "10px",
-      xl: "16px",
+      sm: "8px",
+      lg: "12px",
+      xl: "20px",
       full: "9999px",
     },
     extend: {
       fontFamily: {
-        sans: ['Figtree', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Bricolage Grotesque', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Figtree', 'Figtree Fallback', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Bricolage Grotesque', 'Bricolage Fallback', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -45,13 +45,6 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        // Pine hero band behind navigation and page titles (Feldküche).
-        hero: {
-          DEFAULT: "hsl(var(--hero))",
-          foreground: "hsl(var(--hero-foreground))",
-          muted: "hsl(var(--hero-muted))",
-          soft: "hsl(var(--hero-soft))",
-        },
         // Tomato accent: costs, the logo tile and small highlights. Never a large surface.
         spice: {
           DEFAULT: "hsl(var(--spice))",
@@ -61,16 +54,22 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          dark: "hsl(var(--primary-dark))",
           bright: "hsl(var(--primary-bright))",
           soft: "hsl(var(--primary-soft))",
           "soft-border": "hsl(var(--primary-soft-border))",
         },
-        // Area colours: tone + tint, only for icon tiles, nav indicator and small accents.
-        area: {
-          recipes: { DEFAULT: "hsl(var(--area-recipes))", soft: "hsl(var(--area-recipes-soft))" },
-          ingredients: { DEFAULT: "hsl(var(--area-ingredients))", soft: "hsl(var(--area-ingredients-soft))" },
-          planner: { DEFAULT: "hsl(var(--area-planner))", soft: "hsl(var(--area-planner-soft))" },
-          shopping: { DEFAULT: "hsl(var(--area-shopping))", soft: "hsl(var(--area-shopping-soft))" },
+        line: "hsl(var(--line))",
+        sticker: "hsl(var(--sticker))",
+        // Recipe-type tints: soft surface and its text colour (food-design-system).
+        category: {
+          breakfast: { soft: "hsl(var(--category-breakfast))", foreground: "hsl(var(--category-breakfast-foreground))" },
+          warm: { soft: "hsl(var(--category-warm))", foreground: "hsl(var(--category-warm-foreground))" },
+          cold: { soft: "hsl(var(--category-cold))", foreground: "hsl(var(--category-cold-foreground))" },
+          dessert: { soft: "hsl(var(--category-dessert))", foreground: "hsl(var(--category-dessert-foreground))" },
+          snack: { soft: "hsl(var(--category-snack))", foreground: "hsl(var(--category-snack-foreground))" },
+          "recipe-part": { soft: "hsl(var(--category-recipe-part))", foreground: "hsl(var(--category-recipe-part-foreground))" },
+          drink: { soft: "hsl(var(--category-drink))", foreground: "hsl(var(--category-drink-foreground))" },
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -142,11 +141,9 @@ export default {
       },
       boxShadow: {
         // Cards on the sage background: soft, long shadow instead of a grey border.
-        card: "0 1px 2px rgb(20 35 27 / 0.06), 0 12px 32px -18px rgb(20 35 27 / 0.22)",
-        soft: "0 1px 2px rgb(20 35 27 / 0.06), 0 6px 16px -10px rgb(20 35 27 / 0.18)",
-        raised: "0 2px 4px rgb(20 35 27 / 0.06), 0 22px 40px -20px rgb(20 35 27 / 0.32)",
-        // Surfaces that overlap the hero band (key-figure strip).
-        float: "0 1px 2px rgb(20 35 27 / 0.06), 0 24px 48px -24px rgb(20 35 27 / 0.45)",
+        card: "0 1px 2px rgba(27, 31, 29, 0.06), 0 8px 24px rgba(27, 31, 29, 0.08)",
+        soft: "0 1px 3px rgba(27, 31, 29, 0.12)",
+        raised: "0 2px 4px rgba(27, 31, 29, 0.06), 0 16px 40px rgba(27, 31, 29, 0.14)",
       },
       transitionTimingFunction: {
         // Default easing for page and section motion.

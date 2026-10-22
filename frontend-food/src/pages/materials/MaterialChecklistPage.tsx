@@ -10,7 +10,6 @@ import { ClipboardCopy, Printer } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { useMaterialList, type MaterialListSource } from '@/api/materials';
 import { BackButton } from '@/components/shared/BackButton';
-import HeroBand from '@/components/shared/HeroBand';
 import EmptyState from '@/components/shared/EmptyState';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { PageSkeleton } from '@/components/ui/skeleton';
@@ -181,16 +180,16 @@ export default function MaterialChecklistPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <HeroBand pullUpClassName="-mt-8" innerClassName="max-w-2xl" className="mb-6 print:hidden">
-        <BackButton to={backTarget(source)} tone="hero" className="mb-5" />
-        <h1 className="font-display text-display font-extrabold text-hero-foreground [overflow-wrap:anywhere]">
+      <header className="mb-6 space-y-3">
+        <BackButton to={backTarget(source)} className="mb-5" />
+        <h1 className="font-display text-display font-extrabold text-foreground [overflow-wrap:anywhere]">
           Materialliste
         </h1>
-        <p className="mt-2 text-body text-hero-muted">
+        <p className="mt-2 text-body text-muted-foreground">
           {data.title}
           {source.kind === 'recipe' ? ` · ${source.servings} ${source.servings === 1 ? 'Portion' : 'Portionen'}` : ''}
         </p>
-      </HeroBand>
+      </header>
       <h1 className="hidden print:block text-title font-bold mb-4">Materialliste: {data.title}</h1>
 
       {isEmpty ? (

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Styleguide Sticker</title>
+
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#0F6E7A}a:hover{color:#0A4F57}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 100vh; background: #FFFFFF; color: #1B1F1D; font-family: Figtree, system-ui, sans-serif">
+<main style="max-width: 1240px; margin: 0 auto; padding: 48px 24px 72px; box-sizing: border-box; display: flex; flex-direction: column; gap: 56px">
+
+<header style="display: flex; flex-direction: column; gap: 12px">
+<span style="width: fit-content; transform: rotate(-3deg); background: #FFD84D; font-size: 14px; font-weight: 800; padding: 6px 12px; border-radius: 8px; box-shadow: 0 2px 0 rgba(27,31,29,0.12)">Inspi Food</span>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 3.25rem; line-height: 1; letter-spacing: -0.025em">Styleguide · Sticker</h1>
+<p style="margin: 0; max-width: 720px; font-size: 18px; line-height: 1.55; color: #5E6661">Gemeinsame Bausteine für alle Seiten. Weißer Grund, eine Hauptfarbe, Tönungen nur für Kategorien, verspielt nur in kleinen Dosen.</p>
+</header>
+
+<section aria-labelledby="farben" style="display: flex; flex-direction: column; gap: 22px">
+<h2 id="farben" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Farben</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px">
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Grundfarben</h3>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #1B1F1D"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Tinte · #1B1F1D</strong><span style="color: #5E6661">Text, aktive Chips</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #5E6661"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Gedämpft · #5E6661</strong><span style="color: #5E6661">Zweittext, Meta</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #858C87"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Feldrand &amp; Symbol · #858C87</strong><span style="color: #5E6661">Eingaben, Checkbox, Icons · 3,4 : 1, nie Text</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #D3D9D5"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Kontur · #D3D9D5</strong><span style="color: #5E6661">nur dekorativ: Karten, Kontur-Buttons</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #EEF0EE"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Linie · #EEF0EE</strong><span style="color: #5E6661">Trenner, Kartenränder</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #F3F5F4"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Fläche · #F3F5F4</strong><span style="color: #5E6661">Segmente, neutrale Hinweise</span></span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Marke</h3>
+<div style="display: flex; align-items: center; gap: 12px"><img src="inspi-logo.png" alt="" width="44" height="44" style="width: 44px; height: 44px; object-fit: contain; display: block"><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Maskottchen · Logo &amp; Favicon</strong><span style="color: #5E6661">Kopfzeile, Favicon, Startbildschirm, Leer- und Fehlerzustände, Rechtsseiten, Tool-Landing</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #0F6E7A"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Petrol · #0F6E7A</strong><span style="color: #5E6661">Hauptaktion, Fortschritt, erledigt</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #0A4F57"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Petrol dunkel · #0A4F57</strong><span style="color: #5E6661">petrolfarbener Text auf hellem Grund</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #E3F3F5"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Petrol hell · #E3F3F5</strong><span style="color: #5E6661">Nebenaktion, aktive Navigation</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #DA3A1E"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Tomate · #DA3A1E</strong><span style="color: #5E6661">Schrittnummern, kleine Akzente</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #A8341B"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Tomate Text · #A8341B</strong><span style="color: #5E6661">roter Text auf hellem Grund</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #FFD84D"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Sticker · #FFD84D</strong><span style="color: #5E6661">nur Sticker, höchstens einer pro Ansicht</span></span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Kategorien (nur Tönung, 7 Rezepttypen)</h3>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #FFF1CF"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Frühstück · #FFF1CF</strong><span style="color: #7A4F00">Text #7A4F00</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #FFE6DE"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Warm · #FFE6DE</strong><span style="color: #A8341B">Text #A8341B</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #EEF3E2"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Kalt · #EEF3E2</strong><span style="color: #3A5217">Text #3A5217</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #EFE6FF"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Nachtisch · #EFE6FF</strong><span style="color: #5E35B8">Text #5E35B8</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #E2EDFF"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Snack · #E2EDFF</strong><span style="color: #2152AE">Text #2152AE</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #F3EBDD"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Rezeptteil · #F3EBDD</strong><span style="color: #5C4319">Text #5C4319</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #FCE7F0"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Getränk · #FCE7F0</strong><span style="color: #9D2A62">Text #9D2A62</span></span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Status (immer mit Rand + Icon)</h3>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #FFF4DB; border: 1.5px solid #F0C766; box-sizing: border-box"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Warnung</strong><span style="color: #6B4600">#FFF4DB · Rand #F0C766</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #FDECEB; border: 1.5px solid #F2B8B4; box-sizing: border-box"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Fehler</strong><span style="color: #A1231B">#FDECEB · Rand #F2B8B4</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #E7F5EE; border: 1.5px solid #9FD3B8; box-sizing: border-box"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Erfolg</strong><span style="color: #0B5E39">#E7F5EE · Rand #9FD3B8</span></span></div>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 44px; height: 44px; border-radius: 12px; background: #F3F5F4; border: 1.5px solid #D3D9D5; box-sizing: border-box"></span><span style="display: flex; flex-direction: column; font-size: 14px"><strong>Info / Tipp</strong><span style="color: #5E6661">#F3F5F4 · Rand #D3D9D5</span></span></div>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="typo" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="typo" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Schrift</h2>
+<p style="margin: 0; font-size: 16px; color: #5E6661">Überschriften und Kennzahlen: Bricolage Grotesque 700–800. Fließtext und Bedienung: Figtree 400–700.</p>
+<div style="display: flex; flex-direction: column; border-top: 1px solid #EEF0EE">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Startseite · 3,5 rem<br>mobil 32 px</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 3.5rem; line-height: 1; letter-spacing: -0.03em">Essensplanung</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Detailtitel · 3,25 rem<br>mobil 32 px</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 3.25rem; line-height: 1; letter-spacing: -0.025em">Chili sin Carne</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Seitentitel · 2,75 rem<br>mobil 32 px</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2.75rem; line-height: 1">Essenspläne</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Abschnitt · 26 px<br>mobil 22 px</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Zubereitung</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Karte / Gruppe · 20 px<br>mobil 18 px</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Dienstag, 27. Okt.</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Fließtext · 16 px</span><span style="font-size: 16px; line-height: 1.5">Würzig, sättigend und günstig – gelingt auch im großen Topf.</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Meta · 14 px</span><span style="font-size: 14px; color: #5E6661">30–60 Min · 1,10 € pro Portion</span></div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; padding: 14px 0; border-bottom: 1px solid #EEF0EE"><span style="flex: 0 0 220px; font-size: 14px; color: #5E6661">Label · 12 px, Versalien</span><span style="font-size: 12px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Für diesen Schritt</span></div>
+</div>
+</section>
+
+<section aria-labelledby="form" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="form" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Radien, Abstände, Schatten</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="width: 72px; height: 72px; border-radius: 8px; background: #E3F3F5; border: 1.5px solid #9FD3B8; box-sizing: border-box"></span><span style="font-size: 14px"><strong>8</strong> klein</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="width: 72px; height: 72px; border-radius: 12px; background: #E3F3F5; border: 1.5px solid #9FD3B8; box-sizing: border-box"></span><span style="font-size: 14px"><strong>12</strong> Bedienung</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="width: 72px; height: 72px; border-radius: 20px; background: #E3F3F5; border: 1.5px solid #9FD3B8; box-sizing: border-box"></span><span style="font-size: 14px"><strong>20</strong> Karten</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="width: 120px; height: 44px; border-radius: 999px; background: #E3F3F5; border: 1.5px solid #9FD3B8; box-sizing: border-box"></span><span style="font-size: 14px"><strong>rund</strong> Pillen</span></div>
+<span style="width: 1px; height: 72px; background: #EEF0EE"></span>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: flex-end; gap: 8px"><span style="width: 4px; height: 4px; background: #0F6E7A"></span><span style="width: 8px; height: 8px; background: #0F6E7A"></span><span style="width: 12px; height: 12px; background: #0F6E7A"></span><span style="width: 16px; height: 16px; background: #0F6E7A"></span><span style="width: 24px; height: 24px; background: #0F6E7A"></span><span style="width: 32px; height: 32px; background: #0F6E7A"></span><span style="width: 48px; height: 48px; background: #0F6E7A"></span></div><span style="font-size: 14px">Abstände <strong>4 · 8 · 12 · 16 · 24 · 32 · 48</strong></span></div>
+<span style="width: 1px; height: 72px; background: #EEF0EE"></span>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span style="width: 120px; height: 72px; border-radius: 20px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08)"></span><span style="font-size: 14px">Kartenschatten (einziger Schatten)</span></div>
+</div>
+</section>
+
+<section aria-labelledby="komp" style="display: flex; flex-direction: column; gap: 28px">
+<h2 id="komp" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Komponenten</h2>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px">
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 20px; border: 1.5px solid #EEF0EE">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Buttons</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<button style="height: 48px; padding: 0 18px; border-radius: 12px; border: 0; background: #0F6E7A; color: #FFFFFF; font: inherit; font-size: 16px; font-weight: 700">Primär</button>
+<button style="height: 48px; padding: 0 18px; border-radius: 12px; border: 0; background: #E3F3F5; color: #0A4F57; font: inherit; font-size: 16px; font-weight: 700">Nebenaktion</button>
+<button style="height: 48px; padding: 0 18px; border-radius: 12px; border: 1.5px solid #D3D9D5; background: #FFFFFF; color: #1B1F1D; font: inherit; font-size: 16px; font-weight: 600">Kontur</button>
+<button aria-label="Rezept merken" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid #D3D9D5; background: #FFFFFF; color: #1B1F1D; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+<a href="#" style="height: 44px; padding: 0 14px 0 10px; border-radius: 999px; border: 1px solid #D3D9D5; color: #1B1F1D; display: flex; align-items: center; gap: 4px; text-decoration: none; font-weight: 600; font-size: 14px; box-sizing: border-box"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>Zurück zu …</a>
+</div>
+<p style="margin: 0; font-size: 14px; color: #5E6661">Höhe mobil ≥ 44 px, Desktop 44–56 px. Pro Ansicht höchstens eine Primär-Aktion.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 20px; border: 1.5px solid #EEF0EE">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Chips, Tags, Sticker</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="height: 44px; padding: 0 16px; border-radius: 999px; background: #1B1F1D; color: #FFFFFF; font-weight: 700; font-size: 14px; display: flex; align-items: center">Alle</span>
+<span style="height: 44px; padding: 0 14px; border-radius: 999px; background: #FFE6DE; color: #A8341B; font-weight: 700; font-size: 14px; display: flex; align-items: center">Warm</span>
+<span style="height: 30px; padding: 0 10px; border-radius: 999px; background: #F3F5F4; font-size: 14px; font-weight: 600; display: flex; align-items: center">vegan</span>
+<span style="transform: rotate(-4deg); background: #FFD84D; font-size: 12px; font-weight: 800; padding: 5px 9px; border-radius: 8px; box-shadow: 0 2px 0 rgba(27,31,29,0.12)">Beliebt</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 16px; background: #F3F5F4">
+<span style="height: 44px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(27,31,29,0.12); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center">Planen</span>
+<span style="height: 44px; border-radius: 12px; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center">Einkaufen</span>
+<span style="height: 44px; border-radius: 12px; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center">Kochen</span>
+</div>
+<p style="margin: 0; font-size: 14px; color: #5E6661">Kategorie-Chips zum Filtern, Segmente für 2–3 Ansichten, Tags nur zur Info. Sticker höchstens einmal pro Ansicht.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 20px; border: 1.5px solid #EEF0EE">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Eingaben</h3>
+<label style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 14px; border-radius: 12px; border: 1.5px solid #858C87; box-sizing: border-box; color: #5E6661"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input type="search" aria-label="Suche" placeholder="Rezept oder Zutat suchen" style="flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-size: 16px; color: #1B1F1D"></label>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center">
+<div style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; border: 1.5px solid #D3D9D5"><button aria-label="Weniger" style="width: 44px; height: 44px; border-radius: 12px; border: 0; background: #F3F5F4; color: #1B1F1D; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button><span style="min-width: 48px; text-align: center; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px">30</span><button aria-label="Mehr" style="width: 44px; height: 44px; border-radius: 12px; border: 0; background: #0F6E7A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></button></div>
+<span style="display: flex; align-items: center; gap: 10px; font-size: 16px"><span style="width: 24px; height: 24px; border-radius: 8px; border: 2px solid #858C87; box-sizing: border-box"></span>offen</span>
+<span style="display: flex; align-items: center; gap: 10px; font-size: 16px"><span style="width: 24px; height: 24px; border-radius: 8px; background: #0F6E7A; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span><span style="color: #5E6661; text-decoration: line-through">erledigt</span></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 20px; border: 1.5px solid #EEF0EE">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Nutri-Score (Originalfarben)</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span title="Nutri-Score A" style="flex: none; width: 24px; height: 24px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center">A</span>
+<span title="Nutri-Score B" style="flex: none; width: 24px; height: 24px; border-radius: 8px; background: #85BB2F; color: #1B1F1D; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center">B</span>
+<span title="Nutri-Score C" style="flex: none; width: 24px; height: 24px; border-radius: 8px; background: #FECB02; color: #1B1F1D; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center">C</span>
+<span title="Nutri-Score D" style="flex: none; width: 24px; height: 24px; border-radius: 8px; background: #EE8100; color: #1B1F1D; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center">D</span>
+<span title="Nutri-Score E" style="flex: none; width: 24px; height: 24px; border-radius: 8px; background: #E63E11; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center">E</span>
+<span style="width: 16px"></span>
+<span title="Nutri-Score A" style="flex: none; width: 32px; height: 32px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center">A</span>
+<span title="Nutri-Score C" style="flex: none; width: 32px; height: 32px; border-radius: 8px; background: #FECB02; color: #1B1F1D; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center">C</span>
+</div>
+<p style="margin: 0; font-size: 14px; color: #5E6661">Klein (24) auf Karten und in Listen, groß (32) in Kennzahlen. Auf Bildern mit weißem Ring.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 20px; border: 1.5px solid #EEF0EE">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Hinweise</h3>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #FFF4DB; border: 1.5px solid #F0C766; color: #6B4600; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B57900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg><span><strong>Freitag:</strong> Mittagessen fehlt noch</span></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #FDECEB; border: 1.5px solid #F2B8B4; color: #A1231B; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg><span>Rezept konnte nicht geladen werden.</span></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #F3F5F4; border: 1.5px solid #D3D9D5; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E6661" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6M10 22h4"></path></svg><span><strong>Tipp:</strong> Am Vortag kochen.</span></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 20px; border: 1.5px solid #EEF0EE">
+<h3 style="margin: 0; font-size: 14px; font-weight: 700; color: #5E6661; letter-spacing: 0.04em; text-transform: uppercase">Rezeptkarte &amp; Listenzeile</h3>
+<div style="display: flex; gap: 14px; align-items: stretch">
+<span style="flex: 0 0 150px; display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(27,31,29,0.06), 0 8px 24px rgba(27,31,29,0.08)"><span style="position: relative; height: 90px; background: #FFE6DE"><span title="Nutri-Score A" style="position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 8px; background: #038141; color: #FFFFFF; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFFFF">A</span></span><span style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 700; color: #A8341B">Warme Mahlzeit</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 16px">Chili sin Carne</span><span style="display: flex; justify-content: space-between; font-size: 12px; color: #5E6661">30–60 Min<strong style="color: #1B1F1D">1,10 €</strong></span></span></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 20px; border: 1.5px solid #EEF0EE"><span style="flex: none; width: 40px; height: 40px; border-radius: 12px; background: #FFF1CF"></span><span style="display: flex; flex-direction: column"><span style="font-size: 12px; font-weight: 700; color: #7A4F00">Frühstück · 8:00</span><span style="font-size: 16px; font-weight: 700">Overnight Oats</span></span></span>
+<span style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 20px; border: 2px dashed #F0C766"><span style="flex: none; width: 40px; height: 40px; border-radius: 12px; background: #FFF4DB"></span><span style="display: flex; flex-direction: column"><span style="font-size: 12px; font-weight: 700; color: #6B4600">Mittagessen · 12:30</span><span style="font-size: 16px; font-weight: 700">Rezept hinzufügen</span></span></span>
+</span>
+</div>
+</div>
+
+</div>
+</section>
+
+<section aria-labelledby="regeln" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="regeln" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px">Regeln</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 22px; border-radius: 20px; background: #F3F5F4">
+<h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Verspielt, aber ruhig</h3>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.5">
+<li>Höchstens ein gelber Sticker pro Ansicht.</li>
+<li>Schräg sind nur Sticker und das Logo.</li>
+<li>Kategorietönungen nie für Status verwenden; Status hat immer Rand und Icon.</li>
+<li>Ein einziger Schatten (Karten), sonst Linien.</li>
+<li>Wiederholte Bewegung nur bei Ladeanzeigen (Skelett, Ladebalken, Startbildschirm); mit „Bewegung reduzieren“ statisch.</li>
+</ul>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 22px; border-radius: 20px; background: #F3F5F4">
+<h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Formate</h3>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 16px">
+<dt style="color: #5E6661">Preis Karte</dt><dd style="margin: 0"><strong>1,10 €</strong></dd>
+<dt style="color: #5E6661">Preis Detail</dt><dd style="margin: 0"><strong>1,10 € pro Portion</strong></dd>
+<dt style="color: #5E6661">Budget</dt><dd style="margin: 0"><strong>5,80 € pro Person/Tag</strong></dd>
+<dt style="color: #5E6661">Zeitraum</dt><dd style="margin: 0"><strong>26.–30. Okt.</strong></dd>
+<dt style="color: #5E6661">Tag</dt><dd style="margin: 0"><strong>Di, 27. Okt.</strong> · Uhrzeit <strong>12:30</strong></dd>
+<dt style="color: #5E6661">Mengen</dt><dd style="margin: 0"><strong>1,8 kg · 150 ml · 3 Zehen</strong></dd>
+<dt style="color: #5E6661">Dauer</dt><dd style="margin: 0"><strong>&lt; 30 Min · 30–60 Min</strong></dd>
+</dl>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 22px; border-radius: 20px; background: #F3F5F4">
+<h3 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">Navigation &amp; Aufbau</h3>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; line-height: 1.5">
+<li>Zurück immer als Pille mit Zielnamen; Abläufe zum Abbrechen mit X.</li>
+<li>Seiten mit Hauptaktion: Aktionsleiste unten statt Navigation.</li>
+<li>Seitenaktionen im Seitenkopf, nie in der globalen Navigation.</li>
+<li>Tippflächen mobil mindestens 44 × 44 px.</li>
+<li>Öffentliche Seiten mit Brotkrumen, H1 und nummerierten Seiten; private Seiten (Pläne, Listen) auf noindex.</li>
+</ul>
+</div>
+</div>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

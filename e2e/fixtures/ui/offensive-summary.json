@@ -1,0 +1,16 @@
+{
+  "total": 0,
+  "issue_counts": {},
+  "nutrition_issue_counts": {},
+  "status_counts": {},
+  "verdict_counts": {},
+  "needs_review": 0,
+  "publishable": 0,
+  "estimated_review_cost_eur": 0,
+  "embeddings_missing": 0,
+  "exact_duplicate_groups": 0,
+  "near_duplicate_groups": 0,
+  "junk_recipes": 0,
+  "issue_labels": {},
+  "nutrition_issue_labels": {}
+}

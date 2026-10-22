@@ -61,6 +61,7 @@ vi.mock('@/api/mealPlans', () => ({
   useCreateMealPlan: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteMealPlan: () => ({ mutate: remove, isPending: false }),
   useDuplicateMealPlan: () => ({ mutate: duplicate, isPending: false }),
+  useMealPlanCosts: () => ({ data: undefined }),
 }));
 vi.mock('@/api/auth', () => ({ useCurrentUser: () => ({ isLoading: false, data: { id: 5 } }) }));
 vi.mock('@/components/planning/MealPlanFilterSidebar', () => ({ default: () => <div /> }));
@@ -119,7 +120,7 @@ describe('MealEventListPage plan rows', () => {
     renderPage();
 
     await user.click(screen.getByRole('button', { name: 'Aktionen für Bundesrat 2026' }));
-    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage verwenden/ }));
+    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage nutzen/ }));
 
     const nameInput = (await screen.findByDisplayValue('Bundesrat 2026 (Kopie)')) as HTMLInputElement;
     await user.clear(nameInput);
@@ -130,7 +131,7 @@ describe('MealEventListPage plan rows', () => {
     expect(duplicate.mock.calls[0][0]).toMatchObject({ id: 20, name: 'Sommerlager 2027' });
   });
 
-  it('separates current and past plans so a month heading and its key appear once per section', () => {
+  it('separates current and past plans so a month heading and its key appear once per section', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-11T12:00:00'));
     const consoleError = vi.spyOn(console, 'error');
@@ -145,13 +146,15 @@ describe('MealEventListPage plan rows', () => {
     vi.useRealTimers();
 
     const current = screen.getByRole('region', { name: 'Aktuell & kommend' });
-    const past = screen.getByRole('region', { name: 'Vergangen' });
     expect(within(current).getByText('Herbstfahrt')).toBeTruthy();
     expect(within(current).getByRole('heading', { name: /Oktober 2026/ })).toBeTruthy();
+    // The past plans live behind the "Vergangen" tab (meal-plan-list-dashboard).
+    await userEvent.click(screen.getByRole('tab', { name: /Vergangen/ }));
+    const past = screen.getByRole('region', { name: 'Vergangen' });
     expect(within(past).getByText('Wochenendlager')).toBeTruthy();
     expect(within(past).getByText('Sommerlager')).toBeTruthy();
     expect(within(past).getByRole('heading', { name: /Oktober 2026/ })).toBeTruthy();
-    expect(within(current).queryByText('Wochenendlager')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Aktuell & kommend' })).toBeNull();
     const duplicateKeyWarnings = consoleError.mock.calls.filter((call) => String(call[0]).includes('same key'));
     expect(duplicateKeyWarnings).toEqual([]);
   });
@@ -161,7 +164,7 @@ describe('MealEventListPage plan rows', () => {
     renderPage();
 
     await user.click(screen.getByRole('button', { name: 'Aktionen für Bundesrat 2026' }));
-    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage verwenden/ }));
+    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage nutzen/ }));
     await user.click(screen.getByRole('button', { name: 'Erstellen' }));
 
     expect(duplicate).toHaveBeenCalledTimes(1);
@@ -177,7 +180,7 @@ describe('MealEventListPage plan rows', () => {
     const { baseElement } = renderPage();
 
     await user.click(screen.getByRole('button', { name: 'Aktionen für Bundesrat 2026' }));
-    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage verwenden/ }));
+    await user.click(await screen.findByRole('menuitem', { name: /Als Vorlage nutzen/ }));
     const [startInput, endInput] = Array.from(
       baseElement.querySelectorAll<HTMLInputElement>('input[type="datetime-local"]'),
     );

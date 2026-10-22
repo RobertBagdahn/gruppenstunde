@@ -1,16 +1,13 @@
-import TitleBand from '@/components/shared/TitleBand';
-import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import DetailHeader from '@/components/shared/DetailHeader';
 
 const emailLocal = 'robertbagdahn';
 const emailDomain = 'gmail.com';
 const emailHref = `ma\u0069lto:${emailLocal}\u0040${emailDomain}`;
 
 export default function ImpressumPage() {
-  useDocumentMeta({ title: 'Impressum' });
-
   return (
     <div>
-      <TitleBand title="Impressum" innerClassName="max-w-3xl" />
+      <DetailHeader title="Impressum" />
 
       <section className="container py-8 md:py-10">
         <div className="max-w-3xl mx-auto space-y-6">

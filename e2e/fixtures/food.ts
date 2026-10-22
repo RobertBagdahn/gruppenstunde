@@ -122,6 +122,9 @@ function cookieValue(page: Page, name: string): Promise<string> {
   });
 }
 
+/** Projects that run against mocked API responses and never log in against a backend. */
+const MOCKED_PROJECTS = new Set(['mocked', 'ui-mobile', 'ui-desktop']);
+
 export const test = base.extend<FoodFixtures>({
   api: async ({ foodPage }, use) => {
     await use(foodPage.request);
@@ -132,7 +135,7 @@ export const test = base.extend<FoodFixtures>({
     await page.routeWebSocket(/\/ws\/shopping-lists\/\d+\/$/, async (webSocket) => {
       await webSocket.close({ code: 1000, reason: 'REST-only E2E test boundary' });
     });
-    if (testInfo.project.name !== 'mocked') {
+    if (!MOCKED_PROJECTS.has(testInfo.project.name)) {
       await loginFoodPage(page);
     }
     await use(page);

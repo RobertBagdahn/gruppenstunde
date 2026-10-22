@@ -1,7 +1,7 @@
 /**
  * Header account menu: "Anmelden" for visitors, avatar menu for logged-in users.
  */
-import { BookOpen, KeyRound, LogIn, LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { BookOpen, KeyRound, LogIn, LogOut, Scale, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import { useCurrentUser, useLogout } from '@/api/auth';
@@ -29,14 +29,14 @@ export default function UserMenu() {
 
   // Do not flash "Anmelden" for logged-in users while the session is still loading.
   if (isLoading) {
-    return <div className="skeleton-shimmer skeleton-on-hero h-10 w-28 rounded-full" aria-hidden="true" />;
+    return <div className="skeleton-shimmer h-10 w-28 rounded-full" aria-hidden="true" />;
   }
 
   if (!user) {
     return (
       <Button
         variant="ghost"
-        className="press gap-2 rounded-full bg-hero-foreground font-semibold text-foreground hover:bg-hero-muted"
+        className="press gap-2 rounded-full bg-primary font-semibold text-primary-foreground hover:bg-primary-dark"
         onClick={() => showLogin({ reason: 'Melde dich an, um Rezepte und Essenspläne zu speichern.' })}
       >
         <LogIn className="h-4 w-4" />
@@ -61,10 +61,10 @@ export default function UserMenu() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="press flex h-11 items-center gap-2 rounded-full bg-hero-soft py-1 pl-1 pr-1 text-body font-semibold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground md:pr-4"
-          aria-label="Benutzermenü öffnen"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-spice-soft font-bold text-spice-foreground">
+          className="press flex h-11 items-center gap-2 rounded-full bg-muted py-1 pl-1 pr-1 text-body font-semibold text-foreground transition-colors hover:bg-primary-soft md:pr-4"
+                  >
+          <span className="sr-only">Benutzermenü öffnen</span>
+          <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft font-bold text-primary-dark">
             {initial}
           </span>
           <span className="hidden max-w-[10rem] truncate md:inline">{user.display_name}</span>
@@ -100,11 +100,24 @@ export default function UserMenu() {
         {user.is_staff && (
           <DropdownMenuItem asChild>
             <Link to="/admin">
-              <Settings className="mr-2 h-4 w-4" />
-              Stammdaten
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Administration
             </Link>
           </DropdownMenuItem>
         )}
+        {/* Phones have no footer: the legal pages are reachable from here. */}
+        <DropdownMenuItem asChild className="md:hidden">
+          <Link to="/imprint">
+            <Scale className="mr-2 h-4 w-4" />
+            Impressum
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="md:hidden">
+          <Link to="/privacy">
+            <Scale className="mr-2 h-4 w-4" />
+            Datenschutz
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />

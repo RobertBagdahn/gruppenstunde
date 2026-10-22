@@ -7,7 +7,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useShoppingLists } from '@/api/shoppingLists';
 import { useParams, useNavigate, useLocation, useSearchParams, NavLink, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
-import HeroBand from '@/components/shared/HeroBand';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { PlanCheckFlyout } from '@/components/planning/PlanCheckFlyout';
 import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
@@ -427,14 +426,14 @@ export default function MealPlanDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 font-sans">
-      {/* Header on the hero band; the three pillars sit on its lower edge like folder tabs */}
-      <HeroBand pullUpClassName="-mt-4 sm:-mt-6" innerClassName="max-w-5xl !pb-0">
-      <BackButton to="/meal-plans/app" tone="hero" className="mb-5" />
+      {/* Header on the white ground; the three areas are underlined tabs */}
+      <header className="mb-6 space-y-4">
+      <BackButton to="/meal-plans/app" className="mb-1" />
       {/* Wraps on narrow screens so the action buttons never squeeze the title to zero width. */}
       <div className="flex flex-wrap items-end gap-4">
         <div className="basis-full sm:basis-0 sm:flex-1 sm:min-w-[10rem]">
-          <h1 className="font-display text-display font-extrabold text-hero-foreground line-clamp-3 [overflow-wrap:anywhere]">{plan.name}</h1>
-          <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-body text-hero-muted">
+          <h1 className="font-display text-title font-extrabold text-foreground line-clamp-3 [overflow-wrap:anywhere]">{plan.name}</h1>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-body text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <Users className="w-4 h-4" />
               {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
@@ -454,7 +453,7 @@ export default function MealPlanDetailPage() {
                 {plan.tags.map((tag: { id: number; name: string }) => (
                   <span
                     key={tag.id}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-hero-soft text-hero-foreground text-caption font-semibold"
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted text-foreground text-caption font-semibold"
                   >
                     {tag.name}
                   </span>
@@ -487,7 +486,7 @@ export default function MealPlanDetailPage() {
           />
           <button
             onClick={() => setShowShareDialog(true)}
-            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft"
             aria-label="Essensplan teilen"
             title="Essensplan teilen"
           >
@@ -495,7 +494,7 @@ export default function MealPlanDetailPage() {
           </button>
           <button
             onClick={() => setShowGroupMembersDialog(true)}
-            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft"
             aria-label="Teilnehmende verwalten"
             title="Teilnehmende verwalten"
           >
@@ -504,7 +503,7 @@ export default function MealPlanDetailPage() {
           {plan.can_edit && (
             <button
               onClick={() => setShowSettingsDialog(true)}
-              className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+              className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft"
               aria-label="Einstellungen"
               title="Einstellungen"
             >
@@ -513,7 +512,7 @@ export default function MealPlanDetailPage() {
           )}
           <button
             onClick={() => setPdfDialogOpen(true)}
-            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+            className="press inline-flex items-center justify-center w-11 h-11 rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft"
             aria-label="Als PDF öffnen"
             title="Als PDF öffnen"
           >
@@ -523,7 +522,7 @@ export default function MealPlanDetailPage() {
       </div>
 
       {/* Main 3-Pillar Tab Bar */}
-      <nav aria-label="Bereiche des Essensplans" className="mt-8 flex gap-1 sm:gap-2 overflow-x-auto">
+      <nav aria-label="Bereiche des Essensplans" className="mt-4 flex gap-1 border-b border-line sm:gap-2 overflow-x-auto">
         {[
           { key: 'plan' as const, label: 'Planen', icon: Calendar },
           { key: 'shopping' as const, label: 'Einkaufen', icon: ShoppingCart },
@@ -535,10 +534,10 @@ export default function MealPlanDetailPage() {
               key={tab.key}
               to={`/meal-plans/${mealPlanId}/${tab.key}`}
               className={({ isActive }) =>
-                `flex flex-1 sm:flex-none items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 h-12 rounded-t-xl text-body font-bold transition-colors duration-200 whitespace-nowrap ${
+                `flex flex-1 sm:flex-none items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 h-12 text-body font-bold transition-colors duration-200 whitespace-nowrap ${
                   isActive
-                    ? 'bg-background text-foreground'
-                    : 'text-hero-muted hover:bg-hero-soft hover:text-hero-foreground'
+                    ? 'border-b-2 border-primary text-primary-dark'
+                    : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground'
                 }`
               }
             >
@@ -548,7 +547,7 @@ export default function MealPlanDetailPage() {
           );
         })}
       </nav>
-      </HeroBand>
+      </header>
 
       {changedShoppingLists.length > 0 && (
         <div role="alert" data-testid="plan-changed-warning" className="rounded-xl bg-card p-3 shadow-card border border-warning/40 text-body">
@@ -639,7 +638,7 @@ export default function MealPlanDetailPage() {
                 type="button"
                 onClick={() => patchDetailState({ view: 'cards' }, { replace: true })}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
+                  'min-h-11 md:min-h-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
                   planView === 'cards'
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -652,7 +651,7 @@ export default function MealPlanDetailPage() {
                 type="button"
                 onClick={() => patchDetailState({ view: 'table' }, { replace: true })}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
+                  'min-h-11 md:min-h-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
                   planView === 'table'
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'

@@ -20,5 +20,7 @@ class FoodDashboardOut(BaseModel):
     recipe_count: int
     ingredient_count: int
     meal_plan_count: int
+    active_meal_plan_count: int = 0
     shopping_list_count: int
+    open_shopping_list_count: int = 0
     insights: DashboardInsightsOut

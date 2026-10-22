@@ -66,6 +66,7 @@ export default function RecipePreviewDialog({
           {/* Image */}
           <RecipeThumbnail
             imageUrl={recipe.image_url}
+            recipeType={recipe.recipe_type}
             title={recipe.title}
             size="full"
             eager

@@ -241,7 +241,7 @@ test.describe('Shopping list permissions and persistence', () => {
     resources.track({ kind: 'recipe', id: recipe.id });
 
     await foodPage.goto(`/recipes/${recipe.slug}`);
-    await foodPage.locator('button[aria-label="Einkaufsliste erstellen"]:visible').click({ force: true });
+    await foodPage.locator('button:has-text("Auf die Einkaufsliste"):visible').click({ force: true });
     const exportDialog = foodPage.getByRole('dialog', { name: /Einkaufen/ });
     await exportDialog.getByLabel('Portionen').fill('3');
     const storeName = uniqueName('E2E Laden');

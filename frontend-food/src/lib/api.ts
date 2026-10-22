@@ -1,3 +1,5 @@
+import { isPreviewWriteBlocked, PREVIEW_MESSAGE } from './preview';
+
 
 export type ApiErrorBody = {
   detail?: unknown;
@@ -227,6 +229,9 @@ export function getCsrfToken(): string {
 }
 
 export async function fetchWithCsrf(url: string, options: RequestInit = {}): Promise<Response> {
+  if (isPreviewWriteBlocked(url, options.method)) {
+    throw new ApiError(403, 'Forbidden', { detail: PREVIEW_MESSAGE, code: 'preview_readonly' });
+  }
   try {
     return await fetch(url, {
       ...options,

@@ -1,4 +1,4 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 /**
  * RefMealEditorPage — Baukasten-Ansicht zum Zusammenstellen von Reference Meals.
  * Route: /meal-plans/:id/ref-meals/:mealType
@@ -262,11 +262,10 @@ export default function RefMealEditorPage() {
 
   return (
     <div className="pb-8">
-    <TitleBand
+    <DetailHeader
       title={`Referenz-Mahlzeit: ${mealTypeLabel}`}
       description={plan?.name}
       back={{ to: `/meal-plans/${id}`, label: 'Zurück zum Essensplan' }}
-      innerClassName="max-w-7xl"
     />
     <div className="max-w-7xl mx-auto px-4 space-y-6">
 

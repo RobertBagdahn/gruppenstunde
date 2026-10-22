@@ -596,6 +596,7 @@ class MealPlanOut(Schema):
     created_at: dt.datetime
     updated_at: dt.datetime
     meals_count: int = 0
+    filled_meals_count: int = 0
     day_part_factors: dict[str, float]
     meal_default_times: dict[str, list[str]]
     nutritional_tag_ids: list[int] = []
@@ -640,6 +641,14 @@ class MealPlanOut(Schema):
         if ann is not None:
             return cast(int, ann)
         return cast(int, obj.meals.count())
+
+    @staticmethod
+    def resolve_filled_meals_count(obj) -> int:
+        # Meals with at least one item; annotated in list_meal_plans, counted once otherwise.
+        ann = getattr(obj, "filled_meals_count_ann", None)
+        if ann is not None:
+            return cast(int, ann)
+        return cast(int, obj.meals.filter(items__isnull=False).distinct().count())
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:

@@ -94,7 +94,7 @@ export default function WizardStepMethod({
               setInput('');
               hasResultRef.current = false;
             }}
-            className="rounded-lg border px-3 py-2 text-body hover:bg-muted"
+            className="min-h-11 md:min-h-0 rounded-lg border px-3 py-2 text-body hover:bg-muted"
           >
             Quelle hinzufügen
           </button>
@@ -136,7 +136,7 @@ export default function WizardStepMethod({
           type="button"
           onClick={onManualStart}
           data-testid="recipe-manual-start"
-          className="text-body text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          className="inline-flex min-h-11 md:min-h-0 items-center text-body text-muted-foreground underline underline-offset-4 hover:text-foreground"
         >
           Ohne KI manuell beginnen
         </button>

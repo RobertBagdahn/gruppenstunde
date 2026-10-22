@@ -1,16 +1,14 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 import { Link } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
-import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import { ArrowRight, Shield } from 'lucide-react';
 
 export default function DatenschutzPage() {
   const { data: user } = useCurrentUser();
-  useDocumentMeta({ title: 'Datenschutz' });
 
   return (
     <div>
-      <TitleBand title="Datenschutz" description="Informationen zum Schutz deiner persönlichen Daten" innerClassName="max-w-3xl" />
+      <DetailHeader title="Datenschutz" description="Informationen zum Schutz deiner persönlichen Daten" />
 
       {user && (
         <section className="container py-6">

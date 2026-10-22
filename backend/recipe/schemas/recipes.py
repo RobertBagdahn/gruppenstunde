@@ -103,6 +103,8 @@ class RecipeListOut(ContentListOut):
 
     recipe_type: str
     portions: int | None
+    # Cooking method; drives the "Ohne Kochen" and preparation stickers (food-design-system).
+    preparation_method: str = ""
     # Per 100 g of the whole recipe (not per portion); see cached_energy_per_portion_kcal
     cached_energy_kcal: float | None = None
     cached_energy_per_portion_kcal: float | None = None

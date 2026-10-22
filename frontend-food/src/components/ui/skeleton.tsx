@@ -8,17 +8,14 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import SlowLoadingHint from '@/components/shared/SlowLoadingHint';
-import HeroBand from '@/components/shared/HeroBand';
 
 interface SkeletonProps {
   className?: string;
-  /** Skeleton sits on the pine hero band. */
-  onHero?: boolean;
 }
 
 /** Base block: a muted surface with a soft light sweep. */
-export function Skeleton({ className, onHero = false }: SkeletonProps) {
-  return <div aria-hidden="true" className={cn('skeleton-shimmer rounded-lg', onHero && 'skeleton-on-hero', className)} />;
+export function Skeleton({ className }: SkeletonProps) {
+  return <div aria-hidden="true" className={cn('skeleton-shimmer rounded-lg', className)} />;
 }
 
 /** Wrapper that announces the loading state to assistive technology. */
@@ -112,26 +109,26 @@ export function SkeletonTableRows({
   );
 }
 
-/** Header of a detail page on the hero band: breadcrumb, title, meta chips. */
+/** Header of a detail page: breadcrumb, back pill, title and meta chips (food-page-shell). */
 export function SkeletonDetailHeader({ className }: { className?: string }) {
   return (
     <div aria-hidden="true" className={cn('space-y-5', className)}>
-      <Skeleton onHero className="h-4 w-48" />
-      <Skeleton onHero className="h-8 w-24 rounded-full" />
-      <Skeleton onHero className="h-14 w-4/5 max-w-xl md:h-16" />
+      <Skeleton className="h-4 w-48" />
+      <Skeleton className="h-8 w-24 rounded-full" />
+      <Skeleton className="h-14 w-4/5 max-w-xl md:h-16" />
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: 3 }, (_, index) => (
-          <Skeleton key={index} onHero className="h-8 w-24 rounded-full" />
+          <Skeleton key={index} className="h-8 w-24 rounded-full" />
         ))}
       </div>
     </div>
   );
 }
 
-/** Row of key-figure tiles that overlaps the hero band's lower edge. */
+/** Row of key-figure tiles under the header. */
 export function SkeletonKeyFigures({ count = 4, className }: { count?: number; className?: string }) {
   return (
-    <div aria-hidden="true" className={cn('grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-card shadow-float md:grid-cols-4', className)}>
+    <div aria-hidden="true" className={cn('grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-card shadow-card md:grid-cols-4', className)}>
       {Array.from({ length: count }, (_, index) => (
         <div key={index} className="space-y-2 bg-card p-5">
           <Skeleton className="h-3 w-20" />
@@ -173,17 +170,14 @@ export function SkeletonForm({ fields = 4, className, label = 'Formular wird gel
 }
 
 /**
- * Whole page: hero band with a title, key figures on its edge and content
- * blocks below (route fallback, detail pages). Same shape as the real pages,
- * so the switch to content does not jump.
+ * Whole page: header, key figures and content blocks (route fallback, detail pages). Same shape
+ * as the real pages, so the switch to content does not jump.
  */
 export function PageSkeleton({ label = 'Seite wird geladen', className }: { label?: string; className?: string }) {
   return (
-    <LoadingRegion label={label} className={cn('mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8', className)}>
-      <HeroBand pullUpClassName="" overlap>
-        <SkeletonDetailHeader />
-      </HeroBand>
-      <div className="relative -mt-10 space-y-6 md:-mt-12">
+    <LoadingRegion label={label} className={cn('mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:px-8', className)}>
+      <SkeletonDetailHeader />
+      <div className="space-y-6">
         <SkeletonKeyFigures />
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
@@ -197,3 +191,6 @@ export function PageSkeleton({ label = 'Seite wird geladen', className }: { labe
     </LoadingRegion>
   );
 }
+
+/** Name of the route-level loading state (food-loading-states, task 5.4). */
+export const LoadingPageSkeleton = PageSkeleton;

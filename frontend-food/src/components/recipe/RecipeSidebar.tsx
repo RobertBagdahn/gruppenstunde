@@ -100,7 +100,6 @@ export default function RecipeSidebar({
           <button
             type="button"
             onClick={onOpenShoppingList}
-            aria-label="Einkaufsliste erstellen"
             className={cn(
               'press flex h-12 w-full items-center justify-center gap-2 rounded-xl text-emphasis font-bold transition-colors',
               canCook

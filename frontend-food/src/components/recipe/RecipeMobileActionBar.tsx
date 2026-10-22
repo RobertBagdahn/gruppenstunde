@@ -88,58 +88,45 @@ export default function RecipeMobileActionBar({
 
   return (
     <div
+      data-print-hide
       data-testid="recipe-mobile-action-bar"
       className={cn(
-        'fixed bottom-16 inset-x-0 h-[4.5rem] pb-[env(safe-area-inset-bottom)] lg:hidden',
-        'bg-card/95 backdrop-blur-xl shadow-raised z-40 animate-sheet-up',
-        'flex items-center gap-2 px-3',
+        'fixed inset-x-0 bottom-0 z-40 border-t border-line bg-background md:hidden',
+        'px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3',
         'transition-transform duration-200',
         isTextareaFocused && 'translate-y-full',
       )}
     >
-      <button
-        type="button"
-        onClick={onOpenShoppingList}
-        aria-label="Einkaufsliste erstellen"
-        className="press min-w-0 flex-1 flex items-center justify-center gap-1 h-12 px-1.5 text-caption min-[360px]:gap-1.5 min-[360px]:px-2 min-[360px]:text-body font-bold bg-primary text-primary-foreground rounded-xl shadow-soft hover:bg-primary/90 transition-colors"
-      >
-        <Icon name="shopping_cart" size={20} className="hidden min-[360px]:block" />
-        Einkaufsliste
-      </button>
-      <button
-        type="button"
-        onClick={onOpenPortions}
-        aria-label="Portionen skalieren"
-        className="press min-w-0 flex-1 flex items-center justify-center gap-1 h-12 px-1.5 text-caption min-[360px]:gap-1.5 min-[360px]:px-2 min-[360px]:text-body font-bold bg-primary-soft text-primary rounded-xl hover:bg-primary-soft-border/70 transition-colors"
-      >
-        <Icon name="restaurant" size={20} className="hidden min-[360px]:block" />
-        Portionen
-      </button>
-
-      {onAddToMealPlan && (
-        <button
-          type="button"
-          onClick={onAddToMealPlan}
-          aria-label="Zum Essensplan"
-          className="press flex shrink-0 items-center justify-center w-12 h-12 rounded-xl bg-secondary hover:bg-muted transition-colors"
-        >
-          <Icon name="calendar_month" size={20} />
-        </button>
-      )}
-
+      <div className="mx-auto flex max-w-3xl items-center gap-2">
       {/* Overflow menu */}
       <div className="relative" ref={menuRef}>
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Weitere Aktionen"
-          className="press flex shrink-0 items-center justify-center w-12 h-12 rounded-xl bg-secondary hover:bg-muted transition-colors"
+          className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft"
         >
           <Icon name="more_vert" size={20} />
         </button>
 
         {menuOpen && (
-          <div className="absolute bottom-14 right-0 w-52 bg-popover rounded-xl shadow-raised py-1 z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200">
+          <div className="absolute bottom-14 left-0 w-56 rounded-xl bg-popover py-1 shadow-raised z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200">
+            <button
+              type="button"
+              onClick={() => { onOpenShoppingList(); setMenuOpen(false); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
+            >
+              <Icon name="shopping_cart" size={20} />
+              Einkaufsliste erstellen
+            </button>
+            <button
+              type="button"
+              onClick={() => { onOpenPortions(); setMenuOpen(false); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-body hover:bg-muted transition-colors"
+            >
+              <Icon name="restaurant" size={20} />
+              Portionen skalieren
+            </button>
             {canCook && (
               <button
                 type="button"
@@ -168,6 +155,27 @@ export default function RecipeMobileActionBar({
             </button>
           </div>
         )}
+      </div>
+      {canCook && (
+        <button
+          type="button"
+          onClick={handleStartCooking}
+          className="press flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-primary-soft px-3 text-body font-bold text-primary-dark transition-colors hover:bg-primary-soft-border"
+        >
+          <Icon name="skillet" size={20} aria-hidden="true" />
+          Kochen starten
+        </button>
+      )}
+      {onAddToMealPlan && (
+        <button
+          type="button"
+          onClick={onAddToMealPlan}
+          className="press flex h-11 flex-[1.4] items-center justify-center gap-2 rounded-lg bg-primary px-3 text-body font-bold text-primary-foreground transition-colors hover:bg-primary-dark"
+        >
+          <Icon name="calendar_month" size={20} aria-hidden="true" />
+          Zum Essensplan
+        </button>
+      )}
       </div>
       {recipeSlug && (
         <PdfExportDialog

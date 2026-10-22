@@ -9,7 +9,8 @@ npm ci --quiet
 npx playwright install chromium
 
 cd "$repo_root/frontend-food"
-./node_modules/.bin/vite --host 127.0.0.1 --strictPort >"$food_log" 2>&1 &
+./node_modules/.bin/vite build >"$food_log" 2>&1
+./node_modules/.bin/vite preview --host 127.0.0.1 --strictPort --port 5174 >>"$food_log" 2>&1 &
 server_pid=$!
 trap 'kill "$server_pid" 2>/dev/null || true' EXIT HUP INT TERM
 
@@ -30,4 +31,4 @@ if [ "$ready" -ne 1 ]; then
 fi
 
 cd "$repo_root/e2e"
-E2E_BASE_URL=http://127.0.0.1:5174 npx playwright test --project=mocked
+E2E_BASE_URL=http://127.0.0.1:5174 npx playwright test --project=mocked --project=ui-mobile --project=ui-desktop

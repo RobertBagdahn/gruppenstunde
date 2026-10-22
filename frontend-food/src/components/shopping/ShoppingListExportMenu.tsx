@@ -58,7 +58,7 @@ export default function ShoppingListExportMenu({ listName, items, onPrint }: Sho
           aria-label="Liste exportieren"
           title={openCount === 0 ? NOTHING_LEFT_HINT : 'Liste exportieren'}
           data-testid="shopping-export-trigger"
-          className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-muted/30 disabled:cursor-not-allowed disabled:opacity-50"
+          className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-50"
         >
           <FileDown className="w-4 h-4" />
         </button>

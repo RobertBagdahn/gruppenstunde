@@ -190,7 +190,7 @@ export default function ShoppingListPage() {
   if (userLoading || !restored) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <PageHeader title="Einkaufslisten" description="Plane die Einkäufe deiner Events und verwalte deine Listen." area="shopping" icon="shopping_cart" countLoading />
+        <PageHeader title="Einkaufslisten" description="Plane die Einkäufe deiner Events und verwalte deine Listen." countLoading />
         <SkeletonCardGrid count={6} withImage={false} label="Einkaufslisten werden geladen" className="lg:grid-cols-3 xl:grid-cols-3" />
       </div>
     );
@@ -264,8 +264,8 @@ export default function ShoppingListPage() {
       <PageHeader
         title="Einkaufslisten"
         description="Plane die Einkäufe deiner Events und verwalte deine Listen."
-        area="shopping"
-        icon="shopping_cart"
+        count={data?.total}
+        countLabel={{ one: 'Liste', other: 'Listen' }}
       >
         <ListPageSearchBar
           placeholder="Einkaufsliste suchen..."
@@ -357,7 +357,7 @@ export default function ShoppingListPage() {
           <select
             value={sort}
             onChange={(e) => patch({ sort: ShoppingListStateSchema.shape.sort.parse(e.target.value) })}
-            className="px-3.5 py-1.5 rounded-xl border border-border text-body bg-card hover:bg-muted/50 focus:ring-2 focus:ring-primary focus:outline-none font-semibold transition-all shadow-soft"
+            className="min-h-11 md:min-h-0 px-3.5 py-1.5 rounded-xl border border-border text-body bg-card hover:bg-muted/50 focus:ring-2 focus:ring-primary focus:outline-none font-semibold transition-all shadow-soft"
           >
             <option value="newest">Neueste</option>
             <option value="oldest">Älteste</option>

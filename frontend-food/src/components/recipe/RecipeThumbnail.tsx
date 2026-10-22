@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
+import { Icon } from '@/components/ui/icon';
+import { NEUTRAL_TINT_CLASSES, RECIPE_TINT_CLASSES, recipeTint, recipeTypeIcon } from '@/lib/recipeTypeStyle';
 import { cn } from '@/lib/utils';
-
-const FALLBACK_IMAGE = '/images/inspi_cook.png';
 
 type ThumbnailSize = 'xs' | 'sm' | 'lg' | 'md' | 'full';
 type ThumbnailAspectRatio = 'square' | '16/9' | '4/3';
@@ -21,6 +21,8 @@ const ASPECT_RATIO_CLASSES: Record<ThumbnailAspectRatio, string> = {
 interface RecipeThumbnailProps {
   /** URL of the recipe's uploaded image, or null/undefined/empty if none. */
   imageUrl?: string | null;
+  /** Recipe type: tints and symbols the fallback surface (food-design-system). */
+  recipeType?: string | null;
   /** Recipe title, used as the image's alt text. */
   title: string;
   /**
@@ -51,6 +53,7 @@ interface RecipeThumbnailProps {
  */
 export default function RecipeThumbnail({
   imageUrl,
+  recipeType,
   title,
   size = 'md',
   aspectRatio = 'square',
@@ -60,7 +63,7 @@ export default function RecipeThumbnail({
   children,
 }: RecipeThumbnailProps) {
   const hasImage = Boolean(imageUrl);
-  const src = imageUrl || FALLBACK_IMAGE;
+  const tint = recipeTint(recipeType);
 
   const containerSizeClass =
     size === 'md'
@@ -71,16 +74,23 @@ export default function RecipeThumbnail({
 
   return (
     <div className={cn('relative overflow-hidden shrink-0', containerSizeClass, className)}>
-      <img
-        src={src}
-        alt={title}
-        loading={eager ? undefined : 'lazy'}
-        className={cn(
-          'w-full h-full',
-          hasImage ? 'object-cover' : 'object-contain p-4 bg-muted/30',
-          imgClassName,
-        )}
-      />
+      {hasImage ? (
+        <img
+          src={imageUrl ?? undefined}
+          alt={title}
+          loading={eager ? undefined : 'lazy'}
+          className={cn('w-full h-full object-cover', imgClassName)}
+        />
+      ) : (
+        // No photo: the type's tint and symbol. Never a placeholder picture (food-design-system).
+        <div
+          role="img"
+          aria-label={title}
+          className={cn('flex h-full w-full items-center justify-center', tint ? RECIPE_TINT_CLASSES[tint] : NEUTRAL_TINT_CLASSES, imgClassName)}
+        >
+          <Icon name={recipeTypeIcon(recipeType)} size={48} aria-hidden="true" />
+        </div>
+      )}
       {children}
     </div>
   );

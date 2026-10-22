@@ -1,4 +1,5 @@
-import TitleBand from '@/components/shared/TitleBand';
+import FlowHeader from '@/components/shared/FlowHeader';
+import ActionBar from '@/components/shared/ActionBar';
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -540,10 +541,77 @@ export default function RecipeWizard() {
     }
   };
 
+  const stepNumber = progressActiveIndex + 1;
+  const backButton = !isFirst ? (
+    <button
+      type="button"
+      onClick={handleBack}
+      disabled={isSaving || backLocked}
+      title={backLocked ? 'Das Rezept ist bereits angelegt.' : undefined}
+      data-testid="recipe-wizard-back"
+      className="flex h-11 items-center gap-1.5 rounded-lg border border-border px-4 text-body font-medium transition-colors hover:bg-muted disabled:opacity-50"
+    >
+      <ChevronLeft className="h-4 w-4" />
+      Zurück
+    </button>
+  ) : null;
+  const forwardButton = !isLast ? (
+    <button
+      type="button"
+      onClick={handleNext}
+      disabled={isSaving}
+      data-testid="recipe-wizard-next"
+      className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-dark disabled:opacity-50"
+    >
+      {isFirst ? (
+        isSaving ? (
+          <>
+            <Sparkles className="h-4 w-4 animate-spin" />
+            Analysiert…
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4" />
+            Rezept analysieren
+          </>
+        )
+      ) : isSaving ? (
+        'Speichert...'
+      ) : (
+        <>
+          Weiter
+          <ChevronRight className="h-4 w-4" />
+        </>
+      )}
+    </button>
+  ) : (
+    <button
+      type="button"
+      onClick={handleNext}
+      disabled={isSaving}
+      data-testid="recipe-wizard-finish"
+      className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-dark disabled:opacity-50"
+    >
+      {isSaving ? 'Speichert...' : (
+        <>
+          Fertigstellen
+          <Check className="h-4 w-4" />
+        </>
+      )}
+    </button>
+  );
+
   return (
-    <div className="pb-8">
-    <TitleBand title="Neues Rezept" description="In wenigen Schritten zum fertigen Rezept" back={{ to: '/recipes', label: 'Alle Rezepte' }} innerClassName="max-w-3xl" />
-    <div className="max-w-3xl mx-auto px-4">
+    <div className="pb-28 md:pb-8">
+    {/* Flow header: close leaves the wizard, progress shows the step (food-page-shell) */}
+    <FlowHeader
+      title="Neues Rezept"
+      onClose={() => navigate('/recipes')}
+      closeLabel="Rezept-Assistent verlassen"
+      progress={`Schritt ${stepNumber} von ${progressSteps.length}`}
+      progressValue={(stepNumber / Math.max(1, progressSteps.length)) * 100}
+    />
+    <div className="max-w-3xl mx-auto px-4 pt-6">
       <div className="mb-8">
         <StepIndicator steps={progressSteps} activeIndex={progressActiveIndex} />
       </div>
@@ -554,76 +622,15 @@ export default function RecipeWizard() {
         </WizardStepContext.Provider>
       </div>
 
-      <div className="mt-8 pt-6 border-t sticky bottom-0 bg-background py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            {!isFirst && (
-              <button
-                type="button"
-                onClick={handleBack}
-                disabled={isSaving || backLocked}
-                title={backLocked ? 'Das Rezept ist bereits angelegt.' : undefined}
-                data-testid="recipe-wizard-back"
-                className="flex items-center gap-1.5 px-4 py-2 text-body font-medium border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Zurück
-              </button>
-            )}
-          </div>
-          {!isLast && (
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={isSaving}
-              data-testid="recipe-wizard-next"
-              className="flex items-center gap-1.5 px-5 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
-            >
-              {isFirst ? (
-                isSaving ? (
-                  <>
-                    <Sparkles className="w-4 h-4 animate-spin" />
-                    Analysiert…
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Rezept analysieren
-                  </>
-                )
-              ) : isSaving ? (
-                'Speichert...'
-              ) : (
-                <>
-                  Weiter
-                  <ChevronRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          )}
-          {isLast && (
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={isSaving}
-              data-testid="recipe-wizard-finish"
-              className="flex items-center gap-1.5 px-5 py-2 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
-            >
-              {isSaving ? 'Speichert...' : (
-                <>
-                  Fertigstellen
-                  <Check className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          )}
-        </div>
-        {backLocked && (
-          <p className="mt-2 text-caption text-muted-foreground" data-testid="recipe-wizard-back-locked-hint">
-            Das Rezept ist bereits angelegt. Titel und Typ änderst du direkt hier.
-          </p>
-        )}
-      </div>
+      <ActionBar
+        secondary={backButton}
+        primary={forwardButton}
+      />
+      {backLocked && (
+        <p className="mt-2 text-caption text-muted-foreground" data-testid="recipe-wizard-back-locked-hint">
+          Das Rezept ist bereits angelegt. Titel und Typ änderst du direkt hier.
+        </p>
+      )}
     </div>
     </div>
   );

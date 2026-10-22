@@ -1,281 +1,203 @@
 import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
 import { useFoodDashboard } from '@/api/dashboard';
-import { useDocumentMeta } from '@/hooks/useDocumentMeta';
-import { areaTileClass, type PageArea } from '@/components/shared/PageHeader';
+import { useCurrentUser } from '@/api/auth';
+import { useMealPlans } from '@/api/mealPlans';
+import { useRecipes } from '@/api/recipes';
 import { Skeleton } from '@/components/ui/skeleton';
-import HeroBand from '@/components/shared/HeroBand';
-import { formatCount } from '@/lib/format';
-import {
-  BookOpen,
-  Egg,
-  Utensils,
-  ShoppingCart,
-  Calculator,
-  ArrowRight,
-  Star,
-  Sparkles,
-  TrendingUp,
-  Calendar,
-  BarChart3,
-} from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
+import RecipeCard from '@/components/recipe/RecipeCard';
+import { formatCount, formatNumber } from '@/lib/format';
+import type { MealPlan } from '@/schemas/mealPlan';
 
-const MODULES = [
-  {
-    key: 'recipes',
-    label: 'Rezepte',
-    icon: BookOpen,
-    description: 'Durchsuche hunderte Rezepte – von Lagerfeuerküche bis Desserts. Erstelle eigene Rezepte mit Nährwertberechnung.',
-    href: '/recipes',
-    area: 'recipes',
-  },
-  {
-    key: 'ingredients',
-    label: 'Zutaten',
-    icon: Egg,
-    description: 'Tausende Zutaten mit exakten Nährwertangaben, Preisen und Portionsgrößen.',
-    href: '/ingredients',
-    area: 'ingredients',
-  },
-  {
-    key: 'meal-plans',
-    label: 'Essensplan',
-    icon: Utensils,
-    description: 'Plane Mahlzeiten für Lager und Fahrten – mit automatischer Portionsberechnung und Nährwert-Cockpit.',
-    href: '/meal-plans/app',
-    area: 'planner',
-  },
-  {
-    key: 'shopping',
-    label: 'Einkaufslisten',
-    icon: ShoppingCart,
-    description: 'Kollaborative Einkaufslisten mit Echtzeit-Updates – sortiert nach Supermarkt-Abteilung.',
-    href: '/shopping-lists',
-    area: 'shopping',
-  },
-  {
-    key: 'simulator',
-    label: 'Norm-Portion-Simulator',
-    icon: Calculator,
-    description: 'Berechne Energiebedarf und Normfaktoren nach Alter, Geschlecht und Aktivität.',
-    href: '/tools/norm-portion-simulator',
-    area: 'neutral',
-  },
-  {
-    key: 'statistics',
-    label: 'Zutaten-Statistiken',
-    icon: BarChart3,
-    description: 'Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank – Rankings, Scores und mehr.',
-    href: '/ingredients/statistics',
-    area: 'neutral',
-  },
-] as const;
-
-
-function StatCard({
-  label,
-  value,
-  staticValue,
-  icon: Icon,
-  href,
-  area,
-  failed = false,
-}: {
+interface ModuleTile {
+  key: 'recipes' | 'meal-plans' | 'shopping' | 'ingredients';
   label: string;
-  value?: number;
-  /** Text shown instead of a count, for tiles that link to a page without a number. */
-  staticValue?: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: string;
   href: string;
-  area: PageArea;
-  /** The dashboard failed: show a dash instead of an endless skeleton. */
-  failed?: boolean;
-}) {
-  return (
-    <Link
-      to={href}
-      className="group rounded-xl bg-card p-4 md:p-5 shadow-float card-hover"
-    >
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${areaTileClass(area)}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div>
-          {staticValue !== undefined ? (
-            <p className="text-section font-extrabold text-foreground font-display">{staticValue}</p>
-          ) : value !== undefined ? (
-            <p className="text-title font-extrabold text-foreground font-display">
-              {formatCount(value)}
-            </p>
-          ) : failed ? (
-            <p className="text-title font-extrabold text-muted-foreground font-display" title="Zahl konnte nicht geladen werden">–</p>
-          ) : (
-            <Skeleton className="h-9 w-16" />
-          )}
-          <p className="text-caption text-muted-foreground font-sans">{label}</p>
-        </div>
-      </div>
-    </Link>
-  );
+  description: string;
 }
 
-function ModuleCard({ module }: { module: (typeof MODULES)[number] }) {
-  const Icon = module.icon;
-  return (
-    <Link
-      to={module.href}
-      className="group rounded-xl bg-card p-5 md:p-6 shadow-card card-hover flex flex-col sm:flex-row items-start gap-4"
-    >
-      <div className={`flex items-center justify-center w-12 h-12 rounded-xl ${areaTileClass(module.area)} shrink-0 transition-transform duration-300 group-hover:-rotate-6`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="text-emphasis font-bold mb-1 group-hover:text-primary transition-colors font-display">
-          {module.label}
-        </h3>
-        <p className="text-body text-muted-foreground leading-relaxed font-sans">
-          {module.description}
-        </p>
-      </div>
-      <ArrowRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 hidden sm:block" />
-    </Link>
-  );
+const MODULE_TILES: readonly ModuleTile[] = [
+  { key: 'recipes', label: 'Rezepte', icon: 'menu_book', href: '/recipes', description: 'Rezepte finden, anlegen und mit Nährwerten rechnen.' },
+  { key: 'meal-plans', label: 'Essenspläne', icon: 'restaurant_menu', href: '/meal-plans/app', description: 'Mahlzeiten für Lager und Fahrten planen.' },
+  { key: 'shopping', label: 'Einkaufslisten', icon: 'shopping_cart', href: '/shopping-lists', description: 'Gemeinsam abhaken, sortiert nach Abteilung.' },
+  { key: 'ingredients', label: 'Zutaten', icon: 'egg', href: '/ingredients', description: 'Nährwerte, Preise und Portionen.' },
+];
+
+const STEPS = [
+  { title: 'Rezepte auswählen', text: 'Nach Kategorie, Zeit und Kosten filtern.' },
+  { title: 'Plan bauen', text: 'Tage füllen, Budget und kcal rechnen mit.' },
+  { title: 'Einkaufen und kochen', text: 'Fertige Liste und Kochmodus.' },
+] as const;
+
+/** Upcoming or unfinished plan: the first one whose end is not in the past. */
+function nextPlan(plans: MealPlan[] | undefined): MealPlan | null {
+  if (!plans) return null;
+  const now = Date.now();
+  return plans.find((plan) => !plan.end_datetime || new Date(plan.end_datetime).getTime() >= now) ?? null;
+}
+
+function formatPeriod(plan: MealPlan): string {
+  if (!plan.start_datetime) return 'Ohne Termin';
+  const start = new Date(plan.start_datetime).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  if (!plan.end_datetime) return start;
+  const end = new Date(plan.end_datetime).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  return start === end ? start : `${start} – ${end}`;
+}
+
+function ModuleCount({ tile, data, isLoading, failed }: { tile: ModuleTile; data: ReturnType<typeof useFoodDashboard>['data']; isLoading: boolean; failed: boolean }) {
+  if (isLoading) return <Skeleton className="h-4 w-24" />;
+  if (failed || !data) return <span className="text-caption text-muted-foreground">Zahl nicht verfügbar</span>;
+  switch (tile.key) {
+    case 'recipes':
+      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.recipe_count)} Rezepte</span>;
+    case 'meal-plans':
+      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.active_meal_plan_count)} aktiv</span>;
+    case 'shopping':
+      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.open_shopping_list_count)} offen</span>;
+    case 'ingredients':
+      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.ingredient_count)} Einträge</span>;
+  }
 }
 
 export default function HomePage() {
-  useDocumentMeta({ title: 'Inspi Food – Startseite' });
-  const { data, isLoading, isError } = useFoodDashboard();
+  const dashboard = useFoodDashboard();
+  const { data: user } = useCurrentUser();
+  const loggedIn = Boolean(user);
+
+  const plansQuery = useMealPlans({ origin: 'mine', sort: 'date_upcoming' }, { enabled: loggedIn });
+  const plan = useMemo(() => nextPlan(plansQuery.data), [plansQuery.data]);
+
+  const popularQuery = useRecipes({ sort: 'popular', page: 1, page_size: 4 });
+  const popular = popularQuery.data?.items ?? [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-8 md:space-y-12 pb-12">
-      {/* Welcome: the hero band carries the greeting and the quick entries */}
-      <HeroBand overlap>
-        <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
-          <div className="max-w-2xl space-y-5">
-            <h1 className="font-display text-display font-extrabold text-hero-foreground">
-              Was kocht ihr als Nächstes?
-            </h1>
-            <p className="text-emphasis text-hero-muted md:text-section md:font-normal">
-              Dein Küchen-Manager für jede Pfadfinder-Aktion – Rezepte, Essenspläne, Einkaufslisten und mehr.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/recipes"
-                className="press inline-flex h-12 items-center gap-2 rounded-xl bg-hero-foreground px-5 text-emphasis font-bold text-foreground transition-colors hover:bg-hero-muted"
-              >
-                <BookOpen className="h-5 w-5" />
-                Rezepte entdecken
-              </Link>
-              <Link
-                to="/meal-plans/new"
-                className="press inline-flex h-12 items-center gap-2 rounded-xl border border-hero-muted/50 px-5 text-emphasis font-bold text-hero-foreground transition-colors hover:bg-hero-soft"
-              >
-                <Utensils className="h-5 w-5" />
-                Essensplan anlegen
-              </Link>
-            </div>
+    <div className="mx-auto max-w-7xl space-y-10 px-4 py-6 sm:px-6 md:space-y-12 md:py-8 lg:px-8">
+      {/* Introduction: one H1, a short description and two actions (food-homepage). */}
+      <section className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="max-w-2xl space-y-4">
+          <h1 className="font-display text-display font-extrabold text-foreground">Was kocht ihr als Nächstes?</h1>
+          <p className="text-emphasis text-muted-foreground md:text-section">
+            Rezepte, Essenspläne und Einkaufslisten für jede Gruppenstunde, Fahrt und jedes Lager.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={loggedIn ? '/meal-plans/new' : '/login'}
+              className="press inline-flex h-12 items-center gap-2 rounded-lg bg-primary px-5 text-emphasis font-bold text-primary-foreground transition-colors hover:bg-primary-dark"
+            >
+              <Icon name="calendar_month" size={20} aria-hidden="true" />
+              Essensplan erstellen
+            </Link>
+            <Link
+              to="/recipes"
+              className="press inline-flex h-12 items-center gap-2 rounded-lg bg-primary-soft px-5 text-emphasis font-bold text-primary-dark transition-colors hover:bg-primary-soft-border"
+            >
+              <Icon name="menu_book" size={20} aria-hidden="true" />
+              Rezepte entdecken
+            </Link>
           </div>
-          <img
-            src="/images/inspi_thinking.webp"
-            alt=""
-            aria-hidden="true"
-            className="hidden h-40 w-auto shrink-0 -rotate-3 drop-shadow-xl md:block lg:h-48"
-          />
         </div>
-      </HeroBand>
-
-      {/* Stat Cards on the hero band's lower edge */}
-      <section className="relative !mt-0 -translate-y-10 md:-translate-y-12">
-        <div className="stagger grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-          <StatCard area="recipes" failed={isError} label="Rezepte" value={data?.recipe_count} icon={BookOpen} href="/recipes" />
-          <StatCard area="ingredients" failed={isError} label="Zutaten" value={data?.ingredient_count} icon={Egg} href="/ingredients" />
-          <StatCard area="planner" failed={isError} label="Essenspläne" value={data?.meal_plan_count} icon={Utensils} href="/meal-plans/app" />
-          <StatCard area="shopping" failed={isError} label="Einkaufslisten" value={data?.shopping_list_count} icon={ShoppingCart} href="/shopping-lists" />
-          <StatCard area="neutral" label="Statistiken" staticValue="Ansehen" icon={BarChart3} href="/ingredients/statistics" />
-        </div>
+        <img src="/images/inspi_thinking.webp" alt="" aria-hidden="true" className="hidden h-40 w-auto shrink-0 md:block lg:h-48" />
       </section>
 
-      {/* Module Cards */}
-      <section className="space-y-4 !mt-0">
-        <h2 className="text-title font-extrabold font-display">Module & Features</h2>
-        <div className="stagger grid grid-cols-1 md:grid-cols-2 gap-4">
-          {MODULES.map((m) => (
-            <ModuleCard key={m.key} module={m} />
-          ))}
-        </div>
+      {/* Module tiles with their counts (two columns on phones, four from 1024 px). */}
+      <section aria-label="Bereiche" className="grid grid-cols-2 gap-3 lg:grid-cols-4 md:gap-4">
+        {MODULE_TILES.map((tile) => (
+          <Link
+            key={tile.key}
+            to={tile.href}
+            className="card-hover group flex flex-col gap-3 rounded-xl bg-card p-4 shadow-card md:p-5"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary-soft text-primary-dark">
+              <Icon name={tile.icon} size={24} aria-hidden="true" />
+            </span>
+            <span className="font-display text-emphasis font-bold text-foreground group-hover:text-primary-dark">{tile.label}</span>
+            <ModuleCount tile={tile} data={dashboard.data} isLoading={dashboard.isLoading} failed={dashboard.isError} />
+            <span className="hidden text-body text-muted-foreground md:block">{tile.description}</span>
+          </Link>
+        ))}
       </section>
 
-      {/* Insights */}
-      {isLoading && (
-        <section className="space-y-4" aria-busy="true">
-          <Skeleton className="h-7 w-32" />
-          <div className="space-y-3 rounded-xl bg-card p-5 shadow-card md:p-6">
-            {Array.from({ length: 3 }, (_, index) => (
-              <Skeleton key={index} className="h-5 w-3/4" />
-            ))}
+      {/* Continue planning: only from the existing plan list, only for signed-in users with a plan. */}
+      {loggedIn && plan && (
+        <section aria-labelledby="weiter-planen" className="rounded-xl bg-card p-5 shadow-card md:p-6">
+          <h2 id="weiter-planen" className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+            Weiter planen
+          </h2>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-display text-heading font-bold text-foreground [overflow-wrap:anywhere]">{plan.name}</p>
+              <p className="text-body text-muted-foreground">
+                {formatPeriod(plan)} · {formatCount(plan.norm_portions)} Personen
+              </p>
+              <p className="mt-2 text-body font-semibold tabular-nums text-foreground">
+                {formatCount(plan.filled_meals_count)} von {formatCount(plan.meals_count)} Mahlzeiten
+              </p>
+              <div className="mt-2 h-2 w-64 max-w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                <div
+                  className="h-full bg-primary"
+                  style={{ width: `${plan.meals_count ? Math.round((plan.filled_meals_count / plan.meals_count) * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+            <Link
+              to={`/meal-plans/${plan.id}`}
+              className="press inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-body font-bold text-primary-foreground transition-colors hover:bg-primary-dark"
+            >
+              Zum Essensplan
+              <Icon name="chevron_right" size={20} aria-hidden="true" />
+            </Link>
           </div>
         </section>
       )}
-      {!isLoading && data?.insights && (
-        <section className="section-enter space-y-4">
-          <h2 className="text-title font-extrabold font-display">Insights</h2>
-          <div className="rounded-xl bg-card p-5 md:p-6 shadow-card space-y-3 font-sans">
-            {data.insights.most_planned_recipe && (
-              <div className="flex items-center gap-3">
-                <Star className="w-4 h-4 text-area-shopping shrink-0 fill-current" />
-                <p className="text-body">
-                  Beliebtestes Rezept:{' '}
-                  <Link
-                    to={`/recipes/${data.insights.most_planned_recipe.slug}`}
-                    className="font-semibold text-primary hover:underline"
-                  >
-                    {data.insights.most_planned_recipe.title}
-                  </Link>
-                  {data.insights.most_planned_recipe.plan_count && (
-                    <span className="text-muted-foreground">
-                      {' '}
-                      ({data.insights.most_planned_recipe.plan_count}x geplant)
-                    </span>
-                  )}
-                </p>
+
+      {/* How it works: three steps from the product's own flow. */}
+      <section aria-labelledby="so-funktionierts" className="space-y-4">
+        <h2 id="so-funktionierts" className="font-display text-heading font-bold text-foreground">
+          So funktioniert’s
+        </h2>
+        <ol className="grid gap-3 md:grid-cols-3">
+          {STEPS.map((step, index) => (
+            <li key={step.title} className="flex gap-3 rounded-xl bg-card p-4 shadow-card">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-spice font-bold text-white" aria-hidden="true">
+                {index + 1}
+              </span>
+              <div>
+                <p className="text-body font-semibold text-foreground">{step.title}</p>
+                <p className="text-body text-muted-foreground">{step.text}</p>
               </div>
-            )}
-            {data.insights.newest_recipe && (
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                <p className="text-body">
-                  Neuestes Rezept:{' '}
-                  <Link
-                    to={`/recipes/${data.insights.newest_recipe.slug}`}
-                    className="font-semibold text-primary hover:underline"
-                  >
-                    {data.insights.newest_recipe.title}
-                  </Link>
-                </p>
-              </div>
-            )}
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-4 h-4 text-info shrink-0" />
-              <p className="text-body">
-                Durchschnittlich{' '}
-                <span className="font-semibold">
-                  {data.insights.avg_ingredients_per_recipe}
-                </span>{' '}
-                Zutaten pro Rezept
-              </p>
-            </div>
-            {data.insights.total_meal_days_planned > 0 && (
-              <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-area-planner shrink-0" />
-                <p className="text-body">
-                  <span className="font-semibold">
-                    {data.insights.total_meal_days_planned}
-                  </span>{' '}
-                  Tage mit Mahlzeiten geplant
-                </p>
-              </div>
-            )}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Popular recipes from the existing sort; the whole row is left out without data. */}
+      {popular.length > 0 && (
+        <section aria-labelledby="beliebt" className="space-y-4">
+          <div className="flex items-end justify-between gap-4">
+            <h2 id="beliebt" className="font-display text-heading font-bold text-foreground">
+              Beliebt
+            </h2>
+            <Link to="/recipes" className="text-body font-semibold text-primary-dark hover:underline">
+              Alle Rezepte
+            </Link>
           </div>
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            {popular.map((recipe) => (
+              <li key={recipe.id}>
+                <RecipeCard recipe={recipe} popular />
+              </li>
+            ))}
+          </ul>
         </section>
+      )}
+
+      {dashboard.data?.insights && dashboard.data.insights.total_meal_days_planned > 0 && (
+        <p className="text-body text-muted-foreground">
+          <span className="font-semibold tabular-nums text-foreground">{formatNumber(dashboard.data.insights.total_meal_days_planned, { maxDecimals: 0 })}</span>{' '}
+          Tage mit Mahlzeiten geplant · im Schnitt {formatNumber(dashboard.data.insights.avg_ingredients_per_recipe)} Zutaten pro Rezept
+        </p>
       )}
     </div>
   );

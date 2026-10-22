@@ -426,6 +426,7 @@ def list_meal_plans(
         .prefetch_related("nutritional_tags", "tags")
         .annotate(
             meals_count_ann=Count("meals", distinct=True),
+            filled_meals_count_ann=Count("meals", filter=Q(meals__items__isnull=False), distinct=True),
             collaborators_count_ann=Count("collaborators", distinct=True),
             is_owner_ann=is_owner_expr,
         )

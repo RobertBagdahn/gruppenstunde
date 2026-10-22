@@ -23,7 +23,11 @@ export const FoodDashboardSchema = z.object({
   recipe_count: z.number(),
   ingredient_count: z.number(),
   meal_plan_count: z.number(),
+  /** Plans that have not ended yet (open end counts as active). */
+  active_meal_plan_count: z.number().default(0),
   shopping_list_count: z.number(),
+  /** Shopping lists with at least one unchecked item. */
+  open_shopping_list_count: z.number().default(0),
   insights: DashboardInsightsSchema,
 });
 export type FoodDashboard = z.infer<typeof FoodDashboardSchema>;

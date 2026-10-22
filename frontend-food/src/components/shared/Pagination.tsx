@@ -1,14 +1,17 @@
 /**
- * Shared Pagination component — consistent numbered pagination across all list pages.
- * Supports numbered page buttons with ellipsis, prev/next arrows, and mobile-compact mode.
+ * Shared pagination (food-design-system, food-seo-markup): every page is a real link to `?page=N`
+ * that keeps the other query parameters, so crawlers and "back" work without JavaScript.
+ * With `onPageChange` the click is handled in place (scroll to top), the href stays valid.
  */
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Icon } from '@/components/ui/icon';
 
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
-  onPageChange: (page: number) => void;
+  /** Optional in-place handler; the link itself still points at the page. */
+  onPageChange?: (page: number) => void;
   className?: string;
 }
 
@@ -48,79 +51,81 @@ function getPageNumbers(current: number, total: number): (number | 'ellipsis')[]
   return pages;
 }
 
-export default function Pagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-  className,
-}: PaginationProps) {
+export default function Pagination({ currentPage, totalPages, onPageChange, className }: PaginationProps) {
+  const location = useLocation();
   if (totalPages <= 1) return null;
 
   const pages = getPageNumbers(currentPage, totalPages);
 
-  const handlePageChange = (page: number) => {
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams(location.search);
+    params.set('page', String(page));
+    return `${location.pathname}?${params.toString()}`;
+  };
+
+  const handleClick = (page: number) => (event: React.MouseEvent) => {
+    if (!onPageChange) return;
+    event.preventDefault();
     onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const arrowClass =
+    'inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted';
+  const disabledClass = 'pointer-events-none opacity-40';
+
   return (
-    <div className={cn('flex items-center justify-center gap-1.5 mt-8', className)}>
-      {/* Previous button */}
-      <button
-        type="button"
-        disabled={currentPage <= 1}
-        onClick={() => handlePageChange(currentPage - 1)}
-        className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-body font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+    <nav aria-label="Seiten" className={cn('mt-8 flex items-center justify-center gap-1.5', className)}>
+      <Link
+        to={pageHref(Math.max(1, currentPage - 1))}
+        onClick={handleClick(Math.max(1, currentPage - 1))}
         aria-label="Vorherige Seite"
+        aria-disabled={currentPage <= 1}
+        tabIndex={currentPage <= 1 ? -1 : undefined}
+        className={cn(arrowClass, currentPage <= 1 && disabledClass)}
       >
         <Icon name="chevron_left" size={20} />
-      </button>
+      </Link>
 
-      {/* Page numbers — hidden on mobile, shown on sm+ */}
-      <div className="hidden sm:flex items-center gap-1">
+      <div className="hidden items-center gap-1 sm:flex">
         {pages.map((page, idx) =>
           page === 'ellipsis' ? (
-            <span
-              key={`ellipsis-${idx}`}
-              className="px-2 text-body text-muted-foreground select-none"
-            >
-              ...
+            <span key={`ellipsis-${idx}`} className="select-none px-2 text-body text-muted-foreground">
+              …
             </span>
           ) : (
-            <button
+            <Link
               key={page}
-              type="button"
-              onClick={() => handlePageChange(page)}
-              className={cn(
-                'inline-flex items-center justify-center rounded-lg w-9 h-9 text-body font-medium transition-colors',
-                page === currentPage
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'hover:bg-muted text-muted-foreground'
-              )}
+              to={pageHref(page)}
+              onClick={handleClick(page)}
               aria-label={`Seite ${page}`}
               aria-current={page === currentPage ? 'page' : undefined}
+              className={cn(
+                'inline-flex h-11 w-11 items-center justify-center rounded-full text-body font-semibold tabular-nums transition-colors',
+                page === currentPage ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
             >
               {page}
-            </button>
-          )
+            </Link>
+          ),
         )}
       </div>
 
-      {/* Mobile compact: "Seite X von Y" */}
-      <span className="sm:hidden text-body text-muted-foreground px-3">
+      {/* Phones: "Seite X von Y" instead of the page numbers */}
+      <span className="px-3 text-body text-muted-foreground sm:hidden">
         Seite {currentPage} von {totalPages}
       </span>
 
-      {/* Next button */}
-      <button
-        type="button"
-        disabled={currentPage >= totalPages}
-        onClick={() => handlePageChange(currentPage + 1)}
-        className="inline-flex items-center justify-center rounded-lg border border-border px-2.5 py-2 text-body font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      <Link
+        to={pageHref(Math.min(totalPages, currentPage + 1))}
+        onClick={handleClick(Math.min(totalPages, currentPage + 1))}
         aria-label="Nächste Seite"
+        aria-disabled={currentPage >= totalPages}
+        tabIndex={currentPage >= totalPages ? -1 : undefined}
+        className={cn(arrowClass, currentPage >= totalPages && disabledClass)}
       >
         <Icon name="chevron_right" size={20} />
-      </button>
-    </div>
+      </Link>
+    </nav>
   );
 }

@@ -1,4 +1,5 @@
-import TitleBand from '@/components/shared/TitleBand';
+import FlowHeader from '@/components/shared/FlowHeader';
+import ActionBar from '@/components/shared/ActionBar';
 import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 import { notify } from '@/lib/notify';
@@ -175,13 +176,16 @@ export default function MealPlanWizardPage() {
   };
 
   return (
-    <div className="pb-8">
-    <TitleBand
+    <div className="pb-28 md:pb-8">
+    {/* Flow header: close leaves the wizard, progress shows the step (food-page-shell) */}
+    <FlowHeader
       title="Neuen Essensplan erstellen"
-      description={`Schritt ${shownSteps.indexOf(step) + 1} von ${shownSteps.length}`}
-      innerClassName="max-w-5xl"
+      onClose={handleCancel}
+      closeLabel="Essensplan-Assistent verlassen"
+      progress={`Schritt ${shownSteps.indexOf(step) + 1} von ${shownSteps.length}`}
+      progressValue={((shownSteps.indexOf(step) + 1) / Math.max(1, shownSteps.length)) * 100}
     />
-    <div className="max-w-5xl mx-auto px-4">
+    <div className="max-w-5xl mx-auto px-4 pt-6">
 
       {/* Step progress */}
       <div className="flex items-center gap-1 mb-6">
@@ -198,7 +202,7 @@ export default function MealPlanWizardPage() {
                 }`}
               />
               <p className={`text-caption font-bold uppercase tracking-wider mt-1 ${
-                isActive ? 'text-primary' : isPast ? 'text-muted-foreground' : 'text-muted-foreground/50'
+                isActive ? 'text-primary' : isPast ? 'text-muted-foreground' : 'text-muted-foreground'
               }`}>
                 {STEP_LABELS[s]}
               </p>
@@ -258,29 +262,32 @@ export default function MealPlanWizardPage() {
         )}
       </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={step === 'basics' ? handleCancel : goPrev}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-body font-semibold hover:bg-muted transition-all"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          {step === 'basics' ? 'Abbrechen' : 'Zurück'}
-        </button>
-
-        {step !== 'cockpit' && (
+      {/* Navigation: one footer, fixed on phones and part of the page from 768 px */}
+      <ActionBar
+        secondary={
           <button
             type="button"
-            onClick={goNext}
-            disabled={!isStepValid()}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+            onClick={step === 'basics' ? handleCancel : goPrev}
+            className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-border px-4 text-body font-semibold transition-all hover:bg-muted"
           >
-            Weiter
-            <ArrowRight className="w-4 h-4" />
+            <ArrowLeft className="h-4 w-4" />
+            {step === 'basics' ? 'Abbrechen' : 'Zurück'}
           </button>
-        )}
-      </div>
+        }
+        primary={
+          step !== 'cockpit' ? (
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!isStepValid()}
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-body font-semibold text-primary-foreground transition-all hover:bg-primary-dark disabled:opacity-50"
+            >
+              Weiter
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : undefined
+        }
+      />
     </div>
     </div>
   );

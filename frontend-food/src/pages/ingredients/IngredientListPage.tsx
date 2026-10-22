@@ -7,6 +7,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/shared/PageHeader';
+import AreaTabs from '@/components/shared/AreaTabs';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import IngredientCard from '@/components/ingredient/IngredientCard';
@@ -71,11 +72,16 @@ export default function IngredientListPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
       {/* Hero */}
+      <AreaTabs
+        label="Zutaten und Material"
+        tabs={[
+          { label: 'Zutaten', to: '/ingredients', activePrefixes: ['/ingredients'] },
+          { label: 'Material', to: '/material', activePrefixes: ['/material', '/material-list'] },
+        ]}
+      />
       <PageHeader
         title="Zutatendatenbank"
         description="Verwalte alle Zutaten mit Nährwerten, Preisen und Nutri-Score."
-        area="ingredients"
-        icon="egg_alt"
         count={data?.total}
         countLoading={isLoading || !restored}
         countLabel={{ one: 'Zutat', other: 'Zutaten' }}

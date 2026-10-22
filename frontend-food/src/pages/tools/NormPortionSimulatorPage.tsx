@@ -1,4 +1,4 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calculator, Info, BarChart3, ArrowLeftRight, Loader2, Scale, Utensils } from 'lucide-react';
@@ -539,10 +539,9 @@ export default function NormPortionSimulatorPage() {
 
   return (
     <div className="pb-8">
-    <TitleBand
+    <DetailHeader
       title="Normportion-Simulator"
       description="Visualisiere den Energiebedarf und Normfaktor nach Alter, Geschlecht und Aktivitätslevel. Die Normfaktoren helfen bei der Portionsberechnung für unterschiedliche Altersgruppen."
-      innerClassName="max-w-5xl"
     />
     <div className="max-w-5xl mx-auto px-4 space-y-6">
 

@@ -3,7 +3,7 @@ import BrandMark from './BrandMark';
 
 export default function Footer() {
   return (
-    <footer className="mt-12 border-t border-border">
+    <footer data-print-hide className="mt-12 border-t border-border">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4 text-foreground">
           <BrandMark />
