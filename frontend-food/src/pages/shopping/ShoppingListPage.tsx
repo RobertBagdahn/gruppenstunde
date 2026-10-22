@@ -3,13 +3,18 @@
  */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, Trash2, User as UserIcon } from 'lucide-react';
+import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, Trash2, User as UserIcon, Store as StoreIcon } from 'lucide-react';
 import {
   useShoppingLists,
   useCreateShoppingList,
   useDeleteShoppingList,
-  useCreateFromMealPlan,
 } from '@/api/shoppingLists';
+import { useShoppingEvents } from '@/api/shoppingTrips';
+import RecipePurchaseDialog from '@/components/shopping/RecipePurchaseDialog';
+import { Button } from '@/components/ui/button';
+import { formatDateRange, formatTripTime, formatWeekdayClock } from '@/lib/tripTime';
+import { plural } from '@/lib/format';
+import type { ShoppingEvent } from '@/schemas/shoppingTrip';
 import { useCurrentUser } from '@/api/auth';
 import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import type { ShoppingList } from '@/schemas/shoppingList';
@@ -28,24 +33,14 @@ import { notify } from '@/lib/notify';
 import { cn } from '@/lib/utils';
 import { SkeletonCardGrid } from '@/components/ui/skeleton';
 
-function ShoppingListCard({
-  list,
-  onDelete,
-  onCreateNew,
-  creatingNew,
-}: {
-  list: ShoppingList;
-  onDelete: (list: ShoppingList) => void;
-  onCreateNew: (list: ShoppingList) => void;
-  creatingNew: boolean;
-}) {
+function ShoppingListCard({ list, onDelete }: { list: ShoppingList; onDelete: (list: ShoppingList) => void }) {
   const sourceLabel = SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type;
   const updatedAt = new Date(list.updated_at);
   const timeAgo = getTimeAgo(updatedAt);
 
   const SourceIcon = list.source_type === 'recipe'
     ? Utensils
-    : list.source_type === 'meal_event'
+    : list.source_type === 'meal_event' || list.source_type === 'event_trip'
       ? Calendar
       : Edit3;
 
@@ -60,6 +55,15 @@ function ShoppingListCard({
             <h3 className="font-display font-bold text-emphasis text-foreground truncate group-hover:text-primary transition-colors">
               {list.name}
             </h3>
+            {list.event_name && (
+              <p className="mt-1 truncate text-caption font-semibold text-primary">{list.event_name}</p>
+            )}
+            {(list.store_name || list.scheduled_at) && (
+              <p className="mt-1 flex items-center gap-1 text-caption text-muted-foreground">
+                <StoreIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                {[list.store_name, formatTripTime(list.scheduled_at)].filter(Boolean).join(' · ')}
+              </p>
+            )}
             <div className="flex items-center gap-2 mt-2 text-caption font-semibold text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <SourceIcon className="w-3.5 h-3.5 text-primary" />
@@ -91,9 +95,10 @@ function ShoppingListCard({
       </Link>
       <SourceFreshnessNotice
         status={list.source_status}
-        pending={creatingNew}
+        isEventTrip={list.source_type === 'event_trip' || list.event_id !== null}
+        diffListId={list.id}
+        eventSlug={list.event_slug}
         className="mx-5 mb-5 -mt-1"
-        onCreateNew={list.source_id ? () => onCreateNew(list) : undefined}
       />
       {list.can_delete && (
         <button
@@ -107,6 +112,26 @@ function ShoppingListCard({
         </button>
       )}
     </div>
+  );
+}
+
+function EventCard({ event }: { event: ShoppingEvent }) {
+  return (
+    <Link
+      to={`/shopping-lists/events/${event.slug}`}
+      className="card-hover press block rounded-xl bg-card p-5 shadow-card transition-all hover:border-primary/40"
+    >
+      <h3 className="truncate font-display text-emphasis font-bold text-foreground">{event.name}</h3>
+      <p className="mt-1 text-caption font-semibold text-muted-foreground">{formatDateRange(event.start_date, event.end_date)}</p>
+      <p className="mt-3 text-body font-semibold text-foreground">
+        {event.trips_count === 0 ? 'Noch kein Einkauf' : plural(event.trips_count, 'Einkauf', 'Einkäufe')}
+      </p>
+      {event.next_trip && (
+        <p className="mt-1 text-caption text-muted-foreground">
+          Nächster: {event.next_trip.store_name} · {formatWeekdayClock(event.next_trip.scheduled_at)}
+        </p>
+      )}
+    </Link>
   );
 }
 
@@ -141,26 +166,19 @@ export default function ShoppingListPage() {
   const q = state.q ?? '';
   const myDataOnly = state.mine === '1';
 
-  const { data, isPending: isLoading, error } = useShoppingLists(page, 20, { q, sort, mine: myDataOnly }, { enabled: restored });
+  const includePast = state.include_past === 'true';
+
+  const { data, isPending: isLoading, error } = useShoppingLists(
+    page,
+    20,
+    { q, sort, mine: myDataOnly, withoutEvent: true },
+    { enabled: restored && !!user },
+  );
+  const events = useShoppingEvents(1, 20, includePast, restored && !!user);
+  const invited = useShoppingLists(1, 20, { invitedTrips: true }, { enabled: restored && !!user });
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
-  const createFromMealPlan = useCreateFromMealPlan();
-  const [creatingFromListId, setCreatingFromListId] = useState<number | null>(null);
-  const createNewFromPlan = (source: ShoppingList) => {
-    if (!source.source_id) return;
-    setCreatingFromListId(source.id);
-    createFromMealPlan.mutate(
-      { mealPlanId: source.source_id },
-      {
-        onSuccess: (created) => {
-          notify.success('Neue Einkaufsliste erstellt');
-          navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId: source.source_id } });
-        },
-        onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
-        onSettled: () => setCreatingFromListId(null),
-      },
-    );
-  };
+  const [showRecipePurchase, setShowRecipePurchase] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
@@ -169,10 +187,10 @@ export default function ShoppingListPage() {
     patch({ q: value || undefined, page: undefined }, { replace: true });
   });
 
-  if (userLoading || !restored || (isLoading && !data)) {
+  if (userLoading || !restored) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <PageHeader title="Einkaufslisten" description="Erstelle und verwalte deine Einkaufslisten." countLoading />
+        <PageHeader title="Einkaufslisten" description="Plane die Einkäufe deiner Events und verwalte deine Listen." countLoading />
         <SkeletonCardGrid count={6} withImage={false} label="Einkaufslisten werden geladen" className="lg:grid-cols-3 xl:grid-cols-3" />
       </div>
     );
@@ -182,7 +200,7 @@ export default function ShoppingListPage() {
     return (
       <UnauthGate
         title="Einkaufslisten"
-        description="Melde dich an, um Einkaufslisten zu erstellen und mit anderen zu teilen."
+        description="Melde dich an, um deine Einkaufslisten zu sehen."
       />
     );
   }
@@ -245,7 +263,7 @@ export default function ShoppingListPage() {
       {/* Hero */}
       <PageHeader
         title="Einkaufslisten"
-        description="Erstelle und verwalte deine Einkaufslisten."
+        description="Plane die Einkäufe deiner Events und verwalte deine Listen."
         count={data?.total}
         countLabel={{ one: 'Liste', other: 'Listen' }}
       >
@@ -254,10 +272,68 @@ export default function ShoppingListPage() {
           value={search.input}
           onChange={search.setInput}
           onSubmit={search.submit}
-          createLabel="Neue Liste"
+          createLabel="Freie Liste"
           onCreateClick={() => setShowCreate(true)}
         />
       </PageHeader>
+
+      {/* Event selection */}
+      <section aria-labelledby="events-heading" className="mb-8">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="events-heading" className="font-display text-section font-extrabold text-foreground">
+            Für welches Event kaufst du ein?
+          </h2>
+          <Button
+            type="button"
+            size="sm"
+            variant={includePast ? 'secondary' : 'outline'}
+            aria-pressed={includePast}
+            onClick={() => patch({ include_past: includePast ? undefined : 'true' })}
+          >
+            Vergangene Events zeigen
+          </Button>
+        </div>
+        {events.isPending ? (
+          <SkeletonCardGrid count={3} withImage={false} label="Events werden geladen" />
+        ) : events.isError ? (
+          <p role="alert" className="text-body text-destructive">Events konnten nicht geladen werden.</p>
+        ) : events.data.items.length === 0 ? (
+          <EmptyState
+            icon="calendar_month"
+            title="Noch kein Event mit Essensplan"
+            description="Verknüpfe einen Essensplan mit einem Event, dann kannst du hier die Einkäufe planen."
+            ctaLabel="Zu den Essensplänen"
+            ctaHref="/meal-plans"
+          />
+        ) : (
+          <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {events.data.items.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Trips the user was invited to */}
+      {invited.data && invited.data.items.length > 0 && (
+        <section aria-labelledby="invited-heading" className="mb-8">
+          <h2 id="invited-heading" className="mb-3 font-display text-section font-extrabold text-foreground">
+            Einkäufe, zu denen du eingeladen bist
+          </h2>
+          <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {invited.data.items.map((list) => (
+              <ShoppingListCard key={list.id} list={list} onDelete={setDeleteTarget} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-display text-section font-extrabold text-foreground">Einkaufslisten ohne Event</h2>
+        <Button type="button" size="sm" variant="secondary" onClick={() => setShowRecipePurchase(true)}>
+          Einkauf aus Rezepten
+        </Button>
+      </div>
 
       <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
 
@@ -328,31 +404,34 @@ export default function ShoppingListPage() {
       )}
 
       {/* List */}
-      {sortedLists.length === 0 ? (
+      {isLoading && !data ? (
+        <SkeletonCardGrid count={3} withImage={false} label="Einkaufslisten werden geladen" />
+      ) : sortedLists.length === 0 ? (
         <EmptyState
           icon="shopping_cart"
-          title="Noch keine Einkaufslisten"
+          title="Noch keine Einkaufslisten ohne Event"
           description={
             q
               ? 'Keine Einkaufslisten für diese Suche gefunden.'
-              : 'Du hast noch keine Einkaufslisten. Erstelle eine neue Liste oder exportiere eine aus einem Rezept.'
+              : 'Lege eine freie Liste an oder kaufe ein Rezept ein.'
           }
-          ctaLabel="Neue Liste erstellen"
+          ctaLabel="Freie Liste erstellen"
           onCtaClick={() => setShowCreate(true)}
         />
       ) : (
         <div className="stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {sortedLists.map((list) => (
-            <ShoppingListCard
-              key={list.id}
-              list={list}
-              onDelete={setDeleteTarget}
-              onCreateNew={createNewFromPlan}
-              creatingNew={creatingFromListId === list.id}
-            />
+            <ShoppingListCard key={list.id} list={list} onDelete={setDeleteTarget} />
           ))}
         </div>
       )}
+
+      <RecipePurchaseDialog
+        open={showRecipePurchase}
+        onOpenChange={setShowRecipePurchase}
+        allowExisting={false}
+        onDone={(list) => navigate(`/shopping-lists/${list.id}`)}
+      />
 
       {/* Pagination */}
       <Pagination

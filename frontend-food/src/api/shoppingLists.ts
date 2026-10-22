@@ -23,6 +23,7 @@ import {
   ShoppingListCollaboratorSchema,
   type ShoppingListDetail,
 } from '@/schemas/shoppingList';
+import { RecipePurchaseInputSchema, type RecipePurchaseInput } from '@/schemas/shoppingTrip';
 
 const API_BASE = `${API_BASE_URL}/api/shopping-lists`;
 
@@ -31,12 +32,12 @@ const API_BASE = `${API_BASE_URL}/api/shopping-lists`;
 /**
  * `listId` adds the guest header of an invitation-link visitor; members authenticate by session cookie.
  */
-async function fetchJson<T extends z.ZodTypeAny>(url: string, schema: T, listId?: number): Promise<z.output<T>> {
+export async function fetchJson<T extends z.ZodTypeAny>(url: string, schema: T, listId?: number): Promise<z.output<T>> {
   const headers = listId ? guestHeaders(listId) : {};
   return parseApiResponse(await fetch(url, { credentials: 'include', headers }), schema);
 }
 
-async function postJson<T extends z.ZodTypeAny>(
+export async function postJson<T extends z.ZodTypeAny>(
   url: string,
   body: unknown,
   schema: T,
@@ -46,7 +47,7 @@ async function postJson<T extends z.ZodTypeAny>(
   return parseApiResponse(await fetchWithCsrf(url, { method: 'POST', body: JSON.stringify(body), headers }), schema);
 }
 
-async function patchJson<T extends z.ZodTypeAny>(
+export async function patchJson<T extends z.ZodTypeAny>(
   url: string,
   body: unknown,
   schema: T,
@@ -56,7 +57,7 @@ async function patchJson<T extends z.ZodTypeAny>(
   return parseApiResponse(await fetchWithCsrf(url, { method: 'PATCH', body: JSON.stringify(body), headers }), schema);
 }
 
-async function deleteJson(url: string, listId?: number): Promise<void> {
+export async function deleteJson(url: string, listId?: number): Promise<void> {
   const headers = listId ? guestHeaders(listId) : {};
   await parseApiResponse(await fetchWithCsrf(url, { method: 'DELETE', headers }));
 }
@@ -67,8 +68,12 @@ export interface ShoppingListQuery {
   q?: string;
   sort?: 'newest' | 'oldest' | 'name_asc';
   mine?: boolean;
-  sourceType?: 'manual' | 'recipe' | 'meal_event';
+  sourceType?: 'manual' | 'recipe' | 'meal_event' | 'event_trip';
   sourceId?: number;
+  /** Free and recipe lists only (no event trips). */
+  withoutEvent?: boolean;
+  /** Trips of events whose plan the user may not see: lists they were invited to. */
+  invitedTrips?: boolean;
 }
 
 export function useShoppingLists(
@@ -77,12 +82,12 @@ export function useShoppingLists(
   query: ShoppingListQuery = {},
   options: { enabled?: boolean } = {},
 ) {
-  const { q = '', sort = 'newest', mine = false, sourceType, sourceId } = query;
+  const { q = '', sort = 'newest', mine = false, sourceType, sourceId, withoutEvent = false, invitedTrips = false } = query;
   return useQuery({
     enabled: options.enabled ?? true,
     // Keep the previous page visible while the next one loads (food-loading-states).
     placeholderData: keepPreviousData,
-    queryKey: ['shopping-lists', page, pageSize, q, sort, mine, sourceType ?? null, sourceId ?? null] as const,
+    queryKey: ['shopping-lists', page, pageSize, q, sort, mine, sourceType ?? null, sourceId ?? null, withoutEvent, invitedTrips] as const,
     queryFn: () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -93,6 +98,8 @@ export function useShoppingLists(
       if (mine) params.set('mine', 'true');
       if (sourceType) params.set('source_type', sourceType);
       if (sourceId !== undefined) params.set('source_id', String(sourceId));
+      if (withoutEvent) params.set('without_event', 'true');
+      if (invitedTrips) params.set('invited_trips', 'true');
       return fetchJson(`${API_BASE}/?${params.toString()}`, PaginatedShoppingListsSchema);
     },
   });
@@ -447,46 +454,19 @@ export function useRemoveCollaborator(listId: number) {
 
 // --- Export hooks ---
 
+/** Buys a recipe on a new list (`store_id` + `scheduled_at`) or adds it to an existing list (`shopping_list_id`). */
 export function useCreateFromRecipe() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      recipeId,
-      portions = 1,
-      includeConsumables = true,
-    }: {
-      recipeId: number;
-      portions?: number;
-      includeConsumables?: boolean;
-    }) =>
+    mutationFn: ({ recipeId, ...input }: { recipeId: number } & RecipePurchaseInput) =>
       postJson(
         `${API_BASE}/from-recipe/${recipeId}/`,
-        { portions, include_consumables: includeConsumables },
+        RecipePurchaseInputSchema.parse(input),
         ShoppingListDetailSchema,
       ),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
-    },
-  });
-}
-
-export function useCreateFromMealPlan() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      mealPlanId,
-      includeConsumables = true,
-    }: {
-      mealPlanId: number;
-      includeConsumables?: boolean;
-    }) =>
-      postJson(
-        `${API_BASE}/from-meal-plan/${mealPlanId}/?include_consumables=${includeConsumables}`,
-        {},
-        ShoppingListDetailSchema,
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopping-lists'] });
+      queryClient.invalidateQueries({ queryKey: ['shopping-list', data.id] });
     },
   });
 }

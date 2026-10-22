@@ -17,6 +17,7 @@ from planner.models import MealItem, MealTypeChoices
 from planner.tests import make_meal, make_meal_plan
 from recipe.models import RecipeItem, RecipeItemExchangeGroup, RecipeStep, RecipeStepIngredient
 from recipe.tests import make_recipe
+from shopping.tests.trip_helpers import recipe_body
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 # ---------------------------------------------------------------------------
@@ -130,7 +131,7 @@ def test_shopping_list_from_recipe_includes_direct_gram_ingredient(auth_client):
 
     resp = auth_client.post(
         f"/api/shopping-lists/from-recipe/{recipe.id}/",
-        data=json.dumps({"portions": 4}),
+        data=recipe_body(auth_client._user, portions=4),
         content_type="application/json",
     )
 
@@ -152,7 +153,7 @@ def test_shopping_list_from_recipe_skips_inactive_direct_gram_alternative(auth_c
 
     resp = auth_client.post(
         f"/api/shopping-lists/from-recipe/{recipe.id}/",
-        data=json.dumps({"portions": 2}),
+        data=recipe_body(auth_client._user, portions=2),
         content_type="application/json",
     )
 

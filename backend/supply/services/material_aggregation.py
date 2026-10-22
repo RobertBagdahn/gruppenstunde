@@ -91,14 +91,19 @@ def recipe_material_items(recipe_ids: Iterable[int]) -> dict[int, list[ContentMa
     return grouped
 
 
-def aggregate_materials(entries: Iterable[tuple[object, float]]) -> MaterialList:
+def aggregate_materials(
+    entries: Iterable[tuple[object, float]],
+    links: dict[int, list[ContentMaterialItem]] | None = None,
+) -> MaterialList:
     """Aggregate materials for `(recipe, servings)` pairs.
 
     The same recipe may appear several times (e.g. in different meals); its consumable
-    amounts are summed, device amounts take the maximum.
+    amounts are summed, device amounts take the maximum. Callers aggregating many groups
+    pass preloaded `links` (see `recipe_material_items`) to avoid one query per group.
     """
     pairs = [(recipe, servings) for recipe, servings in entries if servings > 0]
-    links = recipe_material_items({recipe.pk for recipe, _ in pairs})  # type: ignore[attr-defined]
+    if links is None:
+        links = recipe_material_items({recipe.pk for recipe, _ in pairs})  # type: ignore[attr-defined]
 
     by_material: dict[int, MaterialRequirement] = {}
     for recipe, servings in pairs:
@@ -172,15 +177,26 @@ def material_list_payload(title: str, material_list: MaterialList) -> dict:
     }
 
 
-def meal_plan_material_entries(meal_plan: object) -> list[tuple[object, float]]:
-    """`(recipe, servings)` pairs of all cooked recipes in a meal plan."""
+def _meal_plan_material_items(meal_plan: object):
     from planner.models import MealItem
 
-    items = MealItem.objects.filter(
+    return MealItem.objects.filter(
         meal__meal_plan=meal_plan,
         meal__is_reference=False,
         meal__is_external=False,
         recipe__isnull=False,
         recipe__deleted_at__isnull=True,
     ).select_related("recipe", "meal", "meal__meal_plan")
-    return [(item.recipe, item.factor * item.meal.effective_portions) for item in items]
+
+
+def meal_plan_material_entries(meal_plan: object) -> list[tuple[object, float]]:
+    """`(recipe, servings)` pairs of all cooked recipes in a meal plan."""
+    return [(item.recipe, item.factor * item.meal.effective_portions) for item in _meal_plan_material_items(meal_plan)]
+
+
+def meal_plan_material_entries_by_meal(meal_plan: object) -> dict[object, list[tuple[object, float]]]:
+    """Same pairs as `meal_plan_material_entries`, grouped by the meal that cooks them."""
+    grouped: dict[object, list[tuple[object, float]]] = {}
+    for item in _meal_plan_material_items(meal_plan):
+        grouped.setdefault(item.meal, []).append((item.recipe, item.factor * item.meal.effective_portions))
+    return grouped

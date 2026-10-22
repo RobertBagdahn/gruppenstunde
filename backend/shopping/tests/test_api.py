@@ -72,6 +72,14 @@ def shopping_list_with_items(shopping_list):
     return shopping_list
 
 
+def recipe_target(owner, **extra) -> str:
+    """JSON body targeting a new list at Rewe, Thursday 16:00 (Berlin)."""
+    from shopping.models import Store
+
+    store, _ = Store.objects.get_or_create(owner=owner, name="Rewe")
+    return json.dumps({"store_id": store.id, "scheduled_at": "2026-10-22T16:00:00+02:00", **extra})
+
+
 # ---------------------------------------------------------------------------
 # 14.2 — Shopping List CRUD
 # ---------------------------------------------------------------------------
@@ -524,16 +532,18 @@ class TestCreateFromRecipe:
         RecipeItem.objects.create(recipe=recipe, portion=p2, quantity=1, sort_order=1)
         return recipe
 
-    def test_create_list_from_recipe(self, client_alice, recipe_with_items):
+    def test_create_list_from_recipe(self, client_alice, user, recipe_with_items):
         res = client_alice.post(
             f"/api/shopping-lists/from-recipe/{recipe_with_items.id}/",
-            data=json.dumps({"portions": 2}),
+            data=recipe_target(user, portions=2),
             content_type="application/json",
         )
         assert res.status_code == 200
         data = res.json()
-        assert "Einkaufsliste:" in data["name"]
+        assert data["name"] == "Rewe · Do 22.10. 16:00"
         assert data["source_type"] == "recipe"
+        assert data["event_id"] is None and data["store_name"] == "Rewe"
+        assert data["scheduled_at"] is not None and data["trip_status"] is None
         assert len(data["items"]) == 2
 
         # Check scaled quantities (servings=2):
@@ -543,7 +553,7 @@ class TestCreateFromRecipe:
         assert items_by_name["Mehl"]["quantity_g"] == 1000.0
         assert items_by_name["Butter"]["quantity_g"] == 500.0
 
-    def test_entries_without_ingredient_keep_recipe_source(self, client_alice, recipe_with_items):
+    def test_entries_without_ingredient_keep_recipe_source(self, client_alice, user, recipe_with_items):
         """Unlinked recipe lines are generated entries, never manual (deletable) ones."""
         from recipe.models import RecipeItem
 
@@ -553,7 +563,7 @@ class TestCreateFromRecipe:
 
         res = client_alice.post(
             f"/api/shopping-lists/from-recipe/{recipe_with_items.id}/",
-            data=json.dumps({"portions": 3}),
+            data=recipe_target(user, portions=3),
             content_type="application/json",
         )
 
@@ -569,92 +579,32 @@ class TestCreateFromRecipe:
         c = Client()
         res = c.post(
             f"/api/shopping-lists/from-recipe/{recipe_with_items.id}/",
-            data=json.dumps({"portions": 1}),
+            data=json.dumps({"portions": 1, "store_id": 1, "scheduled_at": "2026-10-22T16:00:00+02:00"}),
             content_type="application/json",
         )
         assert res.status_code == 401
 
 
 # ---------------------------------------------------------------------------
-# 14.4 — Export from MealPlan
+# 14.3b — Recipe purchase targets
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-class TestCreateFromMealPlan:
-    @pytest.fixture
-    def meal_plan_with_data(self, user):
-        """Create a MealPlan with meals and recipe items."""
-        from planner.tests import make_meal, make_meal_item, make_meal_plan
-        from recipe.tests import make_recipe
-
-        me = make_meal_plan(created_by=user)
-        meal = make_meal(meal_plan=me)
-
-        # Create recipe with items
-        recipe = make_recipe(portions=1)
-        rs = make_retail_section(name="Milchprodukte")
-        mu = make_measuring_unit()
-        ing = make_ingredient(name="Joghurt", retail_section=rs)
-        p = make_portion(ing, name="Becher", quantity=1.0, weight_g=500, measuring_unit=mu)
-
-        from recipe.models import RecipeItem
-
-        RecipeItem.objects.create(recipe=recipe, portion=p, quantity=1, sort_order=0)
-        make_meal_item(meal=meal, recipe=recipe)
-        return me
-
-    def test_create_list_from_meal_plan(self, client_alice, meal_plan_with_data):
-        me = meal_plan_with_data
-        res = client_alice.post(
-            f"/api/shopping-lists/from-meal-plan/{me.id}/",
-            data="{}",
-            content_type="application/json",
-        )
-        assert res.status_code == 200
-        data = res.json()
-        assert "Einkaufsliste:" in data["name"]
-        assert data["source_type"] == "meal_event"
-        # Should have items from the shopping service
-        assert len(data["items"]) >= 0  # May be 0 if service produces nothing, >= 1 ideally
-
-    def test_private_meal_plan_requires_access(self, client_bob, meal_plan_with_data):
-        response = client_bob.post(
-            f"/api/shopping-lists/from-meal-plan/{meal_plan_with_data.id}/",
-            data="{}",
-            content_type="application/json",
-        )
-        assert response.status_code == 404
-        assert not ShoppingList.objects.filter(source_id=meal_plan_with_data.id).exists()
-
-    def test_private_recipe_requires_access(self, client_bob, user):
+class TestRecipePurchaseTargets:
+    def test_private_recipe_requires_access(self, client_bob, other_user, user):
         from recipe.tests import make_recipe
 
         recipe = make_recipe(owner=user, visibility="private", status="draft")
         response = client_bob.post(
             f"/api/shopping-lists/from-recipe/{recipe.id}/",
-            data=json.dumps({"portions": 1}),
+            data=recipe_target(other_user),
             content_type="application/json",
         )
         assert response.status_code == 404
         assert not ShoppingList.objects.filter(source_id=recipe.id).exists()
 
-    def test_meal_plan_sources_keep_meal_and_ingredient(self, client_alice, meal_plan_with_data):
-        response = client_alice.post(
-            f"/api/shopping-lists/from-meal-plan/{meal_plan_with_data.id}/",
-            data="{}",
-            content_type="application/json",
-        )
-        assert response.status_code == 200
-        source = ShoppingListItemSource.objects.filter(
-            shopping_list_item__shopping_list__source_id=meal_plan_with_data.id
-        ).first()
-        assert source is not None
-        assert source.recipe_id is not None
-        assert source.meal_id is not None
-        assert source.recipe_id != 0
-
-    def test_recipe_export_selects_exchange_default(self, client_alice):
+    def test_recipe_export_selects_exchange_default(self, client_alice, user):
         from recipe.models import RecipeItem, RecipeItemExchangeGroup
         from recipe.tests import make_recipe
 
@@ -669,13 +619,93 @@ class TestCreateFromMealPlan:
 
         response = client_alice.post(
             f"/api/shopping-lists/from-recipe/{recipe.id}/",
-            data=json.dumps({"portions": 1}),
+            data=recipe_target(user),
             content_type="application/json",
         )
 
         assert response.status_code == 200
         names = [item["name"] for item in response.json()["items"]]
         assert names == ["Standard-Zutat"]
+
+    @pytest.fixture
+    def flour_recipes(self):
+        from recipe.models import RecipeItem
+        from recipe.tests import make_recipe
+
+        mu = make_measuring_unit()
+        flour = make_ingredient(name="Weizenmehl")
+        portion = make_portion(flour, name="100g", quantity=1.0, weight_g=100, measuring_unit=mu)
+        recipes = []
+        for title, amount in (("Stockbrot", 5), ("Waffeln", 3)):
+            recipe = make_recipe(title=title, portions=1)
+            RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=amount, sort_order=0)
+            recipes.append(recipe)
+        return recipes
+
+    def _add(self, client, recipe, list_id, portions=1):
+        return client.post(
+            f"/api/shopping-lists/from-recipe/{recipe.id}/",
+            data=json.dumps({"portions": portions, "shopping_list_id": list_id}),
+            content_type="application/json",
+        )
+
+    def test_second_recipe_merges_open_entries(self, client_alice, user, flour_recipes):
+        stockbrot, waffeln = flour_recipes
+        first = client_alice.post(
+            f"/api/shopping-lists/from-recipe/{stockbrot.id}/",
+            data=recipe_target(user),
+            content_type="application/json",
+        ).json()
+
+        merged = self._add(client_alice, waffeln, first["id"]).json()
+
+        (flour,) = merged["items"]
+        assert flour["quantity_g"] == 800
+        assert sorted(s["recipe_name"] for s in flour["sources"]) == ["Stockbrot", "Waffeln"]
+
+    def test_checked_entry_stays_and_new_row_is_added(self, client_alice, user, flour_recipes):
+        stockbrot, waffeln = flour_recipes
+        first = client_alice.post(
+            f"/api/shopping-lists/from-recipe/{stockbrot.id}/",
+            data=recipe_target(user),
+            content_type="application/json",
+        ).json()
+        ShoppingListItem.objects.filter(shopping_list_id=first["id"]).update(is_checked=True)
+
+        body = self._add(client_alice, waffeln, first["id"]).json()
+
+        assert sorted((i["quantity_g"], i["is_checked"]) for i in body["items"]) == [(300, False), (500, True)]
+
+    def test_viewer_cannot_add_recipe(self, client_bob, user, other_user, shopping_list, flour_recipes):
+        ShoppingListCollaborator.objects.create(
+            shopping_list=shopping_list, user=other_user, role=CollaboratorRole.VIEWER
+        )
+        assert self._add(client_bob, flour_recipes[0], shopping_list.id).status_code == 403
+
+    def test_created_event_trip_is_refused(self, client_alice, user, flour_recipes):
+        from django.utils import timezone
+
+        from event.tests import make_event
+
+        trip = ShoppingList.objects.create(
+            name="Rewe Sa", owner=user, event=make_event(created_by=user),
+            source_type=SourceType.EVENT_TRIP, materialized_at=timezone.now(),
+        )  # fmt: skip
+        response = self._add(client_alice, flour_recipes[0], trip.id)
+        assert response.status_code == 409
+        assert response.json()["detail"] == "Rezepte kommen bei Events über den Essensplan"
+
+    def test_without_target_is_422(self, client_alice, flour_recipes):
+        response = client_alice.post(
+            f"/api/shopping-lists/from-recipe/{flour_recipes[0].id}/",
+            data=json.dumps({"portions": 2}),
+            content_type="application/json",
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == "Bitte wähle einen Laden und einen Zeitpunkt oder eine bestehende Liste."
+
+    def test_stranger_list_is_404(self, client_bob, shopping_list, flour_recipes):
+        assert self._add(client_bob, flour_recipes[0], shopping_list.id).status_code == 404
 
 
 # ---------------------------------------------------------------------------

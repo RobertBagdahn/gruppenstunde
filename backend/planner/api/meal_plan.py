@@ -72,6 +72,7 @@ from planner.schemas import (
     MealPlanCreateIn,
     MealPlanDetailOut,
     MealPlanDuplicateIn,
+    MealPlanEventLinkIn,
     MealPlanOut,
     MealPlanTagCreateIn,
     MealPlanTagOut,
@@ -684,6 +685,27 @@ def get_meal_plan(request, meal_plan_id: int):
     role = _require_access(meal_plan, request.user)
     meal_plan.can_edit = role in ("owner", MealPlanCollaboratorRole.ADMIN, MealPlanCollaboratorRole.EDITOR)
     meal_plan.can_delete = role == "owner" or request.user.is_staff
+    meal_plan.is_owner = role == "owner"
+    return meal_plan
+
+
+@meal_plan_router.put("/{meal_plan_id}/event/", response=MealPlanOut)
+def link_meal_plan_to_event(request, meal_plan_id: int, payload: MealPlanEventLinkIn):
+    """Link an existing plan to an event the user manages; another existing link is a conflict."""
+    from event.models import Event
+    from event.services.meal_plan_link import link_meal_plan
+
+    require_login(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    role = _require_edit(meal_plan, request.user)
+    event = get_object_or_404(Event, id=payload.event_id)
+    if not event.user_can_manage(request.user):
+        raise HttpError(403, "Du darfst dieses Event nicht verwalten.")
+    link_meal_plan(event, meal_plan)
+
+    meal_plan = MealPlan.objects.select_related("owner", "event_relation__event").get(id=meal_plan.id)
+    meal_plan.can_edit = True
+    meal_plan.can_delete = role == "owner"
     meal_plan.is_owner = role == "owner"
     return meal_plan
 

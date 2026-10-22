@@ -157,12 +157,42 @@ def check(items: Iterable[Any], portions: float) -> list[QuantityWarning]:
 
 
 def check_meals(meals: Iterable[Any]) -> list[QuantityWarning]:
-    """Warnings across several meals, each scaled by its effective portions."""
+    """Warnings across several meals, each scaled by its effective portions.
+
+    All meal items, recipes, recipe items, portions and overrides are loaded in
+    a constant number of queries, independent of the plan size.
+    """
+    from django.db.models import Prefetch, Q
+
+    from planner.models import MealItem
+    from recipe.models import RecipeItem
+
+    meal_list = list(meals)
+    if not meal_list:
+        return []
+
+    recipe_items = RecipeItem.objects.select_related(
+        "portion",
+        "portion__ingredient__retail_section",
+        "portion__measuring_unit",
+        "ingredient__retail_section",
+    )
+    items_by_meal: dict[int, list[MealItem]] = {}
+    for item in (
+        MealItem.objects.filter(meal_id__in=[meal.id for meal in meal_list])
+        .filter(Q(ingredient__isnull=False) | Q(recipe__isnull=False))
+        .select_related("ingredient", "measuring_unit", "portion", "portion__ingredient", "recipe")
+        .prefetch_related("overrides", Prefetch("recipe__recipe_items", queryset=recipe_items))
+        .order_by("id")
+    ):
+        items_by_meal.setdefault(item.meal_id, []).append(item)
+
     warnings: list[QuantityWarning] = []
-    for meal in meals:
-        items = meal.items.filter(ingredient__isnull=False).select_related("ingredient", "measuring_unit")
-        warnings.extend(check(items, meal.effective_portions))
-        recipe_items = meal.items.filter(recipe__isnull=False).select_related("recipe")
-        for recipe_item in recipe_items:
-            warnings.extend(check_recipe_item(recipe_item, meal.effective_portions))
+    for meal in meal_list:
+        meal_items = items_by_meal.get(meal.id, [])
+        portions = meal.effective_portions
+        warnings.extend(check([item for item in meal_items if item.ingredient_id is not None], portions))
+        for item in meal_items:
+            if item.recipe_id is not None:
+                warnings.extend(check_recipe_item(item, portions))
     return warnings

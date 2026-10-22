@@ -58,6 +58,7 @@ export const ROUTE_RULES: readonly RouteRule[] = [
 
   { pattern: '/shopping-lists', kind: 'private', title: 'Einkaufslisten', description: 'Deine Einkaufslisten.' },
   { pattern: '/shopping-lists/join/:token', kind: 'private', title: 'Einkaufsliste beitreten', description: 'Einer Einkaufsliste beitreten.' },
+  { pattern: '/shopping-lists/events/:eventSlug', kind: 'private', title: 'Einkäufe planen', description: 'Einkäufe für die Essenspläne eines Events planen.' },
   { pattern: '/shopping-lists/:id', kind: 'private', title: 'Einkaufsliste', description: 'Eine Einkaufsliste mit Mengen und Abhaken.' },
 
   { pattern: '/tools/norm-portion-simulator', kind: 'private', title: 'Norm-Portionen-Simulator', description: 'Mengen nach Norm-Portionen berechnen.' },

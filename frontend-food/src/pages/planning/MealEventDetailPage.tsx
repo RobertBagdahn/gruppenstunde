@@ -692,6 +692,10 @@ export default function MealPlanDetailPage() {
               onCopyFromPlan={setCopyDialogTargetMealId}
               nutritionalTagIds={plan.nutritional_tag_ids}
               nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
+              tripPlanning={{
+                eventSlug: plan.event_slug,
+                plan: { name: plan.name, start_datetime: plan.start_datetime, end_datetime: plan.end_datetime },
+              }}
             />
             </SectionBoundary>
           ) : (
@@ -776,7 +780,11 @@ export default function MealPlanDetailPage() {
               Kosten & Budget
             </button>
           </div>
-          {shoppingSub === 'list' && <SectionBoundary><ShoppingView mealPlanId={mealPlanId} /></SectionBoundary>}
+          {shoppingSub === 'list' && <SectionBoundary><ShoppingView
+                mealPlanId={mealPlanId}
+                eventSlug={plan.event_slug}
+                plan={{ name: plan.name, start_datetime: plan.start_datetime, end_datetime: plan.end_datetime }}
+              /></SectionBoundary>}
           {shoppingSub === 'quantities' && (
             <SectionBoundary>
               <IngredientQuantitiesView mealPlanId={mealPlanId} canEdit={plan.can_edit} />

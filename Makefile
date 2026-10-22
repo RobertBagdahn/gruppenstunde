@@ -18,11 +18,11 @@ GCP_BUILD_REGION ?= europe-west3
 GCP_FOOD_REGION ?= europe-west1
 # Backend runtime limits; keep identical to .github/workflows/deploy.yml,
 # Dockerfile.backend and terraform/variables.tf (backend/core/tests/test_runtime_limits.py).
-BACKEND_MAX_INSTANCES ?= 2
-BACKEND_CONCURRENCY ?= 1
+BACKEND_MAX_INSTANCES ?= 3
+BACKEND_CONCURRENCY ?= 4
 BACKEND_MEMORY ?= 1Gi
 GUNICORN_WORKERS ?= 1
-GUNICORN_THREADS ?= 1
+GUNICORN_THREADS ?= 4
 BACKEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/backend
 FRONTEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend
 FRONTEND_FOOD_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend-food

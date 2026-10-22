@@ -3,11 +3,15 @@
 from datetime import datetime
 from typing import Literal
 
+from django.db.models import Prefetch
 from ninja import Schema
 from pydantic import Field
 
 from core.services.user_directory import public_display_name
+from shopping.models import ShoppingListItemSource
 from supply.schemas.ingredients import UnitOptionOut
+
+from .trips import PlannedTripOut
 
 # --- Collaborator schemas ---
 
@@ -355,6 +359,28 @@ class ShoppingListOut(Schema):
     # Only for lists created from a meal plan; null for others and without read access to the plan.
     source_status: Literal["current", "changed", "deleted"] | None = None
     source_updated_at: datetime | None = None
+    # Event trips: the event, shop and time a trip belongs to; `trip_status` is derived (planned/created).
+    event_id: int | None = None
+    event_slug: str | None = None
+    event_name: str | None = None
+    store_id: int | None = None
+    store_name: str | None = None
+    scheduled_at: datetime | None = None
+    materialized_at: datetime | None = None
+    plan_synced_at: datetime | None = None
+    trip_status: Literal["planned", "created"] | None = None
+
+    @staticmethod
+    def resolve_event_slug(obj) -> str | None:
+        return obj.event.slug if obj.event_id else None
+
+    @staticmethod
+    def resolve_event_name(obj) -> str | None:
+        return obj.event.name if obj.event_id else None
+
+    @staticmethod
+    def resolve_store_name(obj) -> str | None:
+        return obj.store.name if obj.store_id else None
 
     @staticmethod
     def resolve_source_status(obj) -> str | None:
@@ -371,15 +397,18 @@ class ShoppingListOut(Schema):
     @staticmethod
     def resolve_items_count(obj) -> int:
         # Use annotated value from queryset when available (avoids N+1)
-        return int(getattr(obj, "items_count", None) or obj.items.count())
+        annotated = getattr(obj, "items_count", None)
+        return int(annotated) if annotated is not None else int(obj.items.count())
 
     @staticmethod
     def resolve_checked_count(obj) -> int:
-        return int(getattr(obj, "checked_count", None) or obj.items.filter(is_checked=True).count())
+        annotated = getattr(obj, "checked_count", None)
+        return int(annotated) if annotated is not None else int(obj.items.filter(is_checked=True).count())
 
     @staticmethod
     def resolve_collaborators_count(obj) -> int:
-        return int(getattr(obj, "collaborators_count", None) or obj.collaborators.count())
+        annotated = getattr(obj, "collaborators_count", None)
+        return int(annotated) if annotated is not None else int(obj.collaborators.count())
 
 
 class ShoppingListGuestOut(Schema):
@@ -412,10 +441,37 @@ class ShoppingListDetailOut(Schema):
     viewer_display_name: str = ""
     # Change marker; clients poll `/pulse/` and reload the list when it differs.
     stamp: str = ""
+    items_count: int = 0
+    checked_count: int = 0
+    # Event team members may plan the trips of the event; preview rows exist for planned trips only.
+    can_plan: bool = False
+    preview: PlannedTripOut | None = None
     created_at: datetime
     updated_at: datetime
     source_status: Literal["current", "changed", "deleted"] | None = None
     source_updated_at: datetime | None = None
+    # Event trips: the event, shop and time a trip belongs to; `trip_status` is derived (planned/created).
+    event_id: int | None = None
+    event_slug: str | None = None
+    event_name: str | None = None
+    store_id: int | None = None
+    store_name: str | None = None
+    scheduled_at: datetime | None = None
+    materialized_at: datetime | None = None
+    plan_synced_at: datetime | None = None
+    trip_status: Literal["planned", "created"] | None = None
+
+    @staticmethod
+    def resolve_event_slug(obj) -> str | None:
+        return obj.event.slug if obj.event_id else None
+
+    @staticmethod
+    def resolve_event_name(obj) -> str | None:
+        return obj.event.name if obj.event_id else None
+
+    @staticmethod
+    def resolve_store_name(obj) -> str | None:
+        return obj.store.name if obj.store_id else None
 
     @staticmethod
     def resolve_source_status(obj) -> str | None:
@@ -443,7 +499,11 @@ class ShoppingListDetailOut(Schema):
                 "ingredient",
                 "ingredient__retail_section",
             )
-            .prefetch_related("sources", "ingredient__portions__measuring_unit", "ingredient__packages")
+            .prefetch_related(
+                Prefetch("sources", queryset=ShoppingListItemSource.objects.select_related("ingredient")),
+                "ingredient__portions__measuring_unit",
+                "ingredient__packages",
+            )
             .all()
         )
         can_edit = getattr(obj, "_can_edit", False)
@@ -481,6 +541,22 @@ class ShoppingListDetailOut(Schema):
     @staticmethod
     def resolve_viewer_guest_id(obj) -> int | None:
         return getattr(obj, "_viewer_guest_id", None)
+
+    @staticmethod
+    def resolve_items_count(obj) -> int:
+        return obj.items.count()
+
+    @staticmethod
+    def resolve_checked_count(obj) -> int:
+        return obj.items.filter(is_checked=True).count()
+
+    @staticmethod
+    def resolve_can_plan(obj) -> bool:
+        return bool(obj.event_id and getattr(obj, "_can_manage", False))
+
+    @staticmethod
+    def resolve_preview(obj):
+        return getattr(obj, "_preview", None)
 
     @staticmethod
     def resolve_stamp(obj) -> str:
@@ -543,6 +619,8 @@ class ShoppingListUpdateIn(Schema):
     """Input schema for updating a shopping list (partial)."""
 
     name: str | None = Field(default=None, min_length=1, max_length=255)
+    store_id: int | None = None
+    scheduled_at: datetime | None = None
 
 
 # --- Collaborator input schemas ---
@@ -565,10 +643,13 @@ class CollaboratorUpdateIn(Schema):
 
 
 class FromRecipeIn(Schema):
-    """Input schema for creating a shopping list from a recipe."""
+    """Input schema for buying a recipe: a new trip (`store_id` + `scheduled_at`) or an existing list."""
 
     portions: int = Field(default=1, ge=1)
     include_consumables: bool = True
+    store_id: int | None = None
+    scheduled_at: datetime | None = None
+    shopping_list_id: int | None = None
 
 
 from core.schemas import PaginatedUserOut, UserSimpleOut  # noqa: F401 — re-export for backward compat

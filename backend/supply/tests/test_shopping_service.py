@@ -226,6 +226,45 @@ class TestShoppingService:
         assert item.reserve_quantity_g == pytest.approx(150.0, abs=0.5)
         assert item.net_quantity_g + item.reserve_quantity_g == pytest.approx(item.total_quantity_g)
 
+    def test_reserve_breakdown_per_contribution_when_plans_have_different_factors(self):
+        """Merged contributions of plans with 1.1 and 1.2 split net/reserve per line, not by one factor."""
+        from model_bakery import baker
+
+        from planner.models import MealItem
+        from supply.services.shopping_service import (
+            CollectedContributions,
+            aggregate_contributions,
+            collect_ingredient_contributions,
+        )
+
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
+        ing = make_ingredient(name="Zwei-Plaene Zutat")
+        collected_parts = []
+        for reserve_factor in (1.1, 1.2):
+            meal_plan = make_meal_plan(norm_portions=10, reserve_factor=reserve_factor)
+            meal = make_meal(meal_plan=meal_plan)
+            baker.make(
+                MealItem,
+                meal=meal,
+                recipe=None,
+                ingredient=ing,
+                quantity=Decimal("100.0"),
+                measuring_unit=mu,
+                factor=1.0,
+            )
+            collected_parts.append(collect_ingredient_contributions(meal_plan))
+
+        merged = CollectedContributions(
+            contributions=[c for part in collected_parts for c in part.contributions],
+            reserve_factor=collected_parts[0].reserve_factor,
+        )
+        item = aggregate_contributions(merged)[0]
+
+        # 1000 g * 1.1 + 1000 g * 1.2 = 2300 g, of which 2000 g are net
+        assert item.total_quantity_g == pytest.approx(2300.0)
+        assert item.net_quantity_g == pytest.approx(2000.0, abs=0.5)
+        assert item.reserve_quantity_g == pytest.approx(300.0, abs=0.5)
+
 
 @pytest.mark.django_db
 class TestShoppingListRankOrdering:

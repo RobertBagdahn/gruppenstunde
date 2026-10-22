@@ -89,6 +89,9 @@ class IngredientContribution:
     effective_portions: float
     raw_quantity: float | None = None
     raw_portion_name: str = ""
+    # Reserve factor of the plan this line belongs to. ``None`` falls back to the collection's factor;
+    # it differs per line once contributions of several plans are merged.
+    reserve_factor: float | None = None
 
 
 @dataclass
@@ -184,6 +187,7 @@ def collect_ingredient_contributions(
                     quantity=active_item.quantity,
                     weight_g=weight_g,
                     effective_portions=effective_portions,
+                    reserve_factor=reserve_factor,
                 )
                 if portion is not None and resolve_trusted_weight(portion) is None:
                     contribution.raw_quantity = active_item.quantity * mi.factor * meal_scaling
@@ -202,6 +206,7 @@ def collect_ingredient_contributions(
                 quantity=float(mi.quantity or 0),
                 weight_g=base_weight_g * mi.factor * meal_scaling,
                 effective_portions=effective_portions,
+                reserve_factor=reserve_factor,
             )
             if base_weight_g <= 0:
                 # No weight resolved — track as raw quantity for display
@@ -252,6 +257,8 @@ def aggregate_contributions(collected: CollectedContributions) -> list[ShoppingL
     raw_quantities: dict[int, tuple[float, str]] = {}
     # ingredient_id -> unit option keys the contributions were entered in
     source_unit_keys: dict[int, set[str]] = {}
+    # ingredient_id -> total without reserve; the factor can differ per contribution
+    net_by_ingredient: dict[int, float] = {}
 
     for contribution in collected.contributions:
         ing = contribution.ingredient
@@ -260,6 +267,8 @@ def aggregate_contributions(collected: CollectedContributions) -> list[ShoppingL
         if contribution.recipe_item is None:
             ingredient_cache[ing.id] = ing
         source_unit_keys.setdefault(ing.id, set()).add(_contribution_unit_key(contribution))
+        line_reserve = contribution.reserve_factor or reserve_factor
+        net_by_ingredient[ing.id] = net_by_ingredient.get(ing.id, 0.0) + weight_g / line_reserve
 
         if contribution.raw_quantity is not None:
             previous = raw_quantities.get(ing.id)
@@ -333,7 +342,7 @@ def aggregate_contributions(collected: CollectedContributions) -> list[ShoppingL
     for item in aggregated.values():
         item.total_quantity_g = round(item.total_quantity_g, 2)
         # Net/reserve breakdown: total is rounding-authoritative, reserve = total - net
-        item.net_quantity_g = round(item.total_quantity_g / reserve_factor, 2)
+        item.net_quantity_g = round(net_by_ingredient.get(item.ingredient_id, 0.0), 2)
         item.reserve_quantity_g = round(item.total_quantity_g - item.net_quantity_g, 2)
         if item.sources:
             for source in item.sources:

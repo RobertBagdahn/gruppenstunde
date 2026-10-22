@@ -8,6 +8,7 @@ from planner.models import MealItem
 from planner.services.quantity_plausibility import MAX_GRAMS_PER_PERSON, MAX_PIECES_PER_PERSON, check, check_item
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
+from shopping.tests.trip_helpers import create_plan_trip
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
@@ -152,9 +153,8 @@ class TestShoppingListWarnings:
         make_portion(ingredient=ingredient, name="Stück", measuring_unit=piece_unit, weight_g=50, rank=1)
         MealItem.objects.create(meal=meal, ingredient=ingredient, quantity=800, measuring_unit=piece_unit, factor=1.0)
 
-        resp = auth_client.post(f"/api/shopping-lists/from-meal-plan/{meal_plan.id}/")
-        assert resp.status_code == 200
-        warnings = auth_client.get(f"/api/shopping-lists/{resp.json()['id']}/warnings/")
+        trip = create_plan_trip(auth_client, auth_client._user, meal_plan)
+        warnings = auth_client.get(f"/api/shopping-lists/{trip.id}/warnings/")
         assert len(warnings.json()) == 1
 
     def test_shopping_list_no_warnings_when_plausible(self, auth_client, gram_unit):
@@ -163,9 +163,8 @@ class TestShoppingListWarnings:
         ingredient = make_ingredient(name="Kartoffeln")
         MealItem.objects.create(meal=meal, ingredient=ingredient, quantity=400, measuring_unit=gram_unit, factor=1.0)
 
-        resp = auth_client.post(f"/api/shopping-lists/from-meal-plan/{meal_plan.id}/")
-        assert resp.status_code == 200
-        warnings = auth_client.get(f"/api/shopping-lists/{resp.json()['id']}/warnings/")
+        trip = create_plan_trip(auth_client, auth_client._user, meal_plan)
+        warnings = auth_client.get(f"/api/shopping-lists/{trip.id}/warnings/")
         assert warnings.json() == []
 
 
@@ -187,3 +186,57 @@ class TestRecipeItemPlausibility:
         assert [w.ingredient_name for w in warnings] == ["Haferflocken"]
         assert warnings[0].per_person_value == 2000
         assert warnings[0].total_value == 16
+
+
+@pytest.mark.django_db
+class TestCheckMealsQueryCount:
+    def _populate(self, plan, gram_unit, count: int, start: int = 0) -> None:
+        for i in range(count):
+            meal = make_meal(meal_plan=plan, meal_type="snack")
+            recipe = make_recipe(portions=1)
+            ingredient = make_ingredient(name=f"Zutat{plan.id}-{start + i}")
+            portion = make_portion(ingredient=ingredient, name="Menge", measuring_unit=gram_unit, weight_g=1.0, rank=1)
+            make_recipe_item(recipe=recipe, portion=portion, quantity=2000)
+            make_meal_item(meal=meal, recipe=recipe, factor=1.0)
+            MealItem.objects.create(
+                meal=meal, ingredient=ingredient, quantity=2000, measuring_unit=gram_unit, factor=1.0
+            )
+
+    def _count(self, plan) -> tuple[int, int]:
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from planner.services.quantity_plausibility import check_meals
+
+        meals = plan.meals.filter(is_reference=False)
+        with CaptureQueriesContext(connection) as ctx:
+            warnings = check_meals(meals)
+        return len(ctx), len(warnings)
+
+    def test_query_count_is_independent_of_plan_size(self, gram_unit):
+        plan = make_meal_plan(norm_portions=8)
+        self._populate(plan, gram_unit, 2)
+        small_queries, small_warnings = self._count(plan)
+        self._populate(plan, gram_unit, 10, start=2)
+
+        large_queries, large_warnings = self._count(plan)
+
+        assert large_queries == small_queries
+        assert (small_warnings, large_warnings) == (4, 24)
+
+    def test_meal_plan_list_detail_and_warnings_query_counts_are_constant(self, auth_client, gram_unit):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        def counts(meal_count: int, start: int) -> tuple[int, int]:
+            plan = make_meal_plan(created_by=auth_client._user, norm_portions=8)
+            self._populate(plan, gram_unit, meal_count, start=start)
+            list_id = create_plan_trip(auth_client, auth_client._user, plan).id
+            result = []
+            for path in ("", "warnings/"):
+                with CaptureQueriesContext(connection) as ctx:
+                    assert auth_client.get(f"/api/shopping-lists/{list_id}/{path}").status_code == 200
+                result.append(len(ctx))
+            return result[0], result[1]
+
+        assert counts(10, start=100) == counts(2, start=200)

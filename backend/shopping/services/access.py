@@ -49,6 +49,14 @@ class Actor:
         return public_display_name(self.user)
 
 
+_ROLE_RANK = {CollaboratorRole.VIEWER: 1, CollaboratorRole.EDITOR: 2, CollaboratorRole.ADMIN: 3, "owner": 4}
+
+
+def stronger_role(*roles: str | None) -> str | None:
+    present = [r for r in roles if r]
+    return max(present, key=lambda r: _ROLE_RANK[r]) if present else None
+
+
 def member_role(shopping_list: ShoppingList, user) -> str | None:
     """Role of an account for a list: 'owner', a collaborator role, or None."""
     if shopping_list.owner_id == user.id:
@@ -81,11 +89,28 @@ def require_login_unless_guest(request: HttpRequest, login_action: str | None = 
         require_login(request, login_action)
 
 
+def event_team_role(shopping_list: ShoppingList, user, request: HttpRequest | None = None) -> str | None:
+    """Admin / viewer rights the event team has on every trip of its event, without an invitation."""
+    if shopping_list.event_id is None:
+        return None
+    from event.models import Event
+    from shopping.services.trip_access import event_shopping_role, request_event_shopping_role
+
+    if request is not None:
+        role = request_event_shopping_role(request, shopping_list.event_id, user)
+    else:
+        event = Event.objects.filter(id=shopping_list.event_id).first()
+        role = event_shopping_role(event, user) if event is not None else None
+    if role == "manage":
+        return CollaboratorRole.ADMIN
+    return CollaboratorRole.VIEWER if role == "read" else None
+
+
 def resolve_actor(request: HttpRequest, shopping_list: ShoppingList) -> Actor:
-    """Member (or staff) first, then guest; everyone else sees a 404."""
+    """Member (or staff) and event team first, then guest; everyone else sees a 404."""
     user = optional_user(request)
     if user is not None:
-        role = member_role(shopping_list, user)
+        role = stronger_role(member_role(shopping_list, user), event_team_role(shopping_list, user, request))
         if role is not None:
             return Actor(role=role, user=user)
     guest = guest_from_request(request, shopping_list)

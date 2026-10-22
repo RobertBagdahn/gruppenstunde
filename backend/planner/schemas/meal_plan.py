@@ -564,6 +564,10 @@ class MealPlanTagCreateIn(Schema):
     name: str
 
 
+class MealPlanEventLinkIn(Schema):
+    event_id: int
+
+
 class MealPlanOut(Schema):
     id: int
     name: str
@@ -582,6 +586,7 @@ class MealPlanOut(Schema):
     season_hint: PlanSeasonHint = ""
     event_id: int | None = None
     event_name: str = ""
+    event_slug: str = ""
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     created_by_id: int
@@ -619,6 +624,13 @@ class MealPlanOut(Schema):
     def resolve_event_name(obj) -> str:
         try:
             return cast(str, obj.event_relation.event.name)
+        except Exception:
+            return ""
+
+    @staticmethod
+    def resolve_event_slug(obj) -> str:
+        try:
+            return cast(str, obj.event_relation.event.slug)
         except Exception:
             return ""
 
@@ -860,6 +872,7 @@ class MealPlanDetailOut(Schema):
     season_hint: PlanSeasonHint = ""
     event_id: int | None = None
     event_name: str = ""
+    event_slug: str = ""
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     created_by_id: int
@@ -908,6 +921,13 @@ class MealPlanDetailOut(Schema):
     def resolve_event_name(obj) -> str:
         try:
             return cast(str, obj.event_relation.event.name)
+        except Exception:
+            return ""
+
+    @staticmethod
+    def resolve_event_slug(obj) -> str:
+        try:
+            return cast(str, obj.event_relation.event.slug)
         except Exception:
             return ""
 

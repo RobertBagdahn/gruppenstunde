@@ -10,7 +10,7 @@ import { API_BASE_URL, ApiError } from '@/lib/api';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { Button } from '@/components/ui/button';
 import { useBlocker } from '@/hooks/useBlocker';
-import { useCreateFromRecipe } from '@/api/shoppingLists';
+import RecipePurchaseDialog from '@/components/shopping/RecipePurchaseDialog';
 import { useCurrentUser } from '@/api/auth';
 import { useAvailableConversions } from '@/api/unitConversions';
 import {
@@ -205,7 +205,6 @@ export default function RecipeDetailPage() {
   const deleteBlockedByUsage = (recipeUsage?.plan_count ?? 0) > 0;
   const [showShoppingExport, setShowShoppingExport] = useState(false);
   const [exportPortions, setExportPortions] = useState(1);
-  const [exportConsumables, setExportConsumables] = useState(true);
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
   const [portionSheetOpen, setPortionSheetOpen] = useState(false);
   const [isInlineEditMode, setIsInlineEditMode] = useState(
@@ -225,7 +224,6 @@ export default function RecipeDetailPage() {
   const [cloneTitle, setCloneTitle] = useState('');
 
   const { data: currentUser } = useCurrentUser();
-  const createFromRecipe = useCreateFromRecipe();
 
   // Unit conversion data for ingredient display
   // Request conversions from g (base unit) since IngredientList displays in grams
@@ -966,88 +964,14 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
-      {/* Shopping List Export Dialog */}
-      {showShoppingExport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-card rounded-xl p-6 mx-4 w-full max-w-sm shadow-xl shadow-card" data-testid="recipe-shopping-export-dialog">
-            <h3 className="text-section font-semibold mb-4 flex items-center gap-2">
-              <Icon name="shopping_cart" size={24} className="text-primary" />
-              Einkaufsliste erstellen
-            </h3>
-            <label className="block text-body text-muted-foreground mb-1">
-              Anzahl Portionen
-            </label>
-            <div className="flex items-center gap-3 mb-6">
-              <button
-                type="button"
-                onClick={() => setExportPortions(Math.max(1, exportPortions - 1))}
-                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
-              >
-                <Icon name="remove" size={20} />
-              </button>
-              <input
-                type="number"
-                min={1}
-                max={999}
-                value={exportPortions}
-                onChange={(e) => setExportPortions(Math.max(1, parseInt(e.target.value) || 1))}
-                data-testid="recipe-shopping-export-portions"
-                className="w-20 text-center text-section font-semibold border rounded-lg py-2 bg-background"
-              />
-              <button
-                type="button"
-                onClick={() => setExportPortions(exportPortions + 1)}
-                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
-              >
-                <Icon name="add" size={20} />
-              </button>
-            </div>
-            {(recipe.materials ?? []).some((m) => m.is_consumable) && (
-              <label className="flex items-center gap-2 mb-6 text-body cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={exportConsumables}
-                  onChange={(e) => setExportConsumables(e.target.checked)}
-                  data-testid="recipe-shopping-export-consumables"
-                />
-                Verbrauchsmaterial mit aufnehmen
-              </label>
-            )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={createFromRecipe.isPending}
-                data-testid="recipe-shopping-export-submit"
-                onClick={() => {
-                  createFromRecipe.mutate(
-                    { recipeId: recipe.id, portions: exportPortions, includeConsumables: exportConsumables },
-                    {
-                      onSuccess: (created) => {
-                        notify.success('Einkaufsliste erstellt');
-                        setShowShoppingExport(false);
-                        navigate(`/shopping-lists/${created.id}`);
-                      },
-                      onError: (err) =>
-                        notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
-                    },
-                  );
-                }}
-                className="flex-1 px-4 py-2.5 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {createFromRecipe.isPending ? 'Erstelle...' : 'Erstellen'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowShoppingExport(false)}
-                className="px-4 py-2.5 text-body border rounded-lg hover:bg-muted transition-colors"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Shopping: a new trip or an existing list */}
+      <RecipePurchaseDialog
+        open={showShoppingExport}
+        onOpenChange={setShowShoppingExport}
+        recipe={{ id: recipe.id, title: recipe.title, hasConsumables: (recipe.materials ?? []).some((m) => m.is_consumable) }}
+        defaultPortions={exportPortions}
+        onDone={(list) => navigate(`/shopping-lists/${list.id}`)}
+      />
 
       {/* Clone Dialog */}
       <Dialog open={showCloneDialog} onOpenChange={(open) => { if (!open) setShowCloneDialog(false); }}>

@@ -242,13 +242,22 @@ test.describe('Shopping list permissions and persistence', () => {
 
     await foodPage.goto(`/recipes/${recipe.slug}`);
     await foodPage.locator('button:has-text("Auf die Einkaufsliste"):visible').click({ force: true });
-    const exportDialog = foodPage.getByTestId('recipe-shopping-export-dialog');
-    await exportDialog.getByTestId('recipe-shopping-export-portions').fill('3');
+    const exportDialog = foodPage.getByRole('dialog', { name: /Einkaufen/ });
+    await exportDialog.getByLabel('Portionen').fill('3');
+    const storeName = uniqueName('E2E Laden');
+    const storeResponse = foodPage.waitForResponse(
+      (response) => response.request().method() === 'POST' && response.url().endsWith('/api/shopping-stores/'),
+    );
+    await exportDialog.getByRole('combobox').fill(storeName);
+    await exportDialog.getByRole('button', { name: `„${storeName}“ anlegen` }).click();
+    resources.track({ kind: 'shopping-store', id: Number(assertRecord(await (await storeResponse).json()).id) });
+    await exportDialog.getByLabel('Datum').fill('2026-10-22');
+    await exportDialog.getByLabel('Uhrzeit').fill('16:00');
     const exportRequest = foodPage.waitForRequest((request) =>
       request.method() === 'POST' && request.url().endsWith(`/api/shopping-lists/from-recipe/${recipe.id}/`),
     );
-    await exportDialog.getByTestId('recipe-shopping-export-submit').click();
-    expect((await exportRequest).postDataJSON()).toEqual({ portions: 3 });
+    await exportDialog.getByRole('button', { name: 'Einkauf anlegen' }).click();
+    expect((await exportRequest).postDataJSON()).toMatchObject({ portions: 3, scheduled_at: '2026-10-22T16:00' });
     await foodPage.waitForURL(/\/shopping-lists\/\d+$/);
 
     const exportedId = Number(foodPage.url().split('/').pop());
@@ -347,12 +356,34 @@ test.describe('Shopping list permissions and persistence', () => {
     });
     expect(refResponse.ok()).toBeTruthy();
 
-    const exportResponse = await api.post(`/api/shopping-lists/from-meal-plan/${plan.id}/`, {
+    // A plan list is a created trip of the plan's event: link the plan, plan a trip before the meals, freeze it.
+    const eventResponse = await api.post('/api/events/', {
       headers: { 'X-CSRFToken': csrf },
-      data: {},
+      data: { name: uniqueName('E2E MealPlan Event'), is_public: false, start_date: '2026-09-07T06:00:00Z', end_date: '2026-09-07T20:00:00Z' },
+    });
+    const event = assertRecord(await expectJsonResponse(eventResponse));
+    resources.track({ kind: 'event', slug: String(event.slug) });
+    const linkResponse = await api.put(`/api/meal-plans/${plan.id}/event/`, {
+      headers: { 'X-CSRFToken': csrf },
+      data: { event_id: Number(event.id) },
+    });
+    expect(linkResponse.ok()).toBeTruthy();
+    const storeResponse = await api.post('/api/shopping-stores/', {
+      headers: { 'X-CSRFToken': csrf },
+      data: { name: uniqueName('E2E Plan-Laden') },
+    });
+    const store = assertRecord(await expectJsonResponse(storeResponse, 201));
+    resources.track({ kind: 'shopping-store', id: Number(store.id) });
+    const tripResponse = await api.post(`/api/shopping-events/${event.slug}/trips/`, {
+      headers: { 'X-CSRFToken': csrf },
+      data: { store_id: Number(store.id), scheduled_at: '2026-09-06T08:00:00' },
+    });
+    const trip = assertRecord(await expectJsonResponse(tripResponse, 201));
+    resources.track({ kind: 'shopping-list', id: Number(trip.id) });
+    const exportResponse = await api.post(`/api/shopping-lists/${trip.id}/materialize/`, {
+      headers: { 'X-CSRFToken': csrf },
     });
     const exported = await expectJsonResponse(exportResponse) as ShoppingListDetail;
-    resources.track({ kind: 'shopping-list', id: exported.id });
     expect(exported.items.map((item) => item.name).sort()).toEqual([
       recipeIngredient.name,
       directIngredient.name,

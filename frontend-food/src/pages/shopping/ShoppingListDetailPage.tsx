@@ -16,7 +16,6 @@ import {
   useDeleteShoppingListItem,
   useDeleteShoppingList,
   useUpdateShoppingList,
-  useCreateFromMealPlan,
   useShoppingListSync,
   fetchShoppingListItem,
 } from '@/api/shoppingLists';
@@ -27,6 +26,9 @@ import ShoppingListItemRow from '@/components/shopping/ShoppingListItemRow';
 import ShoppingBoardView from '@/components/shopping/ShoppingBoardView';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import SourceFreshnessNotice from '@/components/shopping/SourceFreshnessNotice';
+import PlannedTripPreview from '@/components/shopping/trips/PlannedTripPreview';
+import { useMaterializeTrip } from '@/api/shoppingTrips';
+import { formatTripTime } from '@/lib/tripTime';
 import ShareLinkManager from '@/components/shopping/ShareLinkManager';
 import CollaboratorManager from '@/components/shopping/CollaboratorManager';
 import KitchenReminderSection from '@/components/shopping/KitchenReminderSection';
@@ -108,7 +110,7 @@ export default function ShoppingListDetailPage() {
   const deleteItem = useDeleteShoppingListItem(listId);
   const deleteList = useDeleteShoppingList();
   const updateList = useUpdateShoppingList(listId);
-  const createFromMealPlan = useCreateFromMealPlan();
+  const materializeTrip = useMaterializeTrip(list?.event_slug ?? '');
 
   const { optimisticCheck, rollback } = useOptimisticCheckItem(listId);
 
@@ -380,6 +382,7 @@ export default function ShoppingListDetailPage() {
     );
   }
 
+  const planned = list.trip_status === 'planned';
   const isGuest = list.viewer_guest_id !== null;
   const isOwner = !isGuest && (list.is_owner ?? (user?.id === list.owner_id));
   const canEdit = list.can_edit ?? false;
@@ -518,6 +521,7 @@ export default function ShoppingListDetailPage() {
                 )}
                 title={isConnected ? 'Verbunden' : 'Nicht verbunden'}
               />
+              {!planned && (
               <button
                 type="button"
                 onClick={() => setShopMode(!shopMode)}
@@ -531,7 +535,8 @@ export default function ShoppingListDetailPage() {
               >
                 <ShoppingBasket className="w-4 h-4" />
               </button>
-              {!shopMode && <ShoppingListExportMenu listName={list.name} items={items} onPrint={printList} />}
+              )}
+              {!shopMode && !planned && <ShoppingListExportMenu listName={list.name} items={items} onPrint={printList} />}
               {list.can_manage && !shopMode && (
                 <button
                   type="button"
@@ -567,6 +572,21 @@ export default function ShoppingListDetailPage() {
         <span aria-hidden="true">•</span>
         <span>von <span className="font-semibold text-foreground">{list.owner_display_name}</span></span>
       </div>
+      {(list.store_name || list.scheduled_at) && (
+        <p className="mt-2 text-body text-muted-foreground" data-testid="shopping-trip-info">
+          {[list.store_name, formatTripTime(list.scheduled_at)].filter(Boolean).join(' · ')}
+          {list.event_name ? ` · ${list.event_name}` : ''}
+        </p>
+      )}
+      {list.event_slug && list.can_plan && (
+        <Link
+          to={`/shopping-lists/events/${list.event_slug}?trip=${list.id}`}
+          className="mt-3 inline-flex rounded-lg bg-primary-soft px-3 py-1.5 text-body font-semibold text-primary-dark hover:bg-primary-soft-border/70"
+        >
+          Einkäufe planen
+        </Link>
+      )}
+
       </header>
 
       {isGuest && !shopMode && (
@@ -586,21 +606,14 @@ export default function ShoppingListDetailPage() {
       )}
 
       {!shopMode && (
-      <SourceFreshnessNotice
-        status={list.source_status}
-        pending={createFromMealPlan.isPending}
-        className="mb-6"
-        onCreateNew={list.source_id ? () => createFromMealPlan.mutate(
-          { mealPlanId: list.source_id as number },
-          {
-            onSuccess: (created) => {
-              notify.success('Neue Einkaufsliste erstellt');
-              navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId: list.source_id } });
-            },
-            onError: (err) => notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
-          },
-        ) : undefined}
-      />
+        <SourceFreshnessNotice
+          status={list.source_status}
+          isEventTrip={list.event_id !== null || list.source_type === 'event_trip'}
+          diffListId={list.id}
+          eventSlug={list.event_slug}
+          canApply={list.can_plan}
+          className="mb-6"
+        />
       )}
 
       {/* Quantity plausibility warnings from generation */}
@@ -610,6 +623,21 @@ export default function ShoppingListDetailPage() {
         </div>
       )}
 
+      {planned ? (
+        <PlannedTripPreview
+          preview={list.preview}
+          manualItems={items}
+          canPlan={list.can_plan}
+          creating={materializeTrip.isPending}
+          onCreate={() =>
+            materializeTrip.mutate(list.id, {
+              onSuccess: () => notify.success('Liste erstellt'),
+              onError: (err) => notify.error('Liste konnte nicht erstellt werden', { error: err }),
+            })
+          }
+        />
+      ) : (
+        <>
       {/* Progress */}
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
 
@@ -772,8 +800,11 @@ export default function ShoppingListDetailPage() {
         </div>
       )}
 
+        </>
+      )}
+
       {/* REWE Export */}
-      {!isGuest && !shopMode && (
+      {!isGuest && !shopMode && !planned && (
         <section className="mt-6 bg-card rounded-xl p-5 shadow-card">
           <h2 className="flex items-center gap-2 text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4">
             <ShoppingCart className="w-4 h-4 text-primary shrink-0" />

@@ -38,6 +38,7 @@ from event.schemas import (
     PaginatedEventListOut,
     PaginatedInvitationStatusOut,
 )
+from event.services.meal_plan_link import link_meal_plan
 from profiles.models import GroupMembership, UserGroup
 
 from .helpers import check_rate_limit, require_event_manager
@@ -53,14 +54,7 @@ def _sync_meal_plan_relation(event: Event, meal_plan, user) -> None:
 
     if meal_plan is not None:
         _require_edit(meal_plan, user)
-        with transaction.atomic():
-            existing = EventMealPlanRelation.objects.filter(meal_plan=meal_plan).first()
-            if existing is not None and existing.event_id != event.id:
-                raise HttpError(409, "Der Essensplan ist bereits mit einem anderen Event verknüpft.")
-            EventMealPlanRelation.objects.update_or_create(
-                meal_plan=meal_plan,
-                defaults={"event": event},
-            )
+        link_meal_plan(event, meal_plan)
     else:
         EventMealPlanRelation.objects.filter(event=event).delete()
 
@@ -293,6 +287,7 @@ def list_events(request, page: int = 1, page_size: int = 20):
 
 
 @event_router.post("/", response=EventListOut)
+@transaction.atomic
 def create_event(request, payload: EventCreateIn):
     """Create a new event with optional inline booking options."""
     require_login(request)

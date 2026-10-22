@@ -33,6 +33,7 @@ const RefMealEditorPage = lazyPage(() => import('./pages/planning/RefMealEditorP
 const BreakfastWizardPage = lazyPage(() => import('./pages/planning/breakfast/BreakfastWizardPage'));
 const MealPlanWizardPage = lazyPage(() => import('./pages/planning/wizard/MealPlanWizardPage'));
 const ShoppingListPage = lazyPage(() => import('./pages/shopping/ShoppingListPage'));
+const TripPlanningPage = lazyPage(() => import('./pages/shopping/TripPlanningPage'));
 const ShoppingListDetailPage = lazyPage(() => import('./pages/shopping/ShoppingListDetailPage'));
 const ShoppingListJoinPage = lazyPage(() => import('./pages/shopping/ShoppingListJoinPage'));
 const NormPortionSimulatorPage = lazyPage(() => import('./pages/tools/NormPortionSimulatorPage'));
@@ -98,6 +99,7 @@ export default function App() {
         {/* Shopping Lists */}
         <Route path="/shopping-lists" element={<ShoppingListPage />} />
         <Route path="/shopping-lists/join/:token" element={<ShoppingListJoinPage />} />
+        <Route path="/shopping-lists/events/:eventSlug" element={<TripPlanningPage />} />
         <Route path="/shopping-lists/:id" element={<ShoppingListDetailPage />} />
 
         {/* Tools */}

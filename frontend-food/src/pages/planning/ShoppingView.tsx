@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store, ClipboardList } from 'lucide-react';
+import { ShoppingCart, ChevronRight, ChevronDown, Store, ClipboardList } from 'lucide-react';
 import { useShoppingList, useIngredientScan } from '@/api/mealPlans';
 import type { NutritionalTagViolation, ShoppingListItem } from '@/schemas/mealPlan';
 import { useCurrentUser } from '@/api/auth';
-import { useCreateFromMealPlan, useShoppingLists } from '@/api/shoppingLists';
-import ConfirmDialog from '@/components/ConfirmDialog';
+import LinkEventDialog, { type LinkEventPlan } from '@/components/planning/LinkEventDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
-import { notify } from '@/lib/notify';
 import { formatEuro, formatWeight } from '@/lib/format';
 import { HelpHint } from '@/components/ui/help-hint';
 import { PACKAGE_RESERVE_HELP, formatItemPackageReserve, formatPortionOption, formatShoppingQuantity } from '@/lib/shoppingItemDisplay';
@@ -158,34 +156,20 @@ function ShoppingItemWithSources({
   );
 }
 
-export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
+interface ShoppingViewProps {
+  mealPlanId: number;
+  /** Slug of the event the plan belongs to; empty when it has none. */
+  eventSlug?: string;
+  plan?: Omit<LinkEventPlan, 'id'>;
+}
+
+export default function ShoppingView({ mealPlanId, eventSlug = '', plan }: ShoppingViewProps) {
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
   const { data, error, isLoading, refetch } = useShoppingList(mealPlanId);
   const { data: scanData } = useIngredientScan(mealPlanId);
-  const createFromMealPlan = useCreateFromMealPlan();
   const [showReserve, setShowReserve] = useState(false);
-  const [includeConsumables, setIncludeConsumables] = useState(true);
-  const [confirmDuplicateOpen, setConfirmDuplicateOpen] = useState(false);
-  const { data: existingLists } = useShoppingLists(
-    1,
-    20,
-    { sourceType: 'meal_event', sourceId: mealPlanId },
-    { enabled: Boolean(currentUser) },
-  );
-  const planLists = existingLists?.items ?? [];
-  const hasCurrentList = planLists.some((list) => list.source_status === 'current');
-
-  const createList = () => {
-    createFromMealPlan.mutate({ mealPlanId, includeConsumables }, {
-      onSuccess: (created) => {
-        notify.success('Einkaufsliste erstellt');
-        navigate(`/shopping-lists/${created.id}`, { state: { mealPlanId } });
-      },
-      onError: (err) =>
-        notify.error('Einkaufsliste konnte nicht angelegt werden', { error: err }),
-    });
-  };
+  const [linkOpen, setLinkOpen] = useState(false);
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
   if (isLoading) return <SkeletonTableRows rows={5} columns={3} label="Einkaufsliste wird geladen" />;
@@ -222,67 +206,35 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
         </button>
       </div>
 
-      {/* Export to persistent shopping list */}
-      {currentUser && (
-        <label className="flex items-center gap-2 text-body cursor-pointer">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={includeConsumables}
-            onChange={(e) => setIncludeConsumables(e.target.checked)}
-            data-testid="plan-shopping-consumables"
-          />
-          Verbrauchsmaterial mit aufnehmen
-        </label>
-      )}
-      {currentUser && (
-        <button
-          type="button"
-          disabled={createFromMealPlan.isPending}
-          onClick={() => (hasCurrentList ? setConfirmDuplicateOpen(true) : createList())}
-          className="flex items-center gap-2 px-4 py-2.5 text-body font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50 font-semibold"
+      {/* Trips are planned per event; the shopping tab only shows the plan's total demand */}
+      {currentUser && eventSlug && (
+        <Link
+          to={`/shopping-lists/events/${eventSlug}`}
+          data-testid="plan-trips-link"
+          className="press flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          {createFromMealPlan.isPending ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <ShoppingCart className="w-4.5 h-4.5" />
-          )}
-          {createFromMealPlan.isPending
-            ? 'Erstelle Einkaufsliste...'
-            : 'Einkaufsliste erstellen'}
-        </button>
+          <ShoppingCart className="w-4.5 h-4.5" />
+          Einkäufe planen
+        </Link>
       )}
-
-      {currentUser && planLists.length > 0 && (
-        <div className="rounded-xl bg-card p-3 shadow-card" data-testid="plan-existing-lists">
-          <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Vorhandene Listen dieses Plans</p>
-          <ul className="space-y-1.5">
-            {planLists.map((list) => (
-              <li key={list.id} className="flex flex-wrap items-center justify-between gap-2 text-body">
-                <Link to={`/shopping-lists/${list.id}`} className="min-w-0 truncate font-medium text-primary hover:underline">
-                  {list.name}
-                </Link>
-                <span className={list.source_status === 'current' ? 'text-caption text-muted-foreground' : 'text-caption font-medium text-warning'}>
-                  {list.source_status === 'current' ? 'aktuell' : list.source_status === 'changed' ? 'Plan geändert' : list.source_status === 'deleted' ? 'Plan gelöscht' : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
+      {currentUser && !eventSlug && plan && (
+        <div className="rounded-xl bg-card p-4 shadow-card" data-testid="plan-without-event">
+          <p className="text-body text-muted-foreground">Für Einkäufe braucht der Plan ein Event.</p>
+          <button
+            type="button"
+            onClick={() => setLinkOpen(true)}
+            className="press mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-body font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            Event verknüpfen
+          </button>
+          <LinkEventDialog
+            open={linkOpen}
+            onOpenChange={setLinkOpen}
+            plan={{ id: mealPlanId, ...plan }}
+            onLinked={(slug) => navigate(`/shopping-lists/events/${slug}`)}
+          />
         </div>
       )}
-      <ConfirmDialog
-        open={confirmDuplicateOpen}
-        variant="default"
-        title="Weitere Einkaufsliste erstellen?"
-        description="Für diesen Plan gibt es bereits eine aktuelle Einkaufsliste. Trotzdem eine neue erstellen?"
-        confirmLabel="Neue Liste erstellen"
-        loading={createFromMealPlan.isPending}
-        onCancel={() => setConfirmDuplicateOpen(false)}
-        onConfirm={() => {
-          setConfirmDuplicateOpen(false);
-          createList();
-        }}
-      />
 
       <Link
         to={`/material-list?meal-plan=${mealPlanId}`}

@@ -1,7 +1,7 @@
 import { devLogin } from './auth';
 import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
 
-type ResourceKind = 'shopping-list' | 'meal-plan' | 'recipe' | 'ingredient' | 'event' | 'content-collaborator';
+type ResourceKind = 'shopping-list' | 'shopping-store' | 'meal-plan' | 'recipe' | 'ingredient' | 'event' | 'content-collaborator';
 
 interface TrackedResource {
   kind: ResourceKind;
@@ -45,7 +45,15 @@ export class ResourceTracker {
           ? `/api/events/${resource.slug ?? ''}/`
         : resource.kind === 'content-collaborator'
           ? `/api/content-collaborators/${resource.id ?? 0}/`
-        : `/api/${resource.kind === 'shopping-list' ? 'shopping-lists' : resource.kind === 'meal-plan' ? 'meal-plans' : 'recipes'}/${resource.id ?? 0}/`;
+        : `/api/${
+            resource.kind === 'shopping-list'
+              ? 'shopping-lists'
+              : resource.kind === 'shopping-store'
+                ? 'shopping-stores'
+                : resource.kind === 'meal-plan'
+                  ? 'meal-plans'
+                  : 'recipes'
+          }/${resource.id ?? 0}/`;
 
       try {
         const response = await api.delete(endpoint, {

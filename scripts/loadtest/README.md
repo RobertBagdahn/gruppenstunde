@@ -42,6 +42,24 @@ Die schwere Fixture (`--items 100 --sources-per-item 15`) bildet die Liste vom 1
 
 Im Detail-Modus stieg auch das Abhaken auf p50 3,61 s und der Pulse auf p95 4,92 s, weil die zwei Worker mit den Vollabrufen belegt waren. Im Board-Modus blieben beide bei 0,19 s bzw. 0,10 s. Das Board entlastet also genau den Engpass vom 16.10.; die 429 selbst entstehen nur auf Cloud Run (siehe Grenzen).
 
+## Einkaufsplan eines Events (`event-shopping-trips`)
+
+Mit `--event-slug` ruft zusätzlich ein Team-Mitglied (Dev-Login, nur lokal) `GET /api/shopping-events/{slug}/plan/` ab. Die ersten sechs Aufrufe wärmen den Cache je Worker auf und stehen als `plan_first` im Bericht; alle weiteren sind `plan_cached` und müssen bei p95 unter 0,3 s liegen (`--p95-plan`). Die Fixture bekommt ein Event mit Essensplan und drei Einkäufen über `--event-meals`:
+
+```bash
+uv run python manage.py seed_loadtest_shopping_list --items 50 --sources-per-item 3 --event-meals 60   # druckt zusätzlich event_slug und planner_email
+uv run python ../scripts/loadtest/shopping_group.py --base-url http://127.0.0.1:8123 --invite-token <invite_token> --event-slug <event_slug>
+```
+
+Ergebnis vom 17.10.2026 (lokal, 2 Gunicorn-Worker, 6 Geräte, 40 s, Event mit 60 Mahlzeiten und je 40 Zutaten):
+
+| Endpunkt | Requests | p50 | p95 | max | 429 | Ergebnis |
+| --- | --- | --- | --- | --- | --- | --- |
+| `plan_first` (Aufwärmen) | 6 | 0,25 s | 1,57 s | 1,57 s | 0 | nicht bewertet |
+| `plan_cached` | 12 | 0,15 s | 0,18 s | 0,18 s | 0 | bestanden (Grenze 0,3 s) |
+
+Der Cache liegt pro Prozess (kein gemeinsamer Cache-Dienst), darum zählt das Aufwärmen je Worker nicht mit.
+
 ## Grenzen
 
 - **Kein Cloud-Run-Verhalten:** Lokal wartet Gunicorn, statt abzuweisen; HTTP 429 entsteht nur auf Cloud Run. Lokal zeigt die Probe die Wartezeit (p95), nicht die Abweisungen.
