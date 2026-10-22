@@ -1,4 +1,3 @@
-import HeroBand from '@/components/shared/HeroBand';
 import { useRef, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -190,7 +189,7 @@ export default function MyProfilePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
       {/* Profile Picture & Name */}
-      <HeroBand pullUpClassName="-mt-8" innerClassName="max-w-2xl" className="mb-2">
+      <header className="mb-6 space-y-3">
       <section className="flex flex-col items-center gap-4">
         <div className="relative group">
           <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden">
@@ -231,15 +230,15 @@ export default function MyProfilePage() {
           onChange={handlePictureUpload}
         />
         <div className="text-center">
-          <h1 className="font-display text-display font-extrabold text-hero-foreground">
+          <h1 className="font-display text-display font-extrabold text-foreground">
             {profile.scout_name || profile.first_name}
           </h1>
-          <p className="text-emphasis text-hero-muted">
+          <p className="text-emphasis text-muted-foreground">
             {user.email}
           </p>
         </div>
       </section>
-      </HeroBand>
+      </header>
 
       {/* View Mode: Personal Data */}
       <section className="rounded-xl bg-card p-5 space-y-4 shadow-card">

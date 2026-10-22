@@ -96,8 +96,6 @@ export default function IngredientStatisticsPage() {
       <PageHeader
         title="Zutaten-Statistiken"
         description="Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank"
-        area="ingredients"
-        icon="bar_chart"
       />
 
       {/* Tab bar */}
@@ -108,7 +106,7 @@ export default function IngredientStatisticsPage() {
               <button
                 key={t.id}
                 onClick={() => navigate(`/ingredients/statistics/${t.id}`)}
-                className={`px-3 py-1.5 rounded-lg text-body font-medium whitespace-nowrap transition-colors ${
+                className={`min-h-11 md:min-h-8 px-3 py-1.5 rounded-lg text-body font-medium whitespace-nowrap transition-colors ${
                   t.id === activeTabId
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -120,7 +118,7 @@ export default function IngredientStatisticsPage() {
           </div>
         </div>
         {/* Fade indicator for mobile */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-background/80 sm:hidden" />
       </div>
 
       {/* Category badge */}

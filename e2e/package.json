@@ -12,6 +12,7 @@
     "test:mobile-autocomplete": "bash smoke-test.sh --food-only --reuse-running --grep=autocomplete"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.52.0"
   }
 }

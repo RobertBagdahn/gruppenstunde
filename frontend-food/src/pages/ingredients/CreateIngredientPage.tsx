@@ -1,4 +1,4 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 /**
  * CreateIngredientPage — Geführter 3-Schritt-Flow zum Erstellen von Zutaten.
  *
@@ -431,10 +431,9 @@ export default function CreateIngredientPage() {
   // -------------------------------------------------------------------------
   return (
     <div className="pb-8">
-    <TitleBand
+    <DetailHeader
       title="Zutat erstellen"
       description={`Schritt ${step + 1} von ${STEPS.length}`}
-      innerClassName="max-w-3xl"
     />
     <div className="container max-w-3xl">
 
@@ -720,10 +719,10 @@ export default function CreateIngredientPage() {
       {step === 2 && (
         <div className="space-y-6">
           <div className="bg-card rounded-xl overflow-hidden shadow-card">
-            <div className="bg-gradient-to-r from-success to-success px-6 py-4">
-              <h2 className="text-white text-section font-bold">{formData.name || 'Ohne Namen'}</h2>
+            <div className="bg-success-soft px-6 py-4">
+              <h2 className="text-success-foreground text-section font-bold">{formData.name || 'Ohne Namen'}</h2>
               {formData.description && (
-                <p className="text-white/80 text-body mt-1">{formData.description}</p>
+                <p className="text-success-foreground/80 text-body mt-1">{formData.description}</p>
               )}
             </div>
             <div className="p-6 space-y-3">

@@ -28,9 +28,9 @@ export default function ListPageSearchBar({
   }
 
   const createClass =
-    'press shrink-0 h-14 px-5 rounded-xl bg-hero-foreground text-foreground font-bold hover:bg-hero-muted transition-colors hidden sm:flex items-center gap-2';
+    'press shrink-0 h-14 px-5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary-dark transition-colors hidden sm:flex items-center gap-2';
 
-  // Search sits on the hero band, as a child of PageHeader (Feldküche).
+  // Search sits under the page header, as a child of PageHeader.
   return (
     <form role="search" onSubmit={handleSubmit} className={`flex items-center gap-2 ${className || ''}`}>
       <div className="flex-1 relative min-w-0">
@@ -47,7 +47,7 @@ export default function ListPageSearchBar({
       <button
         type="submit"
         aria-label="Suchen"
-        className="press shrink-0 h-14 w-14 rounded-xl bg-hero-soft text-hero-foreground hover:bg-hero-foreground hover:text-foreground transition-colors flex items-center justify-center"
+        className="press shrink-0 h-14 w-14 rounded-xl bg-muted text-foreground hover:bg-primary-soft hover:text-primary-dark transition-colors flex items-center justify-center"
       >
         <Icon name="search" size={20} />
       </button>

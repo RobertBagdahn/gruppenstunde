@@ -1,4 +1,4 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe, type RecipeUpdatePayload } from '@/api/recipes';
@@ -147,10 +147,9 @@ export default function EditRecipePage() {
 
   return (
     <div className="pb-8">
-    <TitleBand
+    <DetailHeader
       title="Rezept bearbeiten"
       description="Änderungen an deinem Rezept vornehmen"
-      innerClassName="max-w-3xl"
     />
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 

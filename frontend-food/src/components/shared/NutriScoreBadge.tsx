@@ -2,7 +2,7 @@
  * The only place that renders a Nutri-Score (semantic-colors spec).
  *
  * Always uses the official colours of Santé publique France. Sizes:
- * - `sm`: list rows and autocomplete entries
+ * - `sm` (24 px): list rows and autocomplete entries
  * - `md`: cards and header areas
  * - `scale`: the full A–E scale with the current class highlighted
  *
@@ -55,7 +55,7 @@ interface NutriScoreBadgeProps {
 }
 
 const SIZE_CLASS = {
-  sm: 'h-5 min-w-5 px-1 text-caption rounded-full',
+  sm: 'h-6 min-w-6 px-1 text-caption rounded-full',
   md: 'h-8 w-8 text-body rounded-full',
 } as const;
 

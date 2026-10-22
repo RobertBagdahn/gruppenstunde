@@ -8,6 +8,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
 import { useMaterials } from '@/api/materials';
 import PageHeader from '@/components/shared/PageHeader';
+import AreaTabs from '@/components/shared/AreaTabs';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import Pagination from '@/components/shared/Pagination';
 import EmptyState from '@/components/shared/EmptyState';
@@ -63,11 +64,16 @@ export default function MaterialListPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <AreaTabs
+        label="Zutaten und Material"
+        tabs={[
+          { label: 'Zutaten', to: '/ingredients', activePrefixes: ['/ingredients'] },
+          { label: 'Material', to: '/material', activePrefixes: ['/material', '/material-list'] },
+        ]}
+      />
       <PageHeader
         title="Material"
         description="Geräte und Verbrauchsmaterial, die Rezepte brauchen – vom Backofen bis zum Pappteller."
-        area="neutral"
-        icon="inventory_2"
         count={data?.total}
         countLoading={isPending}
         countLabel={{ one: 'Material', other: 'Materialien' }}

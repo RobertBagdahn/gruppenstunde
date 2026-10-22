@@ -72,10 +72,7 @@ export default function ToolLandingPage({
       {/* ============================================================ */}
       {/*  HERO                                                        */}
       {/* ============================================================ */}
-      <section className={cn('relative overflow-hidden text-white py-16 md:py-24 bg-hero')}>
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 w-60 h-60 bg-white/10 rounded-full blur-2xl" />
-
+      <section className={cn('relative overflow-hidden text-foreground py-16 md:py-24 bg-primary-soft')}>
         <div className="container relative text-center">
           {tool.mascotImg && (
             <img
@@ -85,14 +82,14 @@ export default function ToolLandingPage({
             />
           )}
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm">
+            <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-card text-primary shadow-card">
               <Icon name={tool.icon} size={24} />
             </div>
             <h1 className="text-title md:text-title lg:text-title font-extrabold tracking-tight font-display">
               {tool.label}
             </h1>
           </div>
-          <p className="text-emphasis md:text-section text-white/90 max-w-2xl mx-auto font-medium">
+          <p className="text-emphasis md:text-section text-muted-foreground max-w-2xl mx-auto font-medium">
             {subtitle}
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -106,7 +103,7 @@ export default function ToolLandingPage({
             {sandbox && (
               <a
                 href="#sandbox"
-                className="flex items-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-body font-bold hover:bg-white/25 hover:scale-105 transition-all"
+                className="flex items-center gap-2 px-6 py-3 bg-card border border-line text-primary-dark rounded-full text-body font-bold hover:bg-muted hover:scale-105 transition-all"
               >
                 <Icon name="play_circle" size={20} />
                 Ausprobieren
@@ -114,7 +111,7 @@ export default function ToolLandingPage({
             )}
             <a
               href="#features"
-              className="flex items-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-body font-bold hover:bg-white/25 hover:scale-105 transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-card border border-line text-primary-dark rounded-full text-body font-bold hover:bg-muted hover:scale-105 transition-all"
             >
               <Icon name="info" size={20} />
               Mehr erfahren
@@ -264,12 +261,12 @@ export default function ToolLandingPage({
       {/* ============================================================ */}
       {/*  FINAL CTA                                                   */}
       {/* ============================================================ */}
-      <section className={cn('relative overflow-hidden text-white py-14 md:py-20 bg-hero')}>
+      <section className={cn('relative overflow-hidden text-foreground py-14 md:py-20 bg-primary-soft')}>
         <div className="container relative text-center">
           <h2 className="text-title md:text-title font-extrabold mb-4 font-display">
             Bereit loszulegen?
           </h2>
-          <p className="text-white/80 text-emphasis mb-8 max-w-xl mx-auto font-medium">
+          <p className="text-muted-foreground text-emphasis mb-8 max-w-xl mx-auto font-medium">
             {isLoggedIn
               ? `Leg direkt los und nutze alle Funktionen des ${tool.label}s.`
               : `Erstelle ein kostenloses Konto und nutze alle Funktionen des ${tool.label}s.`}
@@ -285,7 +282,7 @@ export default function ToolLandingPage({
             {!isLoggedIn && (
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-8 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-body font-bold hover:bg-white/25 hover:scale-105 transition-all"
+                className="flex items-center gap-2 px-8 py-3 bg-card border border-line text-primary-dark rounded-full text-body font-bold hover:bg-muted hover:scale-105 transition-all"
               >
                 <LogIn className="h-5 w-5" />
                 Kostenlos anmelden

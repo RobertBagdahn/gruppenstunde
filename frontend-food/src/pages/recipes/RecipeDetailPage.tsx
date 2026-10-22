@@ -1,4 +1,5 @@
 import { PageSkeleton } from '@/components/ui/skeleton';
+import NotFoundState from '@/components/shared/NotFoundState';
 import SectionBoundary from '@/components/shared/SectionBoundary';
 import { useState, useEffect, useMemo } from 'react';
 import { CalendarPlus, Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2, AlertTriangle, Minus, Plus, Clock, BarChart2, Users, BadgeCheck, Link2 } from 'lucide-react';
@@ -28,10 +29,11 @@ import {
   useUploadRecipeImage,
   useDeleteRecipeImage,
   useSetRecipeImageFromUrl,
+  useRecipes,
 } from '@/api/recipes';
+import { formatEuro } from '@/lib/format';
 import {
   RECIPE_DIFFICULTY_OPTIONS,
-  RECIPE_TYPE_OPTIONS,
   getRecipeExecutionTimeLabel,
 } from '@/schemas/recipe';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -53,7 +55,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import Breadcrumb from '@/components/Breadcrumb';
 import RecipeRulesBox from '@/components/recipe/RecipeRulesBox';
 
 import RecipeMetaCard from '@/components/recipe/RecipeMetaCard';
@@ -71,14 +72,17 @@ import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import { notify } from '@/lib/notify';
 import { useRequireLogin } from '@/hooks/useRequireLogin';
 import AddRecipeToMealPlanDialog from '@/components/recipe/AddRecipeToMealPlanDialog';
-import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { usePageMeta } from '@/hooks/usePageMeta';
+import { buildBreadcrumbJsonLd } from '@/lib/seo/buildBreadcrumbJsonLd';
+import { buildRecipeJsonLd } from '@/lib/seo/buildRecipeJsonLd';
 import { RecipeAnalysisTabs } from '@/components/recipe/RecipeAnalysisTabs';
 import { PriceTab } from '@/components/recipe/PriceTab';
 import { NutritionTab } from '@/components/recipe/NutritionTab';
 import { HealthTab } from '@/components/recipe/HealthTab';
 import { WeightTab } from '@/components/recipe/WeightTab';
 import { Icon } from '@/components/ui/icon';
-import HeroBand from '@/components/shared/HeroBand';
+import Breadcrumbs from '@/components/shared/Breadcrumbs';
+import RecipeTypeTag from '@/components/recipe/RecipeTypeTag';
 import RecipeKeyFigures from '@/components/recipe/RecipeKeyFigures';
 
 // --- Collapsible Section Component ---
@@ -123,6 +127,41 @@ function AnalysisSection({
 }
 
 
+
+/** Missing recipe (food-page-states): explanation, "Meintest du …" from the existing search, a way back. */
+function RecipeNotFound({ slug }: { slug: string }) {
+  const suggestions = useRecipes({ q: slug.replace(/-/g, ' '), page_size: 3 });
+  const items = suggestions.data?.items ?? [];
+  return (
+    <div className="px-4 py-8">
+      <NotFoundState
+        title="Rezept nicht gefunden"
+        description="Vielleicht wurde es umbenannt oder gelöscht. Such einfach nach einem ähnlichen Rezept."
+        suggestions={
+          items.length > 0 ? (
+            <div>
+              <p className="mb-2 text-body font-semibold text-foreground">Meintest du …</p>
+              <ul className="space-y-2">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <Link to={`/recipes/${item.slug}`} className="block rounded-lg bg-card p-3 shadow-card hover:bg-primary-soft">
+                      <span className="block font-semibold text-foreground">{item.title}</span>
+                      <span className="text-caption text-muted-foreground">
+                        {getRecipeExecutionTimeLabel(item.execution_time) ?? ''}
+                        {item.costs_per_person != null ? ` · ${formatEuro(item.costs_per_person)} pro Portion` : ''}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : undefined
+        }
+        listLink={{ label: 'Alle Rezepte ansehen', to: '/recipes' }}
+      />
+    </div>
+  );
+}
 
 export default function RecipeDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -242,11 +281,21 @@ export default function RecipeDetailPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
-  useDocumentMeta({
+  // Same title, description and crumbs as the visible page (food-seo-markup).
+  usePageMeta({
     title: recipe?.title,
-    description: recipe?.summary,
-    url: slug ? `/recipes/${slug}` : undefined,
+    description: recipe?.summary || undefined,
     image: recipe?.image_url,
+    jsonLd:
+      recipe && slug
+        ? [
+            buildRecipeJsonLd(recipe, window.location.origin, `/recipes/${slug}`),
+            buildBreadcrumbJsonLd(
+              [{ name: 'Startseite', path: '/' }, { name: 'Rezepte', path: '/recipes' }, { name: recipe.title }],
+              window.location.origin,
+            ),
+          ]
+        : null,
   });
 
   // Nutrition helpers — use modified items when store is dirty
@@ -344,15 +393,11 @@ export default function RecipeDetailPage() {
   }
 
   if (error || !recipe) {
+    const notFound = !error || (error instanceof ApiError && error.status === 404);
+    if (notFound) return <RecipeNotFound slug={slug ?? ''} />;
     return (
       <div className="container py-8">
-        <ErrorDisplay
-          error={error}
-          title={!error || (error instanceof ApiError && error.status === 404) ? 'Rezept nicht gefunden' : undefined}
-          onRetry={() => refetch()}
-          onBack={() => navigate(-1)}
-          backLabel="Zurück"
-        />
+        <ErrorDisplay error={error} onRetry={() => refetch()} onBack={() => navigate(-1)} backLabel="Zurück" />
       </div>
     );
   }
@@ -370,7 +415,6 @@ export default function RecipeDetailPage() {
 
 
   const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
-  const typeLabel = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type)?.label ?? null;
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty ?? null;
   const scoutLevelsLabel =
@@ -441,143 +485,128 @@ export default function RecipeDetailPage() {
         confirmLabel="Verwerfen"
       />
 
-      {/* Hero band: breadcrumb, title, facts, actions and the image */}
-      <HeroBand pullUpClassName="" overlap>
-        <Breadcrumb
-          tone="hero"
-          items={[
-            { label: 'Startseite', href: '/' },
-            { label: 'Rezepte', href: '/recipes' },
-            { label: recipe.title },
-          ]}
-        />
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-12">
-          <div className="min-w-0 flex-1 space-y-5">
-            <div className="flex flex-wrap gap-2">
-              {typeLabel && (
-                <span className="inline-flex h-8 items-center rounded-full bg-area-recipes-soft px-3 text-body font-bold text-spice-foreground">
-                  {typeLabel}
-                </span>
-              )}
-              {recipe.recipe_badge === 'verified' && (
-                <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-hero-soft px-3 text-body font-semibold text-hero-foreground">
-                  <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                  Inspi-verifiziert
-                </span>
-              )}
-            </div>
-            <h1 className="font-display text-display font-extrabold text-hero-foreground [overflow-wrap:anywhere]">
-              {recipe.title}
-            </h1>
-            {recipe.summary && (
-              <p className="max-w-2xl text-emphasis text-hero-muted">{recipe.summary}</p>
+      {/* Header on the white ground: breadcrumbs, title, type and facts, actions, image when there is one (food-page-shell, recipe-detail-reorganized) */}
+      <header className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <Breadcrumbs
+            items={[
+              { label: 'Startseite', to: '/' },
+              { label: 'Rezepte', to: '/recipes' },
+              { label: recipe.title },
+            ]}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <RecipeTypeTag type={recipe.recipe_type} />
+            {recipe.recipe_badge === 'verified' && (
+              <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-success-soft px-3 text-body font-semibold text-success">
+                <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+                Inspi-verifiziert
+              </span>
             )}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-body text-hero-muted">
-              {timeLabel && (
-                <span className="inline-flex items-center gap-2"><Clock className="h-4 w-4" aria-hidden="true" />{timeLabel}</span>
-              )}
-              {difficultyLabel && (
-                <span className="inline-flex items-center gap-2"><BarChart2 className="h-4 w-4" aria-hidden="true" />{difficultyLabel}</span>
-              )}
-              <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />{scoutLevelsLabel}</span>
-              {authorLabel && (
-                <span>von <span className="font-semibold text-hero-foreground">{authorLabel}</span>{createdAtLabel && <> · {createdAtLabel}</>}</span>
-              )}
-            </div>
-
-            {(recipe.source_url || recipe.forked_from_title) && (
-              <div className="flex flex-wrap gap-x-5 gap-y-2 text-body text-hero-muted">
-                {recipe.source_url && (
-                  <a
-                    href={recipe.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 underline-offset-4 transition-colors hover:text-hero-foreground hover:underline"
-                  >
-                    <Link2 className="h-4 w-4" aria-hidden="true" />
-                    Originalrezept
-                  </a>
-                )}
-                {recipe.forked_from_title && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <GitFork className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    Basiert auf{' '}
-                    {recipe.forked_from_slug ? (
-                      <Link
-                        to={`/recipes/${recipe.forked_from_slug}`}
-                        className="font-semibold text-hero-foreground underline underline-offset-4"
-                      >
-                        {recipe.forked_from_title}
-                      </Link>
-                    ) : (
-                      recipe.forked_from_title
-                    )}
-                  </span>
-                )}
-              </div>
+          </div>
+          <h1 className="font-display text-title font-extrabold text-foreground [overflow-wrap:anywhere]">{recipe.title}</h1>
+          {recipe.summary && <p className="max-w-2xl text-emphasis text-muted-foreground">{recipe.summary}</p>}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-body text-muted-foreground">
+            {timeLabel && (
+              <span className="inline-flex items-center gap-2"><Clock className="h-4 w-4" aria-hidden="true" />{timeLabel}</span>
             )}
-
-            <div className="flex flex-wrap items-center gap-2 pt-1" data-testid="recipe-detail-actions">
-              {recipe.can_edit && (
-                <Link
-                  to={`/recipes/${recipe.slug}/edit`}
-                  className="press inline-flex h-11 items-center gap-2 rounded-lg bg-hero-foreground px-4 text-body font-bold text-foreground transition-colors hover:bg-hero-muted"
-                  aria-label="Bearbeiten"
-                >
-                  <Pencil className="h-4 w-4" />
-                  Bearbeiten
-                </Link>
-              )}
-              <button
-                type="button"
-                onClick={openMealPlanDialog}
-                className="press inline-flex h-11 items-center gap-2 rounded-lg bg-hero-soft px-4 text-body font-bold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
-              >
-                <CalendarPlus className="h-4 w-4" aria-hidden="true" />
-                Zum Essensplan
-              </button>
-              <button
-                type="button"
-                onClick={() => setPdfDialogOpen(true)}
-                className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
-                title="Als PDF öffnen"
-                aria-label="Als PDF öffnen"
-              >
-                <Printer className="h-5 w-5" />
-              </button>
-              {recipe.can_delete && (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-danger-border transition-colors hover:bg-danger-soft hover:text-danger"
-                  title="Rezept löschen"
-                  aria-label="Löschen"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
-              )}
-            </div>
+            {difficultyLabel && (
+              <span className="inline-flex items-center gap-2"><BarChart2 className="h-4 w-4" aria-hidden="true" />{difficultyLabel}</span>
+            )}
+            <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />{scoutLevelsLabel}</span>
+            {authorLabel && (
+              <span>von <span className="font-semibold text-foreground">{authorLabel}</span>{createdAtLabel && <> · {createdAtLabel}</>}</span>
+            )}
           </div>
 
-          {(recipe.image_url || recipe.can_edit) && (
-            <div className="w-full shrink-0 lg:w-[420px]">
-              <TitleImageEditor
-                variant="hero"
-                contentType="recipe"
-                imageUrl={recipe.image_url}
-                canEdit={recipe.can_edit}
-                title={recipe.title}
-                summary={recipe.summary}
-                uploadMutation={uploadImage}
-                deleteMutation={deleteImage}
-                setFromUrlMutation={setImageFromUrl}
-              />
+          {(recipe.source_url || recipe.forked_from_title) && (
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-body text-muted-foreground">
+              {recipe.source_url && (
+                <a
+                  href={recipe.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-primary-dark underline-offset-4 hover:underline"
+                >
+                  <Link2 className="h-4 w-4" aria-hidden="true" />
+                  Originalrezept
+                </a>
+              )}
+              {recipe.forked_from_title && (
+                <span className="inline-flex items-center gap-1.5">
+                  <GitFork className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Basiert auf{' '}
+                  {recipe.forked_from_slug ? (
+                    <Link to={`/recipes/${recipe.forked_from_slug}`} className="font-semibold text-primary-dark underline underline-offset-4">
+                      {recipe.forked_from_title}
+                    </Link>
+                  ) : (
+                    recipe.forked_from_title
+                  )}
+                </span>
+              )}
             </div>
           )}
-        </div>
-      </HeroBand>
 
-      <div className="relative -mt-10 space-y-6 md:-mt-12">
+          <div className="flex flex-wrap items-center gap-2 pt-1" data-testid="recipe-detail-actions">
+            <button
+              type="button"
+              onClick={openMealPlanDialog}
+              className="press inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-body font-bold text-primary-foreground transition-colors hover:bg-primary-dark"
+            >
+              <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+              Zum Essensplan
+            </button>
+            {recipe.can_edit && (
+              <Link
+                to={`/recipes/${recipe.slug}/edit`}
+                className="press inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-body font-semibold text-foreground transition-colors hover:bg-muted"
+                aria-label="Bearbeiten"
+              >
+                <Pencil className="h-4 w-4" />
+                Bearbeiten
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setPdfDialogOpen(true)}
+              className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft"
+              title="Als PDF öffnen"
+              aria-label="Als PDF öffnen"
+            >
+              <Printer className="h-5 w-5" />
+            </button>
+            {recipe.can_delete && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-danger transition-colors hover:bg-danger-soft"
+                title="Rezept löschen"
+                aria-label="Löschen"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {(recipe.image_url || recipe.can_edit) && (
+          <div className="w-full">
+            <TitleImageEditor
+              contentType="recipe"
+              imageUrl={recipe.image_url}
+              canEdit={recipe.can_edit}
+              title={recipe.title}
+              summary={recipe.summary}
+              uploadMutation={uploadImage}
+              deleteMutation={deleteImage}
+              setFromUrlMutation={setImageFromUrl}
+            />
+          </div>
+        )}
+      </header>
+
+      <div className="space-y-6">
       <RecipeKeyFigures
         totalPriceEur={displayedPriceTotal}
         pricePerPortionEur={displayedPricePerPortion}
@@ -815,7 +844,7 @@ export default function RecipeDetailPage() {
                         type="button"
                         onClick={() => setPortionsMultiplier(Math.max(1, portionsMultiplier - 1))}
                         disabled={portionsMultiplier <= 1}
-                        className="press flex h-8 w-8 items-center justify-center rounded-full bg-card text-foreground shadow-soft hover:text-primary disabled:opacity-40"
+                        className="press flex h-11 w-11 md:h-8 md:w-8 items-center justify-center rounded-full bg-card text-foreground shadow-soft hover:text-primary disabled:opacity-40"
                         aria-label="Portion verringern"
                       >
                         <Minus className="h-4 w-4" />
@@ -827,7 +856,7 @@ export default function RecipeDetailPage() {
                         type="button"
                         onClick={() => setPortionsMultiplier(Math.min(100, portionsMultiplier + 1))}
                         disabled={portionsMultiplier >= 100}
-                        className="press flex h-8 w-8 items-center justify-center rounded-full bg-card text-foreground shadow-soft hover:text-primary disabled:opacity-40"
+                        className="press flex h-11 w-11 md:h-8 md:w-8 items-center justify-center rounded-full bg-card text-foreground shadow-soft hover:text-primary disabled:opacity-40"
                         aria-label="Portion erhöhen"
                       >
                         <Plus className="h-4 w-4" />
@@ -1192,7 +1221,7 @@ export default function RecipeDetailPage() {
         <AnalysisSection
           icon="format_list_numbered"
           title="Zubereitungsschritte"
-          defaultOpen={mode === 'steps'}
+          defaultOpen
           accentColor="text-info"
           preview={
             recipe.steps_count || legacyPreparationSteps.length ? (

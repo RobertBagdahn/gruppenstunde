@@ -5,19 +5,14 @@ import { cn } from '@/lib/utils';
 interface BackButtonProps {
   to?: string;
   onClick?: () => void;
-  /** `hero`: pill on the pine hero band. */
-  tone?: 'page' | 'hero';
   className?: string;
 }
 
-export function BackButton({ to, onClick, tone = 'page', className }: BackButtonProps) {
+export function BackButton({ to, onClick, className }: BackButtonProps) {
   const navigate = useNavigate();
 
   const classes = cn(
-    'press inline-flex shrink-0 items-center gap-1 text-body font-semibold transition-colors',
-    tone === 'hero'
-      ? 'h-10 rounded-full bg-hero-soft pl-2 pr-4 text-hero-foreground hover:bg-hero-foreground hover:text-foreground'
-      : 'text-muted-foreground hover:text-foreground',
+    'press inline-flex min-h-11 shrink-0 items-center gap-1 text-body font-semibold text-muted-foreground transition-colors hover:text-foreground',
     className
   );
 

@@ -6,7 +6,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
-import HeroBand from '@/components/shared/HeroBand';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
 import {
   useShoppingList,
@@ -462,9 +461,9 @@ export default function ShoppingListDetailPage() {
         loading={deleteList.isPending}
       />
 
-      {/* Header on the hero band */}
-      <HeroBand pullUpClassName="-mt-8" innerClassName="max-w-2xl" className="mb-6">
-      <BackButton to="/shopping-lists" tone="hero" className="mb-5" />
+      {/* Header on the white ground */}
+      <header className="mb-6 space-y-3">
+      <BackButton to="/shopping-lists" className="mb-1" />
       <div className="flex items-center gap-3 mb-3">
         <div className="flex-1 min-w-0">
           {/* Narrow screens: the action buttons move below the title instead of squeezing it. */}
@@ -486,7 +485,7 @@ export default function ShoppingListDetailPage() {
                 <button
                   type="button"
                   onClick={handleSaveName}
-                  className="press h-14 px-5 text-body font-bold bg-hero-foreground text-foreground rounded-xl hover:bg-hero-muted transition-colors shrink-0"
+                  className="press h-14 px-5 text-body font-bold bg-muted text-foreground rounded-xl hover:bg-primary-soft transition-colors shrink-0"
                 >
                   OK
                 </button>
@@ -495,8 +494,8 @@ export default function ShoppingListDetailPage() {
               <h1
                 className={cn(
                   // break-words only breaks a word that cannot fit a line at all, so the title keeps its min-width and can wrap the buttons away.
-                  'font-display text-display font-extrabold text-hero-foreground break-words',
-                  canRename && 'cursor-pointer decoration-hero-muted/60 underline-offset-8 hover:underline',
+                  'font-display text-display font-extrabold text-foreground break-words',
+                  canRename && 'cursor-pointer decoration-muted-foreground/60 underline-offset-8 hover:underline',
                 )}
                 onClick={() => {
                   if (canRename) {
@@ -515,7 +514,7 @@ export default function ShoppingListDetailPage() {
               <div
                 className={cn(
                   'w-2 h-2 rounded-full ring-4 shrink-0 transition-all',
-                  isConnected ? 'bg-success-bright ring-success-bright/25 animate-pulse' : 'bg-hero-muted/40 ring-hero-soft',
+                  isConnected ? 'bg-success-bright ring-success-bright/25 animate-pulse' : 'bg-muted-foreground/40 ring-muted',
                 )}
                 title={isConnected ? 'Verbunden' : 'Nicht verbunden'}
               />
@@ -527,7 +526,7 @@ export default function ShoppingListDetailPage() {
                 data-testid="shopping-shop-mode-toggle"
                 className={cn(
                   'press flex h-11 w-11 items-center justify-center rounded-lg transition-colors',
-                  shopMode ? 'bg-hero-foreground text-foreground' : 'bg-hero-soft text-hero-foreground hover:bg-hero-muted/30',
+                  shopMode ? 'bg-primary-soft text-primary-dark' : 'bg-muted text-foreground hover:bg-primary-soft',
                 )}
               >
                 <ShoppingBasket className="w-4 h-4" />
@@ -540,7 +539,7 @@ export default function ShoppingListDetailPage() {
                   aria-label="Einkaufsliste teilen"
                   aria-expanded={showShare}
                   data-testid="shopping-share-toggle"
-                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-hero-foreground transition-colors hover:bg-hero-muted/30"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft/30"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -550,7 +549,7 @@ export default function ShoppingListDetailPage() {
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
                   aria-label="Einkaufsliste löschen"
-                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-hero-soft text-danger-border transition-colors hover:bg-danger-soft hover:text-danger"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-danger-border transition-colors hover:bg-danger-soft hover:text-danger"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -561,14 +560,14 @@ export default function ShoppingListDetailPage() {
       </div>
 
       {/* Source info */}
-      <div className="flex items-center gap-3 text-body text-hero-muted">
+      <div className="flex items-center gap-3 text-body text-muted-foreground">
         <span>
           {SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type}
         </span>
         <span aria-hidden="true">•</span>
-        <span>von <span className="font-semibold text-hero-foreground">{list.owner_display_name}</span></span>
+        <span>von <span className="font-semibold text-foreground">{list.owner_display_name}</span></span>
       </div>
-      </HeroBand>
+      </header>
 
       {isGuest && !shopMode && (
         <div
@@ -641,7 +640,7 @@ export default function ShoppingListDetailPage() {
         <Link
           to={`/material-list?shopping-list=${list.id}`}
           data-testid="shopping-material-list-link"
-          className="press mb-6 flex items-center justify-center gap-2 rounded-lg bg-primary-soft px-4 py-2.5 text-body font-medium text-primary transition-colors hover:bg-primary-soft/80"
+          className="min-h-11 press mb-6 flex items-center justify-center gap-2 rounded-lg bg-primary-soft px-4 py-2.5 text-body font-medium text-primary transition-colors hover:bg-primary-soft/80"
         >
           <ClipboardList className="w-4 h-4" />
           Materialliste anzeigen

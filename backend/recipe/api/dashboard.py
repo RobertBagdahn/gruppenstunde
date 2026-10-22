@@ -1,6 +1,7 @@
 """Food Dashboard API — aggregated statistics for the homepage."""
 
 from django.db.models import Avg, Count, Q
+from django.utils import timezone
 from ninja import Router
 
 from content.services.food_access import public_meal_plan_q, visible_ingredient_queryset, visible_recipe_queryset
@@ -38,6 +39,17 @@ def get_food_dashboard(request) -> FoodDashboardOut:
             ShoppingList.objects.filter(Q(owner=user) | Q(collaborators__user=user)).distinct().count()
         )
     meal_plan_count = meal_plans.count()
+    # Active: the plan has not ended yet (an open end counts as active).
+    active_meal_plan_count = meal_plans.filter(
+        Q(end_datetime__gte=timezone.now()) | Q(end_datetime__isnull=True)
+    ).count()
+    open_shopping_list_count = (
+        ShoppingList.objects.filter(Q(owner=user) | Q(collaborators__user=user), items__is_checked=False)
+        .distinct()
+        .count()
+        if user.is_authenticated
+        else 0
+    )
 
     # Insights
     avg_ingredients = (
@@ -73,6 +85,8 @@ def get_food_dashboard(request) -> FoodDashboardOut:
         recipe_count=recipe_count,
         ingredient_count=ingredient_count,
         meal_plan_count=meal_plan_count,
+        active_meal_plan_count=active_meal_plan_count,
         shopping_list_count=shopping_list_count,
+        open_shopping_list_count=open_shopping_list_count,
         insights=insights,
     )

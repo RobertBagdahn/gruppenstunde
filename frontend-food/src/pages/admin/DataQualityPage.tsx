@@ -1,4 +1,3 @@
-import HeroBand from '@/components/shared/HeroBand';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import DataQualityIngredientsPage from './DataQualityIngredientsPage';
@@ -24,10 +23,10 @@ export default function DataQualityPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
-<HeroBand pullUpClassName="-mt-4 md:-mt-8" className="mb-6">
+<header className="mb-6 space-y-3">
       <div className="space-y-1">
-        <h1 className="font-display text-display font-extrabold text-hero-foreground">Datenqualität</h1>
-        <p className="text-emphasis text-hero-muted mt-2">
+        <h1 className="font-display text-display font-extrabold text-foreground">Datenqualität</h1>
+        <p className="text-emphasis text-muted-foreground mt-2">
           Werkzeuge zur Verbesserung der Datenqualität von Zutaten und Rezepten
         </p>
       </div>
@@ -38,10 +37,10 @@ export default function DataQualityPage() {
             key={tab.key}
             onClick={() => navigate(`/admin/data-quality/${tab.key}`)}
             className={cn(
-              'press h-10 px-4 rounded-full text-body font-semibold whitespace-nowrap transition-colors',
+              'press h-11 px-4 rounded-full text-body font-semibold whitespace-nowrap transition-colors',
               activeTab === tab.key
-                ? 'bg-hero-foreground text-foreground'
-                : 'text-hero-muted hover:bg-hero-soft hover:text-hero-foreground'
+                ? 'bg-background text-foreground'
+                : 'text-muted-foreground hover:bg-primary-soft hover:text-primary-dark'
             )}
           >
             {tab.label}
@@ -49,7 +48,7 @@ export default function DataQualityPage() {
         ))}
       </div>
 
-      </HeroBand>
+      </header>
 
       {activeTab === 'cockpit' && <DataOffensivePage />}
       {activeTab === 'ingredients' && <DataQualityIngredientsPage />}

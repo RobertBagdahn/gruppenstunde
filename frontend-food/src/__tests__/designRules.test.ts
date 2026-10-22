@@ -46,6 +46,14 @@ describe('design rules', () => {
     expect(offenders(/\bgradient-(hero|primary|warm|fun|sunset|rainbow)\b/, [])).toEqual([]);
   });
 
+  it('loads no fonts from third-party hosts (food-design-system: self-hosted fonts)', () => {
+    expect(offenders(/fonts\.(googleapis|gstatic)\.com/, [])).toEqual([]);
+  });
+
+  it('uses no gradient classes at all (food-design-system: keine Verläufe)', () => {
+    expect(offenders(/\bbg-gradient-to-|\bfrom-[\w-]+\/?\d*\s+via-|\bgradient-\w+/, [])).toEqual([]);
+  });
+
   it('does not use status colours as solid action surfaces', () => {
     expect(offenders(/\bbg-warning(?![-/\w])/, ['pages/StyleguidePage.tsx'])).toEqual([]);
   });

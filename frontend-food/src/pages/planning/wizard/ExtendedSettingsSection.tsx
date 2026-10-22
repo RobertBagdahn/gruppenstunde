@@ -36,8 +36,8 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
       <h4 className="font-display font-bold text-body text-foreground">Erweiterte Einstellungen</h4>
 
       <div>
-        <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Beschreibung</label>
-        <textarea
+        <label htmlFor="wiz-ext-1" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Beschreibung</label>
+        <textarea id="wiz-ext-1"
           value={state.description}
           onChange={(e) => onChange({ description: e.target.value })}
           rows={2}
@@ -47,8 +47,8 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Reservefaktor</label>
-          <input
+          <label htmlFor="wiz-ext-2" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Reservefaktor</label>
+          <input id="wiz-ext-2"
             type="number"
             min={1.0}
             max={2.0}
@@ -63,8 +63,8 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
           </p>
         </div>
         <div>
-          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Budget (€/Person/Tag)</label>
-          <input
+          <label htmlFor="wiz-ext-3" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Budget (€/Person/Tag)</label>
+          <input id="wiz-ext-3"
             type="number"
             min={0}
             step={0.5}
@@ -75,8 +75,8 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
           />
         </div>
         <div>
-          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Sichtbarkeit</label>
-          <select
+          <label htmlFor="wiz-ext-4" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Sichtbarkeit</label>
+          <select id="wiz-ext-4"
             value={state.visibility}
             onChange={(e) => onChange({ visibility: e.target.value as MealPlanWizardState['visibility'] })}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"

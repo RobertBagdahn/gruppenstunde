@@ -187,7 +187,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
             onChange={(event) =>
               onFiltersChange({ ...filters, status: event.target.value as PackageSuggestionStatus, page: 1 })
             }
-            className="h-9 rounded-lg border bg-background px-2 text-body"
+            className="h-11 md:h-9 rounded-lg border bg-background px-2 text-body"
             aria-label="Status filtern"
           >
             {STATUS_OPTIONS.map((option) => (
@@ -205,7 +205,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
                 page: 1,
               })
             }
-            className="h-9 rounded-lg border bg-background px-2 text-body"
+            className="h-11 md:h-9 rounded-lg border bg-background px-2 text-body"
             aria-label="Konfidenz filtern"
           >
             {CONFIDENCE_OPTIONS.map((option) => (
@@ -223,7 +223,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
                 page: 1,
               })
             }
-            className="h-9 rounded-lg border bg-background px-2 text-body"
+            className="h-11 md:h-9 rounded-lg border bg-background px-2 text-body"
             aria-label="Warengruppe filtern"
           >
             <option value="">Alle Warengruppen</option>

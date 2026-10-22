@@ -110,7 +110,7 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 h-8 px-2.5 text-caption font-medium bg-muted border border-border rounded-lg hover:bg-border transition-colors whitespace-nowrap"
+        className="flex items-center gap-1.5 h-11 md:h-8 px-2.5 text-caption font-medium bg-muted border border-border rounded-lg hover:bg-border transition-colors whitespace-nowrap"
       >
         <span>Ernährungstags</span>
         {selectedTagIds.length > 0 && (

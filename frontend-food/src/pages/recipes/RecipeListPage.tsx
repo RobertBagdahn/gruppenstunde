@@ -1,10 +1,12 @@
 import { SkeletonCardGrid, SkeletonTableRows } from '@/components/ui/skeleton';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { costBounds } from '@/lib/recipeCostRanges';
 import { useNavigate, Link } from 'react-router-dom';
 import type { z } from 'zod';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { useRecipes, useDeleteRecipe, useForkRecipe } from '@/api/recipes';
+import { StickerBoundary } from '@/components/shared/StickerBoundary';
+import { usePopularRecipeIds } from '@/api/popularRecipes';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeTable from '@/components/recipe/RecipeTable';
 import RecipeFilterSidebar from '@/components/recipe/RecipeFilterSidebar';
@@ -14,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { RecipeListStateSchema } from '@/schemas/listState';
 import { takeLegacyValue } from '@/lib/listStateStorage';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
 import PageHeader from '@/components/shared/PageHeader';
@@ -42,7 +45,7 @@ const RECIPE_LIST_DEFAULTS = {
 // The search text stays URL-only: restoring it silently led to empty lists ("0 Rezepte").
 const PERSIST_EXCLUDE = ['q', 'page', 'seed'] as const;
 const COUNT_EXCLUDE = ['page', 'view', 'seed'] as const;
-/** Quick filters on the hero band: the meal types people browse by. */
+/** Quick filters under the page header: the meal types people browse by. */
 const QUICK_TYPES = RECIPE_TYPE_OPTIONS.filter((opt) =>
   ['breakfast', 'warm_meal', 'cold_meal', 'dessert', 'drink', 'snack'].includes(opt.value),
 );
@@ -72,9 +75,11 @@ function buildPageTitle(filters: Partial<RecipeFilter>): string {
     if (label) parts.push(label);
   }
   if (filters.origin?.length === 1 && filters.origin[0] === 'verified' && parts.length === 0) {
-    return 'Verifizierte Rezepte – Inspi';
+    parts.push('Verifizierte Rezepte');
+  } else {
+    parts.push('Rezepte');
   }
-  parts.push('Rezepte – Inspi');
+  if (filters.page && filters.page > 1) parts.push(`Seite ${filters.page}`);
   return parts.join(' – ');
 }
 
@@ -108,6 +113,9 @@ export default function RecipeListPage() {
   const [cloneTitle, setCloneTitle] = useState('');
 
   const { data, isPending: isLoading, error, refetch, isPlaceholderData } = useRecipes(filters, { enabled: restored });
+  // "Beliebt" sticker: the first ten of the existing sort "Meistgesehen" (food-design-system).
+  const popularQuery = usePopularRecipeIds({ enabled: restored });
+  const popularIds = popularQuery.data ?? new Set<number>();
   const deleteRecipe = useDeleteRecipe();
   const forkRecipe = useForkRecipe(cloneTarget?.id ?? 0);
 
@@ -115,12 +123,7 @@ export default function RecipeListPage() {
     patch({ q: value.trim() || undefined, page: undefined }, { replace: true });
   });
 
-  useEffect(() => {
-    document.title = buildPageTitle(filters);
-    return () => {
-      document.title = 'Inspi – Gruppenstunden-Inspirator';
-    };
-  }, [filters]);
+  usePageMeta({ title: buildPageTitle(filters) });
 
   const handleFilterChange = useCallback((key: string, value: unknown) => {
     patch({
@@ -145,8 +148,6 @@ export default function RecipeListPage() {
       <PageHeader
         title="Rezepte"
         description="Finde das perfekte Rezept für deine Gruppe"
-        area="recipes"
-        icon="menu_book"
         count={data?.total}
         countLoading={isLoading || !restored}
         countLabel={{ one: 'Rezept', other: 'Rezepte' }}
@@ -175,10 +176,10 @@ export default function RecipeListPage() {
                   )
                 }
                 className={cn(
-                  'press flex h-10 items-center gap-2 rounded-full px-4 text-body font-semibold transition-colors duration-200',
+                  'press flex h-11 items-center gap-2 rounded-full px-4 text-body font-semibold transition-colors duration-200',
                   active
-                    ? 'bg-hero-foreground text-foreground'
-                    : 'border border-hero-muted/40 text-hero-foreground hover:bg-hero-soft',
+                    ? 'bg-background text-foreground'
+                    : 'border border-border text-foreground hover:bg-primary-soft',
                 )}
               >
                 {active && <Icon name="check" size={16} />}
@@ -213,7 +214,7 @@ export default function RecipeListPage() {
                 <select
                   value={filters.sort ?? 'use_count'}
                   onChange={(e) => handleFilterChange('sort', e.target.value)}
-                  className="min-w-0 h-9 rounded-lg border-0 bg-transparent px-2 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-ring/40"
+                  className="min-w-0 h-11 md:h-9 rounded-lg border-0 bg-transparent px-2 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-ring/40"
                 >
                   {RECIPE_SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -227,7 +228,7 @@ export default function RecipeListPage() {
                   type="button"
                   onClick={() => toggleView('grid')}
                   aria-pressed={viewMode === 'grid'}
-                  className={`press flex h-9 w-10 items-center justify-center rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-hero text-hero-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`press flex h-11 w-11 md:h-9 md:w-10 items-center justify-center rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-primary-soft text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Kacheln"
                   aria-label="Kachelansicht"
                 >
@@ -237,7 +238,7 @@ export default function RecipeListPage() {
                   type="button"
                   onClick={() => toggleView('table')}
                   aria-pressed={viewMode === 'table'}
-                  className={`press flex h-9 w-10 items-center justify-center rounded-lg transition-colors ${viewMode === 'table' ? 'bg-hero text-hero-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`press flex h-11 w-11 md:h-9 md:w-10 items-center justify-center rounded-lg transition-colors ${viewMode === 'table' ? 'bg-primary-soft text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   title="Tabelle"
                   aria-label="Tabellenansicht"
                 >
@@ -278,14 +279,16 @@ export default function RecipeListPage() {
             />
             </div>
           ) : (
+            <StickerBoundary>
             <div
               aria-busy={isPlaceholderData}
-              className={`stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
+              className={`stagger grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
             >
               {data?.items.map((recipe) => (
                 <RecipeCard
                   key={recipe.id}
                   recipe={recipe}
+                  popular={popularIds.has(recipe.id)}
                   searchQuery={filters.q}
                   canEdit={recipe.can_edit}
                   canDelete={recipe.can_delete}
@@ -298,6 +301,7 @@ export default function RecipeListPage() {
                 />
               ))}
             </div>
+            </StickerBoundary>
           )}
 
           <Pagination

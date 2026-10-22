@@ -40,7 +40,7 @@ export default function EmptyState({
           height={160}
         />
       ) : icon ? (
-        <div className="mb-5 flex h-20 w-20 -rotate-3 items-center justify-center rounded-xl bg-primary-soft">
+        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-xl bg-primary-soft">
           <Icon name={icon} size={48} className="text-primary" />
         </div>
       ) : null}

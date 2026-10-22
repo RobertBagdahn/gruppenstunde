@@ -1,4 +1,4 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 /**
  * "Konto & Anmeldung": linked providers, connect/disconnect, AI quota, logout.
  */
@@ -52,10 +52,9 @@ export default function AccountPage() {
 
   return (
     <div className="pb-10">
-    <TitleBand
+    <DetailHeader
       title="Konto &amp; Anmeldung"
-      description={<>Angemeldet als <span className="font-semibold text-hero-foreground">{user.email}</span></>}
-      innerClassName="max-w-2xl"
+      description={<>Angemeldet als <span>{user.email}</span></>}
     />
     <div className="container max-w-2xl space-y-6 px-4">
 

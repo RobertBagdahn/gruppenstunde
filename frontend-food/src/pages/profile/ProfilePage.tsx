@@ -1,4 +1,3 @@
-import HeroBand from '@/components/shared/HeroBand';
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { User, Utensils, ShoppingCart, CalendarDays, ChevronDown, Clock } from 'lucide-react';
@@ -69,7 +68,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-      <HeroBand pullUpClassName="-mt-8" innerClassName="max-w-2xl" className="mb-2">
+      <header className="mb-6 space-y-3">
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
@@ -84,19 +83,19 @@ export default function ProfilePage() {
           )}
         </div>
         <div>
-          <h1 className="font-display text-display font-extrabold text-hero-foreground">
+          <h1 className="font-display text-display font-extrabold text-foreground">
             {profile.scout_name || profile.first_name}
           </h1>
-          <p className="text-emphasis text-hero-muted">
+          <p className="text-emphasis text-muted-foreground">
             Mitglied seit {new Date(profile.created_at).toLocaleDateString('de-DE', { year: 'numeric', month: 'long' })}
           </p>
-          <p className="text-body text-hero-muted flex items-center gap-1 mt-0.5">
+          <p className="text-body text-muted-foreground flex items-center gap-1 mt-0.5">
             <Clock className="w-3 h-3" />
             Zuletzt aktiv {relativeTime(profile.updated_at)}
           </p>
         </div>
       </div>
-      </HeroBand>
+      </header>
 
       {/* About */}
       {profile.about_me && (

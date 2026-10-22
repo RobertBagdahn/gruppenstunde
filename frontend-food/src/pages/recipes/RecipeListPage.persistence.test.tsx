@@ -15,6 +15,10 @@ vi.mock('@/api/auth', () => ({
   useCurrentUser: () => ({ data: mocks.user, isLoading: false }),
 }));
 
+vi.mock('@/api/popularRecipes', () => ({
+  usePopularRecipeIds: () => ({ data: new Set<number>() }),
+}));
+
 vi.mock('@/api/recipes', () => ({
   useRecipes: (filters: Partial<RecipeFilter>, options: { enabled?: boolean }) => {
     mocks.useRecipes(filters, options);

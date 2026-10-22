@@ -176,7 +176,7 @@ export default function ShareDialog({
                 onClick={() => setAddMode('user')}
                 className={`px-3 py-1.5 text-caption font-bold rounded-full border transition-colors ${
                   addMode === 'user'
-                    ? 'bg-primary/15 text-primary border-primary/30'
+                    ? 'bg-primary-soft text-primary-dark border-primary/30'
                     : 'bg-background text-muted-foreground border-border hover:text-foreground'
                 }`}
               >
@@ -186,7 +186,7 @@ export default function ShareDialog({
                 onClick={() => setAddMode('group')}
                 className={`px-3 py-1.5 text-caption font-bold rounded-full border transition-colors ${
                   addMode === 'group'
-                    ? 'bg-primary/15 text-primary border-primary/30'
+                    ? 'bg-primary-soft text-primary-dark border-primary/30'
                     : 'bg-background text-muted-foreground border-border hover:text-foreground'
                 }`}
               >

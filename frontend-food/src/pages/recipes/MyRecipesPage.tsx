@@ -1,6 +1,7 @@
 /**
  * MyRecipesPage — Paginated list of the current user's personal recipes.
  */
+import { StickerBoundary } from '@/components/shared/StickerBoundary';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMyRecipes } from '@/api/recipes';
@@ -9,7 +10,6 @@ import { useCurrentUser } from '@/api/auth';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
 import ErrorDisplay from '@/components/ErrorDisplay';
-import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import PageHeader from '@/components/shared/PageHeader';
 import { SkeletonCardGrid } from '@/components/ui/skeleton';
 
@@ -21,16 +21,10 @@ export default function MyRecipesPage() {
   const { data: currentUser, isLoading: authLoading } = useCurrentUser();
   const { data, isLoading, error, refetch } = useMyRecipes({ page, page_size: pageSize });
 
-  useDocumentMeta({
-    title: 'Meine Rezepte',
-    description: 'Deine persönlichen Rezepte',
-    url: '/recipes/my-recipes',
-  });
-
   if (authLoading || isLoading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <PageHeader title="Meine Rezepte" description="Deine persönlichen Rezepte" area="recipes" icon="menu_book" countLoading />
+        <PageHeader title="Meine Rezepte" description="Deine persönlichen Rezepte" countLoading />
         <SkeletonCardGrid count={8} label="Rezepte werden geladen" />
       </div>
     );
@@ -63,14 +57,12 @@ export default function MyRecipesPage() {
       <PageHeader
         title="Meine Rezepte"
         description="Deine persönlichen Rezepte"
-        area="recipes"
-        icon="menu_book"
         count={data?.total}
         countLabel={{ one: 'persönliches Rezept', other: 'persönliche Rezepte' }}
         actions={
           <Link
             to="/recipes"
-            className="press inline-flex h-11 items-center gap-1.5 rounded-full bg-hero-soft px-4 text-body font-semibold text-hero-foreground transition-colors hover:bg-hero-foreground hover:text-foreground"
+            className="press inline-flex h-11 items-center gap-1.5 rounded-full bg-muted px-4 text-body font-semibold text-foreground transition-colors hover:bg-primary-soft hover:text-primary-dark"
           >
             <ArrowLeft className="w-4 h-4" />
             Alle Rezepte
@@ -96,6 +88,7 @@ export default function MyRecipesPage() {
         </div>
       ) : (
         <>
+          <StickerBoundary>
           <div className="stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {recipes.map((recipe) => (
               <div key={recipe.id} className="relative">
@@ -106,6 +99,7 @@ export default function MyRecipesPage() {
               </div>
             ))}
           </div>
+          </StickerBoundary>
 
           {/* Pagination */}
           {totalPages > 1 && (

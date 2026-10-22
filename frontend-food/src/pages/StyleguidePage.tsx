@@ -1,469 +1,296 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CardTable, DataCardRow } from '@/components/shared/CardTable';
-import EmptyState from '@/components/shared/EmptyState';
-import { ChevronRight, Calendar, Clock, ShoppingBag, AlertTriangle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+/**
+ * Living styleguide of the food app (food-design-system: lebende Styleguide-Page).
+ * Values come from the CSS tokens and the real components, not from copies.
+ */
+import { useEffect, useState, type ReactNode } from 'react';
 import { contrastRatio, parseHsl, type Hsl } from '@/lib/contrast';
 import { formatNumber } from '@/lib/format';
+import type { IconSize } from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { notify } from '@/lib/notify';
+import BrandMark from '@/components/layout/BrandMark';
 import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
-import { areaTileClass } from '@/components/shared/PageHeader';
-import { SkeletonCard, SkeletonSection } from '@/components/ui/skeleton';
+import Sticker, { FlatTag } from '@/components/shared/Sticker';
+import StatusNotice from '@/components/shared/StatusNotice';
+import EmptyBlock from '@/components/shared/EmptyBlock';
+import SectionError from '@/components/shared/SectionError';
+import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
+import RecipeTypeTag from '@/components/recipe/RecipeTypeTag';
+import { ActiveChip } from '@/components/shared/FilterParts';
+import { Input } from '@/components/ui/input';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { RECIPE_TINT_CLASSES } from '@/lib/recipeTypeStyle';
+import { cn } from '@/lib/utils';
 
-interface SwatchProps {
-  token: string;
-  label: string;
-  /** Token used as text colour on this swatch for the contrast check. */
-  on: string;
-  minimum: number;
-  /** Badge label when the minimum is met (default: WCAG AA). */
-  passLabel?: string;
-}
+const BACKGROUND_TOKEN = 'background';
 
-const BASE_SWATCHES: SwatchProps[] = [
-  { token: 'primary', label: 'Primär', on: 'primary-foreground', minimum: 4.5 },
-  { token: 'background', label: 'Hintergrund', on: 'foreground', minimum: 4.5 },
-  { token: 'card', label: 'Karte', on: 'card-foreground', minimum: 4.5 },
-  { token: 'muted', label: 'Gedämpft', on: 'muted-foreground', minimum: 4.5 },
-  { token: 'accent', label: 'Akzent', on: 'accent-foreground', minimum: 4.5 },
-  { token: 'border', label: 'Rahmen / Linien (auf Hintergrund)', on: 'background', minimum: 1.3, passLabel: 'sichtbar' },
-  { token: 'input', label: 'Rahmen Bedienelemente (auf Hintergrund)', on: 'background', minimum: 3 },
-];
-
-const STATUS_TOKENS = [
-  { token: 'success', label: 'Erfolg', example: 'Plan vollständig' },
-  { token: 'warning', label: 'Warnung', example: 'Budget knapp' },
-  { token: 'danger', label: 'Fehler', example: 'Allergen im Rezept' },
-  { token: 'info', label: 'Hinweis', example: 'Referenzmahlzeit' },
-] as const;
-
-const FONT_SCALE = [
-  { token: 'text-caption', px: 12, usage: 'Klein: Chips, Badges, Metadaten', display: false },
-  { token: 'text-body', px: 14, usage: 'Standard-Fließtext und Bedienelemente', display: false },
-  { token: 'text-emphasis', px: 16, usage: 'Hervorgehobener Text', display: false },
-  { token: 'text-section', px: 20, usage: 'Abschnitts- und Kartenüberschrift', display: true },
-  { token: 'text-title', px: 28, usage: 'Seitentitel ohne Kopfband', display: true },
-  { token: 'text-metric', px: 32, usage: 'Kennzahlen (Kosten, kcal, Portionen)', display: true },
-  { token: 'text-display', px: 64, usage: 'Seitentitel im Kopfband (fluid 36–64 px)', display: true },
-];
-
-const ICON_SIZES = [
-  { size: 16, usage: 'Fließtext, kleine Buttons, Chips' },
-  { size: 20, usage: 'Buttons und Navigation' },
-  { size: 24, usage: 'Kopfzeilen' },
-  { size: 48, usage: 'Nur Leerzustände' },
-] as const;
-
-const ICON_EXAMPLES = ['search', 'add', 'delete', 'settings', 'shopping_cart', 'schedule'];
-
-const RADII = [
-  { token: 'rounded-lg', size: '10 px', usage: 'Bedienelemente: Buttons, Inputs, Selects, Chips' },
-  { token: 'rounded-xl', size: '16 px', usage: 'Karten und Dialoge' },
-  { token: 'rounded-full', size: 'rund', usage: 'Pills, Badges, Avatare, runde Icon-Buttons' },
-];
-
-/** Contrast of two tokens as rendered (reads the live CSS variables). */
-function useTokenContrast(foreground: string, background: string): number | null {
-  const [ratio, setRatio] = useState<number | null>(null);
+/** Reads a colour token from the document and checks it on the page ground. */
+function useTokenColor(name: string): { hsl: Hsl | null; css: string } {
+  const [state, setState] = useState<{ hsl: Hsl | null; css: string }>({ hsl: null, css: '' });
   useEffect(() => {
-    const style = getComputedStyle(document.documentElement);
-    const resolve = (token: string): Hsl | null => parseHsl(style.getPropertyValue(`--${token}`));
-    const fg = resolve(foreground);
-    const bg = resolve(background);
-    setRatio(fg && bg ? contrastRatio(fg, bg) : null);
-  }, [foreground, background]);
-  return ratio;
+    const css = getComputedStyle(document.documentElement).getPropertyValue(`--${name}`).trim();
+    setState({ hsl: parseHsl(css), css });
+  }, [name]);
+  return state;
 }
 
-function ContrastBadge({
-  ratio,
-  minimum,
-  passLabel = 'AA',
-}: {
-  ratio: number | null;
-  minimum: number;
-  passLabel?: string;
-}) {
-  if (ratio === null) return <span className="text-caption text-muted-foreground">–</span>;
-  const ok = ratio >= minimum;
+function ContrastBadge({ token, on = BACKGROUND_TOKEN }: { token: string; on?: string }) {
+  const fg = useTokenColor(token);
+  const bg = useTokenColor(on);
+  if (!fg.hsl || !bg.hsl) return null;
+  const ratio = contrastRatio(fg.hsl, bg.hsl);
   return (
-    <span
-      className={`inline-flex rounded-full border px-2 py-0.5 text-caption font-semibold ${
-        ok ? 'bg-success-soft text-success border-success-border' : 'bg-danger-soft text-danger border-danger-border'
-      }`}
-    >
-      {formatNumber(ratio, { maxDecimals: 1 })}:1 {ok ? passLabel : `< ${formatNumber(minimum, { maxDecimals: 1 })}`}
+    <span className={cn('text-caption font-semibold tabular-nums', ratio >= 4.5 ? 'text-success-foreground' : 'text-danger-foreground')}>
+      {formatNumber(ratio, { maxDecimals: 1 })} : 1
     </span>
   );
 }
 
-function ColorSwatch({ token, label, on, minimum, passLabel }: SwatchProps) {
-  const ratio = useTokenContrast(on, token);
+function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
   return (
-    <div className="border border-border rounded-xl p-4 bg-card shadow-sm space-y-2">
-      <div
-        className="w-full h-12 rounded-lg border border-border flex items-center px-3 text-body font-semibold"
-        style={{ background: `hsl(var(--${token}))`, color: `hsl(var(--${on}))` }}
-      >
-        Aa
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="text-body font-semibold text-foreground">{label}</div>
-          <code className="text-caption text-muted-foreground">--{token}</code>
-        </div>
-        <ContrastBadge ratio={ratio} minimum={minimum} passLabel={passLabel} />
-      </div>
-    </div>
+    <section aria-labelledby={id} className="space-y-4 border-t border-line pt-8">
+      <h2 id={id} className="font-display text-heading font-bold text-foreground">
+        {title}
+      </h2>
+      {intro && <p className="max-w-2xl text-body text-muted-foreground md:text-emphasis">{intro}</p>}
+      {children}
+    </section>
   );
 }
 
-const STATUS_CLASSES: Record<(typeof STATUS_TOKENS)[number]['token'], { solid: string; soft: string }> = {
-  success: { solid: 'bg-success text-success-foreground', soft: 'bg-success-soft text-success border-success-border' },
-  warning: { solid: 'bg-warning-bright text-foreground', soft: 'bg-warning-soft text-warning border-warning-border' },
-  danger: { solid: 'bg-danger text-danger-foreground', soft: 'bg-danger-soft text-danger border-danger-border' },
-  info: { solid: 'bg-info text-info-foreground', soft: 'bg-info-soft text-info border-info-border' },
-};
-
-function StatusSwatch({ token, label, example }: (typeof STATUS_TOKENS)[number]) {
-  const solidRatio = useTokenContrast(`${token}-foreground`, token);
-  const softRatio = useTokenContrast(token, `${token}-soft`);
-  const classes = STATUS_CLASSES[token];
+function Swatch({ token, label, usage, on }: { token: string; label: string; usage: string; on?: string }) {
+  const color = useTokenColor(token);
   return (
-    <div className="border border-border rounded-xl p-4 bg-card shadow-sm space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-emphasis font-semibold text-foreground">{label}</span>
-        <code className="text-caption text-muted-foreground">
-          {token} · -soft · -border · -foreground
-        </code>
+    <div className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-card">
+      <span className="h-11 w-11 shrink-0 rounded-lg border border-line" style={{ backgroundColor: color.css ? `hsl(${color.css})` : undefined }} aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <div className="text-body font-semibold text-foreground">{label}</div>
+        <div className="text-caption text-muted-foreground [overflow-wrap:anywhere]">
+          --{token} · {usage}
+        </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`rounded-lg px-3 py-1.5 text-body font-semibold ${classes.solid}`}>{example}</span>
-        <ContrastBadge ratio={solidRatio} minimum={4.5} />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`rounded-lg border px-3 py-1.5 text-body ${classes.soft}`}>{example}</span>
-        <ContrastBadge ratio={softRatio} minimum={4.5} />
-      </div>
+      <ContrastBadge token={token} on={on} />
     </div>
   );
 }
 
 export default function StyleguidePage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-      {/* Page Header */}
-      <div className="border-b border-border pb-6">
-        <h1 className="text-title font-extrabold tracking-tight text-foreground font-display">
-          Inspi Food Design-System & Styleguide
-        </h1>
-        <p className="text-emphasis text-muted-foreground mt-2 font-sans">
-          Lebendes Showcase und Referenz für den Look „Feldküche“.
+    <div className="mx-auto max-w-5xl space-y-10 px-4 py-6 sm:px-6 md:py-8 lg:px-8">
+      <header className="space-y-3">
+        <BrandMark />
+        <h1 className="font-display text-title font-extrabold text-foreground">Styleguide · Sticker</h1>
+        <p className="max-w-2xl text-emphasis text-muted-foreground">
+          Gemeinsame Bausteine für alle Seiten: weißer Grund, eine Hauptfarbe, Tönungen nur für Rezepttypen, verspielt nur in kleinen Dosen.
+          Diese Seite liest ihre Werte aus den Tokens und zeigt die echten Komponenten.
         </p>
-      </div>
+      </header>
 
-      {/* Farb-Token */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          1. Farb-Token & Kontrast
-        </h2>
-        <p className="text-body text-muted-foreground">
-          Alle Farben kommen aus CSS-Variablen in <code>index.css</code>. Tailwind-Palettenfarben (z. B.{' '}
-          <code>amber-50</code>) sind verboten; <code>chart-*</code> nur in Diagrammen. Die Kontrastwerte werden live
-          berechnet (WCAG AA: Text ≥ 4,5:1, Bedienelemente ≥ 3:1).
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {BASE_SWATCHES.map((swatch) => (
-            <ColorSwatch key={swatch.token} {...swatch} />
-          ))}
+      <Section id="farben" title="Farben" intro="Kontrast gegen den weißen Grund. Text mindestens 4,5 : 1, Feldränder und Symbole mindestens 3 : 1.">
+        <h3 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Grundfarben und Marke</h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Swatch token="foreground" label="Tinte" usage="Text, aktive Chips" />
+          <Swatch token="muted-foreground" label="Gedämpft" usage="Zweittext, Meta" />
+          <Swatch token="input" label="Feldrand und Symbol" usage="Eingaben, Checkbox, Icons (nie Text)" />
+          <Swatch token="line" label="Linie" usage="Trenner, Kartenränder (dekorativ)" />
+          <Swatch token="muted" label="Fläche" usage="Segmente, neutrale Hinweise" />
+          <Swatch token="primary" label="Petrol" usage="Hauptaktion, Fortschritt, erledigt" />
+          <Swatch token="primary-dark" label="Petrol dunkel" usage="Petrolfarbener Text auf hellem Grund" />
+          <Swatch token="primary-soft" label="Petrol hell" usage="Nebenaktion, aktive Navigation" />
+          <Swatch token="spice" label="Tomate" usage="Schrittnummern, kleine Akzente" />
+          <Swatch token="spice-foreground" label="Tomate Text" usage="Roter Text auf hellem Grund" />
+          <Swatch token="sticker" label="Sticker" usage="Nur Sticker, höchstens einer pro Ansicht" on="foreground" />
         </div>
-        <h3 className="text-section font-semibold font-display pt-2">Status-Token</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {STATUS_TOKENS.map((status) => (
-            <StatusSwatch key={status.token} {...status} />
-          ))}
-        </div>
-      </section>
 
-      {/* Typografie */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          2. Schriftgrößen-Skala
-        </h2>
-        <p className="text-body text-muted-foreground">
-          Fünf Textgrößen plus <code>text-metric</code> und <code>text-display</code>. Überschriften in Bricolage Grotesque (<code>font-display</code>), Fließtext in Figtree. Kleiner
-          als 12 px und freie Werte (<code>text-[…]</code>) gibt es nicht.
-        </p>
-        <div className="border border-border rounded-xl bg-card shadow-sm divide-y">
-          {FONT_SCALE.map((size) => (
-            <div key={size.token} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-baseline sm:gap-6">
-              <code className="text-caption text-muted-foreground w-40 shrink-0">
-                {size.token} · {size.px} px
-              </code>
-              <span className={`${size.token} ${size.display ? 'font-display font-bold' : ''} text-foreground`}>
-                {size.usage}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Kopfband und Bewegung */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">4. Kopfband und Bewegung</h2>
-        <p className="text-body text-muted-foreground">
-          Navigation und Seitenkopf bilden ein <code>bg-hero</code>-Band; Kennzahlen dürfen seine Unterkante überlappen.
-          Bewegung ist kurz (100–420 ms) und schaltet unter <code>prefers-reduced-motion</code> ab.
-        </p>
-        <div className="overflow-hidden rounded-xl bg-hero p-6 text-hero-foreground">
-          <p className="text-body text-hero-muted">Rezepte / Porridge</p>
-          <p className="mt-2 font-display text-display font-extrabold">Porridge</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full bg-hero-soft px-3 py-1 text-body font-semibold">Chip auf dem Band</span>
-            <span className="rounded-full bg-hero-foreground px-3 py-1 text-body font-bold text-foreground">Aktive Aktion</span>
-          </div>
-        </div>
-        <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {['stagger', 'animate-pop', 'press', 'card-hover'].map((name) => (
-            <div key={name} className="card-hover press rounded-xl bg-card p-4 shadow-card">
-              <code className="text-caption text-muted-foreground">{name}</code>
-            </div>
-          ))}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Skeleton</p>
-            <SkeletonCard withImage={false} />
-          </div>
-        </div>
-      </section>
-
-      {/* Radien */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">3. Eckenradien</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {RADII.map((radius) => (
-            <div key={radius.token} className="border border-border rounded-xl p-4 bg-card shadow-sm space-y-3">
-              <div className={`h-16 w-full max-w-[8rem] border-2 border-primary bg-primary/10 ${radius.token}`} />
-              <div className="text-body font-semibold text-foreground">
-                <code>{radius.token}</code> · {radius.size}
-              </div>
-              <p className="text-caption text-muted-foreground">{radius.usage}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Buttons */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          4. Buttons & Aktionen
-        </h2>
-        <div className="border border-border rounded-xl p-6 bg-card shadow-sm flex flex-wrap gap-4 items-center">
-          <Button variant="default">Primary Button</Button>
-          <Button variant="secondary">Secondary Button</Button>
-          <Button variant="outline">Outline Button</Button>
-          <Button variant="destructive">Destructive Button</Button>
-          <Button variant="ghost">Ghost Button</Button>
-          <Button variant="link">Link Button</Button>
-        </div>
-      </section>
-
-      {/* Cards */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          5. Cards & Container
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rezept-Card Beispiel</CardTitle>
-              <CardDescription>Ein einfaches Rezept für Pfadfinderlager</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-4 text-caption text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> 45 Min
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" /> Mittagessen
-                </span>
-              </div>
-              <p className="text-body">
-                Klassische Spaghetti Bolognese, skaliert auf Großgruppen.
-              </p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <span className="text-caption font-bold text-primary font-sans">€ 1.20 / Portion</span>
-              <Button size="sm" variant="ghost" className="h-8 gap-1 text-caption">
-                Details <ChevronRight className="w-3 h-3" />
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card className="flex flex-col justify-between">
-            <CardHeader>
-              <CardTitle>Aktion erforderlich</CardTitle>
-              <CardDescription>Essensplan unvollständig</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 bg-warning-soft border border-warning-border rounded-xl flex gap-3">
-                <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="text-body font-bold text-warning font-display">Zutaten fehlen</h4>
-                  <p className="text-caption text-warning leading-relaxed">
-                    Für 2 Mahlzeiten im Pfadfinderlager sind noch keine Rezepte hinterlegt.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="justify-end gap-2">
-              <Button size="sm" variant="outline">Ignorieren</Button>
-              <Button size="sm">Zuweisen</Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </section>
-
-      {/* Card Table */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          6. Card-Table & Zeilen (Responsive, ab 320px)
-        </h2>
-        <CardTable>
-          <DataCardRow clickable>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-body font-bold text-foreground font-display">Einkaufsliste: Sommerlager 2026</h4>
-                <p className="text-caption text-muted-foreground mt-0.5">Erstellt am 04.06.2026 • 42 Artikel</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 mt-2 md:mt-0 justify-between md:justify-end">
-              <span className="text-caption bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold">Aktiv</span>
-              <ChevronRight className="w-5 h-5 text-muted-foreground hidden md:block" />
-            </div>
-          </DataCardRow>
-
-          <DataCardRow clickable>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-body font-bold text-foreground font-display">Pfingstlager Speiseplan</h4>
-                <p className="text-caption text-muted-foreground mt-0.5">3 Tage • 15 Personen</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 mt-2 md:mt-0 justify-between md:justify-end">
-              <span className="text-caption bg-secondary text-secondary-foreground px-2.5 py-1 rounded-full font-bold">Entwurf</span>
-              <ChevronRight className="w-5 h-5 text-muted-foreground hidden md:block" />
-            </div>
-          </DataCardRow>
-        </CardTable>
-      </section>
-
-      {/* Icon-Regel */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          7. Icons (Verbindliche Regel)
-        </h2>
-        <p className="text-body text-muted-foreground">
-          Nur Lucide, Strichstärke 2, über <code>{'<Icon name="…" size={…} />'}</code> aus{' '}
-          <code>@/components/ui/icon</code> oder direkt als Lucide-Komponente. Keine Material Symbols, keine
-          Icon-Schrift.
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {ICON_SIZES.map((entry) => (
-            <div
-              key={entry.size}
-              className="border border-border rounded-xl p-4 bg-card shadow-sm flex flex-col items-center gap-3 text-center"
-            >
-              <div className="flex h-12 items-center justify-center text-primary">
-                <Icon name="restaurant" size={entry.size} />
-              </div>
-              <div className="text-body font-semibold text-foreground">{entry.size} px</div>
-              <p className="text-caption text-muted-foreground">{entry.usage}</p>
-            </div>
-          ))}
-        </div>
-        <div className="border border-border rounded-xl p-4 bg-card shadow-sm grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {ICON_EXAMPLES.map((name) => (
-            <div key={name} className="flex flex-col items-center gap-1.5 rounded-lg bg-muted p-3">
-              <Icon name={name} size={20} />
-              <code className="text-caption text-muted-foreground">{name}</code>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* States */}
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          8. Empty-States
-        </h2>
-        <div className="border border-border rounded-xl bg-card shadow-sm">
-          <EmptyState
-            title="Keine Rezepte gefunden"
-            description="Füge dein erstes Gruppenstunden-Rezept hinzu, um mit der Zeltlagerplanung loszulegen."
-            icon="restaurant"
-            ctaLabel="Rezept hinzufügen"
-            onCtaClick={() => notify.info('CTA geklickt')}
-          />
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-title font-bold font-display border-l-4 border-primary pl-3">
-          Bereichsfarben, Nutri-Score, Laden &amp; Feedback
-        </h2>
-        <p className="text-body text-muted-foreground">
-          Bereichsfarben nur als Tönung (Icon-Kachel, Navigation). Nutri-Score ausschließlich über NutriScoreBadge in den
-          Originalfarben. Laden mit inhaltsförmigen Skeletons, Feedback über notify.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-4">
-          {(['recipes', 'ingredients', 'planner', 'shopping'] as const).map((area) => (
-            <div key={area} className="flex items-center gap-3 rounded-xl bg-card p-4 shadow-card">
-              <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${areaTileClass(area)}`}>
-                <Icon name="restaurant" size={20} />
-              </span>
-              <span className="text-body font-medium">{area}</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-6 rounded-xl bg-card p-5 shadow-card">
-          <NutriScoreBadge value="B" size="scale" />
-          <div className="flex gap-2">
-            {(['A', 'B', 'C', 'D', 'E'] as const).map((letter) => (
-              <NutriScoreBadge key={letter} value={letter} size="sm" />
-            ))}
-          </div>
-          <NutriScoreBadge value={1} size="md" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <SkeletonCard />
-          <SkeletonSection lines={4} />
-        </div>
+        <h3 className="pt-4 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Kategorien (nur Tönung)</h3>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="rounded-lg bg-primary px-4 py-2 text-body font-medium text-primary-foreground" onClick={() => notify.saved('Zutat')}>
-            Erfolg zeigen
-          </button>
-          <button type="button" className="rounded-lg bg-primary-soft px-4 py-2 text-body font-medium text-primary" onClick={() => notify.removed('Eintrag', () => notify.info('Wiederhergestellt'))}>
-            Mit Rückgängig
-          </button>
-          <button
-            type="button"
-            className="rounded-lg bg-card px-4 py-2 text-body font-medium shadow-card"
-            onClick={() => notify.failed('Rezept', 'gespeichert', new Error('Der Titel fehlt.'))}
-          >
-            Fehler zeigen
-          </button>
+          {(['breakfast', 'warm', 'cold', 'dessert', 'snack', 'recipe-part', 'drink'] as const).map((tint) => (
+            <span key={tint} className={cn('rounded-full px-3 py-1 text-caption font-semibold', RECIPE_TINT_CLASSES[tint])}>
+              {tint}
+            </span>
+          ))}
         </div>
-      </section>
+
+        <h3 className="pt-4 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Status (immer mit Rand und Icon)</h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          <StatusNotice variant="success">Erfolg: Liste gespeichert</StatusNotice>
+          <StatusNotice variant="warning">Warnung: Mittagessen fehlt noch</StatusNotice>
+          <StatusNotice variant="danger">Fehler: Speichern fehlgeschlagen</StatusNotice>
+          <StatusNotice variant="info">Tipp: Am Vortag kochen</StatusNotice>
+        </div>
+      </Section>
+
+      <Section id="schrift" title="Schrift" intro="Überschriften und Kennzahlen in Bricolage Grotesque, Fließtext in Figtree. Acht Stufen, keine freien Werte.">
+        <div className="space-y-3 rounded-xl bg-card p-5 shadow-card">
+          <p className="text-display font-extrabold text-foreground">Startseite</p>
+          <p className="text-title font-extrabold text-foreground">Essenspläne</p>
+          <p className="text-heading font-bold text-foreground">Abschnitt</p>
+          <p className="text-section font-bold text-foreground">Karte und Gruppe</p>
+          <p className="text-emphasis text-foreground">Fließtext: Würzig, sättigend und günstig.</p>
+          <p className="text-body text-muted-foreground">Meta: 30–60 Min · 1,10 € pro Portion</p>
+          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Label: Für diesen Schritt</p>
+          <p className="font-display text-metric font-extrabold tabular-nums text-foreground">620 kcal</p>
+        </div>
+      </Section>
+
+      <Section id="radien" title="Radien, Abstände, Schatten" intro="Radien 8, 12, 20 und Pille. Abstände in der Skala 4, 8, 12, 16, 24, 32, 48.">
+        <div className="grid gap-4 md:grid-cols-4">
+          <div className="space-y-2">
+            <div className="h-16 rounded-sm bg-muted" />
+            <p className="text-caption text-muted-foreground">klein · 8</p>
+          </div>
+          <div className="space-y-2">
+            <div className="h-16 rounded-lg bg-muted" />
+            <p className="text-caption text-muted-foreground">Bedienelemente · 12</p>
+          </div>
+          <div className="space-y-2">
+            <div className="h-16 rounded-xl bg-muted" />
+            <p className="text-caption text-muted-foreground">Karten · 20</p>
+          </div>
+          <div className="space-y-2">
+            <div className="h-16 rounded-full bg-muted" />
+            <p className="text-caption text-muted-foreground">Pille</p>
+          </div>
+        </div>
+        <div className="grid gap-4 pt-2 md:grid-cols-3">
+          <div className="h-16 rounded-xl bg-card shadow-card" />
+          <div className="h-16 rounded-xl bg-card shadow-soft" />
+          <div className="h-16 rounded-xl bg-card shadow-raised" />
+        </div>
+        <p className="text-caption text-muted-foreground">Schatten: Karte (Standard), weich (Segment), erhoben (Dialog und Menü). Keine Verläufe.</p>
+      </Section>
+
+      <Section id="komponenten" title="Komponenten">
+        <div className="space-y-4 rounded-xl bg-card p-5 shadow-card">
+          <h3 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Buttons</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button>Primär</Button>
+            <Button variant="secondary">Nebenaktion</Button>
+            <Button variant="outline">Kontur</Button>
+            <Button variant="ghost">Zurück</Button>
+            <Button size="lg">Groß</Button>
+            <Button disabled>Deaktiviert</Button>
+          </div>
+          <p className="text-caption text-muted-foreground">Höhe auf dem Handy mindestens 44 px. Pro Ansicht höchstens eine Primär-Aktion.</p>
+
+          <h3 className="pt-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Chips, Tags, Sticker</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <FlatTag>Alle</FlatTag>
+            <RecipeTypeTag type="warm_meal" />
+            <ActiveChip label="Vegetarisch" onRemove={() => undefined} />
+            <Sticker>Beliebt</Sticker>
+          </div>
+          <p className="text-caption text-muted-foreground">Sticker höchstens einmal pro Ansicht; sonst eine flache Marke.</p>
+
+          <h3 className="pt-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Eingaben</h3>
+          <div className="max-w-sm">
+            <Input aria-label="Beispiel-Eingabe" placeholder="Rezept suchen …" />
+          </div>
+          <p className="text-caption text-muted-foreground">Schrift 16 px, Höhe 44 px, Rand in Feldfarbe.</p>
+
+          <h3 className="pt-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Nutri-Score (Originalfarben)</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <NutriScoreBadge value="A" size="sm" />
+            <NutriScoreBadge value="B" size="sm" />
+            <NutriScoreBadge value="C" size="md" />
+            <NutriScoreBadge value="E" size="md" />
+            <NutriScoreBadge value="scale" size="scale" />
+          </div>
+          <p className="text-caption text-muted-foreground">Klein 24 px auf Karten und in Listen, groß 32 px in Kennzahlen.</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl bg-card p-4 shadow-card">
+            <h3 className="mb-3 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Rezeptkarte</h3>
+            <div className="max-w-xs overflow-hidden rounded-xl bg-card shadow-card">
+              <div className="aspect-[4/3]">
+                <RecipeThumbnail imageUrl={null} title="Chili sin Carne" recipeType="warm_meal" className="h-full" />
+              </div>
+              <div className="space-y-2 p-4">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <RecipeTypeTag type="warm_meal" />
+                  <Sticker>Beliebt</Sticker>
+                </div>
+                <div className="font-display text-emphasis font-bold text-foreground">Chili sin Carne</div>
+                <div className="text-body text-muted-foreground">30–60 Min · 1,10 € pro Portion</div>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl bg-card p-4 shadow-card">
+            <h3 className="mb-3 text-caption font-semibold uppercase tracking-wide text-muted-foreground">Listenzeile</h3>
+            <div className="flex items-center gap-3 border-t border-line py-3">
+              <RecipeThumbnail imageUrl={null} title="Overnight Oats" recipeType="breakfast" size="xs" />
+              <div className="min-w-0 flex-1">
+                <div className="text-body font-semibold text-foreground">Overnight Oats mit Beeren</div>
+                <div className="text-caption text-muted-foreground">Frühstück · &lt; 30 Min</div>
+              </div>
+              <NutriScoreBadge value="A" size="sm" />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section id="zustaende" title="Zustände" intro="Laden, Leer und Fehler mit demselben Aufbau auf jeder Seite.">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Laden</p>
+            <div className="grid grid-cols-2 gap-3">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Fehler im Abschnitt</p>
+            <SectionError title="Zutaten konnten nicht geladen werden" onRetry={() => undefined} />
+          </div>
+        </div>
+        <EmptyBlock
+          title="Noch kein Essensplan"
+          description="Tage, Mahlzeiten, Budget und Einkaufsliste an einem Ort."
+          action={{ label: 'Ersten Essensplan erstellen', to: '/meal-plans/new' }}
+          templates={[]}
+        />
+      </Section>
+
+      <Section id="icons" title="Icon-Regel" intro="Nur Lucide-Icons über die Icon-Komponente. Größen 16, 20, 24 und 48 px, Strichstärke 2.">
+        <div className="flex flex-wrap items-end gap-6 rounded-xl bg-card p-5 shadow-card">
+          {([16, 20, 24, 48] as const satisfies readonly IconSize[]).map((size) => (
+            <div key={size} className="flex flex-col items-center gap-2">
+              <Icon name="restaurant_menu" size={size} />
+              <span className="text-caption text-muted-foreground">{size} px</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="formate" title="Formate" intro="Preise, Zeiten und Mengen immer gleich geschrieben.">
+        <ul className="grid gap-2 rounded-xl bg-card p-5 text-body shadow-card md:grid-cols-2">
+          <li>Preis Karte: 1,10 € pro Portion</li>
+          <li>Budget: 5,80 € pro Person/Tag</li>
+          <li>Zeitraum: 26.–30. Okt.</li>
+          <li>Dauer: &lt; 30 Min · 30–60 Min</li>
+          <li>Mengen: 1,8 kg · 150 ml · 3 Zehen</li>
+          <li>Anzahl: 248 Rezepte</li>
+        </ul>
+      </Section>
+
+      <Section id="regeln" title="Regeln">
+        <ul className="list-disc space-y-1 pl-5 text-body text-foreground">
+          <li>Höchstens ein gelber Sticker pro Ansicht. Schräg sind nur Sticker und das Logo.</li>
+          <li>Kategorietönungen nie für Status verwenden; Status hat immer Rand und Icon.</li>
+          <li>Ein einziger Schatten für Karten, sonst Linien.</li>
+          <li>Wiederholte Bewegung nur bei Ladeanzeigen.</li>
+          <li>Tippflächen mobil mindestens 44 × 44 px; Eingaben 16 px.</li>
+        </ul>
+      </Section>
+
+      <Section id="navigation" title="Navigation und Aufbau" intro="Zurück immer als Pille mit dem Namen des Ziels. Abläufe zum Abbrechen mit X.">
+        <ul className="list-disc space-y-1 pl-5 text-body text-foreground">
+          <li>Seiten mit Hauptaktion: Aktionsleiste unten statt der unteren Navigation.</li>
+          <li>Seitenaktionen im Seitenkopf, nie in der globalen Navigation.</li>
+          <li>Öffentliche Seiten mit Brotkrumen, einer H1 und nummerierten Seiten; private Seiten (Pläne, Listen) auf noindex.</li>
+        </ul>
+      </Section>
     </div>
   );
 }

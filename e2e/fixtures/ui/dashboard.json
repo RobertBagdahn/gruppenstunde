@@ -1,0 +1,14 @@
+{
+  "recipe_count": 248,
+  "ingredient_count": 1240,
+  "meal_plan_count": 3,
+  "shopping_list_count": 2,
+  "insights": {
+    "most_planned_recipe": null,
+    "avg_ingredients_per_recipe": 8.4,
+    "newest_recipe": null,
+    "total_meal_days_planned": 14
+  },
+  "active_meal_plan_count": 3,
+  "open_shopping_list_count": 2
+}

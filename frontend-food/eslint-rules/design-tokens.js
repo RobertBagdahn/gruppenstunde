@@ -7,7 +7,9 @@
  *   arbitrary hex/rgb colours — use the semantic tokens instead,
  * - font sizes outside the scale (`text-xs`, `text-2xl`, `text-[11px]`) —
  *   use text-caption/body/emphasis/section/title,
- * - radii other than rounded-lg/xl/full/none,
+ * - radii other than rounded-sm/lg/xl/full/none,
+ * - rotation outside stickers and the logo, looping motion outside loaders,
+ * - pixel spacing with arbitrary values (p-[13px]),
  * - removed gradient utilities and the dark solid `bg-warning` surface,
  * - Material Symbols classes — use the Lucide `Icon` component.
  */
@@ -31,12 +33,12 @@ const CHECKS = [
   {
     id: 'fontSize',
     test: /^text-(?:xs|sm|base|lg|xl|[2-9]xl|\[[\d.]+(?:px|rem|em)\])$/,
-    message: 'Schriftgröße „{{token}}“ außerhalb der Skala: nutze text-caption, text-body, text-emphasis, text-section oder text-title.',
+    message: 'Schriftgröße „{{token}}“ außerhalb der Skala: nutze text-caption, text-body, text-emphasis, text-section, text-heading, text-title, text-display oder text-metric.',
   },
   {
     id: 'radius',
-    test: /^rounded(?:-(?:t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee))?(?:-(?:sm|md|2xl|3xl|\[.*\]))?$/,
-    message: 'Radius „{{token}}“ nicht erlaubt: nutze rounded-lg (Bedienelemente), rounded-xl (Karten) oder rounded-full.',
+    test: /^rounded(?:-(?:t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee))?(?:-(?:md|2xl|3xl|\[.*\]))?$/,
+    message: 'Radius „{{token}}“ nicht erlaubt: nutze rounded-sm (kleine Elemente), rounded-lg (Bedienelemente), rounded-xl (Karten) oder rounded-full.',
   },
   {
     id: 'removedGradient',
@@ -47,6 +49,32 @@ const CHECKS = [
     id: 'darkWarningSurface',
     test: /^bg-warning$/,
     message: '„{{token}}“ ist eine dunkle Fläche: nutze bg-warning-soft (Hinweise) oder bg-warning-bright (Balken, Punkte).',
+  },
+  {
+    id: 'removedBandTokens',
+    // The pine band and the area tints are gone (food-design-system); the token names must not come back.
+    test: /(?:^|-)(?:hero(?:-(?:foreground|muted|soft))?|area-(?:recipes|ingredients|planner|shopping)(?:-soft)?)$/,
+    message: 'Token „{{token}}“ wurde entfernt: nutze die Tokens des Sticker-Looks (z. B. bg-primary-soft, text-muted-foreground, bg-muted).',
+  },
+  {
+    id: 'rotation',
+    // Tilts only. Chevrons turn by 90 or 180 degrees (open/close state); that is not decoration.
+    test: /^-?rotate-(?:1|2|3|6|12)$/,
+    // Stickers and the logo are the only tilted elements (food-design-system: Sticker und Verspieltheit).
+    allowIn: /(?:^|\/)(?:Sticker|BrandMark)\.tsx$/,
+    message: 'Drehung „{{token}}“ nur für Sticker und das Logo erlaubt: Schrittnummern, Karten und Texte stehen gerade.',
+  },
+  {
+    id: 'loopingMotion',
+    // Decorative loops are forbidden. spin and pulse stay allowed: they are the loading indicators
+    // (spinner, skeleton) and therefore part of the loading states (design D15).
+    test: /^animate-(?:bounce|ping)$/,
+    message: 'Dauerbewegung „{{token}}“ ist dekorativ und nicht erlaubt; Ladeanzeigen nutzen animate-spin oder animate-pulse.',
+  },
+  {
+    id: 'arbitraryPixels',
+    test: /^-?(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-x|space-y|top|bottom|left|right|inset)-\[\d+(?:\.\d+)?px\]$/,
+    message: 'Freier Pixelabstand „{{token}}“: nutze die Abstandsskala (4, 8, 12, 16, 24, 32, 48).',
   },
   {
     id: 'materialSymbols',
@@ -80,6 +108,7 @@ function checkClassText(context, node, text, { partialStart = false, partialEnd 
     }
     const utility = baseUtility(token);
     for (const check of CHECKS) {
+      if (check.allowIn && check.allowIn.test(context.filename ?? context.getFilename())) continue;
       if (check.test.test(utility)) {
         context.report({ node, messageId: check.id, data: { token } });
         return;

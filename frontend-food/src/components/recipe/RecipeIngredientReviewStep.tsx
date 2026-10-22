@@ -564,7 +564,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
                       key={candidate.id}
                       type="button"
                       onClick={() => selectCandidate(candidate.id, candidate.name, candidate.slug)}
-                      className="flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-body hover:bg-muted"
+                      className="flex w-full items-center justify-between gap-2 min-h-11 md:min-h-0 rounded-lg border px-3 py-2 text-body hover:bg-muted"
                     >
                       <span className="truncate">{candidate.name}</span>
                       <span className="shrink-0 text-caption text-muted-foreground">
@@ -642,7 +642,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
             <button
               type="button"
               onClick={openQuantityDialog}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted"
+              className="mt-2 inline-flex items-center gap-1.5 min-h-11 md:min-h-0 rounded-lg border px-3 py-2 text-body hover:bg-muted"
             >
               <Scale className="h-4 w-4" />
               Menge und Portion
@@ -659,7 +659,7 @@ function ReviewRow({ row }: { row: IngredientReviewRow }) {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={focusSearch} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
+        <button type="button" onClick={focusSearch} className="inline-flex items-center gap-1.5 min-h-11 md:min-h-0 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Search className="h-4 w-4" />
           Zutat ändern
         </button>
@@ -790,10 +790,10 @@ export default function RecipeIngredientReviewStep({ onAddIngredient }: RecipeIn
       </div>
       {error && <div className="rounded-lg bg-destructive/10 p-3 text-body text-destructive">{error}</div>}
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={confirmCompleteRows} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
+        <button type="button" onClick={confirmCompleteRows} className="inline-flex items-center gap-1.5 min-h-11 md:min-h-0 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Check className="h-4 w-4" /> Alle Vorschläge übernehmen
         </button>
-        <button type="button" onClick={() => { addEmptyRow(); onAddIngredient?.(); }} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-body hover:bg-muted">
+        <button type="button" onClick={() => { addEmptyRow(); onAddIngredient?.(); }} className="inline-flex items-center gap-1.5 min-h-11 md:min-h-0 rounded-lg border px-3 py-2 text-body hover:bg-muted">
           <Plus className="h-4 w-4" /> Zutat hinzufügen
         </button>
       </div>

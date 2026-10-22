@@ -9,7 +9,7 @@ describe('cn', () => {
   });
 
   it('keeps project colours separate from font sizes', () => {
-    expect(cn('text-body', 'text-hero-foreground')).toBe('text-body text-hero-foreground');
+    expect(cn('text-body', 'text-primary-dark')).toBe('text-body text-primary-dark');
     expect(cn('text-section', 'text-spice-foreground')).toBe('text-section text-spice-foreground');
   });
 

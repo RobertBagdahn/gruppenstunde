@@ -129,7 +129,7 @@ export default function KitchenReminderSection() {
                         type="button"
                         onClick={() => toggleAvailable(reminder.id)}
                         className={cn(
-                          'shrink-0 text-caption px-2 py-1 rounded-lg transition-colors',
+                          'shrink-0 text-caption min-h-11 md:min-h-0 px-2 py-1 rounded-lg transition-colors',
                           available.has(reminder.id)
                             ? 'text-success bg-success-soft hover:bg-success-soft'
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted',

@@ -2,94 +2,140 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Self-hosted variable fonts (public/fonts/README.md). Fallbacks take the system face and are
+   scaled to the web font's metrics, so the swap does not move the text. */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-latin-wght.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-latin-wght.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+/* Metrics measured in Chromium against the web fonts (sample text, 100 px):
+   Figtree 400 vs Arial: width 100.3 %, ascent 95 %, descent 25 %.
+   Bricolage 800 vs Arial Bold: width 104.2 %, ascent 93 %, descent 27 %. */
+@font-face {
+  font-family: "Bricolage Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 700 900;
+  size-adjust: 104.2%;
+  ascent-override: 93%;
+  descent-override: 27%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Figtree Fallback";
+  src: local("Arial"), local("ArialMT");
+  font-weight: 300 900;
+  size-adjust: 100.3%;
+  ascent-override: 95%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+
 @layer base {
   :root {
-    /* "Feldküche": sage ground, white cards, pine hero band, tomato accent */
-    --background: 100 19% 94%;
-    --foreground: 148 27% 11%;
+    /* Sticker look (food-sticker-redesign, design D1): white ground, Petrol as the main colour,
+       tomato as a small accent. Values are checked by tokenContrast.test.ts. */
+    --background: 0 0% 100%;
+    --foreground: 150 7% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 148 27% 11%;
+    --card-foreground: 150 7% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 148 27% 11%;
-    /* Pine hero band behind navigation and page titles */
-    --hero: 155 43% 21%;
-    --hero-foreground: 0 0% 100%;
-    /* Secondary text on the hero band (>= 7:1) */
-    --hero-muted: 140 21% 86%;
-    /* Chips and icon buttons on the hero band */
-    --hero-soft: 155 30% 29%;
-    /* Tomato accent: costs, logo tile, small highlights */
-    --spice: 17 88% 40%;
-    --spice-soft: 22 83% 93%;
-    --spice-foreground: 18 90% 28%;
-    /* Buttons, active states, links: white text on primary >= 4.5:1 */
-    --primary: 155 50% 24%;
+    --popover-foreground: 150 7% 11%;
+
+    /* Main colour: Petrol (5.95:1 with white) */
+    --primary: 187 78% 27%;
     --primary-foreground: 0 0% 100%;
-    /* Icons, progress, accents without text on the surface */
-    --primary-bright: 152 45% 36%;
-    /* Hover, selection, secondary buttons */
-    --primary-soft: 140 25% 91%;
-    --primary-soft-border: 140 22% 80%;
-    --secondary: 105 18% 96%;
-    --secondary-foreground: 148 27% 11%;
-    /* Tracks, segmented controls, skeletons – visible on white and on the ground */
-    --muted: 100 17% 91%;
-    --muted-foreground: 152 8% 35%;
-    /* Subtle hover/highlight (shadcn convention) – never a loud colour */
-    --accent: 140 25% 93%;
-    --accent-foreground: 155 50% 22%;
-    /* Area colours: tone + tint, only for icon tiles, nav indicator and small accents */
-    --area-recipes: 14 78% 44%;
-    --area-recipes-soft: 22 83% 95%;
-    --area-ingredients: 152 50% 30%;
-    --area-ingredients-soft: 140 30% 95%;
-    --area-planner: 208 63% 36%;
-    --area-planner-soft: 213 60% 96%;
-    --area-shopping: 36 90% 34%;
-    --area-shopping-soft: 43 100% 95%;
-    /* Status tokens: DEFAULT (text/icon), -foreground (text on solid), -soft (surface), -border */
-    --success: 155 50% 26%;
+    --primary-dark: 186 79% 19%;
+    --primary-soft: 187 47% 93%;
+    --primary-soft-border: 187 40% 80%;
+    --primary-bright: 187 78% 27%;
+
+    /* Secondary and muted surfaces */
+    --secondary: 150 9% 96%;
+    --secondary-foreground: 150 7% 11%;
+    --muted: 150 9% 96%;
+    --muted-foreground: 142 4% 38%;
+    --accent: 187 47% 93%;
+    --accent-foreground: 186 79% 19%;
+
+    /* Lines: decorative only. Form borders and symbols use --input (>= 3:1). */
+    --line: 120 6% 94%;
+    --border: 140 7% 84%;
+    --input: 137 3% 54%;
+    --ring: 187 78% 27%;
+
+    /* Accent tomato: step numbers and small highlights, never large areas */
+    --spice: 9 76% 49%;
+    --spice-foreground: 11 72% 38%;
+    --spice-soft: 15 100% 96%;
+    /* Stickers only (highest contrast with ink) */
+    --sticker: 47 100% 65%;
+
+    /* Status: solid (text colour) plus soft surface, border and foreground */
+    --success: 153 79% 21%;
     --success-foreground: 0 0% 100%;
-    --success-soft: 140 25% 92%;
-    --success-border: 140 22% 80%;
-    --success-bright: 152 50% 40%;
-    --warning: 33 100% 30%;
+    --success-soft: 150 41% 93%;
+    --success-border: 149 37% 73%;
+    --success-bright: 153 79% 21%;
+    --warning: 39 100% 21%;
     --warning-foreground: 0 0% 100%;
-    --warning-soft: 43 100% 93%;
-    --warning-border: 42 80% 74%;
-    /* Bars, dots and indicators without text: friendly amber */
-    --warning-bright: 38 92% 50%;
-    --danger: 4 70% 42%;
+    --warning-soft: 42 100% 93%;
+    --warning-border: 42 82% 67%;
+    --warning-bright: 39 100% 21%;
+    --danger: 4 71% 37%;
     --danger-foreground: 0 0% 100%;
-    --danger-soft: 10 80% 95%;
-    --danger-border: 8 70% 85%;
-    --danger-bright: 4 75% 55%;
-    --info: 208 63% 28%;
+    --danger-soft: 3 82% 96%;
+    --danger-border: 4 70% 83%;
+    --danger-bright: 4 71% 37%;
+    --info: 150 7% 11%;
     --info-foreground: 0 0% 100%;
-    --info-soft: 213 56% 94%;
-    --info-border: 211 50% 82%;
-    --info-bright: 208 70% 48%;
-    /* shadcn alias */
+    --info-soft: 150 9% 96%;
+    --info-border: 140 7% 84%;
+    --info-bright: 150 7% 11%;
     --destructive: var(--danger);
     --destructive-foreground: var(--danger-foreground);
-    --border: 129 10% 82%;
-    /* Form controls: >= 3:1 against the background */
-    --input: 150 7% 52%;
-    /* Focus ring: warm orange, visible on pine and on white */
-    --ring: 20 75% 46%;
-    --radius: 1rem;
-    --chart-1: 152 45% 36%;
-    --chart-2: 22 72% 56%;
-    --chart-3: 208 63% 42%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 340 55% 45%;
+
+    /* Recipe-type tints (category), each with its own text colour */
+    --category-breakfast: 42 100% 91%;
+    --category-breakfast-foreground: 39 100% 24%;
+    --category-warm: 15 100% 94%;
+    --category-warm-foreground: 11 72% 38%;
+    --category-cold: 78 41% 92%;
+    --category-cold-foreground: 84 56% 21%;
+    --category-dessert: 262 100% 95%;
+    --category-dessert-foreground: 259 55% 46%;
+    --category-snack: 217 100% 94%;
+    --category-snack-foreground: 219 68% 41%;
+    --category-recipe-part: 38 48% 91%;
+    --category-recipe-part-foreground: 38 57% 23%;
+    --category-drink: 334 78% 95%;
+    --category-drink-foreground: 331 58% 39%;
+
+    --radius: 0.75rem;
+
+    /* Chart colours: only for diagrams */
+    --chart-1: 187 78% 27%;
+    --chart-2: 9 76% 49%;
+    --chart-3: 217 68% 41%;
+    --chart-4: 39 100% 40%;
+    --chart-5: 331 58% 39%;
+
     /* Official Nutri-Score palette (Santé publique France) – only used by NutriScoreBadge */
     --nutri-a: 150 95% 26%;
     --nutri-b: 83 60% 46%;
     --nutri-c: 48 99% 50%;
     --nutri-d: 33 100% 47%;
     --nutri-e: 13 86% 48%;
-    --nutri-dark-text: 148 27% 11%;
+    --nutri-dark-text: 150 7% 11%;
   }
 }
 
@@ -160,11 +206,6 @@
     background-repeat: no-repeat;
     animation: shimmer 1.6s linear infinite;
   }
-  /* Skeletons inside the hero band */
-  .skeleton-on-hero {
-    background-color: hsl(var(--hero-soft));
-    background-image: linear-gradient(90deg, transparent 0%, hsl(0 0% 100% / 0.12) 50%, transparent 100%);
-  }
 
   /* Muted panel (landing-page sections) */
   .panel-muted {
@@ -220,8 +261,8 @@
 
 /* Print styles for packing lists and other printable content */
 @media print {
-  /* Hide navigation, buttons, and interactive elements */
-  header, nav, footer,
+  /* Hide navigation, buttons, and interactive elements. Page headers (<header>) stay: they carry the recipe title. */
+  nav, footer,
   .print\:hidden,
   .no-print,
   [data-print-hide],
@@ -230,12 +271,19 @@
     display: none !important;
   }
 
-  /* Reset backgrounds and shadows for clean print */
+  /* Reset backgrounds and shadows for clean print (no shadows, no sticker tints) */
   body {
     background: white !important;
     color: black !important;
     font-size: 11pt;
     line-height: 1.4;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 
   /* The app shell paints the sage page background on screen; paper stays white. */
@@ -298,4 +346,20 @@
 [data-mode="print"] .no-print:not([data-print-toolbar]),
 [data-mode="print"] [data-print-hide] {
   display: none !important;
+}
+
+/* Phone tap targets: controls reach 44 px below 768 px (food-ui-quality-gates). Desktop keeps its sizes. */
+@media (max-width: 767px) {
+  button,
+  [role="button"],
+  select,
+  textarea,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) {
+    min-height: 2.75rem;
+  }
+
+  button,
+  [role="button"] {
+    min-width: 2.75rem;
+  }
 }

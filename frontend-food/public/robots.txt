@@ -1,0 +1,25 @@
+# Inspi Food: public recipe and ingredient pages may be indexed.
+# Planning, shopping, accounts, administration and API paths stay out (food-seo-markup).
+User-agent: *
+Disallow: /meal-plans
+Disallow: /meal-events
+Disallow: /shopping-lists
+Disallow: /profile
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /api
+Disallow: /material
+Disallow: /material-list
+Disallow: /recipes/new
+Disallow: /recipes/my-recipes
+Disallow: /recipes/folders
+Disallow: /ingredients/new
+Disallow: /tools
+Disallow: /styleguide
+Disallow: /data-quality
+
+Allow: /recipes
+Allow: /ingredients
+Allow: /privacy
+Allow: /imprint

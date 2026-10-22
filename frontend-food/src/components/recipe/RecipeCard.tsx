@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import type { RecipeListItem } from '@/schemas/recipe';
-import {
-  RECIPE_TYPE_OPTIONS,
-  getRecipeExecutionTimeLabel,
-} from '@/schemas/recipe';
+import { getRecipeExecutionTimeLabel } from '@/schemas/recipe';
+import Sticker from '@/components/shared/Sticker';
+import RecipeTypeTag from './RecipeTypeTag';
+import { recipeSticker } from '@/lib/stickers';
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
 import RecipeThumbnail from './RecipeThumbnail';
@@ -20,11 +20,17 @@ interface RecipeCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onClone?: () => void;
+  /** Among the first ten of the existing sort "Meistgesehen" (list page computes it). */
+  popular?: boolean;
 }
 
-export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, onEdit, onDelete, onClone }: RecipeCardProps) {
+export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, onEdit, onDelete, onClone, popular = false }: RecipeCardProps) {
   const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
-  const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
+  const sticker = recipeSticker({
+    inPopularTop: popular,
+    createdAt: recipe.created_at,
+    preparationMethod: recipe.preparation_method,
+  });
   const pricePerPortion = recipePricePerPortion(recipe);
 
   const hasActions = (canEdit && onEdit) || (canDelete && onDelete) || onClone;
@@ -39,10 +45,11 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
       to={`/recipes/${recipe.slug}`}
       className="group flex flex-col rounded-xl bg-card overflow-hidden shadow-card card-hover"
     >
-      {/* Image with gradient overlay */}
+      {/* Image with overlay content */}
       <div className="relative overflow-hidden aspect-[4/3]">
         <RecipeThumbnail
           imageUrl={recipe.image_url}
+          recipeType={recipe.recipe_type}
           title={recipe.title}
           size="md"
           aspectRatio="square"
@@ -51,7 +58,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
         />
                 {/* Like badge */}
         {recipe.like_score > 0 && (
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 rounded-full bg-card/95 px-2 py-1 text-caption font-bold text-spice shadow-soft backdrop-blur-sm">
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 rounded-full bg-card/95 px-2 py-1 text-caption font-bold text-spice-foreground shadow-soft backdrop-blur-sm">
             <Icon name="favorite" size={16} />
             {recipe.like_score}
           </div>
@@ -73,7 +80,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
                   e.stopPropagation();
                   onEdit();
                 }}
-                className="press flex items-center justify-center w-8 h-8 rounded-full bg-card/95 backdrop-blur-sm text-foreground shadow-md hover:bg-white transition-colors"
+                className="press flex items-center justify-center w-11 h-11 md:w-8 md:h-8 rounded-full bg-card/95 backdrop-blur-sm text-foreground shadow-md hover:bg-white transition-colors"
                 title="Bearbeiten"
               >
                 <Icon name="edit" size={16} />
@@ -86,7 +93,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
                   e.stopPropagation();
                   onDelete();
                 }}
-                className="press flex items-center justify-center w-8 h-8 rounded-full bg-card/95 backdrop-blur-sm text-destructive shadow-md hover:bg-white transition-colors"
+                className="press flex items-center justify-center w-11 h-11 md:w-8 md:h-8 rounded-full bg-card/95 backdrop-blur-sm text-destructive shadow-md hover:bg-white transition-colors"
                 title="Löschen"
               >
                 <Icon name="delete" size={16} />
@@ -99,7 +106,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
                   e.stopPropagation();
                   onClone();
                 }}
-                className="press flex items-center justify-center w-8 h-8 rounded-full bg-card/95 backdrop-blur-sm text-primary shadow-md hover:bg-white transition-colors"
+                className="press flex items-center justify-center w-11 h-11 md:w-8 md:h-8 rounded-full bg-card/95 backdrop-blur-sm text-primary shadow-md hover:bg-white transition-colors"
                 title="Rezept clonen"
               >
                 <Icon name="content_copy" size={16} />
@@ -110,12 +117,10 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-4">
-        {typeOpt && (
-          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-area-recipes-soft px-2.5 py-0.5 text-caption font-bold text-spice-foreground">
-            <Icon name={typeOpt.icon} size={16} />
-            {typeOpt.label}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <RecipeTypeTag type={recipe.recipe_type} />
+          {sticker && <Sticker>{sticker.label}</Sticker>}
+        </div>
         <h3 className="font-display text-emphasis font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
           <SearchHighlight text={recipe.title} query={searchQuery} />
         </h3>

@@ -1,0 +1,9 @@
+{
+  "tier": "user",
+  "limit_eur": 1,
+  "used_eur": 0.1,
+  "remaining_eur": 0.9,
+  "used_percent": 10,
+  "resets_at": "2026-11-01T00:00:00Z",
+  "anonymous_features": []
+}

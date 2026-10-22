@@ -152,7 +152,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
         <select
           value={filters.issue ?? ''}
           onChange={(event) => onFiltersChange({ ...filters, issue: event.target.value || undefined, nutrition_issue: undefined, page: 1 })}
-          className="h-9 rounded-lg border bg-background px-2 text-body"
+          className="h-11 md:h-9 rounded-lg border bg-background px-2 text-body"
           aria-label="Problem filtern"
         >
           <option value="">Alle Zutaten</option>
@@ -169,7 +169,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
           onChange={(event) =>
             onFiltersChange({ ...filters, section_id: event.target.value ? Number(event.target.value) : undefined, page: 1 })
           }
-          className="h-9 rounded-lg border bg-background px-2 text-body"
+          className="h-11 md:h-9 rounded-lg border bg-background px-2 text-body"
           aria-label="Warengruppe filtern"
         >
           <option value="">Alle Warengruppen</option>

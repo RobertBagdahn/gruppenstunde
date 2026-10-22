@@ -135,7 +135,7 @@ export function MealPlanBudgetCockpit({
               <span
                 className={cn(
                   "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-bold",
-                  budgetStatus === 'green' && "bg-primary/15 text-primary",
+                  budgetStatus === 'green' && "bg-primary-soft text-primary-dark",
                   budgetStatus === 'yellow' && "bg-warning-soft text-warning",
                   budgetStatus === 'red' && "bg-destructive/20 text-destructive"
                 )}
@@ -262,7 +262,7 @@ export function MealPlanBudgetCockpit({
           {onNavigateToCosts && (
             <button
               onClick={onNavigateToCosts}
-              className="text-caption font-semibold text-primary hover:underline shrink-0"
+              className="inline-flex min-h-11 md:min-h-0 items-center text-caption font-semibold text-primary hover:underline shrink-0"
             >
               Kosten-Details →
             </button>

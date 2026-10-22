@@ -285,7 +285,7 @@ export default function TableView({
                         return (
                           <td key={date} className="border-b border-r border-border p-3 align-top min-h-[120px] bg-muted/30">
                             <div className="flex items-center justify-center h-full min-h-[80px]">
-                              <span className="text-caption text-muted-foreground/40 italic">{hint}</span>
+                              <span className="text-caption text-muted-foreground italic">{hint}</span>
                             </div>
                           </td>
                         );
@@ -302,7 +302,7 @@ export default function TableView({
                                 {normPortions} Port.
                               </span>
                               {isCreatingSlot === `${date}_${mealType}` ? (
-                                <div className="text-caption text-muted-foreground/60 animate-pulse">
+                                <div className="text-caption text-muted-foreground animate-pulse">
                                   Wird erstellt...
                                 </div>
                               ) : (
@@ -388,7 +388,7 @@ export default function TableView({
                                 </button>
                               </div>
                             ) : (
-                              <div className="text-body text-muted-foreground/40 italic py-2">—</div>
+                              <div className="text-body text-muted-foreground italic py-2">—</div>
                             )}
                           </td>
                         );
@@ -426,7 +426,7 @@ export default function TableView({
                                       </span>
                                     </div>
                                     {isCreatingSlot === `${date}_${mealType}` ? (
-                                      <div className="text-caption text-muted-foreground/60 animate-pulse">
+                                      <div className="text-caption text-muted-foreground animate-pulse">
                                         Wird erstellt...
                                       </div>
                                     ) : (
@@ -521,7 +521,7 @@ export default function TableView({
                                               <div className="flex items-center justify-between gap-1 text-caption text-muted-foreground pt-0.5">
                                                 <div className="flex items-center gap-1 font-medium min-w-0 truncate">
                                                   {kcal != null && <span>{kcal} kcal</span>}
-                                                  {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
+                                                  {kcal != null && cost != null && <span className="text-muted-foreground">•</span>}
                                                   {cost != null && <span>{formatNumber(cost, { maxDecimals: 2 }).replace('.', ',')} €</span>}
                                                 </div>
 
@@ -543,7 +543,7 @@ export default function TableView({
                                                   {canEdit && !meal.is_synced && (
                                                     <button
                                                       onClick={() => handleDeleteItemWithUndo(meal.id, item)}
-                                                      className="p-1 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                      className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                                                       title="Entfernen"
                                                       aria-label="Item entfernen"
                                                     >
@@ -591,10 +591,10 @@ export default function TableView({
                                               </div>
 
                                               {summary.previewNames.length > 0 && (
-                                                <div className="text-caption text-muted-foreground/80 line-clamp-2">
+                                                <div className="text-caption text-muted-foreground line-clamp-2">
                                                   {summary.previewNames.join(', ')}
                                                   {summary.itemsCount > summary.previewNames.length && (
-                                                    <span className="text-muted-foreground/50"> +{summary.itemsCount - summary.previewNames.length} weitere</span>
+                                                    <span className="text-muted-foreground"> +{summary.itemsCount - summary.previewNames.length} weitere</span>
                                                   )}
                                                 </div>
                                               )}
@@ -668,7 +668,7 @@ export default function TableView({
                                                         {canEdit && !meal.is_synced && (
                                                           <button
                                                             onClick={() => handleDeleteItemWithUndo(meal.id, v)}
-                                                            className="p-1 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                            className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                                                             title="Entfernen"
                                                           >
                                                             <X className="w-3.5 h-3.5" />
@@ -706,7 +706,7 @@ export default function TableView({
                                         <Plus className="w-3 h-3" />
                                         <span>Rezept</span>
                                       </button>
-                                      <span className="text-muted-foreground/30">•</span>
+                                      <span className="text-muted-foreground">•</span>
                                       <button
                                         onClick={() => {
                                           setSearchDialogIngredientOnly(true);

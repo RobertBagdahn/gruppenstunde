@@ -9,6 +9,7 @@ import { PageSkeleton } from './components/ui/skeleton';
 import FoodLayout from './components/layout/FoodLayout';
 import StaffGuard from './components/admin/StaffGuard';
 import { lazyPage } from './lib/lazyPage';
+import { PageMetaProvider } from './hooks/usePageMeta';
 
 const HomePage = lazyPage(() => import('./pages/HomePage'));
 const RecipeListPage = lazyPage(() => import('./pages/recipes/RecipeListPage'));
@@ -51,6 +52,7 @@ const RegisterPage = lazyPage(() => import('./pages/RegisterPage'));
 
 export default function App() {
   return (
+    <PageMetaProvider>
     <Suspense fallback={<PageSkeleton />}>
     <Routes>
       {/* Auth routes (no layout) */}
@@ -128,5 +130,6 @@ export default function App() {
       </Route>
     </Routes>
     </Suspense>
+    </PageMetaProvider>
   );
 }

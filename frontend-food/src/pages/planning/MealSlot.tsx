@@ -171,7 +171,7 @@ export function MealSlot({
       <div key={it.id} className="pl-7 py-1">
         <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
           <div className="flex items-start gap-3">
-            {it.recipe_id && <RecipeThumbnail imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
+            {it.recipe_id && <RecipeThumbnail recipeType={it.recipe_type} imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {it.recipe_id && it.recipe_slug ? <Link to={`/recipes/${it.recipe_slug}`} className="text-emphasis hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
@@ -256,7 +256,7 @@ export function MealSlot({
   if (isEmpty && !meal.is_external) {
     return (
       <div
-        className={`p-4 rounded-xl border-2 border-dashed ${mealColors.border}/40 bg-card/60 hover:bg-muted/30 transition-all space-y-3`}
+        className="p-4 rounded-xl border border-warning-border bg-warning-soft transition-all space-y-3"
         onClickCapture={() => onActivate?.(meal.id)}
       >
         <div className="flex items-center justify-between">
@@ -283,8 +283,8 @@ export function MealSlot({
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-          <p className="text-caption text-muted-foreground italic flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4 text-warning/80 shrink-0" />
+          <p className="flex items-center gap-1.5 text-body font-semibold text-warning">
+            <AlertCircle className="h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
             Noch kein Gericht geplant
           </p>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -516,7 +516,7 @@ export function MealSlot({
                 <div key={first.variant_group_id} className="pl-7 py-1">
                   <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30`}>
                     <div className="flex items-center gap-2 mb-1">
-                      {first.recipe_id && <RecipeThumbnail imageUrl={first.image_url} title={first.recipe_title} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
+                      {first.recipe_id && <RecipeThumbnail recipeType={first.recipe_type} imageUrl={first.image_url} title={first.recipe_title} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
                       <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 flex-wrap">{first.recipe_id && first.recipe_slug ? <Link to={`/recipes/${first.recipe_slug}`} className="text-emphasis hover:text-primary transition-colors truncate block font-medium">{first.recipe_title}</Link> : <span className="text-emphasis truncate block font-medium">{first.recipe_title}</span>}<NutriTagBadge allergenTags={allTags} /></div></div>
                     </div>
                     <div className="space-y-1">

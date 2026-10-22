@@ -89,7 +89,6 @@ export default function ShoppingListItemRow({
         className={cn(
           "flex items-center gap-3 px-2 -mx-2 rounded-xl transition-colors",
           shopMode ? "py-3" : "py-2",
-          item.is_checked && "opacity-60",
           canEdit && "hover:bg-muted/50",
         )}
       >
@@ -207,7 +206,7 @@ export default function ShoppingListItemRow({
                   setPortionsExpanded(!portionsExpanded);
                 }}
                 aria-expanded={portionsExpanded}
-                className="inline-flex items-center gap-1 text-caption transition-colors text-muted-foreground/70 hover:text-muted-foreground cursor-pointer"
+                className="inline-flex items-center gap-1 text-caption transition-colors text-muted-foreground hover:text-muted-foreground cursor-pointer"
               >
                 <ChevronDown
                   className={cn(
@@ -243,13 +242,13 @@ export default function ShoppingListItemRow({
                     "flex items-center gap-2 text-caption pl-4",
                     opt.is_default
                       ? "text-muted-foreground font-semibold"
-                      : "text-muted-foreground/60",
+                      : "text-muted-foreground",
                   )}
                 >
-                  <span className="text-muted-foreground/40">&#8226;</span>
+                  <span className="text-muted-foreground">&#8226;</span>
                   <span>{formatPortionOption(opt)}</span>
                   {opt.is_default && (
-                    <span className="text-caption text-muted-foreground/40 font-normal">
+                    <span className="text-caption text-muted-foreground font-normal">
                       (Standard)
                     </span>
                   )}
@@ -285,7 +284,7 @@ export default function ShoppingListItemRow({
                     e.stopPropagation();
                     onClaim(item.id, true);
                   }}
-                  className="rounded-lg px-2 py-0.5 font-semibold text-primary hover:bg-primary-soft"
+                  className="inline-flex min-h-11 md:min-h-0 items-center rounded-lg px-2 py-0.5 font-semibold text-primary hover:bg-primary-soft"
                 >
                   Ich hole das
                 </button>
@@ -351,7 +350,7 @@ export default function ShoppingListItemRow({
               className="flex items-center justify-between text-caption text-muted-foreground"
             >
               <div className="flex items-center gap-1.5 font-medium">
-                <span className="text-muted-foreground/60">&#8226;</span>
+                <span className="text-muted-foreground">&#8226;</span>
                 {source.recipe_slug ? (
                   <Link
                     to={`/recipes/${source.recipe_slug}`}
@@ -363,7 +362,7 @@ export default function ShoppingListItemRow({
                   <span>{source.recipe_name}</span>
                 )}
                 {source.meal_label && (
-                  <span className="text-muted-foreground/60 font-normal">
+                  <span className="text-muted-foreground font-normal">
                     ({source.meal_label})
                   </span>
                 )}

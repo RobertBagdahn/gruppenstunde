@@ -9,7 +9,6 @@ import { notify } from '@/lib/notify';
 import { useDeleteMaterial, useMaterial, useMergeMaterial } from '@/api/materials';
 import { useMaterialSearch } from '@/api/supplies';
 import { BackButton } from '@/components/shared/BackButton';
-import HeroBand from '@/components/shared/HeroBand';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MaterialFormDialog from '@/components/material/MaterialFormDialog';
@@ -151,13 +150,13 @@ export default function MaterialDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <HeroBand pullUpClassName="-mt-8" innerClassName="max-w-3xl" className="mb-6">
-        <BackButton to="/material" tone="hero" className="mb-5" />
-        <h1 className="font-display text-display font-extrabold text-hero-foreground [overflow-wrap:anywhere]">
+      <header className="mb-6 space-y-3">
+        <BackButton to="/material" className="mb-5" />
+        <h1 className="font-display text-display font-extrabold text-foreground [overflow-wrap:anywhere]">
           {material.name}
         </h1>
-        <p className="mt-2 text-body text-hero-muted">{material.is_consumable ? 'Verbrauchsmaterial' : 'Gerät'}</p>
-      </HeroBand>
+        <p className="mt-2 text-body text-muted-foreground">{material.is_consumable ? 'Verbrauchsmaterial' : 'Gerät'}</p>
+      </header>
 
       <section className="bg-card rounded-xl p-5 shadow-card space-y-4">
         {material.description && <p className="text-body">{material.description}</p>}

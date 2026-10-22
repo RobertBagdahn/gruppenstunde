@@ -1,8 +1,7 @@
-import TitleBand from '@/components/shared/TitleBand';
+import DetailHeader from '@/components/shared/DetailHeader';
 import { useState } from 'react';
 import { FolderOpen, Plus, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import { useRecipeFolders, useCreateRecipeFolder, useUpdateRecipeFolder, useDeleteRecipeFolder } from '@/api/recipeFolders';
-import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import type { RecipeFolder } from '@/schemas/recipeFolder';
 import { notify } from '@/lib/notify';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -18,12 +17,6 @@ export default function RecipeFoldersPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
-
-  useDocumentMeta({
-    title: 'Ordner verwalten',
-    description: 'Rezept-Ordner verwalten',
-    url: '/recipes/folders',
-  });
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -52,11 +45,10 @@ export default function RecipeFoldersPage() {
 
   return (
     <div className="pb-8">
-    <TitleBand
+    <DetailHeader
       title="Ordner verwalten"
       description="Organisiere deine persönlichen Rezepte in Ordnern"
       back={{ to: '/recipes/my-recipes', label: 'Meine Rezepte' }}
-      innerClassName="max-w-3xl"
     />
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 

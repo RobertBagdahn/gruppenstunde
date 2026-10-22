@@ -25,7 +25,7 @@ export function RefMealChips({ mealPlanId, refMeals, canEdit }: RefMealChipsProp
   if (refMeals.length === 0 && missingTypes.length === 0) return null;
 
   const chipClass =
-    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-body transition-colors';
+    'inline-flex min-h-11 md:min-h-0 items-center gap-1.5 px-3 py-1.5 rounded-lg border text-body transition-colors';
 
   return (
     <div className="flex flex-wrap gap-2 px-1" aria-label="Referenzmahlzeiten">

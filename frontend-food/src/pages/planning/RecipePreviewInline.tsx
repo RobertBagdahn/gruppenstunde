@@ -57,6 +57,7 @@ export default function RecipePreviewInline({
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain">
         <RecipeThumbnail
           imageUrl={recipe.image_url}
+          recipeType={recipe.recipe_type}
           title={recipe.title}
           size="full"
           eager

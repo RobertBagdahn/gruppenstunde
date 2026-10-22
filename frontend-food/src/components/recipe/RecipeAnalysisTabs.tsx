@@ -34,7 +34,7 @@ export function RecipeAnalysisTabs({ tabs, showSummaryBox }: Props) {
                 onClick={() => setActiveTab(tab.id)}
                 className={`press h-10 shrink-0 whitespace-nowrap rounded-lg px-4 text-body font-semibold transition-colors duration-200 ${
                   isActive
-                    ? 'bg-hero text-hero-foreground shadow-soft'
+                    ? 'bg-primary-soft text-foreground shadow-soft'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >

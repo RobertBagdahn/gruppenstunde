@@ -10,19 +10,16 @@ interface BreadcrumbProps {
   items: BreadcrumbItem[];
   /** Optional action element rendered on the right (e.g. delete button) */
   action?: React.ReactNode;
-  /** `hero`: light text on the pine hero band. */
-  tone?: 'page' | 'hero';
   className?: string;
 }
 
-export default function Breadcrumb({ items, action, tone = 'page', className }: BreadcrumbProps) {
-  const onHero = tone === 'hero';
+export default function Breadcrumb({ items, action, className }: BreadcrumbProps) {
   return (
     <nav
       aria-label="Brotkrumen"
       className={cn(
         'flex min-w-0 items-center gap-2 text-body',
-        onHero ? 'mb-5 text-hero-muted' : 'mb-6 text-muted-foreground',
+        'mb-6 text-muted-foreground',
         className,
       )}
     >
@@ -34,17 +31,14 @@ export default function Breadcrumb({ items, action, tone = 'page', className }: 
             {isLast || !item.href ? (
               <span
                 aria-current={isLast ? 'page' : undefined}
-                className={cn('truncate font-semibold', onHero ? 'text-hero-foreground' : 'text-foreground')}
+                className="truncate font-semibold text-foreground"
               >
                 {item.label}
               </span>
             ) : (
               <Link
                 to={item.href}
-                className={cn(
-                  'whitespace-nowrap transition-colors',
-                  onHero ? 'hover:text-hero-foreground' : 'hover:text-primary',
-                )}
+                className="whitespace-nowrap transition-colors hover:text-primary"
               >
                 {item.label}
               </Link>

@@ -51,13 +51,12 @@ Bernsteinton für Text). Flächen daher nur `bg-warning-soft` bzw. `bg-warning-b
   (`default` / `outline` / `secondary` / `destructive` / `ghost` / `link`) und `size`
   (`sm` / `default` / `lg` / `icon`) verwenden — keine rohen `<button className="bg-... px-...">`
   mit hartcodierten Farben (`gray-300`, `blue-500`, `purple-600`, `rose-500`, `violet-500` etc.).
-- `PortionScaler.tsx` folgt seit „Feldküche“ dem normalen Look (runder Stepper auf `bg-muted`, Schaltflächen `bg-card`); die frühere Amber-Ausnahme entfällt.
+- `PortionScaler.tsx` folgt seit dem Sticker-Umbau dem normalen Look (runder Stepper auf `bg-muted`, Schaltflächen `bg-card`); die frühere Amber-Ausnahme entfällt.
 
 ## Icons
 
-- Material-Symbols-Ligaturen sind **snake_case** (`format_list_numbered`, `description`,
-  `auto_fix_high`), **nicht** kebab-case. `list-ordered` z.B. ist ungültig und wird als kaputter
-  Text gerendert statt als Icon.
+- Icons sind Lucide-Komponenten über `Icon` aus `@/components/ui/icon`. Neue Namen für
+  `Icon name="…"` in `ICONS` ergänzen; unbekannte Namen fallen nicht still weg.
 - Icons in interaktiven Listen/Reihen (z.B. Zutaten-Zeilen) nicht zu klein/blass wählen:
   mindestens 20px, Standard-Opazität (`text-muted-foreground`, nicht `/40` oder `/50`) — sonst
   wirken sie kaputt/übersehen. Farbige Icons (destructive, primary, amber für "optional") behalten
@@ -87,18 +86,27 @@ Bernsteinton für Text). Flächen daher nur `bg-warning-soft` bzw. `bg-warning-b
   (zwei "Portionen -/+"-Regler gleichzeitig = verwirrend), wird er über die Prop
   `hidePortionScaler={isInlineEditMode}` ausgeblendet, solange der Inline-Editor offen ist.
 
-## RecipeSidebar — „Kochpult“ (Feldküche, 2026-10-11)
+## RecipeSidebar — „Kochpult“ (2026-10-11)
 
-- Desktop-Sidebar: Karte „Portionen“ (Stepper, „Kochen starten“, „Auf die Einkaufsliste“, PDF/Teilen/Clonen als 3er-Raster mit Icon und Label) und darunter der `RecipeMetaCard` („Steckbrief“ als Definitionsliste). Kosten, Nutri-Score, Energie und Beliebtheit stehen in `RecipeKeyFigures` auf der Unterkante des Kopfbands, nicht mehr in der Sidebar.
+- Desktop-Sidebar: Karte „Portionen“ (Stepper, „Kochen starten“, „Auf die Einkaufsliste“, PDF/Teilen/Clonen als 3er-Raster mit Icon und Label) und darunter der `RecipeMetaCard` („Steckbrief“ als Definitionsliste). Kosten, Nutri-Score, Energie und Beliebtheit stehen in `RecipeKeyFigures` unter dem Seitenkopf, nicht mehr in der Sidebar.
 - Auf kleinen Screens steht der Steckbrief am Ende der Hauptspalte, die Aktionen in `RecipeMobileActionBar`.
 - **Kontrast-Falle:** Transparente Tönungen (`primary/5`, `primary/10`) auf weißen Flächen sind kaum sichtbar. Für Nebenaktionen `bg-primary-soft` bzw. `bg-secondary` verwenden und im Browser gegenprüfen.
 
-## Feldküche — Kopfband, Kennzahlen, Bewegung (2026-10-11)
+## Sticker-Umbau — Kopfzeilen, Kennzahlen, Bewegung (2026-10-22)
 
-- Navigation und Seitentitel bilden ein `bg-hero`-Band. Listen: `PageHeader` (Suche und Schnellfilter als Kinder). Detailseiten: `HeroBand` mit Brotkrumen/Zurück-Pille, `font-display text-display`-Titel, Chips und Aktionen. Auf Detailseiten das Band mit `overlap` bauen und den folgenden Block in `-mt-10 md:-mt-12` setzen (`RecipeKeyFigures`, Start-Kacheln).
-- `HeroBand` ist `full-bleed` (volle Viewport-Breite) und zieht sich über `pullUpClassName` an die Navigation; der Standardwert passt zu Containern mit `py-4 md:py-8`, andere Seiten übergeben ihren eigenen Wert.
+- Der Look ist der Sticker-Look (OpenSpec `food-sticker-redesign`): weißer Grund, Petrol als Hauptfarbe, Bricolage Grotesque für Überschriften und Kennzahlen, Figtree für Text, selbst gehostet. Verbindlich ist `/styleguide`; Begriffe und Größen stehen in AGENTS.md.
+- Seitenköpfe liegen auf weißem Grund: `PageHeader` (Liste, mit Brotkrumen, Anzahl und Aktionen), `DetailHeader` (Detailseite mit Zurück-Pille), `FlowHeader` (Wizards und Kochmodus). Jede Seite hat genau eine H1. Die Kochmodus-Titelzeile wird je nach Breite einmal gerendert (`useIsDesktopLayout`), damit keine zweite H1 im DOM steht.
 - Bewegung siehe AGENTS.md („Bewegung und Übergänge“). Neue Animationsklassen immer in `index.css` unter `prefers-reduced-motion` aufnehmen.
-- Kontrast: Hero-Text `hero-muted` auf `hero` 7:1, auf `hero-soft` 5,4:1. Neue Token-Werte laufen durch `src/lib/contrast.test.ts`; Werte anpassen, nicht den Test lockern.
+- Druck: Navigation, Fußzeile, Aktionsleisten und Sticker sind mit `data-print-hide` markiert; `header` wird nicht pauschal ausgeblendet, sonst verschwindet der Rezepttitel.
+
+### Kontrast-Abweichungen
+
+Gemessen auf Weiß (WCAG-Kontrast, `--input` und `--spice` aus `src/index.css`):
+
+- `--input` (Feldrand, `hsl(137 3% 54%)`) hat 3,39:1 und erfüllt damit den Mindestwert für Bedienelemente (3:1, WCAG 1.4.11). Er ist bewusst dunkler als der Trennlinien-Ton `--border`.
+- `--spice` (Tomate, `hsl(9 76% 49%)`) hat 4,49:1 und liegt damit knapp unter den 4,5:1 für normalen Text. Tomate ist deshalb nur für Akzente gedacht, die nicht allein Information tragen (Kosten, Symbole, Chips mit `text-spice-foreground`), und nicht für Fließtext.
+- Stickerfarbe (`--sticker`) trägt keinen Text; Sticker-Texte stehen auf `text-foreground`.
+- Die Werte laufen durch `src/lib/contrast.test.ts`. Abweichungen werden dort dokumentiert, nicht der Test gelockert.
 
 ## "Zutaten"-Sektionsheader (`RecipeDetailPage.tsx`) — vereinheitlicht 2026-07-11
 - Der Header hatte ein zusätzliches `<select>` ("Für wie viele Personen bearbeiten") NUR um den

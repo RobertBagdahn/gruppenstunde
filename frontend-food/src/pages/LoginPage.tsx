@@ -1,4 +1,3 @@
-import HeroBand from '@/components/shared/HeroBand';
 import { LogIn, AlertCircle } from 'lucide-react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
@@ -16,10 +15,10 @@ export default function LoginPage() {
 
   return (
     <>
-    <HeroBand pullUpClassName="" overlap innerClassName="max-w-md">
-      <p className="font-display text-section font-extrabold text-hero-foreground">Willkommen zurück</p>
-      <p className="mt-1 text-body text-hero-muted">Melde dich an, um Rezepte und Essenspläne zu speichern.</p>
-    </HeroBand>
+    <header className="mb-6 space-y-3">
+      <p className="font-display text-section font-extrabold text-foreground">Willkommen zurück</p>
+      <p className="mt-1 text-body text-muted-foreground">Melde dich an, um Rezepte und Essenspläne zu speichern.</p>
+    </header>
     <div className="container relative -mt-10 mx-auto flex max-w-md flex-col px-4 pb-16">
       <div className="rounded-xl border-border/80 bg-card p-6 sm:p-8 shadow-card">
         <div className="mb-6 text-center">

@@ -336,7 +336,7 @@ export default function IngredientList({
           {item.ingredient_slug ? (
             <Link
               to={`/ingredients/${item.ingredient_slug}`}
-              className="font-semibold text-foreground text-emphasis hyphens-auto hover:text-primary hover:underline transition-colors"
+              className="-my-2.5 inline-block min-w-11 py-2.5 font-semibold text-foreground text-emphasis hyphens-auto hover:text-primary hover:underline transition-colors"
               title={`${displayName} – Details anzeigen`}
             >
               {displayName}
@@ -481,7 +481,7 @@ export default function IngredientList({
                 aria-checked={sortMode === option.value}
                 onClick={() => setSortMode(option.value)}
                 className={cn(
-                  'rounded-lg px-2.5 py-1 text-caption font-medium transition-colors',
+                  'min-h-11 md:min-h-0 rounded-lg px-2.5 py-1 text-caption font-medium transition-colors',
                   sortMode === option.value
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground',
