@@ -96,13 +96,14 @@ test('restores ShoppingList search, page, sort, and owner filter after reload', 
     if (url.pathname !== '/api/shopping-lists/' || route.request().method() !== 'GET') {
       return route.continue();
     }
+    const invitedTrips = url.searchParams.get('invited_trips') === 'true';
     return route.fulfill({
       json: {
-        items: [shoppingList('URL E2E Einkaufsliste')],
-        total: 21,
+        items: invitedTrips ? [] : [shoppingList('URL E2E Einkaufsliste')],
+        total: invitedTrips ? 0 : 21,
         page: Number(url.searchParams.get('page') ?? 1),
         page_size: 20,
-        total_pages: 2,
+        total_pages: invitedTrips ? 1 : 2,
       },
     });
   });
@@ -139,7 +140,10 @@ test('keeps recipe list filters when returning via the bottom navigation', async
 
   await expect.poll(() => new URL(foodPage.url()).search).toBe('?origin=mine&sort=newest');
   await expect(foodPage.locator('select').filter({ hasText: 'Neueste' }).first()).toHaveValue('newest');
-  expect(recipeQueries.at(-1)).toContain('origin=mine');
+  await expect.poll(() => recipeQueries.some((query) => {
+    const params = new URLSearchParams(query);
+    return params.get('origin') === 'mine' && params.get('sort') === 'newest';
+  })).toBe(true);
 
   await foodPage.getByTestId('active-filters-hint').getByRole('button', { name: 'Zurücksetzen' }).click();
   await expect.poll(() => new URL(foodPage.url()).search).toBe('');

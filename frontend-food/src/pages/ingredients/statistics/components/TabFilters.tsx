@@ -37,6 +37,7 @@ export default function TabFilters({
     <div className="flex flex-wrap items-center gap-2 mb-4">
       {showRetailSection && retailSections && (
         <select
+          aria-label="Abteilung filtern"
           value={retailSectionId}
           onChange={(e) => updateParam('retail_section', e.target.value)}
           className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
@@ -52,6 +53,7 @@ export default function TabFilters({
 
       {showTag && tagOptions.length > 0 && (
         <select
+          aria-label="Tag filtern"
           value={tagFilter}
           onChange={(e) => updateParam('tag', e.target.value)}
           className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"

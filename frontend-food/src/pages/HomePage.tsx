@@ -179,7 +179,7 @@ export default function HomePage() {
             <h2 id="beliebt" className="font-display text-heading font-bold text-foreground">
               Beliebt
             </h2>
-            <Link to="/recipes" className="text-body font-semibold text-primary-dark hover:underline">
+            <Link to="/recipes" className="press inline-flex min-h-11 items-center text-body font-semibold text-primary-dark hover:underline">
               Alle Rezepte
             </Link>
           </div>

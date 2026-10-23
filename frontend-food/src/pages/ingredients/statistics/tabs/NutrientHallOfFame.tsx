@@ -25,6 +25,7 @@ export default function NutrientHallOfFame() {
       </p>
       <TabFilters showRetailSection extraContent={
         <select
+          aria-label="Nährwert auswählen"
           value={selectedField}
           onChange={(e) => setSelectedField(e.target.value)}
           className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"

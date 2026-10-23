@@ -46,6 +46,7 @@ export default function ComparisonTab() {
         extraContent={
           <>
             <select
+              aria-label="Vergleichsgruppe auswählen"
               value={groupBy}
               onChange={(e) => updateParam('group_by', e.target.value)}
               className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
@@ -55,6 +56,7 @@ export default function ComparisonTab() {
               ))}
             </select>
             <select
+              aria-label="Messwert auswählen"
               value={metric}
               onChange={(e) => updateParam('metric', e.target.value)}
               className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
