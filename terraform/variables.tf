@@ -97,6 +97,40 @@ variable "backend_memory_warning_threshold" {
   }
 }
 
+variable "backend_429_warning_threshold" {
+  description = "Number of HTTP 429 responses from the backend within 5 minutes that should raise an operator alert"
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.backend_429_warning_threshold >= 0
+    error_message = "backend_429_warning_threshold must be zero or greater."
+  }
+}
+
+variable "backend_latency_p95_warning_ms" {
+  description = "Backend p95 request latency in milliseconds that should raise an operator alert when sustained for 10 minutes"
+  type        = number
+  default     = 5000
+
+  validation {
+    condition     = var.backend_latency_p95_warning_ms > 0
+    error_message = "backend_latency_p95_warning_ms must be greater than 0."
+  }
+}
+
+variable "uptime_check_host" {
+  description = "Public host probed by the uptime check on /api/auth/providers/"
+  type        = string
+  default     = "essensplan.app"
+}
+
+variable "alert_email" {
+  description = "Email address that receives operator alerts; empty disables the email channel"
+  type        = string
+  default     = "robertbaggi@gmail.com"
+}
+
 variable "monitoring_notification_channels" {
   description = "Optional Cloud Monitoring notification channel resource names"
   type        = list(string)
