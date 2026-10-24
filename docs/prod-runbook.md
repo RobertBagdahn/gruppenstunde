@@ -315,3 +315,59 @@ Commands im Image vorhanden sind. Aufruf als Cloud Run Job:
       Buffet-Suche „Zwiebel“ (Treffer mit Badge „Zutat zum Kochen“), Einkaufsliste mit Hinweis „Essensplan wurde seit
       Erstellung geändert“ nach einer Planänderung.
 - Rollback: Code-Rollback über das vorherige Image; es gibt keine Datenänderung.
+
+## guest-account-flag — Gastkonten ausdrücklich markieren (offen)
+
+Sicherheitsfix vor `platform-architecture` (dort Task 1.10, D6): Gast-Anmeldungen haben jedes Konto ohne nutzbares
+Passwort wiederverwendet — auch echte Google-/Apple-/Microsoft-/Facebook-Konten. Jetzt werden nur noch Konten mit
+`UserProfile.is_guest = True` wiederverwendet. Die Migration `profiles.0004_userprofile_is_guest` legt das Feld an und
+markiert bestehende Gastkonten. Sie läuft beim Deploy automatisch im `inspi-migrate`-Job, deshalb den Trockenlauf
+**vor dem Merge nach `main`** machen.
+
+Markiert werden nur Konten, die alle Bedingungen erfüllen: kein nutzbares Passwort, kein `SocialAccount`,
+`last_login` leer, aktiv, kein Staff/Superuser, mindestens eine eigene `Person`, Benutzername = E-Mail oder
+`guest+<12 Hex>@<E-Mail>`. Fehlt bei einem echten Gast eine Bedingung, ist das harmlos: Bei der nächsten Anmeldung entsteht
+ein neues Gastkonto.
+
+- [ ] DB-Snapshot anlegen und hier notieren.
+- [ ] Trockenlauf vom Branch aus gegen eine Prod-Kopie (Klon des Snapshots) oder lesend über den Cloud SQL Proxy
+      (READ-ONLY-Session). Der Befehl schreibt nie und gibt nur IDs aus, keine E-Mail-Adressen:
+      `uv run python manage.py report_guest_accounts`
+      - „Würden als Gastkonto markiert“: Anzahl, die die Migration markiert (davon mit/ohne vorhandenes Profil)
+      - „davon mit Social-Login (nie Gast)“: Konten, die heute von der Lücke betroffen sein könnten
+      - „Ohne Passwort und ohne Social-Login, nicht markiert“: Stichprobe der IDs prüfen (z. B. Dev-Login-Konten oder
+        bereits eingeloggte Konten)
+- [ ] Gegenprobe ohne Branch-Code (psql, nur lesend), muss dieselbe Zahl liefern:
+
+  ```sql
+  SELECT count(*) FROM auth_user u
+  WHERE u.password LIKE '!%'
+    AND u.last_login IS NULL AND u.is_active AND NOT u.is_staff AND NOT u.is_superuser
+    AND u.email <> ''
+    AND NOT EXISTS (SELECT 1 FROM socialaccount_socialaccount s WHERE s.user_id = u.id)
+    AND EXISTS (SELECT 1 FROM event_person p WHERE p.user_id = u.id)
+    AND (
+      lower(u.username) = lower(u.email)
+      OR (substr(lower(u.username), 7, 12) ~ '^[0-9a-f]{12}$'
+          AND lower(u.username) = 'guest+' || substr(lower(u.username), 7, 12) || '@' || lower(u.email))
+    );
+  ```
+
+- [ ] Prüfen, ob Gast-Anmeldungen schon an Social-Konten hängen (psql, nur lesend). Treffer an Robert melden, nicht
+      still umhängen — sie können auch vom Kontoinhaber selbst ohne Login stammen:
+
+  ```sql
+  SELECT r.user_id, count(DISTINCT t.participant_id) AS guest_participants
+  FROM event_timelineentry t
+  JOIN event_participant p ON p.id = t.participant_id
+  JOIN event_registration r ON r.id = p.registration_id
+  WHERE t.metadata ? 'guest_email'
+    AND EXISTS (SELECT 1 FROM socialaccount_socialaccount s WHERE s.user_id = r.user_id)
+  GROUP BY r.user_id ORDER BY r.user_id;
+  ```
+
+- [ ] Ausgabe Robert zeigen; erst nach OK mergen. Der Deploy führt die Migration aus.
+- [ ] Nach dem Deploy erneut `report_guest_accounts`: „Würden als Gastkonto markiert“ zählt dieselben Konten; im Admin
+      unter Benutzerprofile Filter „Gastkonto“ stichprobenartig prüfen.
+- Rollback: Code-Rollback über das vorherige Image; die Spalte `is_guest` stört alten Code nicht. Die Migration hat keine
+  Rückwärts-Datenoperation (`migrate profiles 0003` entfernt nur die Spalte; neu angelegte Profile der Gastkonten bleiben).

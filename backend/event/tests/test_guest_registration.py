@@ -27,6 +27,7 @@ from event.tests import (
     make_person,
     make_registration,
 )
+from profiles.models import UserProfile
 
 User = get_user_model()
 
@@ -635,8 +636,7 @@ class TestAutoAccountCreation:
         option = make_booking_option(event=event)
         email = "guest-return@example.com"
         guest_user = User.objects.create_user(username=email, email=email, password=None)
-        guest_user.set_unusable_password()
-        guest_user.save()
+        UserProfile.objects.create(user=guest_user, is_guest=True)
 
         resp = guest_client.post(
             f"/api/events/{event.slug}/register-guest/",
@@ -668,8 +668,7 @@ class TestAutoAccountCreation:
             email="Upper@Example.com",
             password=None,
         )
-        guest.set_unusable_password()
-        guest.save()
+        UserProfile.objects.create(user=guest, is_guest=True)
 
         resp = guest_client.post(
             f"/api/events/{event.slug}/register-guest/",
