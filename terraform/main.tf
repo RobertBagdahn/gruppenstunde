@@ -477,6 +477,132 @@ resource "google_monitoring_alert_policy" "backend_memory_pressure" {
   depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
 }
 
+resource "google_monitoring_alert_policy" "backend_rate_limit_pressure" {
+  project      = var.project_id
+  display_name = "${local.env_prefix} backend rate limit pressure"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "Cloud Run backend returns HTTP 429 above threshold"
+
+    condition_threshold {
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${local.env_prefix}-backend\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code = \"429\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.backend_429_warning_threshold
+      duration        = "0s"
+
+      aggregations {
+        alignment_period     = "300s"
+        per_series_aligner   = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"
+      }
+    }
+  }
+
+  notification_channels = var.monitoring_notification_channels
+
+  documentation {
+    mime_type = "text/markdown"
+    content   = "More than the configured number of HTTP 429 responses in 5 minutes. Check Cloud Run instance count and concurrency limits, and the shopping list load path, before raising capacity."
+  }
+
+  depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
+}
+
+resource "google_monitoring_alert_policy" "backend_latency_pressure" {
+  project      = var.project_id
+  display_name = "${local.env_prefix} backend request latency pressure"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "Cloud Run backend p95 request latency above threshold"
+
+    condition_threshold {
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${local.env_prefix}-backend\" AND metric.type = \"run.googleapis.com/request_latencies\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.backend_latency_p95_warning_ms
+      duration        = "600s"
+
+      aggregations {
+        alignment_period     = "60s"
+        per_series_aligner   = "ALIGN_DELTA"
+        cross_series_reducer = "REDUCE_PERCENTILE_95"
+        group_by_fields      = ["resource.label.service_name"]
+      }
+    }
+  }
+
+  notification_channels = var.monitoring_notification_channels
+
+  documentation {
+    mime_type = "text/markdown"
+    content   = "p95 request latency of the backend stayed above the threshold for 10 minutes. Check the warm-instance window, DB connection pressure and the memory alert before changing scaling limits."
+  }
+
+  depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
+}
+
+resource "google_monitoring_uptime_check_config" "backend_auth_providers" {
+  project      = var.project_id
+  display_name = "${local.env_prefix} backend auth providers"
+  timeout      = "10s"
+  period       = "300s"
+
+  http_check {
+    path           = "/api/auth/providers/"
+    port           = 443
+    use_ssl        = true
+    validate_ssl   = true
+    request_method = "GET"
+  }
+
+  monitored_resource {
+    type = "uptime_url"
+    labels = {
+      project_id = var.project_id
+      host       = var.uptime_check_host
+    }
+  }
+
+  depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
+}
+
+resource "google_monitoring_alert_policy" "backend_uptime" {
+  project      = var.project_id
+  display_name = "${local.env_prefix} backend uptime check failing"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "Auth providers endpoint failing uptime check"
+
+    condition_threshold {
+      filter          = "metric.type = \"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type = \"uptime_url\" AND metric.label.check_id = \"${google_monitoring_uptime_check_config.backend_auth_providers.uptime_check_id}\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 1
+      duration        = "300s"
+
+      aggregations {
+        alignment_period     = "1200s"
+        per_series_aligner   = "ALIGN_NEXT_OLDER"
+        cross_series_reducer = "REDUCE_COUNT_FALSE"
+        group_by_fields      = ["resource.*"]
+      }
+    }
+  }
+
+  notification_channels = var.monitoring_notification_channels
+
+  documentation {
+    mime_type = "text/markdown"
+    content   = "The unauthenticated uptime check on /api/auth/providers/ fails from several regions. Check Cloud Run revision health and the Cloud SQL instance state."
+  }
+
+  depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
+}
+
 # -----------------------------------------------
 # Scheduled management commands
 # -----------------------------------------------
