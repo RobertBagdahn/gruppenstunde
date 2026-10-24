@@ -479,9 +479,10 @@ resource "google_monitoring_alert_policy" "backend_memory_pressure" {
       threshold_value = var.backend_memory_warning_threshold
       duration        = "60s"
 
+      # memory/utilizations is a DELTA distribution; ALIGN_MAX is rejected for it.
       aggregations {
         alignment_period   = "60s"
-        per_series_aligner = "ALIGN_MAX"
+        per_series_aligner = "ALIGN_PERCENTILE_99"
       }
     }
   }
