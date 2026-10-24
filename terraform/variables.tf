@@ -125,6 +125,12 @@ variable "uptime_check_host" {
   default     = "essensplan.app"
 }
 
+variable "alert_email" {
+  description = "Email address that receives operator alerts; empty disables the email channel"
+  type        = string
+  default     = "robertbaggi@gmail.com"
+}
+
 variable "monitoring_notification_channels" {
   description = "Optional Cloud Monitoring notification channel resource names"
   type        = list(string)

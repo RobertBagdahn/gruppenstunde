@@ -15,6 +15,11 @@ locals {
   env_prefix    = var.environment == "prod" ? "inspi" : "inspi-${var.environment}"
   backend_image = "${var.region}-docker.pkg.dev/${var.project_id}/inspi/backend"
   is_prod       = var.environment == "prod"
+
+  alert_notification_channels = concat(
+    var.monitoring_notification_channels,
+    google_monitoring_notification_channel.alert_email[*].name,
+  )
 }
 
 # -----------------------------------------------
@@ -413,6 +418,20 @@ resource "google_project_iam_member" "cloudbuild_secret_accessor" {
 # Operational capacity alerts
 # -----------------------------------------------
 
+resource "google_monitoring_notification_channel" "alert_email" {
+  count = var.alert_email == "" ? 0 : 1
+
+  project      = var.project_id
+  display_name = "${local.env_prefix} operator email"
+  type         = "email"
+
+  labels = {
+    email_address = var.alert_email
+  }
+
+  depends_on = [google_project_service.apis["monitoring.googleapis.com"]]
+}
+
 resource "google_monitoring_alert_policy" "database_connection_pressure" {
   project      = var.project_id
   display_name = "${local.env_prefix} backend database connection pressure"
@@ -435,7 +454,7 @@ resource "google_monitoring_alert_policy" "database_connection_pressure" {
     }
   }
 
-  notification_channels = var.monitoring_notification_channels
+  notification_channels = local.alert_notification_channels
 
   documentation {
     mime_type = "text/markdown"
@@ -467,7 +486,7 @@ resource "google_monitoring_alert_policy" "backend_memory_pressure" {
     }
   }
 
-  notification_channels = var.monitoring_notification_channels
+  notification_channels = local.alert_notification_channels
 
   documentation {
     mime_type = "text/markdown"
@@ -500,7 +519,7 @@ resource "google_monitoring_alert_policy" "backend_rate_limit_pressure" {
     }
   }
 
-  notification_channels = var.monitoring_notification_channels
+  notification_channels = local.alert_notification_channels
 
   documentation {
     mime_type = "text/markdown"
@@ -534,7 +553,7 @@ resource "google_monitoring_alert_policy" "backend_latency_pressure" {
     }
   }
 
-  notification_channels = var.monitoring_notification_channels
+  notification_channels = local.alert_notification_channels
 
   documentation {
     mime_type = "text/markdown"
@@ -593,7 +612,7 @@ resource "google_monitoring_alert_policy" "backend_uptime" {
     }
   }
 
-  notification_channels = var.monitoring_notification_channels
+  notification_channels = local.alert_notification_channels
 
   documentation {
     mime_type = "text/markdown"
