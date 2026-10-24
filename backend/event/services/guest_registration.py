@@ -10,6 +10,8 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from ninja.errors import HttpError
 
+from profiles.models import UserProfile
+
 from ..choices import GenderChoices, TimelineActionChoices
 from ..models import BookingOption, Event, Participant, Person, Registration
 from ..services.timeline import TimelineService
@@ -22,6 +24,7 @@ class GuestRegistrationService:
     """Handle guest registrations: account creation + registration in one step."""
 
     @staticmethod
+    @transaction.atomic
     def create_or_get_user(email: str) -> Any:
         """Resolve the user for an unauthenticated guest registration.
 
@@ -30,19 +33,19 @@ class GuestRegistrationService:
         an unauthenticated attacker to register people under someone else's
         account (account hijack) and to enumerate registered emails.
 
-        We therefore only reuse an account that was itself created as a guest
-        (no usable password). For any account with a usable password (a real,
-        password-protected user) we create a distinct guest account instead, so
+        We therefore only reuse an account explicitly flagged as a guest account
+        (``UserProfile.is_guest``). A missing usable password is not enough:
+        social-only accounts (Google, Apple, …) have none either. For any other
+        account with that email we create a distinct guest account instead, so
         the guest data never lands on the real user without authentication.
         """
         email_lower = email.lower().strip()
-        existing = User.objects.filter(email__iexact=email_lower).first()
-        if existing is not None and not existing.has_usable_password():
-            # Guest-only account from a previous guest registration → safe to reuse.
+        existing = User.objects.filter(email__iexact=email_lower, profile__is_guest=True).order_by("pk").first()
+        if existing is not None:
             return existing
 
-        # No account, or a real password-protected account: create a separate
-        # guest account with an unusable password and a unique username.
+        # No guest account yet: create one with an unusable password and a
+        # unique username (the email may already belong to a real account).
         username = email_lower
         if User.objects.filter(username=username).exists():
             username = f"guest+{uuid4().hex[:12]}@{email_lower}"
@@ -51,8 +54,7 @@ class GuestRegistrationService:
             email=email_lower,
             password=None,  # unusable password
         )
-        user.set_unusable_password()
-        user.save()
+        UserProfile.objects.create(user=user, is_guest=True)
         return user
 
     @staticmethod

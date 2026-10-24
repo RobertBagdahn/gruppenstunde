@@ -11,9 +11,9 @@ class GroupMembershipInline(admin.TabularInline):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ["user", "scout_name", "first_name", "last_name", "gender", "created_at"]
+    list_display = ["user", "scout_name", "first_name", "last_name", "gender", "is_guest", "created_at"]
     search_fields = ["user__email", "scout_name", "first_name", "last_name"]
-    list_filter = ["gender"]
+    list_filter = ["gender", "is_guest"]
     raw_id_fields = ["user"]
     filter_horizontal = ["nutritional_tags"]
     list_per_page = 25

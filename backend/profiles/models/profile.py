@@ -87,6 +87,11 @@ class UserProfile(models.Model):
         verbose_name=_("Onboarding abgeschlossen"),
         help_text=_("Gesetzt, sobald der Willkommensdialog nach dem ersten Login abgeschlossen wurde"),
     )
+    is_guest = models.BooleanField(
+        default=False,
+        verbose_name=_("Gastkonto"),
+        help_text=_("Durch eine Gast-Anmeldung ohne Login entstanden; nur solche Konten werden dafür wiederverwendet"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
