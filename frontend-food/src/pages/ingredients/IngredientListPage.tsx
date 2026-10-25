@@ -87,7 +87,7 @@ export default function IngredientListPage() {
         countLabel={{ one: 'Eintrag', other: 'Einträge' }}
       >
         <ListPageSearchBar
-          placeholder="Zutat suchen, z. B. Haferflocken …"
+          placeholder="Zutat suchen..."
           value={search.input}
           onChange={search.setInput}
           onSubmit={search.submit}
