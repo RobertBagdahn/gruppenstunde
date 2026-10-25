@@ -17,14 +17,14 @@ export default function ShoppingListProgress({
   const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
 
   return (
-    <div className={cn('space-y-1', className)}>
-      <div className="flex justify-between text-caption text-muted-foreground">
+    <div className={cn('space-y-2 rounded-xl bg-primary-soft p-4', className)}>
+      <div className="flex justify-between text-caption font-semibold text-primary-dark">
         <span>
           {checked} / {total} erledigt
         </span>
         <span>{pct}%</span>
       </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
+      <div className="h-2 bg-card rounded-full overflow-hidden">
         <div
           className={cn(
             'h-full rounded-full transition-all duration-500',

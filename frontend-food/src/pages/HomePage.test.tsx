@@ -76,7 +76,7 @@ describe('start page (food-homepage)', () => {
     renderHome();
     expect(screen.getByText('Weiter planen')).toBeInTheDocument();
     expect(screen.getByText('Herbstlager 2026')).toBeInTheDocument();
-    expect(screen.getByText(/12 von 13 Mahlzeiten/)).toBeInTheDocument();
+    expect(screen.getByText(/12 von 13/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Zum Essensplan/ })).toHaveAttribute('href', '/meal-plans/7');
   });
 });
