@@ -7,7 +7,10 @@ import { useRecipes } from '@/api/recipes';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icon } from '@/components/ui/icon';
 import RecipeCard from '@/components/recipe/RecipeCard';
+import Sticker from '@/components/shared/Sticker';
+import { StickerBoundary } from '@/components/shared/StickerBoundary';
 import { formatCount, formatNumber } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import type { MealPlan } from '@/schemas/mealPlan';
 
 interface ModuleTile {
@@ -16,19 +19,22 @@ interface ModuleTile {
   icon: string;
   href: string;
   description: string;
+  /** Tint of the tile surface and its count/hover accent (written out so Tailwind generates it). */
+  tint: string;
+  accent: string;
 }
 
 const MODULE_TILES: readonly ModuleTile[] = [
-  { key: 'recipes', label: 'Rezepte', icon: 'menu_book', href: '/recipes', description: 'Rezepte finden, anlegen und mit Nährwerten rechnen.' },
-  { key: 'meal-plans', label: 'Essenspläne', icon: 'restaurant_menu', href: '/meal-plans/app', description: 'Mahlzeiten für Lager und Fahrten planen.' },
-  { key: 'shopping', label: 'Einkaufslisten', icon: 'shopping_cart', href: '/shopping-lists', description: 'Gemeinsam abhaken, sortiert nach Abteilung.' },
-  { key: 'ingredients', label: 'Zutaten', icon: 'egg', href: '/ingredients', description: 'Nährwerte, Preise und Portionen.' },
+  { key: 'recipes', label: 'Rezepte', icon: 'menu_book', href: '/recipes', description: 'Rezepte finden, anlegen und mit Nährwerten rechnen.', tint: 'bg-category-warm-soft', accent: 'text-category-warm-foreground' },
+  { key: 'meal-plans', label: 'Essenspläne', icon: 'restaurant_menu', href: '/meal-plans/app', description: 'Mahlzeiten für Lager und Fahrten planen.', tint: 'bg-category-dessert-soft', accent: 'text-category-dessert-foreground' },
+  { key: 'shopping', label: 'Einkaufslisten', icon: 'shopping_cart', href: '/shopping-lists', description: 'Gemeinsam abhaken, sortiert nach Abteilung.', tint: 'bg-category-cold-soft', accent: 'text-category-cold-foreground' },
+  { key: 'ingredients', label: 'Zutaten', icon: 'egg', href: '/ingredients', description: 'Nährwerte, Preise und Portionen.', tint: 'bg-category-snack-soft', accent: 'text-category-snack-foreground' },
 ];
 
 const STEPS = [
-  { title: 'Rezepte auswählen', text: 'Nach Kategorie, Zeit und Kosten filtern.' },
-  { title: 'Plan bauen', text: 'Tage füllen, Budget und kcal rechnen mit.' },
-  { title: 'Einkaufen und kochen', text: 'Fertige Liste und Kochmodus.' },
+  { title: 'Rezepte auswählen', text: 'Nach Kategorie, Zeit und Kosten filtern.', badge: 'bg-spice' },
+  { title: 'Plan bauen', text: 'Tage füllen, Budget und kcal rechnen mit.', badge: 'bg-primary' },
+  { title: 'Einkaufen und kochen', text: 'Fertige Liste und Kochmodus.', badge: 'bg-category-dessert-foreground' },
 ] as const;
 
 /** Upcoming or unfinished plan: the first one whose end is not in the past. */
@@ -51,13 +57,13 @@ function ModuleCount({ tile, data, isLoading, failed }: { tile: ModuleTile; data
   if (failed || !data) return <span className="text-caption text-muted-foreground">Zahl nicht verfügbar</span>;
   switch (tile.key) {
     case 'recipes':
-      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.recipe_count)} Rezepte</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.recipe_count)} Rezepte</span>;
     case 'meal-plans':
-      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.active_meal_plan_count)} aktiv</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.active_meal_plan_count)} aktiv</span>;
     case 'shopping':
-      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.open_shopping_list_count)} offen</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.open_shopping_list_count)} offen</span>;
     case 'ingredients':
-      return <span className="text-caption text-muted-foreground tabular-nums">{formatCount(data.ingredient_count)} Einträge</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.ingredient_count)} Einträge</span>;
   }
 }
 
@@ -75,8 +81,11 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-7xl space-y-10 px-4 py-6 sm:px-6 md:space-y-12 md:py-8 lg:px-8">
       {/* Introduction: one H1, a short description and two actions (food-homepage). */}
-      <section className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+      <section className="relative flex flex-col items-start gap-6 overflow-hidden rounded-xl bg-primary-soft p-5 md:flex-row md:items-center md:justify-between md:p-8">
         <div className="max-w-2xl space-y-4">
+          <StickerBoundary>
+            <Sticker>Für Gruppenstunde, Fahrt &amp; Lager</Sticker>
+          </StickerBoundary>
           <h1 className="font-display text-display font-extrabold text-foreground">Was kocht ihr als Nächstes?</h1>
           <p className="text-emphasis text-muted-foreground md:text-section">
             Rezepte, Essenspläne und Einkaufslisten für jede Gruppenstunde, Fahrt und jedes Lager.
@@ -91,7 +100,7 @@ export default function HomePage() {
             </Link>
             <Link
               to="/recipes"
-              className="press inline-flex h-12 items-center gap-2 rounded-lg bg-primary-soft px-5 text-emphasis font-bold text-primary-dark transition-colors hover:bg-primary-soft-border"
+              className="press inline-flex h-12 items-center gap-2 rounded-lg bg-card px-5 text-emphasis font-bold text-primary-dark transition-colors hover:bg-primary-soft-border"
             >
               <Icon name="menu_book" size={20} aria-hidden="true" />
               Rezepte entdecken
@@ -107,21 +116,21 @@ export default function HomePage() {
           <Link
             key={tile.key}
             to={tile.href}
-            className="card-hover group flex flex-col gap-3 rounded-xl bg-card p-4 shadow-card md:p-5"
+            className={cn('card-hover group flex flex-col gap-3 rounded-xl p-4 md:p-5', tile.tint)}
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary-soft text-primary-dark">
+            <span className={cn('flex h-11 w-11 items-center justify-center rounded-lg bg-card shadow-soft', tile.accent)}>
               <Icon name={tile.icon} size={24} aria-hidden="true" />
             </span>
-            <span className="font-display text-emphasis font-bold text-foreground group-hover:text-primary-dark">{tile.label}</span>
+            <span className="font-display text-emphasis font-bold text-foreground ">{tile.label}</span>
             <ModuleCount tile={tile} data={dashboard.data} isLoading={dashboard.isLoading} failed={dashboard.isError} />
-            <span className="hidden text-body text-muted-foreground md:block">{tile.description}</span>
+            <span className="hidden text-body text-foreground/80 md:block">{tile.description}</span>
           </Link>
         ))}
       </section>
 
       {/* Continue planning: only from the existing plan list, only for signed-in users with a plan. */}
       {loggedIn && plan && (
-        <section aria-labelledby="weiter-planen" className="rounded-xl bg-card p-5 shadow-card md:p-6">
+        <section aria-labelledby="weiter-planen" className="rounded-xl bg-card p-5 shadow-raised md:p-6">
           <h2 id="weiter-planen" className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
             Weiter planen
           </h2>
@@ -131,9 +140,18 @@ export default function HomePage() {
               <p className="text-body text-muted-foreground">
                 {formatPeriod(plan)} · {formatCount(plan.norm_portions)} Personen
               </p>
-              <p className="mt-2 text-body font-semibold tabular-nums text-foreground">
-                {formatCount(plan.filled_meals_count)} von {formatCount(plan.meals_count)} Mahlzeiten
-              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <p className="rounded-lg bg-category-dessert-soft px-3 py-2">
+                  <span className="block text-caption font-bold text-category-dessert-foreground">Mahlzeiten</span>
+                  <span className="font-display text-emphasis font-bold tabular-nums text-foreground">
+                    {formatCount(plan.filled_meals_count)} von {formatCount(plan.meals_count)}
+                  </span>
+                </p>
+                <p className="rounded-lg bg-category-cold-soft px-3 py-2">
+                  <span className="block text-caption font-bold text-category-cold-foreground">Personen</span>
+                  <span className="font-display text-emphasis font-bold tabular-nums text-foreground">{formatCount(plan.norm_portions)}</span>
+                </p>
+              </div>
               <div className="mt-2 h-2 w-64 max-w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
                 <div
                   className="h-full bg-primary"
@@ -159,8 +177,8 @@ export default function HomePage() {
         </h2>
         <ol className="grid gap-3 md:grid-cols-3">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="flex gap-3 rounded-xl bg-card p-4 shadow-card">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-spice font-bold text-white" aria-hidden="true">
+            <li key={step.title} className="flex gap-3 rounded-xl border border-line bg-card p-4 shadow-card">
+              <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-white', step.badge)} aria-hidden="true">
                 {index + 1}
               </span>
               <div>
