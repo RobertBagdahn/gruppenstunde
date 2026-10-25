@@ -1,11 +1,60 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useParams } from 'react-router-dom';
+import { BookOpen, Salad, type LucideIcon } from 'lucide-react';
 import { useTagDetail } from '@/api/admin';
+import DetailHeader from '@/components/shared/DetailHeader';
 import { PageSkeleton } from '@/components/ui/skeleton';
+
+interface TagLinkItem {
+  key: number | string;
+  href: string;
+  label: string;
+}
+
+interface TagLinkSectionProps {
+  heading: string;
+  icon: LucideIcon;
+  items: TagLinkItem[];
+  emptyText: string;
+}
+
+/** Card with a list of links (recipes or ingredients) that open in a new tab. */
+function TagLinkSection({ heading, icon: Icon, items, emptyText }: TagLinkSectionProps) {
+  return (
+    <section className="space-y-3 rounded-xl bg-card p-5 shadow-card md:p-6">
+      <header className="flex items-center gap-3">
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-dark"
+          aria-hidden="true"
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <h2 className="font-display text-section font-bold">{heading}</h2>
+      </header>
+      {items.length > 0 ? (
+        <ul className="divide-y divide-border">
+          {items.map((item) => (
+            <li key={item.key}>
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 items-center text-body font-medium text-primary-dark hover:underline [overflow-wrap:anywhere]"
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-body text-muted-foreground">{emptyText}</p>
+      )}
+    </section>
+  );
+}
 
 export default function TagDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { data, isLoading, error } = useTagDetail(id);
 
   if (isLoading) {
@@ -14,108 +63,59 @@ export default function TagDetailPage() {
 
   if (error || !data) {
     return (
-      <div className="py-8 text-center text-muted-foreground">
-        Tag nicht gefunden.
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <p className="rounded-xl bg-card p-6 text-center text-body text-muted-foreground shadow-card">
+          Tag nicht gefunden.
+        </p>
       </div>
     );
   }
 
   const { tag, recipes, ingredients } = data;
+  const facts: { label: string; value: ReactNode }[] = [
+    { label: 'Slug:', value: tag.slug },
+    { label: 'Gruppe:', value: tag.group },
+    { label: 'Icon:', value: tag.icon || '—' },
+    { label: 'Sortierung:', value: tag.sort_order },
+    { label: 'Parent:', value: tag.parent_name || '—' },
+    { label: 'Genehmigt:', value: tag.is_approved ? 'Ja' : 'Nein' },
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
-      <button
-        onClick={() => navigate('/admin/tags')}
-        className="flex items-center gap-1 text-body text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Zurück zu Tags
-      </button>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-4 sm:px-6 md:py-8 lg:px-8">
+      <DetailHeader title={tag.name} back={{ to: '/admin/tags', label: 'Zurück zu Tags' }} />
 
-      <div className="bg-card rounded-xl p-6 space-y-4 shadow-card">
-        <h1 className="text-title font-bold font-display">{tag.name}</h1>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-body">
-          <div>
-            <span className="text-muted-foreground">Slug:</span>{' '}
-            <span className="font-medium">{tag.slug}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Gruppe:</span>{' '}
-            <span className="font-medium">{tag.group}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Icon:</span>{' '}
-            <span className="font-medium">{tag.icon || '—'}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Sortierung:</span>{' '}
-            <span className="font-medium">{tag.sort_order}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Parent:</span>{' '}
-            <span className="font-medium">{tag.parent_name || '—'}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Genehmigt:</span>{' '}
-            <span className="font-medium">{tag.is_approved ? 'Ja' : 'Nein'}</span>
-          </div>
-        </div>
+      <section className="space-y-4 rounded-xl bg-card p-5 shadow-card md:p-6">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 text-body sm:grid-cols-2 lg:grid-cols-3">
+          {facts.map((fact) => (
+            <div key={fact.label} className="min-w-0 space-y-0.5">
+              <dt className="text-caption font-semibold uppercase tracking-wide text-primary-dark">{fact.label}</dt>
+              <dd className="font-medium [overflow-wrap:anywhere]">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
 
         {tag.description && (
-          <div>
-            <span className="text-muted-foreground text-body">Beschreibung:</span>
-            <p className="text-body mt-1">{tag.description}</p>
+          <div className="space-y-1 border-t border-border pt-4">
+            <p className="text-caption font-semibold uppercase tracking-wide text-primary-dark">Beschreibung:</p>
+            <p className="text-body">{tag.description}</p>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-xl p-5 space-y-3 shadow-card">
-          <h2 className="font-display font-semibold text-section">
-            Rezepte ({recipes.length})
-          </h2>
-          {recipes.length > 0 ? (
-            <div className="divide-y divide-border">
-              {recipes.map((r) => (
-                <a
-                  key={r.id}
-                  href={`/recipes/${r.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block py-2 text-body text-primary hover:underline"
-                >
-                  {r.title}
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="text-body text-muted-foreground">Keine Einträge gefunden</p>
-          )}
-        </div>
-
-        <div className="bg-card rounded-xl p-5 space-y-3 shadow-card">
-          <h2 className="font-display font-semibold text-section">
-            Zutaten ({ingredients.length})
-          </h2>
-          {ingredients.length > 0 ? (
-            <div className="divide-y divide-border">
-              {ingredients.map((i) => (
-                <a
-                  key={i.id}
-                  href={`/ingredients/${i.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block py-2 text-body text-primary hover:underline"
-                >
-                  {i.name}
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="text-body text-muted-foreground">Keine Einträge gefunden</p>
-          )}
-        </div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <TagLinkSection
+          heading={`Rezepte (${recipes.length})`}
+          icon={BookOpen}
+          items={recipes.map((r) => ({ key: r.id, href: `/recipes/${r.slug}`, label: r.title }))}
+          emptyText="Keine Einträge gefunden"
+        />
+        <TagLinkSection
+          heading={`Zutaten (${ingredients.length})`}
+          icon={Salad}
+          items={ingredients.map((i) => ({ key: i.id, href: `/ingredients/${i.slug}`, label: i.name }))}
+          emptyText="Keine Einträge gefunden"
+        />
       </div>
     </div>
   );

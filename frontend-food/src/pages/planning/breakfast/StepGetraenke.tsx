@@ -3,12 +3,15 @@
  * Ähnlich wie StepStreichfett, mit Basis-Getränken und optionalen Zusätzen (Milch/Säfte).
  */
 import { useEffect } from 'react';
+import { CupSoda, Milk, Plus } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import ShareSlider from './ShareSlider';
+import WizardSectionHeading from '../wizard/WizardSectionHeading';
 import type { DrinkRecipeSelection, DrinkIngredientSelection } from '@/schemas/breakfast';
 import { SkeletonTableRows } from '@/components/ui/skeleton';
 import { noExtraDrinkSelection } from '@/lib/breakfastWizardItems';
+import { BREAKFAST_CARD_CLASS, BREAKFAST_CHIP_CLASS } from './breakfastStyles';
 
 interface StepGetraenkeProps {
   wiz: UseWizardStateReturn;
@@ -71,9 +74,9 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
 
   if (!catalog?.drink_recipes?.length && state.drinkRecipes.length === 0) {
     return (
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <h3 className="font-display font-semibold text-emphasis">Getränke</h3>
-        <p className="text-body text-muted-foreground">
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<CupSoda className="h-5 w-5" />}>Getränke</WizardSectionHeading>
+        <p className="-mt-2 text-body text-muted-foreground">
           Keine Getränke-Rezepte verfügbar — lege Rezepte mit dem Tag breakfast-drink an.
         </p>
       </div>
@@ -81,25 +84,26 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Getränke-Rezepte */}
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <h3 className="font-display font-semibold text-emphasis">Getränke</h3>
-        <p className="text-caption text-muted-foreground">
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<CupSoda className="h-5 w-5" />}>Getränke</WizardSectionHeading>
+        <p className="-mt-2 text-caption text-muted-foreground">
           Wähle Getränke-Rezepte aus — Kalorien kommen aus dem Rezept.
         </p>
       </div>
 
       {state.drinkRecipes.length > 0 && (
-        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
+        <div className={BREAKFAST_CARD_CLASS}>
+          <WizardSectionHeading icon={<CupSoda className="h-5 w-5" />}>Verteilung</WizardSectionHeading>
+          <div className="-mt-2 flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => wiz.openCreateModal('recipe', undefined, 'drink')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
+              className={BREAKFAST_CHIP_CLASS}
             >
-              + Neues Getränk-Rezept erstellen
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Neues Getränk-Rezept erstellen
             </button>
           </div>
           <div className="space-y-4">
@@ -127,16 +131,14 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
       )}
 
       {/* Milch & Säfte */}
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <h3 className="font-display font-semibold text-emphasis">Milch & Säfte</h3>
-        <p className="text-caption text-muted-foreground">Zum Trinken oder für Kaffee/Kakao (optional)</p>
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<Milk className="h-5 w-5" />}>Milch & Säfte</WizardSectionHeading>
+        <p className="-mt-2 text-caption text-muted-foreground">Zum Trinken oder für Kaffee/Kakao (optional)</p>
       </div>
 
       {state.drinkIngredients.length > 0 && (
-        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
-          </div>
+        <div className={BREAKFAST_CARD_CLASS}>
+          <WizardSectionHeading icon={<Milk className="h-5 w-5" />}>Verteilung</WizardSectionHeading>
           <div className="space-y-4">
             {state.drinkIngredients.map((d, i) => {
               const defaultMl = 200;

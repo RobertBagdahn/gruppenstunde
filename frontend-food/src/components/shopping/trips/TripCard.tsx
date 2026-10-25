@@ -51,7 +51,7 @@ const TripCard = forwardRef<HTMLElement, TripCardProps>(function TripCard(
             <span
               className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
-                created ? 'bg-success-soft text-success' : 'bg-info-soft text-info',
+                created ? 'bg-success-soft text-success' : 'bg-primary-soft text-primary-dark',
               )}
             >
               {created && <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -114,14 +114,14 @@ const TripCard = forwardRef<HTMLElement, TripCardProps>(function TripCard(
                     <p className="text-caption text-muted-foreground">auf {row.spread_count} Einkäufe verteilt</p>
                   )}
                   {rowRules.map((rule) => (
-                    <p key={rule.id} className="flex items-center gap-1 text-caption text-primary">
+                    <p key={rule.id} className="flex items-center gap-1 text-caption font-semibold text-primary-dark">
                       Von Hand zugeordnet
                       {canManage && (
                         <button
                           type="button"
                           onClick={() => onRemoveRule(rule)}
                           aria-label={`Zuordnung für ${row.name} zurücknehmen`}
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-muted"
+                          className="-my-2.5 inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted md:-my-0 md:h-6 md:w-6"
                         >
                           <X className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>

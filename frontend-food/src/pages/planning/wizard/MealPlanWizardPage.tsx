@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 import { notify } from '@/lib/notify';
 import { getApiErrorMessage } from '@/lib/api';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
 import {
   useMealPlans,
@@ -33,7 +33,6 @@ export default function MealPlanWizardPage() {
   const {
     state,
     step,
-    currentStepIndex,
     goNext,
     goPrev,
     updateState,
@@ -179,7 +178,7 @@ export default function MealPlanWizardPage() {
     <div className="pb-28 md:pb-8">
     {/* Flow header: close leaves the wizard, progress shows the step (food-page-shell) */}
     <FlowHeader
-      title="Neuen Essensplan erstellen"
+      title="Essensplan erstellen"
       onClose={handleCancel}
       closeLabel="Essensplan-Assistent verlassen"
       progress={`Schritt ${shownSteps.indexOf(step) + 1} von ${shownSteps.length}`}
@@ -187,29 +186,50 @@ export default function MealPlanWizardPage() {
     />
     <div className="max-w-5xl mx-auto px-4 pt-6">
 
-      {/* Step progress */}
-      <div className="flex items-center gap-1 mb-6">
-        {WIZARD_STEPS.map((s, i) => {
-          const isActive = s === step;
-          const isPast = currentStepIndex > i;
-          const isSkipped = s === 'ai-prompt' && state.strategy !== 'ai';
-          if (isSkipped) return null;
-          return (
-            <div key={s} className="flex-1">
-              <div
-                className={`h-1.5 rounded-full transition-all ${
-                  isActive ? 'bg-primary' : isPast ? 'bg-primary/40' : 'bg-muted'
-                }`}
-              />
-              <p className={`text-caption font-bold uppercase tracking-wider mt-1 ${
-                isActive ? 'text-primary' : isPast ? 'text-muted-foreground' : 'text-muted-foreground'
-              }`}>
-                {STEP_LABELS[s]}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+      {/* Step indicator: numbered steps with connectors, as in the recipe wizard */}
+      <nav aria-label="Essensplan-Assistent: Fortschritt" className="mb-6 w-full">
+        <ol className="flex items-center justify-center gap-1 sm:gap-2">
+          {shownSteps.map((s, i) => {
+            const isActive = s === step;
+            const isCompleted = shownSteps.indexOf(step) > i;
+            return (
+              <li key={s} className="flex items-center" data-testid={`meal-plan-wizard-indicator-${s}`}>
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-caption font-semibold transition-colors sm:h-9 sm:w-9 ${
+                    isActive
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : isCompleted
+                        ? 'border-primary bg-primary-soft text-primary-dark'
+                        : 'border-border bg-card text-muted-foreground'
+                  }`}
+                  aria-current={isActive ? 'step' : undefined}
+                  title={STEP_LABELS[s]}
+                >
+                  {isCompleted ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                </div>
+                <span
+                  className={`ml-1.5 hidden max-w-[120px] truncate text-caption font-medium sm:block ${
+                    isActive ? 'text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  {STEP_LABELS[s]}
+                </span>
+                {i < shownSteps.length - 1 && (
+                  <div
+                    className={`mx-1 hidden h-0.5 w-6 rounded-lg transition-colors sm:block ${
+                      isCompleted ? 'bg-primary' : 'bg-border'
+                    }`}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        {/* Phones show only the active step name; the labels above appear from 640 px */}
+        <p className="mt-3 text-center text-caption text-muted-foreground sm:hidden">
+          <span className="font-medium text-foreground">{STEP_LABELS[step]}</span>
+        </p>
+      </nav>
 
       {/* Current step content */}
       <div className="rounded-xl bg-card p-5 sm:p-6 mb-6 shadow-card">

@@ -12,7 +12,7 @@ import DetailHeader from '@/components/shared/DetailHeader';
  */
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, Pencil, Sparkles, Eye, Link } from 'lucide-react';
+import { Check, FileText, Pencil, Sparkles, Eye, Link, Store, Tag } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { ApiError, getApiErrorMessage } from '@/lib/api';
 import { useCurrentUser } from '@/api/auth';
@@ -33,6 +33,8 @@ import type { IngredientStatus } from '@/schemas/supply';
 import { ingredientStatusLabel } from '@/lib/ingredientStatus';
 import { Icon } from '@/components/ui/icon';
 import { SkeletonForm } from '@/components/ui/skeleton';
+import WizardSectionHeading from '@/pages/planning/wizard/WizardSectionHeading';
+import { WIZARD_INPUT_CLASS } from '@/pages/planning/wizard/wizardStyles';
 
 
 // ---------------------------------------------------------------------------
@@ -133,10 +135,10 @@ function UrlImportModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 shadow-card">
+    <div className="fixed inset-0 bg-foreground/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-card rounded-xl w-full max-w-md p-5 space-y-4 shadow-raised">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft">
             <Link className="w-5 h-5 text-primary" />
           </div>
           <h2 className="text-section font-semibold">URL importieren</h2>
@@ -152,21 +154,21 @@ function UrlImportModal({
           onKeyDown={(e) => e.key === 'Enter' && !isPending && handleSubmit()}
           placeholder="https://www.rewe.de/produkte/..."
           disabled={isPending}
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={WIZARD_INPUT_CLASS}
         />
         {error && (
-          <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-body">{error}</div>
+          <div className="p-3 rounded-lg bg-danger-soft text-danger-foreground text-body">{error}</div>
         )}
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleSubmit}
             disabled={isPending || !url.trim()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50"
+            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-body font-medium text-primary-foreground shadow-soft transition-colors hover:bg-primary-dark disabled:opacity-50"
           >
             {isPending ? (
               <>
-                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                 Wird analysiert...
               </>
             ) : (
@@ -177,7 +179,7 @@ function UrlImportModal({
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="px-4 py-2 rounded-lg border text-body"
+            className="flex min-h-11 items-center justify-center rounded-lg bg-primary-soft px-5 py-2 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft-border/70"
           >
             Abbrechen
           </button>
@@ -455,11 +457,11 @@ export default function CreateIngredientPage() {
       {/* Step 0: Modus wählen                                             */}
       {/* ================================================================ */}
       {step === 0 && (
-        <div className="bg-card rounded-xl p-6 shadow-card">
-          <h2 className="text-section font-semibold mb-4">Wie möchtest du starten?</h2>
+        <div className="rounded-xl bg-card p-5 shadow-card">
+          <h2 className="mb-4 text-section font-semibold">Wie möchtest du starten?</h2>
 
           {aiMode === 'choose' && ai.hint && (
-            <p className="mb-3 rounded-lg bg-muted/50 px-3 py-2 text-body text-muted-foreground">{ai.hint}</p>
+            <p className="mb-3 rounded-lg bg-muted px-3 py-2 text-body text-muted-foreground">{ai.hint}</p>
           )}
           {aiMode === 'choose' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -469,9 +471,9 @@ export default function CreateIngredientPage() {
                 onClick={() => setAiMode('ai')}
                 disabled={ai.disabled}
                 title={ai.hint || undefined}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card shadow-card transition-colors hover:border-primary hover:shadow-soft text-center disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-soft">
                   <Icon name="auto_awesome" size={24} className="text-primary" />
                 </div>
                 <span className="font-semibold">Mit KI-Hilfe</span>
@@ -484,10 +486,10 @@ export default function CreateIngredientPage() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card shadow-card transition-colors hover:border-primary hover:shadow-soft text-center"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted">
-                  <Icon name="edit_note" size={24} className="text-muted-foreground" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-soft">
+                  <Icon name="edit_note" size={24} className="text-primary" />
                 </div>
                 <span className="font-semibold">Manuell</span>
                 <span className="text-caption text-muted-foreground">
@@ -501,10 +503,10 @@ export default function CreateIngredientPage() {
                 onClick={() => setShowUrlModal(true)}
                 disabled={ai.disabled}
                 title={ai.hint || undefined}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card shadow-card transition-colors hover:border-primary hover:shadow-soft text-center disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-muted">
-                  <Link className="w-8 h-8 text-muted-foreground" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-soft">
+                  <Link className="h-6 w-6 text-primary" />
                 </div>
                 <span className="font-semibold">Mit Link</span>
                 <span className="text-caption text-muted-foreground">
@@ -527,9 +529,9 @@ export default function CreateIngredientPage() {
                 onKeyDown={(e) => e.key === 'Enter' && !aiPending && !ai.disabled && handleAiCreate()}
                 placeholder="z.B. Haferflocken, Parmesan, Kichererbsen..."
                 autoFocus
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={WIZARD_INPUT_CLASS}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {aiPending ? (
                   <>
                     <div className="flex items-center gap-2 text-body text-muted-foreground">
@@ -544,7 +546,7 @@ export default function CreateIngredientPage() {
                       onClick={handleAiCreate}
                       disabled={!aiName.trim() || ai.disabled}
                       title={ai.hint || undefined}
-                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
+                      className="flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-body font-medium text-primary-foreground shadow-soft transition-colors hover:bg-primary-dark disabled:opacity-50"
                     >
                       <Sparkles className="h-4 w-4" />
                       {user ? 'Mit KI erstellen' : 'Mit KI erkennen'}
@@ -552,7 +554,7 @@ export default function CreateIngredientPage() {
                     <button
                       type="button"
                       onClick={() => setAiMode('choose')}
-                      className="px-4 py-2 rounded-lg border text-body"
+                      className="flex min-h-11 items-center justify-center rounded-lg bg-primary-soft px-5 py-2 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft-border/70"
                     >
                       Zurück
                     </button>
@@ -565,13 +567,13 @@ export default function CreateIngredientPage() {
           {aiMode === 'cancelled' && (
             <div className="space-y-4">
               {aiError && (
-                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-body">{aiError}</div>
+                <div className="p-3 rounded-lg bg-danger-soft text-danger-foreground text-body">{aiError}</div>
               )}
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setAiMode('ai'); setAiError(null); }}
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium flex items-center gap-1.5"
+                  className="flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-body font-medium text-primary-foreground shadow-soft transition-colors hover:bg-primary-dark"
                 >
                   <Icon name="auto_awesome" size={16} />
                   Erneut versuchen
@@ -579,7 +581,7 @@ export default function CreateIngredientPage() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded-lg border text-body"
+                  className="flex min-h-11 items-center justify-center rounded-lg bg-primary-soft px-5 py-2 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft-border/70"
                 >
                   Manuell weitermachen
                 </button>
@@ -595,7 +597,7 @@ export default function CreateIngredientPage() {
       {step === 1 && (
         <div className="space-y-6">
           {createdIngredient && (
-           <div className="p-3 rounded-lg bg-primary/10 text-primary text-body flex items-center gap-2">
+           <div className="flex items-center gap-2 rounded-lg bg-primary-soft p-3 text-body text-primary-dark">
               <Icon name="check_circle" size={16} />
               KI hat die Zutat bereits mit allen Nährwerten angelegt. Hier kannst du die
               Stammdaten noch anpassen.
@@ -609,11 +611,18 @@ export default function CreateIngredientPage() {
           )}
 
           {/* Name */}
-          <div className="bg-card rounded-xl p-6 shadow-card">
-            <label className="block text-body font-medium mb-1.5">
-              Name <span className="text-destructive">*</span>
+          <div className="rounded-xl bg-card p-5 shadow-card">
+            <label
+              htmlFor="ingredient-create-name"
+              className="mb-4 flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <Tag className="h-5 w-5" />
+              </span>
+              Name <span className="text-danger-foreground">*</span>
             </label>
             <input
+              id="ingredient-create-name"
               type="text"
               value={formData.name}
               ref={nameInputRef}
@@ -625,10 +634,10 @@ export default function CreateIngredientPage() {
               aria-invalid={nameError ? true : undefined}
               aria-describedby={nameError ? 'ingredient-name-error' : undefined}
               placeholder="Name der Zutat"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={WIZARD_INPUT_CLASS}
             />
             {nameError && (
-              <p id="ingredient-name-error" role="alert" className="mt-2 text-caption text-destructive">
+              <p id="ingredient-name-error" role="alert" className="mt-2 text-caption text-danger-foreground">
                 {nameError}{' '}
                 {existingIngredient && (
                   <RouterLink to={`/ingredients/${existingIngredient.slug}`} className="underline">
@@ -647,37 +656,47 @@ export default function CreateIngredientPage() {
           </div>
 
           {/* Beschreibung */}
-          <div className="bg-card rounded-xl p-6 shadow-card">
-            <label className="block text-body font-medium mb-1.5">Beschreibung</label>
+          <div className="rounded-xl bg-card p-5 shadow-card">
+            <label
+              htmlFor="ingredient-create-description"
+              className="mb-4 flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <FileText className="h-5 w-5" />
+              </span>
+              Beschreibung
+            </label>
             <textarea
+              id="ingredient-create-description"
               value={formData.description}
               onChange={(e) => updateForm({ description: e.target.value })}
               rows={3}
               placeholder="Kurze Beschreibung (optional)"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={WIZARD_INPUT_CLASS}
             />
           </div>
 
           {/* Status + Warengruppe */}
-          <div className="bg-card rounded-xl p-6 shadow-card">
-            <h3 className="text-body font-medium mb-4">Klassifikation</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="rounded-xl bg-card p-5 shadow-card">
+            <WizardSectionHeading icon={<Store className="h-5 w-5" />}>Klassifikation</WizardSectionHeading>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <span className="block text-caption text-muted-foreground mb-1">Status</span>
-                <p className="rounded-lg border border-input bg-muted/30 px-3 py-2 text-body text-muted-foreground">
+                <span className="mb-1.5 block text-body font-medium">Status</span>
+                <p className="rounded-lg bg-muted px-3 py-2 text-body text-muted-foreground">
                   {ingredientStatusLabel(formData.status)} – neue Zutaten werden vom Team geprüft
                 </p>
               </div>
               <div>
-                <label className="block text-caption text-muted-foreground mb-1">Warengruppe</label>
+                <label htmlFor="ingredient-create-section" className="mb-1.5 block text-body font-medium">Warengruppe</label>
                 <select
+                  id="ingredient-create-section"
                   value={formData.retail_section_id ?? ''}
                   onChange={(e) =>
                     updateForm({
                       retail_section_id: e.target.value ? Number(e.target.value) : null,
                     })
                   }
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body"
+                  className={WIZARD_INPUT_CLASS}
                 >
                   <option value="">— Keine —</option>
                   {retailSections?.map((rs) => (
@@ -695,7 +714,7 @@ export default function CreateIngredientPage() {
             <button
               type="button"
               onClick={() => setStep(0)}
-              className="px-4 py-2 rounded-lg border text-body"
+              className="flex min-h-11 items-center justify-center rounded-lg bg-primary-soft px-5 py-2 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft-border/70"
             >
               Zurück
             </button>
@@ -705,7 +724,7 @@ export default function CreateIngredientPage() {
                 if (!requireName()) return;
                 setStep(2);
               }}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50"
+              className="flex min-h-11 items-center rounded-lg bg-primary px-5 py-2 text-body font-medium text-primary-foreground shadow-soft transition-colors hover:bg-primary-dark disabled:opacity-50"
             >
               Vorschau
             </button>
@@ -718,14 +737,14 @@ export default function CreateIngredientPage() {
       {/* ================================================================ */}
       {step === 2 && (
         <div className="space-y-6">
-          <div className="bg-card rounded-xl overflow-hidden shadow-card">
-            <div className="bg-success-soft px-6 py-4">
-              <h2 className="text-success-foreground text-section font-bold">{formData.name || 'Ohne Namen'}</h2>
+          <div className="rounded-xl bg-card shadow-card">
+            <div className="space-y-2 p-5">
+              <h2 className="font-display text-section font-bold text-foreground">{formData.name || 'Ohne Namen'}</h2>
               {formData.description && (
-                <p className="text-success-foreground/80 text-body mt-1">{formData.description}</p>
+                <p className="text-body text-muted-foreground">{formData.description}</p>
               )}
             </div>
-            <div className="p-6 space-y-3">
+            <div className="space-y-3 px-5 pb-5">
               <div className="flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-caption font-medium">
                   <Icon name="label" size={16} />
@@ -751,7 +770,7 @@ export default function CreateIngredientPage() {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-lg border text-body"
+              className="flex min-h-11 items-center justify-center rounded-lg bg-primary-soft px-5 py-2 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft-border/70"
             >
               Zurück zum Bearbeiten
             </button>
@@ -759,11 +778,11 @@ export default function CreateIngredientPage() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-body font-medium disabled:opacity-50 flex items-center gap-1.5"
+              className="flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-body font-medium text-primary-foreground shadow-soft transition-colors hover:bg-primary-dark disabled:opacity-50"
             >
               {isSaving ? (
                 <>
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                   Speichert...
                 </>
               ) : (

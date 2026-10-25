@@ -20,21 +20,29 @@ export default function DataQualityRecipesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 border-b overflow-x-auto">
-        {SUB_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'px-3 py-1.5 text-body font-medium whitespace-nowrap border-b-2 transition-colors',
-              activeTab === tab.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Check chips: white with a thin border, the active chip in petrol */}
+      <div className="overflow-x-auto -mx-4 px-4">
+        <div role="group" aria-label="Rezept-Prüfungen" className="flex gap-2 min-w-max pb-2">
+          {SUB_TABS.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'press flex min-h-11 md:min-h-9 items-center rounded-full border bg-card px-4 text-body font-semibold whitespace-nowrap transition-colors duration-200',
+                  active
+                    ? 'border-primary text-primary-dark'
+                    : 'border-border text-foreground hover:border-primary-soft-border'
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {activeTab === 'duplicates' && <DuplicateDetectionList type="recipe" />}

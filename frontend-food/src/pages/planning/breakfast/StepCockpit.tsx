@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, Gauge, ListPlus, RefreshCw } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useScaleMealToTarget } from '@/api/mealPlans';
 import type { BreakfastCatalog, BreakfastPortion } from '@/schemas/breakfast';
@@ -19,6 +19,8 @@ import {
 import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import { formatNumber } from '@/lib/format';
 import { notify } from '@/lib/notify';
+import WizardSectionHeading from '../wizard/WizardSectionHeading';
+import { BREAKFAST_CARD_CLASS, BREAKFAST_CHIP_CLASS } from './breakfastStyles';
 
 interface StepCockpitProps {
   wiz: UseWizardStateReturn;
@@ -141,36 +143,47 @@ export default function StepCockpit({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {saveMode === 'directMeal' && breakfastMeals.length > 0 && (
-        <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-          <div>
-            <h3 className="font-display font-semibold text-emphasis">Auf welche Frühstücke anwenden?</h3>
+        <div className={BREAKFAST_CARD_CLASS}>
+          <WizardSectionHeading icon={<CalendarDays className="h-5 w-5" />}>Auf welche Frühstücke anwenden?</WizardSectionHeading>
+          <div className="-mt-2 space-y-3">
             <p className="text-caption text-muted-foreground">Die geprüfte Zusammenstellung wird auf jedes ausgewählte Frühstück dieses Events kopiert.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(breakfastMeals.map((meal) => meal.id))} className="px-3 py-1.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">Alle Frühstücke</button>
-            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(mealId ? [mealId] : [])} className="px-3 py-1.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">Nur dieses</button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(breakfastMeals.map((meal) => meal.id))} className={BREAKFAST_CHIP_CLASS}>Alle Frühstücke</button>
+              <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(mealId ? [mealId] : [])} className={BREAKFAST_CHIP_CLASS}>Nur dieses</button>
+            </div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {breakfastMeals.map((meal) => {
               const selected = selectedBreakfastMealIds.includes(meal.id);
               const label = meal.start_datetime ? new Date(meal.start_datetime).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : `Frühstück #${meal.id}`;
-              return <label key={meal.id} className="flex items-center gap-2 text-body"><input type="checkbox" checked={selected} onChange={() => onSelectedBreakfastMealIdsChange(selected ? selectedBreakfastMealIds.filter((id) => id !== meal.id) : [...selectedBreakfastMealIds, meal.id])} />{label}</label>;
+              return (
+                <label key={meal.id} className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-card px-3 text-body font-medium">
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 accent-primary"
+                    checked={selected}
+                    onChange={() => onSelectedBreakfastMealIdsChange(selected ? selectedBreakfastMealIds.filter((id) => id !== meal.id) : [...selectedBreakfastMealIds, meal.id])}
+                  />
+                  {label}
+                </label>
+              );
             })}
           </div>
           {selectedBreakfastMealIds.length === 0 && <p className="text-caption text-destructive">Bitte mindestens ein Frühstück auswählen.</p>}
         </div>
       )}
       {saveMode === 'directMeal' && manualItemCount > 0 && (
-        <fieldset className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-          <legend className="font-display font-semibold text-emphasis">Vorhandene manuelle Einträge</legend>
-          <p className="text-caption text-muted-foreground">
+        <fieldset className={BREAKFAST_CARD_CLASS}>
+          <WizardSectionHeading icon={<ListPlus className="h-5 w-5" />}>Vorhandene manuelle Einträge</WizardSectionHeading>
+          <p className="-mt-2 text-caption text-muted-foreground">
             Für die ausgewählten Frühstücke gibt es {manualItemCount} eigene Einträge außerhalb des Assistenten.
           </p>
-          <label className="flex items-start gap-2 text-body">
+          <label className="flex min-h-11 items-center gap-3 text-body">
             <input
               type="radio"
+              className="h-5 w-5 accent-primary"
               name="manual-items-policy"
               value="preserve"
               checked={manualItemsPolicy === 'preserve'}
@@ -178,9 +191,10 @@ export default function StepCockpit({
             />
             <span>Eigene Einträge beibehalten</span>
           </label>
-          <label className="flex items-start gap-2 text-body">
+          <label className="flex min-h-11 items-center gap-3 text-body">
             <input
               type="radio"
+              className="h-5 w-5 accent-primary"
               name="manual-items-policy"
               value="replace"
               checked={manualItemsPolicy === 'replace'}
@@ -196,34 +210,34 @@ export default function StepCockpit({
         </p>
       )}
       {/* SollIstBar */}
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display font-semibold text-emphasis">Energie-Check</h3>
-          {saveMode === 'directMeal' && (
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<Gauge className="h-5 w-5" />}>Energie-Check</WizardSectionHeading>
+        {saveMode === 'directMeal' && (
+          <div className="-mt-2 flex justify-end">
             <button
               type="button"
               onClick={handleNormalize}
               disabled={scaleMutation.isPending}
-              className="flex items-center gap-1.5 text-caption px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors disabled:opacity-40"
+              className={BREAKFAST_CHIP_CLASS}
               title="Alle Mengen auf das Soll skalieren"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Normalisieren
             </button>
-          )}
-        </div>
+          </div>
+        )}
         <div className="space-y-1.5">
           <div className="flex justify-between text-body">
             <span className="text-muted-foreground" data-testid="cockpit-ist-kcal">Ist: {hasActiveBasis ? `${Math.round(totalKcal)} kcal/Person` : '—'}</span>
             <span className="text-muted-foreground">Soll: {Math.round(target)} kcal/Person</span>
           </div>
-          <div className="h-3 bg-muted rounded-full overflow-hidden">
+          <div className="h-3 overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full transition-all ${barColor}`}
               style={{ width: `${barWidth}%` }}
             />
           </div>
-          <p className="text-caption text-muted-foreground text-right">
+          <p className="text-right text-caption text-muted-foreground">
             {hasActiveBasis ? `${Math.round(coverage * 100)}% des Tagesziels` : 'Nährwertdaten unvollständig'} (× {dayPartFactor} Faktor)
             {hasDrinks && drinksKcal > 0 && ` · inkl. Getränke: +${Math.round(drinksKcal)} kcal`}
           </p>
@@ -232,13 +246,13 @@ export default function StepCockpit({
 
       {/* Warnung bei Überplanung > 120% */}
       {showOverplanWarning && (
-        <div className="flex items-start gap-3 bg-warning-soft border border-warning-border rounded-xl px-4 py-3">
+        <div className="flex items-start gap-3 rounded-xl border border-warning-border bg-warning-soft px-4 py-3">
           <div className="flex-1">
             <p className="text-body font-medium text-warning">
               Zu viele Kalorien ({Math.round(coverage * 100)}%)
             </p>
             {saveMode === 'directMeal' && (
-              <p className="text-caption text-warning mt-1">
+              <p className="mt-1 text-caption text-warning">
                 Mit 'Normalisieren' auf das Soll von {Math.round(target)} kcal/Person anpassen.
               </p>
             )}
@@ -247,12 +261,12 @@ export default function StepCockpit({
       )}
 
       {/* Transparenz-Tabelle */}
-      <div className="bg-card rounded-xl overflow-hidden shadow-card">
-        <div className="px-4 py-3 border-b border-border">
-          <h3 className="font-display font-semibold text-emphasis">Zusammenfassung</h3>
+      <div className="overflow-hidden rounded-xl bg-card shadow-card">
+        <div className="px-5 pt-5">
+          <WizardSectionHeading icon={<ClipboardCheck className="h-5 w-5" />}>Zusammenfassung</WizardSectionHeading>
         </div>
         <div className="divide-y divide-border text-body">
-          <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 text-caption text-muted-foreground font-medium">
+          <div className="grid grid-cols-2 px-5 py-2 text-caption font-medium text-muted-foreground sm:grid-cols-4">
             <span>Position</span>
             <span className="text-right">Menge/P</span>
             <span className="text-right">kcal/P</span>
@@ -261,14 +275,14 @@ export default function StepCockpit({
 
           {/* ── Brot ── */}
           {state.basis.filter((b) => b.sharePercent > 0).length > 0 && (
-            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Brot</div>
+            <div className="bg-muted px-5 py-2 text-caption font-medium text-muted-foreground">Brot</div>
           )}
           {state.basis.filter((b) => b.sharePercent > 0).map((b) => {
             const grams = breadItemGrams(b.sharePercent, basisTotalShare, breadKcal, b.energyKcal100g);
             const kcal = b.energyKcal100g ? (b.energyKcal100g / 100) * grams : 0;
             const catalogIng = catalog?.base_ingredients.find((ing) => ing.id === b.ingredientId);
             return (
-              <div key={b.ingredientId} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
+              <div key={b.ingredientId} className="grid grid-cols-2 px-5 py-2 sm:grid-cols-4">
                 <span className="truncate">{b.name}</span>
                 <span className="text-right">{gramsRow(grams, catalogIng?.portions)}</span>
                 <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
@@ -284,7 +298,7 @@ export default function StepCockpit({
               return s + (b.energyKcal100g ? (b.energyKcal100g / 100) * g : 0);
             }, 0);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
+              <div className="grid grid-cols-2 bg-muted/60 px-5 py-2 text-caption font-semibold sm:grid-cols-4">
                 <span>Brote gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsBasis)}</span>
                 <span className="text-right">{kcalRow(totalKcalBasis)}</span>
@@ -295,13 +309,13 @@ export default function StepCockpit({
 
           {/* ── Belag ── */}
           {state.toppings.filter((t) => t.sharePercent > 0).length > 0 && (
-            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Belag</div>
+            <div className="bg-muted px-5 py-2 text-caption font-medium text-muted-foreground">Belag</div>
           )}
           {state.toppings.filter((t) => t.sharePercent > 0).map((t) => {
             const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingBudgetKcal, t.energyKcal100g);
             const kcal = t.energyKcal100g ? (t.energyKcal100g / 100) * grams : 0;
             return (
-              <div key={t.ingredientId} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
+              <div key={t.ingredientId} className="grid grid-cols-2 px-5 py-2 sm:grid-cols-4">
                 <span className="truncate">{t.name}</span>
                 <span className="text-right">{gramsRow(grams, t.portions)}</span>
                 <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
@@ -317,7 +331,7 @@ export default function StepCockpit({
               return s + (t.energyKcal100g ? (t.energyKcal100g / 100) * g : 0);
             }, 0);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
+              <div className="grid grid-cols-2 bg-muted/60 px-5 py-2 text-caption font-semibold sm:grid-cols-4">
                 <span>Belag gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsTopping)}</span>
                 <span className="text-right">{kcalRow(totalKcalTopping)}</span>
@@ -328,13 +342,13 @@ export default function StepCockpit({
 
           {/* ── Streichfett ── */}
           {state.fatSelections.filter((f) => f.sharePercent > 0 && f.ingredientId > 0).length > 0 && (
-            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Streichfett</div>
+            <div className="bg-muted px-5 py-2 text-caption font-medium text-muted-foreground">Streichfett</div>
           )}
           {state.fatSelections.filter((f) => f.sharePercent > 0 && f.ingredientId > 0).map((f) => {
             const grams = (f.sharePercent / 100) * FAT_GRAMS_PER_PERSON;
             const kcal = f.energyKcal100g ? (f.energyKcal100g / 100) * grams : 0;
             return (
-              <div key={`fat-${f.ingredientId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
+              <div key={`fat-${f.ingredientId}`} className="grid grid-cols-2 px-5 py-2 sm:grid-cols-4">
                 <span className="truncate">{f.name}</span>
                 <span className="text-right">{gramsRow(grams)}</span>
                 <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
@@ -353,7 +367,7 @@ export default function StepCockpit({
               return s + (f.energyKcal100g / 100) * g;
             }, 0);
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
+              <div className="grid grid-cols-2 bg-muted/60 px-5 py-2 text-caption font-semibold sm:grid-cols-4">
                 <span>Streichfett gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsFat)}</span>
                 <span className="text-right">{kcalRow(totalKcalFat)}</span>
@@ -364,7 +378,7 @@ export default function StepCockpit({
 
           {/* ── Warme Gerichte & Extras ── */}
           {hasExtras && (
-            <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">Warme Gerichte & Extras</div>
+            <div className="bg-muted px-5 py-2 text-caption font-medium text-muted-foreground">Warme Gerichte & Extras</div>
           )}
           {state.warmDishRecipeIds.map((recipeId) => {
             const recipe = catalog?.warm_meal_recipes.find((r) => r.id === recipeId);
@@ -372,7 +386,7 @@ export default function StepCockpit({
             const name = state.warmDishRecipeNames[String(recipeId)] || recipe?.title;
             const itemKcal = recipe?.cached_energy_total_kcal ? recipe.cached_energy_total_kcal * factor : 0;
             return (
-            <div key={`warm-${recipeId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
+            <div key={`warm-${recipeId}`} className="grid grid-cols-2 px-5 py-2 sm:grid-cols-4">
               <span className="truncate">{name || `Rezept #${recipeId}`}</span>
               <span className="text-right">&times;{factor}</span>
               <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(itemKcal)}</span>
@@ -381,7 +395,7 @@ export default function StepCockpit({
             );
           })}
           {warmKcal > 0 && state.warmDishRecipeIds.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-caption">
+            <div className="grid grid-cols-2 bg-muted/60 px-5 py-2 text-caption font-semibold sm:grid-cols-4">
               <span>Warme Gerichte gesamt</span>
               <span className="text-right">—</span>
               <span className="text-right">{kcalRow(warmKcal)}</span>
@@ -394,7 +408,7 @@ export default function StepCockpit({
               const selection = state.extraIngredientSelections[ingId];
               const kcal = extraIngredientKcalById.get(Number(ingId)) ?? 0;
               return (
-              <div key={`extra-${ingId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
+              <div key={`extra-${ingId}`} className="grid grid-cols-2 px-5 py-2 sm:grid-cols-4">
                 <span className="truncate">{state.extraIngredientNames[ingId] ?? `Zutat #${ingId}`}</span>
                 <span className="text-right">{selection ? `${formatNumber(selection.quantity, { maxDecimals: 2 })} ${selection.portionName}` : gramsRow(grams)}</span>
                 <span className="text-right" data-testid="cockpit-item-kcal">{kcalRow(kcal)}</span>
@@ -404,7 +418,7 @@ export default function StepCockpit({
             })}
 
           {/* ── Total (Brot + Streichfett + Belag + Extras) ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30">
+          <div className="grid grid-cols-2 bg-primary-soft px-5 py-2 font-semibold text-primary-dark sm:grid-cols-4">
             <span>Gesamt (Brot + Streichfett + Belag + Extras)</span>
             <span className="text-right">—</span>
             <span className="text-right" data-testid="cockpit-food-total-kcal">{hasActiveBasis ? kcalRow(foodKcal) : '—'}</span>
@@ -413,14 +427,14 @@ export default function StepCockpit({
 
           {/* ── Getränke ── */}
           {hasDrinks && (
-            <div className="border-t border-border">
-              <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">
+            <div>
+              <div className="bg-muted px-5 py-2 text-caption font-medium text-muted-foreground">
                 Getränke
               </div>
               {state.drinkRecipes.filter((d) => d.sharePercent > 0 && d.recipeId > 0).map((drink) => {
                 const kcal = drink.energyKcal ?? 0;
                 return (
-                  <div key={`drink-${drink.recipeId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
+                  <div key={`drink-${drink.recipeId}`} className="grid grid-cols-2 px-5 py-2 sm:grid-cols-4">
                     <span className="truncate">{drink.name}</span>
                     <span className="text-right">{drink.sharePercent}%</span>
                     <span className="text-right">{Math.round(kcal)}</span>
@@ -428,7 +442,7 @@ export default function StepCockpit({
                   </div>
                 );
               })}
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/20">
+              <div className="grid grid-cols-2 bg-muted/60 px-5 py-2 font-semibold sm:grid-cols-4">
                 <span>Getränke gesamt</span>
                 <span className="text-right">—</span>
                 <span className="text-right">{Math.round(drinksKcal)}</span>
@@ -439,14 +453,14 @@ export default function StepCockpit({
 
           {/* ── Milch & Säfte section */}
           {state.drinkIngredients.some((d) => d.sharePercent > 0 && d.ingredientId > 0) && (
-            <div className="border-t border-border">
-              <div className="px-4 py-2 text-caption text-muted-foreground font-medium bg-muted/20">
+            <div>
+              <div className="bg-muted px-5 py-2 text-caption font-medium text-muted-foreground">
                 Milch & Säfte
               </div>
               {state.drinkIngredients.filter((d) => d.sharePercent > 0 && d.ingredientId > 0).map((ingredient) => {
                 const ml = ingredient.mlPerPerson ?? 0;
                 return (
-                  <div key={`milk-${ingredient.ingredientId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
+                  <div key={`milk-${ingredient.ingredientId}`} className="grid grid-cols-2 px-5 py-2 sm:grid-cols-4">
                     <span className="truncate">{ingredient.name}</span>
                     <span className="text-right">{ml}ml</span>
                     <span className="text-right">—</span>
@@ -454,7 +468,7 @@ export default function StepCockpit({
                   </div>
                 );
               })}
-              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/20">
+              <div className="grid grid-cols-2 bg-muted/60 px-5 py-2 font-semibold sm:grid-cols-4">
                 <span>Milch & Säfte gesamt</span>
                 <span className="text-right">{state.drinkIngredients.filter((d) => d.sharePercent > 0 && d.ingredientId > 0).reduce((sum, d) => sum + (d.mlPerPerson ?? 0), 0)}ml</span>
                 <span className="text-right">—</span>

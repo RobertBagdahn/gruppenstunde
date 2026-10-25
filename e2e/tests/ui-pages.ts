@@ -46,7 +46,7 @@ export const UI_PAGES: UiPage[] = [
   },
   { id: 'rezept-erstellen', title: 'Rezept erstellen', route: '/recipes/new', path: '/recipes/new', h1: 'Neues Rezept', screenshot: true },
   { id: 'essensplaene', title: 'Essenspläne', route: '/meal-plans/app', path: '/meal-plans/app', h1: 'Essenspläne', screenshot: true },
-  { id: 'neuer-essensplan', title: 'Neuer Essensplan', route: '/meal-plans/new', path: '/meal-plans/new', h1: 'Neuen Essensplan erstellen', screenshot: true },
+  { id: 'neuer-essensplan', title: 'Neuer Essensplan', route: '/meal-plans/new', path: '/meal-plans/new', h1: 'Essensplan erstellen', screenshot: true },
   { id: 'essensplan', title: 'Essensplan', route: '/meal-plans/:id/*', path: '/meal-plans/1', h1: 'Herbstlager 2026', screenshot: true },
   { id: 'einkaufsliste', title: 'Einkaufsliste', route: '/shopping-lists/:id', path: '/shopping-lists/1', h1: 'Herbstlager 2026', screenshot: true },
   { id: 'zutat-detail', title: 'Zutat-Detail', route: '/ingredients/:slug', path: '/ingredients/zwiebel', h1: 'Zwiebel', screenshot: true },

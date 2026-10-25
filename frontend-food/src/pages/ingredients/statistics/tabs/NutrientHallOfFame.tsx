@@ -28,7 +28,7 @@ export default function NutrientHallOfFame() {
           aria-label="Nährwert auswählen"
           value={selectedField}
           onChange={(e) => setSelectedField(e.target.value)}
-          className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+          className="flex min-h-11 md:min-h-9 items-center rounded-lg border border-border px-3 text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
         >
           {FIELDS.map((f) => (
             <option key={f.field} value={f.field}>{f.label}</option>
@@ -37,7 +37,7 @@ export default function NutrientHallOfFame() {
       } />
       <p className="text-caption text-muted-foreground">{currentField.description}</p>
       {isLoading ? (
-        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+        <div className="h-80 skeleton-shimmer rounded-xl" />
       ) : data ? (
         <LeaderboardTable top={data.top} bottom={data.bottom} count={data.count} unit={currentField.unit} />
       ) : null}

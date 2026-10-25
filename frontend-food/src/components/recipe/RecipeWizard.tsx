@@ -52,8 +52,8 @@ function StepIndicator({ steps, activeIndex }: { steps: WizardStepDef[]; activeI
                 className={`
                   flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-caption sm:text-body font-semibold border-2 transition-colors
                   ${isActive ? 'border-primary bg-primary text-primary-foreground' : ''}
-                  ${isCompleted ? 'border-primary bg-primary/20 text-primary' : ''}
-                  ${!isActive && !isCompleted ? 'border-muted-foreground/30 text-muted-foreground' : ''}
+                  ${isCompleted ? 'border-primary bg-primary-soft text-primary-dark' : ''}
+                  ${!isActive && !isCompleted ? 'border-border bg-card text-muted-foreground' : ''}
                 `}
                 aria-current={isActive ? 'step' : undefined}
                 title={step.label}
@@ -65,7 +65,7 @@ function StepIndicator({ steps, activeIndex }: { steps: WizardStepDef[]; activeI
               </span>
               {i < steps.length - 1 && (
                 <div
-                  className={`hidden sm:block w-6 h-0.5 mx-1 rounded-lg transition-colors ${i < activeIndex ? 'bg-primary' : 'bg-muted-foreground/20'}`}
+                  className={`hidden sm:block w-6 h-0.5 mx-1 rounded-lg transition-colors ${i < activeIndex ? 'bg-primary' : 'bg-border'}`}
                 />
               )}
             </li>
@@ -612,7 +612,7 @@ export default function RecipeWizard() {
       progressValue={(stepNumber / Math.max(1, progressSteps.length)) * 100}
     />
     <div className="max-w-3xl mx-auto px-4 pt-6">
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <StepIndicator steps={progressSteps} activeIndex={progressActiveIndex} />
       </div>
 

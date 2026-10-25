@@ -25,7 +25,7 @@ export default function MetadataCheckList({ page = 1, pageSize = 50 }: MetadataC
         <a
           key={item.id}
           href={`/recipes/${item.slug}`}
-          className="block rounded-xl border border-border bg-card p-4 hover:shadow-sm transition-shadow"
+          className="block rounded-xl bg-card p-4 shadow-card hover:shadow-soft transition-shadow"
         >
           <span className="font-medium block mb-1">{item.title}</span>
           <div className="flex gap-3 text-caption">

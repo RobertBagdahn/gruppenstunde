@@ -19,7 +19,6 @@ import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import {
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ICONS,
-  MEAL_TYPE_COLORS,
   getCoverageStatus,
   NORM_PERSON_DAILY_KCAL,
   effectivePortions,
@@ -40,6 +39,8 @@ import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { formatCount, formatNumber, formatWeight } from '@/lib/format';
 import { Icon } from '@/components/ui/icon';
 import { HelpHint } from '@/components/ui/help-hint';
+
+const NEUTRAL_MEAL_SLOT_COLORS = { text: 'text-primary-dark', bg: 'bg-muted/50', border: 'border-border', dot: 'bg-primary' };
 
 export function MealSlot({
   meal,
@@ -144,7 +145,8 @@ export function MealSlot({
     onAddRecipe(meal.id, recipeId);
   };
 
-  const mealColors = MEAL_TYPE_COLORS[meal.meal_type] || MEAL_TYPE_COLORS.snack;
+  // Meal types are not category tints: slot surfaces stay neutral, only the icon carries the meal type.
+  const mealColors = NEUTRAL_MEAL_SLOT_COLORS;
   const isEmpty = meal.items.length === 0;
   const effPortions = effectivePortions(meal, normPortions);
   const coverage = getCoverageStatus(meal.total_energy_kcal / effPortions, meal.day_part_factor);
@@ -169,7 +171,7 @@ export function MealSlot({
     const dName = isIng ? it.ingredient_name : it.recipe_title;
     return (
       <div key={it.id} className="pl-7 py-1">
-        <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
+        <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border} group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
           <div className="flex items-start gap-3">
             {it.recipe_id && <RecipeThumbnail recipeType={it.recipe_type} imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
             <div className="flex-1 min-w-0">
@@ -293,7 +295,7 @@ export function MealSlot({
                 <button
                   type="button"
                   onClick={() => setDialogOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 min-h-11 md:min-h-0 px-3 py-1.5 rounded-lg text-caption font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-soft"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Gericht hinzufügen
@@ -327,7 +329,7 @@ export function MealSlot({
 
   return (
     <div
-      className={`rounded-xl border ${mealColors.border}/40 bg-card shadow-soft overflow-hidden transition-all`}
+      className={`rounded-xl border  bg-card shadow-soft overflow-hidden transition-all`}
       onClickCapture={() => onActivate?.(meal.id)}
     >
       {/* Compact Card Header */}
@@ -362,7 +364,7 @@ export function MealSlot({
                 <Users className="w-3 h-3" />
                 {effPortions} P.
               </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-soft text-primary-dark font-bold">
                 {formatNumber(mealActualCost, { maxDecimals: 2 })} €/P. ({formatNumber(meal.total_cost_eur, { maxDecimals: 2 })} €)
               </span>
               {meal.price_coverage != null && meal.price_coverage.missing_ingredients > 0 && (
@@ -514,7 +516,7 @@ export function MealSlot({
               const allTags = viol.map((v) => v.nutritional_tag);
               out.push(
                 <div key={first.variant_group_id} className="pl-7 py-1">
-                  <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30`}>
+                  <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}`}>
                     <div className="flex items-center gap-2 mb-1">
                       {first.recipe_id && <RecipeThumbnail recipeType={first.recipe_type} imageUrl={first.image_url} title={first.recipe_title} size="xs" imgClassName="rounded-lg" className="rounded-lg" />}
                       <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 flex-wrap">{first.recipe_id && first.recipe_slug ? <Link to={`/recipes/${first.recipe_slug}`} className="text-emphasis hover:text-primary transition-colors truncate block font-medium">{first.recipe_title}</Link> : <span className="text-emphasis truncate block font-medium">{first.recipe_title}</span>}<NutriTagBadge allergenTags={allTags} /></div></div>
@@ -666,7 +668,7 @@ export function MealSlot({
               <button
                 type="button"
                 onClick={() => setDialogOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-11 md:min-h-0 rounded-lg text-caption font-semibold border border-primary-soft-border bg-primary-soft text-primary-dark hover:bg-primary-soft-border/60 transition-colors"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 Weiteres Gericht oder Zutat hinzufügen

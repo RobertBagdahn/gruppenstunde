@@ -2,7 +2,7 @@ import { useMemo, useEffect, useCallback, useState } from 'react';
 import FlowHeader from '@/components/shared/FlowHeader';
 import ActionBar from '@/components/shared/ActionBar';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Clock, UtensilsCrossed, X } from 'lucide-react';
 import type { RecipeDetail } from '@/schemas/recipe';
 import type { RecipeStep } from '@/schemas/recipeStep';
 import { parsePreparationSteps } from '@/lib/parseRecipeSteps';
@@ -38,6 +38,23 @@ function useIsDesktopLayout(): boolean {
     return () => media.removeEventListener('change', update);
   }, []);
   return isDesktop;
+}
+
+/** Thin petrol progress bar of the flow; the same role and label as the FlowHeader bar. */
+function CookingProgressBar({ value }: { value: number }) {
+  const clamped = Math.min(100, Math.max(0, value));
+  return (
+    <div
+      role="progressbar"
+      aria-label="Fortschritt"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(clamped)}
+      className="h-1 overflow-hidden rounded-full bg-muted"
+    >
+      <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${clamped}%` }} />
+    </div>
+  );
 }
 
 export default function RecipeCookingMode({
@@ -100,6 +117,7 @@ export default function RecipeCookingMode({
   const rawStep = Number(searchParams.get('step') ?? 0);
   const currentStep = Math.max(0, Math.min(rawStep, steps.length - 1));
   const step = steps[currentStep];
+  const progressValue = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
   // Wake lock
   useWakeLock();
@@ -175,76 +193,92 @@ export default function RecipeCookingMode({
             onClose={exit}
             closeLabel="Kochmodus verlassen"
             progress={`Schritt ${currentStep + 1} von ${steps.length}`}
-            progressValue={steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0}
+            progressValue={progressValue}
           />
         </div>
       )}
 
       {/* Ingredients panel (left on desktop, top on mobile) */}
       <div className="mt-[7.5rem] lg:mt-0 lg:w-80 lg:border-r border-line overflow-y-auto p-4 lg:p-6 shrink-0 max-h-[36vh] lg:max-h-full">
-        <h2 className="text-body font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Zutaten
-        </h2>
-        <div className="space-y-2">
-          {recipe.recipe_items.map((item) => {
-            const amount = formatScaledRecipeAmount(item, scale);
-            const isChecked = checkedIngredients.has(item.id);
+        <section className="rounded-xl bg-card p-4 shadow-card">
+          <div className="mb-3 flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-dark">
+              <UtensilsCrossed className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <h2 className="font-display text-emphasis font-extrabold text-foreground lg:text-section">Zutaten</h2>
+          </div>
+          <div className="space-y-1">
+            {recipe.recipe_items.map((item) => {
+              const amount = formatScaledRecipeAmount(item, scale);
+              const isChecked = checkedIngredients.has(item.id);
 
-            return (
-              <label
-                key={item.id}
-                className="flex items-start gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => toggleIngredientCheck(item.id)}
-                  className="w-4 h-4 mt-1 rounded-lg border-2 border-muted-foreground accent-primary"
-                  aria-label={`Mark ${item.ingredient_name} as done`}
-                />
-                <div className={`flex-1 min-w-0 ${isChecked ? 'opacity-50 line-through' : ''}`}>
-                  <div className="font-medium text-body">
-                    {amount.primary}
-                    {amount.secondary && (
-                      <span className="ml-1 text-caption font-normal text-muted-foreground">({amount.secondary})</span>
-                    )}
+              return (
+                <label
+                  key={item.id}
+                  className="flex min-h-11 items-start gap-3 rounded-lg p-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleIngredientCheck(item.id)}
+                    className="mt-1 h-4 w-4 shrink-0 rounded-sm border-2 border-muted-foreground accent-primary"
+                    aria-label={`Mark ${item.ingredient_name} as done`}
+                  />
+                  <div className={`flex-1 min-w-0 ${isChecked ? 'opacity-50 line-through' : ''}`}>
+                    <div className="font-semibold text-body">
+                      {amount.primary}
+                      {amount.secondary && (
+                        <span className="ml-1 text-caption font-normal text-muted-foreground">({amount.secondary})</span>
+                      )}
+                    </div>
+                    <div className="text-caption text-muted-foreground">
+                      {item.ingredient_name}
+                      {item.note && <span className="italic ml-1">({item.note.trim().replace(/^\((.*)\)$/, '$1').trim()})</span>}
+                    </div>
                   </div>
-                  <div className="text-caption text-muted-foreground">
-                    {item.ingredient_name}
-                    {item.note && <span className="italic ml-1">({item.note.trim().replace(/^\((.*)\)$/, '$1').trim()})</span>}
-                  </div>
-                </div>
-              </label>
-            );
-          })}
-        </div>
+                </label>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       {/* Step content (right on desktop, bottom on mobile) */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Desktop: the header of the flow sits above the step */}
         {isDesktop && (
-          <div className="flex px-6 pt-4 pb-2 lg:items-center lg:justify-between lg:gap-4">
-            <h1 className="min-w-0 truncate font-display text-section font-bold text-foreground">{recipe.title}</h1>
-            <span className="shrink-0 text-body font-semibold tabular-nums text-muted-foreground">
-              Schritt {currentStep + 1} von {steps.length}
-            </span>
-            <Button variant="ghost" size="icon" onClick={exit} aria-label="Kochmodus verlassen">
-              <X className="h-5 w-5" aria-hidden="true" />
-            </Button>
+          <div className="space-y-3 px-6 pt-4 pb-2">
+            <div className="flex items-center justify-between gap-4">
+              <h1 className="min-w-0 truncate font-display text-section font-bold text-foreground">{recipe.title}</h1>
+              <span className="shrink-0 text-body font-semibold tabular-nums text-muted-foreground">
+                Schritt {currentStep + 1} von {steps.length}
+              </span>
+              <Button variant="ghost" size="icon" onClick={exit} aria-label="Kochmodus verlassen">
+                <X className="h-5 w-5" aria-hidden="true" />
+              </Button>
+            </div>
+            <CookingProgressBar value={progressValue} />
           </div>
         )}
 
         {/* Step content */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4 md:px-6 lg:pt-0">
           {steps.length > 0 && step ? (
-            <>
-              {/* Step section tag (if structured) */}
-              {step.section && (
-                <div className="text-caption font-semibold text-primary uppercase tracking-wide mb-3">
-                  {step.section}
-                </div>
-              )}
+            <section className="rounded-xl bg-card p-4 shadow-card sm:p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft font-display text-emphasis font-extrabold tabular-nums text-primary-dark"
+                  aria-hidden="true"
+                >
+                  {currentStep + 1}
+                </span>
+                {/* Step section tag (if structured) */}
+                {step.section && (
+                  <div className="min-w-0 text-caption font-semibold text-primary-dark uppercase tracking-wide">
+                    {step.section}
+                  </div>
+                )}
+              </div>
 
               {/* Step instruction */}
               <MarkdownRenderer
@@ -258,11 +292,12 @@ export default function RecipeCookingMode({
 
               {/* Duration (if structured) */}
               {step.durationMinutes && (
-                <div className="mt-4 pt-4 border-t border-border text-body text-muted-foreground">
-                  ⏱ ca. {step.durationMinutes} min
+                <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-body font-semibold text-muted-foreground">
+                  <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  ca. {step.durationMinutes} min
                 </div>
               )}
-            </>
+            </section>
           ) : (
             <p className="text-muted-foreground text-emphasis">
               Keine Zubereitungsschritte vorhanden.
@@ -273,7 +308,7 @@ export default function RecipeCookingMode({
         <div className="px-4 pb-0 md:px-6 md:pb-4">
           <ActionBar
             secondary={
-              <Button variant="outline" size="lg" onClick={() => goToStep(currentStep - 1)} disabled={currentStep <= 0} className="h-11 font-semibold">
+              <Button variant="secondary" size="lg" onClick={() => goToStep(currentStep - 1)} disabled={currentStep <= 0} className="h-11 font-semibold">
                 <ArrowLeft className="mr-2 h-4 w-4 md:block" />
                 Zurück
               </Button>

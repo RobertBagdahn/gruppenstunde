@@ -98,32 +98,37 @@ export default function IngredientStatisticsPage() {
         description="Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank"
       />
 
-      {/* Tab bar */}
+      {/* Tab bar: white chips with a thin border, the active chip in petrol */}
       <div className="relative mb-6">
         <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
-          <div className="flex gap-1 min-w-max pb-2">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => navigate(`/ingredients/statistics/${t.id}`)}
-                className={`min-h-11 md:min-h-8 px-3 py-1.5 rounded-lg text-body font-medium whitespace-nowrap transition-colors ${
-                  t.id === activeTabId
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="flex gap-2 min-w-max pb-2">
+            {TABS.map((t) => {
+              const active = t.id === activeTabId;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => navigate(`/ingredients/statistics/${t.id}`)}
+                  className={`press flex min-h-11 md:min-h-9 items-center rounded-full border bg-card px-4 text-body font-semibold whitespace-nowrap transition-colors duration-200 ${
+                    active
+                      ? 'border-primary text-primary-dark'
+                      : 'border-border text-foreground hover:border-primary-soft-border'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </div>
         {/* Fade indicator for mobile */}
         <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-background/80 sm:hidden" />
       </div>
 
-      {/* Category badge */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="px-2 py-0.5 rounded-lg bg-muted text-caption text-muted-foreground">
+      {/* Category label as a neutral aside label */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-caption font-semibold uppercase tracking-wide text-primary-dark">
           {activeTab.category === 'leaderboard' && 'Bestenliste'}
           {activeTab.category === 'distribution' && 'Verteilung'}
           {activeTab.category === 'correlation' && 'Korrelation'}
@@ -135,9 +140,9 @@ export default function IngredientStatisticsPage() {
       </div>
 
       {/* Active tab content */}
-      <div className="rounded-xl bg-card p-4 md:p-6 shadow-card">
+      <section className="rounded-xl bg-card p-4 md:p-6 shadow-card">
         <ActiveComponent />
-      </div>
+      </section>
     </div>
   );
 }

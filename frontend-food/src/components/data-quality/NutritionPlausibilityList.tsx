@@ -119,7 +119,7 @@ export default function NutritionPlausibilityList() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive space-y-2">
+      <div className="rounded-xl border border-danger-border bg-danger-soft p-4 text-danger space-y-2">
         <p className="font-semibold">Fehler beim Laden der Datenqualität</p>
         <p className="text-body">{getApiErrorMessage(error)}</p>
       </div>
@@ -170,7 +170,7 @@ export default function NutritionPlausibilityList() {
           disabled={fillBatchMutation.isPending || !data?.items?.length}
           variant="outline"
           size="sm"
-          className="shrink-0 gap-1.5 border-primary/30 hover:bg-primary/10 hover:text-primary transition-colors text-caption font-medium"
+          className="shrink-0 gap-1.5 border-primary-soft-border hover:bg-primary-soft hover:text-primary transition-colors text-caption font-medium"
           title="Füllt fehlende Stammdaten mit KI auf. Bestehende Daten werden niemals überschrieben."
         >
           {fillBatchMutation.isPending ? (
@@ -231,7 +231,7 @@ export default function NutritionPlausibilityList() {
               key={item.id}
               className={`rounded-xl border p-3.5 transition-all ${
                 isSelected
-                  ? 'border-primary/50 bg-primary/5'
+                  ? 'border-primary bg-primary-soft'
                   : item.severity === 'error'
                   ? 'border-danger-border bg-danger-soft/30'
                   : 'border-warning-border bg-warning-soft/30'
@@ -312,7 +312,7 @@ export default function NutritionPlausibilityList() {
                     disabled={isFilling || fillBatchMutation.isPending}
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2.5 text-caption gap-1.5 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    className="h-8 px-2.5 text-caption gap-1.5 text-primary hover:text-primary hover:bg-primary-soft transition-colors"
                     title="Fehlende Stammdaten mit KI ergänzen (bestehende Daten bleiben unverändert)"
                   >
                     {isFilling ? (

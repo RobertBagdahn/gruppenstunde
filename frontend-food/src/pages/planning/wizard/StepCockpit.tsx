@@ -1,6 +1,8 @@
-import { Calendar, Users, Sparkles, Copy, FileText, DollarSign, Tag } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Calendar, ClipboardCheck, Users, Sparkles, Copy, FileText, DollarSign, Tag } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@/schemas/mealPlan';
 import { formatNumber } from '@/lib/format';
+import WizardSectionHeading from './WizardSectionHeading';
 
 interface StepCockpitProps {
   state: MealPlanWizardState;
@@ -28,6 +30,20 @@ function formatDateRange(start: string, end: string): string {
   return `bis ${fmt(end)}`;
 }
 
+function SummaryItem({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-body font-semibold text-foreground">{children}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPending }: StepCockpitProps) {
   const daysCount = (() => {
     if (!state.start_datetime || !state.end_datetime) return 0;
@@ -44,77 +60,43 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl bg-card p-5 space-y-4 shadow-card">
-        <h3 className="font-display font-bold text-section text-foreground">Zusammenfassung</h3>
+      <div className="space-y-4 rounded-xl bg-card p-5 shadow-card">
+        <WizardSectionHeading icon={<ClipboardCheck className="h-5 w-5" />}>Zusammenfassung</WizardSectionHeading>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <FileText className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Name</p>
-              <p className="text-body font-semibold text-foreground">{state.name || '—'}</p>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SummaryItem icon={<FileText className="h-4 w-4" />} label="Name">
+            {state.name || '—'}
+          </SummaryItem>
 
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Users className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Personen</p>
-              <p className="text-body font-semibold text-foreground">{state.norm_portions}</p>
-            </div>
-          </div>
+          <SummaryItem icon={<Users className="h-4 w-4" />} label="Personen">
+            {state.norm_portions}
+          </SummaryItem>
 
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Calendar className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Zeitraum</p>
-              <p className="text-body font-semibold text-foreground">
-                {formatDateRange(state.start_datetime, state.end_datetime)}
-                {daysCount > 0 && <span className="text-muted-foreground"> ({daysCount} {daysCount === 1 ? 'Tag' : 'Tage'})</span>}
-              </p>
-            </div>
-          </div>
+          <SummaryItem icon={<Calendar className="h-4 w-4" />} label="Zeitraum">
+            {formatDateRange(state.start_datetime, state.end_datetime)}
+            {daysCount > 0 && <span className="text-muted-foreground"> ({daysCount} {daysCount === 1 ? 'Tag' : 'Tage'})</span>}
+          </SummaryItem>
 
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Tag className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Ernährung</p>
-              <p className="text-body font-semibold text-foreground">
-                {nutritionalTagNames.length > 0 ? nutritionalTagNames.join(', ') : 'Keine Einschränkungen'}
-              </p>
-            </div>
-          </div>
+          <SummaryItem icon={<Tag className="h-4 w-4" />} label="Ernährung">
+            {nutritionalTagNames.length > 0 ? nutritionalTagNames.join(', ') : 'Keine Einschränkungen'}
+          </SummaryItem>
 
           {state.budget_per_person_per_day != null && (
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="w-4 h-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Budget</p>
-                <p className="text-body font-semibold text-foreground">{formatNumber(state.budget_per_person_per_day, { maxDecimals: 2 })} €/Person/Tag</p>
-              </div>
-            </div>
+            <SummaryItem icon={<DollarSign className="h-4 w-4" />} label="Budget">
+              {formatNumber(state.budget_per_person_per_day, { maxDecimals: 2 })} €/Person/Tag
+            </SummaryItem>
           )}
         </div>
       </div>
 
-      <div className="rounded-xl bg-card p-5 space-y-3 shadow-card">
-        <h4 className="font-display font-bold text-body text-foreground flex items-center gap-2">
+      <div className="space-y-3 rounded-xl bg-card p-5 shadow-card">
+        <h4 className="flex items-center gap-2 font-display text-body font-bold text-foreground">
           {state.strategy === 'ai' ? (
-            <Sparkles className="w-4 h-4 text-primary" />
+            <Sparkles className="h-4 w-4 text-primary" />
           ) : state.strategy === 'reference' ? (
-            <Copy className="w-4 h-4 text-primary" />
+            <Copy className="h-4 w-4 text-primary" />
           ) : (
-            <FileText className="w-4 h-4 text-primary" />
+            <FileText className="h-4 w-4 text-primary" />
           )}
           Befüllungs-Strategie
         </h4>
@@ -127,10 +109,10 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
         )}
 
         {state.strategy === 'ai' && state.ai_suggestions && (
-          <div className="space-y-2 mt-2">
+          <div className="mt-2 space-y-2">
             {(state.ai_suggestions as AiSuggestOut).days.map((day) => (
-              <div key={day.date} className="border border-border rounded-lg p-2.5">
-                <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              <div key={day.date} className="rounded-lg border border-border bg-muted/40 p-2.5">
+                <p className="mb-1 text-caption font-bold uppercase tracking-wider text-muted-foreground">
                   {new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE', {
                     weekday: 'short',
                     day: '2-digit',
@@ -139,8 +121,8 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {day.meals.map((meal, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-caption font-semibold text-primary">
-                      <span className="opacity-70 font-normal">{MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}:</span> {meal.recipe_title}
+                    <span key={idx} className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-0.5 text-caption font-semibold text-primary-dark">
+                      <span className="font-normal opacity-70">{MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}:</span> {meal.recipe_title}
                     </span>
                   ))}
                 </div>
@@ -154,7 +136,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
         type="button"
         onClick={onCreate}
         disabled={!state.name.trim() || isPending}
-        className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-primary-foreground text-body font-bold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-body font-bold text-primary-foreground transition-colors hover:bg-primary-dark disabled:opacity-50"
       >
         {isPending ? 'Erstelle...' : 'Essensplan erstellen'}
       </button>

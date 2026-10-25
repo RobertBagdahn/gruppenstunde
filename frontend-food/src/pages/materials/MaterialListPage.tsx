@@ -14,9 +14,9 @@ import Pagination from '@/components/shared/Pagination';
 import EmptyState from '@/components/shared/EmptyState';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import MaterialFormDialog from '@/components/material/MaterialFormDialog';
-import { SkeletonCardGrid } from '@/components/ui/skeleton';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { MATERIAL_CATEGORY_OPTIONS } from '@/schemas/supply';
 import { formatEuro } from '@/lib/materialAmount';
@@ -32,6 +32,10 @@ const KIND_OPTIONS: { value: KindFilter; label: string }[] = [
 const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
   MATERIAL_CATEGORY_OPTIONS.map((opt) => [opt.value, opt.label]),
 );
+
+/** Filter chip on white ground: active = petrol border and text, never a filled surface. */
+const CHIP_CLASS =
+  'press flex h-11 md:h-9 items-center gap-2 rounded-full border bg-card px-4 text-body font-semibold transition-colors duration-200';
 
 export default function MaterialListPage() {
   const [params, setParams] = useSearchParams();
@@ -54,7 +58,7 @@ export default function MaterialListPage() {
     setParams(next, { replace: true });
   };
 
-  const { data, isPending, error, refetch } = useMaterials({
+  const { data, isPending, error, refetch, isPlaceholderData } = useMaterials({
     q: q || undefined,
     material_category: category || undefined,
     is_consumable: kind === 'all' ? undefined : kind === 'consumable',
@@ -74,6 +78,7 @@ export default function MaterialListPage() {
       <PageHeader
         title="Material"
         description="Geräte und Verbrauchsmaterial, die Rezepte brauchen – vom Backofen bis zum Pappteller."
+        breadcrumbs={[{ label: 'Startseite', to: '/' }, { label: 'Material' }]}
         count={data?.total}
         countLoading={isPending}
         countLabel={{ one: 'Material', other: 'Materialien' }}
@@ -88,7 +93,7 @@ export default function MaterialListPage() {
         />
       </PageHeader>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4" role="group" aria-label="Filter">
+      <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filter">
         {KIND_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -96,8 +101,8 @@ export default function MaterialListPage() {
             onClick={() => patch({ kind: opt.value === 'all' ? undefined : opt.value })}
             aria-pressed={kind === opt.value}
             className={cn(
-              'press rounded-full px-3.5 py-1.5 text-body font-medium border transition-colors',
-              kind === opt.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-muted',
+              CHIP_CLASS,
+              kind === opt.value ? 'border-primary text-primary-dark' : 'border-border text-foreground hover:border-primary-soft-border',
             )}
           >
             {opt.label}
@@ -107,7 +112,7 @@ export default function MaterialListPage() {
           aria-label="Kategorie"
           value={category}
           onChange={(e) => patch({ category: e.target.value || undefined })}
-          className="h-9 rounded-lg border border-input bg-card px-3 text-body"
+          className="h-11 md:h-9 rounded-lg border border-border bg-card px-3 text-emphasis md:text-body shadow-soft focus:outline-none focus:ring-2 focus:ring-ring/40"
         >
           <option value="">Alle Kategorien</option>
           {MATERIAL_CATEGORY_OPTIONS.map((opt) => (
@@ -117,8 +122,8 @@ export default function MaterialListPage() {
           ))}
         </select>
         {currentUser && (
-          <Button type="button" size="sm" className="sm:hidden ml-auto" onClick={() => setCreateOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" />
+          <Button type="button" className="sm:hidden ml-auto" onClick={() => setCreateOpen(true)}>
+            <Icon name="add_circle" size={16} />
             Neues Material
           </Button>
         )}
@@ -127,7 +132,7 @@ export default function MaterialListPage() {
       {error ? (
         <ErrorDisplay error={error} onRetry={() => refetch()} />
       ) : isPending ? (
-        <SkeletonCardGrid />
+        <SkeletonTableRows rows={8} columns={3} label="Material wird geladen" />
       ) : data.items.length === 0 ? (
         <EmptyState
           icon="inventory_2"
@@ -138,31 +143,43 @@ export default function MaterialListPage() {
         />
       ) : (
         <>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="material-list">
+          <ul
+            aria-busy={isPlaceholderData}
+            className={cn('stagger flex flex-col gap-2 transition-opacity', isPlaceholderData && 'opacity-60')}
+            data-testid="material-list"
+          >
             {data.items.map((material) => (
               <li key={material.id}>
                 <Link
                   to={`/material/${material.slug}`}
-                  className="card-hover block rounded-xl bg-card p-4 shadow-card h-full"
+                  className="card-hover group flex min-h-11 items-center gap-3 rounded-xl bg-card px-3 py-3 shadow-card md:px-5"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="text-emphasis font-semibold [overflow-wrap:anywhere]">{material.name}</h2>
-                    <span
-                      className={cn(
-                        'shrink-0 rounded-full px-2.5 py-0.5 text-caption font-medium',
-                        material.is_consumable ? 'bg-spice-soft text-spice-foreground' : 'bg-primary-soft text-primary',
-                      )}
-                    >
-                      {material.is_consumable ? 'Verbrauch' : 'Gerät'}
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                    <Icon name="inventory_2" size={20} />
+                  </span>
+                  <span className="min-w-0 flex-1 space-y-1">
+                    <span className="block text-emphasis font-semibold text-foreground [overflow-wrap:anywhere] group-hover:text-primary-dark transition-colors">
+                      {material.name}
                     </span>
-                  </div>
-                  <p className="mt-1 text-caption text-muted-foreground">
-                    {CATEGORY_LABELS[material.material_category] ?? material.material_category}
-                  </p>
+                    <span className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
+                      <span
+                        className={cn(
+                          'rounded-full px-2.5 py-0.5 font-semibold',
+                          material.is_consumable ? 'bg-muted text-foreground' : 'bg-primary-soft text-primary-dark',
+                        )}
+                      >
+                        {material.is_consumable ? 'Verbrauch' : 'Gerät'}
+                      </span>
+                      <span>{CATEGORY_LABELS[material.material_category] ?? material.material_category}</span>
+                    </span>
+                  </span>
                   {material.price_per_piece !== null && (
-                    <p className="mt-2 text-body text-muted-foreground tabular-nums">
-                      {formatEuro(material.price_per_piece)} pro Stück
-                    </p>
+                    <span className="shrink-0 text-right tabular-nums">
+                      <span className="block text-body font-semibold text-foreground">
+                        {formatEuro(material.price_per_piece)}
+                      </span>
+                      <span className="block text-caption text-muted-foreground">pro Stück</span>
+                    </span>
                   )}
                 </Link>
               </li>

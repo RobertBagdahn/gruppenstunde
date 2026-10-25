@@ -90,9 +90,11 @@ export default function TagTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-body text-muted-foreground">{paginated?.total ?? tags.length} Einträge</p>
-        <Button onClick={openCreate} className="gap-1.5" size="sm">
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-body font-bold text-primary-dark tabular-nums">
+          {paginated?.total ?? tags.length} Einträge
+        </span>
+        <Button onClick={openCreate} className="h-11 gap-1.5 px-4 md:h-9" size="sm">
           <Plus className="h-4 w-4" />
           Neu
         </Button>
@@ -102,7 +104,7 @@ export default function TagTab() {
         <div className="overflow-x-auto">
           <table className="w-full text-body">
             <thead>
-              <tr className="bg-muted/50 border-b border-border text-muted-foreground font-medium text-caption uppercase tracking-wider">
+              <tr className="bg-muted border-b border-border text-muted-foreground font-semibold text-caption uppercase tracking-wider">
                 <th className="text-left px-5 py-3 font-semibold">Name</th>
                 <th className="text-left px-5 py-3 font-semibold hidden sm:table-cell">Slug</th>
                 <th className="text-left px-5 py-3 font-semibold hidden md:table-cell">Gruppe</th>
@@ -133,7 +135,7 @@ export default function TagTab() {
                         size="icon"
                         variant="ghost"
                         onClick={() => openEdit(t)}
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        className="h-11 w-11 md:h-8 md:w-8 text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -141,7 +143,7 @@ export default function TagTab() {
                         size="icon"
                         variant="ghost"
                         onClick={() => setDeleteTarget(t)}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                        className="h-11 w-11 md:h-8 md:w-8 text-muted-foreground hover:text-danger-foreground hover:bg-danger-soft"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -195,7 +197,12 @@ export default function TagTab() {
               <Input id="sort_order" type="number" {...form.register('sort_order', { valueAsNumber: true })} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDialogOpen(false)}
+                className="bg-primary-soft text-primary-dark hover:bg-primary-soft/80"
+              >
                 Abbrechen
               </Button>
               <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>

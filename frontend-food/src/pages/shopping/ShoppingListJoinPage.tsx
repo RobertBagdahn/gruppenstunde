@@ -10,7 +10,7 @@ import { useJoinSharedList, useSharedListPreview } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PageSkeleton } from '@/components/ui/skeleton';
+import { SkeletonForm } from '@/components/ui/skeleton';
 import { ApiError, getApiErrorMessage } from '@/lib/api';
 import { clearGuestCredentials, getGuestCredentials, saveGuestCredentials } from '@/lib/shoppingGuest';
 
@@ -52,19 +52,36 @@ export default function ShoppingListJoinPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per loaded list
   }, [list, user, userLoading]);
 
-  if (preview.isLoading || userLoading) return <PageSkeleton label="Einladung wird geladen" />;
+  if (preview.isLoading || userLoading) {
+    return (
+      <div className="flex items-center justify-center px-4 py-12 sm:py-16">
+        <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-card sm:p-8">
+          <SkeletonForm fields={1} label="Einladung wird geladen" />
+        </div>
+      </div>
+    );
+  }
 
   if (preview.error || !list) {
     const expired = preview.error instanceof ApiError && preview.error.status === 404;
     return (
-      <div className="max-w-md mx-auto px-4 py-8">
-        <ErrorDisplay
-          error={preview.error}
-          title={expired ? 'Dieser Einladungslink ist nicht mehr gültig' : undefined}
-          onRetry={() => preview.refetch()}
-          onBack={() => navigate('/shopping-lists')}
-          backLabel="Zu meinen Einkaufslisten"
-        />
+      <div className="flex items-center justify-center px-4 py-12 sm:py-16">
+        <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-card sm:p-8" data-testid="shopping-join-error">
+          <ErrorDisplay
+            error={preview.error}
+            title={expired ? 'Dieser Einladungslink ist nicht mehr gültig' : undefined}
+          />
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            {!expired && (
+              <Button className="w-full sm:w-auto" onClick={() => preview.refetch()}>
+                Erneut versuchen
+              </Button>
+            )}
+            <Button variant="secondary" className="w-full sm:w-auto" onClick={() => navigate('/shopping-lists')}>
+              Zu meinen Einkaufslisten
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -98,7 +115,7 @@ export default function ShoppingListJoinPage() {
   return (
     <div className="flex items-center justify-center px-4 py-12 sm:py-16">
       <form onSubmit={submit} className="w-full max-w-md rounded-xl bg-card p-6 sm:p-8 shadow-card" data-testid="shopping-join-form">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary-soft text-primary">
           <ShoppingCart className="h-6 w-6" />
         </div>
         <p className="text-center text-body text-muted-foreground">{list.owner_display_name} lädt dich ein zu</p>

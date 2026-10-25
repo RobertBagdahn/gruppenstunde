@@ -360,7 +360,7 @@ export default function TableView({
                                     }
                                   }}
                                   disabled={isCreatingSlot !== null}
-                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors text-caption font-semibold cursor-pointer"
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-primary-soft-border text-primary-dark bg-primary-soft hover:bg-primary/10 transition-colors text-caption font-semibold cursor-pointer"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                   <span>Rezept hinzufügen</span>
@@ -483,7 +483,7 @@ export default function TableView({
                                           return (
                                             <div
                                               key={item.id}
-                                              className="group p-2 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-xs space-y-1"
+                                              className="group p-2 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all space-y-1"
                                             >
                                               {/* Line 1: Title (left) & Portion / Quantity (right) */}
                                               <div className="flex items-start justify-between gap-1.5 min-w-0">
@@ -568,7 +568,7 @@ export default function TableView({
                                         if (isBuffetCandidate && !isBuffetExpanded) {
                                           const summary = getBreakfastSummary(regularItems, effPortions);
                                           cells.push(
-                                            <div key="buffet-summary" className="p-2.5 rounded-xl bg-card shadow-xs space-y-2 shadow-card">
+                                            <div key="buffet-summary" className="p-2.5 rounded-xl bg-card space-y-2 shadow-card">
                                               <div className="flex items-center justify-between gap-1">
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                   <Coffee className="w-4 h-4 text-primary shrink-0" />
@@ -834,8 +834,8 @@ export default function TableView({
                     <div className="flex flex-col gap-3 font-sans">
                       {/* Coverage Badge — the one number that matters at a glance */}
                       <div className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 text-caption font-bold rounded-full border w-fit shadow-xs",
-                        badge.status === 'green' && "bg-primary/10 text-primary border-primary/20",
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 text-caption font-bold rounded-full border w-fit",
+                        badge.status === 'green' && "bg-primary-soft text-primary-dark border-primary-soft-border",
                         badge.status === 'yellow' && "bg-warning-soft text-warning border-warning-border",
                         (badge.status === 'red' || badge.status === 'overplanned') && "bg-destructive/10 text-destructive border-destructive/20"
                       )}>

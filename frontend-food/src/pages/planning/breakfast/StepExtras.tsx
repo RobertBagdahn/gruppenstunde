@@ -1,15 +1,20 @@
 import { useState } from 'react';
-import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Salad, Soup, X } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import type { BreakfastCatalog } from '@/schemas/breakfast';
 import RecipeSearchDialog from '../RecipeSearchDialog';
 import { DecimalInput } from '@/components/ui/DecimalInput';
+import WizardSectionHeading from '../wizard/WizardSectionHeading';
+import { BREAKFAST_CARD_CLASS, BREAKFAST_CHIP_CLASS, BREAKFAST_ICON_BUTTON_CLASS } from './breakfastStyles';
 
 interface StepExtrasProps {
   wiz: UseWizardStateReturn;
   mealType?: string;
   catalog?: BreakfastCatalog;
 }
+
+const NUMBER_FIELD_CLASS =
+  'min-h-11 rounded-lg border border-border bg-card px-2 text-emphasis md:text-body text-right focus:outline-none focus:ring-2 focus:ring-primary/30';
 
 export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: StepExtrasProps) {
   const {
@@ -37,28 +42,26 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Warme Gerichte */}
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-display font-semibold text-emphasis">Warme Gerichte</h3>
-            <p className="text-caption text-muted-foreground">Rezepte als warme Komponente (optional)</p>
-          </div>
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<Soup className="h-5 w-5" />}>Warme Gerichte</WizardSectionHeading>
+        <div className="-mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-caption text-muted-foreground">Rezepte als warme Komponente (optional)</p>
           {unselectedWarmDishes.length > 0 && (
             <button
               type="button"
               onClick={() => setShowAvailableDishes(!showAvailableDishes)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
+              className={BREAKFAST_CHIP_CLASS}
             >
-              {showAvailableDishes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showAvailableDishes ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
               Verfügbare
             </button>
           )}
         </div>
 
         {selectedWarmDishIds.length === 0 && !showAvailableDishes ? (
-          <p className="text-body text-muted-foreground py-2">Keine warmen Gerichte geplant.</p>
+          <p className="py-2 text-body text-muted-foreground">Keine warmen Gerichte geplant.</p>
         ) : null}
 
         {/* Selected warm dishes */}
@@ -69,7 +72,7 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
               const factor = state.warmDishFactors[String(recipeId)] ?? 1;
               const name = state.warmDishRecipeNames[String(recipeId)] || recipe?.title || `Rezept #${recipeId}`;
               return (
-                <div key={recipeId} className="py-2 flex items-center gap-3">
+                <div key={recipeId} className="flex items-center gap-3 py-1">
                   <span className="flex-1 text-body font-medium">{name}</span>
                   <div className="flex items-center gap-1">
                     <span className="text-caption text-muted-foreground">×</span>
@@ -78,16 +81,16 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
                       value={factor}
                       onChange={(nextFactor) => setWarmDishFactor(recipeId, nextFactor)}
                       aria-label={`Faktor für ${name}`}
-                      className="w-16 rounded-lg border px-2 py-1 text-body text-right"
+                      className={`w-16 ${NUMBER_FIELD_CLASS}`}
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => removeWarmDish(recipeId)}
-                    className="p-1 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                    className={BREAKFAST_ICON_BUTTON_CLASS}
                     title="Entfernen"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               );
@@ -99,7 +102,7 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
         {showAvailableDishes && unselectedWarmDishes.length > 0 && (
           <div className="divide-y divide-border border-t border-border pt-2">
             {unselectedWarmDishes.map((recipe) => (
-              <div key={recipe.id} className="py-2 flex items-center gap-3">
+              <div key={recipe.id} className="flex items-center gap-3 py-1">
                 <span className="flex-1 text-body">{recipe.title}</span>
                 <button
                   type="button"
@@ -107,9 +110,9 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
                     addWarmDish(recipe.id, recipe.title);
                     setWarmDishFactor(recipe.id, 1);
                   }}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
+                  className={BREAKFAST_CHIP_CLASS}
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="h-4 w-4" aria-hidden="true" />
                   Hinzufügen
                 </button>
               </div>
@@ -118,37 +121,35 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
         )}
       </div>
 
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-display font-semibold text-emphasis">Gemüse & Extras</h3>
-            <p className="text-caption text-muted-foreground">Tomaten, Gurken, Obst etc. (optional)</p>
-          </div>
-          <div className="flex items-center gap-2">
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<Salad className="h-5 w-5" />}>Gemüse & Extras</WizardSectionHeading>
+        <div className="-mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-caption text-muted-foreground">Tomaten, Gurken, Obst etc. (optional)</p>
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => wiz.openCreateModal('ingredient', 'breakfast-extra')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
+              className={BREAKFAST_CHIP_CLASS}
             >
-              + Neues Extra erstellen
+              Neues Extra erstellen
             </button>
             <button
               type="button"
               onClick={() => setShowIngredientSearch(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
+              className={BREAKFAST_CHIP_CLASS}
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="h-4 w-4" aria-hidden="true" />
               Zutat
             </button>
           </div>
         </div>
 
         {extraEntries.length === 0 ? (
-          <p className="text-body text-muted-foreground py-2">Keine Extras geplant.</p>
+          <p className="py-2 text-body text-muted-foreground">Keine Extras geplant.</p>
         ) : (
           <div className="divide-y divide-border">
             {extraEntries.map(({ id, gramsPerPerson, portion }) => (
-              <div key={id} className="py-2 flex items-center gap-3">
+              <div key={id} className="flex items-center gap-3 py-1">
                 <span className="flex-1 text-body font-medium">{state.extraIngredientNames[String(id)] ?? `Zutat #${id}`}</span>
                 <div className="flex items-center gap-1">
                   <DecimalInput
@@ -156,17 +157,17 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
                     value={portion?.quantity ?? gramsPerPerson}
                     onChange={(quantity) => setExtraIngredient(id, Math.max(portion ? 0.1 : 1, quantity))}
                     aria-label={`Menge pro Person für ${state.extraIngredientNames[String(id)] ?? `Zutat ${id}`}`}
-                    className="w-20 rounded-lg border px-2 py-1 text-body text-right"
+                    className={`w-20 ${NUMBER_FIELD_CLASS}`}
                   />
                   <span className="text-caption text-muted-foreground">{portion?.portionName ?? 'g'}/P</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeExtraIngredient(id)}
-                  className="p-1 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                  className={BREAKFAST_ICON_BUTTON_CLASS}
                   title="Entfernen"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
             ))}

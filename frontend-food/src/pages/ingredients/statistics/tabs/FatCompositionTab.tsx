@@ -15,7 +15,7 @@ export default function FatCompositionTab() {
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
-        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+        <div className="h-80 skeleton-shimmer rounded-xl" />
       ) : data ? (
         <DistributionChart data={data} unit="g" label="Fett" />
       ) : null}

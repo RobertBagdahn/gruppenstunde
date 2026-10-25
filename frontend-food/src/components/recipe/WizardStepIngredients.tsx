@@ -6,6 +6,7 @@ import InlineIngredientEditor from './InlineIngredientEditor';
 import type { InlineIngredientEditorHandle } from './InlineIngredientEditor';
 import { useWizardStep } from './wizardContext';
 import { SkeletonTableRows } from '@/components/ui/skeleton';
+import { Carrot } from 'lucide-react';
 
 interface WizardStepIngredientsProps {
   recipeId: number;
@@ -54,9 +55,14 @@ export default function WizardStepIngredients({
         )}
       </div>
 
-      <div>
-        <span className="block text-body font-medium mb-1.5">Zutaten *</span>
-        <div className="bg-card rounded-xl shadow-card">
+      <section className="rounded-xl bg-card p-4 sm:p-5 shadow-card">
+        <h3 className="mb-4 flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+            <Carrot className="h-5 w-5" />
+          </span>
+          Zutaten *
+        </h3>
+        <div>
           <InlineIngredientEditor
             ref={editorRef}
             recipeId={recipeId}
@@ -70,7 +76,7 @@ export default function WizardStepIngredients({
             onSave={() => {}}
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 }

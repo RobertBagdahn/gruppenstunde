@@ -249,7 +249,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
               const dayCoverage = dayCoverageMap[day.date] ?? 1;
               const badge = getCoverageBadge(dayCoverage);
               const badgeColors = {
-                green: 'bg-primary/10 text-primary border-primary/20',
+                green: 'bg-primary-soft text-primary-dark border-primary-soft-border',
                 yellow: 'bg-warning-soft text-warning border-warning-border',
                 red: 'bg-destructive/10 text-destructive border-destructive/20',
                 overplanned: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -332,7 +332,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 text-center shadow-soft transition-all hover:shadow-md">
+    <div className="rounded-xl border border-border bg-card p-4 text-center shadow-soft transition-all hover:shadow-raised">
       <div className="text-caption font-semibold text-muted-foreground mb-1.5 leading-snug">{label}</div>
       <div className="text-section font-bold font-display text-foreground tabular-nums">{value}</div>
     </div>

@@ -23,7 +23,7 @@ import { useCreateMaterial, useUpdateMaterial } from '@/api/materials';
 import { MATERIAL_CATEGORY_OPTIONS, MaterialInSchema, type Material } from '@/schemas/supply';
 
 const SELECT_CLASS =
-  'h-11 w-full rounded-lg border border-input bg-card px-3 text-body focus:outline-none focus:ring-2 focus:ring-ring';
+  'h-11 w-full rounded-lg border border-input bg-card px-3 text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-ring';
 
 interface MaterialFormDialogProps {
   open: boolean;

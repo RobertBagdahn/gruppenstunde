@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import PageHeader from '@/components/shared/PageHeader';
 
 const TYPE_TABS = [
   { key: 'ingredients', label: 'Zutaten' },
@@ -26,28 +27,36 @@ export default function DataDistributionsPage() {
   const [type, setType] = useState<string>('ingredients');
 
   return (
-    <div className="container py-6 space-y-6">
-<header className="mb-6 space-y-3">
-      <h1 className="font-display text-display font-extrabold text-foreground">Datenverteilungen</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <PageHeader
+        title="Datenverteilungen"
+        description="Verteilungen von Kosten, Energie und Nährwerten in Zutaten und Rezepten"
+      />
 
-      <div className="flex gap-1 overflow-x-auto pt-5">
-        {TYPE_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setType(tab.key)}
-            className={cn(
-              'press h-11 px-4 rounded-full text-body font-semibold whitespace-nowrap transition-colors',
-              type === tab.key
-                ? 'bg-background text-foreground'
-                : 'text-muted-foreground hover:bg-primary-soft hover:text-primary-dark'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Type chips: white with a thin border, the active chip in petrol (as in the statistics page) */}
+      <div className="mb-6 overflow-x-auto -mx-4 px-4">
+        <div className="flex gap-2 min-w-max pb-2">
+          {TYPE_TABS.map((tab) => {
+            const active = type === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setType(tab.key)}
+                className={cn(
+                  'press flex min-h-11 md:min-h-9 items-center rounded-full border bg-card px-4 text-body font-semibold whitespace-nowrap transition-colors duration-200',
+                  active
+                    ? 'border-primary text-primary-dark'
+                    : 'border-border text-foreground hover:border-primary-soft-border'
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-
-      </header>
 
       {type === 'ingredients' ? <IngredientCharts /> : <RecipeCharts />}
     </div>
@@ -56,10 +65,10 @@ export default function DataDistributionsPage() {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-card p-4 space-y-3 shadow-card">
-      <h3 className="text-body font-semibold font-display">{title}</h3>
+    <section className="rounded-xl bg-card p-4 md:p-6 space-y-3 shadow-card">
+      <h2 className="text-section font-semibold font-display">{title}</h2>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -188,8 +197,8 @@ function NutrientScatterChartView() {
           <YAxis type="number" dataKey="y" name="Kohlenhydrate (g)" unit="g" tick={{ fontSize: 10 }} />
           <Tooltip cursor={{ strokeDasharray: '3 3' }} />
           <Legend />
-          <Scatter name="Vegan" data={vegan} fill="#22c55e" />
-          <Scatter name="Nicht vegan" data={nonVegan} fill="#ef4444" />
+          <Scatter name="Vegan" data={vegan} fill="hsl(var(--chart-1))" />
+          <Scatter name="Nicht vegan" data={nonVegan} fill="hsl(var(--chart-2))" />
         </ScatterChart>
       </ResponsiveContainer>
     </div>

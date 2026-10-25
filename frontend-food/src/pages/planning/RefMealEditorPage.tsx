@@ -3,7 +3,8 @@ import DetailHeader from '@/components/shared/DetailHeader';
  * RefMealEditorPage — Baukasten-Ansicht zum Zusammenstellen von Reference Meals.
  * Route: /meal-plans/:id/ref-meals/:mealType
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
+import { BookOpen, Flame, GlassWater, Layers, Link2, ListChecks, Search, Sparkles, UtensilsCrossed, Wheat, X } from 'lucide-react';
 import { MealItemAmountText } from '@/components/planning/MealItemAmountEditor';
 import { UnitViewToggle } from '@/components/quantity/UnitViewToggle';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
@@ -20,23 +21,27 @@ import { useMealPlan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealItem, RefMealItemIn } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
-import { Card, CardContent } from '@/components/ui/card';
 import { RefMealSyncConfirmDialog } from '@/components/planning/RefMealSyncConfirmDialog';
 import { formatNumber } from '@/lib/format';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { DecimalInput } from '@/components/ui/DecimalInput';
+import RecipeTypeTag from '@/components/recipe/RecipeTypeTag';
+import WizardSectionHeading from '@/pages/planning/wizard/WizardSectionHeading';
+import { WIZARD_INPUT_CLASS } from '@/pages/planning/wizard/wizardStyles';
 
-/** Category labels for recipe type grouping */
-const RECIPE_TYPE_GROUPS: Record<string, string> = {
-  breakfast: 'Frühstück',
-  warm_meal: 'Warme Mahlzeit',
-  cold_meal: 'Kalte Mahlzeit',
-  dessert: 'Nachtisch',
-  recipe_part: 'Rezeptteil',
-  drink: 'Getränke',
-  snack: 'Snack',
-  ingredient: 'Zutat',
-};
+/** Neutral section card of the editor (tokens only, no category tint). */
+const SECTION_CARD_CLASS = 'space-y-4 rounded-xl bg-card p-5 shadow-card';
+
+/** Primary action, 44 px touch height. */
+const PRIMARY_BUTTON_CLASS =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50';
+
+/** Secondary action in the primary-soft language, 44 px touch height. */
+const SECONDARY_BUTTON_CLASS =
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-primary-soft px-4 text-body font-semibold text-primary-dark transition-colors hover:bg-primary/15 disabled:opacity-50';
+
+/** Label/value line inside a section card. */
+const KEY_VALUE_ROW_CLASS = 'flex items-center justify-between gap-3 text-body';
 
 /** Category labels/order for breakfast-mode grouping */
 const CATEGORY_LABELS: Record<string, string> = {
@@ -45,6 +50,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   warm: 'Warme Gerichte',
   extras: 'Extras',
   getraenke: 'Getränke',
+};
+
+const CATEGORY_ICONS: Record<string, ReactNode> = {
+  basis: <Wheat className="h-5 w-5" aria-hidden="true" />,
+  belag: <Layers className="h-5 w-5" aria-hidden="true" />,
+  warm: <UtensilsCrossed className="h-5 w-5" aria-hidden="true" />,
+  extras: <Sparkles className="h-5 w-5" aria-hidden="true" />,
+  getraenke: <GlassWater className="h-5 w-5" aria-hidden="true" />,
 };
 
 const CATEGORY_ORDER = ['basis', 'belag', 'warm', 'extras', 'getraenke'] as const;
@@ -262,25 +275,24 @@ export default function RefMealEditorPage() {
 
   return (
     <div className="pb-8">
-    <DetailHeader
-      title={`Referenz-Mahlzeit: ${mealTypeLabel}`}
-      description={plan?.name}
-      back={{ to: `/meal-plans/${id}`, label: 'Zurück zum Essensplan' }}
-    />
-    <div className="max-w-7xl mx-auto px-4 space-y-6">
+      <DetailHeader
+        title={`Referenz-Mahlzeit: ${mealTypeLabel}`}
+        description={plan?.name}
+        back={{ to: `/meal-plans/${id}`, label: 'Zurück zum Essensplan' }}
+      />
+      <div className="mx-auto max-w-7xl space-y-6 px-4">
 
-      {/* No RefMeal yet — create one */}
-      {!refMeal && (
-        <Card>
-          <CardContent className="p-8 text-center space-y-4">
-            <p className="text-muted-foreground">
+        {/* No RefMeal yet — create one */}
+        {!refMeal && (
+          <section className={`${SECTION_CARD_CLASS} text-center`}>
+            <p className="text-emphasis text-muted-foreground">
               Noch keine Referenz-Mahlzeit für {mealTypeLabel} vorhanden.
             </p>
             {isBreakfast ? (
               canEdit ? (
                 <button
                   onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                  className={PRIMARY_BUTTON_CLASS}
                 >
                   Frühstücksassistent starten
                 </button>
@@ -291,7 +303,7 @@ export default function RefMealEditorPage() {
               canEdit ? (
                 <button
                   onClick={handleCreateRefMeal}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                  className={PRIMARY_BUTTON_CLASS}
                 >
                   Referenz-Mahlzeit erstellen
                 </button>
@@ -299,39 +311,37 @@ export default function RefMealEditorPage() {
                 <p className="text-body text-muted-foreground">Keine Berechtigung zum Erstellen von Referenz-Mahlzeiten.</p>
               )
             )}
-          </CardContent>
-        </Card>
-      )}
+          </section>
+        )}
 
-      {/* Wizard button for existing breakfast RefMeal */}
-      {refMeal && isBreakfast && (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <UnitViewToggle />
-          <button
-            onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
-            className="flex items-center gap-2 px-3 py-1.5 text-body border rounded-lg hover:bg-muted transition-colors"
-          >
-            Frühstücksassistent öffnen
-          </button>
-        </div>
-      )}
+        {/* Wizard button for existing breakfast RefMeal */}
+        {refMeal && isBreakfast && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <UnitViewToggle />
+            <button
+              onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
+              className={SECONDARY_BUTTON_CLASS}
+            >
+              Frühstücksassistent öffnen
+            </button>
+          </div>
+        )}
 
-      {/* Breakfast RefMeal — grouped read-only view */}
-      {refMeal && isBreakfast && (
-        <div className="space-y-6">
-          {CATEGORY_ORDER.map((cat) => {
-            const items = groupedItems[cat] || [];
-            if (items.length === 0) return null;
-            return (
-              <Card key={cat}>
-                <CardContent className="p-4 space-y-2">
-                  <h3 className="font-semibold text-body text-muted-foreground uppercase tracking-wide">
+        {/* Breakfast RefMeal — grouped read-only view */}
+        {refMeal && isBreakfast && (
+          <div className="space-y-6">
+            {CATEGORY_ORDER.map((cat) => {
+              const items = groupedItems[cat] || [];
+              if (items.length === 0) return null;
+              return (
+                <section key={cat} className={SECTION_CARD_CLASS}>
+                  <WizardSectionHeading icon={CATEGORY_ICONS[cat]}>
                     {CATEGORY_LABELS[cat]}
-                  </h3>
+                  </WizardSectionHeading>
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between text-body"
+                      className={KEY_VALUE_ROW_CLASS}
                     >
                       <span className="font-medium">
                         {item.display_name || item.recipe_title || item.ingredient_name || 'Unbekannt'}
@@ -342,161 +352,173 @@ export default function RefMealEditorPage() {
                       </span>
                     </div>
                   ))}
-                </CardContent>
-              </Card>
-            );
-          })}
+                </section>
+              );
+            })}
 
-          {/* Energy split */}
-          <Card>
-            <CardContent className="p-4 space-y-2 bg-muted/50">
-              <h3 className="font-semibold text-body">Energie pro Person</h3>
-              <div className="flex justify-between text-body">
+            {/* Energy split */}
+            <section className={SECTION_CARD_CLASS}>
+              <WizardSectionHeading icon={<Flame className="h-5 w-5" aria-hidden="true" />}>
+                Energie pro Person
+              </WizardSectionHeading>
+              <div className={KEY_VALUE_ROW_CLASS}>
                 <span>Essen:</span>
                 <span className="font-mono">{Math.round(foodKcal)} kcal</span>
               </div>
-              <div className="flex justify-between text-body">
+              <div className={KEY_VALUE_ROW_CLASS}>
                 <span>Getränke:</span>
                 <span className="font-mono">{Math.round(drinkKcal)} kcal</span>
               </div>
-            </CardContent>
-          </Card>
+            </section>
 
-          {/* Sync info */}
-          <Card>
-            <CardContent className="p-4 space-y-2 bg-muted/50">
-              <h3 className="font-semibold text-body">Verknüpfung</h3>
+            {/* Sync info */}
+            <section className={SECTION_CARD_CLASS}>
+              <WizardSectionHeading icon={<Link2 className="h-5 w-5" aria-hidden="true" />}>
+                Verknüpfung
+              </WizardSectionHeading>
               <p className="text-body text-muted-foreground">
                 {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
                 {plan && (
                   <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
                 )}
               </p>
-            </CardContent>
-          </Card>
+            </section>
 
-          {/* Action buttons */}
-          {canEdit && (
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={handleSync}
-                disabled={syncRefMeal.isPending}
-                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
-              >
-                Für alle übernehmen
-              </button>
-              <button
-                onClick={handleLinkAll}
-                disabled={linkAllMeals.isPending}
-                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
-              >
-                Alle {mealTypeLabel} verknüpfen
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Non-Breakfast RefMeal Editor (existing Baukasten) */}
-      {refMeal && !isBreakfast && canEdit && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Recipe Picker (Baukasten) */}
-          <div className="space-y-4">
-            <h2 className="text-section font-semibold">Verfügbare Rezepte</h2>
-            <input
-              type="text"
-              placeholder="Rezepte suchen..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-body"
-            />
-
-            {/* Recipe tiles grouped by type */}
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              {searchResults?.recipes && searchResults.recipes.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {searchResults.recipes.map((recipe) => (
-                    <button
-                      key={recipe.id}
-                      onClick={() => handleAddRecipe(recipe.id, recipe.title)}
-                      className="p-3 border rounded-lg text-left text-body hover:bg-accent hover:border-primary transition-colors"
-                    >
-                      <span className="font-medium">{recipe.title}</span>
-                      <span className="block text-caption text-muted-foreground mt-0.5">
-                        {RECIPE_TYPE_GROUPS[recipe.recipe_type] || recipe.recipe_type}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-body text-muted-foreground">
-                  Keine Rezepte gefunden. Führe den Seed-Command aus.
-                </p>
-              )}
-            </div>
+            {/* Action buttons */}
+            {canEdit && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleSync}
+                  disabled={syncRefMeal.isPending}
+                  className={SECONDARY_BUTTON_CLASS}
+                >
+                  Für alle übernehmen
+                </button>
+                <button
+                  onClick={handleLinkAll}
+                  disabled={linkAllMeals.isPending}
+                  className={SECONDARY_BUTTON_CLASS}
+                >
+                  Alle {mealTypeLabel} verknüpfen
+                </button>
+              </div>
+            )}
           </div>
+        )}
 
-          {/* Right: Selected items + Energy overview */}
-          <div className="space-y-4">
-            <h2 className="text-section font-semibold">Zusammenstellung</h2>
+        {/* Non-Breakfast RefMeal Editor (Baukasten) */}
+        {refMeal && !isBreakfast && canEdit && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Left: Recipe Picker (Baukasten) */}
+            <section className={SECTION_CARD_CLASS}>
+              <WizardSectionHeading icon={<BookOpen className="h-5 w-5" aria-hidden="true" />}>
+                Verfügbare Rezepte
+              </WizardSectionHeading>
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <input
+                  type="text"
+                  placeholder="Rezepte suchen…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`${WIZARD_INPUT_CLASS} pl-9`}
+                  aria-label="Rezepte suchen"
+                />
+              </div>
 
-            {/* Items list */}
-            <div className="space-y-2">
-              {localItems.length === 0 ? (
-                <p className="text-body text-muted-foreground p-4 border rounded-lg text-center">
-                  Noch keine Rezepte ausgewählt. Klicke links auf ein Rezept.
-                </p>
-              ) : (
-                localItems.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 p-3 border rounded-lg"
-                  >
-                    <span className="flex-1 text-body font-medium truncate">
-                      {item.display_name || `Rezept #${item.recipe_id}`}
-                    </span>
-                    <label className="flex items-center gap-1 text-caption text-muted-foreground">
-                      ×
-                      <DecimalInput
-                        value={item.factor}
-                        onChange={(factor) => handleFactorChange(index, factor)}
-                        min={0.1}
-                        max={5}
-                        aria-label={`Faktor für ${item.display_name || `Rezept ${item.recipe_id ?? ''}`}`}
-                        className="w-16 px-1 py-0.5 border rounded-lg text-body text-center"
-                      />
-                    </label>
-                    <button
-                      onClick={() => handleRemoveItem(index)}
-                      className="text-destructive hover:text-destructive/80 text-body p-1"
-                      title="Entfernen"
-                    >
-                      ✕
-                    </button>
+              {/* Recipe tiles grouped by type */}
+              <div className="max-h-[60vh] space-y-4 overflow-y-auto">
+                {searchResults?.recipes && searchResults.recipes.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {searchResults.recipes.map((recipe) => (
+                      <button
+                        key={recipe.id}
+                        onClick={() => handleAddRecipe(recipe.id, recipe.title)}
+                        className="flex min-h-11 flex-col items-start gap-2 rounded-lg bg-muted p-3 text-left text-body transition-colors hover:bg-primary-soft"
+                      >
+                        <span className="font-medium">{recipe.title}</span>
+                        <RecipeTypeTag type={recipe.recipe_type} />
+                      </button>
+                    ))}
                   </div>
-                ))
-              )}
-            </div>
+                ) : (
+                  <p className="text-body text-muted-foreground">
+                    Keine Rezepte gefunden. Führe den Seed-Command aus.
+                  </p>
+                )}
+              </div>
+            </section>
 
-            {/* Energy overview */}
-            <Card>
-              <CardContent className="p-4 space-y-2 bg-muted/50">
-                <h3 className="font-semibold text-body">Energie pro Person</h3>
-                <div className="flex justify-between text-body">
+            {/* Right: Selected items + Energy overview */}
+            <div className="space-y-6">
+              <section className={SECTION_CARD_CLASS}>
+                <WizardSectionHeading icon={<ListChecks className="h-5 w-5" aria-hidden="true" />}>
+                  Zusammenstellung
+                </WizardSectionHeading>
+
+                {/* Items list */}
+                <div className="space-y-2">
+                  {localItems.length === 0 ? (
+                    <p className="rounded-lg bg-muted p-4 text-center text-body text-muted-foreground">
+                      Noch keine Rezepte ausgewählt. Klicke links auf ein Rezept.
+                    </p>
+                  ) : (
+                    localItems.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 rounded-lg bg-muted p-2 pl-3"
+                      >
+                        <span className="flex-1 truncate text-body font-medium">
+                          {item.display_name || `Rezept #${item.recipe_id}`}
+                        </span>
+                        <label className="flex items-center gap-1 text-caption text-muted-foreground">
+                          ×
+                          <DecimalInput
+                            value={item.factor}
+                            onChange={(factor) => handleFactorChange(index, factor)}
+                            min={0.1}
+                            max={5}
+                            aria-label={`Faktor für ${item.display_name || `Rezept ${item.recipe_id ?? ''}`}`}
+                            className="h-11 w-16 rounded-lg border border-border bg-card px-1 text-center text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                        </label>
+                        <button
+                          onClick={() => handleRemoveItem(index)}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-background hover:text-danger-foreground"
+                          title="Entfernen"
+                          aria-label={`${item.display_name || `Rezept #${item.recipe_id}`} entfernen`}
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              {/* Energy overview */}
+              <section className={SECTION_CARD_CLASS}>
+                <WizardSectionHeading icon={<Flame className="h-5 w-5" aria-hidden="true" />}>
+                  Energie pro Person
+                </WizardSectionHeading>
+                <div className={KEY_VALUE_ROW_CLASS}>
                   <span>Ist:</span>
                   <span className="font-mono">{Math.round(totalEnergyKcal)} kcal</span>
                 </div>
-                <div className="flex justify-between text-body">
+                <div className={KEY_VALUE_ROW_CLASS}>
                   <span>Soll ({Math.round(dayPartFactor * 100)}% von {NORM_PERSON_DAILY_KCAL}):</span>
                   <span className="font-mono">{Math.round(targetKcal)} kcal</span>
                 </div>
-                <div className="flex justify-between text-body font-medium">
+                <div className={`${KEY_VALUE_ROW_CLASS} font-medium`}>
                   <span>Abweichung:</span>
                   <span
                     className={
                       energyPercent > 120 || energyPercent < 80
-                        ? 'text-destructive'
-                        : 'text-primary'
+                        ? 'text-danger-foreground'
+                        : 'text-primary-dark'
                     }
                   >
                     {energyPercent}%
@@ -505,73 +527,70 @@ export default function RefMealEditorPage() {
                 {localItems.length > 0 && (
                   <button
                     onClick={handleNormalize}
-                    className="w-full mt-2 px-3 py-1.5 text-body border rounded-lg hover:bg-background"
+                    className={`${SECONDARY_BUTTON_CLASS} w-full`}
                   >
                     Normalisieren auf {Math.round(targetKcal)} kcal
                   </button>
                 )}
-              </CardContent>
-            </Card>
+              </section>
 
-            {/* Sync info */}
-            <Card>
-              <CardContent className="p-4 space-y-2 bg-muted/50">
-                <h3 className="font-semibold text-body">Verknüpfung</h3>
+              {/* Sync info */}
+              <section className={SECTION_CARD_CLASS}>
+                <WizardSectionHeading icon={<Link2 className="h-5 w-5" aria-hidden="true" />}>
+                  Verknüpfung
+                </WizardSectionHeading>
                 <p className="text-body text-muted-foreground">
                   {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
                   {plan && (
                     <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
                   )}
                 </p>
-              </CardContent>
-            </Card>
+              </section>
 
-            {/* Action buttons */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={handleSaveClick}
-                disabled={updateRefMealMutation.isPending}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-body disabled:opacity-50"
-                data-testid="ref-meal-save-button"
-              >
-                Speichern
-              </button>
-              <button
-                onClick={handleSync}
-                disabled={syncRefMeal.isPending}
-                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
-              >
-                Für alle übernehmen
-              </button>
-              <button
-                onClick={handleLinkAll}
-                disabled={linkAllMeals.isPending}
-                className="px-4 py-2 border rounded-lg hover:bg-accent text-body disabled:opacity-50"
-              >
-                Alle {mealTypeLabel} verknüpfen
-              </button>
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleSaveClick}
+                  disabled={updateRefMealMutation.isPending}
+                  className={PRIMARY_BUTTON_CLASS}
+                  data-testid="ref-meal-save-button"
+                >
+                  Speichern
+                </button>
+                <button
+                  onClick={handleSync}
+                  disabled={syncRefMeal.isPending}
+                  className={SECONDARY_BUTTON_CLASS}
+                >
+                  Für alle übernehmen
+                </button>
+                <button
+                  onClick={handleLinkAll}
+                  disabled={linkAllMeals.isPending}
+                  className={SECONDARY_BUTTON_CLASS}
+                >
+                  Alle {mealTypeLabel} verknüpfen
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {refMeal && !isBreakfast && !canEdit && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">Keine Berechtigung zum Bearbeiten dieser Referenz-Mahlzeit.</p>
-          </CardContent>
-        </Card>
-      )}
+        {refMeal && !isBreakfast && !canEdit && (
+          <section className={`${SECTION_CARD_CLASS} text-center`}>
+            <p className="text-body text-muted-foreground">Keine Berechtigung zum Bearbeiten dieser Referenz-Mahlzeit.</p>
+          </section>
+        )}
 
-      {/* Confirmation dialog before destructive auto-sync */}
-      <RefMealSyncConfirmDialog
-        open={showSyncConfirm}
-        onOpenChange={setShowSyncConfirm}
-        syncedMealsCount={refMeal?.synced_meals_count ?? 0}
-        onCancel={() => setShowSyncConfirm(false)}
-        onConfirm={handleConfirmSave}
-      />
-    </div>
+        {/* Confirmation dialog before destructive auto-sync */}
+        <RefMealSyncConfirmDialog
+          open={showSyncConfirm}
+          onOpenChange={setShowSyncConfirm}
+          syncedMealsCount={refMeal?.synced_meals_count ?? 0}
+          onCancel={() => setShowSyncConfirm(false)}
+          onConfirm={handleConfirmSave}
+        />
+      </div>
     </div>
   );
 }

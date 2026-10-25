@@ -16,12 +16,8 @@ const SCOPE_LABELS: Record<string, string> = {
   recipe: 'Rezept',
 };
 
-const SCOPE_COLORS: Record<string, string> = {
-  meal_event: 'bg-info-soft text-info border-info-border/60',
-  day: 'bg-info-soft text-info border-info-border/60',
-  meal: 'bg-warning-soft text-warning border-warning-border/60',
-  recipe: 'bg-success-soft text-success border-success-border/60',
-};
+/** Scope pills stay neutral: only recipe types carry a category tint (food-category-colour-usage). */
+const SCOPE_BADGE_CLASS = 'inline-flex items-center rounded-full bg-primary-soft px-2.5 py-0.5 text-caption font-semibold text-primary-dark';
 
 export default function RuleTab() {
   const { data: rules, isLoading, error } = useRules();
@@ -81,7 +77,7 @@ export default function RuleTab() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-body text-destructive flex items-center gap-2">
+      <div className="rounded-xl bg-danger-soft p-4 text-body text-danger-foreground flex items-center gap-2">
         <AlertCircle className="h-4 w-4" />
         Fehler beim Laden der Regeln.
       </div>
@@ -91,15 +87,15 @@ export default function RuleTab() {
   if (!rules || rules.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-section font-semibold font-display">Regeln</h2>
-          <Button size="sm" onClick={() => { setEditRule(null); setShowDialog(true); }} className="gap-1.5">
+          <Button size="sm" onClick={() => { setEditRule(null); setShowDialog(true); }} className="h-11 gap-1.5 px-4 md:h-9">
             <Plus className="h-4 w-4" />
             Neue Regel
           </Button>
         </div>
-        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-border bg-card text-center text-muted-foreground">
-          <Sparkles className="h-8 w-8 mb-2 text-muted-foreground/60" />
+        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl bg-card shadow-card text-center text-muted-foreground">
+          <Sparkles className="h-8 w-8 mb-2 text-primary" />
           <p className="text-body font-medium">Keine Regeln vorhanden</p>
           <p className="text-caption text-muted-foreground mt-1">Erstelle deine erste Regel, um Ernährungswerte im Planer zu prüfen.</p>
         </div>
@@ -125,9 +121,14 @@ export default function RuleTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-section font-semibold font-display">Regeln ({rules.length})</h2>
-        <Button size="sm" onClick={() => { setEditRule(null); setShowDialog(true); }} className="gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-section font-semibold font-display">Regeln</h2>
+          <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-body font-bold text-primary-dark tabular-nums">
+            {rules.length} {rules.length === 1 ? 'Regel' : 'Regeln'}
+          </span>
+        </div>
+        <Button size="sm" onClick={() => { setEditRule(null); setShowDialog(true); }} className="h-11 gap-1.5 px-4 md:h-9">
           <Plus className="h-4 w-4" />
           Neue Regel
         </Button>
@@ -137,11 +138,11 @@ export default function RuleTab() {
         {scopes.map((scope) => (
           <div key={scope} className="bg-card rounded-xl overflow-hidden shadow-card">
             {/* Header */}
-            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30 border-b border-border">
-              <span className={`px-2.5 py-0.5 rounded-full text-caption font-semibold border ${SCOPE_COLORS[scope] || ''}`}>
+            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-muted border-b border-border">
+              <span className={SCOPE_BADGE_CLASS}>
                 {SCOPE_LABELS[scope] || scope}
               </span>
-              <span className="text-caption text-muted-foreground font-medium">
+              <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
                 {grouped[scope].length} {grouped[scope].length === 1 ? 'Regel' : 'Regeln'}
               </span>
             </div>
@@ -154,15 +155,23 @@ export default function RuleTab() {
                     <div className="flex items-center gap-3">
                       {/* Toggle Switch */}
                       <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rule.is_active}
+                        aria-label={`Regel ${rule.name} aktiv`}
                         onClick={() => handleToggle(rule)}
-                        className={`w-8 h-5 rounded-full border border-transparent transition-colors relative flex items-center p-0.5 cursor-pointer ${
-                          rule.is_active ? 'bg-primary' : 'bg-muted border-border'
-                        }`}
+                        className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full md:h-9 md:w-9"
                         title={rule.is_active ? 'Aktiv (klicken zum Deaktivieren)' : 'Inaktiv (klicken zum Aktivieren)'}
                       >
-                        <span className={`w-3.5 h-3.5 rounded-full bg-background shadow-sm transition-transform ${
-                          rule.is_active ? 'translate-x-3.5' : 'translate-x-0'
-                        }`} />
+                        <span
+                          className={`relative flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${
+                            rule.is_active ? 'bg-primary' : 'bg-muted-foreground/30'
+                          }`}
+                        >
+                          <span className={`h-4 w-4 rounded-full bg-background shadow-soft transition-transform ${
+                            rule.is_active ? 'translate-x-4' : 'translate-x-0'
+                          }`} />
+                        </span>
                       </button>
                       <span className="text-body font-semibold text-foreground leading-none">{rule.name}</span>
                     </div>
@@ -172,7 +181,7 @@ export default function RuleTab() {
                         size="icon"
                         variant="ghost"
                         onClick={() => { setEditRule(rule); setShowDialog(true); }}
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        className="h-11 w-11 md:h-8 md:w-8 text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -180,7 +189,7 @@ export default function RuleTab() {
                         size="icon"
                         variant="ghost"
                         onClick={() => handleDelete(rule)}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                        className="h-11 w-11 md:h-8 md:w-8 text-muted-foreground hover:text-danger-foreground hover:bg-danger-soft"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

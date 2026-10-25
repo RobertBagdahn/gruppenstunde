@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
+import { Droplet, Plus } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import { FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
 import ShareSlider from './ShareSlider';
+import WizardSectionHeading from '../wizard/WizardSectionHeading';
 import { fatSelectionsWithNoFat } from '@/lib/breakfastWizardItems';
 import { SkeletonTableRows } from '@/components/ui/skeleton';
+import { BREAKFAST_CARD_CLASS, BREAKFAST_CHIP_CLASS } from './breakfastStyles';
 
 interface StepStreichfettProps {
   wiz: UseWizardStateReturn;
@@ -26,9 +29,9 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
 
   if (!catalog?.fat_ingredients?.length && state.fatSelections.length === 0) {
     return (
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <h3 className="font-display font-semibold text-emphasis">Streichfett</h3>
-        <p className="text-body text-muted-foreground">
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<Droplet className="h-5 w-5" />}>Streichfett</WizardSectionHeading>
+        <p className="-mt-2 text-body text-muted-foreground">
           Keine Streichfette verfügbar — lege Zutaten mit dem Tag buffet-fat an.
         </p>
       </div>
@@ -36,24 +39,25 @@ export default function StepStreichfett({ wiz }: StepStreichfettProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <h3 className="font-display font-semibold text-emphasis">Streichfett-Verteilung</h3>
-        <p className="text-caption text-muted-foreground">
+    <div className="space-y-5">
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<Droplet className="h-5 w-5" />}>Streichfett-Verteilung</WizardSectionHeading>
+        <p className="-mt-2 text-caption text-muted-foreground">
           Welche Streichfette sollen verwendet werden? {FAT_GRAMS_PER_PERSON}g pro Person, feste Portion.
         </p>
       </div>
 
       {state.fatSelections.length > 0 && (
-        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-emphasis">Verteilung</h3>
+        <div className={BREAKFAST_CARD_CLASS}>
+          <WizardSectionHeading icon={<Droplet className="h-5 w-5" />}>Verteilung</WizardSectionHeading>
+          <div className="-mt-2 flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => wiz.openCreateModal('ingredient', 'breakfast-fat')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
+              className={BREAKFAST_CHIP_CLASS}
             >
-              + Neues Streichfett erstellen
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Neues Streichfett erstellen
             </button>
           </div>
           <div className="space-y-4">

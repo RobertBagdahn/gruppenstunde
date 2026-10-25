@@ -1,8 +1,10 @@
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronUp, Utensils } from 'lucide-react';
 import { MEAL_PLAN_NAME_MAX_LENGTH, type MealPlanWizardState } from '@/schemas/mealPlan';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 import ExtendedSettingsSection from './ExtendedSettingsSection';
 import { validateBasics } from './validateBasics';
+import WizardSectionHeading from './WizardSectionHeading';
+import { WIZARD_ERROR_CLASS, WIZARD_INPUT_CLASS, WIZARD_LABEL_CLASS } from './wizardStyles';
 
 interface StepBasicSettingsProps {
   state: MealPlanWizardState;
@@ -29,65 +31,71 @@ export default function StepBasicSettings({
   const errors = validateBasics(state);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <label htmlFor="wiz-basic-1" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Name *</label>
-        <input id="wiz-basic-1"
-          type="text"
-          value={state.name}
-          maxLength={MEAL_PLAN_NAME_MAX_LENGTH}
-          onChange={(e) => onChange({ name: e.target.value })}
-          placeholder="z.B. Sommerlager 2026"
-          className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-        />
+        <WizardSectionHeading icon={<CalendarDays className="h-5 w-5" />}>Eckdaten</WizardSectionHeading>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="wiz-basic-1" className={WIZARD_LABEL_CLASS}>Name *</label>
+            <input id="wiz-basic-1"
+              type="text"
+              value={state.name}
+              maxLength={MEAL_PLAN_NAME_MAX_LENGTH}
+              onChange={(e) => onChange({ name: e.target.value })}
+              placeholder="z.B. Sommerlager 2026"
+              className={WIZARD_INPUT_CLASS}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label htmlFor="wiz-basic-2" className={WIZARD_LABEL_CLASS}>Portionen (Personen)</label>
+              <input id="wiz-basic-2"
+                type="number"
+                min={1}
+                value={state.norm_portions}
+                onChange={(e) => onChange({ norm_portions: Number(e.target.value) })}
+                aria-invalid={!!errors.portions}
+                className={WIZARD_INPUT_CLASS}
+              />
+              {errors.portions && <p className={WIZARD_ERROR_CLASS} role="alert">{errors.portions}</p>}
+            </div>
+            <div>
+              <label htmlFor="wiz-basic-3" className={WIZARD_LABEL_CLASS}>Start (Datum & Uhrzeit)</label>
+              <input id="wiz-basic-3"
+                type="datetime-local"
+                value={state.start_datetime}
+                onChange={(e) => onChange({ start_datetime: e.target.value })}
+                className={WIZARD_INPUT_CLASS}
+              />
+            </div>
+            <div>
+              <label htmlFor="wiz-basic-4" className={WIZARD_LABEL_CLASS}>Ende (Datum & Uhrzeit)</label>
+              <input id="wiz-basic-4"
+                type="datetime-local"
+                value={state.end_datetime}
+                onChange={(e) => onChange({ end_datetime: e.target.value })}
+                aria-invalid={!!errors.period}
+                className={WIZARD_INPUT_CLASS}
+              />
+              {errors.period && <p className={WIZARD_ERROR_CLASS} role="alert">{errors.period}</p>}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label htmlFor="wiz-basic-2" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Portionen (Personen)</label>
-          <input id="wiz-basic-2"
-            type="number"
-            min={1}
-            value={state.norm_portions}
-            onChange={(e) => onChange({ norm_portions: Number(e.target.value) })}
-            aria-invalid={!!errors.portions}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-          />
-          {errors.portions && <p className="mt-1 text-caption text-danger" role="alert">{errors.portions}</p>}
-        </div>
-        <div>
-          <label htmlFor="wiz-basic-3" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Start (Datum & Uhrzeit)</label>
-          <input id="wiz-basic-3"
-            type="datetime-local"
-            value={state.start_datetime}
-            onChange={(e) => onChange({ start_datetime: e.target.value })}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-          />
-        </div>
-        <div>
-          <label htmlFor="wiz-basic-4" className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Ende (Datum & Uhrzeit)</label>
-          <input id="wiz-basic-4"
-            type="datetime-local"
-            value={state.end_datetime}
-            onChange={(e) => onChange({ end_datetime: e.target.value })}
-            aria-invalid={!!errors.period}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-          />
-          {errors.period && <p className="mt-1 text-caption text-danger" role="alert">{errors.period}</p>}
-        </div>
-      </div>
-
       <div>
-        <p className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Ernährungseinschränkungen</p>
+        <WizardSectionHeading icon={<Utensils className="h-5 w-5" />}>Ernährung</WizardSectionHeading>
+        <p className={WIZARD_LABEL_CLASS}>Ernährungseinschränkungen</p>
         <NutritionalTagMultiSelect selectedTagIds={state.nutritional_tag_ids} onToggle={toggleTag} />
       </div>
 
       <button
         type="button"
         onClick={onToggleExtended}
-        className="inline-flex min-h-11 md:min-h-0 items-center gap-1.5 text-body font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-primary-soft px-4 text-body font-semibold text-primary-dark transition-colors hover:bg-primary-soft-border/70"
       >
-        {extendedVisible ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        {extendedVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         {extendedVisible ? 'Erweiterte Einstellungen ausblenden' : 'Erweiterte Einstellungen anzeigen'}
       </button>
 

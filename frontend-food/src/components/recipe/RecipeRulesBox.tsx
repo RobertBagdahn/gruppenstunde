@@ -51,10 +51,10 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
       >
-        <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
+        <h2 className="flex flex-wrap items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide">
           <Icon name="task_alt" size={20} className="text-info" />
           Rezeptregeln
-          <NutritionBaseBadge base="per_portion" />
+          <span className="whitespace-nowrap"><NutritionBaseBadge base="per_portion" /></span>
         </h2>
         <div className="flex items-center gap-3">
           {/* Zähler-Ampel */}

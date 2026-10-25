@@ -19,6 +19,9 @@ const PACKAGE_STATUSES: PackageSuggestionStatus[] = ['pending', 'accepted', 'rej
 
 type CockpitTab = 'ingredients' | 'packages';
 
+const CHIP_TAB_CLASS =
+  'h-11 md:h-9 rounded-full border border-border bg-card px-4 text-foreground shadow-none hover:border-primary-soft-border data-[state=active]:border-primary data-[state=active]:bg-card data-[state=active]:text-primary-dark data-[state=active]:shadow-none';
+
 function readTab(params: URLSearchParams): CockpitTab {
   return params.get('tab') === 'packages' ? 'packages' : 'ingredients';
 }
@@ -114,7 +117,7 @@ export default function DataOffensivePage() {
 
   if (error || !summary) {
     return (
-      <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-destructive space-y-2">
+      <div className="rounded-xl border border-danger-border bg-danger-soft p-4 text-danger space-y-2">
         <p className="font-semibold">Cockpit konnte nicht geladen werden</p>
         <p className="text-body">{error?.message}</p>
         <Button size="sm" variant="outline" onClick={() => refetch()}>
@@ -130,9 +133,14 @@ export default function DataOffensivePage() {
       onValueChange={(value) => writeState(value === 'packages' ? 'packages' : 'ingredients', filters, packageFilters)}
       className="space-y-6"
     >
-      <TabsList>
-        <TabsTrigger value="ingredients">Zutaten</TabsTrigger>
-        <TabsTrigger value="packages">Packungen</TabsTrigger>
+      {/* Chip tabs as on the other admin pages: white with a thin border, the active chip in petrol */}
+      <TabsList className="h-auto flex-wrap justify-start gap-2 bg-transparent p-0">
+        <TabsTrigger value="ingredients" className={CHIP_TAB_CLASS}>
+          Zutaten
+        </TabsTrigger>
+        <TabsTrigger value="packages" className={CHIP_TAB_CLASS}>
+          Packungen
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="ingredients" className="space-y-8">
         <OffensivePipeline summary={summary} onNotify={notifyKind} />

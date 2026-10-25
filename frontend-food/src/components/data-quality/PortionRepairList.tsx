@@ -226,7 +226,7 @@ export default function PortionRepairList({ page = 1, pageSize = PAGE_SIZE }: Po
           return (
             <div
               key={finding.id}
-              className="rounded-xl border border-border bg-card p-4 hover:shadow-sm transition-shadow"
+              className="rounded-xl bg-card p-4 shadow-card hover:shadow-soft transition-shadow"
             >
               <div className="flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">

@@ -3,6 +3,7 @@ import { notify } from '@/lib/notify';
 import { useNavigate } from 'react-router-dom';
 import PortionScaler from './PortionScaler';
 import RecipeMetaCard from './RecipeMetaCard';
+import RecipeUsageInMealPlans from './RecipeUsageInMealPlans';
 import type { RecipeDetail } from '@/schemas/recipe';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
 import { useState } from 'react';
@@ -36,6 +37,7 @@ const secondaryAction =
 /** Desktop "Kochpult": portions, the main actions and the recipe's facts. */
 export default function RecipeSidebar({
   recipe,
+  recipeId,
   portions,
   totalPriceEur,
   totalWeightG,
@@ -73,7 +75,33 @@ export default function RecipeSidebar({
   ].filter(Boolean).join(' · ');
 
   return (
-    <aside className="hidden lg:flex flex-col gap-6 sticky top-24 self-start">
+    <aside className="hidden lg:flex flex-col gap-4 sticky top-24 self-start">
+      <div className="space-y-2">
+        {canCook && (
+          <button
+            type="button"
+            onClick={() => navigate({ search: `?mode=cooking&step=0` }, { replace: true })}
+            className="press flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-emphasis font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+          >
+            <CookingPot className="h-5 w-5" />
+            Kochen starten
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onOpenShoppingList}
+          className={cn(
+            'press flex h-12 w-full items-center justify-center gap-2 rounded-xl text-emphasis font-bold transition-colors',
+            canCook
+              ? 'bg-primary-soft text-primary-dark hover:bg-primary-soft-border/70'
+              : 'bg-primary text-primary-foreground shadow-soft hover:bg-primary/90',
+          )}
+        >
+          <ShoppingCart className="h-5 w-5" />
+          Auf die Einkaufsliste
+        </button>
+      </div>
+
       <section aria-labelledby="recipe-desk-heading" className="space-y-4 rounded-xl bg-card p-5 shadow-card">
         <div className="flex items-baseline justify-between gap-3">
           <h2 id="recipe-desk-heading" className="font-display text-section font-extrabold">
@@ -85,32 +113,6 @@ export default function RecipeSidebar({
         {!hidePortionScaler && (
           <PortionScaler value={portions} onChange={onPortionsChange} defaultValue={portions} />
         )}
-
-        <div className="space-y-2">
-          {canCook && (
-            <button
-              type="button"
-              onClick={() => navigate({ search: `?mode=cooking&step=0` }, { replace: true })}
-              className="press flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-emphasis font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
-            >
-              <CookingPot className="h-5 w-5" />
-              Kochen starten
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onOpenShoppingList}
-            className={cn(
-              'press flex h-12 w-full items-center justify-center gap-2 rounded-xl text-emphasis font-bold transition-colors',
-              canCook
-                ? 'bg-primary-soft text-primary hover:bg-primary-soft-border/70'
-                : 'bg-primary text-primary-foreground shadow-soft hover:bg-primary/90',
-            )}
-          >
-            <ShoppingCart className="h-5 w-5" />
-            Auf die Einkaufsliste
-          </button>
-        </div>
 
         <div className="grid grid-cols-3 gap-2">
           <button type="button" onClick={() => setPdfDialogOpen(true)} title="Als PDF öffnen" className={secondaryAction}>
@@ -129,6 +131,10 @@ export default function RecipeSidebar({
       </section>
 
       <RecipeMetaCard recipe={recipe} />
+
+      {(recipe.usage_in_meal_plans_count ?? 0) > 0 && (
+        <RecipeUsageInMealPlans recipeId={recipeId} count={recipe.usage_in_meal_plans_count} />
+      )}
 
       <PdfExportDialog
         open={pdfDialogOpen}

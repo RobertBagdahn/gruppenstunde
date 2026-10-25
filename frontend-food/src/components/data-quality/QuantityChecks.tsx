@@ -201,7 +201,7 @@ export function AliasConflictList() {
         renderItem={(row: AliasConflict) => (
           <li
             key={`${row.ingredient_id}-${row.conflicting_ingredient_id}`}
-            className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-xl bg-card p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0 text-body">
               <p>

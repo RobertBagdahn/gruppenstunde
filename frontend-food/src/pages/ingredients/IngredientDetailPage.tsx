@@ -6,6 +6,7 @@ import MissingValuesHint from '@/components/shared/MissingValuesHint';
 import SlowLoadingHint from '@/components/shared/SlowLoadingHint';
 import { Skeleton, SkeletonDetailHeader, SkeletonSection } from '@/components/ui/skeleton';
 import IngredientSummary from './detail/IngredientSummary';
+import IngredientNutrientAside from './detail/IngredientNutrientAside';
 import { useAiAccess } from '@/hooks/useAiAccess';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { notify } from '@/lib/notify';
@@ -590,9 +591,11 @@ function PortionCard({
   const isDefault = portion.rank === 1;
 
   return (
-    <div className={`border rounded-xl overflow-hidden shadow-soft ${isDefault ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'}`}>
-      <div className={`flex items-center gap-2 px-4 py-3 border-b ${isDefault ? 'bg-primary/10 border-primary/20' : 'bg-muted/20 border-border/80'}`}>
-        <Icon name="scale" size={20} className={`shrink-0 ${isDefault ? 'text-primary' : 'text-primary'}`} />
+    <div className={`overflow-hidden rounded-xl bg-card shadow-card ${isDefault ? 'ring-1 ring-primary-soft-border' : ''}`}>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <Icon name="scale" size={20} className="shrink-0" />
+        </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-body">
@@ -1091,7 +1094,7 @@ export default function IngredientDetailPage() {
   // --- Loading / error states ---
   if (isLoading) {
     return (
-      <div role="status" aria-busy="true" className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+      <div role="status" aria-busy="true" className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-4">
         <span className="sr-only">Zutat wird geladen</span>
         <div className="mb-6">
           <SkeletonDetailHeader />
@@ -1108,7 +1111,7 @@ export default function IngredientDetailPage() {
   if (error || !ingredient) {
     const isNotFound = !ingredient && (!error || (error instanceof ApiError ? error.status === 404 : /\b404\b|Not Found/i.test(error.message)));
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <ErrorDisplay
           error={error}
           title={isNotFound ? 'Zutat nicht gefunden' : undefined}
@@ -1297,7 +1300,7 @@ export default function IngredientDetailPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <header className="mb-6 space-y-3">
       {/* Back link */}
       <button
@@ -1451,7 +1454,8 @@ export default function IngredientDetailPage() {
       )}
 
       {/* Main details: portions open, everything else on demand (food-progressive-disclosure) */}
-      <div className="space-y-3 mb-8">
+      <div className="mb-8 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-8">
+      <div className="min-w-0 space-y-3">
       {/* Portions Section */}
       <PortionsSection
         ingredient={ingredient}
@@ -2051,6 +2055,18 @@ export default function IngredientDetailPage() {
         }}
       />
       </CollapsibleSection>
+      </div>
+
+      <div className="mt-3 lg:mt-0">
+        <IngredientNutrientAside
+          carbohydrateG={ingredient.carbohydrate_g}
+          proteinG={ingredient.protein_g}
+          fatG={ingredient.fat_g}
+          fibreG={ingredient.fibre_g}
+          saltG={ingredient.salt_g}
+          portions={ingredient.portions}
+        />
+      </div>
       </div>
 
       {/* Meta */}

@@ -75,6 +75,12 @@ import SectionBoundary from '@/components/shared/SectionBoundary';
 
 const MEAL_PLAN_DETAIL_DEFAULTS = { view: 'cards' } as const;
 
+// Sub-tab chips: pills with 44 px touch height on phones, same language as the list page filters.
+const SUB_TAB_BASE_CLASS =
+  'press inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-body font-semibold transition-colors md:min-h-9';
+const SUB_TAB_ACTIVE_CLASS = 'border-primary bg-primary text-primary-foreground shadow-soft';
+const SUB_TAB_INACTIVE_CLASS = 'border-border bg-card text-foreground hover:bg-primary-soft';
+
 function isNarrowViewport(): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches;
 }
@@ -310,6 +316,9 @@ export default function MealPlanDetailPage() {
 
   if (!plan) return <ErrorDisplay error={new Error('Essensplan nicht gefunden')} />;
 
+  const filledMealCount = plan.meals.filter((m) => m.items.length > 0).length;
+  const mealProgress = plan.meals.length > 0 ? Math.round((filledMealCount / plan.meals.length) * 100) : 0;
+
   const handleAddDayBefore = () => {
     addDayBeforeMutation.mutate(undefined, {
       onSuccess: () => notify.success('Tag davor hinzugefügt'),
@@ -433,15 +442,7 @@ export default function MealPlanDetailPage() {
       <div className="flex flex-wrap items-end gap-4">
         <div className="basis-full sm:basis-0 sm:flex-1 sm:min-w-[10rem]">
           <h1 className="font-display text-title font-extrabold text-foreground line-clamp-3 [overflow-wrap:anywhere]">{plan.name}</h1>
-          <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 text-body text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <Users className="w-4 h-4" />
-              {formatNumber(plan.norm_portions, { maxDecimals: 1 })} Portionen
-            </span>
-            <span className="inline-flex items-center gap-1.5" title="Reservefaktor – betrifft nur die Einkaufsmengen, nicht die kcal-Bilanz">
-              <ShoppingCart className="w-4 h-4" />
-              Einkauf +{Math.round((plan.reserve_factor - 1) * 100)}% Reserve
-            </span>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 mt-3 text-body text-muted-foreground">
             {plan.event_name && (
               <span className="inline-flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4" />
@@ -521,6 +522,38 @@ export default function MealPlanDetailPage() {
         </div>
       </div>
 
+      {/* Kennzahlen aus den vorhandenen Plandaten (Tage, Mahlzeiten, Portionen, Reserve) */}
+      <dl className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="rounded-xl bg-card p-4 shadow-card">
+          <dt className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Tage</dt>
+          <dd className="mt-1 font-display text-section font-bold tabular-nums text-foreground">{dayGroups.length}</dd>
+        </div>
+        <div className="rounded-xl bg-card p-4 shadow-card">
+          <dt className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Mahlzeiten gefüllt</dt>
+          <dd className="mt-1 font-display text-section font-bold tabular-nums text-foreground">
+            {filledMealCount} von {plan.meals.length}
+          </dd>
+          <div aria-hidden="true" className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full bg-primary" style={{ width: `${mealProgress}%` }} />
+          </div>
+        </div>
+        <div className="rounded-xl bg-card p-4 shadow-card">
+          <dt className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Portionen</dt>
+          <dd className="mt-1 font-display text-section font-bold tabular-nums text-foreground">
+            {formatNumber(plan.norm_portions, { maxDecimals: 1 })}
+          </dd>
+        </div>
+        <div
+          className="rounded-xl bg-card p-4 shadow-card"
+          title="Reservefaktor – betrifft nur die Einkaufsmengen, nicht die kcal-Bilanz"
+        >
+          <dt className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Einkauf-Reserve</dt>
+          <dd className="mt-1 font-display text-section font-bold tabular-nums text-foreground">
+            +{Math.round((plan.reserve_factor - 1) * 100)}%
+          </dd>
+        </div>
+      </dl>
+
       {/* Main 3-Pillar Tab Bar */}
       <nav aria-label="Bereiche des Essensplans" className="mt-4 flex gap-1 border-b border-line sm:gap-2 overflow-x-auto">
         {[
@@ -550,7 +583,7 @@ export default function MealPlanDetailPage() {
       </header>
 
       {changedShoppingLists.length > 0 && (
-        <div role="alert" data-testid="plan-changed-warning" className="rounded-xl bg-card p-3 shadow-card border border-warning/40 text-body">
+        <div role="alert" data-testid="plan-changed-warning" className="rounded-xl bg-warning-soft border border-warning-border p-3 shadow-soft text-body">
           <p className="font-semibold text-warning">Der Plan wurde nach dem Erstellen der Einkaufsliste geändert.</p>
           <p className="text-caption text-muted-foreground mt-1">
             Betroffen:{' '}
@@ -640,11 +673,11 @@ export default function MealPlanDetailPage() {
                 className={cn(
                   'min-h-11 md:min-h-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
                   planView === 'cards'
-                    ? 'bg-card text-foreground shadow-sm'
+                    ? 'bg-card text-foreground shadow-soft'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Calendar className="w-3.5 h-3.5" />
+                <Calendar className="w-4 h-4" />
                 Tagesplan
               </button>
               <button
@@ -653,11 +686,11 @@ export default function MealPlanDetailPage() {
                 className={cn(
                   'min-h-11 md:min-h-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold rounded-lg transition-all',
                   planView === 'table'
-                    ? 'bg-card text-foreground shadow-sm'
+                    ? 'bg-card text-foreground shadow-soft'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Grid3X3 className="w-3.5 h-3.5" />
+                <Grid3X3 className="w-4 h-4" />
                 Tabelle
               </button>
             </div>
@@ -736,10 +769,8 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
-                shoppingSub === 'list'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                SUB_TAB_BASE_CLASS,
+                shoppingSub === 'list' ? SUB_TAB_ACTIVE_CLASS : SUB_TAB_INACTIVE_CLASS
               )}
             >
               <ShoppingCart className="w-3.5 h-3.5" />
@@ -753,10 +784,8 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
-                shoppingSub === 'quantities'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                SUB_TAB_BASE_CLASS,
+                shoppingSub === 'quantities' ? SUB_TAB_ACTIVE_CLASS : SUB_TAB_INACTIVE_CLASS
               )}
             >
               <Scale className="w-3.5 h-3.5" />
@@ -770,10 +799,8 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
-                shoppingSub === 'costs'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                SUB_TAB_BASE_CLASS,
+                shoppingSub === 'costs' ? SUB_TAB_ACTIVE_CLASS : SUB_TAB_INACTIVE_CLASS
               )}
             >
               <DollarSign className="w-3.5 h-3.5" />
@@ -822,10 +849,8 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
-                cookingSub === 'schedule'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                SUB_TAB_BASE_CLASS,
+                cookingSub === 'schedule' ? SUB_TAB_ACTIVE_CLASS : SUB_TAB_INACTIVE_CLASS
               )}
             >
               <ChefHat className="w-3.5 h-3.5" />
@@ -839,10 +864,8 @@ export default function MealPlanDetailPage() {
                 setSearchParams(next, { replace: true });
               }}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold rounded-lg transition-all',
-                cookingSub === 'helpers'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                SUB_TAB_BASE_CLASS,
+                cookingSub === 'helpers' ? SUB_TAB_ACTIVE_CLASS : SUB_TAB_INACTIVE_CLASS
               )}
             >
               <ShieldAlert className="w-3.5 h-3.5" />

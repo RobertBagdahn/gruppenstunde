@@ -49,7 +49,7 @@ export default function ComparisonTab() {
               aria-label="Vergleichsgruppe auswählen"
               value={groupBy}
               onChange={(e) => updateParam('group_by', e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+              className="flex min-h-11 md:min-h-9 items-center rounded-lg border border-border px-3 text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
             >
               {tags?.map((tag) => (
                 <option key={tag.id} value={tag.name}>{tag.name}</option>
@@ -59,7 +59,7 @@ export default function ComparisonTab() {
               aria-label="Messwert auswählen"
               value={metric}
               onChange={(e) => updateParam('metric', e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+              className="flex min-h-11 md:min-h-9 items-center rounded-lg border border-border px-3 text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
             >
               {METRICS.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -69,7 +69,7 @@ export default function ComparisonTab() {
         }
       />
       {isLoading ? (
-        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+        <div className="h-80 skeleton-shimmer rounded-xl" />
       ) : data ? (
         <div className="space-y-6">
           {data.mean_difference_pct !== null && (

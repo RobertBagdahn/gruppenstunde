@@ -236,7 +236,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
         </div>
 
         {(filters.status ?? 'pending') === 'pending' && (
-          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 backdrop-blur">
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl bg-card/95 p-2 shadow-soft backdrop-blur">
             <label className="flex items-center gap-2 px-1 text-caption font-medium">
               <input
                 type="checkbox"
@@ -293,7 +293,7 @@ export default function PackageSuggestionsPanel({ filters, onFiltersChange, onNo
             <Loader2 className="h-5 w-5 animate-spin text-primary" /> Lade Vorschläge …
           </div>
         ) : error ? (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-body text-destructive space-y-2">
+          <div className="rounded-xl border border-danger-border bg-danger-soft p-4 text-body text-danger space-y-2">
             <p className="font-semibold">Vorschläge konnten nicht geladen werden</p>
             <p>{getApiErrorMessage(error)}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>

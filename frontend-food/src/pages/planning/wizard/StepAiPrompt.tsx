@@ -3,6 +3,8 @@ import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import AiLockBadge from '@/components/auth/AiLockBadge';
 import { useAiAccess } from '@/hooks/useAiAccess';
+import WizardSectionHeading from './WizardSectionHeading';
+import { WIZARD_LABEL_CLASS } from './wizardStyles';
 
 interface StepAiPromptProps {
   state: MealPlanWizardState;
@@ -22,10 +24,12 @@ export default function StepAiPrompt({
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+        <WizardSectionHeading icon={<Sparkles className="h-5 w-5" />}>KI-Vorschlag</WizardSectionHeading>
+        <label htmlFor="wiz-ai-prompt" className={WIZARD_LABEL_CLASS}>
           Beschreibe dein Lager oder Event
         </label>
         <textarea
+          id="wiz-ai-prompt"
           value={state.ai_prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           rows={6}
@@ -34,9 +38,9 @@ export default function StepAiPrompt({
             'herzhafte deutsche Küche, viel Gemüse, ein Tag ist Grillabend, ' +
             'Frühstück soll reichhaltig sein"'
           }
-          className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft resize-y"
+          className="w-full resize-y rounded-lg border border-border bg-card px-3 py-2.5 text-emphasis focus:outline-none focus:ring-2 focus:ring-primary/30 md:text-body"
         />
-        <p className="text-caption text-muted-foreground mt-1.5">
+        <p className="mt-1.5 text-caption text-muted-foreground">
           Je genauer du beschreibst, desto besser werden die Vorschläge.
           Erwähne Personenanzahl, Küchenstil, Besonderheiten und Ernährungswünsche.
         </p>
@@ -48,12 +52,12 @@ export default function StepAiPrompt({
           onClick={onGenerate}
           disabled={!state.ai_prompt.trim() || isLoading || ai.disabled}
           title={ai.hint || undefined}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 text-body font-semibold text-primary-foreground transition-colors hover:bg-primary-dark disabled:opacity-50"
         >
           {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="h-4 w-4" />
           )}
           {isLoading ? 'Generiere Vorschläge...' : 'Vorschläge generieren'}
           {ai.locked && <AiLockBadge />}
@@ -62,17 +66,17 @@ export default function StepAiPrompt({
       {!state.ai_suggestions && ai.hint && <p className="text-caption text-muted-foreground">{ai.hint}</p>}
 
       {state.ai_suggestions && (
-        <div className="rounded-xl bg-card p-4 space-y-3 shadow-card">
-           <h4 className="font-display font-bold text-body text-foreground flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-             Generierte Vorschläge
-             {(state.ai_suggestions as AiSuggestOut).ai_interaction_id && (
-               <AiVoteButtons interactionId={(state.ai_suggestions as AiSuggestOut).ai_interaction_id!} />
-             )}
-           </h4>
+        <div className="space-y-3 rounded-xl bg-card p-4 shadow-card">
+          <h4 className="flex items-center gap-2 font-display text-body font-bold text-foreground">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Generierte Vorschläge
+            {(state.ai_suggestions as AiSuggestOut).ai_interaction_id && (
+              <AiVoteButtons interactionId={(state.ai_suggestions as AiSuggestOut).ai_interaction_id!} />
+            )}
+          </h4>
           <div className="space-y-3">
             {(state.ai_suggestions as AiSuggestOut).days.map((day) => (
-              <div key={day.date} className="border border-border rounded-lg p-3 bg-muted/20 space-y-2">
+              <div key={day.date} className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
                 <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
                   {new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE', {
                     weekday: 'long',
@@ -82,17 +86,15 @@ export default function StepAiPrompt({
                 </p>
                 <div className="grid gap-2">
                   {day.meals.map((meal, idx) => (
-                    <div key={idx} className="flex flex-col gap-0.5 rounded-xl bg-card border-border/60 p-2.5 shadow-card">
-                      <div className="flex items-center justify-between">
-                        <span className="text-caption font-bold uppercase tracking-wide text-primary">
-                          {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
-                        </span>
-                      </div>
+                    <div key={idx} className="flex flex-col gap-0.5 rounded-lg border border-border bg-card p-2.5 shadow-card">
+                      <span className="text-caption font-bold uppercase tracking-wide text-primary">
+                        {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
+                      </span>
                       <span className="text-body font-semibold text-foreground">
                         {meal.recipe_title}
                       </span>
                       {meal.items && meal.items.length > 1 && (
-                        <p className="text-caption text-muted-foreground mt-0.5">
+                        <p className="mt-0.5 text-caption text-muted-foreground">
                           Enthält: {meal.items.map((it) => it.title).join(', ')}
                         </p>
                       )}
@@ -114,7 +116,7 @@ export default function StepAiPrompt({
           onClick={() => {
             onPromptChange('', true);
           }}
-          className="text-body font-semibold text-primary hover:text-primary/80 transition-colors"
+          className="inline-flex min-h-11 items-center rounded-lg bg-primary-soft px-4 text-body font-semibold text-primary-dark transition-colors hover:bg-primary-soft-border/70"
         >
           Anderen Prompt ausprobieren
         </button>

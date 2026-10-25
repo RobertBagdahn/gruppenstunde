@@ -20,7 +20,8 @@ import StepCockpit from './StepCockpit';
 import { CreateIngredientModal } from '@/components/breakfast/CreateIngredientModal';
 import { CreateRecipeModal } from '@/components/breakfast/CreateRecipeModal';
 import { BuffetBuilder } from '@/components/buffet/BuffetBuilder';
-import { WizardProgress } from '@/components/shared/WizardProgress';
+import FlowHeader from '@/components/shared/FlowHeader';
+import ActionBar from '@/components/shared/ActionBar';
 import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/notify';
 import type { BreakfastProfileSlug } from '@/api/breakfast';
@@ -29,6 +30,7 @@ import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
 import { buildBreakfastWizardItems } from '@/lib/breakfastWizardItems';
 import { BREAKFAST_PROFILES, buildBreakfastProfileState } from '@/lib/breakfastProfiles';
 import { getApiErrorMessage } from '@/lib/api';
+import { BREAKFAST_CHIP_CLASS } from './breakfastStyles';
 
 type ManualItemsPolicy = 'preserve' | 'replace';
 
@@ -200,6 +202,8 @@ export default function BreakfastWizardPage() {
   const savePending = saveMode === 'directMeal' ? saveWizardDirectMeal.isPending || saveBreakfastBulk.isPending : saveWizardRefMeal.isPending;
   const isCockpit = step === 'cockpit';
   const hasActiveBasis = state.basis.some((item) => item.sharePercent > 0);
+  const stepIndex = Math.max(0, visibleWizardSteps.indexOf(step));
+  const profileTitle = selectedProfile ? BREAKFAST_PROFILES.find((profile) => profile.id === selectedProfile)?.title ?? '' : '';
 
   const handleBack = () => {
     if (saveMode === 'refMeal') {
@@ -210,183 +214,221 @@ export default function BreakfastWizardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex-1">
-              <h1 className="font-display font-bold text-section">Frühstücksassistent</h1>
-              <p className="text-caption text-muted-foreground">
-                {plan?.name ?? '…'}{selectedProfile ? ` · Variante: ${BREAKFAST_PROFILES.find((profile) => profile.id === selectedProfile)?.title ?? ''}` : ''}
-              </p>
-            </div>
-          </div>
+    <div className="pb-28 md:pb-8">
+      {/* Flow header: close leaves the wizard, progress shows the step (food-page-shell) */}
+      <FlowHeader
+        title="Frühstücksassistent"
+        onClose={handleBack}
+        closeLabel="Frühstücksassistent verlassen"
+        progress={`Schritt ${stepIndex + 1} von ${visibleWizardSteps.length}`}
+        progressValue={((stepIndex + 1) / Math.max(1, visibleWizardSteps.length)) * 100}
+      />
 
-          <div className="mt-3">
-            <WizardProgress
-              steps={visibleWizardSteps.map((id) => ({ id, label: STEP_LABELS[id] }))}
-              currentStep={step}
-            />
-          </div>
-        </div>
-      </div>
+      <div className="mx-auto max-w-3xl px-4 pt-6">
+        <p className="mb-4 text-caption text-muted-foreground">
+          {plan?.name ?? '…'}{profileTitle ? ` · Variante: ${profileTitle}` : ''}
+        </p>
 
-      {/* Step content */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {directMealLoading && (
-          <p className="rounded-xl bg-card p-4 text-body text-muted-foreground shadow-card" role="status">
-            Frühstück wird geladen…
+        {/* Step indicator: numbered steps with connectors, as in the meal plan wizard */}
+        <nav aria-label="Frühstücksassistent: Fortschritt" className="mb-6 w-full">
+          <ol className="flex items-center justify-center gap-1 sm:gap-2">
+            {visibleWizardSteps.map((s, i) => {
+              const isActive = s === step;
+              const isCompleted = stepIndex > i;
+              return (
+                <li key={s} className="flex items-center" data-testid={`breakfast-wizard-indicator-${s}`}>
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-caption font-semibold transition-colors sm:h-9 sm:w-9 ${
+                      isActive
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : isCompleted
+                          ? 'border-primary bg-primary-soft text-primary-dark'
+                          : 'border-border bg-card text-muted-foreground'
+                    }`}
+                    aria-current={isActive ? 'step' : undefined}
+                    title={STEP_LABELS[s]}
+                  >
+                    {isCompleted ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                  </div>
+                  <span
+                    className={`ml-1.5 hidden max-w-[120px] truncate text-caption font-medium sm:block ${
+                      isActive ? 'text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {STEP_LABELS[s]}
+                  </span>
+                  {i < visibleWizardSteps.length - 1 && (
+                    <div
+                      className={`mx-1 hidden h-0.5 w-6 rounded-lg transition-colors sm:block ${
+                        isCompleted ? 'bg-primary' : 'bg-border'
+                      }`}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          {/* Phones show only the active step name; the labels above appear from 640 px */}
+          <p className="mt-3 text-center text-caption text-muted-foreground sm:hidden">
+            <span className="font-medium text-foreground">{STEP_LABELS[step]}</span>
           </p>
-        )}
-        {directMealNotFound && (
-          <p className="rounded-xl border border-destructive/30 bg-card p-4 text-body" role="alert">
-            Dieses Frühstück wurde im Essensplan nicht gefunden.
-          </p>
-        )}
-        {step === 'preset' && !directMealLoading && !directMealNotFound && catalogLoading && (
-          <p className="rounded-xl bg-card p-4 text-body text-muted-foreground shadow-card" role="status">
-            Frühstücksauswahl wird geladen…
-          </p>
-        )}
-        {step === 'preset' && !directMealLoading && !directMealNotFound && catalogError && (
-          <div className="rounded-xl border border-destructive/30 bg-card p-4 text-body" role="alert">
-            <p>Die Frühstücksauswahl konnte nicht geladen werden.</p>
-            <button type="button" onClick={() => void refetchCatalog()} className="mt-3 rounded-lg border border-border px-3 py-2 font-semibold">
-              Erneut versuchen
-            </button>
-          </div>
-        )}
-        {saveMode === 'directMeal' && step === 'preset' && !directMealLoading && !directMealNotFound && catalog && (
-          <section className="space-y-3" aria-labelledby="breakfast-preset-heading">
-            <div>
-              <h2 id="breakfast-preset-heading" className="font-display font-semibold text-emphasis">Frühstück auswählen</h2>
-              <p className="text-caption text-muted-foreground">Wähle ein vollständiges Frühstück. Danach kannst du alle Slider und Items anpassen.</p>
+        </nav>
+
+        {/* Step content */}
+        <div>
+          {directMealLoading && (
+            <p className="rounded-xl bg-card p-4 text-body text-muted-foreground shadow-card" role="status">
+              Frühstück wird geladen…
+            </p>
+          )}
+          {directMealNotFound && (
+            <p className="rounded-xl border border-destructive/30 bg-card p-4 text-body" role="alert">
+              Dieses Frühstück wurde im Essensplan nicht gefunden.
+            </p>
+          )}
+          {step === 'preset' && !directMealLoading && !directMealNotFound && catalogLoading && (
+            <p className="rounded-xl bg-card p-4 text-body text-muted-foreground shadow-card" role="status">
+              Frühstücksauswahl wird geladen…
+            </p>
+          )}
+          {step === 'preset' && !directMealLoading && !directMealNotFound && catalogError && (
+            <div className="rounded-xl border border-destructive/30 bg-card p-4 text-body shadow-card" role="alert">
+              <p>Die Frühstücksauswahl konnte nicht geladen werden.</p>
+              <button type="button" onClick={() => void refetchCatalog()} className={`mt-3 ${BREAKFAST_CHIP_CLASS}`}>
+                Erneut versuchen
+              </button>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {BREAKFAST_PROFILES.map((profile) => (
-                <button
-                  key={profile.id}
-                  type="button"
-                  onClick={() => applyBreakfastProfile(profile.id)}
-                  aria-pressed={selectedProfile === profile.id}
-                  className={`rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary hover:bg-primary/5 ${selectedProfile === profile.id ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}
-                >
-                  <span className="block text-body font-semibold">{profile.title}</span>
-                  <span className="mt-0.5 block text-caption text-muted-foreground">{profile.description}</span>
-                </button>
-              ))}
-              {saveMode === 'directMeal' && mealId != null && (
-                <button
-                  type="button"
-                  onClick={() => setFreeBuffetOpen(true)}
-                  className="rounded-xl border-2 border-primary bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
-                >
-                  <span className="block text-body font-bold text-primary">Freies Buffet</span>
-                  <span className="mt-0.5 block text-caption text-muted-foreground">Alle Buffet-Rollen frei zusammenstellen.</span>
-                </button>
-              )}
-            </div>
-          </section>
-        )}
-        {!directMealLoading && !directMealNotFound && step !== 'preset' && profileHints.length > 0 && (
-          <div className="mb-4 rounded-xl bg-warning-soft p-4 text-body" role="status" aria-label="Hinweise zum Frühstücksprofil">
-            <ul className="list-disc space-y-1 pl-5">
-              {profileHints.map((hint) => <li key={hint}>{hint}</li>)}
-            </ul>
-          </div>
-        )}
-        {!directMealLoading && !directMealNotFound && step === 'basis' && (
-          <>
-            <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />
-            {!hasActiveBasis && !catalogLoading && (
-              <div className="mt-4 rounded-xl bg-warning-soft p-4 text-body" role="alert">
-                <p>Wähle eine Basis-Zutat aus, bevor du fortfährst.</p>
-                {catalog && catalog.base_ingredients.length === 0 && (
-                  <button type="button" onClick={() => wiz.openCreateModal('ingredient', 'breakfast-base')} className="mt-3 rounded-lg bg-primary-soft px-3 py-2 font-medium text-primary">
-                    Basis-Zutat erstellen
+          )}
+          {saveMode === 'directMeal' && step === 'preset' && !directMealLoading && !directMealNotFound && catalog && (
+            <section className="space-y-3" aria-labelledby="breakfast-preset-heading">
+              <div>
+                <h2 id="breakfast-preset-heading" className="font-display font-semibold text-section">Frühstück auswählen</h2>
+                <p className="text-caption text-muted-foreground">Wähle ein vollständiges Frühstück. Danach kannst du alle Slider und Items anpassen.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {BREAKFAST_PROFILES.map((profile) => (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    onClick={() => applyBreakfastProfile(profile.id)}
+                    aria-pressed={selectedProfile === profile.id}
+                    className={`rounded-xl border bg-card p-4 text-left shadow-card transition-colors hover:border-primary hover:bg-primary/5 ${selectedProfile === profile.id ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}
+                  >
+                    <span className="block text-body font-semibold">{profile.title}</span>
+                    <span className="mt-0.5 block text-caption text-muted-foreground">{profile.description}</span>
+                  </button>
+                ))}
+                {saveMode === 'directMeal' && mealId != null && (
+                  <button
+                    type="button"
+                    onClick={() => setFreeBuffetOpen(true)}
+                    className="rounded-xl border-2 border-primary bg-primary/5 p-4 text-left shadow-card transition-colors hover:bg-primary/10"
+                  >
+                    <span className="block text-body font-bold text-primary-dark">Freies Buffet</span>
+                    <span className="mt-0.5 block text-caption text-muted-foreground">Alle Buffet-Rollen frei zusammenstellen.</span>
                   </button>
                 )}
               </div>
-            )}
-          </>
-        )}
-        {!directMealLoading && !directMealNotFound && step === 'fett' && <StepStreichfett wiz={wiz} />}
-        {!directMealLoading && !directMealNotFound && step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
-        {!directMealLoading && !directMealNotFound && step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
-        {!directMealLoading && !directMealNotFound && step === 'getraenke' && <StepGetraenke wiz={wiz} />}
-        {!directMealLoading && !directMealNotFound && step === 'cockpit' && (
-          <StepCockpit
-            wiz={wiz}
-            catalog={catalog}
-            dayPartFactor={dayPartFactor}
-            saveMode={saveMode}
-            planId={planId}
-            mealId={mealId}
-            breakfastMeals={breakfastMeals}
-            selectedBreakfastMealIds={selectedBreakfastMealIds}
-            onSelectedBreakfastMealIdsChange={setSelectedBreakfastMealIds}
-            manualItemCount={manualItemsCount}
-            manualItemsPolicy={manualItemsPolicy}
-            onManualItemsPolicyChange={setManualItemsPolicy}
-          />
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div className="sticky bottom-0 bg-background border-t border-border px-4 py-3">
-        <div className="max-w-2xl mx-auto flex gap-3">
-          {!isCockpit && (
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors text-body font-medium text-muted-foreground"
-            >
-              <X className="w-4 h-4" />
-              Abbrechen
-            </button>
+            </section>
           )}
-          {canGoPrev && (saveMode === 'directMeal' || step !== 'basis') && (
-            <button
-              type="button"
-              onClick={goPrev}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors text-body font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Zurück
-            </button>
+          {!directMealLoading && !directMealNotFound && step !== 'preset' && profileHints.length > 0 && (
+            <div className="mb-4 rounded-xl bg-warning-soft p-4 text-body" role="status" aria-label="Hinweise zum Frühstücksprofil">
+              <ul className="list-disc space-y-1 pl-5">
+                {profileHints.map((hint) => <li key={hint}>{hint}</li>)}
+              </ul>
+            </div>
           )}
-          {canGoNext && step !== 'preset' && (
-            <button
-              type="button"
-              onClick={goNext}
-              disabled={step === 'basis' && !hasActiveBasis}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-body font-medium disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Weiter
-              <ArrowRight className="w-4 h-4" />
-            </button>
+          {!directMealLoading && !directMealNotFound && step === 'basis' && (
+            <>
+              <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />
+              {!hasActiveBasis && !catalogLoading && (
+                <div className="mt-4 rounded-xl bg-warning-soft p-4 text-body" role="alert">
+                  <p>Wähle eine Basis-Zutat aus, bevor du fortfährst.</p>
+                  {catalog && catalog.base_ingredients.length === 0 && (
+                    <button type="button" onClick={() => wiz.openCreateModal('ingredient', 'breakfast-base')} className={`mt-3 ${BREAKFAST_CHIP_CLASS}`}>
+                      Basis-Zutat erstellen
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
-          {isCockpit && (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={savePending}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-body font-medium disabled:opacity-60"
-            >
-              <Check className="w-4 h-4" />
-              {savePending ? 'Wird gespeichert…' : 'Frühstück speichern'}
-            </button>
+          {!directMealLoading && !directMealNotFound && step === 'fett' && <StepStreichfett wiz={wiz} />}
+          {!directMealLoading && !directMealNotFound && step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
+          {!directMealLoading && !directMealNotFound && step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
+          {!directMealLoading && !directMealNotFound && step === 'getraenke' && <StepGetraenke wiz={wiz} />}
+          {!directMealLoading && !directMealNotFound && step === 'cockpit' && (
+            <StepCockpit
+              wiz={wiz}
+              catalog={catalog}
+              dayPartFactor={dayPartFactor}
+              saveMode={saveMode}
+              planId={planId}
+              mealId={mealId}
+              breakfastMeals={breakfastMeals}
+              selectedBreakfastMealIds={selectedBreakfastMealIds}
+              onSelectedBreakfastMealIdsChange={setSelectedBreakfastMealIds}
+              manualItemCount={manualItemsCount}
+              manualItemsPolicy={manualItemsPolicy}
+              onManualItemsPolicyChange={setManualItemsPolicy}
+            />
           )}
         </div>
       </div>
+
+      {/* Navigation: one footer, fixed on phones and part of the page from 768 px */}
+      <ActionBar
+        secondary={
+          <div className="flex items-center gap-2">
+            {!isCockpit && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-border px-4 text-body font-semibold text-muted-foreground transition-all hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+                Abbrechen
+              </button>
+            )}
+            {canGoPrev && (saveMode === 'directMeal' || step !== 'basis') && (
+              <button
+                type="button"
+                onClick={goPrev}
+                className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-border px-4 text-body font-semibold transition-all hover:bg-muted"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Zurück
+              </button>
+            )}
+          </div>
+        }
+        primary={
+          <>
+            {canGoNext && step !== 'preset' && (
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={step === 'basis' && !hasActiveBasis}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-body font-semibold text-primary-foreground transition-all hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Weiter
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+            {isCockpit && (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={savePending}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-body font-semibold text-primary-foreground transition-all hover:bg-primary-dark disabled:opacity-60"
+              >
+                <Check className="h-4 w-4" />
+                {savePending ? 'Wird gespeichert…' : 'Frühstück speichern'}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* Create Modals */}
       {wiz.createModal.type === 'ingredient' && (

@@ -62,8 +62,8 @@ export default function ApprovalTab() {
       </div>
 
       {recipeItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-border bg-card text-center text-muted-foreground">
-          <Inbox className="h-8 w-8 mb-2 text-muted-foreground/60" />
+        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl bg-card shadow-card text-center text-muted-foreground">
+          <Inbox className="h-8 w-8 mb-2 text-primary" />
           <p className="text-body font-medium">Keine Rezepte zur Freigabe</p>
           <p className="text-caption text-muted-foreground mt-1">Es liegen aktuell keine neuen Freigabeanfragen vor.</p>
         </div>
@@ -72,7 +72,7 @@ export default function ApprovalTab() {
           {recipeItems.map((item) => (
             <div
               key={`${item.content_type}-${item.object_id}`}
-              className="bg-card rounded-xl border border-border p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+              className="bg-card rounded-xl shadow-card p-5 space-y-4 transition-shadow hover:shadow-soft flex flex-col justify-between"
             >
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -95,7 +95,7 @@ export default function ApprovalTab() {
                   size="sm"
                   onClick={() => handleApprove(item)}
                   disabled={approvalAction.isPending}
-                  className="flex-1 gap-1.5"
+                  className="h-11 flex-1 gap-1.5 md:h-9"
                 >
                   <Check className="h-3.5 w-3.5" />
                   Freigeben
@@ -105,7 +105,7 @@ export default function ApprovalTab() {
                   variant="outline"
                   onClick={() => setRejectItem(item)}
                   disabled={approvalAction.isPending}
-                  className="flex-1 gap-1.5 border-destructive/30 hover:border-destructive text-destructive hover:bg-destructive/5"
+                  className="h-11 flex-1 gap-1.5 border-danger-border text-danger-foreground hover:bg-danger-soft md:h-9"
                 >
                   <X className="h-3.5 w-3.5" />
                   Ablehnen
@@ -124,7 +124,7 @@ export default function ApprovalTab() {
             variant="outline"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="gap-1"
+            className="h-11 gap-1 md:h-9"
           >
             <ChevronLeft className="h-4 w-4" />
             Zurück
@@ -137,7 +137,7 @@ export default function ApprovalTab() {
             variant="outline"
             onClick={() => setPage((p) => p + 1)}
             disabled={page >= data.total_pages}
-            className="gap-1"
+            className="h-11 gap-1 md:h-9"
           >
             Weiter
             <ChevronRight className="h-4 w-4" />
@@ -164,8 +164,9 @@ export default function ApprovalTab() {
           </div>
           <div className="flex gap-2 justify-end">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => { setRejectItem(null); setRejectReason(''); }}
+              className="bg-primary-soft text-primary-dark hover:bg-primary-soft/80"
             >
               Abbrechen
             </Button>

@@ -84,9 +84,11 @@ export default function NutritionalTagTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-body text-muted-foreground">{tags?.length ?? 0} Einträge</p>
-        <Button onClick={openCreate} className="gap-1.5" size="sm">
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-body font-bold text-primary-dark tabular-nums">
+          {tags?.length ?? 0} Einträge
+        </span>
+        <Button onClick={openCreate} className="h-11 gap-1.5 px-4 md:h-9" size="sm">
           <Plus className="h-4 w-4" />
           Neu
         </Button>
@@ -96,7 +98,7 @@ export default function NutritionalTagTab() {
         <div className="overflow-x-auto">
           <table className="w-full text-body">
             <thead>
-              <tr className="bg-muted/50 border-b border-border text-muted-foreground font-medium text-caption uppercase tracking-wider">
+              <tr className="bg-muted border-b border-border text-muted-foreground font-semibold text-caption uppercase tracking-wider">
                 <th className="text-left px-5 py-3 font-semibold">Name</th>
                 <th className="text-left px-5 py-3 font-semibold hidden sm:table-cell">Gegenname</th>
                 <th className="text-left px-5 py-3 font-semibold w-24">Rang</th>
@@ -112,7 +114,7 @@ export default function NutritionalTagTab() {
                   <td className="px-5 py-3.5 text-muted-foreground">{t.rank}</td>
                   <td className="px-5 py-3.5">
                     {t.is_dangerous ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-caption font-medium bg-destructive/10 text-destructive border border-destructive/25">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-caption font-semibold bg-danger-soft text-danger-foreground border border-danger-border">
                         <AlertTriangle className="h-3 w-3" />
                         Allergen
                       </span>
@@ -126,7 +128,7 @@ export default function NutritionalTagTab() {
                         size="icon"
                         variant="ghost"
                         onClick={() => openEdit(t)}
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        className="h-11 w-11 md:h-8 md:w-8 text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -134,7 +136,7 @@ export default function NutritionalTagTab() {
                         size="icon"
                         variant="ghost"
                         onClick={() => setDeleteTarget(t)}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                        className="h-11 w-11 md:h-8 md:w-8 text-muted-foreground hover:text-danger-foreground hover:bg-danger-soft"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -184,19 +186,24 @@ export default function NutritionalTagTab() {
                 <Input id="rank" type="number" {...form.register('rank', { valueAsNumber: true })} />
               </div>
               <div className="space-y-2 flex items-center pt-6">
-                <Label htmlFor="is_dangerous" className="flex items-center gap-2 cursor-pointer select-none">
+                <Label htmlFor="is_dangerous" className="flex min-h-11 items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     id="is_dangerous"
                     {...form.register('is_dangerous')}
-                    className="rounded-lg border-border text-primary focus:ring-primary h-4 w-4"
+                    className="rounded-sm border-input text-primary focus:ring-primary h-5 w-5 md:h-4 md:w-4"
                   />
                   Gefährlich (Allergen)
                 </Label>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDialogOpen(false)}
+                className="bg-primary-soft text-primary-dark hover:bg-primary-soft/80"
+              >
                 Abbrechen
               </Button>
               <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>

@@ -3,7 +3,7 @@
  * distributed over them by date, manual moves as rules, and demand no trip covers.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useCreateRule, useCreateTrip, useDeleteRule, useDeleteTrip, useMaterializeTrip, useTripPlan, useUpdateTrip } from '@/api/shoppingTrips';
 import { useCurrentUser } from '@/api/auth';
@@ -128,6 +128,11 @@ export default function TripPlanningPage() {
       <PageHeader
         title={data?.event_name ?? 'Einkäufe planen'}
         description="Einkäufe planen: Der Bedarf aller Essenspläne wird nach Datum auf die Einkäufe verteilt."
+        breadcrumbs={[
+          { label: 'Startseite', to: '/' },
+          { label: 'Einkaufslisten', to: '/shopping-lists' },
+          { label: 'Einkäufe planen' },
+        ]}
         countLoading={plan.isPending}
         count={data?.trips.length}
         countLabel={{ one: 'Einkauf', other: 'Einkäufe' }}
@@ -141,12 +146,6 @@ export default function TripPlanningPage() {
         }
       />
 
-      <p className="mb-4">
-        <Link to="/shopping-lists" className="text-body font-semibold text-primary hover:underline">
-          ← Alle Einkaufslisten
-        </Link>
-      </p>
-
       {plan.isPending ? (
         <SkeletonCardGrid count={3} withImage={false} label="Einkäufe werden geladen" className="lg:grid-cols-1" />
       ) : plan.isError || !data ? (
@@ -154,7 +153,7 @@ export default function TripPlanningPage() {
       ) : (
         <div className="space-y-4">
           {!canManage && (
-            <p role="note" className="rounded-xl bg-info-soft px-4 py-3 text-body text-info">
+            <p role="note" className="rounded-xl bg-info-soft px-4 py-3 text-body text-info shadow-soft">
               Du kannst den Einkaufsplan nur lesen. Änderungen sind dem Event-Team vorbehalten.
             </p>
           )}

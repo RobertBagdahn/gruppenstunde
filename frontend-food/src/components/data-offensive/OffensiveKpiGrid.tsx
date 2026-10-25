@@ -39,8 +39,8 @@ export default function OffensiveKpiGrid({ summary, activeIssue, onSelectIssue }
               onClick={() => onSelectIssue(active ? undefined : tile.key)}
               aria-pressed={active}
               className={cn(
-                'rounded-xl border bg-card p-3 text-left transition-colors hover:border-primary/40',
-                active && 'border-primary ring-1 ring-primary'
+                'rounded-xl bg-card p-3 text-left shadow-card transition-shadow hover:shadow-soft',
+                active && 'ring-1 ring-primary shadow-soft'
               )}
             >
               <p

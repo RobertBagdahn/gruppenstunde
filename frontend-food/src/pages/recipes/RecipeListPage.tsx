@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { notify } from '@/lib/notify';
 import { Icon } from '@/components/ui/icon';
+import { RECIPE_DOT_CLASSES, recipeTint } from '@/lib/recipeTypeStyle';
 
 type RecipeListState = z.infer<typeof RecipeListStateSchema>;
 type ViewMode = 'grid' | 'table';
@@ -49,6 +50,12 @@ const COUNT_EXCLUDE = ['page', 'view', 'seed'] as const;
 const QUICK_TYPES = RECIPE_TYPE_OPTIONS.filter((opt) =>
   ['breakfast', 'warm_meal', 'cold_meal', 'dessert', 'drink', 'snack'].includes(opt.value),
 );
+
+/** Colour dot of a recipe type (food-category-colour-usage: a dot, never a filled chip). */
+function typeDotClass(value: string): string {
+  const tint = recipeTint(value);
+  return tint ? RECIPE_DOT_CLASSES[tint] : '';
+}
 
 /** The view mode used to live in its own key; take it over once. */
 function migrateLegacyView() {
@@ -116,6 +123,8 @@ export default function RecipeListPage() {
   // "Beliebt" sticker: the first ten of the existing sort "Meistgesehen" (food-design-system).
   const popularQuery = usePopularRecipeIds({ enabled: restored });
   const popularIds = popularQuery.data ?? new Set<number>();
+  // One "Beliebt" sticker per page: only the first popular recipe on the current page carries it.
+  const firstPopularId = data?.items.find((recipe) => popularIds.has(recipe.id))?.id;
   const deleteRecipe = useDeleteRecipe();
   const forkRecipe = useForkRecipe(cloneTarget?.id ?? 0);
 
@@ -176,13 +185,13 @@ export default function RecipeListPage() {
                   )
                 }
                 className={cn(
-                  'press flex h-11 items-center gap-2 rounded-full px-4 text-body font-semibold transition-colors duration-200',
+                  'press flex h-11 md:h-9 items-center gap-2 rounded-full border bg-card px-4 text-body font-semibold transition-colors duration-200',
                   active
-                    ? 'bg-background text-foreground'
-                    : 'border border-border text-foreground hover:bg-primary-soft',
+                    ? 'border-primary text-primary-dark'
+                    : 'border-border text-foreground hover:border-primary-soft-border',
                 )}
               >
-                {active && <Icon name="check" size={16} />}
+                <span aria-hidden="true" className={cn('h-2 w-2 shrink-0 rounded-full', typeDotClass(opt.value))} />
                 {opt.label}
               </button>
             );
@@ -288,7 +297,7 @@ export default function RecipeListPage() {
                 <RecipeCard
                   key={recipe.id}
                   recipe={recipe}
-                  popular={popularIds.has(recipe.id)}
+                  popular={popularIds.has(recipe.id) && recipe.id === firstPopularId}
                   searchQuery={filters.q}
                   canEdit={recipe.can_edit}
                   canDelete={recipe.can_delete}

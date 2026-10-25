@@ -40,29 +40,35 @@ export default function DataQualityIngredientsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 border-b overflow-x-auto">
-        {SUB_TABS.map((tab) => {
-          const isPlausibility = tab.key === 'plausibility';
-          return (
-            <button
-              key={tab.key}
-              onClick={() => handleTabChange(tab.key)}
-              className={cn(
-                'px-3 py-1.5 text-body font-medium whitespace-nowrap border-b-2 transition-colors inline-flex items-center gap-1.5',
-                activeTab === tab.key
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <span>{tab.label}</span>
-              {isPlausibility && plausibilityCount != null && plausibilityCount > 0 && (
-                <span className="text-caption font-semibold bg-danger-soft text-danger px-1.5 py-0.2 rounded-full">
-                  {plausibilityCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Check chips: white with a thin border, the active chip in petrol */}
+      <div className="overflow-x-auto -mx-4 px-4">
+        <div role="group" aria-label="Zutaten-Prüfungen" className="flex gap-2 min-w-max pb-2">
+          {SUB_TABS.map((tab) => {
+            const isPlausibility = tab.key === 'plausibility';
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => handleTabChange(tab.key)}
+                className={cn(
+                  'press flex min-h-11 md:min-h-9 items-center gap-2 rounded-full border bg-card px-4 text-body font-semibold whitespace-nowrap transition-colors duration-200',
+                  active
+                    ? 'border-primary text-primary-dark'
+                    : 'border-border text-foreground hover:border-primary-soft-border'
+                )}
+              >
+                <span>{tab.label}</span>
+                {isPlausibility && plausibilityCount != null && plausibilityCount > 0 && (
+                  <span className="text-caption font-semibold tabular-nums bg-danger-soft text-danger px-2 py-0.5 rounded-full">
+                    {plausibilityCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {activeTab === 'price' && <PriceAnalysisTable />}

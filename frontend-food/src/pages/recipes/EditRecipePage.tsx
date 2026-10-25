@@ -1,5 +1,5 @@
 import DetailHeader from '@/components/shared/DetailHeader';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe, type RecipeUpdatePayload } from '@/api/recipes';
 import { useTags, useScoutLevels } from '@/api/tags';
@@ -18,6 +18,32 @@ import {
 import { notify } from '@/lib/notify';
 import { Icon } from '@/components/ui/icon';
 import { PageSkeleton } from '@/components/ui/skeleton';
+
+/** Section heading in the Canvas card language: icon plaque on a soft petrol tile, uppercase label. */
+function SectionHeading({ icon, children, tone = 'primary' }: { icon: ReactNode; children: ReactNode; tone?: 'primary' | 'warning' }) {
+  return (
+    <h2
+      className={`mb-4 flex items-center gap-3 text-body font-semibold uppercase tracking-wide ${
+        tone === 'warning' ? 'text-warning' : 'text-muted-foreground'
+      }`}
+    >
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          tone === 'warning' ? 'bg-card text-warning' : 'bg-primary-soft text-primary'
+        }`}
+      >
+        {icon}
+      </span>
+      {children}
+    </h2>
+  );
+}
+
+const INPUT_CLASS =
+  'w-full min-h-11 px-4 py-2.5 rounded-lg border bg-background text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary';
+const SELECT_CLASS =
+  'w-full min-h-11 px-3 py-2.5 rounded-lg border bg-background text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary';
+const CHIP_BASE = 'inline-flex min-h-11 items-center rounded-full px-4 text-caption font-medium border transition-colors';
 
 export default function EditRecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -153,23 +179,21 @@ export default function EditRecipePage() {
     />
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5 sm:space-y-6">
         {/* Recipe Type */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <Icon name="restaurant" size={20} className="text-primary" />
-            Rezeptart
-          </label>
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <SectionHeading icon={<Icon name="restaurant" size={20} />}>Rezeptart</SectionHeading>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {RECIPE_TYPE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setRecipeType(opt.value)}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
+                aria-pressed={recipeType === opt.value}
+                className={`flex min-h-11 flex-col items-center gap-1.5 p-3 rounded-xl border transition-colors text-center ${
                   recipeType === opt.value
-                    ? 'border-primary bg-primary/10 shadow-md shadow-primary/10'
-                    : 'border-border hover:border-primary/30 hover:bg-primary/5'
+                    ? 'border-primary bg-primary-soft text-primary-dark font-semibold'
+                    : 'border-border bg-card hover:bg-muted'
                 }`}
               >
                 <Icon name={opt.icon} size={24} className={`${
@@ -177,7 +201,7 @@ export default function EditRecipePage() {
                   }`} />
                 <span
                   className={`font-medium text-caption ${
-                    recipeType === opt.value ? 'text-primary' : 'text-foreground'
+                    recipeType === opt.value ? 'text-primary-dark' : 'text-foreground'
                   }`}
                 >
                   {opt.label}
@@ -185,14 +209,11 @@ export default function EditRecipePage() {
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Preparation Method */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <Icon name="cooking" size={20} className="text-primary" />
-            Zubereitungsart
-          </label>
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <SectionHeading icon={<Icon name="cooking" size={20} />}>Zubereitungsart</SectionHeading>
           <div className="flex flex-wrap gap-2">
             {[
               { value: '', label: 'Keine Angabe' },
@@ -206,30 +227,28 @@ export default function EditRecipePage() {
               <button
                 key={opt.value}
                 type="button"
+                aria-pressed={preparationMethod === opt.value}
                 onClick={() => setPreparationMethod(opt.value)}
-                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
+                className={`${CHIP_BASE} ${
                   preparationMethod === opt.value
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-background hover:bg-muted'
+                    : 'bg-background border-border hover:bg-muted'
                 }`}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Materials */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <Icon name="inventory_2" size={20} className="text-primary" />
-            Material
-          </label>
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <SectionHeading icon={<Icon name="inventory_2" size={20} />}>Material</SectionHeading>
           <RecipeMaterialsEditor
             recipeId={recipe.id}
             onSuggestClick={() => setMaterialsDialogOpen(true)}
           />
-        </div>
+        </section>
         <RecipeMaterialSuggestionsDialog
           open={materialsDialogOpen}
           onOpenChange={setMaterialsDialogOpen}
@@ -237,12 +256,15 @@ export default function EditRecipePage() {
         />
 
         {/* Title */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-2">
-            <Icon name="title" size={20} className="text-primary" />
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <label htmlFor="recipe-edit-title" className="mb-4 flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <Icon name="title" size={20} />
+            </span>
             Titel *
           </label>
           <input
+            id="recipe-edit-title"
             ref={titleInputRef}
             type="text"
             value={title}
@@ -254,56 +276,54 @@ export default function EditRecipePage() {
             aria-required="true"
             aria-invalid={titleError ? true : undefined}
             aria-describedby={titleError ? 'recipe-title-error' : undefined}
-            className="w-full px-4 py-2.5 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            className={INPUT_CLASS}
           />
           {titleError && (
-            <p id="recipe-title-error" role="alert" className="mt-2 text-caption text-destructive">
+            <p id="recipe-title-error" role="alert" className="mt-2 text-caption text-danger-foreground">
               {titleError}
             </p>
           )}
-        </div>
+        </section>
 
         {/* Summary */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-2">
-            <Icon name="short_text" size={20} className="text-primary" />
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <label htmlFor="recipe-edit-summary" className="mb-4 flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <Icon name="short_text" size={20} />
+            </span>
             Zusammenfassung
           </label>
           <textarea
+            id="recipe-edit-summary"
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             rows={2}
             placeholder="Kurze Beschreibung des Rezepts..."
-            className="w-full px-4 py-2.5 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            className={`${INPUT_CLASS} py-2.5 resize-none`}
           />
-        </div>
+        </section>
 
         {/* Description */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-2">
-            <Icon name="description" size={20} className="text-primary" />
-            Beschreibung
-          </label>
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <SectionHeading icon={<Icon name="description" size={20} />}>Beschreibung</SectionHeading>
           <MarkdownEditor
             value={description}
             onChange={setDescription}
             placeholder="Ausführliche Beschreibung des Rezepts in Markdown..."
           />
-        </div>
+        </section>
 
-        {/* Servings + Meta */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <Icon name="tune" size={20} className="text-primary" />
-            Details
-          </label>
+        {/* Details */}
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <SectionHeading icon={<Icon name="tune" size={20} />}>Details</SectionHeading>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-caption text-muted-foreground mb-1 block">Schwierigkeit</label>
+              <label htmlFor="recipe-edit-difficulty" className="text-caption text-muted-foreground mb-1 block">Schwierigkeit</label>
               <select
+                id="recipe-edit-difficulty"
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                className={SELECT_CLASS}
               >
                 <option value="">–</option>
                 {RECIPE_DIFFICULTY_OPTIONS.map((o) => (
@@ -314,11 +334,12 @@ export default function EditRecipePage() {
               </select>
             </div>
             <div>
-              <label className="text-caption text-muted-foreground mb-1 block">Kochzeit</label>
+              <label htmlFor="recipe-edit-execution-time" className="text-caption text-muted-foreground mb-1 block">Kochzeit</label>
               <select
+                id="recipe-edit-execution-time"
                 value={executionTime}
                 onChange={(e) => setExecutionTime(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                className={SELECT_CLASS}
               >
                 <option value="">–</option>
                 {RECIPE_EXECUTION_TIME_OPTIONS.map((o) => (
@@ -329,11 +350,12 @@ export default function EditRecipePage() {
               </select>
             </div>
             <div>
-              <label className="text-caption text-muted-foreground mb-1 block">Vorbereitung</label>
+              <label htmlFor="recipe-edit-preparation-time" className="text-caption text-muted-foreground mb-1 block">Vorbereitung</label>
               <select
+                id="recipe-edit-preparation-time"
                 value={preparationTime}
                 onChange={(e) => setPreparationTime(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                className={SELECT_CLASS}
               >
                 <option value="">–</option>
                 {RECIPE_PREPARATION_TIME_OPTIONS.map((o) => (
@@ -344,24 +366,22 @@ export default function EditRecipePage() {
               </select>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Tags */}
-        <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <Icon name="label" size={20} className="text-primary" />
-            Tags
-          </label>
+        <section className="bg-card rounded-xl p-5 shadow-card">
+          <SectionHeading icon={<Icon name="label" size={20} />}>Tags</SectionHeading>
           <div className="flex flex-wrap gap-2">
             {allTags?.map((tag) => (
               <button
                 key={tag.id}
                 type="button"
+                aria-pressed={selectedTagIds.includes(tag.id)}
                 onClick={() => toggleTag(tag.id)}
-                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
+                className={`${CHIP_BASE} ${
                   selectedTagIds.includes(tag.id)
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-background hover:bg-muted'
+                    : 'bg-background border-border hover:bg-muted'
                 }`}
               >
                 {tag.icon && (
@@ -371,41 +391,38 @@ export default function EditRecipePage() {
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Scout Levels */}
         {scoutLevels && (
-          <div className="bg-card rounded-xl p-5 shadow-card">
-          <label className="flex items-center gap-1.5 text-body font-medium mb-3">
-            <Icon name="groups" size={20} className="text-info" />
-            Stufen
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {scoutLevels.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                onClick={() => toggleScoutLevel(level.id)}
-                className={`rounded-full px-3 py-1 text-caption font-medium border transition-colors ${
-                  selectedScoutIds.includes(level.id)
-                    ? 'bg-info text-white border-info'
-                    : 'bg-background hover:bg-muted'
-                }`}
+          <section className="bg-card rounded-xl p-5 shadow-card">
+            <SectionHeading icon={<Icon name="groups" size={20} />}>Stufen</SectionHeading>
+            <div className="flex flex-wrap gap-2">
+              {scoutLevels.map((level) => (
+                <button
+                  key={level.id}
+                  type="button"
+                  aria-pressed={selectedScoutIds.includes(level.id)}
+                  onClick={() => toggleScoutLevel(level.id)}
+                  className={`${CHIP_BASE} ${
+                    selectedScoutIds.includes(level.id)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background border-border hover:bg-muted'
+                  }`}
                 >
                   {level.name}
                 </button>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Admin Controls (Staff Only) */}
         {user?.is_staff && (
-          <div className="bg-card rounded-xl border-2 border-warning-border bg-warning-soft p-5 shadow-sm">
-            <label className="flex items-center gap-1.5 text-body font-medium mb-3 text-warning">
-              <Icon name="admin_panel_settings" size={20} className="text-warning" />
+          <section className="rounded-xl border border-warning-border bg-warning-soft p-5 shadow-soft">
+            <SectionHeading tone="warning" icon={<Icon name="admin_panel_settings" size={20} className="text-warning" />}>
               Admin-Kontrollen
-            </label>
+            </SectionHeading>
             <div className="space-y-4">
               {/* Status */}
               <div>
@@ -414,7 +431,7 @@ export default function EditRecipePage() {
                   id="recipe-admin-status"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-lg border bg-card text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
                 >
                   <option value="">Keine Änderung</option>
                   <option value="draft">Entwurf</option>
@@ -434,7 +451,7 @@ export default function EditRecipePage() {
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
                   placeholder="z.B. https://example.com/recipe"
-                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-lg border bg-card text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
                 />
               </div>
 
@@ -453,7 +470,7 @@ export default function EditRecipePage() {
                       .filter((id) => !isNaN(id));
                     setSelectedAuthorIds(ids);
                   }}
-                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
+                  className="w-full min-h-11 px-3 py-2.5 rounded-lg border bg-card text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-warning focus:border-warning"
                 />
                 <p className="text-caption text-warning mt-1">
                   {selectedAuthorIds.length > 0
@@ -462,25 +479,25 @@ export default function EditRecipePage() {
                 </p>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
         {/* Submit */}
-        <div className="flex justify-between items-center pt-4">
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
             onClick={() => navigate(`/recipes/${slug}`)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border text-body font-medium hover:bg-muted transition-colors"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary-soft px-5 text-body font-semibold text-primary-dark transition-colors hover:bg-primary-soft-border/70 sm:w-auto"
           >
-            <ArrowLeft className="w-4.5 h-4.5" />
+            <ArrowLeft className="w-4 h-4" />
             Abbrechen
           </button>
           <button
             type="submit"
             disabled={updateRecipe.isPending}
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-section font-semibold hover:bg-primary/90 shadow-md hover:shadow-lg disabled:opacity-50 transition-all"
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3 text-section font-semibold text-primary-foreground shadow-soft transition-colors hover:bg-primary-dark disabled:opacity-50 sm:w-auto"
           >
-            <Save className="w-6 h-6" />
+            <Save className="w-5 h-5" />
             {updateRecipe.isPending ? 'Wird gespeichert...' : 'Änderungen speichern'}
           </button>
         </div>

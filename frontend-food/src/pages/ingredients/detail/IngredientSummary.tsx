@@ -19,9 +19,9 @@ interface IngredientSummaryProps {
 
 function Fact({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="min-w-0 rounded-xl border border-line bg-card px-4 py-3 shadow-card">
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-card px-4 py-3 shadow-card md:py-4">
       <dt className="text-caption font-bold uppercase tracking-wider text-primary-dark">{label}</dt>
-      <dd className="font-display text-emphasis font-bold tabular-nums text-foreground">{value ?? '–'}</dd>
+      <dd className="truncate font-display text-section font-extrabold tabular-nums text-foreground">{value ?? '–'}</dd>
     </div>
   );
 }
@@ -43,10 +43,13 @@ export default function IngredientSummary({
 
   return (
     <section aria-label="Zusammenfassung" className="mb-6 space-y-3">
-      <div className="flex items-center gap-3">
-        <NutriScoreBadge value={nutriClass} size="scale" />
-      </div>
-      <dl className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <dl className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+        <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-card px-4 py-3 shadow-card md:py-4">
+          <dt className="text-caption font-bold uppercase tracking-wider text-primary-dark">Nutri-Score</dt>
+          <dd className="flex min-h-9 items-center">
+            <NutriScoreBadge value={nutriClass} size="md" emptyLabel="–" className="h-10 w-10 text-section" />
+          </dd>
+        </div>
         <Fact
           label="Preis"
           value={pricePerKg != null ? `${formatEuro(pricePerKg)}/kg` : null}
