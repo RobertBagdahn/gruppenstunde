@@ -5,7 +5,6 @@
  */
 import NutriScoreBadge from '@/components/shared/NutriScoreBadge';
 import { formatEuro, formatNumber, formatWeight } from '@/lib/format';
-import { cn } from '@/lib/utils';
 import type { Portion } from '@/schemas/supply';
 
 interface IngredientSummaryProps {
@@ -18,10 +17,10 @@ interface IngredientSummaryProps {
   portions: Portion[];
 }
 
-function Fact({ label, value, tint }: { label: string; value: string | null; tint: string }) {
+function Fact({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className={cn('min-w-0 rounded-xl px-4 py-3', tint)}>
-      <dt className="text-caption font-bold">{label}</dt>
+    <div className="min-w-0 rounded-xl border border-line bg-card px-4 py-3 shadow-card">
+      <dt className="text-caption font-bold uppercase tracking-wider text-primary-dark">{label}</dt>
       <dd className="font-display text-emphasis font-bold tabular-nums text-foreground">{value ?? '–'}</dd>
     </div>
   );
@@ -49,25 +48,22 @@ export default function IngredientSummary({
       </div>
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <Fact
-          tint="bg-category-warm-soft text-category-warm-foreground"
           label="Preis"
           value={pricePerKg != null ? `${formatEuro(pricePerKg)}/kg` : null}
         />
         {standard && (
           <Fact
-            tint="bg-category-recipe-part-soft text-category-recipe-part-foreground"
             label="Standard-Portion"
             value={standard.weight_g != null ? `${standard.name} · ${formatWeight(standard.weight_g)}` : standard.name}
           />
         )}
         <Fact
-          tint="bg-category-breakfast-soft text-category-breakfast-foreground"
           label="Energie / 100 g"
           value={energyKcal != null ? `${Math.round(energyKcal)} kcal` : null}
         />
-        <Fact tint="bg-category-cold-soft text-category-cold-foreground" label="Eiweiß" value={grams(proteinG)} />
-        <Fact tint="bg-category-snack-soft text-category-snack-foreground" label="Fett" value={grams(fatG)} />
-        <Fact tint="bg-category-dessert-soft text-category-dessert-foreground" label="Kohlenhydrate" value={grams(carbohydrateG)} />
+        <Fact label="Eiweiß" value={grams(proteinG)} />
+        <Fact label="Fett" value={grams(fatG)} />
+        <Fact label="Kohlenhydrate" value={grams(carbohydrateG)} />
       </dl>
     </section>
   );

@@ -3,7 +3,7 @@ import type { RecipeStep } from '@/schemas/recipeStep';
 import StepIngredientChips from '@/components/recipe/StepIngredientChips';
 
 /** Step badge colours, repeated per step (tomato, petrol, violet, blue). */
-const STEP_BADGES = ['bg-spice', 'bg-primary', 'bg-category-dessert-foreground', 'bg-category-snack-foreground'] as const;
+const STEP_BADGES = ['bg-spice', 'bg-primary', 'bg-primary-dark', 'bg-spice-foreground'] as const;
 
 interface RecipeStepsReadOnlyProps {
   steps: RecipeStep[];

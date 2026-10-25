@@ -26,17 +26,15 @@ function Figure({
   children,
   hint,
   className,
-  tint,
 }: {
-  tint: string;
   label: string;
   children: React.ReactNode;
   hint?: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn('flex min-w-0 flex-col gap-1 rounded-xl px-5 py-4 md:py-5', tint, className)}>
-      <span className="text-caption font-bold uppercase tracking-wider">{label}</span>
+    <div className={cn('flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-card px-5 py-4 shadow-card md:py-5', className)}>
+      <span className="text-caption font-bold uppercase tracking-wider text-primary-dark">{label}</span>
       <div className="flex min-h-9 items-center">{children}</div>
       {hint && <span className="truncate text-caption text-foreground/70">{hint}</span>}
     </div>
@@ -65,30 +63,30 @@ export default function RecipeKeyFigures({
         className,
       )}
     >
-      <Figure tint="bg-category-warm-soft text-category-warm-foreground" label="Gesamtkosten" hint={`für ${portionsLabel}`}>
+      <Figure label="Gesamtkosten" hint={`für ${portionsLabel}`}>
         <span key={`${totalPriceEur}`} className="animate-pop font-display text-metric font-extrabold text-foreground">
           {totalPriceEur != null ? formatEuro(totalPriceEur) : '– €'}
         </span>
       </Figure>
-      <Figure tint="bg-category-breakfast-soft text-category-breakfast-foreground" label="Pro Portion" hint={weightPerPortionG != null ? `${formatNumber(weightPerPortionG, { maxDecimals: 0 })} g` : undefined}>
+      <Figure label="Pro Portion" hint={weightPerPortionG != null ? `${formatNumber(weightPerPortionG, { maxDecimals: 0 })} g` : undefined}>
         <span className="font-display text-metric font-extrabold text-foreground">
           {pricePerPortionEur != null ? formatEuro(pricePerPortionEur) : '– €'}
         </span>
       </Figure>
-      <Figure tint="bg-category-cold-soft text-category-cold-foreground" label="Nutri-Score" hint={letter ? NUTRI_SCORE_MEANING[letter] : 'noch nicht berechnet'}>
+      <Figure label="Nutri-Score" hint={letter ? NUTRI_SCORE_MEANING[letter] : 'noch nicht berechnet'}>
         {letter ? (
           <NutriScoreBadge value={letter} size="md" className="h-10 w-10 text-section" />
         ) : (
           <span className="font-display text-metric font-extrabold text-muted-foreground">–</span>
         )}
       </Figure>
-      <Figure tint="bg-category-snack-soft text-category-snack-foreground" label="Energie" hint="pro Portion">
+      <Figure label="Energie" hint="pro Portion">
         <span className="font-display text-metric font-extrabold text-foreground">
           {energyPerPortionKcal != null ? formatNumber(energyPerPortionKcal, { maxDecimals: 0 }) : '–'}
           <span className="ml-1 text-emphasis font-bold">kcal</span>
         </span>
       </Figure>
-      <Figure tint="bg-category-dessert-soft text-category-dessert-foreground" label="Beliebtheit" hint="Aufrufe · Likes" className="col-span-2 md:col-span-1">
+      <Figure label="Beliebtheit" hint="Aufrufe · Likes" className="col-span-2 md:col-span-1">
         <span className="flex items-center gap-4 font-display text-section font-extrabold text-foreground">
           <span className="flex items-center gap-1.5">
             <Eye className="h-5 w-5" aria-hidden="true" />

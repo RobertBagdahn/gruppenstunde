@@ -54,6 +54,13 @@ describe('design rules', () => {
     expect(offenders(/\bbg-gradient-to-|\bfrom-[\w-]+\/?\d*\s+via-|\bgradient-\w+/, [])).toEqual([]);
   });
 
+  it('uses category tints only for recipe types (food-colorful-detail)', () => {
+    // Recipe-type tints live in recipeTypeStyle (tint, dot); CategoryPills shows the dots and StyleguidePage demonstrates tokens.
+    expect(
+      offenders(/\b(bg|text)-category-/, ['lib/recipeTypeStyle.ts', 'components/recipe/CategoryPills.tsx', 'pages/StyleguidePage.tsx']),
+    ).toEqual([]);
+  });
+
   it('does not use status colours as solid action surfaces', () => {
     expect(offenders(/\bbg-warning(?![-/\w])/, ['pages/StyleguidePage.tsx'])).toEqual([]);
   });
