@@ -3,11 +3,12 @@ import { useIngredientScores } from '@/api/supplies';
 import TabFilters from '../components/TabFilters';
 import { formatNumber } from '@/lib/format';
 
-const NOVA_COLORS: Record<number, string> = {
-  1: 'bg-success',
-  2: 'bg-success',
+/** Status dots only (bright token); the class circle itself stays neutral petrol. */
+const NOVA_DOT_COLORS: Record<number, string> = {
+  1: 'bg-success-bright',
+  2: 'bg-success-bright',
   3: 'bg-warning-bright',
-  4: 'bg-danger',
+  4: 'bg-danger-bright',
 };
 
 const NOVA_LABELS: Record<number, string> = {
@@ -29,16 +30,19 @@ export default function NovaProcessingTab() {
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
-        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+        <div className="h-80 skeleton-shimmer rounded-xl" />
       ) : data ? (
         <div className="space-y-6">
           <div className="flex flex-wrap gap-3">
             {data.classes.map((cls) => (
               <div key={cls.class_value} className="flex-1 min-w-[100px] rounded-xl bg-card p-4 text-center shadow-card">
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-section font-bold text-white mb-2 ${NOVA_COLORS[cls.class_value] ?? 'bg-muted'}`}>
+                <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary-soft-border bg-primary-soft text-section font-bold font-display text-primary-dark mb-2">
                   {cls.class_label}
                 </div>
-                <p className="text-caption text-muted-foreground mb-1">{NOVA_LABELS[cls.class_value] ?? ''}</p>
+                <p className="flex items-center justify-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-primary-dark mb-1">
+                  <span aria-hidden="true" className={`h-2 w-2 rounded-full ${NOVA_DOT_COLORS[cls.class_value] ?? 'bg-muted'}`} />
+                  {NOVA_LABELS[cls.class_value] ?? ''}
+                </p>
                 <p className="text-title font-bold font-display">{cls.count}</p>
                 <p className="text-caption text-muted-foreground">{cls.percentage}%</p>
               </div>

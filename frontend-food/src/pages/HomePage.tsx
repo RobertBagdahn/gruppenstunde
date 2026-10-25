@@ -7,9 +7,10 @@ import { useRecipes } from '@/api/recipes';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Icon } from '@/components/ui/icon';
 import RecipeCard from '@/components/recipe/RecipeCard';
+import RecipeTypeTag from '@/components/recipe/RecipeTypeTag';
 import Sticker from '@/components/shared/Sticker';
 import { StickerBoundary } from '@/components/shared/StickerBoundary';
-import { formatCount, formatNumber } from '@/lib/format';
+import { formatCount, formatEuro, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { MealPlan } from '@/schemas/mealPlan';
 
@@ -28,11 +29,18 @@ const MODULE_TILES: readonly ModuleTile[] = [
   { key: 'ingredients', label: 'Zutaten', icon: 'egg', href: '/ingredients', description: 'Nährwerte, Preise und Portionen.' },
 ];
 
+/** Recipe types shown as tags on the Rezepte tile (category tints belong to recipe types only). */
+const RECIPE_TAG_TYPES = ['warm_meal', 'cold_meal', 'dessert'] as const;
+/** Plan settings shown as neutral tags on the Essenspläne tile (labels as used in the plan form). */
+const PLAN_TAG_LABELS = ['Zeltlager', 'Wanderung', 'Gruppenstunde'] as const;
+
 const STEPS = [
   { title: 'Rezepte auswählen', text: 'Nach Kategorie, Zeit und Kosten filtern.', badge: 'bg-spice' },
   { title: 'Plan bauen', text: 'Tage füllen, Budget und kcal rechnen mit.', badge: 'bg-primary' },
   { title: 'Einkaufen und kochen', text: 'Fertige Liste und Kochmodus.', badge: 'bg-primary-dark' },
 ] as const;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Upcoming or unfinished plan: the first one whose end is not in the past. */
 function nextPlan(plans: MealPlan[] | undefined): MealPlan | null {
@@ -49,19 +57,54 @@ function formatPeriod(plan: MealPlan): string {
   return start === end ? start : `${start} – ${end}`;
 }
 
+/** Relative start label ("in 5 Tagen", "morgen", "heute"); null for past or undated plans. */
+function startsIn(plan: MealPlan): string | null {
+  if (!plan.start_datetime) return null;
+  const days = Math.ceil((new Date(plan.start_datetime).getTime() - Date.now()) / DAY_MS);
+  if (days > 1) return `in ${days} Tagen`;
+  if (days === 1) return 'morgen';
+  if (days === 0) return 'heute';
+  return null;
+}
+
 function ModuleCount({ tile, data, isLoading, failed }: { tile: ModuleTile; data: ReturnType<typeof useFoodDashboard>['data']; isLoading: boolean; failed: boolean }) {
   if (isLoading) return <Skeleton className="h-4 w-24" />;
   if (failed || !data) return <span className="text-caption text-muted-foreground">Zahl nicht verfügbar</span>;
   switch (tile.key) {
     case 'recipes':
-      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.recipe_count)} Rezepte</span>;
+      return <span className="text-caption font-bold tabular-nums text-primary-dark">{formatCount(data.recipe_count)} Rezepte</span>;
     case 'meal-plans':
-      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.active_meal_plan_count)} aktiv</span>;
+      return <span className="text-caption font-bold tabular-nums text-primary-dark">{formatCount(data.active_meal_plan_count)} aktiv</span>;
     case 'shopping':
-      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.open_shopping_list_count)} offen</span>;
+      return <span className="text-caption font-bold tabular-nums text-primary-dark">{formatCount(data.open_shopping_list_count)} offen</span>;
     case 'ingredients':
-      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.ingredient_count)} Einträge</span>;
+      return <span className="text-caption font-bold tabular-nums text-primary-dark">{formatCount(data.ingredient_count)} Einträge</span>;
   }
+}
+
+/** Tags on the desktop tiles only; the phone tiles stay compact. */
+function ModuleTags({ tile }: { tile: ModuleTile }) {
+  if (tile.key === 'recipes') {
+    return (
+      <div className="hidden flex-wrap gap-1.5 md:flex">
+        {RECIPE_TAG_TYPES.map((type) => (
+          <RecipeTypeTag key={type} type={type} />
+        ))}
+      </div>
+    );
+  }
+  if (tile.key === 'meal-plans') {
+    return (
+      <div className="hidden flex-wrap gap-1.5 md:flex">
+        {PLAN_TAG_LABELS.map((label) => (
+          <span key={label} className="rounded-full bg-primary-soft px-2.5 py-1 text-caption font-semibold text-primary-dark">
+            {label}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  return null;
 }
 
 export default function HomePage() {
@@ -75,15 +118,18 @@ export default function HomePage() {
   const popularQuery = useRecipes({ sort: 'popular', page: 1, page_size: 4 });
   const popular = popularQuery.data?.items ?? [];
 
+  const planProgress = plan?.meals_count ? Math.round((plan.filled_meals_count / plan.meals_count) * 100) : 0;
+  const planStart = plan ? startsIn(plan) : null;
+
   return (
     <div className="mx-auto max-w-7xl space-y-10 px-4 py-6 sm:px-6 md:space-y-12 md:py-8 lg:px-8">
-      {/* Introduction: one H1, a short description and two actions (food-homepage). */}
-      <section className="relative flex flex-col items-start gap-6 overflow-hidden rounded-xl bg-primary-soft p-5 md:flex-row md:items-center md:justify-between md:p-8">
+      {/* Hero band: one H1, a short description, two actions and the mascot (food-homepage, Canvas-Layout). */}
+      <section className="relative flex flex-col items-start gap-6 overflow-hidden rounded-xl bg-primary-soft p-5 shadow-card md:flex-row md:items-center md:justify-between md:p-8">
         <div className="max-w-2xl space-y-4">
           <StickerBoundary>
             <Sticker>Für Gruppenstunde, Fahrt &amp; Lager</Sticker>
           </StickerBoundary>
-          <h1 className="font-display text-display font-extrabold text-foreground">Was kocht ihr als Nächstes?</h1>
+          <h1 className="font-display text-display font-extrabold text-primary-dark">Was kocht ihr als Nächstes?</h1>
           <p className="text-emphasis text-muted-foreground md:text-section">
             Rezepte, Essenspläne und Einkaufslisten für jede Gruppenstunde, Fahrt und jedes Lager.
           </p>
@@ -97,7 +143,7 @@ export default function HomePage() {
             </Link>
             <Link
               to="/recipes"
-              className="press inline-flex h-12 items-center gap-2 rounded-lg bg-card px-5 text-emphasis font-bold text-primary-dark transition-colors hover:bg-primary-soft-border"
+              className="press inline-flex h-12 items-center gap-2 rounded-lg border border-primary-soft-border bg-card px-5 text-emphasis font-bold text-primary-dark transition-colors hover:bg-primary-soft"
             >
               <Icon name="menu_book" size={20} aria-hidden="true" />
               Rezepte entdecken
@@ -107,53 +153,67 @@ export default function HomePage() {
         <img src="/images/inspi_thinking.webp" alt="" aria-hidden="true" className="hidden h-40 w-auto shrink-0 md:block lg:h-48" />
       </section>
 
-      {/* Module tiles with their counts (two columns on phones, four from 1024 px). */}
+      {/* Area tiles with counts and tags: neutral surfaces, no category tints (only recipe types are tinted). */}
       <section aria-label="Bereiche" className="grid grid-cols-2 gap-3 lg:grid-cols-4 md:gap-4">
         {MODULE_TILES.map((tile) => (
           <Link
             key={tile.key}
             to={tile.href}
-            className={cn('card-hover group flex flex-col gap-3 rounded-xl border border-line bg-card p-4 shadow-card md:p-5')}
+            className="card-hover group flex flex-col gap-3 rounded-xl bg-card p-4 shadow-card md:p-5"
           >
-            <span className={cn('flex h-11 w-11 items-center justify-center rounded-lg bg-primary-soft text-primary-dark')}>
+            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary-soft text-primary-dark">
               <Icon name={tile.icon} size={24} aria-hidden="true" />
             </span>
-            <span className="font-display text-emphasis font-bold text-foreground ">{tile.label}</span>
+            <span className="font-display text-emphasis font-bold text-foreground">{tile.label}</span>
             <ModuleCount tile={tile} data={dashboard.data} isLoading={dashboard.isLoading} failed={dashboard.isError} />
-            <span className="hidden text-body text-foreground/80 md:block">{tile.description}</span>
+            <span className="hidden text-body text-muted-foreground md:block">{tile.description}</span>
+            <ModuleTags tile={tile} />
           </Link>
         ))}
       </section>
 
       {/* Continue planning: only from the existing plan list, only for signed-in users with a plan. */}
       {loggedIn && plan && (
-        <section aria-labelledby="weiter-planen" className="rounded-xl bg-card p-5 shadow-raised md:p-6">
-          <h2 id="weiter-planen" className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+        <section aria-labelledby="weiter-planen" className="rounded-xl bg-primary-soft p-5 shadow-raised md:p-7">
+          <h2 id="weiter-planen" className="text-caption font-bold uppercase tracking-wide text-primary">
             Weiter planen
           </h2>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-display text-heading font-bold text-foreground [overflow-wrap:anywhere]">{plan.name}</p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-6">
+            <div className="min-w-0 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-display text-heading font-bold text-foreground [overflow-wrap:anywhere]">{plan.name}</p>
+                {planStart && (
+                  <span className="rounded-full bg-card px-2.5 py-1 text-caption font-bold text-primary-dark">{planStart}</span>
+                )}
+              </div>
               <p className="text-body text-muted-foreground">
                 {formatPeriod(plan)} · {formatCount(plan.norm_portions)} Personen
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <p className="rounded-lg border border-line bg-card px-3 py-2">
-                  <span className="block text-caption font-bold uppercase tracking-wider text-primary-dark">Mahlzeiten</span>
+              <div className="flex flex-wrap gap-2">
+                <div className="flex min-w-[6rem] flex-col gap-0.5 rounded-lg bg-card px-3 py-2">
+                  <span className="text-caption font-bold uppercase tracking-wider text-primary-dark">Mahlzeiten</span>
                   <span className="font-display text-emphasis font-bold tabular-nums text-foreground">
                     {formatCount(plan.filled_meals_count)} von {formatCount(plan.meals_count)}
                   </span>
-                </p>
-                <p className="rounded-lg border border-line bg-card px-3 py-2">
-                  <span className="block text-caption font-bold uppercase tracking-wider text-primary-dark">Personen</span>
+                </div>
+                <div className="flex min-w-[6rem] flex-col gap-0.5 rounded-lg bg-card px-3 py-2">
+                  <span className="text-caption font-bold uppercase tracking-wider text-primary-dark">Personen</span>
                   <span className="font-display text-emphasis font-bold tabular-nums text-foreground">{formatCount(plan.norm_portions)}</span>
-                </p>
+                </div>
+                {plan.budget_per_person_per_day != null && (
+                  <div className="flex min-w-[6rem] flex-col gap-0.5 rounded-lg bg-card px-3 py-2">
+                    <span className="text-caption font-bold uppercase tracking-wider text-primary-dark">Pro Person / Tag</span>
+                    <span className="font-display text-emphasis font-bold tabular-nums text-foreground">
+                      {formatEuro(plan.budget_per_person_per_day)}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="mt-2 h-2 w-64 max-w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                <div
-                  className="h-full bg-primary"
-                  style={{ width: `${plan.meals_count ? Math.round((plan.filled_meals_count / plan.meals_count) * 100) : 0}%` }}
-                />
+              <div className="flex w-80 max-w-full items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-card" aria-hidden="true">
+                  <div className="h-full bg-primary" style={{ width: `${planProgress}%` }} />
+                </div>
+                <span className="text-caption font-bold tabular-nums text-primary-dark">{planProgress} %</span>
               </div>
             </div>
             <Link
@@ -174,7 +234,7 @@ export default function HomePage() {
         </h2>
         <ol className="grid gap-3 md:grid-cols-3">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="flex gap-3 rounded-xl border border-line bg-card p-4 shadow-card">
+            <li key={step.title} className="flex gap-3 rounded-xl bg-card p-4 shadow-card">
               <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-bold text-white', step.badge)} aria-hidden="true">
                 {index + 1}
               </span>
@@ -199,9 +259,10 @@ export default function HomePage() {
             </Link>
           </div>
           <ul className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            {popular.map((recipe) => (
+            {popular.map((recipe, index) => (
               <li key={recipe.id}>
-                <RecipeCard recipe={recipe} popular />
+                {/* One "Beliebt" sticker per page: only the first popular card carries it. */}
+                <RecipeCard recipe={recipe} popular={index === 0} />
               </li>
             ))}
           </ul>

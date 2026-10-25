@@ -175,7 +175,7 @@ export default function ContentComments({
           <button
             type="submit"
             disabled={isPending || !text.trim()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isPending ? (
               <Icon name="progress_activity" size={16} className="animate-spin" />

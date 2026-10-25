@@ -219,7 +219,7 @@ export default function ShoppingListItemRow({
             )}
             {item.estimated_price_eur !== null &&
               item.estimated_price_eur !== undefined && (
-                <span className="text-caption font-semibold text-foreground">
+                <span className="text-body font-bold tabular-nums text-foreground">
                   {formatEuro(item.estimated_price_eur)}
                 </span>
               )}

@@ -124,7 +124,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
             {data.items.map((pair: DuplicatePair) => (
               <div
                 key={`${pair.ingredient_a.id}-${pair.ingredient_b.id}`}
-                className="rounded-xl border border-border bg-card p-4 hover:shadow-sm transition-shadow"
+                className="rounded-xl bg-card p-4 shadow-card hover:shadow-soft transition-shadow"
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">

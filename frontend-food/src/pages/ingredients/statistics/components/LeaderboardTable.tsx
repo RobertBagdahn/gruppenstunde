@@ -36,7 +36,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
         <div className="flex rounded-xl border border-border overflow-hidden">
           <button
             onClick={() => setShowTop(true)}
-            className={`px-3 py-1 text-body font-medium transition-colors ${
+            className={`flex min-h-11 md:min-h-9 items-center px-3 text-body font-semibold transition-colors ${
               showTop ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground hover:bg-muted'
             }`}
           >
@@ -44,7 +44,7 @@ export default function LeaderboardTable({ top, bottom, count, unit }: Leaderboa
           </button>
           <button
             onClick={() => setShowTop(false)}
-            className={`px-3 py-1 text-body font-medium transition-colors ${
+            className={`flex min-h-11 md:min-h-9 items-center px-3 text-body font-semibold transition-colors ${
               !showTop ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground hover:bg-muted'
             }`}
           >

@@ -84,7 +84,7 @@ export default function WizardStepBasis({
             data-testid="recipe-basis-title"
             aria-invalid={Boolean(errors.title)}
             aria-describedby={errors.title ? 'recipe-basis-title-error' : undefined}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-body"
+            className="w-full min-h-11 rounded-lg border bg-background px-3 py-2 text-emphasis md:text-body"
           />
           {errors.title && <p id="recipe-basis-title-error" role="alert" className="mt-1 text-caption text-danger-foreground">{errors.title}</p>}
         </div>
@@ -100,7 +100,7 @@ export default function WizardStepBasis({
                   setErrors((current) => ({ ...current, recipeType: undefined }));
                 }}
                 aria-pressed={recipeType === option.value}
-                className={`rounded-lg border px-2 py-1.5 text-caption font-medium ${recipeType === option.value ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted'}`}
+                className={`min-h-11 rounded-lg border px-2 py-1.5 text-caption font-medium ${recipeType === option.value ? 'border-primary bg-primary-soft text-primary-dark font-semibold' : 'border-border hover:bg-muted'}`}
               >
                 {option.label}
               </button>

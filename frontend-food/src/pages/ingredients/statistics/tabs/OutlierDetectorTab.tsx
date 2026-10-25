@@ -15,7 +15,7 @@ export default function OutlierDetectorTab() {
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
-        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+        <div className="h-80 skeleton-shimmer rounded-xl" />
       ) : data ? (
         <OutlierAccordion fields={data.fields} summary={data.summary} />
       ) : null}

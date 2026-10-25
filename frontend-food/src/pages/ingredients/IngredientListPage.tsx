@@ -1,6 +1,6 @@
-import { SkeletonCardGrid } from '@/components/ui/skeleton';
+import { SkeletonTableRows } from '@/components/ui/skeleton';
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { notify } from '@/lib/notify';
 import { useIngredients, useDeleteIngredient, ApiDeleteError } from '@/api/supplies';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -10,7 +10,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import AreaTabs from '@/components/shared/AreaTabs';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
-import IngredientCard from '@/components/ingredient/IngredientCard';
+import IngredientTableRow from '@/components/ingredient/IngredientTableRow';
 import IngredientFilterSidebar from '@/components/ingredient/IngredientFilterSidebar';
 import EmptyState from '@/components/shared/EmptyState';
 import { IngredientListStateSchema, type INGREDIENT_SORT_VALUES } from '@/schemas/listState';
@@ -71,7 +71,6 @@ export default function IngredientListPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-      {/* Hero */}
       <AreaTabs
         label="Zutaten und Material"
         tabs={[
@@ -80,57 +79,54 @@ export default function IngredientListPage() {
         ]}
       />
       <PageHeader
-        title="Zutatendatenbank"
-        description="Verwalte alle Zutaten mit Nährwerten, Preisen und Nutri-Score."
+        title="Zutaten"
+        description="Nährwerte, Preise und Portionen für jede Zutat."
+        breadcrumbs={[{ label: 'Startseite', to: '/' }, { label: 'Zutaten' }]}
         count={data?.total}
         countLoading={isLoading || !restored}
-        countLabel={{ one: 'Zutat', other: 'Zutaten' }}
+        countLabel={{ one: 'Eintrag', other: 'Einträge' }}
       >
         <ListPageSearchBar
-          placeholder="Zutat suchen..."
+          placeholder="Zutat suchen, z. B. Haferflocken …"
           value={search.input}
           onChange={search.setInput}
           onSubmit={search.submit}
           createLabel="Neue Zutat"
           createHref="/ingredients/new"
         />
-      </PageHeader>
-
-      <div className="flex flex-col md:flex-row gap-4 md:gap-8">
-        {/* Filter Sidebar */}
         <IngredientFilterSidebar
           filters={{ retail_section: retailSection, status, origin }}
           onFilterChange={handleFilterChange}
           onReset={handleReset}
         />
+      </PageHeader>
 
-        {/* Results */}
-        <div className="flex-1">
-          <ActiveFiltersHint activeCount={activeCount} onReset={handleReset} />
-          {/* Sort */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate('/ingredients/statistics')}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-foreground text-body font-medium hover:bg-muted transition-all"
-              >
-                <Icon name="analytics" size={16} />
-                Statistiken
-              </button>
-              <button
-                onClick={() => navigate('/ingredients/new')}
-                className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-body font-medium hover:bg-primary/90 transition-all shadow-soft"
-              >
-                <Icon name="add_circle" size={16} />
-                Neue Zutat
-              </button>
-            </div>
-            <div className="flex items-center gap-2 ml-auto">
+      <div className="flex-1">
+        <ActiveFiltersHint activeCount={activeCount} onReset={handleReset} />
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <Link
+            to="/ingredients/new"
+            className="press sm:hidden flex h-11 items-center gap-1.5 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-body font-semibold transition-colors"
+          >
+            <Icon name="add_circle" size={16} />
+            Neue Zutat
+          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2 ml-auto min-w-0">
+            <button
+              type="button"
+              onClick={() => navigate('/ingredients/statistics')}
+              className="press hidden sm:flex h-11 md:h-9 items-center gap-1.5 rounded-lg bg-card px-4 text-body font-semibold text-foreground shadow-soft hover:text-primary-dark transition-colors"
+            >
+              <Icon name="analytics" size={16} />
+              Statistiken
+            </button>
+            <label className="flex h-11 md:h-9 items-center gap-2 rounded-lg bg-card pl-3 pr-1 shadow-soft min-w-0">
               <Icon name="sort" size={20} className="text-muted-foreground" />
+              <span className="sr-only">Sortieren</span>
               <select
                 value={sort}
                 onChange={(e) => patch({ sort: SORT_OPTIONS.find((opt) => opt.value === e.target.value)?.value, page: undefined })}
-                className="px-3 py-1.5 rounded-lg border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-ring/30 focus:border-primary focus:outline-none font-medium shadow-card transition-all"
+                className="min-w-0 h-11 md:h-9 rounded-lg border-0 bg-transparent px-2 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-ring/40"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -138,56 +134,62 @@ export default function IngredientListPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
           </div>
+        </div>
 
-          {error ? (
-            <ErrorDisplay error={error} onRetry={() => refetch()} />
-          ) : isLoading || !restored ? (
-            <SkeletonCardGrid count={8} withImage={false} label="Zutaten werden geladen" />
-          ) : data?.items.length === 0 ? (
-            activeCount > 0 ? (
-              <EmptyState
-                icon="egg_alt"
-                title="Keine Zutaten gefunden"
-                description="Mit diesen Suchbegriffen und Filtern gibt es keine Treffer."
-                ctaLabel="Filter zurücksetzen"
-                onCtaClick={handleReset}
-              />
-            ) : (
-              <EmptyState
-                icon="egg_alt"
-                title="Noch keine Zutaten"
-                description="Erstelle deine erste Zutat für die Datenbank."
-                ctaLabel="Erste Zutat erstellen"
-                ctaHref="/ingredients/new"
-              />
-            )
+        {error ? (
+          <ErrorDisplay error={error} onRetry={() => refetch()} />
+        ) : isLoading || !restored ? (
+          <SkeletonTableRows rows={8} columns={3} label="Zutaten werden geladen" />
+        ) : data?.items.length === 0 ? (
+          activeCount > 0 ? (
+            <EmptyState
+              icon="egg_alt"
+              title="Keine Zutaten gefunden"
+              description="Mit diesen Suchbegriffen und Filtern gibt es keine Treffer."
+              ctaLabel="Filter zurücksetzen"
+              onCtaClick={handleReset}
+            />
           ) : (
+            <EmptyState
+              icon="egg_alt"
+              title="Noch keine Zutaten"
+              description="Erstelle deine erste Zutat für die Datenbank."
+              ctaLabel="Erste Zutat erstellen"
+              ctaHref="/ingredients/new"
+            />
+          )
+        ) : (
+          <>
+            <div className="hidden md:flex items-center gap-2 px-5 pb-2 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="flex-1">Zutat</span>
+              <span className="w-20 shrink-0 text-center">Score</span>
+              <span className="w-28 shrink-0 text-right">kcal / 100 g</span>
+              <span className="w-28 shrink-0 text-right">Preis / kg</span>
+            </div>
             <div
               aria-busy={isPlaceholderData}
-              className={`stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
+              className={`stagger flex flex-col gap-2 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
             >
               {data?.items.map((ingredient) => (
-                <IngredientCard
+                <IngredientTableRow
                   key={ingredient.id}
                   ingredient={ingredient}
                   onDelete={ingredient.can_delete ? () => setDeleteTarget(ingredient.slug) : undefined}
                 />
               ))}
             </div>
-          )}
+          </>
+        )}
 
-          {/* Pagination */}
-          <Pagination
-            currentPage={data?.page ?? 1}
-            totalPages={data?.total_pages ?? 1}
-            onPageChange={(nextPage) => patch({ page: nextPage })}
-          />
-        </div>
+        <Pagination
+          currentPage={data?.page ?? 1}
+          totalPages={data?.total_pages ?? 1}
+          onPageChange={(nextPage) => patch({ page: nextPage })}
+        />
       </div>
 
-      {/* Delete Confirmation */}
       <ConfirmDialog
         open={deleteTarget !== null}
         onConfirm={() => {

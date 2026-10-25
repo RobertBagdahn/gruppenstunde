@@ -40,7 +40,7 @@ export default function TabFilters({
           aria-label="Abteilung filtern"
           value={retailSectionId}
           onChange={(e) => updateParam('retail_section', e.target.value)}
-          className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+          className="flex min-h-11 md:min-h-9 items-center rounded-lg border border-border px-3 text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
         >
           <option value="">Alle Abteilungen</option>
           {retailSections.map((rs) => (
@@ -56,7 +56,7 @@ export default function TabFilters({
           aria-label="Tag filtern"
           value={tagFilter}
           onChange={(e) => updateParam('tag', e.target.value)}
-          className="px-3 py-1.5 rounded-xl border border-border text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
+          className="flex min-h-11 md:min-h-9 items-center rounded-lg border border-border px-3 text-body bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none"
         >
           <option value="">Alle Tags</option>
           {tagOptions.map((opt) => (
@@ -72,7 +72,7 @@ export default function TabFilters({
       {hasFilters && (
         <button
           onClick={reset}
-          className="px-3 py-1.5 rounded-xl border border-border text-body text-muted-foreground hover:bg-muted transition-colors"
+          className="press flex min-h-11 md:min-h-9 items-center rounded-lg border border-border px-3 text-body text-muted-foreground hover:bg-muted transition-colors"
         >
           Filter zurücksetzen
         </button>

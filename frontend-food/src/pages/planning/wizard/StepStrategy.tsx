@@ -1,5 +1,7 @@
-import { Copy, FileText, Sparkles } from 'lucide-react';
+import { Copy, FileText, LayoutGrid, Sparkles } from 'lucide-react';
 import type { MealPlanWizardState, MealPlanWizardStrategy } from '@/schemas/mealPlan';
+import WizardSectionHeading from './WizardSectionHeading';
+import { WIZARD_INPUT_CLASS, WIZARD_LABEL_CLASS } from './wizardStyles';
 
 interface StepStrategyProps {
   state: MealPlanWizardState;
@@ -42,48 +44,60 @@ export default function StepStrategy({
 }: StepStrategyProps) {
   return (
     <div className="space-y-5">
-      <p className="text-body text-muted-foreground font-medium">
-        Wie soll der neue Essensplan befüllt werden?
-      </p>
+      <div>
+        <WizardSectionHeading icon={<LayoutGrid className="h-5 w-5" />}>Befüllung</WizardSectionHeading>
+        <p className="text-body text-muted-foreground">
+          Wie soll der neue Essensplan befüllt werden?
+        </p>
+      </div>
 
       <div className="space-y-3">
-        {STRATEGIES.map(({ key, icon: Icon, title, description }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onStrategyChange(key)}
-            className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
-              state.strategy === key
-                ? 'border-primary bg-primary/5 shadow-soft'
-                : 'border-border bg-card hover:border-primary/30 hover:shadow-sm'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <div className={`p-2 rounded-lg ${state.strategy === key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                <Icon className="w-5 h-5" />
+        {STRATEGIES.map(({ key, icon: Icon, title, description }) => {
+          const selected = state.strategy === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onStrategyChange(key)}
+              aria-pressed={selected}
+              className={`w-full min-h-11 rounded-xl border-2 p-4 text-left transition-all ${
+                selected
+                  ? 'border-primary bg-primary-soft'
+                  : 'border-border bg-card shadow-card hover:border-primary/40'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    selected ? 'bg-primary text-primary-foreground' : 'bg-primary-soft text-primary'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-display font-bold text-body text-foreground">{title}</h4>
+                  <p className="mt-0.5 text-caption text-muted-foreground">{description}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-display font-bold text-body text-foreground">{title}</h4>
-                <p className="text-caption text-muted-foreground mt-0.5">{description}</p>
-              </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       {state.strategy === 'reference' && (
         <div>
-          <label className="block text-caption font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+          <label htmlFor="wiz-strategy-reference" className={WIZARD_LABEL_CLASS}>
             Vorlage auswählen
           </label>
           <select
+            id="wiz-strategy-reference"
             value={state.reference_plan_id ?? ''}
             onChange={(e) => {
               const id = e.target.value ? Number(e.target.value) : null;
               const plan = plans.find((p) => p.id === id);
               onReferencePlanChange(id, plan?.name ?? '');
             }}
-            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-body font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            className={WIZARD_INPUT_CLASS}
           >
             <option value="">Plan auswählen...</option>
             {plans.map((p) => (
@@ -93,7 +107,7 @@ export default function StepStrategy({
             ))}
           </select>
           {state.reference_plan_name && (
-            <p className="text-caption text-muted-foreground mt-2 font-medium">
+            <p className="mt-2 text-caption text-muted-foreground">
               Vorlage: <span className="text-foreground">{state.reference_plan_name}</span>
             </p>
           )}

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRetailSections } from '@/api/supplies';
 import { INGREDIENT_STATUS_OPTIONS } from '@/lib/ingredientStatus';
 import { Icon } from '@/components/ui/icon';
-import { FilterGroup, FilterRadio, FilterSidebar, ActiveChip } from '@/components/shared/FilterParts';
+import { cn } from '@/lib/utils';
 
 interface IngredientFilters {
   retail_section?: number;
@@ -25,6 +25,48 @@ const STATUS_OPTIONS = [
 
 const VISIBLE_SECTIONS = 6;
 
+/** Filter chip on white ground: active = petrol border and text, never a filled surface. */
+function FilterChip({
+  active,
+  onSelect,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onSelect: () => void;
+  icon?: string;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onSelect}
+      className={cn(
+        'press flex h-11 md:h-9 items-center gap-2 rounded-full border bg-card px-4 text-body font-semibold transition-colors duration-200',
+        active ? 'border-primary text-primary-dark' : 'border-border text-foreground hover:border-primary-soft-border',
+      )}
+    >
+      {icon && <Icon name={icon} size={16} />}
+      {label}
+    </button>
+  );
+}
+
+function ChipGroup({ title, icon, children }: { title: string; icon: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+        <Icon name={icon} size={16} />
+        <span>{title}</span>
+      </h3>
+      <div role="group" aria-label={title} className="flex flex-wrap gap-2">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function IngredientFilterSidebar({
   filters,
   onFilterChange,
@@ -34,7 +76,6 @@ export default function IngredientFilterSidebar({
   const [showAllSections, setShowAllSections] = useState(false);
 
   const hasActiveFilters = !!filters.retail_section || !!filters.status || (filters.origin && filters.origin !== 'all');
-  const activeFilterCount = (filters.retail_section ? 1 : 0) + (filters.status ? 1 : 0) + (filters.origin && filters.origin !== 'all' ? 1 : 0);
 
   // Long section lists: show the first few, the selected one always stays visible.
   const sections = retailSections ?? [];
@@ -43,43 +84,32 @@ export default function IngredientFilterSidebar({
     : sections.filter((rs, index) => index < VISIBLE_SECTIONS || rs.id === filters.retail_section);
   const hiddenSectionCount = sections.length - visibleSections.length;
 
-  const activeSection = filters.retail_section ? sections.find((rs) => rs.id === filters.retail_section) : undefined;
-  const activeStatus = filters.status ? STATUS_OPTIONS.find((o) => o.value === filters.status) : undefined;
-
   return (
-    <FilterSidebar activeCount={activeFilterCount}>
+    <div className="space-y-4">
       {hasActiveFilters && (
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Aktive Filter</span>
-            <button onClick={onReset} className="flex items-center gap-1 text-caption font-medium text-primary hover:underline">
-              <Icon name="close" size={16} />
-              Alle löschen
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {activeSection && <ActiveChip label={activeSection.name} onRemove={() => onFilterChange('retail_section', undefined)} />}
-            {activeStatus && <ActiveChip label={activeStatus.label} onRemove={() => onFilterChange('status', undefined)} />}
-            {filters.origin && filters.origin !== 'all' && (
-              <ActiveChip label="Meine Zutaten" onRemove={() => onFilterChange('origin', undefined)} />
-            )}
-          </div>
+        <div className="flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onReset}
+            className="press flex h-11 md:h-9 items-center gap-1.5 rounded-lg px-3 text-body font-semibold text-primary-dark hover:bg-primary-soft transition-colors"
+          >
+            <Icon name="close" size={16} />
+            Alle Filter löschen
+          </button>
         </div>
       )}
 
-      <FilterGroup title="Abteilung" icon="store">
-        <FilterRadio
-          name="retail_section"
-          checked={!filters.retail_section}
-          onChange={() => onFilterChange('retail_section', undefined)}
+      <ChipGroup title="Abteilung" icon="store">
+        <FilterChip
+          active={!filters.retail_section}
+          onSelect={() => onFilterChange('retail_section', undefined)}
           label="Alle"
         />
         {visibleSections.map((rs) => (
-          <FilterRadio
+          <FilterChip
             key={rs.id}
-            name="retail_section"
-            checked={filters.retail_section === rs.id}
-            onChange={() => onFilterChange('retail_section', rs.id)}
+            active={filters.retail_section === rs.id}
+            onSelect={() => onFilterChange('retail_section', rs.id)}
             label={rs.name}
           />
         ))}
@@ -87,42 +117,39 @@ export default function IngredientFilterSidebar({
           <button
             type="button"
             onClick={() => setShowAllSections((current) => !current)}
-            className="px-2 py-1.5 text-body font-medium text-primary hover:underline"
+            className="press flex h-11 md:h-9 items-center rounded-full px-3 text-body font-semibold text-primary-dark hover:underline"
           >
             {showAllSections ? 'Weniger anzeigen' : `Alle ${sections.length} Abteilungen anzeigen`}
           </button>
         )}
-      </FilterGroup>
+      </ChipGroup>
 
-      <FilterGroup title="Status" icon="verified">
+      <ChipGroup title="Status" icon="verified">
         {STATUS_OPTIONS.map((opt) => (
-          <FilterRadio
-            key={opt.value}
-            name="status"
-            checked={(filters.status ?? '') === opt.value}
-            onChange={() => onFilterChange('status', opt.value || undefined)}
+          <FilterChip
+            key={opt.value || 'all'}
+            active={(filters.status ?? '') === opt.value}
+            onSelect={() => onFilterChange('status', opt.value || undefined)}
             icon={opt.icon}
             label={opt.label}
           />
         ))}
-      </FilterGroup>
+      </ChipGroup>
 
-      <FilterGroup title="Herkunft" icon="person">
-        <FilterRadio
-          name="origin"
-          checked={!filters.origin || filters.origin === 'all'}
-          onChange={() => onFilterChange('origin', undefined)}
+      <ChipGroup title="Herkunft" icon="person">
+        <FilterChip
+          active={!filters.origin || filters.origin === 'all'}
+          onSelect={() => onFilterChange('origin', undefined)}
           icon="public"
           label="Alle"
         />
-        <FilterRadio
-          name="origin"
-          checked={filters.origin === 'mine'}
-          onChange={() => onFilterChange('origin', 'mine')}
+        <FilterChip
+          active={filters.origin === 'mine'}
+          onSelect={() => onFilterChange('origin', 'mine')}
           icon="person"
           label="Meine Zutaten"
         />
-      </FilterGroup>
-    </FilterSidebar>
+      </ChipGroup>
+    </div>
   );
 }

@@ -852,7 +852,7 @@ function ProposalRow({
   const proposedData = asObject(proposal.proposed_data);
   const title = asString(proposedData.name) || asString(proposedData.title) || proposal.source_expected_name || `Vorschlag ${proposal.id}`;
   return (
-    <div className={`space-y-3 rounded-xl border p-3 ${selected ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
+    <div className={`space-y-3 rounded-xl border p-3 ${selected ? 'border-primary bg-primary-soft' : 'border-border bg-background'}`}>
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-body font-semibold text-foreground">{title}</p>

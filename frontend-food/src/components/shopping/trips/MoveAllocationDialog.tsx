@@ -95,7 +95,7 @@ function MoveForm({
               id="move-target"
               value={targetId ?? ''}
               onChange={(e) => setTargetId(Number(e.target.value))}
-              className="h-11 w-full rounded-lg border border-input bg-card px-3 text-body"
+              className="h-11 w-full rounded-lg border border-input bg-card px-3 text-emphasis md:text-body"
             >
               {targets.map((trip) => (
                 <option key={trip.list_id} value={trip.list_id}>
@@ -107,12 +107,12 @@ function MoveForm({
           </div>
 
           <fieldset className="space-y-2">
-            <legend className="text-body font-semibold">Für welche Mahlzeiten?</legend>
-            <label className="flex items-center gap-2 text-body">
+            <legend className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Für welche Mahlzeiten?</legend>
+            <label className="flex min-h-11 items-center gap-2 text-body">
               <input type="radio" name="move-scope" checked={scope === 'all'} onChange={() => setScope('all')} />
               Alle Mahlzeiten
             </label>
-            <label className="flex items-center gap-2 text-body">
+            <label className="flex min-h-11 items-center gap-2 text-body">
               <input type="radio" name="move-scope" checked={scope === 'meal'} onChange={() => setScope('meal')} disabled={meals.length === 0} />
               Nur eine Mahlzeit
             </label>
@@ -121,7 +121,7 @@ function MoveForm({
                 aria-label="Mahlzeit"
                 value={mealId ?? ''}
                 onChange={(e) => setMealId(Number(e.target.value))}
-                className="h-11 w-full rounded-lg border border-input bg-card px-3 text-body"
+                className="h-11 w-full rounded-lg border border-input bg-card px-3 text-emphasis md:text-body"
               >
                 {meals.map((meal) => (
                   <option key={meal.id} value={meal.id}>
@@ -133,12 +133,12 @@ function MoveForm({
           </fieldset>
 
           <fieldset className="space-y-2">
-            <legend className="text-body font-semibold">Wie viel?</legend>
-            <label className="flex items-center gap-2 text-body">
+            <legend className="text-caption font-bold uppercase tracking-wider text-muted-foreground">Wie viel?</legend>
+            <label className="flex min-h-11 items-center gap-2 text-body">
               <input type="radio" name="move-part" checked={part === 'whole'} onChange={() => setPart('whole')} />
               Ganze Menge ({formatBaseAmount(row.kind === 'material' ? row.quantity : row.total_quantity_g, baseUnit)})
             </label>
-            <label className="flex items-center gap-2 text-body">
+            <label className="flex min-h-11 items-center gap-2 text-body">
               <input type="radio" name="move-part" checked={part === 'part'} onChange={() => setPart('part')} />
               Teilmenge
             </label>

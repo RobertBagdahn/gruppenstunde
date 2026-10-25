@@ -132,7 +132,7 @@ export default function CompletenessGrid() {
                   {item.price_status === 'pending' ? (
                     <a
                       href={`/ingredients/${item.slug}`}
-                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-caption font-medium text-primary hover:bg-primary/20"
+                      className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-caption font-medium text-primary hover:bg-primary-soft"
                       title="Preisvorschlag prüfen und bestätigen"
                     >
                       <Sparkles className="h-3 w-3" />
@@ -169,7 +169,7 @@ export default function CompletenessGrid() {
                     disabled={fillingId === item.id}
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-caption gap-1 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    className="h-7 px-2 text-caption gap-1 text-primary hover:text-primary hover:bg-primary-soft transition-colors"
                     title="Fehlende Stammdaten mit KI ergänzen"
                   >
                     {fillingId === item.id ? (

@@ -55,6 +55,12 @@ describe('start page (food-homepage)', () => {
     expect(screen.getByText('2 offen')).toBeInTheDocument();
   });
 
+  it('shows the real recipe-type and plan-setting tags on the tiles', () => {
+    renderHome();
+    expect(screen.getByText('Warme Mahlzeit')).toBeInTheDocument();
+    expect(screen.getByText('Zeltlager')).toBeInTheDocument();
+  });
+
   it('shows no "Weiter planen" card to visitors', () => {
     renderHome();
     expect(screen.queryByText('Weiter planen')).toBeNull();
@@ -71,12 +77,15 @@ describe('start page (food-homepage)', () => {
         norm_portions: 32,
         meals_count: 13,
         filled_meals_count: 12,
+        budget_per_person_per_day: 7,
       },
     ];
     renderHome();
     expect(screen.getByText('Weiter planen')).toBeInTheDocument();
     expect(screen.getByText('Herbstlager 2026')).toBeInTheDocument();
     expect(screen.getByText(/12 von 13/)).toBeInTheDocument();
+    expect(screen.getByText('92 %')).toBeInTheDocument();
+    expect(screen.getByText('7,00 €')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Zum Essensplan/ })).toHaveAttribute('href', '/meal-plans/7');
   });
 });

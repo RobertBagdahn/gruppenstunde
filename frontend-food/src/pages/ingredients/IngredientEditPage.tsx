@@ -26,6 +26,7 @@ import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialo
 import { GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { WIZARD_ERROR_CLASS, WIZARD_INPUT_CLASS, WIZARD_LABEL_CLASS } from '@/pages/planning/wizard/wizardStyles';
 
 // ---------------------------------------------------------------------------
 // Section wrapper
@@ -40,13 +41,15 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl p-4 bg-card shadow-card">
-      <h2 className="text-body font-display font-bold text-foreground mb-4 flex items-center gap-2">
-        <Icon name={icon} size={20} className="text-primary" />
+    <section className="rounded-xl bg-card p-5 shadow-card">
+      <h2 className="mb-4 flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <Icon name={icon} size={20} />
+        </span>
         {title}
       </h2>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -69,10 +72,10 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="text-caption text-muted-foreground mb-1 block">{label}</label>
+      <label className={WIZARD_LABEL_CLASS}>{label}</label>
       {children}
       {error ? (
-        <p role="alert" className="mt-1 text-caption text-destructive">
+        <p role="alert" className={WIZARD_ERROR_CLASS}>
           {error}
         </p>
       ) : hint ? (
@@ -374,7 +377,7 @@ export default function IngredientEditPage() {
     return <div className="animate-pulse h-64 bg-muted rounded-lg max-w-3xl mx-auto mt-6" />;
   }
 
-  const inputClass = 'w-full px-3 py-2 rounded-lg border text-body bg-background';
+  const inputClass = WIZARD_INPUT_CLASS;
 
   return (
     <div className="pb-8">
@@ -432,7 +435,7 @@ export default function IngredientEditPage() {
                   ))}
                 </select>
               ) : (
-                <div className="px-3 py-2 bg-muted/30 border border-border rounded-lg text-body text-muted-foreground">
+                <div className="flex min-h-11 items-center rounded-lg bg-muted px-3 py-2 text-body text-muted-foreground">
                   {ingredientStatusLabel(status)}
                 </div>
               )}
@@ -455,8 +458,8 @@ export default function IngredientEditPage() {
               <input type="number" step="0.01" min="0" value={pricePerKg} onChange={(e) => setPricePerKg(e.target.value)} className={inputClass} />
             </Field>
             <Field label="Roh verzehrbar">
-              <label className="flex items-center gap-2 pt-2 cursor-pointer">
-                <input type="checkbox" checked={isStandaloneFood} onChange={(e) => setIsStandaloneFood(e.target.checked)} className="h-4 w-4" />
+              <label className="flex min-h-11 items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={isStandaloneFood} onChange={(e) => setIsStandaloneFood(e.target.checked)} className="h-5 w-5 accent-primary" />
                 <span className="text-body text-muted-foreground">Kann roh/direkt gegessen werden</span>
               </label>
             </Field>
@@ -553,8 +556,8 @@ export default function IngredientEditPage() {
               <input type="number" step="0.01" min="0.01" value={cookingFactor} onChange={(e) => setCookingFactor(e.target.value)} placeholder="z.B. 0.7 (Fleisch) oder 2.5 (Nudeln)" className={inputClass} />
             </Field>
             <Field label="Camp-geeignet">
-              <label className="flex items-center gap-2 pt-2 cursor-pointer">
-                <input type="checkbox" checked={campSuitable} onChange={(e) => setCampSuitable(e.target.checked)} className="h-4 w-4" />
+              <label className="flex min-h-11 items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={campSuitable} onChange={(e) => setCampSuitable(e.target.checked)} className="h-5 w-5 accent-primary" />
                 <span className="text-body text-muted-foreground">Ja, fürs Zeltlager geeignet</span>
               </label>
             </Field>
@@ -645,12 +648,12 @@ export default function IngredientEditPage() {
                     key={tag.id}
                     type="button"
                     onClick={() => toggleTag(tag.id)}
-                    className={`text-caption px-3 py-1.5 rounded-full border transition ${
+                    className={`inline-flex min-h-11 items-center text-body px-4 rounded-full border transition ${
                       selected
                         ? tag.is_dangerous
-                          ? 'bg-destructive/10 text-destructive border-destructive/20'
-                          : 'bg-primary/10 text-primary border-primary/20'
-                        : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                          ? 'bg-danger-soft text-danger-foreground border-danger-border'
+                          : 'bg-primary-soft text-primary-dark border-primary'
+                        : 'bg-card text-foreground border-border hover:bg-muted'
                     }`}
                   >
                     {tag.name}
@@ -675,10 +678,10 @@ export default function IngredientEditPage() {
                     key={tag.id}
                     type="button"
                     onClick={() => toggleContentTag(tag.id)}
-                    className={`text-caption px-3 py-1.5 rounded-full border transition ${
+                    className={`inline-flex min-h-11 items-center text-body px-4 rounded-full border transition ${
                       selected
-                        ? 'bg-primary/10 text-primary border-primary/20'
-                        : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                        ? 'bg-primary-soft text-primary-dark border-primary'
+                        : 'bg-card text-foreground border-border hover:bg-muted'
                     }`}
                   >
                     {tag.icon && <span className="mr-1">{tag.icon}</span>}
@@ -698,14 +701,14 @@ export default function IngredientEditPage() {
           <button
             type="button"
             onClick={() => navigate(`/ingredients/${slug}`)}
-            className="px-4 py-2 border rounded-lg text-body hover:bg-muted transition"
+            className="flex min-h-11 items-center justify-center rounded-lg bg-primary-soft px-5 py-2 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft-border/70"
           >
             Abbrechen
           </button>
           <button
             type="submit"
             disabled={!name.trim() || updateIngredient.isPending}
-            className="flex items-center gap-1.5 px-6 py-2 bg-primary text-primary-foreground rounded-lg text-body hover:opacity-90 transition disabled:opacity-50"
+            className="flex min-h-11 items-center gap-1.5 rounded-lg bg-primary px-6 py-2 text-body font-medium text-primary-foreground shadow-soft transition-colors hover:bg-primary-dark disabled:opacity-50"
           >
             {updateIngredient.isPending && (
               <Icon name="progress_activity" size={20} className="animate-spin" />

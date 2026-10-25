@@ -58,7 +58,7 @@ export default function WizardStepMethod({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft text-primary">
           <Sparkles className="h-6 w-6" />
         </div>
         <h2 className="text-section font-display font-bold">Rezept mit KI vorbereiten</h2>
@@ -80,7 +80,7 @@ export default function WizardStepMethod({
           }}
           placeholder="z. B. https://www.chefkoch.de/... oder „Kartoffelsuppe für 4 Personen“"
           rows={7}
-          className="w-full resize-y rounded-lg border bg-background px-3 py-2.5 text-body focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full resize-y rounded-lg border bg-background px-3 py-2.5 text-emphasis md:text-body focus:outline-none focus:ring-2 focus:ring-primary/30"
           data-testid="recipe-smart-input"
         />
         <div className="flex flex-wrap gap-2">
@@ -94,7 +94,7 @@ export default function WizardStepMethod({
               setInput('');
               hasResultRef.current = false;
             }}
-            className="min-h-11 md:min-h-0 rounded-lg border px-3 py-2 text-body hover:bg-muted"
+            className="min-h-11 md:min-h-0 rounded-lg bg-primary-soft px-3 py-2 text-body font-medium text-primary-dark transition-colors hover:bg-primary-soft/70"
           >
             Quelle hinzufügen
           </button>
@@ -106,7 +106,7 @@ export default function WizardStepMethod({
                 setSources((current) => current.filter((_, sourceIndex) => sourceIndex !== index));
                 hasResultRef.current = false;
               }}
-              className="max-w-full truncate rounded-full bg-muted px-3 py-1.5 text-caption text-muted-foreground"
+              className="min-h-11 md:min-h-0 max-w-full truncate rounded-full bg-primary-soft px-3 py-1.5 text-caption font-medium text-primary-dark"
               title="Quelle entfernen"
             >
               {source.type === 'url' ? source.value : 'Eingefügter Text'} ×
@@ -114,7 +114,7 @@ export default function WizardStepMethod({
           ))}
         </div>
         {!user && (
-          <p className="rounded-lg bg-primary/5 px-3 py-2 text-caption leading-relaxed text-muted-foreground">
+          <p className="rounded-lg bg-muted px-3 py-2 text-caption leading-relaxed text-muted-foreground">
             Ohne Anmeldung nutzt du eine kostenlose, begrenzte KI-Vorschau. Gespeichert wird erst, wenn du dich
             anmeldest.
           </p>

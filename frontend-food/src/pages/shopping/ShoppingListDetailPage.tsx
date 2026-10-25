@@ -5,7 +5,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
-import { BackButton } from '@/components/shared/BackButton';
+import Breadcrumbs from '@/components/shared/Breadcrumbs';
 import { QuantityWarningsBanner } from '@/components/shared/QuantityWarningsBanner';
 import {
   useShoppingList,
@@ -437,7 +437,7 @@ export default function ShoppingListDetailPage() {
   return (
     <>
     {/* The screen view steps aside while printing; ShoppingListPrintView is the only sheet that prints. */}
-    <div className="max-w-2xl mx-auto px-4 py-8 font-sans print:hidden">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 font-sans print:hidden">
       {(pulseOverloaded || isOverloadError(error)) && (
         <div className="mb-4">
           <OverloadNotice />
@@ -465,8 +465,14 @@ export default function ShoppingListDetailPage() {
       />
 
       {/* Header on the white ground */}
-      <header className="mb-6 space-y-3">
-      <BackButton to="/shopping-lists" className="mb-1" />
+      <header className="mb-6 space-y-4 md:mb-8">
+      <Breadcrumbs
+        items={[
+          { label: 'Startseite', to: '/' },
+          { label: 'Einkaufslisten', to: '/shopping-lists' },
+          { label: list.name },
+        ]}
+      />
       <div className="flex items-center gap-3 mb-3">
         <div className="flex-1 min-w-0">
           {/* Narrow screens: the action buttons move below the title instead of squeezing it. */}
@@ -530,7 +536,7 @@ export default function ShoppingListDetailPage() {
                 data-testid="shopping-shop-mode-toggle"
                 className={cn(
                   'press flex h-11 w-11 items-center justify-center rounded-lg transition-colors',
-                  shopMode ? 'bg-primary-soft text-primary-dark' : 'bg-muted text-foreground hover:bg-primary-soft',
+                  shopMode ? 'bg-primary-soft text-primary-dark' : 'bg-card text-foreground shadow-soft hover:bg-primary-soft',
                 )}
               >
                 <ShoppingBasket className="w-4 h-4" />
@@ -544,7 +550,7 @@ export default function ShoppingListDetailPage() {
                   aria-label="Einkaufsliste teilen"
                   aria-expanded={showShare}
                   data-testid="shopping-share-toggle"
-                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft/30"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-card text-foreground shadow-soft transition-colors hover:bg-primary-soft"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -554,7 +560,7 @@ export default function ShoppingListDetailPage() {
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
                   aria-label="Einkaufsliste löschen"
-                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-danger-border transition-colors hover:bg-danger-soft hover:text-danger"
+                  className="press flex h-11 w-11 items-center justify-center rounded-lg bg-card text-danger-border shadow-soft transition-colors hover:bg-danger-soft hover:text-danger"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -638,9 +644,36 @@ export default function ShoppingListDetailPage() {
         />
       ) : (
         <>
-      {/* Progress */}
-      <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+      {/* Side card: progress, estimated total and one tip (first on phones, right column on desktop) */}
+      <aside className="order-first space-y-4 lg:order-last lg:sticky lg:top-6 lg:w-80 lg:shrink-0">
+        <ShoppingListProgress checked={checkedCount} total={totalCount} />
+        {!shopMode && items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
+          <div className="rounded-xl bg-card p-5 shadow-card">
+            <p className="text-caption font-bold uppercase tracking-wider text-muted-foreground">
+              Geschätzter Gesamtpreis
+            </p>
+            <p className="mt-1 font-display text-section font-extrabold tabular-nums text-foreground">
+              {formatEuro(items.reduce((sum, i) => sum + (i.estimated_price_eur ?? 0), 0))}
+            </p>
+          </div>
+        )}
+        <div className="flex items-center gap-3 rounded-xl bg-primary-soft p-4">
+          <img
+            src="/images/inspi_food.webp"
+            alt=""
+            aria-hidden="true"
+            width={56}
+            height={56}
+            className="h-14 w-14 shrink-0 object-contain"
+          />
+          <p className="text-body text-primary-dark">
+            Tipp: Im Einkaufsmodus siehst du nur offene Posten, groß und nach Abteilung sortiert.
+          </p>
+        </div>
+      </aside>
 
+      <div className="min-w-0 flex-1">
       {/* Search: filters the entries in place, checked ones included */}
       {totalCount > 0 && renderSearch(false, visibleItems.length)}
 
@@ -675,18 +708,6 @@ export default function ShoppingListDetailPage() {
         </Link>
       )}
 
-      {/* Total price */}
-      {!shopMode && items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
-        <div className="flex items-center justify-between border border-line bg-card shadow-card rounded-xl px-4 py-3 mb-6">
-          <span className="text-body font-semibold text-primary-dark">
-            Geschätzter Gesamtpreis
-          </span>
-          <span className="text-section font-bold text-foreground">
-            {formatEuro(items.reduce((sum, i) => sum + (i.estimated_price_eur ?? 0), 0))}
-          </span>
-        </div>
-      )}
-
       {/* Items grouped by section */}
       {totalCount === 0 ? (
         <div className="text-center py-12 bg-card rounded-xl shadow-card">
@@ -718,10 +739,15 @@ export default function ShoppingListDetailPage() {
           {Object.entries(groupedItems).map(([section, items]) => (
             <div key={section} className="bg-card rounded-xl p-4 md:p-5 shadow-card">
               {section && (
-                <h3 className="text-caption font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5 border-b border-border/40 pb-2">
-                  <Store className="w-4 h-4 text-primary shrink-0" />
-                  {section}
-                </h3>
+                <div className="mb-3 flex items-center gap-3 border-b border-border/40 pb-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-dark">
+                    <Store className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="min-w-0 flex-1 truncate font-display text-emphasis font-bold text-foreground">{section}</h3>
+                  <span className="text-caption font-semibold text-muted-foreground tabular-nums">
+                    {items.filter((i) => i.is_checked).length} von {items.length}
+                  </span>
+                </div>
               )}
               <div className="divide-y divide-border/40 space-y-1">
                 {items.map((item) => (
@@ -800,6 +826,8 @@ export default function ShoppingListDetailPage() {
         </div>
       )}
 
+      </div>
+      </div>
         </>
       )}
 

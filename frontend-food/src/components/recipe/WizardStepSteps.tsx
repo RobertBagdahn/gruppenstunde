@@ -27,12 +27,14 @@ export default function WizardStepSteps({ recipeSlug }: WizardStepStepsProps) {
 
       <StaleStepsNotice />
 
-      <StepEditor
-        ref={editorRef}
-        recipeSlug={recipeSlug}
-        availableRecipeItems={availableRecipeItems}
-        onSave={() => {}}
-      />
+      <section className="rounded-xl bg-card p-4 sm:p-5 shadow-card">
+        <StepEditor
+          ref={editorRef}
+          recipeSlug={recipeSlug}
+          availableRecipeItems={availableRecipeItems}
+          onSave={() => {}}
+        />
+      </section>
     </div>
   );
 }

@@ -18,7 +18,6 @@ import type { ShoppingEvent } from '@/schemas/shoppingTrip';
 import { useCurrentUser } from '@/api/auth';
 import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import type { ShoppingList } from '@/schemas/shoppingList';
-import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/shared/PageHeader';
@@ -44,19 +43,26 @@ function ShoppingListCard({ list, onDelete }: { list: ShoppingList; onDelete: (l
       ? Calendar
       : Edit3;
 
+  const total = list.items_count;
+  const checked = list.checked_count;
+  const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+  const complete = total > 0 && checked === total;
+
   return (
-    <div className="group relative rounded-xl border border-border bg-card shadow-soft transition-all hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5">
+    <div className="card-hover group relative rounded-xl bg-card shadow-card">
       <Link
         to={`/shopping-lists/${list.id}`}
-        className={cn('block rounded-xl p-5', list.can_delete && 'pr-14')}
+        className={cn('block rounded-xl p-5', list.can_delete && 'pr-16')}
       >
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-1.5">
             <h3 className="font-display font-bold text-emphasis text-foreground truncate group-hover:text-primary transition-colors">
               {list.name}
             </h3>
             {list.event_name && (
-              <p className="mt-1 truncate text-caption font-semibold text-primary">{list.event_name}</p>
+              <span className="inline-block max-w-full truncate rounded-full bg-primary-soft px-2.5 py-0.5 text-caption font-bold text-primary-dark">
+                {list.event_name}
+              </span>
             )}
             {(list.store_name || list.scheduled_at) && (
               <p className="mt-1 flex items-center gap-1 text-caption text-muted-foreground">
@@ -82,16 +88,21 @@ function ShoppingListCard({ list, onDelete }: { list: ShoppingList; onDelete: (l
               )}
             </div>
           </div>
-          {list.items_count === list.checked_count && list.items_count > 0 && (
-            <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-          )}
+          {complete && <CheckCircle2 role="img" aria-label="Alles erledigt" className="w-5 h-5 text-primary shrink-0" />}
         </div>
 
-        <ShoppingListProgress
-          checked={list.checked_count}
-          total={list.items_count}
-          className="mt-4"
-        />
+        <div className="mt-4 space-y-2">
+          <div className="flex justify-between text-caption font-semibold text-muted-foreground tabular-nums">
+            <span>{checked} / {total} erledigt</span>
+            <span>{pct}%</span>
+          </div>
+          <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', complete ? 'bg-success-bright' : 'bg-primary')}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
       </Link>
       <SourceFreshnessNotice
         status={list.source_status}
@@ -106,7 +117,7 @@ function ShoppingListCard({ list, onDelete }: { list: ShoppingList; onDelete: (l
           onClick={() => onDelete(list)}
           aria-label={`Einkaufsliste „${list.name}“ löschen`}
           title="Einkaufsliste löschen"
-          className="absolute right-3 top-3 flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className="absolute right-2 top-2 flex items-center justify-center w-11 h-11 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -119,7 +130,7 @@ function EventCard({ event }: { event: ShoppingEvent }) {
   return (
     <Link
       to={`/shopping-lists/events/${event.slug}`}
-      className="card-hover press block rounded-xl bg-card p-5 shadow-card transition-all hover:border-primary/40"
+      className="card-hover press block rounded-xl bg-card p-5 shadow-card"
     >
       <h3 className="truncate font-display text-emphasis font-bold text-foreground">{event.name}</h3>
       <p className="mt-1 text-caption font-semibold text-muted-foreground">{formatDateRange(event.start_date, event.end_date)}</p>
@@ -343,7 +354,7 @@ export default function ShoppingListPage() {
           type="button"
           onClick={() => patch({ mine: myDataOnly ? undefined : '1' })}
           className={[
-            'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-body font-semibold border transition-all shadow-soft',
+            'inline-flex min-h-11 items-center gap-2 px-3.5 py-1.5 rounded-xl text-body font-semibold border transition-all shadow-soft md:min-h-0',
             myDataOnly
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/40',
@@ -375,7 +386,7 @@ export default function ShoppingListPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Name der Einkaufsliste"
-              className="flex-1 px-3.5 py-2 text-body border border-border rounded-xl bg-background font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+              className="min-h-11 flex-1 px-3.5 py-2 text-emphasis md:text-body border border-border rounded-xl bg-background font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               autoFocus
             />
@@ -384,7 +395,7 @@ export default function ShoppingListPage() {
                 type="button"
                 onClick={handleCreate}
                 disabled={createList.isPending || !newName.trim()}
-                className="px-4 py-2 text-body font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+                className="min-h-11 px-4 py-2 text-body font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft md:min-h-0"
               >
                 Erstellen
               </button>
@@ -394,7 +405,7 @@ export default function ShoppingListPage() {
                   setShowCreate(false);
                   setNewName('');
                 }}
-                className="px-4 py-2 text-body font-semibold border border-border rounded-xl hover:bg-muted bg-card transition-all shadow-soft"
+                className="min-h-11 px-4 py-2 text-body font-semibold border border-border rounded-xl hover:bg-muted bg-card transition-all shadow-soft md:min-h-0"
               >
                 Abbrechen
               </button>

@@ -4,6 +4,7 @@ import DataQualityIngredientsPage from './DataQualityIngredientsPage';
 import DataQualityRecipesPage from './DataQualityRecipesPage';
 import PortionRepairList from '@/components/data-quality/PortionRepairList';
 import DataOffensivePage from './DataOffensivePage';
+import PageHeader from '@/components/shared/PageHeader';
 
 const TABS = [
   { key: 'cockpit', label: 'Cockpit' },
@@ -22,33 +23,39 @@ export default function DataQualityPage() {
   if (!section) return <Navigate to="/admin/data-quality/cockpit" replace />;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
-<header className="mb-6 space-y-3">
-      <div className="space-y-1">
-        <h1 className="font-display text-display font-extrabold text-foreground">Datenqualität</h1>
-        <p className="text-emphasis text-muted-foreground mt-2">
-          Werkzeuge zur Verbesserung der Datenqualität von Zutaten und Rezepten
-        </p>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <PageHeader
+        title="Datenqualität"
+        description="Werkzeuge zur Verbesserung der Datenqualität von Zutaten und Rezepten"
+      />
 
-      <div className="flex gap-1 overflow-x-auto pt-5">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => navigate(`/admin/data-quality/${tab.key}`)}
-            className={cn(
-              'press h-11 px-4 rounded-full text-body font-semibold whitespace-nowrap transition-colors',
-              activeTab === tab.key
-                ? 'bg-background text-foreground'
-                : 'text-muted-foreground hover:bg-primary-soft hover:text-primary-dark'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Section chips: white with a thin border, the active chip in petrol (as in the statistics page) */}
+      <div className="relative mb-6">
+        <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
+          <div className="flex gap-2 min-w-max pb-2">
+            {TABS.map((tab) => {
+              const active = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => navigate(`/admin/data-quality/${tab.key}`)}
+                  className={cn(
+                    'press flex min-h-11 md:min-h-9 items-center rounded-full border bg-card px-4 text-body font-semibold whitespace-nowrap transition-colors duration-200',
+                    active
+                      ? 'border-primary text-primary-dark'
+                      : 'border-border text-foreground hover:border-primary-soft-border'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-background/80 sm:hidden" />
       </div>
-
-      </header>
 
       {activeTab === 'cockpit' && <DataOffensivePage />}
       {activeTab === 'ingredients' && <DataQualityIngredientsPage />}

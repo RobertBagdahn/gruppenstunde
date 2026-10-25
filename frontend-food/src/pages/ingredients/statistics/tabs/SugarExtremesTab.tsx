@@ -15,7 +15,7 @@ export default function SugarExtremesTab() {
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
-        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+        <div className="h-80 skeleton-shimmer rounded-xl" />
       ) : data ? (
         <LeaderboardTable top={data.top} bottom={data.bottom} count={data.count} unit="g" />
       ) : null}

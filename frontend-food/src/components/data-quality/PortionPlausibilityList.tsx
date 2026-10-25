@@ -30,7 +30,7 @@ export default function PortionPlausibilityList({ page = 1, pageSize = 50 }: Por
         <a
           key={item.id}
           href={`/recipes/${item.slug}`}
-          className="block rounded-xl border border-danger-border bg-danger-soft/30 p-4 hover:shadow-sm transition-shadow"
+          className="block rounded-xl border border-danger-border bg-danger-soft/30 p-4 hover:shadow-soft transition-shadow"
         >
           <div className="flex items-center justify-between">
             <div>

@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import PageHeader from '@/components/shared/PageHeader';
 import RetailSectionTab from './RetailSectionTab';
 import NutritionalTagTab from './NutritionalTagTab';
 import TagTab from './TagTab';
@@ -34,29 +35,35 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
-<header className="mb-6 space-y-3">
-      <h1 className="font-display text-display font-extrabold text-foreground">Stammdaten</h1>
-
-      {/* Tab Navigation */}
-      <div className="flex gap-1 overflow-x-auto pt-5">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => navigate('href' in tab ? tab.href! : `/admin/${tab.key}`)}
-            className={cn(
-              'press h-11 px-4 rounded-full text-body font-semibold whitespace-nowrap transition-colors',
-              activeTab === tab.key || (tab.key === 'data-quality' && section === 'data-quality')
-                ? 'bg-background text-foreground'
-                : 'text-muted-foreground hover:bg-primary-soft hover:text-primary-dark'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      </header>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <PageHeader
+        title="Stammdaten"
+        description="Abteilungen, Ernährungsmerkmale, Tags, Regeln und Freigaben pflegen."
+        breadcrumbs={[{ label: 'Startseite', to: '/' }, { label: 'Stammdaten' }]}
+      >
+        {/* Tab Navigation (URL-State: /admin/:section) */}
+        <nav aria-label="Stammdaten-Bereiche" className="flex gap-2 overflow-x-auto pb-1">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key || (tab.key === 'data-quality' && section === 'data-quality');
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => navigate('href' in tab ? tab.href! : `/admin/${tab.key}`)}
+                className={cn(
+                  'press flex h-11 md:h-9 shrink-0 items-center rounded-full border bg-card px-4 text-body whitespace-nowrap transition-colors duration-200',
+                  isActive
+                    ? 'border-primary font-semibold text-primary-dark'
+                    : 'border-border font-medium text-foreground hover:border-primary-soft-border',
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </PageHeader>
 
       {/* Tab Content */}
       {activeTab === 'approvals' && <ApprovalTab />}

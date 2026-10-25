@@ -27,7 +27,7 @@ import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import ActiveFiltersHint from '@/components/shared/ActiveFiltersHint';
 import { MealPlanListStateSchema } from '@/schemas/listState';
 import { usePersistedListState, useDebouncedSearchInput } from '@/hooks/usePersistedListState';
-import { CardTable, DataCardRow } from '@/components/shared/CardTable';
+import { CardTable } from '@/components/shared/CardTable';
 import {
   planTiming,
   planDurationDays,
@@ -347,13 +347,12 @@ function MealPlanListPageInner() {
     const progress = plan.meals_count > 0 ? Math.round((plan.filled_meals_count / plan.meals_count) * 100) : 0;
 
     return (
-      <DataCardRow
-        clickable
+      <div
         onClick={() => navigate(`/meal-plans/${plan.id}`)}
-        className={`group ${timing === 'past' ? 'opacity-80' : ''}`}
+        className={`card-hover group flex cursor-pointer items-start gap-3 rounded-xl bg-card p-4 shadow-card md:items-center md:gap-5 md:p-5 ${timing === 'past' ? 'opacity-80' : ''}`}
       >
         <div
-          className="hidden md:flex w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 py-1.5 text-primary"
+          className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft py-2 text-primary-dark"
           aria-hidden="true"
         >
           {dateBlock ? (
@@ -400,7 +399,7 @@ function MealPlanListPageInner() {
             <span className="font-semibold tabular-nums text-foreground">
               {plan.filled_meals_count} von {plan.meals_count} Mahlzeiten
             </span>
-            <span aria-hidden="true" className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+            <span aria-hidden="true" className="h-2 w-24 overflow-hidden rounded-full bg-muted md:w-32">
               <span className="block h-full bg-primary" style={{ width: `${progress}%` }} />
             </span>
             {costPerDay !== null && (
@@ -471,7 +470,7 @@ function MealPlanListPageInner() {
               <button
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`Aktionen für ${plan.name}`}
-                className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -512,7 +511,7 @@ function MealPlanListPageInner() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </DataCardRow>
+      </div>
     );
   };
 
@@ -528,7 +527,7 @@ function MealPlanListPageInner() {
         actions={
           <Link
             to="/tools/norm-portion-simulator"
-            className="press inline-flex h-11 items-center gap-2 rounded-full bg-muted px-4 text-body font-semibold text-foreground transition-colors hover:bg-primary-soft hover:text-primary-dark"
+            className="press inline-flex h-11 items-center gap-2 rounded-lg bg-primary-soft px-4 text-body font-semibold text-primary-dark transition-colors hover:bg-primary-soft-border/60"
           >
             <Calculator className="w-4 h-4" />
             Norm-Portion-Simulator
@@ -570,7 +569,7 @@ function MealPlanListPageInner() {
         <div className="flex-1 min-w-0">
           <ActiveFiltersHint activeCount={activeCount} onReset={reset} />
           {sort === 'date_upcoming' && (
-            <div role="tablist" aria-label="Zeitraum" className="mb-4 inline-flex rounded-full bg-muted p-1">
+            <div role="tablist" aria-label="Zeitraum" className="mb-4 flex flex-wrap gap-2">
               {(
                 [
                   { key: 'upcoming', label: 'Anstehend', count: sectionsByTab.upcomingCount },
@@ -583,8 +582,10 @@ function MealPlanListPageInner() {
                   role="tab"
                   aria-selected={tab === item.key}
                   onClick={() => setTab(item.key)}
-                  className={`press flex h-11 items-center gap-2 rounded-full px-4 text-body font-semibold transition-colors ${
-                    tab === item.key ? 'bg-background text-primary-dark shadow-soft' : 'text-muted-foreground hover:text-foreground'
+                  className={`press flex h-11 items-center gap-2 rounded-full border px-4 text-body font-semibold transition-colors ${
+                    tab === item.key
+                      ? 'border-primary bg-primary text-primary-foreground shadow-soft'
+                      : 'border-border bg-card text-foreground hover:bg-primary-soft'
                   }`}
                 >
                   {item.label}
@@ -618,7 +619,7 @@ function MealPlanListPageInner() {
           {isLoading || !restored ? (
             <CardTable>
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+                <div key={i} className="h-28 rounded-xl skeleton-shimmer" />
               ))}
             </CardTable>
           ) : visiblePlans.length === 0 && activeCount === 0 ? (
@@ -663,7 +664,7 @@ function MealPlanListPageInner() {
                   {section.months.map((group) => (
                     <div key={group.key}>
                       {group.month && (
-                        <h3 className="mb-3 flex items-center gap-2 text-body font-bold text-muted-foreground">
+                        <h3 className="mb-3 flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-muted-foreground">
                           {monthLabel(group.month)}
                           <span className="text-caption font-semibold">({group.plans.length})</span>
                         </h3>
@@ -804,14 +805,14 @@ function MealPlanListPageInner() {
                 setShowCreate(false);
                 resetCreateForm();
               }}
-              className="px-4 py-2.5 rounded-xl border border-border text-body font-semibold hover:bg-muted transition-all"
+              className="min-h-11 px-4 py-2.5 rounded-xl border border-border text-body font-semibold hover:bg-muted transition-all"
             >
               Abbrechen
             </button>
             <button
               onClick={handleSubmit}
               disabled={!createName.trim() || createMutation.isPending || duplicateMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+              className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-body font-semibold hover:bg-primary-dark transition-all disabled:opacity-50 shadow-soft"
             >
               {(createMutation.isPending || duplicateMutation.isPending) ? 'Erstelle...' : 'Erstellen'}
             </button>

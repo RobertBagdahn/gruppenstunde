@@ -138,7 +138,7 @@ export function DayPlanView({
           <button
             onClick={onAddDayBefore}
             disabled={addDayBeforePending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-body text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-lg border border-primary-soft-border bg-primary-soft text-body font-semibold text-primary-dark hover:bg-primary-soft-border/60 transition-colors disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             Tag davor
@@ -163,7 +163,7 @@ export function DayPlanView({
           return (
             <div key={group.date} id={`day-${group.date}`} className="rounded-xl bg-card overflow-hidden scroll-mt-24 shadow-card">
               {/* Day Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 bg-primary/5 border-b gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 bg-muted/40 border-b border-border gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-display font-bold text-section sm:text-section">{formatDate(group.date)}</h3>
@@ -171,7 +171,7 @@ export function DayPlanView({
                       const coverage = getDayCoverage(group.meals);
                       const badge = getCoverageBadge(coverage);
                       const colorClasses = {
-                        green: 'bg-primary/10 text-primary border-primary/20',
+                        green: 'bg-primary-soft text-primary-dark border-primary-soft-border',
                         yellow: 'bg-warning-soft text-warning border-warning-border',
                         red: 'bg-destructive/10 text-destructive border-destructive/20',
                         overplanned: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -184,12 +184,12 @@ export function DayPlanView({
                     })()}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
+                    <span className="inline-flex items-center gap-1.5 bg-card px-2.5 py-1 rounded-full border border-border font-medium">
                       <Icon name="local_fire_department" size={16} />
                       <span>Energie: Ist {formatCount(dayActualKcal)} / Soll {formatCount(dayTargetKcal)} kcal</span>
                     </span>
                     {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
-                      <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
+                      <span className="inline-flex items-center gap-1.5 bg-card px-2.5 py-1 rounded-full border border-border font-medium">
                         <Icon name="payments" size={16} />
                         <span>Preis: Ist {formatNumber(dayActualCost, { maxDecimals: 2 })} € / Soll {formatNumber(dayTargetCost, { maxDecimals: 2 })} €</span>
                       </span>
@@ -247,14 +247,14 @@ export function DayPlanView({
                       if (!canEdit) return;
                       e.preventDefault();
                       e.dataTransfer.dropEffect = 'move';
-                      e.currentTarget.classList.add('bg-primary/5');
+                      e.currentTarget.classList.add('bg-primary-soft');
                     }}
                     onDragLeave={(e) => {
-                      e.currentTarget.classList.remove('bg-primary/5');
+                      e.currentTarget.classList.remove('bg-primary-soft');
                     }}
                     onDrop={(e) => {
                       e.preventDefault();
-                      e.currentTarget.classList.remove('bg-primary/5');
+                      e.currentTarget.classList.remove('bg-primary-soft');
                       try {
                         const raw = e.dataTransfer.getData('application/json');
                         if (!raw) return;
@@ -300,11 +300,11 @@ export function DayPlanView({
 
 
               {canPlanTrips && (
-                <div className="border-t bg-muted/20 px-5 py-3">
+                <div className="border-t border-border bg-muted/20 px-5 py-3">
                   <button
                     type="button"
                     onClick={() => setTripDialog({ mode: 'create', date: group.date })}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-body font-medium text-primary hover:bg-primary/10"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-body font-medium text-primary-dark hover:bg-primary-soft"
                   >
                     <Plus className="h-4 w-4" />
                     Einkauf einfügen
@@ -314,7 +314,7 @@ export function DayPlanView({
 
               {/* Add Meal */}
               {canEdit && (
-                <div className="px-5 py-3 border-t bg-muted/20">
+                <div className="px-5 py-3 border-t border-border bg-muted/20">
                   <div className="flex flex-wrap gap-1.5">
                     {MEAL_TYPE_ORDER
                       .filter((mt) => mt !== 'snack' && !group.meals.some((m) => m.meal_type === mt))
@@ -325,7 +325,7 @@ export function DayPlanView({
                             const newMeal = await onAddMealType(group.date, mt);
                             if (newMeal) setSearchDialogMeal(newMeal);
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-body font-medium text-primary hover:bg-primary/10 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-body font-medium text-primary-dark hover:bg-primary-soft transition-colors"
                         >
                           <Plus className="w-4 h-4 text-primary" />
                           {MEAL_TYPE_LABELS[mt] || mt}
@@ -337,7 +337,7 @@ export function DayPlanView({
                         const newMeal = await onAddMealType(group.date, 'snack');
                         if (newMeal) setSearchDialogMeal(newMeal);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-body font-medium text-primary hover:bg-primary/10 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-body font-medium text-primary-dark hover:bg-primary-soft transition-colors"
                     >
                       <Plus className="w-4 h-4 text-primary" />
                       {MEAL_TYPE_LABELS.snack}
@@ -356,7 +356,7 @@ export function DayPlanView({
           <button
             onClick={onAddDayAfter}
             disabled={addDayAfterPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-body text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2 rounded-lg border border-primary-soft-border bg-primary-soft text-body font-semibold text-primary-dark hover:bg-primary-soft-border/60 transition-colors disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             Tag danach

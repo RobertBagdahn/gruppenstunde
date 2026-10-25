@@ -4,16 +4,17 @@
  *
  * Ticking off is stored only in this browser (localStorage), never on the server.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ClipboardCopy, Printer } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { useMaterialList, type MaterialListSource } from '@/api/materials';
-import { BackButton } from '@/components/shared/BackButton';
+import DetailHeader from '@/components/shared/DetailHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { buildMaterialListText, formatEuro, formatMaterialAmount } from '@/lib/materialAmount';
 import type { MaterialListEntry } from '@/schemas/supply';
@@ -54,56 +55,68 @@ function saveChecked(key: string, ids: number[]): void {
   }
 }
 
-function backTarget(source: MaterialListSource | null): string {
+function backTarget(source: MaterialListSource | null): { to: string; label: string } {
   switch (source?.kind) {
     case 'meal-plan':
-      return `/meal-plans/${source.id}`;
+      return { to: `/meal-plans/${source.id}`, label: 'Essensplan' };
     case 'shopping-list':
-      return `/shopping-lists/${source.id}`;
+      return { to: `/shopping-lists/${source.id}`, label: 'Einkaufsliste' };
     default:
-      return '/recipes';
+      return { to: '/recipes', label: 'Rezepte' };
   }
 }
 
+/** Section of the checklist: icon plaque and group title, rows divided by hairlines. */
 function Group({
   title,
+  icon,
   entries,
   checked,
   onToggle,
 }: {
   title: string;
+  icon: string;
   entries: MaterialListEntry[];
   checked: ReadonlySet<number>;
   onToggle: (materialId: number) => void;
 }) {
   if (entries.length === 0) return null;
   return (
-    <section className="bg-card rounded-xl p-4 sm:p-5 shadow-card print:shadow-none print:break-inside-avoid">
-      <h2 className="text-caption font-bold text-muted-foreground uppercase tracking-wider mb-3">{title}</h2>
-      <ul className="divide-y divide-border/40">
+    <section className="rounded-xl bg-card p-4 shadow-card sm:p-5 print:break-inside-avoid print:shadow-none">
+      <h2 className="mb-2 flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <Icon name={icon} size={20} />
+        </span>
+        {title}
+      </h2>
+      <ul className="divide-y divide-border">
         {entries.map((entry) => {
           const isChecked = checked.has(entry.material_id);
           const amount = formatMaterialAmount(entry.amount, entry.is_consumable);
           return (
-            <li key={entry.material_id} className="py-2.5">
-              <label className="flex items-start gap-3 cursor-pointer">
+            <li key={entry.material_id}>
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 py-2">
                 <input
                   type="checkbox"
-                  className="mt-1 h-5 w-5 shrink-0"
+                  className="h-5 w-5 shrink-0 accent-primary"
                   checked={isChecked}
                   onChange={() => onToggle(entry.material_id)}
                   aria-label={`${entry.name} abhaken`}
                 />
-                <span className="flex-1 min-w-0">
-                  <span className={cn('flex items-baseline justify-between gap-3', isChecked && 'opacity-50 line-through')}>
+                <span className="min-w-0 flex-1">
+                  <span className={cn('flex items-center justify-between gap-3', isChecked && 'opacity-50 line-through')}>
                     <Link
                       to={`/material/${entry.slug}`}
-                      className="text-body font-medium hover:underline underline-offset-2"
+                      className="text-emphasis font-semibold text-foreground [overflow-wrap:anywhere] hover:text-primary-dark"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {entry.name}
                     </Link>
-                    {amount && <span className="text-body tabular-nums">{amount}</span>}
+                    {amount && (
+                      <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-0.5 text-caption font-semibold text-primary-dark tabular-nums">
+                        {amount}
+                      </span>
+                    )}
                   </span>
                   {entry.recipes.length > 0 && (
                     <span className="block text-caption text-muted-foreground">
@@ -116,6 +129,30 @@ function Group({
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+/** Progress of the ticked items: big count, petrol bar on the muted track. */
+function Progress({ checked, total }: { checked: number; total: number }) {
+  const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+  return (
+    <section className="space-y-3 rounded-xl bg-card p-4 shadow-card sm:p-5 print:hidden" aria-label="Fortschritt">
+      <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Fortschritt</p>
+      <p className="font-display text-metric font-extrabold tabular-nums">
+        {checked}
+        <span className="text-emphasis font-medium text-muted-foreground"> von {total} erledigt</span>
+      </p>
+      <div
+        role="progressbar"
+        aria-label="Erledigte Materialien"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={checked}
+        className="h-2.5 overflow-hidden rounded-full bg-muted"
+      >
+        <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${pct}%` }} />
+      </div>
     </section>
   );
 }
@@ -156,7 +193,7 @@ export default function MaterialChecklistPage() {
 
   if (source === null) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <EmptyState
           icon="inventory_2"
           title="Keine Materialliste ausgewählt"
@@ -169,7 +206,7 @@ export default function MaterialChecklistPage() {
   }
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <ErrorDisplay error={error} onRetry={() => refetch()} />
       </div>
     );
@@ -177,20 +214,20 @@ export default function MaterialChecklistPage() {
   if (isPending || !data) return <PageSkeleton />;
 
   const isEmpty = data.devices.length === 0 && data.consumables.length === 0;
+  const entries = [...data.devices, ...data.consumables];
+  const checkedCount = entries.filter((entry) => checked.has(entry.material_id)).length;
+  const back = backTarget(source);
+  const description: ReactNode = (
+    <>
+      {data.title}
+      {source.kind === 'recipe' ? ` · ${source.servings} ${source.servings === 1 ? 'Portion' : 'Portionen'}` : ''}
+    </>
+  );
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <header className="mb-6 space-y-3">
-        <BackButton to={backTarget(source)} className="mb-5" />
-        <h1 className="font-display text-display font-extrabold text-foreground [overflow-wrap:anywhere]">
-          Materialliste
-        </h1>
-        <p className="mt-2 text-body text-muted-foreground">
-          {data.title}
-          {source.kind === 'recipe' ? ` · ${source.servings} ${source.servings === 1 ? 'Portion' : 'Portionen'}` : ''}
-        </p>
-      </header>
-      <h1 className="hidden print:block text-title font-bold mb-4">Materialliste: {data.title}</h1>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 md:py-8">
+      <DetailHeader title="Materialliste" back={back} description={description} />
+      <p className="hidden print:block text-title font-bold mb-4">Materialliste: {data.title}</p>
 
       {isEmpty ? (
         <EmptyState
@@ -200,21 +237,29 @@ export default function MaterialChecklistPage() {
         />
       ) : (
         <div className="space-y-4">
+          <Progress checked={checkedCount} total={entries.length} />
           <div className="flex flex-wrap gap-2 print:hidden">
-            <Button type="button" variant="outline" onClick={handleCopy} data-testid="material-list-copy">
+            <Button type="button" variant="secondary" onClick={handleCopy} data-testid="material-list-copy">
               <ClipboardCopy className="w-4 h-4 mr-1.5" />
               Kopieren
             </Button>
-            <Button type="button" variant="outline" onClick={() => window.print()} data-testid="material-list-print">
+            <Button type="button" variant="secondary" onClick={() => window.print()} data-testid="material-list-print">
               <Printer className="w-4 h-4 mr-1.5" />
               Drucken / PDF
             </Button>
           </div>
-          <Group title="Benötigte Geräte" entries={data.devices} checked={checked} onToggle={toggle} />
-          <Group title="Verbrauchsmaterial" entries={data.consumables} checked={checked} onToggle={toggle} />
+          <Group title="Benötigte Geräte" icon="restaurant" entries={data.devices} checked={checked} onToggle={toggle} />
+          <Group
+            title="Verbrauchsmaterial"
+            icon="inventory_2"
+            entries={data.consumables}
+            checked={checked}
+            onToggle={toggle}
+          />
           {data.total_cost > 0 && (
-            <p className="text-body text-muted-foreground text-right">
-              Verbrauchsmaterial ca. <span className="font-semibold text-foreground">{formatEuro(data.total_cost)}</span>
+            <p className="text-right text-body text-muted-foreground">
+              Verbrauchsmaterial ca.{' '}
+              <span className="font-semibold text-foreground tabular-nums">{formatEuro(data.total_cost)}</span>
             </p>
           )}
         </div>

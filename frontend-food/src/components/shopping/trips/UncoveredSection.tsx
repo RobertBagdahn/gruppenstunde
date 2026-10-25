@@ -13,7 +13,7 @@ interface UncoveredSectionProps {
 export default function UncoveredSection({ uncovered, hints, ruleNames }: UncoveredSectionProps) {
   if (uncovered.length === 0 && hints.length === 0) return null;
   return (
-    <section aria-label="Nicht gedeckt und Hinweise" className="space-y-3 rounded-xl border border-warning-border bg-warning-soft p-4 text-warning">
+    <section aria-label="Nicht gedeckt und Hinweise" className="space-y-3 rounded-xl border border-warning-border bg-warning-soft p-4 text-warning shadow-soft">
       {uncovered.length > 0 && (
         <div>
           <h3 className="flex items-center gap-2 font-display text-emphasis font-bold">

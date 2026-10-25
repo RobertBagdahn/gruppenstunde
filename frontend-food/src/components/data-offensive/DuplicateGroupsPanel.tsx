@@ -104,7 +104,7 @@ export default function DuplicateGroupsPanel({ onNotify }: DuplicateGroupsPanelP
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-body text-destructive">
+        <div className="rounded-xl border border-danger-border bg-danger-soft p-3 text-body text-danger">
           {getApiErrorMessage(error)}{' '}
           <button type="button" className="underline" onClick={() => refetch()}>
             Erneut versuchen

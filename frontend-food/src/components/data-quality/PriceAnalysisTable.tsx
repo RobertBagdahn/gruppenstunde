@@ -39,7 +39,7 @@ function anomalyBadge(type: PriceAnomaly['anomaly_type']) {
       );
     case 'pending':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-caption font-medium text-primary">
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-caption font-medium text-primary">
           <Sparkles className="h-3 w-3" />Vorschlag ausstehend
         </span>
       );
@@ -227,7 +227,7 @@ export default function PriceAnalysisTable() {
       {showComparison && suggestions.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-body font-semibold">KI-Bewertung</h3>
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-body">
               <thead>
                 <tr className="bg-muted/50">
@@ -277,7 +277,7 @@ export default function PriceAnalysisTable() {
       {/* Price Analysis Table */}
       {!showComparison && data && data.items.length > 0 && (
         <>
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-body">
               <thead>
                 <tr className="bg-muted/50">
@@ -329,7 +329,7 @@ export default function PriceAnalysisTable() {
                         {item.anomaly_type === 'pending' ? (
                           <a
                             href={`/ingredients/${item.slug}`}
-                            className="inline-flex h-7 items-center rounded-lg px-2 text-caption font-medium text-primary hover:bg-primary/10"
+                            className="inline-flex h-7 items-center rounded-lg px-2 text-caption font-medium text-primary hover:bg-primary-soft"
                             title="Vorschlag auf der Zutatenseite prüfen"
                           >
                             <Sparkles className="h-3.5 w-3.5 mr-1" />
@@ -343,7 +343,7 @@ export default function PriceAnalysisTable() {
                               size="sm"
                               onClick={() => handleEvaluate([item.id])}
                               disabled={evaluateMutation.isPending}
-                              className="h-7 px-2 text-caption gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                              className="h-7 px-2 text-caption gap-1 text-primary hover:text-primary hover:bg-primary-soft"
                               title="Fehlenden oder 0er-Preis mit KI schätzen"
                             >
                               {evaluateMutation.isPending ? (

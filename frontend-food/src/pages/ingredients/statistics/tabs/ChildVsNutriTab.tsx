@@ -15,7 +15,7 @@ export default function ChildVsNutriTab() {
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
-        <div className="h-96 bg-muted/40 animate-pulse rounded-xl" />
+        <div className="h-96 skeleton-shimmer rounded-xl" />
       ) : data ? (
         <HeatmapExplorer data={data} xLabel="Child-Score" yLabel="Nutri-Score" xUnit="pts" yUnit="pts" />
       ) : null}

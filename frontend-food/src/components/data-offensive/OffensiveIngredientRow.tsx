@@ -57,7 +57,7 @@ function NumberCell({ label, value, flagged, suggestion, disabled, onCommit }: N
         }}
         className={cn(
           'h-8 w-full rounded-lg border bg-background px-1.5 text-body tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          flagged && 'border-destructive bg-destructive/5',
+          flagged && 'border-danger-border bg-danger-soft',
           value === null && 'border-dashed'
         )}
         aria-invalid={flagged}
@@ -120,7 +120,7 @@ export default function OffensiveIngredientRow({
   );
 
   return (
-    <DataCardRow className={cn('md:items-start', selected && 'border-primary/50 bg-primary/5')}>
+    <DataCardRow className={cn('md:items-start', selected && 'border-primary/50 bg-primary-soft')}>
       <div className="flex gap-3 min-w-0 md:w-72 md:shrink-0">
         <Checkbox checked={selected} onCheckedChange={onToggle} aria-label={`${ingredient.name} auswählen`} className="mt-1" />
         <div className="min-w-0 space-y-1.5">
@@ -170,7 +170,7 @@ export default function OffensiveIngredientRow({
                 key={issue}
                 className={cn(
                   'rounded-full px-2 py-0.5 text-caption font-medium',
-                  CRITICAL_ISSUES.has(issue) ? 'bg-destructive/10 text-destructive' : 'bg-warning-soft text-warning'
+                  CRITICAL_ISSUES.has(issue) ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning'
                 )}
               >
                 {issueLabels[issue] ?? issue}

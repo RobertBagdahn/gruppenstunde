@@ -27,9 +27,9 @@ const STATUS_LABELS: Record<PackageSuggestion['status'], string> = {
 };
 
 function confidenceClass(confidence: number): string {
-  if (confidence >= 0.8) return 'bg-primary/10 text-primary border-primary/20';
+  if (confidence >= 0.8) return 'bg-primary-soft text-primary-dark border-primary-soft-border';
   if (confidence >= 0.5) return 'bg-muted text-foreground border-border';
-  return 'bg-destructive/10 text-destructive border-destructive/20';
+  return 'bg-danger-soft text-danger border-danger-border';
 }
 
 /** One AI package suggestion with inline editing and accept/reject actions. */

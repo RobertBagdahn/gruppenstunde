@@ -198,7 +198,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
               onClick={() =>
                 onFiltersChange({ ...filters, nutrition_issue: filters.nutrition_issue === code ? undefined : code, page: 1 })
               }
-              className={`rounded-full border px-2.5 py-1 text-caption ${filters.nutrition_issue === code ? 'border-primary bg-primary/10 text-primary' : 'bg-card'}`}
+              className={`inline-flex min-h-11 items-center rounded-full border px-2.5 py-1 text-caption md:min-h-9 ${filters.nutrition_issue === code ? 'border-primary bg-card font-semibold text-primary-dark' : 'border-border bg-card text-foreground'}`}
             >
               {summary.nutrition_issue_labels[code] ?? code} · {count}
             </button>
@@ -206,7 +206,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
         </div>
       )}
 
-      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 backdrop-blur">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-xl bg-card/95 p-2 shadow-soft backdrop-blur">
         <label className="flex items-center gap-2 px-1 text-caption font-medium">
           <input
             type="checkbox"
@@ -255,7 +255,7 @@ export default function OffensiveWorkList({ summary, filters, onFiltersChange, o
           <Loader2 className="h-5 w-5 animate-spin text-primary" /> Lade Zutaten …
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-body text-destructive space-y-2">
+        <div className="rounded-xl border border-danger-border bg-danger-soft p-4 text-body text-danger space-y-2">
           <p className="font-semibold">Arbeitsliste konnte nicht geladen werden</p>
           <p>{getApiErrorMessage(error)}</p>
           <Button size="sm" variant="outline" onClick={() => refetch()}>

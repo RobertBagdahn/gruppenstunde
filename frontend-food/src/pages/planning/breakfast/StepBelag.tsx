@@ -2,7 +2,7 @@
  * Step 2 — Belag: globaler Intensitäts-Schalter + Sortenverteilung (kcal-basiert).
  */
 import { useEffect } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus, Sandwich, SlidersHorizontal } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import {
@@ -11,7 +11,9 @@ import {
 } from '@/lib/breakfastCalc';
 import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import ShareSlider from './ShareSlider';
+import WizardSectionHeading from '../wizard/WizardSectionHeading';
 import type { ToppingSelection, ToppingIntensity } from '@/schemas/breakfast';
+import { BREAKFAST_CARD_CLASS, BREAKFAST_CHIP_CLASS } from './breakfastStyles';
 
 interface StepBelagProps {
   wiz: UseWizardStateReturn;
@@ -66,11 +68,11 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
   const activeToppings = state.toppings.filter((t) => t.sharePercent > 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Intensität */}
-      <div className="bg-card rounded-xl p-4 space-y-3 shadow-card">
-        <h3 className="font-display font-semibold text-emphasis">Belag-Intensität</h3>
-        <p className="text-caption text-muted-foreground">
+      <div className={BREAKFAST_CARD_CLASS}>
+        <WizardSectionHeading icon={<SlidersHorizontal className="h-5 w-5" />}>Belag-Intensität</WizardSectionHeading>
+        <p className="-mt-2 text-caption text-muted-foreground">
           Wie viel Belag pro Person?
         </p>
         <div className="flex gap-2">
@@ -78,11 +80,12 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
             <button
               key={level}
               type="button"
+              aria-pressed={state.globalIntensity === level}
               onClick={() => setGlobalIntensity(level)}
-              className={`flex-1 py-2 px-3 rounded-lg text-body font-medium border transition-colors ${
+              className={`flex min-h-11 flex-1 items-center justify-center rounded-lg border px-3 text-body font-semibold transition-colors ${
                 state.globalIntensity === level
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border hover:bg-muted text-foreground'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-card text-foreground hover:bg-muted'
               }`}
             >
               {INTENSITY_LABELS[level]}
@@ -90,14 +93,14 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
           ))}
         </div>
         <p className="text-caption text-muted-foreground">
-          Gesamt Belag: <span className="font-medium text-foreground">{Math.round(toppingKcal)} kcal</span>/Person
+          Gesamt Belag: <span className="font-semibold text-foreground">{Math.round(toppingKcal)} kcal</span>/Person
         </p>
       </div>
 
       {/* Sortenwarnung ab 4 Sorten */}
       {activeToppings.length >= 4 && (
-        <div className="flex items-start gap-2 bg-muted border border-border rounded-xl px-4 py-3">
-          <AlertTriangle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-xl border border-border bg-muted px-4 py-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <p className="text-body text-muted-foreground">
             Bei {activeToppings.length} Sorten entstehen mehr Reste. Lieber 2–3 Sorten wählen.
           </p>
@@ -106,21 +109,20 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
 
       {/* Sortenverteilung */}
       {state.toppings.length > 0 && (
-        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-emphasis">Sortenverteilung</h3>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => wiz.openCreateModal('ingredient', 'breakfast-topping')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
-              >
-                + Neues Belag erstellen
-              </button>
-              <span className="text-caption text-muted-foreground">
-                {Math.round(toppingKcal)} kcal/Person
-              </span>
-            </div>
+        <div className={BREAKFAST_CARD_CLASS}>
+          <WizardSectionHeading icon={<Sandwich className="h-5 w-5" />}>Sortenverteilung</WizardSectionHeading>
+          <div className="-mt-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-caption text-muted-foreground">
+              {Math.round(toppingKcal)} kcal/Person
+            </span>
+            <button
+              type="button"
+              onClick={() => wiz.openCreateModal('ingredient', 'breakfast-topping')}
+              className={BREAKFAST_CHIP_CLASS}
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Neues Belag erstellen
+            </button>
           </div>
           <div className="space-y-4">
             {state.toppings.map((t, i) => {

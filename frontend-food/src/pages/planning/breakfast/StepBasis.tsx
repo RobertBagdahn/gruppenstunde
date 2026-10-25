@@ -2,12 +2,15 @@
  * Step 1 — Basis: Brotsortenverteilung + Gramm/kcal-Anzeige.
  */
 import { useEffect } from 'react';
+import { Plus, Wheat } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import { computeGroupKcal, breadItemGrams } from '@/lib/breakfastCalc';
 import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import ShareSlider from './ShareSlider';
+import WizardSectionHeading from '../wizard/WizardSectionHeading';
 import type { BasisSelection } from '@/schemas/breakfast';
+import { BREAKFAST_CARD_CLASS, BREAKFAST_CHIP_CLASS } from './breakfastStyles';
 
 interface StepBasisProps {
   wiz: UseWizardStateReturn;
@@ -40,24 +43,23 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
   const hasMuesli = state.basis.some((b) => /müsli|haferflock/i.test(b.name) && b.sharePercent > 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Sortenverteilung */}
       {state.basis.length > 0 && (
-        <div className="bg-card rounded-xl p-4 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display font-semibold text-emphasis">Sortenverteilung</h3>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => wiz.openCreateModal('ingredient', 'breakfast-base')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-body font-medium hover:bg-muted transition-colors"
-              >
-                +  Neue Basis erstellen
-              </button>
-              <span className="text-caption text-muted-foreground">
-                 {Math.round(totalGrams)}g · {Math.round(breadKcal)} kcal/Person
-              </span>
-            </div>
+        <div className={BREAKFAST_CARD_CLASS}>
+          <WizardSectionHeading icon={<Wheat className="h-5 w-5" />}>Sortenverteilung</WizardSectionHeading>
+          <div className="-mt-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-caption text-muted-foreground">
+              {Math.round(totalGrams)} g · {Math.round(breadKcal)} kcal/Person
+            </span>
+            <button
+              type="button"
+              onClick={() => wiz.openCreateModal('ingredient', 'breakfast-base')}
+              className={BREAKFAST_CHIP_CLASS}
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Neue Basis erstellen
+            </button>
           </div>
           <div className="space-y-4">
             {state.basis.map((b, i) => {
@@ -85,7 +87,7 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
             })}
           </div>
           {hasMuesli && (
-            <p className="text-caption text-muted-foreground rounded-lg bg-muted/50 px-3 py-2">
+            <p className="rounded-lg bg-muted px-3 py-2 text-caption text-muted-foreground">
               Müsli-Menge als Trockenprodukt. Milch, Hafermilch und Obst kannst du in den nächsten Schritten ergänzen.
             </p>
           )}
@@ -93,17 +95,17 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
       )}
 
       {isPending && (
-        <p className="text-body text-muted-foreground text-center py-8">
+        <p className="py-8 text-center text-body text-muted-foreground">
           Katalog wird geladen…
         </p>
       )}
       {isError && (
-        <p className="text-body text-destructive text-center py-8">
+        <p className="py-8 text-center text-body text-destructive">
           Fehler beim Laden des Katalogs
         </p>
       )}
       {!isPending && !isError && catalog && catalog.base_ingredients.length === 0 && (
-        <p className="text-body text-muted-foreground text-center py-8">
+        <p className="py-8 text-center text-body text-muted-foreground">
           Keine Basis-Zutaten verfügbar
         </p>
       )}

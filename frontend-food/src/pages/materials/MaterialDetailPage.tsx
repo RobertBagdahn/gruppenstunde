@@ -8,12 +8,13 @@ import { Loader2, Pencil, Trash2, GitMerge } from 'lucide-react';
 import { notify } from '@/lib/notify';
 import { useDeleteMaterial, useMaterial, useMergeMaterial } from '@/api/materials';
 import { useMaterialSearch } from '@/api/supplies';
-import { BackButton } from '@/components/shared/BackButton';
+import DetailHeader from '@/components/shared/DetailHeader';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MaterialFormDialog from '@/components/material/MaterialFormDialog';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -62,14 +63,14 @@ function MergeDialog({
           }}
         />
         {!target && results && (
-          <ul className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+          <ul className="max-h-56 overflow-y-auto rounded-xl border border-border bg-card divide-y divide-border">
             {results
               .filter((m) => m.id !== sourceId)
               .map((m) => (
                 <li key={m.id}>
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 text-body hover:bg-muted"
+                    className="flex min-h-11 w-full items-center px-3 text-left text-body font-medium hover:bg-muted transition-colors"
                     onClick={() => setTarget({ id: m.id, name: m.name, slug: m.slug })}
                   >
                     {m.name}
@@ -120,19 +121,20 @@ export default function MaterialDetailPage() {
 
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <ErrorDisplay error={error} onRetry={() => refetch()} onBack={() => navigate('/material')} backLabel="Zurück" />
       </div>
     );
   }
   if (isPending || !material) return <PageSkeleton />;
 
+  const typeLabel = material.is_consumable ? 'Verbrauchsmaterial' : 'Gerät';
   const categoryLabel =
     MATERIAL_CATEGORY_OPTIONS.find((opt) => opt.value === material.material_category)?.label ??
     material.material_category;
 
   const facts: { label: string; value: string }[] = [
-    { label: 'Art', value: material.is_consumable ? 'Verbrauchsmaterial' : 'Gerät' },
+    { label: 'Art', value: typeLabel },
     { label: 'Kategorie', value: categoryLabel },
   ];
   if (material.package_size !== null) {
@@ -149,27 +151,44 @@ export default function MaterialDetailPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <header className="mb-6 space-y-3">
-        <BackButton to="/material" className="mb-5" />
-        <h1 className="font-display text-display font-extrabold text-foreground [overflow-wrap:anywhere]">
-          {material.name}
-        </h1>
-        <p className="mt-2 text-body text-muted-foreground">{material.is_consumable ? 'Verbrauchsmaterial' : 'Gerät'}</p>
-      </header>
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 md:py-8">
+      <DetailHeader
+        title={material.name}
+        back={{ to: '/material', label: 'Material' }}
+        description={typeLabel}
+      >
+        <div className="flex flex-wrap gap-2">
+          <span
+            className={
+              material.is_consumable
+                ? 'rounded-full bg-muted px-3 py-1 text-body font-semibold text-foreground'
+                : 'rounded-full bg-primary-soft px-3 py-1 text-body font-semibold text-primary-dark'
+            }
+          >
+            {typeLabel}
+          </span>
+          <span className="rounded-full bg-muted px-3 py-1 text-body font-semibold text-foreground">{categoryLabel}</span>
+        </div>
+      </DetailHeader>
 
-      <section className="bg-card rounded-xl p-5 shadow-card space-y-4">
-        {material.description && <p className="text-body">{material.description}</p>}
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+      <section className="space-y-5 rounded-xl bg-card p-5 shadow-card">
+        <h2 className="flex items-center gap-3 text-body font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+            <Icon name="label" size={20} />
+          </span>
+          Steckbrief
+        </h2>
+        {material.description && <p className="text-emphasis">{material.description}</p>}
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
           {facts.map((fact) => (
             <div key={fact.label}>
-              <dt className="text-caption text-muted-foreground">{fact.label}</dt>
-              <dd className="text-body font-medium">{fact.value}</dd>
+              <dt className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">{fact.label}</dt>
+              <dd className="mt-0.5 text-emphasis font-semibold tabular-nums">{fact.value}</dd>
             </div>
           ))}
         </dl>
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Button asChild variant="outline">
+        <div className="flex flex-wrap gap-2 border-t border-border pt-5">
+          <Button asChild variant="secondary">
             <Link to={`/recipes?material=${material.slug}`}>Rezepte mit diesem Material</Link>
           </Button>
           {material.can_edit && (

@@ -185,7 +185,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
               y1={toPlotY(fitLine.y1)}
               x2={toPlotX(fitLine.x2)}
               y2={toPlotY(fitLine.y2)}
-              stroke="#ef4444"
+              stroke="hsl(var(--chart-2))"
               strokeWidth={2.5}
               strokeDasharray="6 3"
             />
@@ -229,7 +229,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
           {fitLine && (
             <g>
               <rect x={MARGIN.left + plotW - 120} y={MARGIN.top + 4} width={116} height={20} rx={4} fill="hsl(var(--background))" opacity={0.85} />
-              <line x1={MARGIN.left + plotW - 114} y1={MARGIN.top + 14} x2={MARGIN.left + plotW - 90} y2={MARGIN.top + 14} stroke="#ef4444" strokeWidth={2} strokeDasharray="4 2" />
+              <line x1={MARGIN.left + plotW - 114} y1={MARGIN.top + 14} x2={MARGIN.left + plotW - 90} y2={MARGIN.top + 14} stroke="hsl(var(--chart-2))" strokeWidth={2} strokeDasharray="4 2" />
               <text x={MARGIN.left + plotW - 84} y={MARGIN.top + 17} fill="hsl(var(--muted-foreground))" fontSize={10}>
                 Linearer Fit
               </text>
@@ -239,7 +239,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
 
         {tooltip && (
           <div
-            className="absolute pointer-events-none bg-popover text-popover-foreground rounded-lg border shadow-md px-3 py-2 text-caption space-y-1 z-50"
+            className="absolute pointer-events-none bg-popover text-popover-foreground rounded-lg border shadow-soft px-3 py-2 text-caption space-y-1 z-50"
             style={{
               left: Math.min(tooltip.x / width * 100, 75) + '%',
               top: Math.max(tooltip.y / height * 100 - 10, 0) + '%',

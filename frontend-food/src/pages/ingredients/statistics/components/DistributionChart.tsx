@@ -69,7 +69,7 @@ export default function DistributionChart({ data, unit, label }: DistributionCha
 function StatBox({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl bg-card p-3 text-center shadow-card">
-      <p className="text-caption text-muted-foreground">{label}</p>
+      <p className="text-caption font-semibold uppercase tracking-wide text-primary-dark">{label}</p>
       <p className="text-section font-bold font-display text-foreground mt-0.5">{value}</p>
     </div>
   );

@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAiInteractionStats, useAiUserCosts } from '@/api/aiInteraction';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import AiCostOverviewCards from '@/components/admin/ai/AiCostOverviewCards';
@@ -63,19 +62,22 @@ export default function AiFeedbackTab() {
   });
 
   const viewNavigation = (
-    <div className="flex gap-1 border-b overflow-x-auto">
+    <div className="flex gap-2 overflow-x-auto pb-1">
       {(['overview', 'requests'] as const).map((view) => (
         <button
           key={view}
           type="button"
+          aria-pressed={activeView === view}
           onClick={() => setSearchParams((current) => {
             const next = new URLSearchParams(current);
             if (view === 'requests') next.set('view', 'requests');
             else next.delete('view');
             return next;
           })}
-          className={`px-3 py-1.5 text-body font-medium whitespace-nowrap border-b-2 transition-colors ${
-            activeView === view ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+          className={`press flex h-11 md:h-9 shrink-0 items-center rounded-full border bg-card px-4 text-body whitespace-nowrap transition-colors duration-200 ${
+            activeView === view
+              ? 'border-primary font-semibold text-primary-dark'
+              : 'border-border font-medium text-foreground hover:border-primary-soft-border'
           }`}
         >
           {view === 'overview' ? 'Übersicht' : 'Alle Anfragen'}
@@ -99,9 +101,7 @@ export default function AiFeedbackTab() {
         {viewNavigation}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="h-24 animate-pulse bg-muted rounded-lg" />
-            </Card>
+            <div key={i} aria-hidden="true" className="skeleton-shimmer h-24 rounded-xl" />
           ))}
         </div>
       </div>

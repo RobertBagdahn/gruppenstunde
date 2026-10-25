@@ -31,7 +31,7 @@ import {
   useSetRecipeImageFromUrl,
   useRecipes,
 } from '@/api/recipes';
-import { formatEuro } from '@/lib/format';
+import { formatEuro, formatWeight } from '@/lib/format';
 import {
   RECIPE_DIFFICULTY_OPTIONS,
   getRecipeExecutionTimeLabel,
@@ -501,6 +501,14 @@ export default function RecipeDetailPage() {
                 Inspi-verifiziert
               </span>
             )}
+            {(recipe.nutritional_tags ?? []).map((nt) => (
+              <span
+                key={nt.id}
+                className="inline-flex h-8 items-center rounded-full bg-secondary px-3 text-body font-semibold text-foreground"
+              >
+                {nt.name}
+              </span>
+            ))}
           </div>
           <h1 className="font-display text-title font-extrabold text-foreground [overflow-wrap:anywhere]">{recipe.title}</h1>
           {recipe.summary && <p className="max-w-2xl text-emphasis text-muted-foreground">{recipe.summary}</p>}
@@ -568,11 +576,11 @@ export default function RecipeDetailPage() {
             <button
               type="button"
               onClick={() => setPdfDialogOpen(true)}
-              className="press flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-foreground transition-colors hover:bg-primary-soft"
+              className="press inline-flex h-11 items-center gap-2 rounded-lg bg-primary-soft px-4 text-body font-semibold text-primary-dark transition-colors hover:bg-primary-soft-border/70"
               title="Als PDF öffnen"
-              aria-label="Als PDF öffnen"
             >
-              <Printer className="h-5 w-5" />
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Drucken
             </button>
             {recipe.can_delete && (
               <button
@@ -933,6 +941,15 @@ export default function RecipeDetailPage() {
             showQuantityOutliers={recipe.can_edit}
           />
         )}
+        {!isInlineEditMode && (recipe.recipe_items ?? []).length > 0 && (
+          <p className="mt-4 flex flex-wrap justify-end gap-x-2 text-body text-muted-foreground tabular-nums">
+            <span>{(recipe.recipe_items ?? []).length} {(recipe.recipe_items ?? []).length === 1 ? 'Zutat' : 'Zutaten'}</span>
+            {nb && nb.total_weight_g > 0 && (
+              <span>· {formatWeight(nb.total_weight_g * (isDirty ? 1 : portionsMultiplier))}</span>
+            )}
+            {displayedPriceTotal != null && <span className="font-semibold text-foreground">· {formatEuro(displayedPriceTotal)}</span>}
+          </p>
+        )}
       </section>
 
       {/* Recipe Materials: devices and consumables, scaled to the selected servings */}
@@ -943,26 +960,6 @@ export default function RecipeDetailPage() {
         canEdit={recipe.can_edit}
         onEdit={() => navigate(`/recipes/${recipe.slug}/edit`)}
       />
-
-      {/* Nutritional Tags */}
-      {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
-        <section className="bg-card rounded-xl p-6 shadow-card">
-          <h2 className="flex items-center gap-2 text-body font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <Icon name="nutrition" size={20} />
-            Ernährungstags
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {recipe.nutritional_tags?.map((nt) => (
-              <span
-                key={nt.id}
-                className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft text-warning border border-warning-border px-3 py-1 text-body font-medium"
-              >
-                {nt.name}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Shopping: a new trip or an existing list */}
       <RecipePurchaseDialog
@@ -1321,7 +1318,7 @@ export default function RecipeDetailPage() {
 
       {/* Usage in meal plans */}
       {(recipe.usage_in_meal_plans_count ?? 0) > 0 && (
-        <RecipeUsageInMealPlans recipeId={recipeId} count={recipe.usage_in_meal_plans_count} />
+        <RecipeUsageInMealPlans recipeId={recipeId} count={recipe.usage_in_meal_plans_count} className="lg:hidden" />
       )}
 
       <ContentLinkSection contentType="recipe" objectId={recipeId} />
