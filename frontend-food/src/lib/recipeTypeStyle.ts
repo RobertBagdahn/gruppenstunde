@@ -16,6 +16,17 @@ export const RECIPE_TINT_CLASSES: Record<RecipeTint, string> = {
   drink: 'bg-category-drink-soft text-category-drink-foreground',
 };
 
+/** Colour dot per recipe type for filter chips (food-colorful-detail: only a dot carries colour). */
+export const RECIPE_DOT_CLASSES: Record<RecipeTint, string> = {
+  breakfast: 'bg-category-breakfast-foreground',
+  warm: 'bg-category-warm-foreground',
+  cold: 'bg-category-cold-foreground',
+  dessert: 'bg-category-dessert-foreground',
+  snack: 'bg-category-snack-foreground',
+  'recipe-part': 'bg-category-recipe-part-foreground',
+  drink: 'bg-category-drink-foreground',
+};
+
 /** Neutral surface for recipes without a type (no tint, no status meaning). */
 export const NEUTRAL_TINT_CLASSES = 'bg-muted text-muted-foreground';
 

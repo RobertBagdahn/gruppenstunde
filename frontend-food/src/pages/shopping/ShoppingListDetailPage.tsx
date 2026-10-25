@@ -677,8 +677,8 @@ export default function ShoppingListDetailPage() {
 
       {/* Total price */}
       {!shopMode && items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
-        <div className="flex items-center justify-between bg-category-breakfast-soft rounded-xl px-4 py-3 mb-6">
-          <span className="text-body font-semibold text-category-breakfast-foreground">
+        <div className="flex items-center justify-between border border-line bg-card shadow-card rounded-xl px-4 py-3 mb-6">
+          <span className="text-body font-semibold text-primary-dark">
             Geschätzter Gesamtpreis
           </span>
           <span className="text-section font-bold text-foreground">

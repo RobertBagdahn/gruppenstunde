@@ -19,22 +19,19 @@ interface ModuleTile {
   icon: string;
   href: string;
   description: string;
-  /** Tint of the tile surface and its count/hover accent (written out so Tailwind generates it). */
-  tint: string;
-  accent: string;
 }
 
 const MODULE_TILES: readonly ModuleTile[] = [
-  { key: 'recipes', label: 'Rezepte', icon: 'menu_book', href: '/recipes', description: 'Rezepte finden, anlegen und mit Nährwerten rechnen.', tint: 'bg-category-warm-soft', accent: 'text-category-warm-foreground' },
-  { key: 'meal-plans', label: 'Essenspläne', icon: 'restaurant_menu', href: '/meal-plans/app', description: 'Mahlzeiten für Lager und Fahrten planen.', tint: 'bg-category-dessert-soft', accent: 'text-category-dessert-foreground' },
-  { key: 'shopping', label: 'Einkaufslisten', icon: 'shopping_cart', href: '/shopping-lists', description: 'Gemeinsam abhaken, sortiert nach Abteilung.', tint: 'bg-category-cold-soft', accent: 'text-category-cold-foreground' },
-  { key: 'ingredients', label: 'Zutaten', icon: 'egg', href: '/ingredients', description: 'Nährwerte, Preise und Portionen.', tint: 'bg-category-snack-soft', accent: 'text-category-snack-foreground' },
+  { key: 'recipes', label: 'Rezepte', icon: 'menu_book', href: '/recipes', description: 'Rezepte finden, anlegen und mit Nährwerten rechnen.' },
+  { key: 'meal-plans', label: 'Essenspläne', icon: 'restaurant_menu', href: '/meal-plans/app', description: 'Mahlzeiten für Lager und Fahrten planen.' },
+  { key: 'shopping', label: 'Einkaufslisten', icon: 'shopping_cart', href: '/shopping-lists', description: 'Gemeinsam abhaken, sortiert nach Abteilung.' },
+  { key: 'ingredients', label: 'Zutaten', icon: 'egg', href: '/ingredients', description: 'Nährwerte, Preise und Portionen.' },
 ];
 
 const STEPS = [
   { title: 'Rezepte auswählen', text: 'Nach Kategorie, Zeit und Kosten filtern.', badge: 'bg-spice' },
   { title: 'Plan bauen', text: 'Tage füllen, Budget und kcal rechnen mit.', badge: 'bg-primary' },
-  { title: 'Einkaufen und kochen', text: 'Fertige Liste und Kochmodus.', badge: 'bg-category-dessert-foreground' },
+  { title: 'Einkaufen und kochen', text: 'Fertige Liste und Kochmodus.', badge: 'bg-primary-dark' },
 ] as const;
 
 /** Upcoming or unfinished plan: the first one whose end is not in the past. */
@@ -57,13 +54,13 @@ function ModuleCount({ tile, data, isLoading, failed }: { tile: ModuleTile; data
   if (failed || !data) return <span className="text-caption text-muted-foreground">Zahl nicht verfügbar</span>;
   switch (tile.key) {
     case 'recipes':
-      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.recipe_count)} Rezepte</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.recipe_count)} Rezepte</span>;
     case 'meal-plans':
-      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.active_meal_plan_count)} aktiv</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.active_meal_plan_count)} aktiv</span>;
     case 'shopping':
-      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.open_shopping_list_count)} offen</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.open_shopping_list_count)} offen</span>;
     case 'ingredients':
-      return <span className={cn('text-caption font-bold tabular-nums', tile.accent)}>{formatCount(data.ingredient_count)} Einträge</span>;
+      return <span className={cn('text-caption font-bold tabular-nums', 'text-primary-dark')}>{formatCount(data.ingredient_count)} Einträge</span>;
   }
 }
 
@@ -116,9 +113,9 @@ export default function HomePage() {
           <Link
             key={tile.key}
             to={tile.href}
-            className={cn('card-hover group flex flex-col gap-3 rounded-xl p-4 md:p-5', tile.tint)}
+            className={cn('card-hover group flex flex-col gap-3 rounded-xl border border-line bg-card p-4 shadow-card md:p-5')}
           >
-            <span className={cn('flex h-11 w-11 items-center justify-center rounded-lg bg-card shadow-soft', tile.accent)}>
+            <span className={cn('flex h-11 w-11 items-center justify-center rounded-lg bg-primary-soft text-primary-dark')}>
               <Icon name={tile.icon} size={24} aria-hidden="true" />
             </span>
             <span className="font-display text-emphasis font-bold text-foreground ">{tile.label}</span>
@@ -141,14 +138,14 @@ export default function HomePage() {
                 {formatPeriod(plan)} · {formatCount(plan.norm_portions)} Personen
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <p className="rounded-lg bg-category-dessert-soft px-3 py-2">
-                  <span className="block text-caption font-bold text-category-dessert-foreground">Mahlzeiten</span>
+                <p className="rounded-lg border border-line bg-card px-3 py-2">
+                  <span className="block text-caption font-bold uppercase tracking-wider text-primary-dark">Mahlzeiten</span>
                   <span className="font-display text-emphasis font-bold tabular-nums text-foreground">
                     {formatCount(plan.filled_meals_count)} von {formatCount(plan.meals_count)}
                   </span>
                 </p>
-                <p className="rounded-lg bg-category-cold-soft px-3 py-2">
-                  <span className="block text-caption font-bold text-category-cold-foreground">Personen</span>
+                <p className="rounded-lg border border-line bg-card px-3 py-2">
+                  <span className="block text-caption font-bold uppercase tracking-wider text-primary-dark">Personen</span>
                   <span className="font-display text-emphasis font-bold tabular-nums text-foreground">{formatCount(plan.norm_portions)}</span>
                 </p>
               </div>
